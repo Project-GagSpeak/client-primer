@@ -6,6 +6,7 @@ using Dalamud.Interface.Internal.Notifications;
 using Dalamud.Configuration;
 using OtterGui.Classes;
 using OtterGui.Widgets;
+using Dalamud.Interface.Windowing;
 using FFStreamViewer.UI;
 using FFStreamViewer.Services;
 using Newtonsoft.Json;

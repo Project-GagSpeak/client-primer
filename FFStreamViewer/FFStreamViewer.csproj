@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="Dalamud.Plugin.Bootstrap.targets" />
+
+  <PropertyGroup>
+    <TargetFramework>net7.0-windows</TargetFramework>
+    <Copyright>Copyright © 2023</Copyright>
+    <LangVersion>latest</LangVersion>
+    <Version>0.0.1.0</Version>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Deterministic>true</Deterministic>
+    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\images\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
+    
+	<PropertyGroup>
+		<DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+		<OutputType>Library</OutputType>
+	</PropertyGroup>
+
+  <PropertyGroup>
+      <NoWarn>$(NoWarn);IDE1006</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+      <Reference Include="Dalamud">
+          <HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
+          <Private>False</Private>
+      </Reference>
+      <Reference Include="FFXIVClientStructs">
+        <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
+          <Private>False</Private>
+      </Reference>
+      <Reference Include="ImGui.NET">
+          <HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
+          <Private>False</Private>
+      </Reference>
+      <Reference Include="ImGuiScene">
+          <HintPath>$(DalamudLibPath)ImGuiScene.dll</HintPath>
+          <Private>False</Private>
+      </Reference>
+      <Reference Include="Lumina">
+          <HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
+          <Private>False</Private>
+      </Reference>
+      <Reference Include="Lumina.Excel">
+          <HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
+          <Private>False</Private>
+      </Reference>
+      <Reference Include="Newtonsoft.Json">
+        <HintPath>$(DalamudLibPath)Newtonsoft.Json.dll</HintPath>
+        <Private>False</Private>
+      </Reference>
+      <Reference Include="FFXIVClientStructs">
+        <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
+        <Private>False</Private>
+      </Reference>
+      <Reference Include="JetBrains.Annotations">
+              <Private>false</Private>
+              <HintPath>$(DalamudLibPath)\JetBrains.Annotations.dll</HintPath>
+      </Reference>
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\OtterGui\OtterGui.csproj" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="FFStreamViewer.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

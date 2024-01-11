@@ -7,7 +7,7 @@ namespace FFStreamViewer.UI;
 public class FFStreamViewerChangelog
 {
     public const int LastChangelogVersion = 0;
-    private readonly FFStreamViewerConfig _config;
+    private readonly FFSV_Config _config;
     public readonly Changelog Changelog;
 
     /// <summary>
@@ -15,7 +15,7 @@ public class FFStreamViewerChangelog
     /// <list type="bullet">
     /// <item><c>config</c><param name="config"> - The FFStreamViewer configuration.</param></item>
     /// </list> </summary>
-    public FFStreamViewerChangelog(FFStreamViewerConfig config) {
+    public FFStreamViewerChangelog(FFSV_Config config) {
         _config   = config; // initialize the config in our constructor
         Changelog = new Changelog("FFStreamViewer Changelog", ConfigData, Save); // initialize the changelog
         // what displays inside the change log

@@ -4,6 +4,14 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Plugin.Services;
 using Dalamud.Game.Text.SeStringHandling;
 using OtterGui.Classes;
+using FFStreamViewer.Audio;
+using FFStreamViewer.Events;
+using FFStreamViewer.Livestream;
+using FFStreamViewer.Services;
+using FFStreamViewer.UI;
+using FFStreamViewer.UI.Tabs.MediaTab;
+using FFStreamViewer.Utils;
+
 
 namespace FFStreamViewer.UI;
 /// <summary> This class is used to handle the window manager. </summary>
@@ -25,7 +33,7 @@ public class FFSV_WindowManager : IDisposable
     /// <item><c>changelog</c><param name="changelog"> - The changelog.</param></item>
     /// <item><c>userProfile</c><param name="userProfile"> - The user profile window.</param></item>
     /// </list> </summary>
-    public FFSV_WindowManager(UiBuilder uiBuilder, MainWindow ui, FFStreamViewerConfig config,
+    public FFSV_WindowManager(UiBuilder uiBuilder, MainWindow ui, FFSV_Config config,
     IChatGui chatGui, DebugWindow uiDebug, FFStreamViewerChangelog changelog) {
         // set the main ui window
         _uiBuilder       = uiBuilder;

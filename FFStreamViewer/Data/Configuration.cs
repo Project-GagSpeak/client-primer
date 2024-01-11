@@ -15,7 +15,7 @@ using ErrorEventArgs = Newtonsoft.Json.Serialization.ErrorEventArgs;
 namespace FFStreamViewer;
 
 /// <summary> The configuration for the FFStreamViewer plugin. </summary>
-public class FFStreamViewerConfig : IPluginConfiguration, ISavable
+public class FFSV_Config : IPluginConfiguration, ISavable
 {   
     // Plugin information
     public          ChangeLogDisplayType    ChangeLogDisplayType { get; set; } = ChangeLogDisplayType.New;
@@ -23,6 +23,7 @@ public class FFStreamViewerConfig : IPluginConfiguration, ISavable
     public          int                     Version { get; set; } = 0;                                                      // Version of the plugin
     public          bool                    FreshInstall { get; set; } = true;                                              // Is user on a fresh install?
     public          bool                    Enabled { get; set; } = true;                                                   // Is plugin enabled?  
+    public          string                  WatchLink { get; set; }                                                         // The link to the stream we are watching
     public          MainWindow.TabType      SelectedTab { get; set; } = MainWindow.TabType.Media;                           // Default to the general tab
     // variables involved with saving and updating the config
     private readonly SaveService            _saveService;                                                                   // Save service for the FFStreamViewer plugin
@@ -31,13 +32,18 @@ public class FFStreamViewerConfig : IPluginConfiguration, ISavable
     public Dictionary<ColorId, uint> Colors { get; private set; }
         = Enum.GetValues<ColorId>().ToDictionary(c => c, c => c.Data().DefaultColor);
 
-    /// <summary> Initializes a new instance of the <see cref="FFStreamViewerConfig"/> class!
+    /// <summary> Initializes a new instance of the <see cref="FFSV_Config"/> class!
     /// <list type="bullet">
     /// <item><c>saveService</c><param name="saveService"> - The save service.</param></item>
     /// <item><c>migrator</c><param name="migrator"> - The config migrator.</param></item></list></summary>
-    public FFStreamViewerConfig(SaveService saveService, ConfigMigrationService migrator) {
+    public FFSV_Config(SaveService saveService, ConfigMigrationService migrator) {
         _saveService = saveService;
         Load(migrator);
+
+        // initialize values
+        WatchLink = "";
+
+        // Let us know the config has been initialized
         FFStreamViewer.Log.Debug("[Configuration File] Constructor Finished Initializing. Previous data restored.");
     }
 

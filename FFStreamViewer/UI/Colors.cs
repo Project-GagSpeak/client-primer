@@ -52,6 +52,6 @@ public static class Colors
         => _colors.TryGetValue(color, out var value) ? value : color.Data().DefaultColor;
 
     /// <summary> Set the configurable colors dictionary to a value. </summary>
-    public static void SetColors(FFStreamViewerConfig config)
+    public static void SetColors(FFSV_Config config)
         => _colors = config.Colors;
 }

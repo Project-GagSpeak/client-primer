@@ -32,6 +32,7 @@ public class DalamudServices {
 		services.AddSingleton(DalamudPluginInterface.UiBuilder);
 		services.AddSingleton(PluginLog);
 		services.AddSingleton(ChatGui);
+		services.AddSingleton(GameConfig);
 		services.AddSingleton(ClientState);
 		services.AddSingleton(CommandManager);
 		services.AddSingleton(DataManager);
@@ -45,6 +46,7 @@ public class DalamudServices {
 	[PluginService] public IGameInteropProvider GameInteropProvider { get; private set; } = null!; // helps with detouring the chat input for our plugin
 	[PluginService] public DalamudPluginInterface DalamudPluginInterface { get; private set; } = null!; // for interfacing w/ plugin.
 	[PluginService] public IChatGui ChatGui { get; private set; } = null!; // For interfacing with the chat
+	[PluginService] public IGameConfig GameConfig { get; private set; } = null!; // For interfacing with the client state, getting player info, etc.
 	[PluginService] public IClientState ClientState { get; private set; } = null!; // For interfacing with the client state, getting player info, etc.
 	[PluginService] public ICommandManager CommandManager { get; private set; } = null!; // For interfacing with commands
 	[PluginService] public IDataManager DataManager { get; set; } = null!; // for parsing object data

@@ -16,7 +16,7 @@ public class MainWindow : Window
         None            = -1,   // No tab selected
         Media           = 0,    // Where you select your gags and safewords and lock types.
     }
-    private readonly    FFStreamViewerConfig      _config;
+    private readonly    FFSV_Config      _config;
     private readonly    FFStreamViewerChangelog   _changelog;
     private readonly    ITab[]              _tabs;
     public readonly     MediaTab            Media;
@@ -29,7 +29,7 @@ public class MainWindow : Window
     /// <item><c>general</c><param name="general"> - The general tab.</param></item>
     /// <item><c>changelog</c><param name="changelog"> - The changelog.</param></item>
     /// </list> </summary>
-    public MainWindow(DalamudPluginInterface pluginInt, FFStreamViewerConfig config, MediaTab media,
+    public MainWindow(DalamudPluginInterface pluginInt, FFSV_Config config, MediaTab media,
     FFStreamViewerChangelog changelog): base(GetLabel()) {
         // let the user know if their direct chat garlber is still enabled upon launch
         // Let's first make sure that we disable the plugin while inside of gpose.

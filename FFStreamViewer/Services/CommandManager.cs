@@ -7,7 +7,7 @@ using Dalamud.Plugin.Services;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using OtterGui.Classes;
 using FFStreamViewer.UI;
-using FFStreamViewer.UI.Helpers;
+using FFStreamViewer.Utils;
 
 namespace FFStreamViewer.Services;
 
@@ -20,13 +20,13 @@ public class CommandManager : IDisposable // Our main command list manager
     private readonly    MainWindow          _mainWindow;
     private readonly    DebugWindow         _debugWindow;
     private readonly    IChatGui            _chat;
-    private readonly    FFStreamViewerConfig      _config;
+    private readonly    FFSV_Config      _config;
     private readonly    IClientState        _clientState;
     private readonly    IFramework          _framework; 
 
     // Constructor for the command manager
     public CommandManager(ICommandManager command, MainWindow mainwindow, DebugWindow debugWindow, IChatGui chat,
-    FFStreamViewerConfig config, IClientState clientState, IFramework framework)
+    FFSV_Config config, IClientState clientState, IFramework framework)
     {
         // set the private readonly's to the passed in data of the respective names
         _commands = command;

@@ -5,18 +5,18 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
 using FFStreamViewer.Services;
-using FFStreamViewer.UI.Helpers;
+using FFStreamViewer.Utils;
 
 namespace FFStreamViewer.UI;
 /// <summary> This class is used to show the debug menu in its own window. </summary>
 public class DebugWindow : Window //, IDisposable
 {
-    private readonly FFStreamViewerConfig         _config;                        // for retrieving the config data to display to the window
+    private readonly FFSV_Config         _config;                        // for retrieving the config data to display to the window
 
     /// <summary>
     /// Initializes a new instance of the <see cref="HistoryWindow"/> class.
     /// </summary>
-    public DebugWindow(DalamudPluginInterface pluginInt, FFStreamViewerConfig config) : base(GetLabel()) {
+    public DebugWindow(DalamudPluginInterface pluginInt, FFSV_Config config) : base(GetLabel()) {
         // Let's first make sure that we disable the plugin while inside of gpose.
         pluginInt.UiBuilder.DisableGposeUiHide = true;
         // Next let's set the size of the window

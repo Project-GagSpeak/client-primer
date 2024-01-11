@@ -8,7 +8,7 @@ public class ConfigMigrationService
 {
     private readonly    SaveService     _saveService;    // Service for saving data
     private readonly    BackupService   _backupService;  // Service for backing up data
-    private             FFStreamViewerConfig  _config = null!; // Configuration for the FFStreamViewer application
+    private             FFSV_Config  _config = null!; // Configuration for the FFStreamViewer application
     private             JObject         _data   = null!; // Data for the FFStreamViewer application
 
     /// <summary>
@@ -29,12 +29,12 @@ public class ConfigMigrationService
     /// <item><c>config</c><param name="config"> - The FFStreamViewer configuration.</param></item>
     /// </list> </summary>
     /// <returns>The migrated config.</returns>
-    public void Migrate(FFStreamViewerConfig config)
+    public void Migrate(FFSV_Config config)
     {
         // Set the config to the provided config
         _config = config; 
         // If the config version is greater than or equal to the current version, or the config file does not exist, return
-        if (config.Version >= FFStreamViewerConfig.Constants.CurrentVersion || !File.Exists(_saveService.FileNames.ConfigFile))
+        if (config.Version >= FFSV_Config.Constants.CurrentVersion || !File.Exists(_saveService.FileNames.ConfigFile))
             return;
 
         // Otherwise, migrate the config

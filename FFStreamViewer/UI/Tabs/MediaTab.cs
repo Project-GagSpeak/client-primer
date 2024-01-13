@@ -17,67 +17,131 @@ using Dalamud.Plugin;
 using System.Drawing;
 using LibVLCSharp.Shared;
 using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
+using Lumina.Excel.GeneratedSheets;
+using System.Threading.Tasks;
+using Dalamud.Game;
+using Dalamud.Game.ClientState.Objects.Enums;
+using Dalamud.Game.ClientState.Objects.SubKinds;
+using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Interface.Windowing;
+using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Common.Math;
+using System.IO;
+using System.Text.RegularExpressions;
+using System.Threading;
+using FFXIVClientStructs.FFXIV.Client.Game.Housing;
+using Newtonsoft.Json;
+using NAudio.Wave;
+using EventHandler = System.EventHandler;
+using Dalamud.Utility;
+using System.Collections.Concurrent;
 
 namespace FFStreamViewer.UI.Tabs.MediaTab;
 /// <summary> This class is used to handle the general tab for the FFStreamViewer plugin. </summary>
 public class MediaTab : ITab, IDisposable
 {
     #region General Vairables
-    private readonly FFSV_Config            _config;            // the config for the plugin
-    private readonly FFSVLogHelper          _logHelper;         // the log helper for the plugin
-    private readonly IChatGui               _chat;              // the chat service for the plugin
-    private readonly IGameConfig            _gameConfig;        // the game config for the plugin
-    private readonly MediaGameObject        _playerObject;      // the media object for the plugin
-    private readonly MediaManager           _mediaManager;      // the media manager for the plugin
-    private readonly Stopwatch              _streamSetCooldown; // the cooldown for setting the stream
-    private          string?                _tmpWatchLink;      // the language we are translating to
-    private          bool                   _isStreamPlaying;   // is the stream playing?
-    private          string                 _lastStreamURL;     // the last stream URL
+    private readonly    FFSV_Config             _config;            // the config for the plugin
+    private readonly    FFSVLogHelper           _logHelper;         // the log helper for the plugin
+    private readonly    IChatGui                _chat;              // the chat service for the plugin
+    private readonly    IGameConfig             _gameConfig;        // the game config for the plugin
+    private readonly    IClientState            _clientState;       // the client state for the plugin
+    private             MediaGameObject         _playerObject;      // the media object (REPLACES IGAMEOBJECT)
+    private             MediaManager            _mediaManager;      // the media manager for the plugin
+    private readonly    Stopwatch               _streamSetCooldown = new Stopwatch(); // the cooldown for setting the stream
+    private             string?                 _tmpWatchLink;      // the language we are translating to
+    private             bool                    _isStreamPlaying;   // is the stream playing?
+    private             string                  _lastStreamURL;     // the last stream URL
     #endregion General Variables
     #region Video Variables
-    IDalamudTextureWrap                     _textureWrap;       // the texture wrap for the video
-    private          DalamudPluginInterface _pluginInterface;   // the plugin interface for the plugin
-    private readonly Stopwatch              _deadStreamTimer;   // set to determine when a stream is dead
-    private          Vector2?               _windowSize;        // the adjustable window size
-    private          Vector2?               _initialSize;       // the initial window size
-    private          string                 _fpsCount;          // the FPS of the media
-    private          int                    _countedFrames;     // the counted frames of the media
-    private          bool                   _wasStreaming;      // was the stream playing?
+    private             IDalamudTextureWrap     _textureWrap;       // the texture wrap for the video
+    private             DalamudPluginInterface  _pluginInterface;   // the plugin interface for the plugin
+    private readonly    Stopwatch               _deadStreamTimer = new Stopwatch();   // set to determine when a stream is dead
+    private             System.Numerics.Vector2?_windowSize;        // the adjustable window size
+    private             System.Numerics.Vector2?_initialSize;       // the initial window size
+    private             string                  _fpsCount;          // the FPS of the media
+    private             int                     _countedFrames;     // the counted frames of the media
+    private             bool                    _wasStreaming;      // was the stream playing?
     #endregion Video Variables
+    #region Abstract Attributes
+    private unsafe      Camera*                 _camera;
+    private             MediaCameraObject       _playerCamera;
+    #endregion Abstract Attributes
     /// <summary>
     /// Initializes a new instance of the <see cref="MediaTab"/> class.
     /// </summary>
     public MediaTab(FFSV_Config config, FFSVLogHelper logHelper, IChatGui chat, IGameConfig gameConfig,
-    MediaGameObject playerObject, Stopwatch streamSetCooldown, MediaManager mediaManager,
-    DalamudPluginInterface dalamudPluginInterface, IDalamudTextureWrap textureWrap, Stopwatch deadStreamTimer) {
+    IClientState clientState, MediaGameObject playerObject, MediaManager mediaManager,
+    DalamudPluginInterface dalamudPluginInterface) {
         // set the service collection instances
         _config = config;
         _logHelper = logHelper;
         _chat = chat;
         _gameConfig = gameConfig;
+        _clientState = clientState;
         _playerObject = playerObject;
-        _streamSetCooldown = streamSetCooldown;
         _mediaManager = mediaManager;
-        _tmpWatchLink = "";
-        _isStreamPlaying = false;
-        _lastStreamURL = "";
-
-        // set the video related attirubtes
-        _textureWrap = textureWrap;
         _pluginInterface = dalamudPluginInterface;
-        _deadStreamTimer = deadStreamTimer;
-        _windowSize = new Vector2(640, 360); // read below
-        _initialSize = new Vector2(640, 360); // this should be able to be used in a unique way, look into more later
-        // something about size condition was in the original code, but I don't know what it was for
-        // also was something about setting position? idk
-        _fpsCount = "0";
-        _countedFrames = 0;
-        _wasStreaming = false;
+
+        _tmpWatchLink = "";
+        _isStreamPlaying = _config.IsStreamPlaying;
+        _lastStreamURL = _config.LastStreamURL;
+        // set the video instances
+        _windowSize = new System.Numerics.Vector2(640, 360); // read below
+        _initialSize = new System.Numerics.Vector2(640, 360); // this should be able to be used in a unique way, look into more later
+
+        _fpsCount = _config.FPSCount;
+        _countedFrames = _config.CountedFrames;
+        _wasStreaming = _config.WasStreaming;
+
+        // call constructor functions
+        CheckDependancies();
     }
 
     /// <summary> This function is called when the tab is disposed. </summary>
     public void Dispose() { 
         // Unsubscribe from any events
+    }
+
+    // checks and updates any dependancies the feed needs
+    unsafe private void CheckDependancies(bool forceNewAssignments = false) {
+        // check if our local player in client state is not null.
+        // If forceNewAssignments is true, all statements in this will execute regardless.
+        if (_clientState.LocalPlayer != null) {
+            // if the playerobject is null (true at the start of the plugin) 
+            if (_playerObject == null || forceNewAssignments) {
+                // create a new playerobject of the clientstate local player
+                _playerObject = new MediaGameObject(_clientState.LocalPlayer);
+                _logHelper.LogDebug("New Player Object Created!", "Media Tab (CheckDependancies)");
+            }
+            // if the media manager is null (true at the start of the plugin)
+            if (_mediaManager == null || forceNewAssignments) {
+                // obtain the camera, and the player (be sure to set the camera object!)
+                _camera = CameraManager.Instance()->GetActiveCamera();
+                _playerCamera = new MediaCameraObject();
+                // set the camera object
+                _playerCamera.SetCameraObject(_camera);
+                _logHelper.LogDebug("New Cemera & Player Camera Created!", "Media Tab (CheckDependancies)");
+                // create a new media manager if it does exist already and we are forcing new assignment
+                if (_mediaManager != null) {
+                    _logHelper.LogDebug("The media manager is not null, so we'll create a new one and replace the current.", "Media Tab");
+                }
+                // create the new media manager with the correct info.
+                _mediaManager = new MediaManager(_playerObject, _playerCamera, _logHelper, _config);
+                _logHelper.LogDebug("New Media Manager Created!", "Media Tab (CheckDependancies)");
+                // set the VLC path
+                try{
+                    _mediaManager.SetLibVLCPath(Path.GetDirectoryName(_pluginInterface.AssemblyLocation.FullName));
+                    _logHelper.LogDebug("LibVLC Path Set!", "Media Tab (CheckDependancies)");
+                } catch {
+                    _logHelper.PrintError("An error occurred while attempting to set the LibVLC path.", "Media Tab");
+                }
+            }
+            // finished our checks!
+        }
     }
 
     #region MediaTab Draw
@@ -114,20 +178,22 @@ public class MediaTab : ITab, IDisposable
         }
         ImGui.SameLine();
         if (ImGui.Button("Watch Stream")) {
+            _logHelper.LogDebug($"Attempting to tune into stream: {tmpWatchLink}", "Media Tab");
             // first, we need to make sure the link contains an RTMP in the link
             if (!tmpWatchLink.Contains("rtmp://")) {
                 _logHelper.PrintError("The link you provided is not a valid RTMP link. Please provide a valid RTMP link.", "Media Tab");
             }
             // secondly, we need to see if the link sucessfully connected to the other end
             else {
+                _logHelper.LogDebug("our stream had a valid RTMP link, so we will attempt to connect to the server.", "Media Tab");
                 // Attempt to tune into stream
                 try {
                     TuneIntoStream(tmpWatchLink, _playerObject);
+                    // if we reached this point, the tune in was sucessful
+                    _logHelper.PrintInfo("Tuned into stream sucessfully! Enjoy!", "Media Tab");
                 } catch (Exception ex) {
                     _logHelper.PrintError($"An error occurred while attempting to tune into the stream: {ex.Message}", "Media Tab");
                 }
-                // if we reached this point, the tune in was sucessful
-                _logHelper.PrintInfo("Tuned into stream sucessfully! Enjoy!", "Media Tab");
             }
         }
         ImGui.SameLine();
@@ -139,22 +205,34 @@ public class MediaTab : ITab, IDisposable
         }
 
         // below this, we need to draw the video display
+        ImGui.Text($"Stream Set Cooldown: {_streamSetCooldown.ElapsedMilliseconds}");
+        ImGui.Text($"Dead Stream Timer: {_deadStreamTimer.ElapsedMilliseconds}");
+        ImGui.Text($"Texture Wrap: {_textureWrap}");
+        if(ImGui.Button("Refresh Dependancies")) { CheckDependancies(true); }
         DrawLivestreamDisplay();
 
     }
     #endregion MediaTab Draw
     #region Stream Tuning
-    private void TuneIntoStream(string url, IGameObject audioGameObject) {
-        // first, we need to make sure the link contains an RTMP in the link
-        string streamURL = url; //TwitchFeedManager.GetServerResponse(url, TwitchFeedManager.TwitchFeedType._360p);
-        if (!string.IsNullOrEmpty(streamURL)) {
-            // if we reached this point, the link is valid and we can tune into the stream
-            _mediaManager.PlayStream(audioGameObject, streamURL);
-            _lastStreamURL = url;
-            _chat.Print(@"Tuning into the stream!");
-        }
+    private void TuneIntoStream(string url, MediaGameObject audioGameObject) {
+        // try and run this task asynchronously
+        Task.Run(async () => {
+            string cleanedURL = UIHelpers.RemoveSpecialSymbols(url);
+            string streamURL = url; //TwitchFeedManager.GetServerResponse(url, TwitchFeedManager.TwitchFeedType._360p);
+            _logHelper.LogDebug($"The stream URL is: {streamURL}", "Media Tab");
+            if (!string.IsNullOrEmpty(streamURL)) {
+                _logHelper.LogDebug("The stream URL is not null or empty, so we will attempt to play the stream to the window.", "Media Tab");
+                // if we reached this point, the link is valid and we can tune into the stream
+                _mediaManager.PlayStream(audioGameObject, streamURL);
+                _lastStreamURL = url;
+
+                _config.LastStreamURL = _lastStreamURL; // update config accordingly
+                _chat.Print(@"Tuning into the stream!");
+            }
+        });
         // set isplaying to true
         _isStreamPlaying = true;
+        _config.IsStreamPlaying = _isStreamPlaying; // update config accordingly
 
         try { // attempt to turn on the BGM in the system settings
             _gameConfig.Set(SystemConfigOption.IsSndBgm, true);
@@ -179,7 +257,7 @@ public void DrawLivestreamDisplay() {
                 // Load the last frame as an image
                 _textureWrap = _pluginInterface.UiBuilder.LoadImage(_mediaManager.LastFrame);
                 // Draw the image in the ImGui interface (may be able to make this interchangable in size but right now it looks limited)
-                ImGui.Image(_textureWrap.ImGuiHandle, new Vector2(500, 281));
+                ImGui.Image(_textureWrap.ImGuiHandle, new System.Numerics.Vector2(500, 281));
             }
             // If the dead stream timer is running, stop and reset it
             if (_deadStreamTimer.IsRunning) {
@@ -199,12 +277,15 @@ public void DrawLivestreamDisplay() {
                 if (_deadStreamTimer.ElapsedMilliseconds > 10000) {
                     // Update the FPS count and reset the frame counter
                     _fpsCount = _countedFrames + "";
+                    _config.FPSCount = _fpsCount; // update config accordingly
                     _countedFrames = 0;
+                    _config.CountedFrames = _countedFrames; // update config accordingly
                     // Stop and reset the dead stream timer
                     _deadStreamTimer.Stop();
                     _deadStreamTimer.Reset();
                     // Indicate that we're no longer streaming
                     _wasStreaming = false;
+                    _config.WasStreaming = _wasStreaming; // update config accordingly
                 }
             }
         }
@@ -216,6 +297,6 @@ public void DrawLivestreamDisplay() {
     #endregion Livestream Display
 
     // Apply our lable for the tab
-    public ReadOnlySpan<byte> Label => "General"u8;
+    public ReadOnlySpan<byte> Label => "Media"u8;
 }
 

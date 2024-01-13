@@ -17,12 +17,12 @@ public class FFSVLogHelper {
     }
 
     // Function Concept: Print a spesified error message to the error window
-    public void PrintError(string message, string component) {
+    public void LogError(string message, string component) {
         FFStreamViewer.Log.Error($"[{component}] {message}");
     }
 
     // Function Concept: Log a warning/error message to both the chat window and the debug window
-    public void LogError(string message, string component) {
+    public void PrintError(string message, string component) {
         _chat.Print(new SeStringBuilder().AddItalicsOn().AddYellow($"[FFSViewer] ").AddRed($"{message}").AddItalicsOff().BuiltString);
         FFStreamViewer.Log.Error($"[{component}] {message}");
     }

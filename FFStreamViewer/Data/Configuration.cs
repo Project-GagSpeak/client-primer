@@ -11,6 +11,7 @@ using FFStreamViewer.UI;
 using FFStreamViewer.Services;
 using Newtonsoft.Json;
 using ErrorEventArgs = Newtonsoft.Json.Serialization.ErrorEventArgs;
+using System.Numerics;
 
 namespace FFStreamViewer;
 
@@ -23,7 +24,28 @@ public class FFSV_Config : IPluginConfiguration, ISavable
     public          int                     Version { get; set; } = 0;                                                      // Version of the plugin
     public          bool                    FreshInstall { get; set; } = true;                                              // Is user on a fresh install?
     public          bool                    Enabled { get; set; } = true;                                                   // Is plugin enabled?  
+    // Media Tab Variable storage
     public          string                  WatchLink { get; set; }                                                         // The link to the stream we are watching
+    public          bool                    IsStreamPlaying { get; set; } = false;
+    public          string                  LastStreamURL { get; set; } = "";
+    public          string                  FPSCount { get; set; } = "0";
+    public          int                     CountedFrames { get; set; } = 0;
+    public          bool                    WasStreaming { get; set; } = false;
+    public          Vector2                 StreamResolution { get; set; } = new Vector2(640, 360);
+    // Media Manager Variable Storage
+    public          float                   MainPlayerVolume = 1.0f;
+    public          float                   OtherPlayerVolume = 1.0f;
+    public          float                   UnfocusedPlayerVolume = 1.0f;
+    public          float                   SfxVolume = 1.0f;
+    public          float                   LiveStreamVolume = 1.0f;
+    public          bool                    LowPerformanceMode;
+    public          string                  LibVLCPath = "";
+    // Media Object Variable Storage
+    public          string                  SoundPath { get; set; } = "";
+    public          float                   OffsetVolume = 1;
+
+
+
     public          MainWindow.TabType      SelectedTab { get; set; } = MainWindow.TabType.Media;                           // Default to the general tab
     // variables involved with saving and updating the config
     private readonly SaveService            _saveService;                                                                   // Save service for the FFStreamViewer plugin

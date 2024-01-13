@@ -12,6 +12,7 @@ using FFStreamViewer.UI;
 using FFStreamViewer.UI.Tabs.MediaTab;
 using FFStreamViewer.Utils;
 using NAudio.Wave;
+using Dalamud.Game.ClientState.Objects.Types;
 
 // following namespace naming convention
 namespace FFStreamViewer.Services;
@@ -32,10 +33,10 @@ public static class ServiceHandler
         var services = new ServiceCollection()
             .AddSingleton(log)          // Adds the logger
             .AddDalamud(pi)             // adds the dalamud services
-            .AddAudio()                 // adds the audio services
+            //.AddAudio()                 // adds the audio services
             .AddData()                  // adds the data services
             .AddEvent()                 // adds the event services
-            .AddInterOp()               // adds the interop services
+            //.AddInterOp()               // adds the interop services
             .AddLivestream()            // adds the livestream services
             .AddServiceClasses()        // adds the service classes
             .AddUi()                    // adds the UI services
@@ -53,8 +54,8 @@ public static class ServiceHandler
     }
 
     /// <summary> Adds the Audio related classes to the Chat service collection. </summary>
-    private static IServiceCollection AddAudio(this IServiceCollection services)
-        => services.AddSingleton<LoopStream>();
+    // private static IServiceCollection AddAudio(this IServiceCollection services)
+    //     => services.AddSingleton<LoopStream>();
 
     /// <summary> Adds the data related classes to the service collection </summary>
     private static IServiceCollection AddData(this IServiceCollection services)
@@ -64,12 +65,13 @@ public static class ServiceHandler
         => services.AddSingleton<MediaError>();
 
     /// <summary> Adds the interop related classes to the service collection </summary>
-    private static IServiceCollection AddInterOp(this IServiceCollection services)
-        => services.AddSingleton<WaveStream>();
+    // private static IServiceCollection AddInterOp(this IServiceCollection services)
+    //     => services.AddSingleton<WaveStream>();
 
     /// <summary> Adds the core of the FFStreamViewer to the service collection </summary>
     private static IServiceCollection AddLivestream(this IServiceCollection services)
         => services.AddSingleton<MediaGameObject>()
+                .AddSingleton<MediaCameraObject>()
                 .AddSingleton<MediaManager>()
                 .AddSingleton<MediaObject>();
 

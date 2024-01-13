@@ -1,7 +1,8 @@
 using Dalamud.Game;				// Provides service classes for interacting with the game
 using Dalamud.IoC; 				// Provides service classes for dependency injection
 using Dalamud.Plugin; 			// Provides interfaces and service classes for creating Dalamud plugins
-using Dalamud.Plugin.Services; 	// Provides service classes for plugin services
+using Dalamud.Plugin.Services;  // Provides service classes for plugin services
+using FFXIVClientStructs.FFXIV.Client.Game;
 using Microsoft.Extensions.DependencyInjection; // Provides the dependency injection
 
 // Because we need this to be part of our FFStreamViewer Namespace, but it is part of the services group, we name our namespace this:

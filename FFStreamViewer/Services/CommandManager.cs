@@ -14,19 +14,20 @@ namespace FFStreamViewer.Services;
 /// <summary> The command manager for the plugin. </summary>
 public class CommandManager : IDisposable // Our main command list manager
 {
-    private const string MainCommandString = "/ffsv"; // The primary command used for & displays
-    private const string ActionsCommandString = "/ffstreamviewer"; // subcommand for more in-depth actions.
+    private const string MainCommandString = "/ffstreamviewer"; // The primary command used for & displays
+    private const string ActionsCommandString = "/ffsv"; // subcommand for more in-depth actions.
     private readonly    ICommandManager     _commands;
     private readonly    MainWindow          _mainWindow;
     private readonly    DebugWindow         _debugWindow;
     private readonly    IChatGui            _chat;
-    private readonly    FFSV_Config      _config;
+    private readonly    FFSV_Config         _config;
     private readonly    IClientState        _clientState;
+    private readonly    FFSVLogHelper       _logHelper;
     private readonly    IFramework          _framework; 
 
     // Constructor for the command manager
     public CommandManager(ICommandManager command, MainWindow mainwindow, DebugWindow debugWindow, IChatGui chat,
-    FFSV_Config config, IClientState clientState, IFramework framework)
+    FFSV_Config config, IClientState clientState, FFSVLogHelper logHelper, IFramework framework)
     {
         // set the private readonly's to the passed in data of the respective names
         _commands = command;
@@ -35,6 +36,7 @@ public class CommandManager : IDisposable // Our main command list manager
         _chat = chat;
         _config = config;
         _clientState = clientState;
+        _logHelper = logHelper;
         _framework = framework;
 
         // Add handlers to the main commands
@@ -65,24 +67,19 @@ public class CommandManager : IDisposable // Our main command list manager
     // On the gag command
     private void OnFFSV(string command, string arguments) {
         var argumentList = arguments.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (argumentList.Length < 1) {
-            PrintHelpFFSV("?");
-            return;
-        }
-        // Below accounts for arguements for any future command usage
-        /*
-        var argument = argumentList.Length == 2 ? argumentList[1] : string.Empty;
-        var _ = argumentList[0].ToLowerInvariant() switch
-        {
-            "1"         => GagApply(argumentList), // map to GagApply function
-            "2"         => GagApply(argumentList), // map to GagApply function
-            "3"         => GagApply(argumentList), // map to GagApply function
-            "lock"      => GagLock(argument),      // map to GagLock function 
-            "unlock"    => GagUnlock(argument),    // map to GagUnlock function
-            "remove"    => GagRemove(argument),    // map to GagRemove function
-            "removeall" => GagRemoveAll(argument), // map to GagRemoveAll function
-            _           => PrintHelpGag("?"),      // if we didn't type help or ?, print the error
-        };*/
+        if (argumentList.Length < 1) { _mainWindow.Toggle(); return; }
+        var argument = argumentList.Length == 2 ? argumentList[1] : string.Empty; // Make arguement be everything after command
+        switch(argumentList[0].ToLowerInvariant()) {
+            case "debug":
+                _debugWindow.Toggle();     // when [/gagspeak debug] is typed
+                return;
+            case "":
+                _mainWindow.Toggle(); // when [/gagspeak] is typed
+                return;
+            default:
+                PrintHelpFFSV("help");// when no arguements are passed.
+                return;
+        };
     }
 
     private bool PrintHelpFFSV(string argument) { // Primary help command

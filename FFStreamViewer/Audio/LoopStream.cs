@@ -1,22 +1,12 @@
 using NAudio.Wave;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FFStreamViewer.Audio;
 public class LoopStream : WaveStream {
-    WaveStream sourceStream;
+    private readonly WaveStream _sourceStream;
     private bool _LoopEarly;
 
-    /// <summary>
-    /// Creates a new Loop stream
-    /// </summary>
-    /// <param name="sourceStream">The stream to read from. Note: the Read method of this stream should return 0 when it reaches the end
-    /// or else we will not loop to the start again.</param>
     public LoopStream(WaveStream sourceStream) {
-        this.sourceStream = sourceStream;
+        _sourceStream = sourceStream;
         this.EnableLooping = true;
     }
 
@@ -29,36 +19,36 @@ public class LoopStream : WaveStream {
     /// Return source stream's wave format
     /// </summary>
     public override WaveFormat WaveFormat {
-        get { return sourceStream.WaveFormat; }
+        get { return _sourceStream.WaveFormat; }
     }
 
     /// <summary>
     /// LoopStream simply returns
     /// </summary>
     public override long Length {
-        get { return sourceStream.Length; }
+        get { return _sourceStream.Length; }
     }
 
     /// <summary>
     /// LoopStream simply passes on positioning to source stream
     /// </summary>
     public override long Position {
-        get { return sourceStream.Position; }
-        set { sourceStream.Position = value; }
+        get { return _sourceStream.Position; }
+        set { _sourceStream.Position = value; }
     }
 
     public override int Read(byte[] buffer, int offset, int count) {
         int totalBytesRead = 0;
 
         while (totalBytesRead < count) {
-            int bytesRead = sourceStream.Read(buffer, offset + totalBytesRead, count - totalBytesRead);
+            int bytesRead = _sourceStream.Read(buffer, offset + totalBytesRead, count - totalBytesRead);
             if (bytesRead == 0 || _LoopEarly) {
-                if (sourceStream.Position == 0 || !EnableLooping) {
+                if (_sourceStream.Position == 0 || !EnableLooping) {
                     // something wrong with the source stream
                     break;
                 }
                 // loop
-                sourceStream.Position = 0;
+                _sourceStream.Position = 0;
                 _LoopEarly = false;
             }
             totalBytesRead += bytesRead;

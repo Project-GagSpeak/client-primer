@@ -39,15 +39,31 @@ public class DebugWindow : Window //, IDisposable
     /// Draws the debug information.
     /// </summary>
     public void DrawDebugInformation() {
-        if(!ImGui.CollapsingHeader("DEBUG INFORMATION")) { return; }
-        try
-        {
-            // General plugin information
-            ImGui.Text($"Fresh Install?: {_config.FreshInstall}");
-        } 
-        catch (Exception e) {
-            FFStreamViewer.Log.Error($"Error while fetching config in debug: {e}");
-        }
+        ImGui.Text($"Version: {_config.Version}");
+        ImGui.Text($"Fresh Install?: {_config.FreshInstall}");
+        ImGui.Separator();
+        ImGui.Text($"Watch Link: {_config.WatchLink}");
+        ImGui.Text($"IsStreamPlaying: {_config.IsStreamPlaying}");
+        ImGui.Text($"Stream Resolution: {_config.StreamResolution}");
+        ImGui.Text($"Last Stream URL: {_config.LastStreamURL}");
+        ImGui.Text($"FPS Count: {_config.FPSCount}");
+        ImGui.Text($"Counted Frames: {_config.CountedFrames}");
+        ImGui.Text($"Was Streaming: {_config.WasStreaming}");
+        ImGui.Separator();
+        ImGui.Text($"ChangeLogDisplayType: {_config.ChangeLogDisplayType}");
+        ImGui.Text($"LastSeenVersion: {_config.LastSeenVersion}");
+        ImGui.Text($"Enabled: {_config.Enabled}");
+        ImGui.Separator();
+        ImGui.Text($"MainPlayerVolume: {_config.MainPlayerVolume}");
+        ImGui.Text($"OtherPlayerVolume: {_config.OtherPlayerVolume}");
+        ImGui.Text($"UnfocusedPlayerVolume: {_config.UnfocusedPlayerVolume}");
+        ImGui.Text($"SfxVolume: {_config.SfxVolume}");
+        ImGui.Text($"LiveStreamVolume: {_config.LiveStreamVolume}");
+        ImGui.Text($"LowPerformanceMode: {_config.LowPerformanceMode}");
+        ImGui.Text($"LibVLCPath: {_config.LibVLCPath}");
+        ImGui.Separator();
+        ImGui.Text($"SoundPath: {_config.SoundPath}");
+        ImGui.Text($"OffsetVolume: {_config.OffsetVolume}");
     }
 }
 

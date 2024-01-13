@@ -14,5 +14,13 @@ namespace FFStreamViewer.Utils;
 /// <summary> A class for all of the UI helpers, including basic functions for drawing repetative yet unique design elements </summary>
 public static class UIHelpers
 {
-    // will be filled with stuff overtime
+    /// <summary>
+    /// Removes special symbols from a string
+    /// </summary>
+    /// <param name="value"></param>
+    /// <returns></returns>
+    public static string RemoveSpecialSymbols(string value) {
+        Regex rgx = new Regex(@"[^a-zA-Z:/._\ -]");
+        return rgx.Replace(value, "");
+    }
 }

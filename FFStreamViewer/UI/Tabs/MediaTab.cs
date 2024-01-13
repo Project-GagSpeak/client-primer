@@ -53,8 +53,6 @@ public class MediaTab : ITab, IDisposable
     private             MediaManager            _mediaManager;      // the media manager for the plugin
     private readonly    Stopwatch               _streamSetCooldown = new Stopwatch(); // the cooldown for setting the stream
     private             string?                 _tmpWatchLink;      // the language we are translating to
-    private             bool                    _isStreamPlaying;   // is the stream playing?
-    private             string                  _lastStreamURL;     // the last stream URL
     #endregion General Variables
     #region Video Variables
     private             IDalamudTextureWrap     _textureWrap;       // the texture wrap for the video
@@ -62,9 +60,6 @@ public class MediaTab : ITab, IDisposable
     private readonly    Stopwatch               _deadStreamTimer = new Stopwatch();   // set to determine when a stream is dead
     private             System.Numerics.Vector2?_windowSize;        // the adjustable window size
     private             System.Numerics.Vector2?_initialSize;       // the initial window size
-    private             string                  _fpsCount;          // the FPS of the media
-    private             int                     _countedFrames;     // the counted frames of the media
-    private             bool                    _wasStreaming;      // was the stream playing?
     #endregion Video Variables
     #region Abstract Attributes
     private unsafe      Camera*                 _camera;
@@ -85,20 +80,13 @@ public class MediaTab : ITab, IDisposable
         _playerObject = playerObject;
         _mediaManager = mediaManager;
         _pluginInterface = dalamudPluginInterface;
-
         _tmpWatchLink = "";
-        _isStreamPlaying = _config.IsStreamPlaying;
-        _lastStreamURL = _config.LastStreamURL;
         // set the video instances
         _windowSize = new System.Numerics.Vector2(640, 360); // read below
         _initialSize = new System.Numerics.Vector2(640, 360); // this should be able to be used in a unique way, look into more later
 
-        _fpsCount = _config.FPSCount;
-        _countedFrames = _config.CountedFrames;
-        _wasStreaming = _config.WasStreaming;
-
         // call constructor functions
-        CheckDependancies();
+        CheckDependancies(true);
     }
 
     /// <summary> This function is called when the tab is disposed. </summary>
@@ -195,11 +183,14 @@ public class MediaTab : ITab, IDisposable
                     _logHelper.PrintError($"An error occurred while attempting to tune into the stream: {ex.Message}", "Media Tab");
                 }
             }
+            _config.Save();
         }
         ImGui.SameLine();
         if (ImGui.Button("Stop Stream")) {
             // stop the stream
+            _config.IsStreamPlaying = false;
             _mediaManager.StopStream();
+            _config.Save();
             // let the user know the stream has been stopped
             _logHelper.PrintInfo("Stream has been stopped!", "Media Tab");
         }
@@ -224,15 +215,12 @@ public class MediaTab : ITab, IDisposable
                 _logHelper.LogDebug("The stream URL is not null or empty, so we will attempt to play the stream to the window.", "Media Tab");
                 // if we reached this point, the link is valid and we can tune into the stream
                 _mediaManager.PlayStream(audioGameObject, streamURL);
-                _lastStreamURL = url;
-
-                _config.LastStreamURL = _lastStreamURL; // update config accordingly
+                _config.LastStreamURL = url;
                 _chat.Print(@"Tuning into the stream!");
             }
         });
         // set isplaying to true
-        _isStreamPlaying = true;
-        _config.IsStreamPlaying = _isStreamPlaying; // update config accordingly
+        _config.IsStreamPlaying = true; // update config accordingly
 
         try { // attempt to turn on the BGM in the system settings
             _gameConfig.Set(SystemConfigOption.IsSndBgm, true);
@@ -265,10 +253,10 @@ public void DrawLivestreamDisplay() {
                 _deadStreamTimer.Reset();
             }
             // Indicate that we're currently streaming
-            _wasStreaming = true;
+            _config.WasStreaming = true;
         } else {
             // If we were previously streaming but aren't anymore
-            if (_wasStreaming) {
+            if (_config.WasStreaming) {
                 // If the dead stream timer isn't running, start it
                 if (!_deadStreamTimer.IsRunning) {
                     _deadStreamTimer.Start();
@@ -276,16 +264,13 @@ public void DrawLivestreamDisplay() {
                 // If the dead stream timer has been running for more than 10 seconds
                 if (_deadStreamTimer.ElapsedMilliseconds > 10000) {
                     // Update the FPS count and reset the frame counter
-                    _fpsCount = _countedFrames + "";
-                    _config.FPSCount = _fpsCount; // update config accordingly
-                    _countedFrames = 0;
-                    _config.CountedFrames = _countedFrames; // update config accordingly
+                    _config.FPSCount = _config.CountedFrames + "";
+                    _config.CountedFrames = 0;
                     // Stop and reset the dead stream timer
                     _deadStreamTimer.Stop();
                     _deadStreamTimer.Reset();
                     // Indicate that we're no longer streaming
-                    _wasStreaming = false;
-                    _config.WasStreaming = _wasStreaming; // update config accordingly
+                    _config.WasStreaming = false;
                 }
             }
         }

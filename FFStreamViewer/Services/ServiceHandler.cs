@@ -28,7 +28,7 @@ public static class ServiceHandler
     /// <returns>The created service provider.</returns>
     public static ServiceProvider CreateProvider(DalamudPluginInterface pi, Logger log) {
         // introduce the logger to log any debug messages.
-        EventWrapper.ChangeLogger(log);
+        EventWrapperBase.ChangeLogger(log);
         // Create a service collection (see Dalamud.cs, if confused about AddDalamud, that is what AddDalamud(pi) pulls from)
         var services = new ServiceCollection()
             .AddSingleton(log)          // Adds the logger

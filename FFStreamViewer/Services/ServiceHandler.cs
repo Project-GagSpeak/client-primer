@@ -13,6 +13,8 @@ using FFStreamViewer.UI.Tabs.MediaTab;
 using FFStreamViewer.Utils;
 using NAudio.Wave;
 using Dalamud.Game.ClientState.Objects.Types;
+using FFStreamViewer.WebAPI.SignalR;
+using FFStreamViewer.WebAPI;
 
 // following namespace naming convention
 namespace FFStreamViewer.Services;
@@ -31,6 +33,7 @@ public static class ServiceHandler
         EventWrapperBase.ChangeLogger(log);
         // Create a service collection (see Dalamud.cs, if confused about AddDalamud, that is what AddDalamud(pi) pulls from)
         var services = new ServiceCollection()
+            .AddLogging()
             .AddSingleton(log)          // Adds the logger
             .AddDalamud(pi)             // adds the dalamud services
             //.AddAudio()                 // adds the audio services
@@ -89,14 +92,19 @@ public static class ServiceHandler
     private static IServiceCollection AddUi(this IServiceCollection services)
         => services.AddSingleton<FFSV_WindowManager>()
             .AddSingleton<MediaTab>()
+            .AddSingleton<WebAPITestingTab>()
             .AddSingleton<MainWindow>()
             .AddSingleton<DebugWindow>()
             .AddSingleton<FFStreamViewerChangelog>();
 
     private static IServiceCollection AddUtils(this IServiceCollection services)
-        => services.AddSingleton<FFSVLogHelper>();
+        => services.AddSingleton<FFSVLogHelper>()
+            .AddSingleton<Microsoft.Extensions.Logging.ILoggerProvider,
+            Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>();
 
     /// <summary> Adds the API services to the API service collection. </summary>
     private static IServiceCollection AddApi(this IServiceCollection services)
-        => services.AddSingleton<CommandManager>();
+        => services.AddSingleton<CommandManager>()
+            .AddSingleton<HubFactory>()
+            .AddSingleton<ApiController>();
 }

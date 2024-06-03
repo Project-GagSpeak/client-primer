@@ -35,6 +35,7 @@ public class DalamudServices {
 		services.AddSingleton(ChatGui);
 		services.AddSingleton(GameConfig);
 		services.AddSingleton(ClientState);
+		services.AddSingleton(NotificationManager);
 		services.AddSingleton(CommandManager);
 		services.AddSingleton(DataManager);
 		services.AddSingleton(Framework);
@@ -57,4 +58,5 @@ public class DalamudServices {
 	[PluginService] public IPartyFinderGui PartyFinderGui { get; private set; } = null!; // For interfacing with the party finder (may remove)
 	[PluginService] public IPluginLog PluginLog { get; private set; } = null!; // For interfacing with the plugin logger
 	[PluginService] public ISigScanner SigScanner { get; private set; } = null!; // For getting our signatures to perform the operations in our danger files.
+	[PluginService] public INotificationManager NotificationManager { get; private set; } = null!; // For interfacing with the notification manager
 }

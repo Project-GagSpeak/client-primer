@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FFStreamViewer", "FFStreamV
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OtterGui", "OtterGui\OtterGui.csproj", "{8830BF74-F127-438B-8135-29CCBC328D86}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GagSpeak.API", "GagSpeak-API\GagSpeakAPI\GagSpeak.API.csproj", "{54B0BD5F-27D6-45AE-B279-A1F4FBB5A452}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,10 @@ Global
 		{8830BF74-F127-438B-8135-29CCBC328D86}.Debug|x64.Build.0 = Debug|Any CPU
 		{8830BF74-F127-438B-8135-29CCBC328D86}.Release|x64.ActiveCfg = Release|Any CPU
 		{8830BF74-F127-438B-8135-29CCBC328D86}.Release|x64.Build.0 = Release|Any CPU
+		{54B0BD5F-27D6-45AE-B279-A1F4FBB5A452}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{54B0BD5F-27D6-45AE-B279-A1F4FBB5A452}.Debug|x64.Build.0 = Debug|Any CPU
+		{54B0BD5F-27D6-45AE-B279-A1F4FBB5A452}.Release|x64.ActiveCfg = Release|Any CPU
+		{54B0BD5F-27D6-45AE-B279-A1F4FBB5A452}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

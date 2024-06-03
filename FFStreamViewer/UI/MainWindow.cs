@@ -15,11 +15,13 @@ public class MainWindow : Window
     public enum TabType {
         None            = -1,   // No tab selected
         Media           = 0,    // Where you select your gags and safewords and lock types.
+        WebAPITesting   = 1,    // Where you can test the WebAPI
     }
     private readonly    FFSV_Config      _config;
     private readonly    FFStreamViewerChangelog   _changelog;
     private readonly    ITab[]              _tabs;
     public readonly     MediaTab            Media;
+    public readonly     WebAPITestingTab    WebAPITesting;
     public              TabType             SelectTab = TabType.None;
 
     /// <summary> Initializes a new instance of the <see cref="MainWindow"/> class.
@@ -30,7 +32,7 @@ public class MainWindow : Window
     /// <item><c>changelog</c><param name="changelog"> - The changelog.</param></item>
     /// </list> </summary>
     public MainWindow(DalamudPluginInterface pluginInt, FFSV_Config config, MediaTab media,
-    FFStreamViewerChangelog changelog): base(GetLabel()) {
+    WebAPITestingTab webAPITestingTab, FFStreamViewerChangelog changelog): base(GetLabel()) {
         // let the user know if their direct chat garlber is still enabled upon launch
         // Let's first make sure that we disable the plugin while inside of gpose.
         pluginInt.UiBuilder.DisableGposeUiHide = true;
@@ -43,6 +45,7 @@ public class MainWindow : Window
 
         // set the private readonly's to the passed in data of the respective names
         Media = media;
+        WebAPITesting = webAPITestingTab;
         
         // Below are the stuff besides the tabs that are passed through
         //_event     = @event;
@@ -52,6 +55,7 @@ public class MainWindow : Window
         _tabs = new ITab[]
         {
             media,
+            webAPITestingTab,
         };
     }
 
@@ -101,6 +105,7 @@ public class MainWindow : Window
         => type switch // we do this via a switch statement
         {
             TabType.Media         => Media.Label,
+            TabType.WebAPITesting => WebAPITesting.Label,
             _                     => ReadOnlySpan<byte>.Empty, // This label confuses me a bit. I think it is just a blank label?
         };
 
@@ -113,6 +118,7 @@ public class MainWindow : Window
     private TabType FromLabel(ReadOnlySpan<byte> label) {
         // @formatter:off
         if (label == Media.Label)         return TabType.Media;
+        if (label == WebAPITesting.Label) return TabType.WebAPITesting;
         // @formatter:on
         return TabType.None;
     }

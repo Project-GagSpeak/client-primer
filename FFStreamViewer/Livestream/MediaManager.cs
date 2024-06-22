@@ -1,32 +1,20 @@
-using FFStreamViewer.Audio;
-using FFStreamViewer.Events;
-using FFStreamViewer.Utils;
-using LibVLCSharp.Shared;
-using Lumina.Data.Parsing.Scd;
-using NAudio.Dmo;
-using NAudio.Vorbis;
 using NAudio.Wave;
-using NAudio.Wave.SampleProviders;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Numerics;
-using System.Threading;
-using System.Threading.Tasks;
+using FFStreamViewer.WebAPI.Services.Mediator;
 
 namespace FFStreamViewer.Livestream;
 
-public class MediaManager : IDisposable {
+public class MediaManager : IDisposable 
+{
     byte[] _lastFrame;
     // get the media for the native game audio and the playback stream
     ConcurrentDictionary<string, MediaObject> _playbackStreams = new ConcurrentDictionary<string, MediaObject>();
     ConcurrentDictionary<string, MediaObject> _nativeGameAudio = new ConcurrentDictionary<string, MediaObject>();
     Stopwatch mainPlayerCombatCooldownTimer = new Stopwatch();
+    private readonly    ILogger<MediaManager> _logger;
+    private readonly    ILoggerFactory      _loggerFactory;
     private             MediaGameObject     _mainPlayer;
     private             MediaCameraObject   _camera;
-    private readonly    FFSVLogHelper       _logHelper;
     private readonly    FFSV_Config         _config;
     private             Task                _updateLoop;               
     private             bool                notDisposed = true;
@@ -34,10 +22,13 @@ public class MediaManager : IDisposable {
     public byte[] LastFrame { get => _lastFrame; set => _lastFrame = value; }
 
     public event EventHandler OnNewMediaTriggered; // event handler for media being triggered
-    public MediaManager(MediaGameObject mainPlayer, MediaCameraObject camera, FFSVLogHelper logHelper, FFSV_Config config) {
+    public MediaManager(ILogger<MediaManager> logger, ILoggerFactory loggerfactory,
+        MediaGameObject mainPlayer, MediaCameraObject camera, FFSV_Config config)
+    {
+        _logger = logger;
+        _loggerFactory = loggerfactory;
         _mainPlayer = mainPlayer;
         _camera = camera;
-        _logHelper = logHelper;
         _config = config;
         // begin the update loop for the media manager object
         _updateLoop = Task.Run(() => Update());
@@ -45,55 +36,8 @@ public class MediaManager : IDisposable {
 
     public void SetLibVLCPath(string libVLCPath) {
         _config.LibVLCPath = libVLCPath;
-        _logHelper.LogDebug($"LibVLC path set to {_config.LibVLCPath}", "Media Manager");
+        _logger.LogDebug($"LibVLC path set to {_config.LibVLCPath}");
     }
-
-    // public async void PlayAudio(MediaGameObject playerObject, string audioPath, SoundType soundType, int delay = 0, TimeSpan skipAhead = new TimeSpan()) {
-    //     _ = Task.Run(() => {
-    //         if (!string.IsNullOrEmpty(audioPath)) {
-    //             if ((File.Exists(audioPath) && Directory.Exists(Path.GetDirectoryName(audioPath)))) {
-    //                 switch (soundType) {
-    //                     case SoundType.MainPlayerVoice:
-    //                     case SoundType.OtherPlayer:
-    //                     case SoundType.Emote:
-    //                     case SoundType.Loop:
-    //                     case SoundType.LoopWhileMoving:
-    //                         ConfigureAudio(playerObject, audioPath, soundType, _voicePackSounds, delay);
-    //                         break;
-    //                     case SoundType.MainPlayerCombat:
-    //                     case SoundType.OtherPlayerCombat:
-    //                         ConfigureAudio(playerObject, audioPath, soundType, _combatVoicePackSounds, delay);
-    //                         break;
-    //                 }
-    //             }
-    //         }
-    //         OnNewMediaTriggered?.Invoke(this, EventArgs.Empty);
-    //     });
-    // }
-
-    // public async void PlayAudioStream(MediaGameObject playerObject, WaveStream audioStream, SoundType soundType, int delay = 0) {
-    //     try {
-    //         if (playerObject != null) {
-    //             if (_nativeGameAudio.ContainsKey(playerObject.Name)) {
-    //                 _nativeGameAudio[playerObject.Name].Stop();
-    //             }
-    //             _nativeGameAudio[playerObject.Name] = new MediaObject(
-    //                 this, playerObject, _camera,
-    //                 soundType, "", _config.LibVLCPath);
-    //             lock (_nativeGameAudio[playerObject.Name]) {
-    //                 float volume = GetVolume(_nativeGameAudio[playerObject.Name].SoundType, _nativeGameAudio[playerObject.Name].PlayerObject);
-    //                 _nativeGameAudio[playerObject.Name].OnErrorReceived += MediaManager_OnErrorReceived;
-    //                 _nativeGameAudio[playerObject.Name].Play(audioStream, volume, delay);
-    //             }
-    //         }
-    //     } catch (Exception e) {
-    //         OnErrorReceived?.Invoke(this, new MediaError() { Exception = e });
-    //     }
-    // }
-
-    // private void MediaManager_OnErrorReceived(object? sender, MediaError e) {
-    //     OnErrorReceived?.Invoke(this, new MediaError() { Exception = e.Exception });
-    // }
 
     /// <summary> This function initializes the playstream component of our code. 
     /// <list type="bullet">
@@ -104,19 +48,19 @@ public class MediaManager : IDisposable {
         #pragma warning disable CS4014 // Because this call is not awaited, 
         // execution of the current method continues before the call is completed
         Task.Run( () => {
-            _logHelper.LogDebug("PlayStream method called.", "Media Manager");
+            _logger.LogDebug("PlayStream method called.");
             // trigger the event letting us know we have a new media that was triggered
             OnNewMediaTriggered?.Invoke(this, EventArgs.Empty);
             // not sure why this is here tbh
             if (!string.IsNullOrEmpty(audioPath)) {
-                _logHelper.LogDebug("Audio path is not empty.", "Media Manager");
+                _logger.LogDebug("Audio path is not empty.");
                 if (audioPath.StartsWith("rtmp")) {
-                    _logHelper.LogDebug("Audio path starts with rtmp.", "Media Manager");
+                    _logger.LogDebug("Audio path starts with rtmp.");
                     foreach (var sound in _playbackStreams) {
                         sound.Value?.Stop();
                     }
                     _playbackStreams.Clear();
-                    _logHelper.LogDebug("Configuring audio for the next stream.", "Media Manager");
+                    _logger.LogDebug("Configuring audio for the next stream.");
                     ConfigureAudio(playerObject, audioPath, SoundType.Livestream, _playbackStreams, delay);
                 }
             }
@@ -131,44 +75,6 @@ public class MediaManager : IDisposable {
         _playbackStreams.Clear();
         _config.Save();
     }
-
-    // public bool IsAllowedToStartStream(MediaGameObject playerObject) {
-    //     if (_playbackStreams.ContainsKey(playerObject.Name)) {
-    //         return true;
-    //     } else {
-    //         if (_playbackStreams.Count == 0) {
-    //             return true;
-    //         } else {
-    //             foreach (string key in _playbackStreams.Keys) {
-    //                 bool noStream = _playbackStreams[key].PlaybackState == PlaybackState.Stopped;
-    //                 return noStream;
-    //             }
-    //         }
-    //     }
-    //     return false;
-    // }
-
-    // public void StopAudio(MediaGameObject playerObject) {
-    //     if (playerObject != null) {
-    //         if (_voicePackSounds.ContainsKey(playerObject.Name)) {
-    //             _voicePackSounds[playerObject.Name].Stop();
-    //         }
-    //         if (_nativeGameAudio.ContainsKey(playerObject.Name)) {
-    //             _nativeGameAudio[playerObject.Name].Stop();
-    //         }
-    //     }
-    // }
-
-    // public void LoopEarly(MediaGameObject playerObject) {
-    //     if (playerObject != null) {
-    //         if (_voicePackSounds.ContainsKey(playerObject.Name)) {
-    //             _voicePackSounds[playerObject.Name].LoopEarly();
-    //         }
-    //         if (_nativeGameAudio.ContainsKey(playerObject.Name)) {
-    //             _nativeGameAudio[playerObject.Name].LoopEarly();
-    //         }
-    //     }
-    // }
 
     /// <summary>
     /// Function for configuring audio stuff (was async void before) [big one]
@@ -186,14 +92,14 @@ public class MediaManager : IDisposable {
         // if it is MainPlayerCombat, then either the cooldown timer has elapsed more than 400 milliseconds or the timer is not running
         if (!alreadyConfiguringSound && (soundType != SoundType.MainPlayerCombat ||
         (soundType == SoundType.MainPlayerCombat && mainPlayerCombatCooldownTimer.ElapsedMilliseconds > 400 || !mainPlayerCombatCooldownTimer.IsRunning))) {
-            _logHelper.LogDebug("ConfigureAudio's initial conditional statement passed. We are able to configure sound now.", "Media Manager");
+            _logger.LogDebug("ConfigureAudio's initial conditional statement passed. We are able to configure sound now.");
             // Set alreadyconfiguringsound to true while we are configuring the audio.
             alreadyConfiguringSound = true;
             // set our bool tracking if a sound is already playing to false, since we are not playing a sound yet
             bool soundIsPlayingAlready = false;
             // see if the player object is already in the sounds dictionary. If so, log it.
             if (sounds.ContainsKey(playerObject.Name)) {
-                _logHelper.LogDebug("Player already has a sound", "Media Manager");
+                _logger.LogDebug("Player already has a sound");
                 // If the sound type is MainPlayerVoice or MainPlayerCombat
                 if (soundType == SoundType.MainPlayerVoice || soundType == SoundType.MainPlayerCombat) {
                     // Check if the sound is already playing
@@ -208,17 +114,20 @@ public class MediaManager : IDisposable {
                         sounds[playerObject.Name]?.Stop();
                     } catch (Exception e) {
                         // If an error occurs, raise the OnErrorReceived event
-                        _logHelper.LogDebug($"Error occurred while trying to stop sound: {e}", "Media Manager");
+                        _logger.LogDebug($"Error occurred while trying to stop sound: {e}");
                     }
                 }
             }
             // If the sound is not already playing
             if (!soundIsPlayingAlready) {
-                _logHelper.LogDebug("Sound is not already playing", "Media Manager");
+                _logger.LogDebug("Sound is not already playing");
                 try {
                     // Create a new MediaObject for the sound
-                    sounds[playerObject.Name] = new MediaObject( this, playerObject, _camera, _logHelper, _config);
-                    sounds[playerObject.Name]._soundType = soundType;           // set the soundtype to the input soundtype
+                    sounds[playerObject.Name] = new MediaObject(
+                        _loggerFactory.CreateLogger<MediaObject>(), this, playerObject, _camera, _config);
+
+                    // set the soundtype to the input soundtype
+                    sounds[playerObject.Name]._soundType = soundType;
                     // lock the sound
                     lock (sounds[playerObject.Name]) {
                         // Get the volume for the sound
@@ -232,17 +141,17 @@ public class MediaManager : IDisposable {
                         // If the playback time is more than 2 seconds, enable low performance mode
                         if (soundPlaybackTimer.ElapsedMilliseconds > 2000) {
                             _config.LowPerformanceMode = true;
-                            _logHelper.LogError("Low performance detected, enabling low performance mode.", "Media Manager");
+                            _logger.LogError("Low performance detected, enabling low performance mode.");
                         }
                     }
                 } catch (Exception e) {
                     // If an error occurs, raise the OnErrorReceived event
-                    _logHelper.LogError($"Error occurred while trying to configure audio: {e}", "Media Manager");
+                    _logger.LogError($"Error occurred while trying to configure audio: {e}");
                 }
             }
             // We're done configuring the sound
             alreadyConfiguringSound = false;
-            _logHelper.LogDebug("Done configuring sound", "Media Manager");
+            _logger.LogDebug("Done configuring sound");
         }
     }
 
@@ -278,12 +187,12 @@ public class MediaManager : IDisposable {
                     }
                     // if we cant, throw exception/ 
                     catch (Exception e) {
-                        _logHelper.LogError($"Error occurred while trying to update volumes (inner): {e}", "Media Manager");
+                        _logger.LogError($"Error occurred while trying to update volumes (inner): {e}");
                     }
                 }
             }
         } catch (Exception e) { 
-            _logHelper.LogError($"Error occurred while trying to update volumes: {e}", "Media Manager");
+            _logger.LogError($"Error occurred while trying to update volumes: {e}");
         }
     }
 
@@ -347,7 +256,7 @@ public class MediaManager : IDisposable {
                 }
             }
         } catch (Exception e) { 
-            _logHelper.LogError($"Error occurred while trying to get volume: {e}", "Media Manager");
+            _logger.LogError($"Error occurred while trying to get volume: {e}");
         }
         return 1;
     }
@@ -361,7 +270,7 @@ public class MediaManager : IDisposable {
                 _updateLoop?.Dispose();
             }
         } catch (Exception e) {
-            _logHelper.LogError($"Error occurred while trying to dispose: {e}", "Media Manager");
+            _logger.LogError($"Error occurred while trying to dispose: {e}");
         }
     }
 
@@ -377,7 +286,7 @@ public class MediaManager : IDisposable {
             _lastFrame = null;
             _nativeGameAudio?.Clear();
         } catch (Exception e) { 
-            _logHelper.LogError($"Error occurred while trying to clean non-streaming sounds: {e}", "Media Manager");
+            _logger.LogError($"Error occurred while trying to clean non-streaming sounds: {e}");
         }
     }
 
@@ -395,7 +304,7 @@ public class MediaManager : IDisposable {
             _playbackStreams?.Clear();
             _nativeGameAudio?.Clear();
         } catch (Exception e) { 
-            _logHelper.LogError($"Error occurred while trying to clean sounds: {e}", "Media Manager");
+            _logger.LogError($"Error occurred while trying to clean sounds: {e}");
         }
     }
 }

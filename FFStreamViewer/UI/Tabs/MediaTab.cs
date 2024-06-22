@@ -1,51 +1,25 @@
-﻿using System;
-using System.Numerics;
-using System.Linq;
-using System.Collections.Generic;
 using Dalamud.Interface.Utility.Raii;
 using ImGuiNET;
-using OtterGui;
 using OtterGui.Widgets;
-using FFStreamViewer.Services;
 using FFStreamViewer.Utils;
 using FFStreamViewer.Livestream;
 using Dalamud.Plugin.Services;
-using System.Diagnostics;
 using Dalamud.Game.Config;
 using Dalamud.Interface.Internal;
 using Dalamud.Plugin;
-using System.Drawing;
-using LibVLCSharp.Shared;
-using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
-using Lumina.Excel.GeneratedSheets;
-using System.Threading.Tasks;
-using Dalamud.Game;
-using Dalamud.Game.ClientState.Objects.Enums;
-using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface.Windowing;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using FFXIVClientStructs.FFXIV.Common.Math;
-using System.IO;
-using System.Text.RegularExpressions;
-using System.Threading;
-using FFXIVClientStructs.FFXIV.Client.Game.Housing;
-using Newtonsoft.Json;
-using NAudio.Wave;
-using EventHandler = System.EventHandler;
-using Dalamud.Utility;
-using System.Collections.Concurrent;
+using FFStreamViewer.WebAPI.Services.Mediator;
+
 
 namespace FFStreamViewer.UI.Tabs.MediaTab;
 /// <summary> This class is used to handle the general tab for the FFStreamViewer plugin. </summary>
 public class MediaTab : ITab, IDisposable
 {
     #region General Vairables
+    private readonly    ILogger<MediaTab>       _logger;             // the logger for the plugin
+    private readonly    ILoggerFactory          _loggerFactory;     // logger factory for constructing MediaManager loggers
     private readonly    FFSV_Config             _config;            // the config for the plugin
-    private readonly    FFSVLogHelper           _logHelper;         // the log helper for the plugin
     private readonly    IChatGui                _chat;              // the chat service for the plugin
     private readonly    IGameConfig             _gameConfig;        // the game config for the plugin
     private readonly    IClientState            _clientState;       // the client state for the plugin
@@ -65,15 +39,14 @@ public class MediaTab : ITab, IDisposable
     private unsafe      Camera*                 _camera;
     private             MediaCameraObject       _playerCamera;
     #endregion Abstract Attributes
-    /// <summary>
-    /// Initializes a new instance of the <see cref="MediaTab"/> class.
-    /// </summary>
-    public MediaTab(FFSV_Config config, FFSVLogHelper logHelper, IChatGui chat, IGameConfig gameConfig,
-    IClientState clientState, MediaGameObject playerObject, MediaManager mediaManager,
-    DalamudPluginInterface dalamudPluginInterface) {
+    public MediaTab(ILogger<MediaTab> logger, ILoggerFactory loggerFactory,
+        FFSV_Config config, IChatGui chat, IGameConfig gameConfig,
+        IClientState clientState, MediaGameObject playerObject, MediaManager mediaManager,
+        DalamudPluginInterface dalamudPluginInterface)
+    {
         // set the service collection instances
+        _logger = logger;
         _config = config;
-        _logHelper = logHelper;
         _chat = chat;
         _gameConfig = gameConfig;
         _clientState = clientState;
@@ -103,7 +76,7 @@ public class MediaTab : ITab, IDisposable
             if (_playerObject == null || forceNewAssignments) {
                 // create a new playerobject of the clientstate local player
                 _playerObject = new MediaGameObject(_clientState.LocalPlayer);
-                _logHelper.LogDebug("New Player Object Created!", "Media Tab (CheckDependancies)");
+                _logger.LogDebug("New Player Object Created!");
             }
             // if the media manager is null (true at the start of the plugin)
             if (_mediaManager == null || forceNewAssignments) {
@@ -112,20 +85,22 @@ public class MediaTab : ITab, IDisposable
                 _playerCamera = new MediaCameraObject();
                 // set the camera object
                 _playerCamera.SetCameraObject(_camera);
-                _logHelper.LogDebug("New Cemera & Player Camera Created!", "Media Tab (CheckDependancies)");
+                _logger.LogDebug("New Cemera & Player Camera Created!");
                 // create a new media manager if it does exist already and we are forcing new assignment
                 if (_mediaManager != null) {
-                    _logHelper.LogDebug("The media manager is not null, so we'll create a new one and replace the current.", "Media Tab");
+                    _logger.LogDebug("The media manager is not null, so we'll create a new one and replace the current.");
                 }
                 // create the new media manager with the correct info.
-                _mediaManager = new MediaManager(_playerObject, _playerCamera, _logHelper, _config);
-                _logHelper.LogDebug("New Media Manager Created!", "Media Tab (CheckDependancies)");
+                _mediaManager = new MediaManager(
+                    _loggerFactory.CreateLogger<MediaManager>(), _loggerFactory, _playerObject, _playerCamera, _config);
+
+                _logger.LogDebug("New Media Manager Created!");
                 // set the VLC path
                 try{
                     _mediaManager.SetLibVLCPath(Path.GetDirectoryName(_pluginInterface.AssemblyLocation.FullName));
-                    _logHelper.LogDebug("LibVLC Path Set!", "Media Tab (CheckDependancies)");
+                    _logger.LogDebug("LibVLC Path Set!");
                 } catch {
-                    _logHelper.PrintError("An error occurred while attempting to set the LibVLC path.", "Media Tab");
+                    _logger.LogError("An error occurred while attempting to set the LibVLC path.");
                 }
             }
             // finished our checks!
@@ -166,21 +141,21 @@ public class MediaTab : ITab, IDisposable
         }
         ImGui.SameLine();
         if (ImGui.Button("Watch Stream")) {
-            _logHelper.LogDebug($"Attempting to tune into stream: {tmpWatchLink}", "Media Tab");
+            _logger.LogDebug($"Attempting to tune into stream: {tmpWatchLink}");
             // first, we need to make sure the link contains an RTMP in the link
             if (!tmpWatchLink.Contains("rtmp://")) {
-                _logHelper.PrintError("The link you provided is not a valid RTMP link. Please provide a valid RTMP link.", "Media Tab");
+                _logger.LogError("The link you provided is not a valid RTMP link. Please provide a valid RTMP link.");
             }
             // secondly, we need to see if the link sucessfully connected to the other end
             else {
-                _logHelper.LogDebug("our stream had a valid RTMP link, so we will attempt to connect to the server.", "Media Tab");
+                _logger.LogDebug("our stream had a valid RTMP link, so we will attempt to connect to the server.");
                 // Attempt to tune into stream
                 try {
                     TuneIntoStream(tmpWatchLink, _playerObject);
                     // if we reached this point, the tune in was sucessful
-                    _logHelper.PrintInfo("Tuned into stream sucessfully! Enjoy!", "Media Tab");
+                    _logger.LogInformation("Tuned into stream successfully! Enjoy!");
                 } catch (Exception ex) {
-                    _logHelper.PrintError($"An error occurred while attempting to tune into the stream: {ex.Message}", "Media Tab");
+                    _logger.LogError($"An error occurred while attempting to tune into the stream: {ex.Message}");
                 }
             }
             _config.Save();
@@ -192,7 +167,7 @@ public class MediaTab : ITab, IDisposable
             _mediaManager.StopStream();
             _config.Save();
             // let the user know the stream has been stopped
-            _logHelper.PrintInfo("Stream has been stopped!", "Media Tab");
+            _logger.LogInformation("Stream has been stopped!");
         }
 
         // below this, we need to draw the video display
@@ -210,9 +185,9 @@ public class MediaTab : ITab, IDisposable
         Task.Run(async () => {
             string cleanedURL = UIHelpers.RemoveSpecialSymbols(url);
             string streamURL = url; //TwitchFeedManager.GetServerResponse(url, TwitchFeedManager.TwitchFeedType._360p);
-            _logHelper.LogDebug($"The stream URL is: {streamURL}", "Media Tab");
+            _logger.LogDebug($"The stream URL is: {streamURL}");
             if (!string.IsNullOrEmpty(streamURL)) {
-                _logHelper.LogDebug("The stream URL is not null or empty, so we will attempt to play the stream to the window.", "Media Tab");
+                _logger.LogDebug("The stream URL is not null or empty, so we will attempt to play the stream to the window.");
                 // if we reached this point, the link is valid and we can tune into the stream
                 _mediaManager.PlayStream(audioGameObject, streamURL);
                 _config.LastStreamURL = url;
@@ -225,7 +200,7 @@ public class MediaTab : ITab, IDisposable
         try { // attempt to turn on the BGM in the system settings
             _gameConfig.Set(SystemConfigOption.IsSndBgm, true);
         } catch (Exception e) { // if we reached this point, the BGM could not be turned on
-            _logHelper.PrintError($"An error occurred while attempting to turn on the BGM: {e.Message}", "Media Tab");
+            _logger.LogError($"An error occurred while attempting to turn on the BGM: {e.Message}");
         }
 
         // stop the cooldown, reset it, then start it again
@@ -276,7 +251,7 @@ public void DrawLivestreamDisplay() {
         }
     } catch (Exception e) {
         // If we reached this point, something went wrong
-        _logHelper.LogDebug($"An error occurred while attempting to draw the livestream display. {e.Message}", "Media Tab");
+        _logger.LogDebug($"An error occurred while attempting to draw the livestream display. {e.Message}");
     }
 }
     #endregion Livestream Display

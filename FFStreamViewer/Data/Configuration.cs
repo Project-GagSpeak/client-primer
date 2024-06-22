@@ -1,12 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using Dalamud.Interface.Internal.Notifications;
 using Dalamud.Configuration;
-using OtterGui.Classes;
 using OtterGui.Widgets;
-using Dalamud.Interface.Windowing;
 using FFStreamViewer.UI;
 using FFStreamViewer.Services;
 using Newtonsoft.Json;
@@ -43,9 +36,6 @@ public class FFSV_Config : IPluginConfiguration, ISavable
     // Media Object Variable Storage
     public          string                  SoundPath { get; set; } = "";
     public          float                   OffsetVolume = 1;
-
-
-
     public          MainWindow.TabType      SelectedTab { get; set; } = MainWindow.TabType.Media;                           // Default to the general tab
     // variables involved with saving and updating the config
     private readonly SaveService            _saveService;                                                                   // Save service for the FFStreamViewer plugin
@@ -64,9 +54,6 @@ public class FFSV_Config : IPluginConfiguration, ISavable
 
         // initialize values
         WatchLink = "";
-
-        // Let us know the config has been initialized
-        FFStreamViewer.Log.Debug("[Configuration File] Constructor Finished Initializing. Previous data restored.");
     }
 
     /// <summary> Saves the config to our save service and updates the garble level to its new value. </summary>
@@ -82,7 +69,7 @@ public class FFSV_Config : IPluginConfiguration, ISavable
     public void Load(ConfigMigrationService migrator) {
         // Handle deserialization errors
         static void HandleDeserializationError(object? sender, ErrorEventArgs errorArgs) {
-            FFStreamViewer.Log.Error( $"[Config]: Error parsing Configuration at {errorArgs.ErrorContext.Path}, using default or migrating:\n{errorArgs.ErrorContext.Error}");
+            // Logger.LogError( $"[Config]: Error parsing Configuration at {errorArgs.ErrorContext.Path}, using default or migrating:\n{errorArgs.ErrorContext.Error}");
             errorArgs.ErrorContext.Handled = true;
         }
         // If the config file does not exist, return
@@ -98,10 +85,7 @@ public class FFSV_Config : IPluginConfiguration, ISavable
                 });
             }
             catch (Exception ex) {
-                // If there is an error, log it and revert to default
-                FFStreamViewer.Messager.NotificationMessage(ex,
-                    "Error reading Configuration, reverting to default.\nYou may be able to restore your configuration using the rolling backups in the XIVLauncher/backups/FFStreamViewer directory.",
-                    "Error reading Configuration", NotificationType.Error);
+                throw new Exception($"Failed to load configuration: {ex.Message}", ex);
             }
         // Migrate the config
         migrator.Migrate(this);

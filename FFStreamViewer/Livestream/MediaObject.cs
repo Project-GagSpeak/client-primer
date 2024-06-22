@@ -25,6 +25,7 @@ namespace FFStreamViewer.Livestream;
 /// </summary>
 public class MediaObject {
     // video attributes
+    private readonly ILogger<MediaObject>       _logger;
     private static  MemoryMappedFile            _currentMappedFile;
     private static  MemoryMappedViewAccessor    _currentMappedViewAccessor;
     public          SoundType                   _soundType;
@@ -40,7 +41,6 @@ public class MediaObject {
     private         MediaManager                _parent;
     public          MediaGameObject             _playerObject;
     public          MediaCameraObject           _camera;
-    private         FFSVLogHelper               _logHelper;
     private         FFSV_Config                 _config;
 
     private         bool                        stopPlaybackOnMovement;
@@ -66,12 +66,12 @@ public class MediaObject {
     public const    uint                    Width = 640; // constant defining width for the streams
     public const    uint                    Height = 360;
 
-    public MediaObject(MediaManager parent, MediaGameObject playerObject, MediaCameraObject camera,
-    FFSVLogHelper logHelper, FFSV_Config config) {
+    public MediaObject(ILogger<MediaObject> logger, MediaManager parent, MediaGameObject playerObject,
+        MediaCameraObject camera, FFSV_Config config)
+    {
         _parent = parent;
         _playerObject = playerObject;
         _camera = camera;
-        _logHelper = logHelper;
         _config = config;
 
         _pitch = Align(Width * _bytePerPixel);
@@ -98,7 +98,7 @@ public class MediaObject {
                         _vlcPlayer.Volume = newValue;
                     }
                 } catch (Exception e) {
-                    _logHelper.LogError($"Error setting volume: {e}", "Media Object");
+                    _logger.LogError($"Error setting volume: {e}", "Media Object");
                 }
             }
         }
@@ -174,7 +174,7 @@ public class MediaObject {
                     Thread.Sleep(200);
                 }
             } catch (Exception e) {
-                _logHelper.LogError($"Error in SoundLoopCheck: {e}", "Media Object");
+                _logger.LogError($"Error in SoundLoopCheck: {e}", "Media Object");
             }
         });
     }
@@ -189,7 +189,7 @@ public class MediaObject {
             try {
                 _vlcPlayer?.Stop();
             } catch (Exception e) { 
-                _logHelper.LogError($"Error stopping VLC player: {e}", "Media Object");
+                _logger.LogError($"Error stopping VLC player: {e}", "Media Object");
             }
         }
     }
@@ -241,11 +241,11 @@ public class MediaObject {
                     _waveOutEvent?.Init(_panningSampleProvider);
                     _waveOutEvent?.Play();
                 } catch (Exception e) {
-                    _logHelper.LogError($"Error playing sound: {e}", "Media Object");
+                    _logger.LogError($"Error playing sound: {e}", "Media Object");
                 }
             }
         } catch (Exception e) { 
-            _logHelper.LogError($"Error playing sound: {e}", "Media Object");
+            _logger.LogError($"Error playing sound: {e}", "Media Object");
         }
     }
 
@@ -359,7 +359,7 @@ public class MediaObject {
                             // attempt to play the waveout event. If it fails, it will throw an exception, so we're good.
                             _waveOutEvent?.Play();
                         } catch (Exception e) {
-                            _logHelper.LogError($"Error playing sound: {e}", "Media Object");
+                            _logger.LogError($"Error playing sound: {e}", "Media Object");
                         }
                     } else {
                         // if the waveout event is null, then we can't initialize it, so throw an exception.
@@ -375,7 +375,7 @@ public class MediaObject {
                         // set the location of the libvlc dll to the libvlc path
                         string location = _config.LibVLCPath + @"\libvlc\win-x64";
                         // initialize the core of the libvlc dll sharp
-                        _logHelper.LogDebug($"Initializing libvlc core at path {location}", "Media Object");
+                        _logger.LogDebug($"Initializing libvlc core at path {location}", "Media Object");
                         Core.Initialize(location);
                         // initialize the libvlc dll sharp
                         _libVLC = new LibVLC("--vout", "none");
@@ -398,13 +398,13 @@ public class MediaObject {
                         _vlcPlayer.Play();
                     } catch (Exception e) {
                         // if any of the VLC startup fails, throw an error. 
-                        _logHelper.LogError($"Error playing RTMP stream: {e}", "Media Object");
+                        _logger.LogError($"Error playing RTMP stream: {e}", "Media Object");
                     }
                 }
             }
         } catch (Exception e) {
             // if any of the above fails, throw an error.
-            _logHelper.LogError($"Error playing sound: {e}", "Media Object");
+            _logger.LogError($"Error playing sound: {e}", "Media Object");
         }
         _config.Save();
     }
@@ -446,7 +446,7 @@ public class MediaObject {
             _currentMappedFile = null;
             _currentMappedViewAccessor = null;
         } catch (Exception e) { 
-            _logHelper.LogError($"Error displaying video: {e}", "Media Object");
+            _logger.LogError($"Error displaying video: {e}", "Media Object");
         }
     }
     #endregion Methods

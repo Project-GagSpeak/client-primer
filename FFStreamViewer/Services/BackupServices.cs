@@ -1,5 +1,3 @@
-using System.Collections.Generic; // Dictionaries & lists
-using System.IO;                  // Provides classes for working with directories, files, and drives
 using OtterGui.Classes;           // for the backup component
 using OtterGui.Log;               // for the logger
 
@@ -23,8 +21,6 @@ public class BackupService
         _configDirectory = new DirectoryInfo(fileNames.ConfigDirectory);
         // Create the backup directory if it does not exist
         Backup.CreateAutomaticBackup(logger, _configDirectory, _fileNames);
-
-        FFStreamViewer.Log.Debug("[BackupService] SERVICE CONSUTRCTOR INITIALIZED");
     }
 
     /// <summary> Create a permanent backup with a given name for migrations. </summary>

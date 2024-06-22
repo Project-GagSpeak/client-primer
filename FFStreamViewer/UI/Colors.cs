@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 
 namespace FFStreamViewer.UI;
-/* General Purpose Note:
+/* General Purpose Nickname:
     - This file is primarily for visual styles. I aimed to adapt it in the use of my UI design, but quickly realized that
     outside of the header styles, I was too burnt out to apply using it everywhere else I have defined my colors.
     - As such, these primarily dictate the colors of the profile viewer and the header, but not much else at the moment sadly.

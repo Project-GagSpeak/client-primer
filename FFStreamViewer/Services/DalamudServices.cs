@@ -1,4 +1,4 @@
-using Dalamud.Game;				// Provides service classes for interacting with the game
+/*using Dalamud.Game;				// Provides service classes for interacting with the game
 using Dalamud.IoC; 				// Provides service classes for dependency injection
 using Dalamud.Plugin; 			// Provides interfaces and service classes for creating Dalamud plugins
 using Dalamud.Plugin.Services;  // Provides service classes for plugin services
@@ -18,7 +18,7 @@ public class DalamudServices {
 	public DalamudServices(DalamudPluginInterface pluginInt) {
 		// Set the services to the pluginInt
 		pluginInt.Inject(this);
-        FFStreamViewer.Log.Debug("[DalamudServices] SERVICE CONSUTRCTOR INITIALIZED");
+        Logger.LogDebug("[DalamudServices] SERVICE CONSUTRCTOR INITIALIZED");
 	}
 
 	/// <summary>
@@ -59,4 +59,4 @@ public class DalamudServices {
 	[PluginService] public IPluginLog PluginLog { get; private set; } = null!; // For interfacing with the plugin logger
 	[PluginService] public ISigScanner SigScanner { get; private set; } = null!; // For getting our signatures to perform the operations in our danger files.
 	[PluginService] public INotificationManager NotificationManager { get; private set; } = null!; // For interfacing with the notification manager
-}
+}*/

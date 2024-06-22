@@ -1,4 +1,5 @@
-using Dalamud.Plugin; // Used for the DalamudPluginInterface which provides access to various Dalamud features
+using Dalamud.Plugin;
+using OtterGui.Log; // Used for the DalamudPluginInterface which provides access to various Dalamud features
 
 namespace FFStreamViewer.Services;
 
@@ -17,6 +18,5 @@ public class FilenameService
         // Set the configuration directory and file from the plugin interface
         ConfigDirectory = pi.ConfigDirectory.FullName;
         ConfigFile = pi.ConfigFile.FullName;
-        FFStreamViewer.Log.Debug("[FilenameService] SERVICE CONSUTRCTOR INITIALIZED");
     }
 }

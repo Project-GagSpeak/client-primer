@@ -1,42 +1,42 @@
-using System;
-using System.Linq;
-using System.Text.RegularExpressions;
 using Dalamud.Game.Command;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using OtterGui.Classes;
 using FFStreamViewer.UI;
 using FFStreamViewer.Utils;
+using FFStreamViewer.WebAPI.Services.Mediator;
 
 namespace FFStreamViewer.Services;
 
 /// <summary> The command manager for the plugin. </summary>
 public class CommandManager : IDisposable // Our main command list manager
 {
-    private const string MainCommandString = "/ffstreamviewer"; // The primary command used for & displays
+    private readonly    ILogger<CommandManager> _logger;
+    public              GagspeakMediator        _mediator;
+    private const string MainCommandString =    "/ffstreamviewer"; // The primary command used for & displays
     private const string ActionsCommandString = "/ffsv"; // subcommand for more in-depth actions.
-    private readonly    ICommandManager     _commands;
-    private readonly    MainWindow          _mainWindow;
-    private readonly    DebugWindow         _debugWindow;
-    private readonly    IChatGui            _chat;
-    private readonly    FFSV_Config         _config;
-    private readonly    IClientState        _clientState;
-    private readonly    FFSVLogHelper       _logHelper;
-    private readonly    IFramework          _framework; 
+    private readonly    ICommandManager         _commands;
+    private readonly    MainWindow              _mainWindow;
+    private readonly    DebugWindow             _debugWindow;
+    private readonly    IChatGui                _chat;
+    private readonly    FFSV_Config             _config;
+    private readonly    IClientState            _clientState;
+    private readonly    IFramework              _framework; 
 
     // Constructor for the command manager
-    public CommandManager(ICommandManager command, MainWindow mainwindow, DebugWindow debugWindow, IChatGui chat,
-    FFSV_Config config, IClientState clientState, FFSVLogHelper logHelper, IFramework framework)
+    public CommandManager(ILogger<CommandManager> logger, GagspeakMediator mediator,
+        ICommandManager command, MainWindow mainwindow, DebugWindow debugWindow, IChatGui chat,
+        FFSV_Config config, IClientState clientState, IFramework framework)
     {
         // set the private readonly's to the passed in data of the respective names
+        _logger = logger;
+        _mediator = mediator;
         _commands = command;
         _mainWindow = mainwindow;
         _debugWindow = debugWindow;
         _chat = chat;
         _config = config;
         _clientState = clientState;
-        _logHelper = logHelper;
         _framework = framework;
 
         // Add handlers to the main commands
@@ -49,7 +49,7 @@ public class CommandManager : IDisposable // Our main command list manager
             ShowInHelp = true
         });
 
-        FFStreamViewer.Log.Debug("[Command Manager] Constructor Finished Initializing");
+        _logger.LogDebug("[Command Manager] Constructor Finished Initializing");
     }
 
     // Dispose of the command manager

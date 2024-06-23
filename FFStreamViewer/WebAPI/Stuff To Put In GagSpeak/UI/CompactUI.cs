@@ -90,6 +90,15 @@ public class CompactUi : WindowMediatorSubscriberBase
         };
 
         _drawFolders = GetDrawFolders().ToList();
+        _logger.LogInformation("Draw Folders size: {size}", _drawFolders.Count);
+
+        // display info about the folders
+        foreach (var folder in _drawFolders)
+        {
+            _logger.LogInformation("Total Pairs: {folder}", folder.TotalPairs);
+            _logger.LogInformation("Filtered Pairs: {folder}", folder.OnlinePairs);
+            _logger.LogInformation("DrawPairs Count: {folder}", folder.DrawPairs.Count());
+        }
 
         string dev = "Dev Build";
         var ver = Assembly.GetExecutingAssembly().GetName().Version!;
@@ -153,7 +162,9 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.Separator();
             // fetch the cursor position where the footer is
             float pairlistEnd = ImGui.GetCursorPosY();
-            // any additional information we might want to display here such as vibe connection status or locked restraint status can go here.
+            // push a footer here maybe.
+            _transferPartHeight = ImGui.GetCursorPosY() - pairlistEnd - ImGui.GetTextLineHeight();
+            // additional popup usings can go here if needed i guess. but probably not.
         }
 
         // if we have configured to let the UI display a popup to set a nickname for the added UID upon adding them, then do so.
@@ -256,6 +267,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         ImGui.BeginChild("list", new Vector2(_windowContentWidth, ySize), border: false);
 
         // for each item in the draw folders,
+            // _logger.LogTrace("Drawing {count} folders", _drawFolders.Count);
         foreach (var item in _drawFolders)
         {
             // draw the content
@@ -449,6 +461,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         // for each tag
         foreach (var tag in tags)
         {
+            _logger.LogDebug("Adding Pair Section List Tag: {tag}", tag);
             // display the pairs that have the tag, and are not one sided pairs, and are online or paused
             var allTagPairs = ImmutablePairList(allPairs
                 .Where(u => FilterTagusers(u, tag)));
@@ -467,6 +480,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             .Where(u => FilterNotTaggedUsers(u) && FilterOnlineOrPausedSelf(u)));
 
         // create the draw folders for the online untagged pairs
+        _logger.LogDebug("Adding Pair Section List Tag: {tag}", TagHandler.CustomAllTag);
         drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder((_configService.Current.ShowOfflineUsersSeparately ? TagHandler.CustomOnlineTag : TagHandler.CustomAllTag),
             onlineNotTaggedPairs, allOnlineNotTaggedPairs));
 
@@ -480,11 +494,13 @@ public class CompactUi : WindowMediatorSubscriberBase
                 .Where(FilterOfflineUsers));
 
             // add the folder.
+            _logger.LogDebug("Adding Pair Section List Tag: {tag}", TagHandler.CustomOfflineTag);
             drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomOfflineTag, filteredOfflinePairs, allOfflinePairs));
 
         }
 
         // finally, add the unpaired users to the list.
+        _logger.LogDebug("Adding Unpaired Pairs Section List Tag: {tag}", TagHandler.CustomUnpairedTag);
         drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomUnpairedTag,
             BasicSortedList(filteredPairs.Where(u => u.IsOneSidedPair)),
             ImmutablePairList(allPairs.Where(u => u.IsOneSidedPair))));

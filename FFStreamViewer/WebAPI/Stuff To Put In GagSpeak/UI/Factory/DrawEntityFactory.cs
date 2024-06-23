@@ -38,7 +38,7 @@ public class DrawEntityFactory
     public DrawFolderTag CreateDrawTagFolder(string tag, List<Pair> filteredPairs, IImmutableList<Pair> allPairs)
     {
         return new(tag, filteredPairs.Select(u => CreateDrawPair(tag, u)).ToImmutableList(), allPairs,
-            _tagHandler, _apiController, _selectPairForTagUi, _uiSharedService);
+            _tagHandler, _apiController, _selectPairForTagUi, _uiSharedService, _logger);
     }
 
     public DrawUserPair CreateDrawPair(string id, Pair user)

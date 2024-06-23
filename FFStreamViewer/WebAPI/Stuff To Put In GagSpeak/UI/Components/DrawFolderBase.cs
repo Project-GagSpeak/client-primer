@@ -9,6 +9,7 @@ namespace FFStreamViewer.WebAPI.UI.Components;
 
 public abstract class DrawFolderBase : IDrawFolder
 {
+    private readonly ILogger<DrawEntityFactory> _logger;
     public IImmutableList<DrawUserPair> DrawPairs { get; init; }
     protected readonly string _id;
     protected readonly IImmutableList<Pair> _allPairs;
@@ -20,13 +21,15 @@ public abstract class DrawFolderBase : IDrawFolder
     private bool _wasHovered = false;
 
     protected DrawFolderBase(string id, IImmutableList<DrawUserPair> drawPairs,
-        IImmutableList<Pair> allPairs, TagHandler tagHandler, UiSharedService uiSharedService)
+        IImmutableList<Pair> allPairs, TagHandler tagHandler, UiSharedService uiSharedService, 
+        ILogger<DrawEntityFactory> logger)
     {
         _id = id;
         DrawPairs = drawPairs;
         _allPairs = allPairs;
         _tagHandler = tagHandler;
         _uiSharedService = uiSharedService;
+        _logger = logger;
     }
 
     protected abstract bool RenderIfEmpty { get; }
@@ -34,16 +37,21 @@ public abstract class DrawFolderBase : IDrawFolder
 
     public void Draw()
     {
-        if (!RenderIfEmpty && !DrawPairs.Any()) return;
+        if (!RenderIfEmpty && !DrawPairs.Any())
+        {
+            return;
+        }
 
         using var id = ImRaii.PushId("folder_" + _id);
         var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), _wasHovered);
-        using (ImRaii.Child("folder__" + _id, new System.Numerics.Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
+        using (ImRaii.Child("folder__" + _id, new System.Numerics.Vector2(
+            UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
         {
             // draw opener
             var icon = _tagHandler.IsTagOpen(_id) ? FontAwesomeIcon.CaretDown : FontAwesomeIcon.CaretRight;
 
             ImGui.AlignTextToFramePadding();
+            //_logger.LogInformation("Drawing folder {0}", _id);
 
             _uiSharedService.IconText(icon);
             if (ImGui.IsItemClicked())
@@ -62,7 +70,7 @@ public abstract class DrawFolderBase : IDrawFolder
             DrawName(rightSideStart - leftSideEnd);
         }
 
-        _wasHovered = ImGui.IsItemHovered();
+        //_wasHovered = ImGui.IsItemHovered();
 
         color.Dispose();
 

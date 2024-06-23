@@ -104,6 +104,60 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Current.LogLevel = level;
             _configService.Save();
         }, _configService.Current.LogLevel);
+
+
+        // draw out our pair manager
+        // Start of the Pair Manager section
+        ImGui.Text("Pair Manager:");
+
+        // Display additional info about the Pair Manager
+        int totalPairs = _pairManager.ClientPairs.Count;
+        int visibleUsersCount = _pairManager.GetVisibleUserCount();
+        ImGui.Text($"Total Pairs: {totalPairs}");
+        ImGui.Text($"Visible Users: {visibleUsersCount}");
+
+        // Iterate through all client pairs in the PairManager
+        foreach (var clientPair in _pairManager.ClientPairs)
+        {
+            // Display the UserData's UID
+            ImGui.Text($"UserData UID: {clientPair.Key.UID}");
+            ImGui.Indent();
+
+            // Accessing and displaying information from the Pair object
+            var pair = clientPair.Value;
+            ImGui.Text($"IsDirectlyPaired: {pair.IsDirectlyPaired}");
+            ImGui.Text($"IsOneSidedPair: {pair.IsOneSidedPair}");
+            ImGui.Text($"IsOnline: {pair.IsOnline}");
+            ImGui.Text($"IsPaired: {pair.IsPaired}");
+            ImGui.Text($"IsVisible: {pair.IsVisible}");
+            ImGui.Text($"PlayerName: {pair.PlayerName ?? "N/A"}");
+
+            // Accessing the PairHandler object to output its information
+            if (pair.HasCachedPlayer)
+            {
+                var pairHandler = pair.PlayerPairHandler;
+                // Display basic information about the online user
+                ImGui.Text($"Online User ID: {pairHandler.OnlineUser.User.UID}");
+                ImGui.Text($"Online User Alias: {pairHandler.OnlineUser.User.AliasOrUID}");
+                // Display information about the player character
+                ImGui.Text($"Player Character Address: {pairHandler.PlayerCharacter}");
+                ImGui.Text($"Player Character ID: {pairHandler.PlayerCharacterId}");
+                ImGui.Text($"Player Name: {pairHandler.PlayerName ?? "N/A"}");
+                ImGui.Text($"Player Name Hash: {pairHandler.PlayerNameHash}");
+                ImGui.Text($"IsVisible (Handler): {pairHandler?.IsVisible.ToString() ?? "N/A"}");
+            }
+            else
+            {
+                ImGui.Text("PairHandler: N/A");
+            }
+
+            ImGui.Unindent();
+        }
+
+
+        // Note: Ensure that the _allClientPairs field in PairManager is accessible from SettingsUi.
+        // You might need to adjust its access modifier or provide a public method/property to access it safely.
+
     }
 
     private void DrawPreferences()

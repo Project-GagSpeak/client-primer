@@ -15,6 +15,7 @@ namespace FFStreamViewer.WebAPI.PlayerData.Pairs;
 /// </summary>
 public sealed class PairManager : DisposableMediatorSubscriberBase
 {
+    ILogger<PairManager> _logger;
     private readonly ConcurrentDictionary<UserData, Pair> _allClientPairs;  // all client-pair'ed users on the client.
     private readonly GagspeakConfigService _configurationService;           // the Gagspeak Configuration Service
     private readonly PairFactory _pairFactory;                              // the pair factory
@@ -22,9 +23,12 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     public List<Pair> DirectPairs => _directPairsInternal.Value;            // the direct pairs the client has with other users.
     public Pair? LastAddedUser { get; internal set; }                       // the most recently added user.
 
+    public ConcurrentDictionary<UserData, Pair> ClientPairs => _allClientPairs; // the client's pair list
+
     public PairManager(ILogger<PairManager> logger, PairFactory pairFactory,
         GagspeakConfigService configurationService, GagspeakMediator mediator) : base(logger, mediator)
     {
+        _logger = logger;
         _allClientPairs = new(UserDataComparer.Instance);
         _pairFactory = pairFactory;
         _configurationService = configurationService;
@@ -40,19 +44,23 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     /// </summary>
     public void AddUserPair(UserPairDto dto)
     {
+        _logger.LogTrace("Scanning all client pairs to see if added user already exists");
         // if the user is not in the client's pair list, create a new pair for them.
         if (!_allClientPairs.ContainsKey(dto.User))
         {
+            _logger.LogDebug("User {user} not found in client pairs, creating new pair", dto.User);
             // create a new pair object for the user through the pair factory
             _allClientPairs[dto.User] = _pairFactory.Create(dto);
         }
         // if the user is in the client's pair list, apply the last received data to the pair.
         else
         {
+            _logger.LogDebug("User {user} found in client pairs, applying last received data instead.", dto.User);
             // apply the last received data to the pair.
             _allClientPairs[dto.User].UserPair.IndividualPairStatus = dto.IndividualPairStatus;
             _allClientPairs[dto.User].ApplyLastReceivedData();
         }
+        _logger.LogTrace("Recreating the lazy list of direct pairs.");
         // recreate the lazy list of direct pairs.
         RecreateLazy();
     }

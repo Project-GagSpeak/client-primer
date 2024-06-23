@@ -118,6 +118,7 @@ public class SelectTagForPairUi
 
     private void HandleAddTag()
     {
+        
         if (!_tagNameToAdd.IsNullOrWhitespace() && _tagNameToAdd is not (TagHandler.CustomOfflineTag or TagHandler.CustomOnlineTag or TagHandler.CustomVisibleTag))
         {
             _tagHandler.AddTag(_tagNameToAdd);

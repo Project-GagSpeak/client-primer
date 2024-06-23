@@ -20,6 +20,7 @@ public partial class ApiController
     {
         // if we are not connected, return
         if (!IsConnected) return;
+        Logger.LogDebug("Adding pair {user} to client. Sending call to server.", user);
         // otherwise, call the UserAddPair function on the server with the user data transfer object via signalR
         await _gagspeakHub!.SendAsync(nameof(UserAddPair), user).ConfigureAwait(false); // wait for request to send.
     }

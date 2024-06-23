@@ -14,8 +14,9 @@ public class DrawFolderTag : DrawFolderBase
     private readonly SelectPairForTagUi _selectPairForTagUi;
 
     public DrawFolderTag(string id, IImmutableList<DrawUserPair> drawPairs, IImmutableList<Pair> allPairs,
-        TagHandler tagHandler, ApiController apiController, SelectPairForTagUi selectPairForTagUi, UiSharedService uiSharedService)
-        : base(id, drawPairs, allPairs, tagHandler, uiSharedService)
+        TagHandler tagHandler, ApiController apiController, SelectPairForTagUi selectPairForTagUi, 
+        UiSharedService uiSharedService, ILogger<DrawEntityFactory> logger)
+        : base(id, drawPairs, allPairs, tagHandler, uiSharedService, logger)
     {
         _apiController = apiController;
         _selectPairForTagUi = selectPairForTagUi;

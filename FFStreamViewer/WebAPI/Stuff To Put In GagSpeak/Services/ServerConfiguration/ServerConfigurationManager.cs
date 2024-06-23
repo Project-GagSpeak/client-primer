@@ -137,6 +137,7 @@ public class ServerConfigurationManager
     /// <summary> Adds a tag to the server </summary>
     internal void AddTag(string tag)
     {
+        _logger.LogTrace("Adding tag {tag} to server storage and saving!");
         TagStorage.ServerAvailablePairTags.Add(tag);
         // save the tag config
         _serverTagConfig.Save();
@@ -249,6 +250,7 @@ public class ServerConfigurationManager
     /// <summary> Removes the tag from the server tag configuration</summary>
     internal void RemoveTag(string tag)
     {
+        _logger.LogTrace("REMOVING tag {tag} to server storage and saving!");
         // Remove the tag from the available pair tags
         TagStorage.ServerAvailablePairTags.Remove(tag);
         // for each UID that had that tag, remove the tag from the list of tags
@@ -336,5 +338,21 @@ public class ServerConfigurationManager
         }
         // save the configuration
         Save();
+    }
+
+    private void TryCreateCurrentNotesStorage()
+    {
+        if (_nicknamesConfig.Current.ServerNicknames is null)
+        {
+            _nicknamesConfig.Current.ServerNicknames = new();
+        }
+    }
+
+    private void TryCreateCurrentServerTagStorage()
+    {
+        if (_serverTagConfig.Current.ServerTagStorage is null)
+        {
+            _serverTagConfig.Current.ServerTagStorage = new();
+        }
     }
 }

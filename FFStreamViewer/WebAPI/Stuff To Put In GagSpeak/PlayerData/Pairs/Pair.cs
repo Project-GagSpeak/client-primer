@@ -13,7 +13,7 @@ namespace FFStreamViewer.WebAPI.PlayerData.Pairs;
 /// <summary> Stores information about a paired user of the client.
 /// <para> The Pair object is created by the PairFactory, which is responsible for generating pair objects.</para>
 /// <para> These pair objects are then created and deleted via the pair manager</para>
-/// <para> The pair handler is what helps with the management of the CachedPlayer objects.</para>
+/// <para> The pair handler is what helps with the management of the CachedPlayer.</para>
 /// </summary>
 public class Pair
 {
@@ -47,6 +47,7 @@ public class Pair
     public UserData UserData => UserPair.User;
 
     // Basic reference getter attributes
+    public PairHandler PlayerPairHandler => CachedPlayer ?? throw new InvalidOperationException("CachedPlayer is null");
     public bool HasCachedPlayer => CachedPlayer != null && !string.IsNullOrEmpty(CachedPlayer.PlayerName) && _onlineUserIdentDto != null;
     public IndividualPairStatus IndividualPairStatus => UserPair.IndividualPairStatus;  // the individual pair status of the pair in relation to the client.
     public bool IsDirectlyPaired => IndividualPairStatus != IndividualPairStatus.None;  // if the pair is directly paired.

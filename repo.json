@@ -21,9 +21,9 @@
         "IsTestingExclusive": "False",
         "DownloadCount": 420,
         "LastUpdate": 1618608322,
-        "DownloadLinkInstall": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/v0.1.0beta/latest.zip",
-        "DownloadLinkUpdate": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/v0.1.0beta/latest.zip",
-        "DownloadLinkTesting": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/v0.1.0beta/latest.zip",
+        "DownloadLinkInstall": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/v0.1.1beta/latest.zip",
+        "DownloadLinkUpdate": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/v0.1.1beta/latest.zip",
+        "DownloadLinkTesting": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/v0.1.1beta/latest.zip",
         "IconUrl": "https://raw.githubusercontent.com/CordeliaMist/FFStreamViewer/main/images/icon.png"
     }
 ]

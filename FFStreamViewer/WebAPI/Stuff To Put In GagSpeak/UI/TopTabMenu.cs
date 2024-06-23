@@ -170,6 +170,7 @@ public class TopTabMenu
         {
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Add"))
             {
+                // call the UserAddPair function on the server with the user data transfer object
                 _ = _apiController.UserAddPair(new(new(_pairToAdd)));
                 _pairToAdd = string.Empty;
             }

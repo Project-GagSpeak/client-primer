@@ -29,7 +29,7 @@ public partial class UserPairPermsSticky
     {
         /* ----------- GLOBAL SETTINGS ----------- */
         ImGui.TextUnformatted("Global Settings");
-
+/*
         // Pair's live chat garbler setting.
         var isDisableSounds = UserPairForPerms.UserPair!.OwnPermissions.IsDisableSounds();
         string disableSoundsText = isDisableSounds ? "Enable sound sync" : "Disable sound sync";
@@ -40,7 +40,7 @@ public partial class UserPairPermsSticky
             permissions.SetDisableSounds(!isDisableSounds);
             _ = _apiController.UserSetPairPermissions(new UserPermissionsDto(_pair.UserData, permissions));
         }
-        UiSharedService.AttachToolTip("Changes sound sync permissions with this user." + (individual ? individualText : string.Empty));
+        UiSharedService.AttachToolTip("Changes sound sync permissions with this user." + (individual ? individualText : string.Empty));*/
     }
 
     /// <summary> The left side of the permissions row, containing the rows icon, and the help text menu </summary>

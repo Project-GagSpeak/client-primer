@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.SignalR;
 using GagSpeak.API.Dto.Connection;
 using Gagspeak.API.Data;
 using FFStreamViewer.WebAPI.PlayerData.Data;
+using GagSpeak.API.Dto.Permissions;
 
 namespace FFStreamViewer.WebAPI;
 
@@ -375,25 +376,28 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         }
     }
 
-
     public Task CyclePause(UserData userData)
     {
         CancellationTokenSource cts = new();
         cts.CancelAfter(TimeSpan.FromSeconds(5));
+        // run this task in async, so that we can pause multiple people at once if we really want to.
         _ = Task.Run(async () =>
         {
             var pair = _pairManager.GetOnlineUserPairs().Single(p => p.UserPair != null && p.UserData == userData);
-            var perm = pair.UserPair!.OwnPermissions;
-            perm.SetPaused(paused: true);
-            await UserUpdatePairPerms(new GagSpeak.API.Dto.Permissions.UserPairPermChangeDto(userData, perm)).ConfigureAwait(false);
+            var perm = pair.UserPair!.OwnPairPerms;
+            // set the permission to true
+            perm.IsPaused = true;
+            // update the pair permissions
+            await UserUpdatePairPerms(new UserPairPermChangeDto(userData, new KeyValuePair<string, object>(nameof(perm.IsPaused), true))).ConfigureAwait(false);
             // wait until it's changed
-            while (pair.UserPair!.OwnPermissions != perm)
+            while (pair.UserPair!.OwnPairPerms != perm)
             {
                 await Task.Delay(250, cts.Token).ConfigureAwait(false);
                 Logger.LogTrace("Waiting for permissions change for {data}", userData);
             }
-            perm.SetPaused(paused: false);
-            await UserUpdatePairPerms(new API.Dto.User.UserPermissionsDto(userData, perm)).ConfigureAwait(false);
+            // set it back to false;
+            perm.IsPaused = false;
+            await UserUpdatePairPerms(new UserPairPermChangeDto(userData, new KeyValuePair<string, object>(nameof(perm.IsPaused), false))).ConfigureAwait(false);
         }, cts.Token).ContinueWith((t) => cts.Dispose());
 
         return Task.CompletedTask;
@@ -494,15 +498,26 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
         OnUserAddClientPair(dto => _ = Client_UserAddClientPair(dto));
         OnUserRemoveClientPair(dto => _ = Client_UserRemoveClientPair(dto));
-
         OnUpdateUserIndividualPairStatusDto(dto => _ = Client_UpdateUserIndividualPairStatusDto(dto));
-        OnUserReceiveCharacterData(dto => _ = Client_UserReceiveCharacterData(dto));
+        
+        OnUserUpdateSelfPairPermsGlobal(dto => _ = Client_UserUpdateSelfPairPermsGlobal(dto));
+        OnUserUpdateSelfPairPerms(dto => _ = Client_UserUpdateSelfPairPerms(dto));
+        OnUserUpdateSelfPairPermAccess(dto => _ = Client_UserUpdateSelfPairPermAccess(dto));
+        OnUserUpdateOtherAllPairPerms(dto => _ = Client_UserUpdateOtherAllPairPerms(dto));
+        OnUserUpdateOtherPairPermsGlobal(dto => _ = Client_UserUpdateOtherPairPermsGlobal(dto));
+        OnUserUpdateOtherPairPerms(dto => _ = Client_UserUpdateOtherPairPerms(dto));
+        OnUserUpdateOtherPairPermAccess(dto => _ = Client_UserUpdateOtherPairPermAccess(dto));
+
+        OnUserReceiveCharacterDataComposite(dto => _ = Client_UserReceiveCharacterDataComposite(dto));
+        OnUserReceiveCharacterDataIpc(dto => _ = Client_UserReceiveCharacterDataIpc(dto));
+        OnUserReceiveCharacterDataAppearance(dto => _ = Client_UserReceiveCharacterDataAppearance(dto));
+        OnUserReceiveCharacterDataWardrobe(dto => _ = Client_UserReceiveCharacterDataWardrobe(dto));
+        OnUserReceiveCharacterDataAlias(dto => _ = Client_UserReceiveCharacterDataAlias(dto));
+        OnUserReceiveCharacterDataPattern(dto => _ = Client_UserReceiveCharacterDataPattern(dto));
 
         OnUserSendOffline(dto => _ = Client_UserSendOffline(dto));
         OnUserSendOnline(dto => _ = Client_UserSendOnline(dto));
-        
         OnUserUpdateProfile(dto => _ = Client_UserUpdateProfile(dto));
-
         OnDisplayVerificationPopup(dto => _ = Client_DisplayVerificationPopup(dto));
 
         // create a new health check token

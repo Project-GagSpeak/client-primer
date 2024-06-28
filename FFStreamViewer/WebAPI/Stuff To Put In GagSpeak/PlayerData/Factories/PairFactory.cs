@@ -27,7 +27,8 @@ public class PairFactory
     /// <returns> A new Pair object </returns>
     public Pair Create(UserPairDto userPairDto)
     {
-        return new Pair(_loggerFactory.CreateLogger<Pair>(), new(userPairDto.User, userPairDto.IndividualPairStatus),
-            _cachedPlayerFactory, _gagspeakMediator, _serverConfigurationManager);
+        return new Pair(_loggerFactory.CreateLogger<Pair>(), new(userPairDto.User, userPairDto.IndividualPairStatus,
+            userPairDto.OwnPairPerms, userPairDto.OwnEditAccessPerms, userPairDto.OtherGlobalPerms, userPairDto.OtherPairPerms,
+            userPairDto.OtherEditAccessPerms), _cachedPlayerFactory, _gagspeakMediator, _serverConfigurationManager);
     }
 }

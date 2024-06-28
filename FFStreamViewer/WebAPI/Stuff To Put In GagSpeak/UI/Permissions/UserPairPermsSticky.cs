@@ -306,7 +306,7 @@ public partial class UserPairPermsSticky : DisposableMediatorSubscriberBase
             }
             UiSharedService.AttachToolTip("This will set all permissions to your defined default permissions in the Gagspeak Settings");*/
 
-    var ySize = ImGui.GetCursorPosY() + style.FramePadding.Y * ImGuiHelpers.GlobalScale + style.FrameBorderSize;
-        ImGui.SetWindowSize(new(400, ySize));
+/*    var ySize = ImGui.GetCursorPosY() + style.FramePadding.Y * ImGuiHelpers.GlobalScale + style.FrameBorderSize;
+        ImGui.SetWindowSize(new(400, ySize));*/
     }
 }

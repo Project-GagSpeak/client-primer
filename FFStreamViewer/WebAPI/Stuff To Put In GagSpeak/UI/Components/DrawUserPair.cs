@@ -1,16 +1,11 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
-using Gagspeak.API.Dto.User;
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
 using FFStreamViewer.WebAPI.UI.Handlers;
-using FFStreamViewer.WebAPI;
-using FFStreamViewer.WebAPI.Interop.Ipc;
-using System.Windows.Forms;
+using GagSpeak.API.Dto.UserPair;
+using ImGuiNET;
 
 namespace FFStreamViewer.WebAPI.UI.Components;
 
@@ -28,8 +23,8 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
     private readonly UiSharedService _uiSharedService;
     private float _menuWidth = -1;
     private bool _wasHovered = false;
-    public DrawUserPair(ILogger<DrawUserPair> logger, string id, Pair entry, ApiController apiController, 
-        IdDisplayHandler uIDDisplayHandler, GagspeakMediator gagspeakMediator, SelectTagForPairUi selectTagForPairUi, 
+    public DrawUserPair(ILogger<DrawUserPair> logger, string id, Pair entry, ApiController apiController,
+        IdDisplayHandler uIDDisplayHandler, GagspeakMediator gagspeakMediator, SelectTagForPairUi selectTagForPairUi,
         UiSharedService uiSharedService) : base(logger, gagspeakMediator)
     {
         _id = id;

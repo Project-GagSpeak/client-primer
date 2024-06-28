@@ -18,7 +18,7 @@ namespace FFStreamViewer.WebAPI.PlayerData.Pairs;
 /// General note to self, pairs used to have "own permissions" and "other permissions" but they were removed.
 /// <para> If down the line something like this is an answer to a problem of mine, then find a way to utilize it.</para>
 /// </summary>
-public sealed class PairManager : DisposableMediatorSubscriberBase
+public sealed partial class PairManager : DisposableMediatorSubscriberBase
 {
     ILogger<PairManager> _logger;
     private readonly ConcurrentDictionary<UserData, Pair> _allClientPairs;  // concurrent dictionary of all paired paired to the client.

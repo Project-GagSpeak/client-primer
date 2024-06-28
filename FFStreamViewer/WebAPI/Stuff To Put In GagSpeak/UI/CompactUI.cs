@@ -49,7 +49,18 @@ public class CompactUi : WindowMediatorSubscriberBase
 
     // variables for determining how the permissions window is drawn
     private bool _shouldDrawStickyPerms = false;
-    private Pair? _PairToDrawPermissionsFor => _UserPairPermissionsSticky.UserPair;
+    private Pair? _PairToDrawPermissionsFor
+    {
+        get
+        {
+            return _UserPairPermissionsSticky.UserPairForPerms;
+        }
+        set
+        {
+            // update it with the value
+            _UserPairPermissionsSticky.UserPairForPerms = value;
+        }
+    }
 
     public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, GagspeakConfigService configService,
         ApiController apiController, PairManager pairManager, ServerConfigurationManager serverManager,
@@ -256,7 +267,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             // anyways, if we should be drawing the sticky permissions window beside it, then do so.
             if (_PairToDrawPermissionsFor != null)
             {
-                ChildWindowFocused = _UserPairPermissionsSticky.DrawSticky(_PairToDrawPermissionsFor, topMenuEnd);
+                ChildWindowFocused = _UserPairPermissionsSticky.DrawSticky(topMenuEnd);
             }
             // check if we currently have a permission window open and if so to refocus it when the main window is focused
             FocusChildWhenMainRefocused(ChildWindowFocused);

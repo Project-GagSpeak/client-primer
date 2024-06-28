@@ -2,6 +2,13 @@ using Gagspeak.API.Data.Enum;
 
 namespace FFStreamViewer.WebAPI.GagspeakConfiguration.Configurations;
 
+public enum RevertStyle
+{
+    ToGameOnly,
+    ToAutomationOnly,
+    ToGameThenAutomation,
+}
+
 [Serializable]
 public class GagspeakConfig : IGagspeakConfiguration
 {
@@ -30,3 +37,4 @@ public class GagspeakConfig : IGagspeakConfiguration
     public RevertStyle RevertStyle { get; set; }   // how the user wants to revert their settings (can store locally?)
     public bool UsingSimulatedVibrator { get; set; } // if the user is using a simulated vibrator
 }
+

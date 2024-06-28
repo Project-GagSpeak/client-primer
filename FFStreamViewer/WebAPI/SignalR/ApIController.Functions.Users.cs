@@ -173,7 +173,7 @@ public partial class ApiController
     /// Pushes the wardrobe data of the client to other recipients.
     /// 
     /// </summary>
-    public async Task UserPushDataWardrobe(UserCharaAppearanceDataMessageDto dto)
+    public async Task UserPushDataWardrobe(UserCharaWardrobeDataMessageDto dto)
     {
         // try and push the character data dto to the server
         try

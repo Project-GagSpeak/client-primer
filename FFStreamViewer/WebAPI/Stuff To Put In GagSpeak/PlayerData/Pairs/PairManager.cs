@@ -74,7 +74,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             _logger.LogDebug("User {user} found in client pairs, applying last received data instead.", dto.User);
             // apply the last received data to the pair.
             _allClientPairs[dto.User].UserPair.IndividualPairStatus = dto.IndividualPairStatus;
-            _allClientPairs[dto.User].ApplyLastReceivedData();
+            _allClientPairs[dto.User].ApplyLastReceivedIpcData();
         }
         _logger.LogTrace("Recreating the lazy list of direct pairs.");
         // recreate the lazy list of direct pairs.
@@ -115,7 +115,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
             LastAddedUser = _allClientPairs[dto.User];
         }
         // finally, be sure to apply the last recieved data to this user's Pair object.
-        _allClientPairs[dto.User].ApplyLastReceivedData();
+        _allClientPairs[dto.User].ApplyLastReceivedIpcData();
         // recreate the lazy list of direct pairs.
         RecreateLazy();
     }
@@ -208,30 +208,90 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     /// <summary> 
     /// 
     /// Method is called upon by the ApiController.Callbacks, which listens to function calls from the connected server.
+    /// It then returns the composite DTO, which is split into its core components and updates the correct user pair.
     /// 
-    /// <para> 
-    /// 
-    /// This method delivers an OnlineUserCharaData Dto to our client, so we can get the latest information from them.
-    /// 
-    /// NOTE: Potentially make this include additional fields like "applyAppearance" or "applyWardrobe" etc. with default
-    /// set to true. This way if we receive sub chunks, before passing it in we can set certain variables to true or false to only inject
-    /// parts of it. This however might cause more overhead, so look into it later.
-    /// 
-    /// </para>
     /// </summary>
-    public void ReceiveCharaData(OnlineUserCharaCompositeDataDto dto)
+    public void ReceiveCharaCompositeData(OnlineUserCharaCompositeDataDto dto)
     {
         // if the user in the Dto is not in our client's pair list, throw an exception.
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Data")));
+        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Composite Data")));
 
-        // apply the data to the pair in the client's pair list.
-        /* Something important to note here is that this application should only madder for visibility.
-         * Permissions themselves should just be applied regardless. Potentially even right here.          */
-        _allClientPairs[dto.User].ApplyData(dto); 
+        // break down the composite data into its core components, and update the necessary parts.
+        _allClientPairs[dto.User].ApplyVisibleData(new OnlineUserCharaIpcDataDto(dto.User, dto.CompositeData.IPCData));
+
+        // apply the other appearances to the pair.
+        _allClientPairs[dto.User].ApplyAppearanceData(new OnlineUserCharaAppearanceDataDto(dto.User, dto.CompositeData.AppearanceData));
     }
+
+    /// <summary> Method similar to compositeData, but this will only update the IPC data of the user pair. </summary>
+    public void ReceiveCharaIpcData(OnlineUserCharaIpcDataDto dto)
+    {
+        // if the user in the Dto is not in our client's pair list, throw an exception.
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
+
+        // if they are found, publish an event message that we have received character data from our paired User
+        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character IPC Data")));
+
+        // apply the IPC data to the pair.
+        _allClientPairs[dto.User].ApplyVisibleData(dto);
+    }
+
+    /// <summary> Method similar to compositeData, but this will only update the appearance data of the user pair. </summary>
+    public void ReceiveCharaAppearanceData(OnlineUserCharaAppearanceDataDto dto)
+    {
+        // if the user in the Dto is not in our client's pair list, throw an exception.
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
+
+        // if they are found, publish an event message that we have received character data from our paired User
+        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Appearance Data")));
+
+        // apply the appearance data to the pair.
+        _allClientPairs[dto.User].ApplyAppearanceData(dto);
+    }
+
+    /// <summary> Method similar to compositeData, but this will only update the wardrobe data of the user pair. </summary>
+    public void ReceiveCharaWardrobeData(OnlineUserCharaWardrobeDataDto dto)
+    {
+        // if the user in the Dto is not in our client's pair list, throw an exception.
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
+
+        // if they are found, publish an event message that we have received character data from our paired User
+        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Wardrobe Data")));
+
+        // apply the wardrobe data to the pair.
+        _allClientPairs[dto.User].ApplyWardrobeData(dto);
+    }
+
+    /// <summary> Method similar to compositeData, but this will only update the alias data of the user pair. </summary>
+    public void ReceiveCharaAliasData(OnlineUserCharaAliasDataDto dto)
+    {
+        // if the user in the Dto is not in our client's pair list, throw an exception.
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
+
+        // if they are found, publish an event message that we have received character data from our paired User
+        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Alias Data")));
+
+        // apply the alias data to the pair.
+        _allClientPairs[dto.User].ApplyAliasData(dto);
+    }
+
+    /// <summary> Method similar to compositeData, but this will only update the pattern data of the user pair. </summary>
+    public void ReceiveCharaPatternData(OnlineUserCharaPatternDataDto dto)
+    {
+        // if the user in the Dto is not in our client's pair list, throw an exception.
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
+
+        // if they are found, publish an event message that we have received character data from our paired User
+        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Pattern Data")));
+
+        // apply the pattern data to the pair.
+        _allClientPairs[dto.User].ApplyPatternData(dto);
+    }
+
+
 
     /// <summary> Removes a user pair from the client's pair list.</summary>
     public void RemoveUserPair(UserDto dto)
@@ -303,7 +363,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         // for each pair in the clients pair list, apply the last received data
         foreach (var pair in _allClientPairs.Select(k => k.Value))
         {
-            pair.ApplyLastReceivedData(forced: true);
+            pair.ApplyLastReceivedIpcData(forced: true);
         }
     }
 

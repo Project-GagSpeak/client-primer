@@ -76,7 +76,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         {
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.Sync, "Reload last data", _menuWidth, true))
             {
-                _pair.ApplyLastReceivedData(forced: true);
+                _pair.ApplyLastReceivedIpcData(forced: true);
                 ImGui.CloseCurrentPopup();
             }
             UiSharedService.AttachToolTip("This reapplies the last received character data to this character");

@@ -64,10 +64,12 @@ public class Pair
     /// </para>
     /// </summary>
     public UserPairDto UserPair { get; set; }
-
-
-    /// <summary> a reference variable for the pair class, where the UserData is the UserPair's UID/Alias UID
-    public UserData UserData => UserPair.User;
+    public UserData UserData => UserPair.User;              // The UserData associated with the pair.
+    public CharacterAppearanceData? UserPairAppearanceData; // the gag data associated with the user pair.
+    public CharacterWardrobeData? UserPairWardrobeData;     // the wardrobe data associated with the user pair.
+    public CharacterAliasData? UserPairAliasData;           // the alias data associated with the user pair.
+    public CharacterPatternInfo? UserPairPatternData;       // the pattern data associated with the user pair.
+    public CharacterIPCData? LastReceivedIpcData { get; set; } // reference to last IPC data applied to visible user.
 
     // Most of these attributes should be self explanatory, but they are public methods you can fetch from the pair manager.
     public bool HasCachedPlayer => CachedPlayer != null && !string.IsNullOrEmpty(CachedPlayer.PlayerName) && _onlineUserIdentDto != null;
@@ -79,18 +81,16 @@ public class Pair
     public bool IsPaired => IndividualPairStatus == IndividualPairStatus.Bidirectional; // if the user is paired bidirectionally.
     public bool IsPaused => UserPair.OwnPairPerms.IsPaused; 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;                          // if the paired user is visible.
-    public CharacterCompositeData? LastReceivedCharaCompositeData { get; set; } // reference of the latest composite data applied to the user.
     public string? PlayerName => CachedPlayer?.PlayerName ?? string.Empty;  // Name of pair player. If empty, (pair handler) CachedData is not initialized yet.
 
     /// <summary>
-    /// Apply the data retrieved from an updated online user's information.
+    /// Applies the IPC related data that should effect players within visible range of the client, to the user pair.
     /// </summary>
-    /// <param name="data"> the data to apply to the user</param>
-    public void ApplyData(OnlineUserCharaCompositeDataDto data)
+    public void ApplyVisibleData(OnlineUserCharaIpcDataDto data)
     {
         _applicationCts = _applicationCts.CancelRecreate();
         // set the last recieved character data to the data.CharaData
-        LastReceivedCharaCompositeData = data.CompositeData;
+        LastReceivedIpcData = data.IPCData;
 
         // if the cached player is null
         if (CachedPlayer == null)
@@ -121,31 +121,81 @@ public class Pair
                 {
                     // apply the last received data
                     _logger.LogDebug("Applying delayed data for {uid}", data.User.UID);
-                    ApplyLastReceivedData(); // in essence, this means apply the character data send in the Dto
+                    ApplyLastReceivedIpcData(); // in essence, this means apply the character data send in the Dto
                 }
             });
             return;
         }
 
         // otherwise, just apply the last received data.
-        ApplyLastReceivedData();
+        ApplyLastReceivedIpcData();
     }
+
+    /// <summary>
+    /// Applied updated Gag Appearance Data for the user pair. 
+    /// This is sent to all online players, not just visible.
+    /// 
+    /// Because of this, simply applying the data is enough.
+    /// </summary>
+    public void ApplyAppearanceData(OnlineUserCharaAppearanceDataDto data)
+    {
+        _logger.LogDebug("Applying updated appearance data for {uid}", data.User.UID);
+        UserPairAppearanceData = data.AppearanceData;
+    }
+
+    /// <summary>
+    /// Applied updated Gag Appearance Data for the user pair. 
+    /// This is sent to all online players, not just visible.
+    /// 
+    /// Because of this, simply applying the data is enough.
+    /// </summary>
+    public void ApplyWardrobeData(OnlineUserCharaWardrobeDataDto data)
+    {
+        _logger.LogDebug("Applying updated appearance data for {uid}", data.User.UID);
+        UserPairWardrobeData = data.WardrobeData;
+    }
+
+    /// <summary>
+    /// Applies the restraint set information the user pair has allowed you to see.
+    /// This is sent to all online players, not just visible.
+    /// 
+    /// Because of this, simply applying the data is enough.
+    /// </summary>
+    public void ApplyAliasData(OnlineUserCharaAliasDataDto data)
+    {
+        _logger.LogDebug("Applying updated appearance data for {uid}", data.User.UID);
+        UserPairAliasData = data.AliasData;
+    }
+
+    /// <summary>
+    /// Applies the updated alias list the user pair has provided for you. 
+    /// This is sent to all online players, not just visible.
+    /// 
+    /// Because of this, simply applying the data is enough.
+    /// </summary>
+    public void ApplyPatternData(OnlineUserCharaPatternDataDto data)
+    {
+        _logger.LogDebug("Applying updated appearance data for {uid}", data.User.UID);
+        UserPairPatternData = data.PatternInfo;
+    }
+
+
 
     /// <summary> Method that applies the last received data to the cached player.
     /// <para> It does this only if the CachedPlayer is not null, and the LastRecievedCharacterData is not null.</para>
     /// </summary>
     /// <param name="forced">if this method was forced or not 
     /// (will remove for now, but you can always add it back in later if people want it i guess)</param>
-    public void ApplyLastReceivedData(bool forced = false)
+    public void ApplyLastReceivedIpcData(bool forced = false)
     {
         // if we have not yet recieved data from the player at least once since being online, return and do not apply.
         // ( This implies that the pair object has had its CreateCachedPlayer method called )
         if (CachedPlayer == null) return;
         // if the last received character data is null, return and do not apply.
-        if (LastReceivedCharaCompositeData == null) return;
+        if (LastReceivedIpcData == null) return;
 
         // we have satisfied the conditions to apply the character data to our paired user, so apply it.
-        CachedPlayer.ApplyCharacterData(Guid.NewGuid(), LastReceivedCharaCompositeData);
+        CachedPlayer.ApplyCharacterData(Guid.NewGuid(), LastReceivedIpcData);
     }
 
     /// <summary> Method that creates the cached player (PairHandler) object for the client pair.
@@ -217,7 +267,7 @@ public class Pair
             // set the online user ident dto to null
             _onlineUserIdentDto = null;
             // set the last received character data to null
-            LastReceivedCharaCompositeData = null;
+            LastReceivedIpcData = null;
             // set the pair handler player = to the cached player
             var player = CachedPlayer;
             // set the cached player to null

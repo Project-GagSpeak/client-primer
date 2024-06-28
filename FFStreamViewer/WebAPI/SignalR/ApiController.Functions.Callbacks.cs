@@ -258,7 +258,7 @@ public partial class ApiController
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogTrace("Callback matched player character, updating own composite data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharWithCompositeData(dataDto.CompositeData));
+            ExecuteSafely(() => _playerCharManager.UpdateCharWithCompositeData(dataDto));
             return Task.CompletedTask;
         }
         else
@@ -282,7 +282,7 @@ public partial class ApiController
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogTrace("Callback matched player character, updating own IPC data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharIpcData(dataDto.IPCData));
+            ExecuteSafely(() => _playerCharManager.UpdateCharIpcData(dataDto));
             return Task.CompletedTask;
         }
         else
@@ -306,7 +306,7 @@ public partial class ApiController
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogTrace("Callback matched player character, updating own appearance data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharAppearanceData(dataDto.AppearanceData));
+            ExecuteSafely(() => _playerCharManager.UpdateCharAppearanceData(dataDto));
             return Task.CompletedTask;
         }
         else
@@ -330,7 +330,7 @@ public partial class ApiController
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogTrace("Callback matched player character, updating own wardrobe data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharWardrobeData(dataDto.WardrobeData));
+            ExecuteSafely(() => _playerCharManager.UpdateCharWardrobeData(dataDto));
             return Task.CompletedTask;
         }
         else
@@ -353,15 +353,9 @@ public partial class ApiController
         Logger.LogDebug("Client_UserReceiveCharacterDataAlias: {dataDto}", dataDto);
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
-            // invalid parse for updating alias data. Can't apply to self.
-            if(dataDto.AliasData.AffectedUserUID == _connectionDto?.User.AliasOrUID)
-            {
-                Logger.LogError("Received AliasData for self, but the affected user is self. This should not be possible.");
-                return Task.CompletedTask;
-            }
             // successful parse for updating own alias data.
             Logger.LogTrace("Callback matched player character, updating own alias data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharAliasData(dataDto.AliasData));
+            ExecuteSafely(() => _playerCharManager.UpdateCharAliasData(dataDto));
             return Task.CompletedTask;
         }
         else
@@ -386,7 +380,7 @@ public partial class ApiController
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogTrace("Callback matched player character, updating own pattern data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharPatternData(dataDto.PatternInfo));
+            ExecuteSafely(() => _playerCharManager.UpdateCharPatternData(dataDto));
             return Task.CompletedTask;
         }
         else

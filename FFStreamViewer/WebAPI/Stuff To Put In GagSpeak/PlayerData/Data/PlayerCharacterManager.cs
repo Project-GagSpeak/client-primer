@@ -16,12 +16,12 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
     private readonly OnlinePlayerManager _onlinePlayerManager; // may not need this but idk lets just be sure???
-    private UserGlobalPermissions _playerCharGlobalPerms { get; set; } // the global permissions for our player character
     private CharacterIPCData _playerCharIpcData { get; set; } // the IPC data for our player character
     private CharacterAppearanceData _playerCharAppearanceData { get; set; } // the appearance data for our player character
     private CharacterWardrobeData _playerCharWardrobeData { get; set; } // the wardrobe data for our player character
-    private CharacterAliasData _playerCharAliasData { get; set; } // the alias data for our player character /* <------- This is stumping me badly idk why */
+    private Dictionary<string, CharacterAliasData> _playerCharAliasData { get; set; } // the alias data for our player character
     private CharacterPatternInfo _playerCharPatternData { get; set; } // the pattern data for our player character
+    private UserGlobalPermissions _playerCharGlobalPerms { get; set; } // the global permissions for our player character
 
     public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger, GagspeakMediator mediator,
         ApiController apiController, PairManager pairManager, OnlinePlayerManager onlinePlayerManager) : base(logger, mediator)
@@ -30,39 +30,92 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         _pairManager = pairManager;
         _onlinePlayerManager = onlinePlayerManager;
 
+        _playerCharAliasData = new Dictionary<string, CharacterAliasData>(); // Initialize the dictionary
+
         // At most we should subscribe to IPC updates so we can keep our IPC at the latest.
-        Mediator.Subscribe<PlayerCharIpcChanged>(this, (msg) => UpdateCharIpcData(msg.IPCData));
-        Mediator.Subscribe<PlayerCharAppearanceChanged>(this, (msg) => UpdateCharAppearanceData(msg.AppearanceData));
-        Mediator.Subscribe<PlayerCharWardrobeChanged>(this, (msg) => UpdateCharWardrobeData(msg.WardrobeData));
-        Mediator.Subscribe<PlayerCharAliasChanged>(this, (msg) => UpdateCharAliasData(msg.AliasData));
-        Mediator.Subscribe<PlayerCharPatternChanged>(this, (msg) => UpdateCharPatternData(msg.PatternData));
+        Mediator.Subscribe<PlayerCharIpcChanged>(this, (msg) =>
+        {
+            _playerCharIpcData = msg.IPCData;
+        });
+
+        Mediator.Subscribe<PlayerCharAppearanceChanged>(this, (msg) =>
+        {
+            _playerCharAppearanceData = msg.AppearanceData;
+        });
+
+        Mediator.Subscribe<PlayerCharWardrobeChanged>(this, (msg) =>
+        {
+            _playerCharWardrobeData = msg.WardrobeData;
+        });
+
+        Mediator.Subscribe<PlayerCharAliasChanged>(this, (msg) =>
+        {
+            _playerCharAliasData[msg.playerUID] = msg.AliasData;
+        });
+
+        Mediator.Subscribe<PlayerCharPatternChanged>(this, (msg) =>
+        {
+            _playerCharPatternData = msg.PatternData;
+        });
+
     }
 
     // public access definitions.
-    public UserGlobalPermissions GlobalPerms => _playerCharGlobalPerms; // public var to access global permissions
     public CharacterIPCData IpcData => _playerCharIpcData; // public var to access IPC data
     public CharacterAppearanceData AppearanceData => _playerCharAppearanceData; // public var to access appearance data
     public CharacterWardrobeData WardrobeData => _playerCharWardrobeData; // public var to access wardrobe data
-    public CharacterAliasData AliasData => _playerCharAliasData; // public var to access alias data
     public CharacterPatternInfo PatternData => _playerCharPatternData; // public var to access pattern data
+    public UserGlobalPermissions GlobalPerms => _playerCharGlobalPerms; // public var to access global permissions
+    public CharacterAliasData GetAliasData(string userUID)
+    {
+        if (_playerCharAliasData.TryGetValue(userUID, out var aliasData))
+        {
+            return aliasData;
+        }
+        else
+        {
+            throw new KeyNotFoundException($"Alias data for key '{userUID}' not found.");
+        }
+    }
+
 
     // helper method to decompile a received composite data message
-    public void UpdateCharWithCompositeData(CharacterCompositeData compositeData)
+    public void UpdateCharWithCompositeData(OnlineUserCharaCompositeDataDto compositeData)
     {
         // decompose the composite data into its parts and update them
-        _playerCharIpcData = compositeData.IPCData;
-        _playerCharAppearanceData = compositeData.AppearanceData;
-        _playerCharWardrobeData = compositeData.WardrobeData;
-        _playerCharAliasData = compositeData.AliasData;
-        _playerCharPatternData = compositeData.PatternData;
+        _playerCharIpcData = compositeData.CompositeData.IPCData;
+        _playerCharAppearanceData = compositeData.CompositeData.AppearanceData;
+        _playerCharWardrobeData = compositeData.CompositeData.WardrobeData;
+        _playerCharAliasData[compositeData.User.UID] = compositeData.CompositeData.AliasData;
+        _playerCharPatternData = compositeData.CompositeData.PatternData;
     }
 
     /* helper method to update player characters relevant player data. Called upon by API Controller (and also mediator (but maybe make that separate idk)) */
-    public void UpdateCharIpcData(CharacterIPCData ipcData) => _playerCharIpcData = ipcData;
-    public void UpdateCharAppearanceData(CharacterAppearanceData appearanceData) => _playerCharAppearanceData = appearanceData;
-    public void UpdateCharWardrobeData(CharacterWardrobeData wardrobeData) => _playerCharWardrobeData = wardrobeData;
-    public void UpdateCharAliasData(CharacterAliasData aliasData) => _playerCharAliasData = aliasData;
-    public void UpdateCharPatternData(CharacterPatternInfo patternData) => _playerCharPatternData = patternData;
+    public void UpdateCharIpcData(OnlineUserCharaIpcDataDto ipcData)
+    {
+        _playerCharIpcData = ipcData.IPCData;
+    }
+
+    public void UpdateCharAppearanceData(OnlineUserCharaAppearanceDataDto appearanceData)
+    {
+        _playerCharAppearanceData = appearanceData.AppearanceData;
+    }
+
+    public void UpdateCharWardrobeData(OnlineUserCharaWardrobeDataDto wardrobeData)
+    {
+        _playerCharWardrobeData = wardrobeData.WardrobeData;
+    }
+
+    public void UpdateCharAliasData(OnlineUserCharaAliasDataDto aliasData)
+    {
+        _playerCharAliasData[aliasData.User.UID] = aliasData.AliasData;
+    }
+
+    public void UpdateCharPatternData(OnlineUserCharaPatternDataDto patternData)
+    {
+        // going to need to go a lot more in-depth on the logic for this later but we will figure it all out.
+        _playerCharPatternData = patternData.PatternInfo;
+    }
 
 
     /// <summary>

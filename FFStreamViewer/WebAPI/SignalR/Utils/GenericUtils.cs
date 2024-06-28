@@ -31,13 +31,13 @@ public static class GenericUtils
     /// One big nasty function for checking for updated data. (obviously i shorted it a lot lol)
     /// </summary>
     /// <returns></returns>
-    public static HashSet<PlayerChanges> CheckUpdatedData(this CharacterCompositeData newData, Guid applicationBase,
-            CharacterCompositeData? oldData, ILogger logger, PairHandler cachedPlayer)
+    public static HashSet<PlayerChanges> CheckUpdatedData(this CharacterIPCData newData, Guid applicationBase,
+            CharacterIPCData? oldData, ILogger logger, PairHandler cachedPlayer)
     {
         oldData ??= new();
         var charaDataToUpdate = new HashSet<PlayerChanges>();
 
-        bool moodlesDataDifferent = !string.Equals(oldData.IPCData.MoodlesData, newData.IPCData.MoodlesData, StringComparison.Ordinal);
+        bool moodlesDataDifferent = !string.Equals(oldData.MoodlesData, newData.MoodlesData, StringComparison.Ordinal);
         if (moodlesDataDifferent)
         {
             logger.LogDebug("[BASE-{appBase}] Updating {object} (Diff moodles data) => {change}", applicationBase, cachedPlayer, PlayerChanges.Moodles);

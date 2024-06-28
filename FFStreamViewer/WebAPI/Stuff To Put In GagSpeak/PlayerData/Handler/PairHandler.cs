@@ -28,7 +28,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private CancellationTokenSource? _applicationCTS = new();
 
     // the cached data for the paired player. This is where it is stored. Right here. Yup. Not the pair class, here.
-    private CharacterCompositeData? _cachedData = null;
+    private CharacterIPCData? _cachedData = null;
 
     // will only need a very basic level of this for now storing minimum data and minimum interactions
     // primarily used for initialization and address checking for visibility
@@ -130,7 +130,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// <param name="applicationBase"></param>
     /// <param name="characterData"></param>
     /// <param name="forceApplyCustomization"></param>
-    public void ApplyCharacterData(Guid applicationBase, CharacterCompositeData characterData)
+    public void ApplyCharacterData(Guid applicationBase, CharacterIPCData characterData)
     {
         // publish the message to the mediator that we are applying character data
         Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational,
@@ -158,7 +158,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// <param name="applicationBase">The base of the application for alterations</param>
     /// <param name="charaData">The character data information of the paired user</param>
     /// <param name="updatedData">the kinds of data from the character data to used in the update.</param>
-    private void ApplyAlterationsForCharacter(Guid applicationBase, CharacterCompositeData charaData, HashSet<PlayerChanges> updatedData)
+    private void ApplyAlterationsForCharacter(Guid applicationBase, CharacterIPCData charaData, HashSet<PlayerChanges> updatedData)
     {
         if (!updatedData.Any())
         {
@@ -193,7 +193,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// <param name="changes">the kinds of changes to be updated onto the paired user</param>
     /// <param name="charaData">the data the user should have altared onto their apperance.</param>
     /// <param name="token">the cancelation token.</param>
-    private async Task CallAlterationsToIpcAsync(Guid applicationId, HashSet<PlayerChanges> changes, CharacterCompositeData charaData, CancellationToken token)
+    private async Task CallAlterationsToIpcAsync(Guid applicationId, HashSet<PlayerChanges> changes, CharacterIPCData charaData, CancellationToken token)
     {
         // if the player character is zero, return
         if (PlayerCharacter == nint.Zero) return;

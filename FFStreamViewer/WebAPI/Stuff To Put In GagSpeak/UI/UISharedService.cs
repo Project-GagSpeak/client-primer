@@ -80,7 +80,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public ApiController ApiController => _apiController;   // a public accessible api controller for the plugin, pulled from the private field
-    public bool EditTrackerPosition { get; set; } // unsure what or what this is 
     public IFontHandle GameFont { get; init; } // the current game font
     // public bool HasValidPenumbraModPath => !(_ipcManager.Penumbra.ModDirectory ?? string.Empty).IsNullOrEmpty() && Directory.Exists(_ipcManager.Penumbra.ModDirectory);
     public IFontHandle IconFont { get; init; } // the current icon font

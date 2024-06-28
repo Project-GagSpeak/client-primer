@@ -7,6 +7,9 @@ using System.Collections.Immutable;
 
 namespace FFStreamViewer.WebAPI.UI.Components;
 
+/// <summary>
+/// The base for the drawfolder, which is a dropdown section in the list of paired users, and handles the basic draw functionality
+/// </summary>
 public abstract class DrawFolderBase : IDrawFolder
 {
     private readonly ILogger<DrawEntityFactory> _logger;

@@ -11,7 +11,7 @@ using OtterGui;
 
 namespace FFStreamViewer.WebAPI.UI.Components.Popup;
 
-internal class VerificationPopupHandler : IPopupHandler
+internal class VerificationPopupHandler : IStickyUiHandler
 {
     private readonly ApiController _apiController;
     private readonly UiSharedService _uiSharedService;

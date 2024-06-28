@@ -12,6 +12,9 @@ using FFStreamViewer.WebAPI.Services.ServerConfiguration;
 using Dalamud.Utility;
 using FFStreamViewer.WebAPI.GagspeakConfiguration.Configurations;
 using Microsoft.AspNetCore.SignalR;
+using GagSpeak.API.Dto.Connection;
+using Gagspeak.API.Data;
+using FFStreamViewer.WebAPI.PlayerData.Data;
 
 namespace FFStreamViewer.WebAPI;
 
@@ -23,6 +26,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
     private readonly OnFrameworkService _frameworkUtils;            // the on framework service
     private readonly HubFactory _hubFactory;                        // the hub factory
+    private readonly PlayerCharacterManager _playerCharManager;      // the player character manager
     private readonly PairManager _pairManager;                      // for managing the clients paired users
     private readonly ServerConfigurationManager _serverConfigManager;// the server configuration manager
     private readonly TokenProvider _tokenProvider;                  // the token provider for authentications
@@ -37,11 +41,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     private ServerState _serverState;                               // the current state of the server
 
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, OnFrameworkService frameworkService,
-        PairManager pairManager, ServerConfigurationManager serverManager, GagspeakMediator gagspeakMediator, 
-        TokenProvider tokenProvider, GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
+        PlayerCharacterManager playerCharManager, PairManager pairManager, ServerConfigurationManager serverManager, 
+        GagspeakMediator gagspeakMediator, TokenProvider tokenProvider, 
+        GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
     {
-        _hubFactory = hubFactory;
         _frameworkUtils = frameworkService;
+        _hubFactory = hubFactory;
+        _playerCharManager = playerCharManager;
         _pairManager = pairManager;
         _serverConfigManager = serverManager;
         _tokenProvider = tokenProvider;
@@ -54,6 +60,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         Mediator.Subscribe<HubClosedMessage>(this, (msg) => GagspeakHubOnClosed(msg.Exception));
         Mediator.Subscribe<HubReconnectedMessage>(this, (msg) => _ = GagspeakHubOnReconnected());
         Mediator.Subscribe<HubReconnectingMessage>(this, (msg) => GagspeakHubOnReconnecting(msg.Exception));
+        Mediator.Subscribe<CyclePauseMessage>(this, (msg) => _ = CyclePause(msg.UserData));
         // initially set the server state to offline.
         ServerState = ServerState.Offline;
 
@@ -368,9 +375,35 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         }
     }
 
+
+    public Task CyclePause(UserData userData)
+    {
+        CancellationTokenSource cts = new();
+        cts.CancelAfter(TimeSpan.FromSeconds(5));
+        _ = Task.Run(async () =>
+        {
+            var pair = _pairManager.GetOnlineUserPairs().Single(p => p.UserPair != null && p.UserData == userData);
+            var perm = pair.UserPair!.OwnPermissions;
+            perm.SetPaused(paused: true);
+            await UserUpdatePairPerms(new GagSpeak.API.Dto.Permissions.UserPairPermChangeDto(userData, perm)).ConfigureAwait(false);
+            // wait until it's changed
+            while (pair.UserPair!.OwnPermissions != perm)
+            {
+                await Task.Delay(250, cts.Token).ConfigureAwait(false);
+                Logger.LogTrace("Waiting for permissions change for {data}", userData);
+            }
+            perm.SetPaused(paused: false);
+            await UserUpdatePairPerms(new API.Dto.User.UserPermissionsDto(userData, perm)).ConfigureAwait(false);
+        }, cts.Token).ContinueWith((t) => cts.Dispose());
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>
+    /// 
     /// The generic call outlined by the interface in the API for the connectionDto.
     /// This will call the augmented task below
+    /// 
     /// </summary>
     public Task<ConnectionDto> GetConnectionDto() => GetConnectionDto(true);
 

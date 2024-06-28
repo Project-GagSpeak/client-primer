@@ -3,6 +3,9 @@ using FFStreamViewer.WebAPI.Services.Mediator;
 using Gagspeak.API.Data.Enum;
 using Gagspeak.API.Dto;
 using Gagspeak.API.Dto.User;
+using GagSpeak.API.Dto.Connection;
+using GagSpeak.API.Dto.Permissions;
+using GagSpeak.API.Dto.UserPair;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace FFStreamViewer.WebAPI;
@@ -15,7 +18,11 @@ namespace FFStreamViewer.WebAPI;
 /// </summary>
 public partial class ApiController
 {
-    /// <summary> This function is called when the server sends a message to the client.</summary>
+    /// <summary> 
+    /// 
+    /// This function is called when the server sends a message to the client.
+    /// 
+    /// </summary>
     /// <param name="messageSeverity">the severity level of the message</param>
     /// <param name="message">the content of the message</param>
     public Task Client_ReceiveServerMessage(MessageSeverity messageSeverity, string message)
@@ -46,8 +53,10 @@ public partial class ApiController
         return Task.CompletedTask;
     }
 
-    /// <summary> The server has just sent the client a Dto of its SystemInfo.
-    /// <para> We should use this Dto to update the SystemInfoDto variable on our client.</para>
+    /// <summary> 
+    /// 
+    /// The server has just sent the client a Dto of its SystemInfo.
+    /// 
     /// </summary>
     public Task Client_UpdateSystemInfo(SystemInfoDto systemInfo)
     {
@@ -55,10 +64,11 @@ public partial class ApiController
         return Task.CompletedTask;
     }
 
-    /// <summary> Server has sent us a UserPairDto from one of our connected client pairs.
-    /// <para> We should use this Dto to update the UserPairDto in our pair manager.</para>
+    /// <summary> 
+    /// 
+    /// Server has sent us a UserPairDto from one of our connected client pairs.
+    /// 
     /// </summary>
-    /// <param name="dto">the Data transfer object containing the information about the UserPair</param>
     public Task Client_UserAddClientPair(UserPairDto dto)
     {
         Logger.LogDebug("Client_UserAddClientPair: {dto}", dto);
@@ -66,8 +76,10 @@ public partial class ApiController
         return Task.CompletedTask;
     }
 
-    /// <summary> Server has sent us a UserDto that is requesting to be removed from our client pairs.
-    /// <para> Use this info to remove this user from our pairs inside the clients pair manager</para>
+    /// <summary> 
+    /// 
+    /// Server has sent us a UserDto that is requesting to be removed from our client pairs.
+    /// 
     /// </summary>
     public Task Client_UserRemoveClientPair(UserDto dto)
     {
@@ -76,25 +88,313 @@ public partial class ApiController
         return Task.CompletedTask;
     }
 
-    /// <summary> Server has sent us a OnlineUserCharaDataDto that is requesting to apply the recieved characterData to our client pairs.
-    /// <para> Use this info to update the UserPairDto in our pair manager.</para>
+    /// <summary> 
+    /// 
+    /// Sent to client from server informing them to update individual pair status of a client pair.
+    /// 
+    /// Status should be updated in the pair manager.
+    /// 
     /// </summary>
-    public Task Client_UserReceiveCharacterData(OnlineUserCharaDataDto dataDto)
-    {
-        Logger.LogTrace("Client_UserReceiveCharacterData: {user}", dataDto.User);
-        ExecuteSafely(() => _pairManager.ReceiveCharaData(dataDto));
-        return Task.CompletedTask;
-    }
-
-    /// <summary> Server has sent us a UserIndividualPairStatusDto from one of our connected client pairs.
-    /// <para> We should use this Dto to update the UserIndividualPairStatusDto in our pair manager.</para>
-    /// </summary>
-    /// <param name="dto">the Data transfer object containing the information</param>
     public Task Client_UpdateUserIndividualPairStatusDto(UserIndividualPairStatusDto dto)
     {
         Logger.LogDebug("Client_UpdateUserIndividualPairStatusDto: {dto}", dto);
         ExecuteSafely(() => _pairManager.UpdateIndividualPairStatus(dto));
         return Task.CompletedTask;
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server informing them to update their own global permissions
+    /// 
+    /// Status should be updated in the pair manager.
+    /// 
+    /// </summary>
+    public Task Client_UserUpdateSelfPairPermsGlobal(UserGlobalPermChangeDto dto)
+    {
+        Logger.LogDebug("Client_UserUpdateSelfPairPermsGlobal: {dto}", dto);
+        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogTrace("Callback matched player character, updating own global permission data");
+            ExecuteSafely(() => _playerCharManager.ApplyGlobalPermChange(dto));
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogError("Callback matched to a paired user, but was called by update self. This shouldn't be possible!");
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server informing them to update their own permissions for a pair.
+    /// 
+    /// the dto's UserData object should be the user pair that we are updating our own pair permissions for.
+    /// 
+    /// </summary>
+    public Task Client_UserUpdateSelfPairPerms(UserPairPermChangeDto dto)
+    {
+        Logger.LogDebug("Client_UserUpdateSelfPairPerms: {dto}", dto);
+        ExecuteSafely(() => _pairManager.UpdateSelfPairPermission(dto));
+        return Task.CompletedTask;
+
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server informing them to update their own permission edit access settings
+    /// 
+    /// </summary>
+    public Task Client_UserUpdateSelfPairPermAccess(UserPairAccessChangeDto dto)
+    {
+        Logger.LogDebug("Client_UserUpdateSelfPairPermAccess: {dto}", dto);
+        ExecuteSafely(() => _pairManager.UpdateSelfPairAccessPermission(dto));
+        return Task.CompletedTask;
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server informing them to update their ALL permissions of a paired user.
+    /// This should only be called once during the initial adding of a pair and never again.
+    /// 
+    /// </summary>
+    public Task Client_UserUpdateOtherAllPairPerms(UserPairUpdateAllPermsDto dto)
+    {
+        Logger.LogDebug("Client_UserUpdateOtherAllPairPerms: {dto}", dto);
+        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogError("Callback matched to a paired user. Updating all permissions for them.");
+            ExecuteSafely(() => _pairManager.UpdateOtherPairAllPermissions(dto));
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server informing them to update a user pair's global permission.
+    /// 
+    /// </summary>
+    public Task Client_UserUpdateOtherPairPermsGlobal(UserGlobalPermChangeDto dto)
+    {
+        Logger.LogDebug("Client_UserUpdateOtherAllPairPerms: {dto}", dto);
+        if(dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogError("Callback matched to a paired user. Updating global permissions for them.");
+            ExecuteSafely(() => _pairManager.UpdateOtherPairGlobalPermission(dto));
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server informing them to update a user pair's permission option.
+    /// 
+    /// </summary>
+    public Task Client_UserUpdateOtherPairPerms(UserPairPermChangeDto dto)
+    {
+        Logger.LogDebug("Client_UserUpdateOtherAllPairPerms: {dto}", dto);
+        if(dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogError("Callback matched to a paired user. Updating permissions for them.");
+            ExecuteSafely(() => _pairManager.UpdateOtherPairPermission(dto));
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server informing them to update the new edit access permissions the user pair has.
+    /// Status should be updated in the pair manager.
+    /// 
+    /// <para>
+    /// 
+    /// (This should be called upon only when the other client pair needs to send the updated permission access
+    /// into to the client. The client themselves should never be allowed to modify other user pairs edit access)
+    /// 
+    /// </para>
+    /// </summary>
+    public Task Client_UserUpdateOtherPairPermAccess(UserPairAccessChangeDto dto)
+    {
+        Logger.LogDebug("Client_UserUpdateOtherAllPairPerms: {dto}", dto);
+        if(dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogError("Callback matched to a paired user. Updating permissions for them.");
+            ExecuteSafely(() => _pairManager.UpdateOtherPairAccessPermission(dto));
+            return Task.CompletedTask;
+        }
+    }
+
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server, providing client with all updated character data of a user pair.
+    /// 
+    /// (In theory, this should also be able to send back updated information about our own character.)
+    /// 
+    /// </summary>
+    public Task Client_UserReceiveCharacterDataComposite(OnlineUserCharaCompositeDataDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveCharacterDataComposite: {dataDto}", dataDto);
+        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogTrace("Callback matched player character, updating own composite data");
+            ExecuteSafely(() => _playerCharManager.UpdateCharWithCompositeData(dataDto.CompositeData));
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogTrace("Callback matched to a paired user, updating their composite data.");
+            ExecuteSafely(() => _pairManager.ReceiveCharaCompositeData(dataDto));
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server, providing client with the updated  IPC character data of a user pair.
+    /// 
+    /// (In theory, this should also be able to send back updated information about our own character.)
+    /// 
+    /// </summary>
+    public Task Client_UserReceiveCharacterDataIpc(OnlineUserCharaIpcDataDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveCharacterDataIpc: {dataDto}", dataDto);
+        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogTrace("Callback matched player character, updating own IPC data");
+            ExecuteSafely(() => _playerCharManager.UpdateCharIpcData(dataDto.IPCData));
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogTrace("Callback matched to a paired user, updating their IPC data.");
+            ExecuteSafely(() => _pairManager.ReceiveCharaIpcData(dataDto));
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server, providing client with the updated Appearance character data of a user pair.
+    /// 
+    /// (In theory, this should also be able to send back updated information about our own character.)
+    /// 
+    /// </summary>
+    public Task Client_UserReceiveCharacterDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveCharacterDataAppearance: {dataDto}", dataDto);
+        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogTrace("Callback matched player character, updating own appearance data");
+            ExecuteSafely(() => _playerCharManager.UpdateCharAppearanceData(dataDto.AppearanceData));
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogTrace("Callback matched to a paired user, updating their appearance data.");
+            ExecuteSafely(() => _pairManager.ReceiveCharaAppearanceData(dataDto));
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server, providing client with the updated Wardrobe character data of a user pair.
+    /// 
+    /// (In theory, this should also be able to send back updated information about our own character.)
+    /// 
+    /// </summary>
+    public Task Client_UserReceiveCharacterDataWardrobe(OnlineUserCharaWardrobeDataDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveCharacterDataWardrobe: {dataDto}", dataDto);
+        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogTrace("Callback matched player character, updating own wardrobe data");
+            ExecuteSafely(() => _playerCharManager.UpdateCharWardrobeData(dataDto.WardrobeData));
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogTrace("Callback matched to a paired user, updating their wardrobe data.");
+            ExecuteSafely(() => _pairManager.ReceiveCharaWardrobeData(dataDto));
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server, providing client with the updated Alias character data of a user pair.
+    /// 
+    /// (In theory, this should also be able to send back updated information about our own character.)
+    /// 
+    /// </summary>
+    public Task Client_UserReceiveCharacterDataAlias(OnlineUserCharaAliasDataDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveCharacterDataAlias: {dataDto}", dataDto);
+        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            // invalid parse for updating alias data. Can't apply to self.
+            if(dataDto.AliasData.AffectedUserUID == _connectionDto?.User.AliasOrUID)
+            {
+                Logger.LogError("Received AliasData for self, but the affected user is self. This should not be possible.");
+                return Task.CompletedTask;
+            }
+            // successful parse for updating own alias data.
+            Logger.LogTrace("Callback matched player character, updating own alias data");
+            ExecuteSafely(() => _playerCharManager.UpdateCharAliasData(dataDto.AliasData));
+            return Task.CompletedTask;
+        }
+        else
+        {
+            // successfull parse for updating user pair's alias data.
+            Logger.LogTrace("Callback matched to a paired user, updating their alias data.");
+            ExecuteSafely(() => _pairManager.ReceiveCharaAliasData(dataDto));
+            return Task.CompletedTask;
+        }
+    }
+
+    /// <summary> 
+    /// 
+    /// Sent to client from server, providing client with the updated PatternInfo character data of a user pair.
+    /// 
+    /// (In theory, this should also be able to send back updated information about our own character.)
+    /// 
+    /// </summary>
+    public Task Client_UserReceiveCharacterDataPattern(OnlineUserCharaPatternDataDto dataDto)
+    {
+        Logger.LogTrace("Client_UserReceiveCharacterDataPattern: {user}", dataDto.User);
+        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogTrace("Callback matched player character, updating own pattern data");
+            ExecuteSafely(() => _playerCharManager.UpdateCharPatternData(dataDto.PatternInfo));
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogTrace("Callback matched to a paired user, updating their pattern data.");
+            ExecuteSafely(() => _pairManager.ReceiveCharaPatternData(dataDto));
+            return Task.CompletedTask;
+        }
     }
 
     /// <summary> Server has sent us a UserDto has just went offline, and is notifying all connected pairs about it.
@@ -175,16 +475,84 @@ public partial class ApiController
         _gagspeakHub!.On(nameof(Client_UserRemoveClientPair), act);
     }
 
-    public void OnUserReceiveCharacterData(Action<OnlineUserCharaDataDto> act)
-    {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterData), act);
-    }
-
     public void OnUpdateUserIndividualPairStatusDto(Action<UserIndividualPairStatusDto> action)
     {
         if (_initialized) return;
         _gagspeakHub!.On(nameof(Client_UpdateUserIndividualPairStatusDto), action);
+    }
+
+    public void OnUserUpdateSelfPairPermsGlobal(Action<UserGlobalPermChangeDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserUpdateSelfPairPermsGlobal), act);
+    }
+
+    public void OnUserUpdateSelfPairPerms(Action<UserPairPermChangeDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserUpdateSelfPairPerms), act);
+    }
+
+    public void OnUserUpdateSelfPairPermAccess(Action<UserPairAccessChangeDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserUpdateSelfPairPermAccess), act);
+    }
+
+    public void OnUserUpdateOtherAllPairPerms(Action<UserPairUpdateAllPermsDto> act)
+    {
+        if (!_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserUpdateOtherAllPairPerms), act);
+    }
+
+    public void OnUserUpdateOtherPairPermsGlobal(Action<UserGlobalPermChangeDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserUpdateOtherPairPermsGlobal), act);
+    }
+
+    public void OnUserUpdateOtherPairPerms(Action<UserPairPermChangeDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserUpdateOtherPairPerms), act);
+    }
+    public void OnUserUpdateOtherPairPermAccess(Action<UserPairAccessChangeDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserUpdateOtherPairPermAccess), act);
+    }
+
+    public void OnUserReceiveCharacterDataComposite(Action<OnlineUserCharaCompositeDataDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataComposite), act);
+    }
+
+    public void OnUserReceiveCharacterDataIpc(Action<OnlineUserCharaIpcDataDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataIpc), act);
+    }
+    public void OnUserReceiveCharacterDataAppearance(Action<OnlineUserCharaAppearanceDataDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataAppearance), act);
+    }
+
+    public void OnUserReceiveCharacterDataWardrobe(Action<OnlineUserCharaWardrobeDataDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataWardrobe), act);
+    }
+    public void OnUserReceiveCharacterDataAlias(Action<OnlineUserCharaAliasDataDto> act)
+    {
+        if (!_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataAlias), act);
+    }
+    public void OnUserReceiveCharacterDataPattern(Action<OnlineUserCharaPatternDataDto> act)
+    {
+        if (!_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataPattern), act);
     }
 
     public void OnUserSendOffline(Action<UserDto> act)

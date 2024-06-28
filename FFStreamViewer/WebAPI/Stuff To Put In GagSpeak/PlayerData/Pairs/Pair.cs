@@ -4,9 +4,11 @@ using FFStreamViewer.WebAPI.Services.Mediator;
 using FFStreamViewer.WebAPI.Services.ServerConfiguration;
 using FFStreamViewer.WebAPI.SignalR.Utils;
 using Gagspeak.API.Data;
-using Gagspeak.API.Data.CharacterData;
 using Gagspeak.API.Data.Enum;
 using Gagspeak.API.Dto.User;
+using GagSpeak.API.Data.Character;
+using GagSpeak.API.Dto.Connection;
+using GagSpeak.API.Dto.UserPair;
 
 namespace FFStreamViewer.WebAPI.PlayerData.Pairs;
 
@@ -25,40 +27,6 @@ public class Pair
     private CancellationTokenSource _applicationCts = new CancellationTokenSource();// the application CTS
     private OnlineUserIdentDto? _onlineUserIdentDto = null;                         // the onlineUserIdentDto of the pair
 
-    /// <summary> The cached player PairHandler object for this pair. (STORES THE CHARACTER DATA FOR THIS PAIRED USER)
-    /// <para>No data will be applied to this user pair until its CachedPlayer is created</para>
-    /// <para>The ONLY FUNCTION that sets CachedPlayer to anything besides disposed or null is the <c>CreateCachedPlayer</c> Function</para>
-    /// </summary>
-    private PairHandler? CachedPlayer { get; set; }
-
-    /// <summary> The most recently received character data for this pair.
-    /// <para> This is only set in the ApplyData function, which passes in an OnlineUserCharaData Dto</para>
-    /// <para> 
-    /// It is primarily used for us to indicate if we have data to apply to the user at all, and not the actual storage for it.
-    /// </para>
-    /// </summary>
-    public CharacterData? LastReceivedCharacterData { get; set; }
-
-    /// <summary> The UserPairDto that is send in the creation of this pair object in its constructor.</summary>
-    public UserPairDto UserPair { get; set; }
-
-
-    /// <summary> a reference variable for the pair class, where the UserData is the UserPair's UID/Alias UID
-    public UserData UserData => UserPair.User;
-
-    // Basic reference getter attributes
-    public PairHandler PlayerPairHandler => CachedPlayer ?? throw new InvalidOperationException("CachedPlayer is null");
-    public bool HasCachedPlayer => CachedPlayer != null && !string.IsNullOrEmpty(CachedPlayer.PlayerName) && _onlineUserIdentDto != null;
-    public IndividualPairStatus IndividualPairStatus => UserPair.IndividualPairStatus;  // the individual pair status of the pair in relation to the client.
-    public bool IsDirectlyPaired => IndividualPairStatus != IndividualPairStatus.None;  // if the pair is directly paired.
-    public bool IsOneSidedPair => IndividualPairStatus == IndividualPairStatus.OneSided; // if the pair is one sided.
-    public bool IsOnline => CachedPlayer != null;                                       // lets us know if the paired user is online. 
-    public bool IsPaired => IndividualPairStatus == IndividualPairStatus.Bidirectional; // if the user is paired bidirectionally.
-    public bool IsVisible => CachedPlayer?.IsVisible ?? false;                          // if the paired user is visible.
-    public string? PlayerName => CachedPlayer?.PlayerName ?? string.Empty;  // the name of the player
-    // public bool IsPaused => UserPair.OwnPermissions.IsPaused(); (pausing not implemented yet)
-
-
     public Pair(ILogger<Pair> logger, UserPairDto userPair,
         PairHandlerFactory cachedPlayerFactory, GagspeakMediator mediator,
         ServerConfigurationManager serverConfigurationManager)
@@ -70,17 +38,61 @@ public class Pair
         UserPair = userPair;
     }
 
+    /// <summary> 
+    /// 
+    /// The cached player PairHandler object for this pair. (STORES THE CHARACTER DATA FOR THIS PAIRED USER)
+    /// 
+    /// <para>
+    /// 
+    /// The <c>CreateCachedPlayer</c> Function should be the only function setting this to anything but null.
+    /// 
+    /// </para>
+    /// </summary>
+    private PairHandler? CachedPlayer { get; set; }
+
+    /// <summary> 
+    /// 
+    /// THE IMPORTANT DATA FOR THE PAIR OBJECT
+    /// 
+    /// <para>
+    /// 
+    /// This UserPairDto object, while simple, contains ALL of the pairs global, pair, and edit access permissions.
+    /// 
+    /// This means any permission that is being modified will be accessing this object directly, 
+    /// and is set whenever the pair is added. Initialized in the constructor on pair creation.
+    /// 
+    /// </para>
+    /// </summary>
+    public UserPairDto UserPair { get; set; }
+
+
+    /// <summary> a reference variable for the pair class, where the UserData is the UserPair's UID/Alias UID
+    public UserData UserData => UserPair.User;
+
+    // Most of these attributes should be self explanatory, but they are public methods you can fetch from the pair manager.
+    public bool HasCachedPlayer => CachedPlayer != null && !string.IsNullOrEmpty(CachedPlayer.PlayerName) && _onlineUserIdentDto != null;
+    public IndividualPairStatus IndividualPairStatus => UserPair.IndividualPairStatus;  // the individual pair status of the pair in relation to the client.
+    public bool IsDirectlyPaired => IndividualPairStatus != IndividualPairStatus.None;  // if the pair is directly paired.
+    public bool IsOneSidedPair => IndividualPairStatus == IndividualPairStatus.OneSided; // if the pair is one sided.
+    public bool IsOnline => CachedPlayer != null;                                       // lets us know if the paired user is online. 
+    
+    public bool IsPaired => IndividualPairStatus == IndividualPairStatus.Bidirectional; // if the user is paired bidirectionally.
+    public bool IsPaused => UserPair.OwnPairPerms.IsPaused; 
+    public bool IsVisible => CachedPlayer?.IsVisible ?? false;                          // if the paired user is visible.
+    public CharacterCompositeData? LastReceivedCharaCompositeData { get; set; } // reference of the latest composite data applied to the user.
+    public string? PlayerName => CachedPlayer?.PlayerName ?? string.Empty;  // Name of pair player. If empty, (pair handler) CachedData is not initialized yet.
+
     /// <summary>
     /// Apply the data retrieved from an updated online user's information.
     /// </summary>
     /// <param name="data"> the data to apply to the user</param>
-    public void ApplyData(OnlineUserCharaDataDto data)
+    public void ApplyData(OnlineUserCharaCompositeDataDto data)
     {
         _applicationCts = _applicationCts.CancelRecreate();
         // set the last recieved character data to the data.CharaData
-        LastReceivedCharacterData = data.CharaData;
+        LastReceivedCharaCompositeData = data.CompositeData;
 
-        // if the cachedplayer is null
+        // if the cached player is null
         if (CachedPlayer == null)
         {
             // log that we received data for the user, but the cached player does not exist, and we are waiting.
@@ -130,10 +142,10 @@ public class Pair
         // ( This implies that the pair object has had its CreateCachedPlayer method called )
         if (CachedPlayer == null) return;
         // if the last received character data is null, return and do not apply.
-        if (LastReceivedCharacterData == null) return;
+        if (LastReceivedCharaCompositeData == null) return;
 
         // we have satisfied the conditions to apply the character data to our paired user, so apply it.
-        CachedPlayer.ApplyCharacterData(Guid.NewGuid(), LastReceivedCharacterData);
+        CachedPlayer.ApplyCharacterData(Guid.NewGuid(), LastReceivedCharaCompositeData);
     }
 
     /// <summary> Method that creates the cached player (PairHandler) object for the client pair.
@@ -205,7 +217,7 @@ public class Pair
             // set the online user ident dto to null
             _onlineUserIdentDto = null;
             // set the last received character data to null
-            LastReceivedCharacterData = null;
+            LastReceivedCharaCompositeData = null;
             // set the pair handler player = to the cached player
             var player = CachedPlayer;
             // set the cached player to null

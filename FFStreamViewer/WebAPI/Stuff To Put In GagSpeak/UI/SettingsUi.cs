@@ -87,7 +87,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
     /// <summary> Helper function to tell the settings menu to no longer edit the tracker position on close. </summary>
     public override void OnClose()
     {
-        _uiShared.EditTrackerPosition = false;
         base.OnClose();
     }
 
@@ -131,25 +130,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
             ImGui.Text($"IsPaired: {pair.IsPaired}");
             ImGui.Text($"IsVisible: {pair.IsVisible}");
             ImGui.Text($"PlayerName: {pair.PlayerName ?? "N/A"}");
-
-            // Accessing the PairHandler object to output its information
-            if (pair.HasCachedPlayer)
-            {
-                var pairHandler = pair.PlayerPairHandler;
-                // Display basic information about the online user
-                ImGui.Text($"Online User ID: {pairHandler.OnlineUser.User.UID}");
-                ImGui.Text($"Online User Alias: {pairHandler.OnlineUser.User.AliasOrUID}");
-                // Display information about the player character
-                ImGui.Text($"Player Character Address: {pairHandler.PlayerCharacter}");
-                ImGui.Text($"Player Character ID: {pairHandler.PlayerCharacterId}");
-                ImGui.Text($"Player Name: {pairHandler.PlayerName ?? "N/A"}");
-                ImGui.Text($"Player Name Hash: {pairHandler.PlayerNameHash}");
-                ImGui.Text($"IsVisible (Handler): {pairHandler?.IsVisible.ToString() ?? "N/A"}");
-            }
-            else
-            {
-                ImGui.Text("PairHandler: N/A");
-            }
 
             ImGui.Unindent();
         }

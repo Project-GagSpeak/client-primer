@@ -1,13 +1,13 @@
-using Gagspeak.API.Data.CharacterData;
-using Gagspeak.API.Dto.User;
 using FFStreamViewer.WebAPI.Interop.Ipc;
+using FFStreamViewer.WebAPI.PlayerData.Data;
 using FFStreamViewer.WebAPI.PlayerData.Factories;
 using FFStreamViewer.WebAPI.Services;
 using FFStreamViewer.WebAPI.Services.Events;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using FFStreamViewer.WebAPI.SignalR.Utils;
+using GagSpeak.API.Data.Character;
+using GagSpeak.API.Dto.Connection;
 using Microsoft.Extensions.Hosting;
-using FFStreamViewer.WebAPI.PlayerData.Data;
 
 namespace FFStreamViewer.WebAPI.PlayerData.Handlers;
 
@@ -16,108 +16,109 @@ namespace FFStreamViewer.WebAPI.PlayerData.Handlers;
 /// </summary>
 public sealed class PairHandler : DisposableMediatorSubscriberBase
 {
-	/// <summary> Record which helps with allowing us to recieve updates for moodles or customize+ updates while in performance mode or combat </summary>
-	private sealed record CombatData(Guid ApplicationId, CharacterData CharacterData, bool Forced);
+    /// <summary> Record which helps with allowing us to recieve updates for moodles or customize+ updates while in performance mode or combat </summary>
+    private sealed record CombatData(Guid ApplicationId, CharacterCompositeData CharacterData, bool Forced);
 
-	private readonly OnFrameworkService _frameworkUtil;                             // frameworkUtil for actions to be done on dalamud framework thread
-	private readonly GameObjectHandlerFactory _gameObjectHandlerFactory;            // the game object handler factory
-	private readonly IpcManager _ipcManager;                                        // the IPC manager for the pair handler
-	private readonly IHostApplicationLifetime _lifetime;                            // the lifetime of the host 
-	private Guid _applicationId;                                                    // the unique application id
-	private Task? _applicationTask;                                                 // the application task
+    private readonly OnFrameworkService _frameworkUtil;                             // frameworkUtil for actions to be done on dalamud framework thread
+    private readonly GameObjectHandlerFactory _gameObjectHandlerFactory;            // the game object handler factory
+    private readonly IpcManager _ipcManager;                                        // the IPC manager for the pair handler
+    private readonly IHostApplicationLifetime _lifetime;                            // the lifetime of the host 
+    private Guid _applicationId;                                                    // the unique application id
+    private Task? _applicationTask;                                                 // the application task
     private CancellationTokenSource? _applicationCTS = new();
 
     // the cached data for the paired player. This is where it is stored. Right here. Yup. Not the pair class, here.
-    private CharacterData? _cachedData = null;
-	// will only need a very basic level of this for now storing minimum data and minimum interactions
+    private CharacterCompositeData? _cachedData = null;
+
+    // will only need a very basic level of this for now storing minimum data and minimum interactions
     // primarily used for initialization and address checking for visibility
     private GameObjectHandler? _charaHandler;
-	private bool _isVisible;                                                        // if the pair is visible
+    private bool _isVisible;                                                        // if the pair is visible
 
-	public PairHandler(ILogger<PairHandler> logger, OnlineUserIdentDto onlineUser,
-		GameObjectHandlerFactory gameObjectHandlerFactory, IpcManager ipcManager,
+    public PairHandler(ILogger<PairHandler> logger, OnlineUserIdentDto onlineUser,
+        GameObjectHandlerFactory gameObjectHandlerFactory, IpcManager ipcManager,
         OnFrameworkService dalamudUtil, IHostApplicationLifetime lifetime,
         GagspeakMediator mediator) : base(logger, mediator)
-	{
-		OnlineUser = onlineUser;
-		_gameObjectHandlerFactory = gameObjectHandlerFactory;
-		_ipcManager = ipcManager;
-		_frameworkUtil = dalamudUtil;
-		_lifetime = lifetime;
-		// subscribe to the framework update Message 
-		Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
+    {
+        OnlineUser = onlineUser;
+        _gameObjectHandlerFactory = gameObjectHandlerFactory;
+        _ipcManager = ipcManager;
+        _frameworkUtil = dalamudUtil;
+        _lifetime = lifetime;
+        // subscribe to the framework update Message 
+        Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
         // other methods were subscribed here, but for now they are being left out until i can understand this more.
-	}
+    }
 
     // determines if a paired user is visible. (if they are in renderable range) [ can keep for maybe some featurecreep fun]
     public bool IsVisible
-	{
-		get => _isVisible;
-		private set
-		{
-			if (_isVisible != value)
-			{
-				_isVisible = value;
-				string text = "User Visibility Changed, now: " + (_isVisible ? "Is Visible" : "Is not Visible");
-				// publish an event message to the mediator for logging purposes
-				Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler),
-					EventSeverity.Informational, text)));
-				// publish a refresh ui message to the mediator
-				Mediator.Publish(new RefreshUiMessage());
-			}
-		}
-	}
+    {
+        get => _isVisible;
+        private set
+        {
+            if (_isVisible != value)
+            {
+                _isVisible = value;
+                string text = "User Visibility Changed, now: " + (_isVisible ? "Is Visible" : "Is not Visible");
+                // publish an event message to the mediator for logging purposes
+                Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler),
+                    EventSeverity.Informational, text)));
+                // publish a refresh ui message to the mediator
+                Mediator.Publish(new RefreshUiMessage());
+            }
+        }
+    }
 
-	public OnlineUserIdentDto OnlineUser { get; private set; }  // the online user Dto. Set when pairhandler is made for the cached player in the pair object.
-	public nint PlayerCharacter => _charaHandler?.Address ?? nint.Zero; // the player character object address
-	public unsafe uint PlayerCharacterId => (_charaHandler?.Address ?? nint.Zero) == nint.Zero  // the player character object id
-		? uint.MaxValue
-		: ((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)_charaHandler!.Address)->ObjectID;
-	public string? PlayerName { get; private set; }                                         // the player name
-	public string PlayerNameHash => OnlineUser.Ident;                                       // the player name hash
+    public OnlineUserIdentDto OnlineUser { get; private set; }  // the online user Dto. Set when pairhandler is made for the cached player in the pair object.
+    public nint PlayerCharacter => _charaHandler?.Address ?? nint.Zero; // the player character object address
+    public unsafe uint PlayerCharacterId => (_charaHandler?.Address ?? nint.Zero) == nint.Zero  // the player character object id
+        ? uint.MaxValue
+        : ((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)_charaHandler!.Address)->ObjectID;
+    public string? PlayerName { get; private set; }                                         // the player name
+    public string PlayerNameHash => OnlineUser.Ident;                                       // the player name hash
 
-	public override string ToString()
-	{
-		return OnlineUser == null
-			? base.ToString() ?? string.Empty
-			: OnlineUser.User.AliasOrUID + ":" + PlayerName + ":" + (PlayerCharacter != nint.Zero ? "HasChar" : "NoChar");
-	}
+    public override string ToString()
+    {
+        return OnlineUser == null
+            ? base.ToString() ?? string.Empty
+            : OnlineUser.User.AliasOrUID + ":" + PlayerName + ":" + (PlayerCharacter != nint.Zero ? "HasChar" : "NoChar");
+    }
 
-	protected override void Dispose(bool disposing)
-	{
-		base.Dispose(disposing);
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
 
-		var name = PlayerName;
-		Logger.LogDebug("Disposing {name} ({user})", name, OnlineUser);
-		try
-		{
-			Guid applicationId = Guid.NewGuid();
-			_applicationCTS?.CancelDispose();
-			_applicationCTS = null;
-			_charaHandler?.Dispose();
-			_charaHandler = null;
+        var name = PlayerName;
+        Logger.LogDebug("Disposing {name} ({user})", name, OnlineUser);
+        try
+        {
+            Guid applicationId = Guid.NewGuid();
+            _applicationCTS?.CancelDispose();
+            _applicationCTS = null;
+            _charaHandler?.Dispose();
+            _charaHandler = null;
 
             // if the player name is not null or empty, publish an event message to the mediator for logging purposes
-			if (!string.IsNullOrEmpty(name))
-			{
-				Mediator.Publish(new EventMessage(new Event(name, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational, "Disposing User")));
-			}
+            if (!string.IsNullOrEmpty(name))
+            {
+                Mediator.Publish(new EventMessage(new Event(name, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational, "Disposing User")));
+            }
 
             // if the hosted service lifetime is ending, return
-			if (_lifetime.ApplicationStopping.IsCancellationRequested) return;
-		}
-		catch (Exception ex)
-		{
-			Logger.LogWarning(ex, "Error on disposal of {name}", name);
-		}
-		finally
-		{
+            if (_lifetime.ApplicationStopping.IsCancellationRequested) return;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error on disposal of {name}", name);
+        }
+        finally
+        {
             // ensure the player name is null and cachedData gets set to null
-			PlayerName = null;
-			_cachedData = null;
-			Logger.LogDebug("Disposing {name} complete", name);
-		}
-	}
+            PlayerName = null;
+            _cachedData = null;
+            Logger.LogDebug("Disposing {name} complete", name);
+        }
+    }
 
     /// <summary> Method responsible for applying the stored character data to the paired user.
     /// <para> 
@@ -129,7 +130,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// <param name="applicationBase"></param>
     /// <param name="characterData"></param>
     /// <param name="forceApplyCustomization"></param>
-    public void ApplyCharacterData(Guid applicationBase, CharacterData characterData)
+    public void ApplyCharacterData(Guid applicationBase, CharacterCompositeData characterData)
     {
         // publish the message to the mediator that we are applying character data
         Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational,
@@ -157,7 +158,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// <param name="applicationBase">The base of the application for alterations</param>
     /// <param name="charaData">The character data information of the paired user</param>
     /// <param name="updatedData">the kinds of data from the character data to used in the update.</param>
-    private void ApplyAlterationsForCharacter(Guid applicationBase, CharacterData charaData, HashSet<PlayerChanges> updatedData)
+    private void ApplyAlterationsForCharacter(Guid applicationBase, CharacterCompositeData charaData, HashSet<PlayerChanges> updatedData)
     {
         if (!updatedData.Any())
         {
@@ -192,115 +193,115 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// <param name="changes">the kinds of changes to be updated onto the paired user</param>
     /// <param name="charaData">the data the user should have altared onto their apperance.</param>
     /// <param name="token">the cancelation token.</param>
-    private async Task CallAlterationsToIpcAsync(Guid applicationId, HashSet<PlayerChanges> changes, CharacterData charaData, CancellationToken token)
-	{
-		// if the player character is zero, return
-		if (PlayerCharacter == nint.Zero) return;
+    private async Task CallAlterationsToIpcAsync(Guid applicationId, HashSet<PlayerChanges> changes, CharacterCompositeData charaData, CancellationToken token)
+    {
+        // if the player character is zero, return
+        if (PlayerCharacter == nint.Zero) return;
         // set the pointer to the player character we are updating the information for
         var ptr = PlayerCharacter;
         // set the handler to the characterData of the paired user
-		var handler = _charaHandler!;
+        var handler = _charaHandler!;
 
-		// try and apply the alterations to the character data
-		try
-		{
+        // try and apply the alterations to the character data
+        try
+        {
             // if the handler address is zero, return
             if (handler.Address == nint.Zero) { return; }
 
-			// otherwise, log that we are applying the customization data for the handlers
-			Logger.LogDebug("[{applicationId}] Applying Customization Data for {handler}", applicationId, handler);
-           
-			// otherwise, for each change in the changes, apply the changes
-			foreach (var change in changes.OrderBy(p => (int)p))
-			{
-				// log that we are processing the change for the handler
-				Logger.LogDebug("[{applicationId}] Processing {change} for {handler}", applicationId, change, handler);
-				switch (change)
-				{
-					case PlayerChanges.Glamourer:
-						break;
-					case PlayerChanges.Moodles:
-						await _ipcManager.Moodles.SetStatusAsync(handler.Address, charaData.MoodlesData).ConfigureAwait(false);
-						break;
-					default:
-						break;
-				}
-				token.ThrowIfCancellationRequested();
-			}
-		}
-		finally
-		{
-			if (handler != _charaHandler) handler.Dispose();
-		}
-	}
+            // otherwise, log that we are applying the customization data for the handlers
+            Logger.LogDebug("[{applicationId}] Applying Customization Data for {handler}", applicationId, handler);
+
+            // otherwise, for each change in the changes, apply the changes
+            foreach (var change in changes.OrderBy(p => (int)p))
+            {
+                // log that we are processing the change for the handler
+                Logger.LogDebug("[{applicationId}] Processing {change} for {handler}", applicationId, change, handler);
+                switch (change)
+                {
+                    case PlayerChanges.Glamourer:
+                        break;
+                    case PlayerChanges.Moodles:
+                        await _ipcManager.Moodles.SetStatusAsync(handler.Address, charaData.MoodlesData).ConfigureAwait(false);
+                        break;
+                    default:
+                        break;
+                }
+                token.ThrowIfCancellationRequested();
+            }
+        }
+        finally
+        {
+            if (handler != _charaHandler) handler.Dispose();
+        }
+    }
 
     /// <summary> Called every framework update for the pair handler. 
     /// <para> I really dont understand this so you'll have to seriously debug this later.</para>
     /// </summary>
     private void FrameworkUpdate()
-	{
-		// if the player name is null or empty
-		if (string.IsNullOrEmpty(PlayerName))
-		{
+    {
+        // if the player name is null or empty
+        if (string.IsNullOrEmpty(PlayerName))
+        {
             // then try and find the name by the online user identity
-			var pc = _frameworkUtil.FindPlayerByNameHash(OnlineUser.Ident);
-			// if the player character is null, return
-			if (pc == default((string, nint))) return;
+            var pc = _frameworkUtil.FindPlayerByNameHash(OnlineUser.Ident);
+            // if the player character is null, return
+            if (pc == default((string, nint))) return;
 
-			// otherwise, call a one-time initialization
-			Logger.LogDebug("One-Time Initializing {this}", this);
-			// initialize the player character
-			Initialize(pc.Name);
+            // otherwise, call a one-time initialization
+            Logger.LogDebug("One-Time Initializing {this}", this);
+            // initialize the player character
+            Initialize(pc.Name);
             Logger.LogDebug("One-Time Initialized {this}", this);
-			// publish an event message to the mediator for logging purposes
-			Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational,
-				$"Initializing User For Character {pc.Name}")));
-		}
+            // publish an event message to the mediator for logging purposes
+            Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational,
+                $"Initializing User For Character {pc.Name}")));
+        }
 
-		// if the game object for this pair has a pointer that is not zero (meaning they are present) but the pair is marked as not visible
-		if (_charaHandler?.Address != nint.Zero && !IsVisible)
-		{
+        // if the game object for this pair has a pointer that is not zero (meaning they are present) but the pair is marked as not visible
+        if (_charaHandler?.Address != nint.Zero && !IsVisible) // in other words, we apply this the first time they render into our view (in reality it should just be when they come online)
+        {
             // then we need to create appData for it.
-			Guid appData = Guid.NewGuid();
+            Guid appData = Guid.NewGuid();
             // and update their visibility to true
-			IsVisible = true;
+            IsVisible = true;
             // publish the pairHandlerVisible message to the mediator, passing in this pair handler object
-			Mediator.Publish(new PairHandlerVisibleMessage(this));
+            Mediator.Publish(new PairHandlerVisibleMessage(this));
             // if the pairs cachedData is not null
-			if (_cachedData != null)
-			{
-				Logger.LogTrace("[BASE-{appBase}] {this} visibility changed, now: {visi}, cached data exists", appData, this, IsVisible);
+            if (_cachedData != null)
+            {
+                Logger.LogTrace("[BASE-{appBase}] {this} visibility changed, now: {visi}, cached data exists", appData, this, IsVisible);
                 // then we should apply it to the character data
-				_ = Task.Run(() =>
-				{
-					ApplyCharacterData(appData, _cachedData!);
-				});
-			}
-			else
-			{
+                _ = Task.Run(() =>
+                {
+                    ApplyCharacterData(appData, _cachedData!);
+                });
+            }
+            else
+            {
                 // otherwise, do not apply it to the character as they are not present
-				Logger.LogTrace("{this} visibility changed, now: {visi}, no cached data exists", this, IsVisible);
-			}
-		}
-		// if the player address is 0 but they are visible, invalidate them
-		else if (_charaHandler?.Address == nint.Zero && IsVisible)
-		{
-			// set is visible to false and invalidate the pair handler
-			IsVisible = false;
-			_charaHandler.Invalidate();
-			Logger.LogTrace("{this} visibility changed, now: {visi}", this, IsVisible);
-		}
-	}
+                Logger.LogTrace("{this} visibility changed, now: {visi}, no cached data exists", this, IsVisible);
+            }
+        }
+        // if the player address is 0 but they are visible, invalidate them
+        else if (_charaHandler?.Address == nint.Zero && IsVisible)
+        {
+            // set is visible to false and invalidate the pair handler
+            IsVisible = false;
+            _charaHandler.Invalidate();
+            Logger.LogTrace("{this} visibility changed, now: {visi}", this, IsVisible);
+        }
+    }
 
-	/// <summary> Initializes a pair handler object </summary>
-	private void Initialize(string name)
-	{
+    /// <summary> Initializes a pair handler object </summary>
+    private void Initialize(string name)
+    {
         // set the player name to the name
-		PlayerName = name;
+        PlayerName = name;
         // create a new game object handler for the player character
-		_charaHandler = _gameObjectHandlerFactory.Create(() => 
+        _charaHandler = _gameObjectHandlerFactory.Create(() =>
             _frameworkUtil.GetPlayerCharacterFromCachedTableByIdent(OnlineUser.Ident), isWatched: false).GetAwaiter().GetResult();
-	}
+    }
 
 
     /// <summary> Method responsible for reverting all alteration data for paired users.
@@ -311,16 +312,16 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// <param name="applicationId">the ID of the application</param>
     /// <param name="cancelToken">the CancellationToken</param>
     /// <returns></returns>
-    private async Task RevertCustomizationDataAsync(string name, Guid applicationId, CancellationToken cancelToken)
+    private async Task RevertIpcDataAsync(string name, Guid applicationId, CancellationToken cancelToken)
     {
         // get the player character address from the cached table by the pairs online user identity
-		nint address = _frameworkUtil.GetPlayerCharacterFromCachedTableByIdent(OnlineUser.Ident);
-		// if the address is zero, return
+        nint address = _frameworkUtil.GetPlayerCharacterFromCachedTableByIdent(OnlineUser.Ident);
+        // if the address is zero, return
         if (address == nint.Zero) return;
 
-		Logger.LogDebug("[{applicationId}] Reverting all Customization for {alias}/{name}", applicationId, OnlineUser.User.AliasOrUID, name);
-		
+        Logger.LogDebug("[{applicationId}] Reverting all Customization for {alias}/{name}", applicationId, OnlineUser.User.AliasOrUID, name);
+
         Logger.LogDebug("[{applicationId}] Restoring Moodles for {alias}/{name}", applicationId, OnlineUser.User.AliasOrUID, name);
-		await _ipcManager.Moodles.RevertStatusAsync(address).ConfigureAwait(false);
-	}
+        await _ipcManager.Moodles.RevertStatusAsync(address).ConfigureAwait(false);
+    }
 }

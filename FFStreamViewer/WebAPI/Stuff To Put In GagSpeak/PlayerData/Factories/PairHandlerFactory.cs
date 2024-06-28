@@ -4,6 +4,7 @@ using FFStreamViewer.WebAPI.Interop.Ipc;
 using FFStreamViewer.WebAPI.PlayerData.Handlers;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using Microsoft.Extensions.Hosting;
+using GagSpeak.API.Dto.Connection;
 
 namespace FFStreamViewer.WebAPI.PlayerData.Factories;
 

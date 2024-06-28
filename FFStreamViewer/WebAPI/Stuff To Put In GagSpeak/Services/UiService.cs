@@ -57,18 +57,6 @@ public sealed class UiService : DisposableMediatorSubscriberBase
             }*/
         });
 
-        // subscribe to the event message fired upon a request to open the permissions window for a pair (maybe not integrate but hey idk.
-        Mediator.Subscribe<OpenPermissionWindow>(this, (msg) =>
-        {
-            /*            if (!_createdWindows.Exists(p => p is PermissionWindowUI ui
-                            && msg.Pair == ui.Pair))
-                        {
-                            var window = _uiFactory.CreatePermissionPopupUi(msg.Pair);
-                            _createdWindows.Add(window);
-                            _windowSystem.AddWindow(window);
-                        }*/
-        });
-
         // subscribe to the event message for removing a window
         Mediator.Subscribe<RemoveWindowMessage>(this, (msg) =>
         {

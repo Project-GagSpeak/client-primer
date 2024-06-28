@@ -6,6 +6,11 @@ using FFStreamViewer.WebAPI.Services.Mediator;
 using Gagspeak.API.Data;
 using Gagspeak.API.Data.Comparer;
 using Gagspeak.API.Dto.User;
+using GagSpeak.API.Data.Permissions;
+using GagSpeak.API.Dto.Connection;
+using GagSpeak.API.Dto.Permissions;
+using GagSpeak.API.Dto.UserPair;
+using System.Reflection;
 
 namespace FFStreamViewer.WebAPI.PlayerData.Pairs;
 
@@ -16,14 +21,14 @@ namespace FFStreamViewer.WebAPI.PlayerData.Pairs;
 public sealed class PairManager : DisposableMediatorSubscriberBase
 {
     ILogger<PairManager> _logger;
-    private readonly ConcurrentDictionary<UserData, Pair> _allClientPairs;  // all client-pair'ed users on the client.
-    private readonly GagspeakConfigService _configurationService;           // the Gagspeak Configuration Service
-    private readonly PairFactory _pairFactory;                              // the pair factory
-    private Lazy<List<Pair>> _directPairsInternal;                          // the internal direct pairs.
+    private readonly ConcurrentDictionary<UserData, Pair> _allClientPairs;  // concurrent dictionary of all paired paired to the client.
+    private readonly GagspeakConfigService _configurationService;           
+    private readonly PairFactory _pairFactory;                              // the pair factory for creating new pair objects
+    private Lazy<List<Pair>> _directPairsInternal;                          // the internal direct pairs lazy list for optimization
     public List<Pair> DirectPairs => _directPairsInternal.Value;            // the direct pairs the client has with other users.
-    public Pair? LastAddedUser { get; internal set; }                       // the most recently added user.
+    public Pair? LastAddedUser { get; internal set; }                       // the user pair most recently added to the pair list.
 
-    public ConcurrentDictionary<UserData, Pair> ClientPairs => _allClientPairs; // the client's pair list
+    public ConcurrentDictionary<UserData, Pair> ClientPairs => _allClientPairs; // a public access version of the client pair lists for other classes to access. (could be removed since its only used in settings idk)
 
     public PairManager(ILogger<PairManager> logger, PairFactory pairFactory,
         GagspeakConfigService configurationService, GagspeakMediator mediator) : base(logger, mediator)
@@ -32,15 +37,26 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         _allClientPairs = new(UserDataComparer.Instance);
         _pairFactory = pairFactory;
         _configurationService = configurationService;
+
         // subscribe to the disconnected message, and clear all pairs when it is received.
         Mediator.Subscribe<DisconnectedMessage>(this, (_) => ClearPairs());
+        
         // subscribe to the cutscene end message, and reapply the pair data when it is received.
         Mediator.Subscribe<CutsceneEndMessage>(this, (_) => ReapplyPairData());
+        
         _directPairsInternal = DirectPairsLazy();
     }
 
-    /// <summary> Used to add a user pair to the client's pair list.
-    /// <para> Should only be called by the apicontrollers `LoadIninitialPairs` function on startup.</para>
+    /// <summary>
+    /// 
+    /// Should only be called by the apicontrollers `LoadIninitialPairs` function on startup.
+    /// 
+    /// <para>
+    /// 
+    /// Will pass in the necessary information to create a new pair, 
+    /// including their global permissions and permissions for the client pair.
+    /// 
+    /// </para>
     /// </summary>
     public void AddUserPair(UserPairDto dto)
     {
@@ -65,17 +81,21 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         RecreateLazy();
     }
 
-    /// <summary> Is called by the function callbacks from the signalR server.
+    /// <summary> 
+    /// 
+    /// This should only ever be called upon by the signalR server callback.
+    /// 
     /// <para> 
+    /// 
     /// When you request to the server to add another user to your client pairs, 
     /// the server will send back a call once the pair is added. This call then calls this function.
     /// When this function is ran, that user will be appended to your client pairs.
+    /// 
     /// </para> 
-    /// <para> This should only ever be called upon by the signalR server callback. </para>
     /// </summary>
     public void AddUserPair(UserPairDto dto, bool addToLastAddedUser = true)
     {
-        // if we are recieving the userpair Dto for someone not yet in our client pair list, add them to the list.
+        // if we are receiving the userpair Dto for someone not yet in our client pair list, add them to the list.
         if (!_allClientPairs.ContainsKey(dto.User))
         {
             // to add them, use our pair factory to generate a new pair object for them.
@@ -136,8 +156,15 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         RecreateLazy();
     }
 
-    /// <summary> Function called upon by the ApiController.Callbacks, which listens to function calls from the connected server.
-    /// <para> This sends the client an OnlineUserIdentDto, meaning they were in the clients pairlist</para>
+    /// <summary> 
+    /// 
+    /// Function called upon by the ApiController.Callbacks, which listens to function calls from the connected server.
+    /// 
+    /// <para> 
+    /// 
+    /// This sends the client an OnlineUserIdentDto, meaning they were in the clients pair list
+    /// 
+    /// </para>
     /// </summary>
     public void MarkPairOnline(OnlineUserIdentDto dto, bool sendNotif = true)
     {
@@ -178,10 +205,21 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         RecreateLazy();
     }
 
-    /// <summary> Method is called upon by the ApiController.Callbacks, which listens to function calls from the connected server.
-    /// <para> This method delivers an OnlineUserCharaData Dto to our client, so we can get the latest information from them.</para>
+    /// <summary> 
+    /// 
+    /// Method is called upon by the ApiController.Callbacks, which listens to function calls from the connected server.
+    /// 
+    /// <para> 
+    /// 
+    /// This method delivers an OnlineUserCharaData Dto to our client, so we can get the latest information from them.
+    /// 
+    /// NOTE: Potentially make this include additional fields like "applyAppearance" or "applyWardrobe" etc. with default
+    /// set to true. This way if we receive sub chunks, before passing it in we can set certain variables to true or false to only inject
+    /// parts of it. This however might cause more overhead, so look into it later.
+    /// 
+    /// </para>
     /// </summary>
-    public void ReceiveCharaData(OnlineUserCharaDataDto dto)
+    public void ReceiveCharaData(OnlineUserCharaCompositeDataDto dto)
     {
         // if the user in the Dto is not in our client's pair list, throw an exception.
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
@@ -190,7 +228,9 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Data")));
 
         // apply the data to the pair in the client's pair list.
-        _allClientPairs[dto.User].ApplyData(dto);
+        /* Something important to note here is that this application should only madder for visibility.
+         * Permissions themselves should just be applied regardless. Potentially even right here.          */
+        _allClientPairs[dto.User].ApplyData(dto); 
     }
 
     /// <summary> Removes a user pair from the client's pair list.</summary>
@@ -216,9 +256,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
         RecreateLazy();
     }
 
-    /// <summary> Called upon by the ApiControllers server callback functions.
-    /// <para> Method presents to the user an updated individual pair status dto for a clientpair user.</para>
-    /// </summary>
+    /// <summary> Called upon by the ApiControllers server callback functions to update a pairs individual pair status.</summary>
     internal void UpdateIndividualPairStatus(UserIndividualPairStatusDto dto)
     {
         // if the user is in the client's pair list, update their individual pair status.
@@ -262,7 +300,7 @@ public sealed class PairManager : DisposableMediatorSubscriberBase
     /// <summary> Reapplies the last received data to all the pairs in the client's pair list.</summary>
     private void ReapplyPairData()
     {
-        // for each pair in the clients pairlist, apply the last received data
+        // for each pair in the clients pair list, apply the last received data
         foreach (var pair in _allClientPairs.Select(k => k.Value))
         {
             pair.ApplyLastReceivedData(forced: true);

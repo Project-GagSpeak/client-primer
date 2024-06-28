@@ -8,6 +8,13 @@ using System.Collections.Immutable;
 
 namespace FFStreamViewer.WebAPI.UI.Components;
 
+/// <summary>
+/// Class handling the tag (name) that a dropdown folder section has in the list of paired users
+/// <para> 
+/// Notibly, by being a parent of the draw folder base, it is able to override some functions inside the base,
+/// such as draw icon, allowing it to draw customized icon's for the spesific catagoeiss of folder dropdowns
+/// </para>
+/// </summary>
 public class DrawFolderTag : DrawFolderBase
 {
     private readonly ApiController _apiController;

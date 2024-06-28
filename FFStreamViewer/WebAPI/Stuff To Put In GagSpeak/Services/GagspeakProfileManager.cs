@@ -1,3 +1,6 @@
+using Dalamud.Interface;
+using Dalamud.Interface.Internal;
+using Dalamud.Plugin;
 using FFStreamViewer.WebAPI.GagspeakConfiguration;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using Gagspeak.API.Data;
@@ -7,6 +10,7 @@ namespace FFStreamViewer.WebAPI.Services;
 
 public class GagspeakProfileManager : MediatorSubscriberBase
 {
+    IDalamudTextureWrap? _defaultGagspeakLogoTexture;
     private const string _gagspeakLogo = "";            // the string for the gagspeak logo image
     private const string _gagspeakLogoLoading = "";     // the string for the gagspeak logo loading image
     private const string _gagspeakSupporter = "";       // the string for the gagspeak supporter image overlay
@@ -20,12 +24,12 @@ public class GagspeakProfileManager : MediatorSubscriberBase
     private readonly GagspeakProfileData _loadingProfileData = new(IsFlagged: false, _gagspeakLogoLoading, string.Empty, "Loading Data from server...");
 
     public GagspeakProfileManager(ILogger<GagspeakProfileManager> logger, GagspeakConfigService gagspeakConfigService,
-        GagspeakMediator mediator, ApiController apiController) : base(logger, mediator)
+        GagspeakMediator mediator, ApiController apiController, DalamudPluginInterface pi) : base(logger, mediator)
     {
+        _defaultGagspeakLogoTexture = pi.UiBuilder.LoadImage(Path.Combine(pi.AssemblyLocation.Directory?.FullName!, "GagSpeakIconNoRadial.png"));
         _gagspeakConfigService = gagspeakConfigService;
         _apiController = apiController;
         _gagspeakProfiles = new(UserDataComparer.Instance);
-
         // subscribe to the mediator listening to whenever a profile should be cleared
         Mediator.Subscribe<ClearProfileDataMessage>(this, (msg) =>
         {

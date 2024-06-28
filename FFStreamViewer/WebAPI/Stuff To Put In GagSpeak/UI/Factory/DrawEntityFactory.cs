@@ -4,26 +4,29 @@ using FFStreamViewer.WebAPI.Services.ServerConfiguration;
 using FFStreamViewer.WebAPI.UI.Components;
 using FFStreamViewer.WebAPI.UI.Handlers;
 using System.Collections.Immutable;
+using System.Numerics;
 
 namespace FFStreamViewer.WebAPI.UI;
 
 public class DrawEntityFactory
 {
     private readonly ILogger<DrawEntityFactory> _logger;
+    private readonly ILoggerFactory _loggerfactory;
     private readonly ApiController _apiController;
     private readonly GagspeakMediator _mediator;
     private readonly SelectPairForTagUi _selectPairForTagUi;
-    private readonly ServerConfigurationManager _serverConfigurationManager;
+    private readonly UserPairPermsSticky _stickyPairPerms;
     private readonly UiSharedService _uiSharedService;
     private readonly SelectTagForPairUi _selectTagForPairUi;
     private readonly TagHandler _tagHandler;
     private readonly IdDisplayHandler _uidDisplayHandler;
 
-    public DrawEntityFactory(ILogger<DrawEntityFactory> logger, ApiController apiController, IdDisplayHandler uidDisplayHandler,
-        SelectTagForPairUi selectTagForPairUi, GagspeakMediator mediator,
-        TagHandler tagHandler, SelectPairForTagUi selectPairForTagUi,
-        ServerConfigurationManager serverConfigurationManager, UiSharedService uiSharedService)
+    public DrawEntityFactory(ILogger<DrawEntityFactory> logger, ApiController apiController, 
+        IdDisplayHandler uidDisplayHandler, SelectTagForPairUi selectTagForPairUi, GagspeakMediator mediator,
+        ILoggerFactory loggerfactory, TagHandler tagHandler, SelectPairForTagUi selectPairForTagUi, 
+        UserPairPermsSticky stickyPairPerms, UiSharedService uiSharedService)
     {
+        _loggerfactory = loggerfactory;
         _logger = logger;
         _apiController = apiController;
         _uidDisplayHandler = uidDisplayHandler;
@@ -31,7 +34,7 @@ public class DrawEntityFactory
         _mediator = mediator;
         _tagHandler = tagHandler;
         _selectPairForTagUi = selectPairForTagUi;
-        _serverConfigurationManager = serverConfigurationManager;
+        _stickyPairPerms = stickyPairPerms;
         _uiSharedService = uiSharedService;
     }
 
@@ -43,7 +46,7 @@ public class DrawEntityFactory
 
     public DrawUserPair CreateDrawPair(string id, Pair user)
     {
-        return new DrawUserPair(id + user.UserData.UID, user, _apiController, _uidDisplayHandler,
-            _mediator, _selectTagForPairUi, _serverConfigurationManager, _uiSharedService);
+        return new DrawUserPair(_loggerfactory.CreateLogger<DrawUserPair>(), id + user.UserData.UID, 
+            user, _apiController, _uidDisplayHandler, _mediator, _selectTagForPairUi, _uiSharedService);
     }
 }

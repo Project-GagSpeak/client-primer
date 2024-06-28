@@ -9,10 +9,15 @@ using FFStreamViewer.WebAPI.Services.Mediator;
 using FFStreamViewer.WebAPI.Services.ServerConfiguration;
 using FFStreamViewer.WebAPI.UI.Handlers;
 using FFStreamViewer.WebAPI;
+using FFStreamViewer.WebAPI.Interop.Ipc;
+using System.Windows.Forms;
 
 namespace FFStreamViewer.WebAPI.UI.Components;
 
-public class DrawUserPair
+/// <summary>
+/// Class handling the draw function for a singular user pair that the client has. (one row)
+/// </summary>
+public class DrawUserPair : DisposableMediatorSubscriberBase
 {
     protected readonly ApiController _apiController;
     protected readonly IdDisplayHandler _displayHandler;
@@ -20,15 +25,12 @@ public class DrawUserPair
     protected Pair _pair;
     private readonly string _id;
     private readonly SelectTagForPairUi _selectTagForPairUi;
-    private readonly ServerConfigurationManager _serverConfigurationManager;
     private readonly UiSharedService _uiSharedService;
     private float _menuWidth = -1;
     private bool _wasHovered = false;
-
-    public DrawUserPair(string id, Pair entry, ApiController apiController, 
-        IdDisplayHandler uIDDisplayHandler, GagspeakMediator gagspeakMediator, SelectTagForPairUi selectTagForPairUi,
-        ServerConfigurationManager serverConfigurationManager,
-        UiSharedService uiSharedService)
+    public DrawUserPair(ILogger<DrawUserPair> logger, string id, Pair entry, ApiController apiController, 
+        IdDisplayHandler uIDDisplayHandler, GagspeakMediator gagspeakMediator, SelectTagForPairUi selectTagForPairUi, 
+        UiSharedService uiSharedService) : base(logger, gagspeakMediator)
     {
         _id = id;
         _pair = entry;
@@ -36,10 +38,10 @@ public class DrawUserPair
         _displayHandler = uIDDisplayHandler;
         _mediator = gagspeakMediator;
         _selectTagForPairUi = selectTagForPairUi;
-        _serverConfigurationManager = serverConfigurationManager;
         _uiSharedService = uiSharedService;
     }
 
+    public bool ShouldOpen = false; // public access attribute 
     public Pair Pair => _pair;
     public UserPairDto UserPair => _pair.UserPair!;
 
@@ -81,14 +83,6 @@ public class DrawUserPair
         }
 
         ImGui.Separator();
-
-        // restrucure this to have a popout window like glamourer's material editor with all the permissions in it
-        ImGui.TextUnformatted("Pair Permission Functions");
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.WindowMaximize, "Open Permissions Window", _menuWidth, true))
-        {
-            _mediator.Publish(new OpenPermissionWindow(_pair));
-            ImGui.CloseCurrentPopup();
-        }
     }
 
     private void DrawIndividualMenu()
@@ -175,9 +169,22 @@ public class DrawUserPair
         DrawIndividualMenu();
     }
 
+    /*
+            using (ImRaii.PushFont(UiBuilder.IconFont))
+            {
+                using var disabled = ImRaii.Disabled(_globalControlCountdown > 0);
+
+                if (ImGui.Button(FontAwesomeIcon.Sun.ToIconString(), buttonSize))
+                {
+                    ImGui.OpenPopup("Individual VFX");
+                }
+            }
+            UiSharedService.AttachToolTip("Globally enable or disable VFX sync with all individual pairs." + UiSharedService.TooltipSeparator
+                + (_globalControlCountdown > 0 ? UiSharedService.TooltipSeparator + "Available again in " + _globalControlCountdown + " seconds." : string.Empty));
+    */
     private float DrawRightSide()
     {
-        //var pauseIconSize = _uiSharedService.GetIconButtonSize(pauseIcon);
+        var permissionsButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Cog);
         var barButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV);
         var spacingX = ImGui.GetStyle().ItemSpacing.X;
         var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
@@ -190,8 +197,17 @@ public class DrawUserPair
             ImGui.OpenPopup("User Flyout Menu");
         }
 
-        currentRightSide -= (/*pauseIconSize.X +*/ spacingX);
+        currentRightSide -= (permissionsButtonSize.X + spacingX);
         ImGui.SameLine(currentRightSide);
+        if (_uiSharedService.IconButton(FontAwesomeIcon.Cog))
+        {
+            // if we press the cog, we should modify its apperance, and set that we are drawing for this pair to true
+            _mediator.Publish(new OpenUserPairPermissions(_pair));
+        }
+        UiSharedService.AttachToolTip(!_pair.IsOnline
+            ? "View permissions configured with " + _pair.UserData.AliasOrUID
+            : "Close" + _pair.UserData.AliasOrUID + "'s permissions config window");
+
 
         if (ImGui.BeginPopup("User Flyout Menu"))
         {

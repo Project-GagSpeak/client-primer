@@ -2,6 +2,7 @@ using Gagspeak.API.Dto.User;
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using FFStreamViewer.WebAPI.Services.ServerConfiguration;
+using GagSpeak.API.Dto.UserPair;
 
 namespace FFStreamViewer.WebAPI.PlayerData.Factories;
 
@@ -26,7 +27,7 @@ public class PairFactory
     /// <returns> A new Pair object </returns>
     public Pair Create(UserPairDto userPairDto)
     {
-        return new Pair(_loggerFactory.CreateLogger<Pair>(), new(userPairDto.User, userPairDto.IndividualPairStatus/*, [], userPairDto.OwnPermissions, userPairDto.OtherPermissions*/),
+        return new Pair(_loggerFactory.CreateLogger<Pair>(), new(userPairDto.User, userPairDto.IndividualPairStatus),
             _cachedPlayerFactory, _gagspeakMediator, _serverConfigurationManager);
     }
 }

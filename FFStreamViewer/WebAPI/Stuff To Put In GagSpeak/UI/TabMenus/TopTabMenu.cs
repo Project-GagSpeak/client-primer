@@ -144,7 +144,6 @@ public class TopTabMenu
         if (TabSelection == SelectedTab.Individual)
         {
             DrawAddPair(availableWidth, spacing.X);
-            DrawGlobalIndividualButtons(availableWidth, spacing.X);
         }
         else if (TabSelection == SelectedTab.Filter)
         {
@@ -195,64 +194,6 @@ public class TopTabMenu
         }
     }
 
-    private void DrawGlobalIndividualButtons(float availableXWidth, float spacingX)
-    {
-        var buttonX = (availableXWidth - (spacingX * 3)) / 4f;
-        var buttonY = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Pause).Y;
-        var buttonSize = new Vector2(buttonX, buttonY);
-
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-        {
-            using var disabled = ImRaii.Disabled(_globalControlCountdown > 0);
-
-            if (ImGui.Button(FontAwesomeIcon.Pause.ToIconString(), buttonSize))
-            {
-                ImGui.OpenPopup("Individual Pause");
-            }
-        }
-        UiSharedService.AttachToolTip("Globally resume or pause all individual pairs." + UiSharedService.TooltipSeparator
-            + (_globalControlCountdown > 0 ? UiSharedService.TooltipSeparator + "Available again in " + _globalControlCountdown + " seconds." : string.Empty));
-
-        ImGui.SameLine();
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-        {
-            using var disabled = ImRaii.Disabled(_globalControlCountdown > 0);
-
-            if (ImGui.Button(FontAwesomeIcon.VolumeUp.ToIconString(), buttonSize))
-            {
-                ImGui.OpenPopup("Individual Sounds");
-            }
-        }
-        UiSharedService.AttachToolTip("Globally enable or disable sound sync with all individual pairs."
-            + (_globalControlCountdown > 0 ? UiSharedService.TooltipSeparator + "Available again in " + _globalControlCountdown + " seconds." : string.Empty));
-
-        ImGui.SameLine();
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-        {
-            using var disabled = ImRaii.Disabled(_globalControlCountdown > 0);
-
-            if (ImGui.Button(FontAwesomeIcon.Running.ToIconString(), buttonSize))
-            {
-                ImGui.OpenPopup("Individual Animations");
-            }
-        }
-        UiSharedService.AttachToolTip("Globally enable or disable animation sync with all individual pairs." + UiSharedService.TooltipSeparator
-            + (_globalControlCountdown > 0 ? UiSharedService.TooltipSeparator + "Available again in " + _globalControlCountdown + " seconds." : string.Empty));
-
-        ImGui.SameLine();
-        using (ImRaii.PushFont(UiBuilder.IconFont))
-        {
-            using var disabled = ImRaii.Disabled(_globalControlCountdown > 0);
-
-            if (ImGui.Button(FontAwesomeIcon.Sun.ToIconString(), buttonSize))
-            {
-                ImGui.OpenPopup("Individual VFX");
-            }
-        }
-        UiSharedService.AttachToolTip("Globally enable or disable VFX sync with all individual pairs." + UiSharedService.TooltipSeparator
-            + (_globalControlCountdown > 0 ? UiSharedService.TooltipSeparator + "Available again in " + _globalControlCountdown + " seconds." : string.Empty));
-    }
-
     private void DrawUserConfig(float availableWidth, float spacingX)
     {
         var buttonX = (availableWidth - spacingX) / 2f;
@@ -267,19 +208,5 @@ public class TopTabMenu
             // _mediator.Publish(new UiToggleMessage(typeof(DataAnalysisUi)));
         }
         UiSharedService.AttachToolTip("View and analyze your generated character data");
-    }
-
-    private async Task GlobalControlCountdown(int countdown)
-    {
-#if DEBUG
-        return;
-#endif
-
-        _globalControlCountdown = countdown;
-        while (_globalControlCountdown > 0)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-            _globalControlCountdown--;
-        }
     }
 }

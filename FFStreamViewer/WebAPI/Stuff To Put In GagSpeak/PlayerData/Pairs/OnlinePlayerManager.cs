@@ -2,7 +2,7 @@ using FFStreamViewer.WebAPI.PlayerData.Handlers;
 using FFStreamViewer.WebAPI.Services;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using Gagspeak.API.Data;
-using Gagspeak.API.Data.CharacterData;
+using GagSpeak.API.Data.Character;
 
 namespace FFStreamViewer.WebAPI.PlayerData.Pairs;
 
@@ -15,7 +15,7 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
     private readonly OnFrameworkService _frameworkUtil;
     private readonly HashSet<PairHandler> _newVisiblePlayers = [];
     private readonly PairManager _pairManager;
-    private CharacterData? _lastSentData;
+    private CharacterCompositeData? _lastSentData;
 
     public OnlinePlayerManager(ILogger<OnlinePlayerManager> logger, ApiController apiController, OnFrameworkService dalamudUtil,
         PairManager pairManager, GagspeakMediator mediator) : base(logger, mediator)
@@ -26,6 +26,7 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
 
         // our mediator subscribers.
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => FrameworkOnUpdate());
+        // fired whenever we have a change in our data
         Mediator.Subscribe<CharacterDataCreatedMessage>(this, (msg) =>
         {
             var newData = msg.CharacterData;
@@ -56,6 +57,11 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
         Logger.LogTrace("Has new visible players, pushing character data");
         // push the character data if there is new visible players to push it to that are not already present.
         PushCharacterData(newVisiblePlayers.Select(c => c.OnlineUser.User).ToList());
+    }
+
+    private void PlayerManagerOnPlayerHasChanged()
+    {
+        PushCharacterData(_pairManager.GetVisibleUsers());
     }
 
     /// <summary> Pushes the character data to the server for the visible players </summary>

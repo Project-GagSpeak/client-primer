@@ -13,11 +13,11 @@ namespace FFStreamViewer.WebAPI.UI.Components.Popup;
 public class PopupHandler : WindowMediatorSubscriberBase
 {
     protected bool _openPopup = false;
-    private readonly HashSet<IPopupHandler> _handlers;
+    private readonly HashSet<IStickyUiHandler> _handlers;
     private readonly UiSharedService _uiSharedService;
-    private IPopupHandler? _currentHandler = null;
+    private IStickyUiHandler? _currentHandler = null;
 
-    public PopupHandler(ILogger<PopupHandler> logger, GagspeakMediator mediator, IEnumerable<IPopupHandler> popupHandlers,
+    public PopupHandler(ILogger<PopupHandler> logger, GagspeakMediator mediator, IEnumerable<IStickyUiHandler> popupHandlers,
         UiSharedService uiSharedService) : base(logger, mediator, "GagspeakPopupHandler")
     {
         Flags = ImGuiWindowFlags.NoBringToFrontOnFocus

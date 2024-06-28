@@ -27,6 +27,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using FFStreamViewer.WebAPI.UI.Components.Popup;
 using OtterGui.Classes;
+using FFStreamViewer.WebAPI.PlayerData.Data;
+using FFStreamViewer.WebAPI.PlayerData.VisibleData;
 
 namespace FFStreamViewer;
 
@@ -110,7 +112,7 @@ public static class FFStreamViewerServiceExtensions
 {
     #region GenericServices
     public static IServiceCollection AddFFStreamViewerGeneric(this IServiceCollection services,
-        DalamudPluginInterface pi, IClientState cs, ICondition con, IDataManager dm, IFramework fw, 
+        DalamudPluginInterface pi, IClientState cs, ICondition con, IDataManager dm, IFramework fw,
         IGameGui gg, IObjectTable ot, ITargetManager tm)
     => services
         // Data Services
@@ -147,6 +149,7 @@ public static class FFStreamViewerServiceExtensions
         .AddSingleton<IdDisplayHandler>()
         .AddSingleton<SelectPairForTagUi>()
         .AddSingleton<TagHandler>()
+        .AddSingleton<UserPairPermsSticky>()
         // WebAPI Services
         .AddSingleton<ApiController>()
         .AddSingleton<HubFactory>()
@@ -159,7 +162,9 @@ public static class FFStreamViewerServiceExtensions
         // Service Services
         .AddSingleton<ServerConfigurationManager>()
         .AddSingleton<GagspeakMediator>()
-        .AddSingleton<GagspeakProfileManager>()
+        .AddSingleton((s) => new GagspeakProfileManager(s.GetRequiredService<ILogger<GagspeakProfileManager>>(),
+            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<GagspeakMediator>(), 
+            s.GetRequiredService<ApiController>(), pi))
         .AddSingleton((s) => new OnFrameworkService(s.GetRequiredService<ILogger<OnFrameworkService>>(),
             cs, con, dm, fw, gg, tm, ot,
             s.GetRequiredService<GagspeakMediator>()));
@@ -195,9 +200,9 @@ public static class FFStreamViewerServiceExtensions
 
         // PlayerData Services
         .AddScoped<OnlinePlayerManager>()
+        .AddScoped<PlayerCharacterManager>() // if not scoped it should be singleton but i don't fucking know atm.
         // Service Services
         .AddScoped<DrawEntityFactory>()
-        // .AddScoped<CacheMonitor>()
         .AddScoped<UiFactory>()
         .AddScoped<SelectTagForPairUi>()
         .AddScoped<WindowMediatorSubscriberBase, SettingsUi>()
@@ -210,10 +215,8 @@ public static class FFStreamViewerServiceExtensions
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(), pi.UiBuilder, s.GetRequiredService<UiSharedService>(),
             s.GetRequiredService<FileDialogManager>(), s.GetRequiredService<GagspeakProfileManager>()))
         .AddScoped<WindowMediatorSubscriberBase, PopupHandler>()
-        .AddScoped<IPopupHandler, VerificationPopupHandler>()
-        //.AddScoped<CacheCreationService>()
-        //.AddScoped<TransientResourceManager>()
-        //.AddScoped<PlayerDataFactory>()
+        .AddScoped<IStickyUiHandler, VerificationPopupHandler>()
+        .AddScoped<CacheCreationService>()
         .AddScoped<OnlinePlayerManager>()
         .AddScoped((s) => new UiService(s.GetRequiredService<ILogger<UiService>>(), pi.UiBuilder, s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(),

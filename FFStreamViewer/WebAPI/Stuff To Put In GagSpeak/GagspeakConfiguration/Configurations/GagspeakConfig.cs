@@ -1,3 +1,5 @@
+using Gagspeak.API.Data.Enum;
+
 namespace FFStreamViewer.WebAPI.GagspeakConfiguration.Configurations;
 
 [Serializable]
@@ -22,4 +24,9 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool ShowOnlineNotificationsOnlyForNamedPairs { get; set; } = false; // only do it for the people you have paired and nicknamed
     public int Version { get; set; } = 1;                               // the version of the config file
     public LogLevel LogLevel { get; set; } = LogLevel.Trace;            // the log level we want to see in /xllog
+
+    // migrated from gagspeak information for client user. (stuff unessisary to be in the DB)
+    public bool LiveGarblerZoneChangeWarn { get; set; } // if user wants to be warned about the live chat garbler on zone change
+    public RevertStyle RevertStyle { get; set; }   // how the user wants to revert their settings (can store locally?)
+    public bool UsingSimulatedVibrator { get; set; } // if the user is using a simulated vibrator
 }

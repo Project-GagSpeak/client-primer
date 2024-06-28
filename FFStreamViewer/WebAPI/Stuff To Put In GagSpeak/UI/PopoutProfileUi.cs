@@ -85,7 +85,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
 
             var gagspeakProfile = _gagspeakProfileManager.GetGagspeakProfile(_pair.UserData);
 
-            if (_textureWrap == null || !gagspeakProfile.ImageData.Value.SequenceEqual(_lastProfilePicture))
+/*            if (_textureWrap == null || !gagspeakProfile.ImageData.Value.SequenceEqual(_lastProfilePicture))
             {
                 _textureWrap?.Dispose();
                 _lastProfilePicture = gagspeakProfile.ImageData.Value;
@@ -101,7 +101,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
                     _lastSupporterPicture = gagspeakProfile.SupporterImageData.Value;
                     _supporterTextureWrap = _uiSharedService.LoadImage(_lastSupporterPicture);
                 }
-            }
+            }*/
 
             var drawList = ImGui.GetWindowDrawList();
             var rectMin = drawList.GetClipRectMin();

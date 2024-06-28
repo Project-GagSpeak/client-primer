@@ -28,7 +28,10 @@ public class CompactUi : WindowMediatorSubscriberBase
     private readonly TopTabMenu _tabMenu;
     private readonly TagHandler _tagHandler;
     private readonly UiSharedService _uiSharedService;
+    private readonly UserPairPermsSticky _UserPairPermissionsSticky;
+
     private List<IDrawFolder> _drawFolders;
+    private List<DrawUserPair> _allUserPairDrawsDistinct;
     private Pair? _lastAddedUser;
     private string _lastAddedUserComment = string.Empty;
     private Vector2 _lastPosition = Vector2.One;
@@ -39,9 +42,19 @@ public class CompactUi : WindowMediatorSubscriberBase
     private bool _wasOpen;
     private float _windowContentWidth;
 
-    public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, GagspeakConfigService configService, ApiController apiController,
-        PairManager pairManager, ServerConfigurationManager serverManager, GagspeakMediator mediator, TagHandler tagHandler,
-        DrawEntityFactory drawEntityFactory) : base(logger, mediator, "###GagSpeakMainUI")
+    // sticky window management
+    private bool RootWindowFocused = false;
+    private bool ChildWindowFocused = false;
+    private bool ChildWindowFocusFixed = false;
+
+    // variables for determining how the permissions window is drawn
+    private bool _shouldDrawStickyPerms = false;
+    private Pair? _PairToDrawPermissionsFor => _UserPairPermissionsSticky.UserPair;
+
+    public CompactUi(ILogger<CompactUi> logger, UiSharedService uiShared, GagspeakConfigService configService,
+        ApiController apiController, PairManager pairManager, ServerConfigurationManager serverManager,
+        GagspeakMediator mediator, TagHandler tagHandler, DrawEntityFactory drawEntityFactory,
+        UserPairPermsSticky userpermssticky) : base(logger, mediator, "###GagSpeakMainUI")
     {
         _uiSharedService = uiShared;
         _configService = configService;
@@ -50,6 +63,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         _serverManager = serverManager;
         _tagHandler = tagHandler;
         _drawEntityFactory = drawEntityFactory;
+        _UserPairPermissionsSticky = userpermssticky;
 
         _tabMenu = new TopTabMenu(Mediator, _apiController, _pairManager, _uiSharedService);
 
@@ -89,26 +103,36 @@ public class CompactUi : WindowMediatorSubscriberBase
             }
         };
 
-        _drawFolders = GetDrawFolders().ToList();
-        _logger.LogInformation("Draw Folders size: {size}", _drawFolders.Count);
+        // updates the draw folders by recollecting them, and updates the drawPair list of distinct draw pairs
+        UpdateDrawFoldersAndUserPairDraws();
 
         // display info about the folders
-        foreach (var folder in _drawFolders)
-        {
-            _logger.LogInformation("Total Pairs: {folder}", folder.TotalPairs);
-            _logger.LogInformation("Filtered Pairs: {folder}", folder.OnlinePairs);
-            _logger.LogInformation("DrawPairs Count: {folder}", folder.DrawPairs.Count());
-        }
-
         string dev = "Dev Build";
         var ver = Assembly.GetExecutingAssembly().GetName().Version!;
         WindowName = $"GagSpeak {dev} ({ver.Major}.{ver.Minor}.{ver.Build})###GagSpeakMainUI";
+
         Toggle();
 
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (_) => IsOpen = true);
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = false);
         // Mediator.Subscribe<CutsceneEndMessage>(this, (_) => UiSharedService_GposeEnd());
-        Mediator.Subscribe<RefreshUiMessage>(this, (msg) => _drawFolders = GetDrawFolders().ToList());
+        Mediator.Subscribe<RefreshUiMessage>(this, (msg) =>
+        {
+            // update drawfolders
+            UpdateDrawFoldersAndUserPairDraws();
+            // update the cog statuses
+            UpdateShouldOpenStatus();
+        });
+
+        Mediator.Subscribe<OpenUserPairPermissions>(this, (msg) =>
+        {
+            logger.LogInformation("OpenUserPairPermission called for {0}", msg.Pair.UserData.AliasOrUID);
+
+            // locate the DrawUserPair in the list where the pair matches the pair in it, and set that bool to true;
+            UpdateShouldOpenStatus(msg.Pair);
+
+        });
+
 
         Flags |= ImGuiWindowFlags.NoDocking;
 
@@ -117,6 +141,68 @@ public class CompactUi : WindowMediatorSubscriberBase
             MinimumSize = new Vector2(375, 400),
             MaximumSize = new Vector2(375, 2000),
         };
+    }
+
+    /// <summary> Updates our draw folders and user pair draws </summary>
+    private void UpdateDrawFoldersAndUserPairDraws()
+    {
+        _drawFolders = GetDrawFolders().ToList();
+        _allUserPairDrawsDistinct = _drawFolders
+            .SelectMany(folder => folder.DrawPairs) // throughout all the folders
+            .DistinctBy(pair => pair.Pair)          // without duplicates
+            .ToList();
+    }
+
+    /// <summary>
+    /// Updates if the permissions window should be opened, optionally based on a specific Pair.
+    /// </summary>
+    /// <param name="specificPair">The specific Pair to update, or null to use the first Pair with ShouldOpen true.</param>
+    private void UpdateShouldOpenStatus(Pair? specificPair = null)
+    {
+        int indexToKeep = -1;
+
+        // If a specific Pair is provided, find its index. Otherwise, find the first Pair with ShouldOpen set to true.
+        if (specificPair != null)
+        {
+            _logger.LogInformation("Specific Pair provided: {0}", specificPair.UserData.AliasOrUID);
+            indexToKeep = _allUserPairDrawsDistinct.FindIndex(pair => pair.Pair == specificPair);
+            // Toggle the ShouldOpen status if the Pair is found
+            if (indexToKeep != -1)
+            {
+                _logger.LogInformation("Found specific Pair, toggling ShouldOpen status to {0}", !_allUserPairDrawsDistinct[indexToKeep].ShouldOpen);
+                bool currentStatus = _allUserPairDrawsDistinct[indexToKeep].ShouldOpen;
+                _allUserPairDrawsDistinct[indexToKeep].ShouldOpen = !currentStatus;
+                // If we're turning it off, reset indexToKeep to handle deactivation correctly
+                if (currentStatus) indexToKeep = -1;
+            }
+        }
+        else
+        {
+            _logger.LogInformation("No specific Pair provided, finding first Pair with ShouldOpen true");
+            indexToKeep = _allUserPairDrawsDistinct.FindIndex(pair => pair.ShouldOpen);
+        }
+
+        _logger.LogDebug("Index to keep: {0} || setting all others to false", indexToKeep);
+        // Set ShouldOpen to false for all other DrawUserPairs
+        for (int i = 0; i < _allUserPairDrawsDistinct.Count; i++)
+        {
+            if (i != indexToKeep)
+            {
+                _allUserPairDrawsDistinct[i].ShouldOpen = false;
+            }
+        }
+
+        // Update _PairToDrawPermissionsFor based on the current status
+        if (indexToKeep != -1)
+        {
+            _logger.LogDebug("Setting _PairToDrawPermissionsFor to {0}", _allUserPairDrawsDistinct[indexToKeep].Pair.UserData.AliasOrUID);
+            _PairToDrawPermissionsFor = _allUserPairDrawsDistinct[indexToKeep].Pair;
+        }
+        else
+        {
+            _logger.LogDebug("Setting _PairToDrawPermissionsFor to null");
+            _PairToDrawPermissionsFor = null;
+        }
     }
 
     protected override void DrawInternal()
@@ -156,6 +242,8 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             // tdisplay the topmenu with our tab selections
             using (ImRaii.PushId("global-topmenu")) _tabMenu.Draw();
+            // grab the yposition
+            float topMenuEnd = ImGui.GetCursorPosY();
             // then display our pairing list
             using (ImRaii.PushId("pairlist")) DrawPairs();
             // after that, another seperator to create the footer of the window
@@ -164,7 +252,14 @@ public class CompactUi : WindowMediatorSubscriberBase
             float pairlistEnd = ImGui.GetCursorPosY();
             // push a footer here maybe.
             _transferPartHeight = ImGui.GetCursorPosY() - pairlistEnd - ImGui.GetTextLineHeight();
-            // additional popup usings can go here if needed i guess. but probably not.
+
+            // anyways, if we should be drawing the sticky permissions window beside it, then do so.
+            if (_PairToDrawPermissionsFor != null)
+            {
+                ChildWindowFocused = _UserPairPermissionsSticky.DrawSticky(_PairToDrawPermissionsFor, topMenuEnd);
+            }
+            // check if we currently have a permission window open and if so to refocus it when the main window is focused
+            FocusChildWhenMainRefocused(ChildWindowFocused);
         }
 
         // if we have configured to let the UI display a popup to set a nickname for the added UID upon adding them, then do so.
@@ -219,6 +314,37 @@ public class CompactUi : WindowMediatorSubscriberBase
             Mediator.Publish(new CompactUiChange(_lastSize, _lastPosition));
         }
     }
+
+    private void FocusChildWhenMainRefocused(bool isChildFocused)
+    {
+        if (_PairToDrawPermissionsFor == null) return;
+
+        // DEFINE CHILD WINDOW NAME
+        var windowName = "###PairPermissionStickyUI" + (_PairToDrawPermissionsFor.UserPair.User.AliasOrUID);
+        
+        // DETERMINE IF WE ARE CURRENTLY FOCUSING THE MAIN WINDOW
+        RootWindowFocused = ImGui.IsWindowFocused(ImGuiFocusedFlags.RootWindow);
+
+        // IF MAIN WINDOW IS FOCUSED
+        if(RootWindowFocused)
+        {
+            // AND THE CHILD WINDOW IS NOT FOCUSED AND NOT YET FIXED
+            if (!isChildFocused && !ChildWindowFocusFixed)
+            {
+                // FIX IT
+                ImGui.SetWindowFocus(windowName);
+                ChildWindowFocusFixed = true;
+            }
+        }
+
+        // IF BOTH WINDOWS ARE NO LONGER FOCUSED, RESET FOCUS VARIABLES
+        if(!isChildFocused && !RootWindowFocused)
+        {
+            RootWindowFocused = false;
+            ChildWindowFocusFixed = false;
+        }
+    }
+
 
     /// <summary>
     /// Not really sure how or when this is ever fired, but we will see in due time i suppose.
@@ -481,7 +607,8 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         // create the draw folders for the online untagged pairs
         _logger.LogDebug("Adding Pair Section List Tag: {tag}", TagHandler.CustomAllTag);
-        drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder((_configService.Current.ShowOfflineUsersSeparately ? TagHandler.CustomOnlineTag : TagHandler.CustomAllTag),
+        drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder((
+            _configService.Current.ShowOfflineUsersSeparately ? TagHandler.CustomOnlineTag : TagHandler.CustomAllTag),
             onlineNotTaggedPairs, allOnlineNotTaggedPairs));
 
         // if we want to show offline users seperately,
@@ -495,7 +622,8 @@ public class CompactUi : WindowMediatorSubscriberBase
 
             // add the folder.
             _logger.LogDebug("Adding Pair Section List Tag: {tag}", TagHandler.CustomOfflineTag);
-            drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomOfflineTag, filteredOfflinePairs, allOfflinePairs));
+            drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomOfflineTag, filteredOfflinePairs, 
+                allOfflinePairs));
 
         }
 

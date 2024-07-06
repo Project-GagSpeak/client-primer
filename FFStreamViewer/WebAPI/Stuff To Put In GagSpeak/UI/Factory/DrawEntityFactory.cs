@@ -1,6 +1,6 @@
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using FFStreamViewer.WebAPI.UI.Components;
 using FFStreamViewer.WebAPI.UI.Handlers;
 using System.Collections.Immutable;

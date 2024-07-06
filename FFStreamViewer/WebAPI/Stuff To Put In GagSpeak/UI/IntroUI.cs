@@ -7,7 +7,7 @@ using FFStreamViewer.WebAPI.GagspeakConfiguration;
 using FFStreamViewer.WebAPI.GagspeakConfiguration.Models;
 using FFStreamViewer.WebAPI.Services;
 using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using OtterGui;

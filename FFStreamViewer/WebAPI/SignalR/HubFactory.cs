@@ -1,5 +1,5 @@
 using Gagspeak.API.SignalR;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using MessagePack;
 using MessagePack.Resolvers;
 using Microsoft.AspNetCore.Http.Connections;

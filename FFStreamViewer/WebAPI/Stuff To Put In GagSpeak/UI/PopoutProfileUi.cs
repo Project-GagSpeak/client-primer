@@ -1,11 +1,12 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Internal;
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using FFStreamViewer.WebAPI.GagspeakConfiguration;
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services;
 using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using ImGuiNET;
 using System.Numerics;
 

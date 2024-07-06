@@ -1,5 +1,5 @@
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Interface.Internal.Notifications;
+using Dalamud.Interface.ImGuiNotification;
 using FFStreamViewer.WebAPI.PlayerData.Handlers;
 using FFStreamViewer.WebAPI.Services.Events;
 using Gagspeak.API.Data;

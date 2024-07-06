@@ -4,10 +4,11 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using FFStreamViewer.WebAPI.GagspeakConfiguration;
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
+using FFStreamViewer.WebAPI.PlayerData.VisibleData;
 using FFStreamViewer.WebAPI.Services;
 using FFStreamViewer.WebAPI.Services.Events;
 using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -25,19 +26,19 @@ namespace FFStreamViewer;
 public class FFStreamViewerHost : MediatorSubscriberBase, IHostedService
 {
     private readonly OnFrameworkService _frameworkUtil;                     // For running on the games framework thread
-    private readonly GagspeakConfigService _gagspeakConfigService;          // the plugins config service
-    private readonly ServerConfigurationManager _serverConfigurationManager;// the servers config manager
+    private readonly ClientConfigurationManager _clientConfigurationManager;// the client-related config manager
+    private readonly ServerConfigurationManager _serverConfigurationManager;// the server-related config manager
     private readonly IServiceScopeFactory _serviceScopeFactory;             // the service scope factory.
     private IServiceScope? _runtimeServiceScope;                            // the runtime service scope
     private Task? _launchTask;                                              // the task ran when plugin is launched.
 
-    public FFStreamViewerHost(ILogger<FFStreamViewer> logger, GagspeakConfigService gagspeakConfigService,
+    public FFStreamViewerHost(ILogger<FFStreamViewer> logger, ClientConfigurationManager clientConfigurationManager,
         ServerConfigurationManager serverConfigurationManager, OnFrameworkService frameworkUtil,
         IServiceScopeFactory serviceScopeFactory, GagspeakMediator mediator) : base(logger, mediator)
     {
         // set the services
         _frameworkUtil = frameworkUtil;
-        _gagspeakConfigService = gagspeakConfigService;
+        _clientConfigurationManager = clientConfigurationManager;
         _serverConfigurationManager = serverConfigurationManager;
         _serviceScopeFactory = serviceScopeFactory;
     }
@@ -132,21 +133,21 @@ public class FFStreamViewerHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope = _serviceScopeFactory.CreateScope();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<UiService>();
             // _runtimeServiceScope.ServiceProvider.GetRequiredService<CommandManagerService>();
-            _gagspeakConfigService.Current.ButtonUsed = false;
+            _clientConfigurationManager.GagspeakConfig.ButtonUsed = false;
 
             // if the client does not have a valid setup or config, switch to the intro ui
-            if (!_gagspeakConfigService.Current.HasValidSetup() || !_serverConfigurationManager.HasValidConfig())
+            if (!_clientConfigurationManager.GagspeakConfig.HasValidSetup() || !_serverConfigurationManager.HasValidConfig())
             {
-                Logger?.LogDebug("Has Valid Setup: {setup} Has Valid Config: {config}", _gagspeakConfigService.Current.HasValidSetup(), _serverConfigurationManager.HasValidConfig());
+                Logger?.LogDebug("Has Valid Setup: {setup} Has Valid Config: {config}", _clientConfigurationManager.GagspeakConfig.HasValidSetup(), _serverConfigurationManager.HasValidConfig());
                 // publish the switch to intro ui message to the mediator
                 Mediator.Publish(new SwitchToIntroUiMessage());
                 return;
             }
 
             // get the required service for the online player manager (and notification service if we add it)
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<CacheCreationService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<OnlinePlayerManager>();
-
-            // _runtimeServiceScope.ServiceProvider.GetRequiredService<NotificationService>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<NotificationService>();
         }
         catch (Exception ex)
         {

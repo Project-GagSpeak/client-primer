@@ -1,4 +1,4 @@
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 
 namespace FFStreamViewer.WebAPI.UI.Handlers;
 

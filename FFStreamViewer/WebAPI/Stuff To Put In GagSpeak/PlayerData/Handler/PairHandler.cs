@@ -70,10 +70,10 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     }
 
     public OnlineUserIdentDto OnlineUser { get; private set; }  // the online user Dto. Set when pairhandler is made for the cached player in the pair object.
-    public nint PlayerCharacter => _charaHandler?.Address ?? nint.Zero; // the player character object address
-    public unsafe uint PlayerCharacterId => (_charaHandler?.Address ?? nint.Zero) == nint.Zero  // the player character object id
+    public nint IPlayerCharacter => _charaHandler?.Address ?? nint.Zero; // the player character object address
+    public unsafe uint IPlayerCharacterId => (uint)((_charaHandler?.Address ?? nint.Zero) == nint.Zero  // the player character object id
         ? uint.MaxValue
-        : ((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)_charaHandler!.Address)->ObjectID;
+        : ((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)_charaHandler!.Address)->GetGameObjectId());
     public string? PlayerName { get; private set; }                                         // the player name
     public string PlayerNameHash => OnlineUser.Ident;                                       // the player name hash
 
@@ -81,7 +81,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     {
         return OnlineUser == null
             ? base.ToString() ?? string.Empty
-            : OnlineUser.User.AliasOrUID + ":" + PlayerName + ":" + (PlayerCharacter != nint.Zero ? "HasChar" : "NoChar");
+            : OnlineUser.User.AliasOrUID + ":" + PlayerName + ":" + (IPlayerCharacter != nint.Zero ? "HasChar" : "NoChar");
     }
 
     protected override void Dispose(bool disposing)
@@ -196,9 +196,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private async Task CallAlterationsToIpcAsync(Guid applicationId, HashSet<PlayerChanges> changes, CharacterIPCData charaData, CancellationToken token)
     {
         // if the player character is zero, return
-        if (PlayerCharacter == nint.Zero) return;
+        if (IPlayerCharacter == nint.Zero) return;
         // set the pointer to the player character we are updating the information for
-        var ptr = PlayerCharacter;
+        var ptr = IPlayerCharacter;
         // set the handler to the characterData of the paired user
         var handler = _charaHandler!;
 
@@ -300,7 +300,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         PlayerName = name;
         // create a new game object handler for the player character
         _charaHandler = _gameObjectHandlerFactory.Create(() =>
-            _frameworkUtil.GetPlayerCharacterFromCachedTableByIdent(OnlineUser.Ident), isWatched: false).GetAwaiter().GetResult();
+            _frameworkUtil.GetIPlayerCharacterFromCachedTableByIdent(OnlineUser.Ident), isWatched: false).GetAwaiter().GetResult();
     }
 
 
@@ -315,7 +315,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private async Task RevertIpcDataAsync(string name, Guid applicationId, CancellationToken cancelToken)
     {
         // get the player character address from the cached table by the pairs online user identity
-        nint address = _frameworkUtil.GetPlayerCharacterFromCachedTableByIdent(OnlineUser.Ident);
+        nint address = _frameworkUtil.GetIPlayerCharacterFromCachedTableByIdent(OnlineUser.Ident);
         // if the address is zero, return
         if (address == nint.Zero) return;
 

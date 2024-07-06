@@ -15,7 +15,7 @@ public class DalamudServices {
 	/// <list type="bullet">
 	/// <item><c>pluginInt</c><param name="pluginInt"> - The Dalamud plugin interface.</param></item>
 	/// </list> </summary>
-	public DalamudServices(DalamudPluginInterface pluginInt) {
+	public DalamudServices(IDalamudPluginInterface pluginInt) {
 		// Set the services to the pluginInt
 		pluginInt.Inject(this);
         Logger.LogDebug("[DalamudServices] SERVICE CONSUTRCTOR INITIALIZED");
@@ -29,8 +29,8 @@ public class DalamudServices {
 	public void AddServices(IServiceCollection services) {
 		// Adds a singleton service of the type specified in serviceType with an implementation of the type specified in
 		services.AddSingleton(GameInteropProvider);
-		services.AddSingleton(DalamudPluginInterface);
-		services.AddSingleton(DalamudPluginInterface.UiBuilder);
+		services.AddSingleton(IDalamudPluginInterface);
+		services.AddSingleton(IDalamudPluginInterface.UiBuilder);
 		services.AddSingleton(PluginLog);
 		services.AddSingleton(ChatGui);
 		services.AddSingleton(GameConfig);
@@ -46,7 +46,7 @@ public class DalamudServices {
 		services.AddSingleton(this);
 	}
 	[PluginService] public IGameInteropProvider GameInteropProvider { get; private set; } = null!; // helps with detouring the chat input for our plugin
-	[PluginService] public DalamudPluginInterface DalamudPluginInterface { get; private set; } = null!; // for interfacing w/ plugin.
+	[PluginService] public IDalamudPluginInterface IDalamudPluginInterface { get; private set; } = null!; // for interfacing w/ plugin.
 	[PluginService] public IChatGui ChatGui { get; private set; } = null!; // For interfacing with the chat
 	[PluginService] public IGameConfig GameConfig { get; private set; } = null!; // For interfacing with the client state, getting player info, etc.
 	[PluginService] public IClientState ClientState { get; private set; } = null!; // For interfacing with the client state, getting player info, etc.

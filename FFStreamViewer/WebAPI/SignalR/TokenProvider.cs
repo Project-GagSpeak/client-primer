@@ -1,8 +1,9 @@
 using Gagspeak.API.Routes;
+using Dalamud.Interface.ImGuiNotification;
 using FFStreamViewer.WebAPI.SignalR.Utils;
 using FFStreamViewer.WebAPI.Services;
 using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Reflection;
@@ -174,11 +175,11 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
                 // if it was a renewal, log the notification message
                 if (isRenewal)
                     Mediator.Publish(new NotificationMessage("Error refreshing token", "Your authentication token could not be renewed. Try reconnecting to Gagspeak manually.",
-                    Dalamud.Interface.Internal.Notifications.NotificationType.Error));
+                    NotificationType.Error));
                 // otherwise, log the notification that it errored while generating the token.
                 else
                     Mediator.Publish(new NotificationMessage("Error generating token", "Your authentication token could not be generated. Check Gagspeaks main UI to see the error message.",
-                    Dalamud.Interface.Internal.Notifications.NotificationType.Error));
+                    NotificationType.Error));
                 
                 // publish a disconnected message and throw an exception.
                 Mediator.Publish(new DisconnectedMessage());
@@ -210,7 +211,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
             Mediator.Publish(new NotificationMessage("Invalid system clock", "The clock of your computer is invalid. " +
                 "Gagspeak will not function properly if the time zone is not set correctly. " +
                 "Please set your computers time zone correctly and keep your clock synchronized with the internet.",
-                Dalamud.Interface.Internal.Notifications.NotificationType.Error));
+                NotificationType.Error));
             // throw the exception.
             throw new InvalidOperationException($"JwtToken is behind DateTime.UtcNow, DateTime.UtcNow is possibly wrong. DateTime.UtcNow is {DateTime.UtcNow}, JwtToken.ValidTo is {jwtToken.ValidTo}");
         }

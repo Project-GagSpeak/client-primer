@@ -1,4 +1,5 @@
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using Gagspeak.API.Data;
 using Gagspeak.API.Data.Enum;
@@ -11,11 +12,10 @@ using System.Reflection;
 namespace FFStreamViewer.WebAPI.PlayerData.Data;
 
 // unsure atm why we would need this, but we will find out soon.
-public class PlayerCharacterManager : DisposableMediatorSubscriberBase
+public class IPlayerCharacterManager : DisposableMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
-    private readonly OnlinePlayerManager _onlinePlayerManager; // may not need this but idk lets just be sure???
+    private readonly ClientConfigurationManager _clientConfigManager;
     private CharacterIPCData _playerCharIpcData { get; set; } // the IPC data for our player character
     private CharacterAppearanceData _playerCharAppearanceData { get; set; } // the appearance data for our player character
     private CharacterWardrobeData _playerCharWardrobeData { get; set; } // the wardrobe data for our player character
@@ -23,14 +23,27 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private CharacterPatternInfo _playerCharPatternData { get; set; } // the pattern data for our player character
     private UserGlobalPermissions _playerCharGlobalPerms { get; set; } // the global permissions for our player character
 
-    public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger, GagspeakMediator mediator,
-        ApiController apiController, PairManager pairManager, OnlinePlayerManager onlinePlayerManager) : base(logger, mediator)
+    public IPlayerCharacterManager(ILogger<IPlayerCharacterManager> logger, GagspeakMediator mediator,
+        PairManager pairManager, ClientConfigurationManager clientConfiguration) : base(logger, mediator)
     {
-        _apiController = apiController;
         _pairManager = pairManager;
-        _onlinePlayerManager = onlinePlayerManager;
+        _clientConfigManager = clientConfiguration;
+
+        // temp initializers since we are not migrating from the saved files yet.
+        _playerCharIpcData = new CharacterIPCData(); // Initialize the IPC data
+        _playerCharWardrobeData = new CharacterWardrobeData(); // Initialize the wardrobe data
+        _playerCharPatternData = new CharacterPatternInfo(); // Initialize the pattern data
 
         _playerCharAliasData = new Dictionary<string, CharacterAliasData>(); // Initialize the dictionary
+
+        // Subscribe to the connected message update so we know when to update our global permissions
+        Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
+        {
+           logger.LogTrace("Connected message received. Updating global permissions.");
+            // update our permissions
+            _playerCharGlobalPerms = msg.Connection.UserGlobalPermissions;
+            _playerCharAppearanceData = msg.Connection.CharacterAppearanceData;
+        });
 
         // At most we should subscribe to IPC updates so we can keep our IPC at the latest.
         Mediator.Subscribe<PlayerCharIpcChanged>(this, (msg) =>
@@ -66,6 +79,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     public CharacterWardrobeData WardrobeData => _playerCharWardrobeData; // public var to access wardrobe data
     public CharacterPatternInfo PatternData => _playerCharPatternData; // public var to access pattern data
     public UserGlobalPermissions GlobalPerms => _playerCharGlobalPerms; // public var to access global permissions
+    public IEnumerable<string> GetAllAliasListKeys() => _playerCharAliasData.Keys; // public method to get all alias list keys
     public CharacterAliasData GetAliasData(string userUID)
     {
         if (_playerCharAliasData.TryGetValue(userUID, out var aliasData))
@@ -146,6 +160,4 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             Logger.LogError($"Property '{changeDto.ChangedPermission.Key}' not found or cannot be updated.");
         }
     }
-
-
 }

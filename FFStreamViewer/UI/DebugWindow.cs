@@ -16,7 +16,7 @@ public class DebugWindow : Window //, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="HistoryWindow"/> class.
     /// </summary>
-    public DebugWindow(DalamudPluginInterface pluginInt, FFSV_Config config) : base(GetLabel()) {
+    public DebugWindow(IDalamudPluginInterface pluginInt, FFSV_Config config) : base(GetLabel()) {
         // Let's first make sure that we disable the plugin while inside of gpose.
         pluginInt.UiBuilder.DisableGposeUiHide = true;
         // Next let's set the size of the window

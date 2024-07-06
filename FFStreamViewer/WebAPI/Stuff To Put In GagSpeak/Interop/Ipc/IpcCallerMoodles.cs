@@ -9,7 +9,7 @@ namespace FFStreamViewer.WebAPI.Interop.Ipc;
 public sealed class IpcCallerMoodles : IIpcCaller
 {
     private readonly ICallGateSubscriber<int> _moodlesApiVersion;
-    private readonly ICallGateSubscriber<PlayerCharacter, object> _moodlesOnChange;
+    private readonly ICallGateSubscriber<IPlayerCharacter, object> _moodlesOnChange;
     private readonly ICallGateSubscriber<nint, string> _moodlesGetStatus;
     private readonly ICallGateSubscriber<nint, string, object> _moodlesSetStatus;
     private readonly ICallGateSubscriber<nint, object> _moodlesRevertStatus;
@@ -17,7 +17,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     private readonly OnFrameworkService _frameworkUtil;
     private readonly GagspeakMediator _gagspeakMediator;
 
-    public IpcCallerMoodles(ILogger<IpcCallerMoodles> logger, DalamudPluginInterface pi,
+    public IpcCallerMoodles(ILogger<IpcCallerMoodles> logger, IDalamudPluginInterface pi,
         OnFrameworkService frameworkUtil, GagspeakMediator gagspeakMediator)
     {
         _logger = logger;
@@ -25,7 +25,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         _gagspeakMediator = gagspeakMediator;
 
         _moodlesApiVersion = pi.GetIpcSubscriber<int>("Moodles.Version");
-        _moodlesOnChange = pi.GetIpcSubscriber<PlayerCharacter, object>("Moodles.StatusManagerModified");
+        _moodlesOnChange = pi.GetIpcSubscriber<IPlayerCharacter, object>("Moodles.StatusManagerModified");
         _moodlesGetStatus = pi.GetIpcSubscriber<nint, string>("Moodles.GetStatusManagerByPtr");
         _moodlesSetStatus = pi.GetIpcSubscriber<nint, string, object>("Moodles.SetStatusManagerByPtr");
         _moodlesRevertStatus = pi.GetIpcSubscriber<nint, object>("Moodles.ClearStatusManagerByPtr");
@@ -37,7 +37,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
 
     /// <summary> This method is called when the moodles change </summary>
     /// <param name="character">The character that had modified moodles.</param>
-    private void OnMoodlesChange(PlayerCharacter character)
+    private void OnMoodlesChange(IPlayerCharacter character)
     {
         // publish a new moodles message with the playercharacters address pointer.
         _gagspeakMediator.Publish(new MoodlesMessage(character.Address));

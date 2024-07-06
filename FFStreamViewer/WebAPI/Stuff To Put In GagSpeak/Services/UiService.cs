@@ -11,13 +11,13 @@ namespace FFStreamViewer.WebAPI.Services;
 public sealed class UiService : DisposableMediatorSubscriberBase
 {
     private readonly List<WindowMediatorSubscriberBase> _createdWindows = [];   // the list of created windows as mediator subscribers
-    private readonly UiBuilder _uiBuilder;                                      // the basic dalamud UI builder for the plugin
+    private readonly IUiBuilder _uiBuilder;                                      // the basic dalamud UI builder for the plugin
     private readonly ILogger<UiService> _logger;                                // our logger for the UI service.
     private readonly GagspeakConfigService _gagspeakConfigService;              // our configuration service for the gagspeak plugin
     private readonly WindowSystem _windowSystem;                                // the window system for our dalamud plugin.
     private readonly UiFactory _uiFactory;                                      // the factory for the UI window creation.
 
-    public UiService(ILogger<UiService> logger, UiBuilder uiBuilder,
+    public UiService(ILogger<UiService> logger, IUiBuilder uiBuilder,
         GagspeakConfigService gagspeakConfigService, WindowSystem windowSystem,
         IEnumerable<WindowMediatorSubscriberBase> windows, UiFactory uiFactory,
         GagspeakMediator gagspeakMediator) : base(logger, gagspeakMediator)

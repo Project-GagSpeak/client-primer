@@ -1,6 +1,7 @@
-using Dalamud.Interface.Internal.Notifications;
+using Dalamud.Interface.ImGuiNotification;
 using FFStreamViewer.WebAPI.GagspeakConfiguration;
 using FFStreamViewer.WebAPI.PlayerData.Factories;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using FFStreamViewer.WebAPI.Services.Events;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using Gagspeak.API.Data;
@@ -22,7 +23,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 {
     ILogger<PairManager> _logger;
     private readonly ConcurrentDictionary<UserData, Pair> _allClientPairs;  // concurrent dictionary of all paired paired to the client.
-    private readonly GagspeakConfigService _configurationService;           
+    private readonly ClientConfigurationManager _clientConfigurationManager;// client-end related configs manager           
     private readonly PairFactory _pairFactory;                              // the pair factory for creating new pair objects
     private Lazy<List<Pair>> _directPairsInternal;                          // the internal direct pairs lazy list for optimization
     public List<Pair> DirectPairs => _directPairsInternal.Value;            // the direct pairs the client has with other users.
@@ -31,12 +32,12 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     public ConcurrentDictionary<UserData, Pair> ClientPairs => _allClientPairs; // a public access version of the client pair lists for other classes to access. (could be removed since its only used in settings idk)
 
     public PairManager(ILogger<PairManager> logger, PairFactory pairFactory,
-        GagspeakConfigService configurationService, GagspeakMediator mediator) : base(logger, mediator)
+        ClientConfigurationManager configurationService, GagspeakMediator mediator) : base(logger, mediator)
     {
         _logger = logger;
         _allClientPairs = new(UserDataComparer.Instance);
         _pairFactory = pairFactory;
-        _configurationService = configurationService;
+        _clientConfigurationManager = configurationService;
 
         // subscribe to the disconnected message, and clear all pairs when it is received.
         Mediator.Subscribe<DisconnectedMessage>(this, (_) => ClearPairs());
@@ -184,9 +185,9 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
 
         // if send notification is on, then we should send the online notification to the client.
-        if (sendNotif && _configurationService.Current.ShowOnlineNotifications
-            && (_configurationService.Current.ShowOnlineNotificationsOnlyForNamedPairs && !string.IsNullOrEmpty(pair.GetNickname())
-            || !_configurationService.Current.ShowOnlineNotificationsOnlyForNamedPairs))
+        if (sendNotif && _clientConfigurationManager.GagspeakConfig.ShowOnlineNotifications
+            && (_clientConfigurationManager.GagspeakConfig.ShowOnlineNotificationsOnlyForNamedPairs && !string.IsNullOrEmpty(pair.GetNickname())
+            || !_clientConfigurationManager.GagspeakConfig.ShowOnlineNotificationsOnlyForNamedPairs))
         {
             // get the nickname from the pair, if it is not null, set the nickname to the pair's nickname.
             string? nickname = pair.GetNickname();

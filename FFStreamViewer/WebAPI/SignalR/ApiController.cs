@@ -1,21 +1,20 @@
-using Gagspeak.API.Dto;
-using Gagspeak.API.SignalR;
+using Dalamud.Utility;
+using Dalamud.Interface.ImGuiNotification;
+using FFStreamViewer.WebAPI.GagspeakConfiguration;
+using FFStreamViewer.WebAPI.PlayerData.Data;
+using FFStreamViewer.WebAPI.PlayerData.Pairs;
+using FFStreamViewer.WebAPI.Services;
+using FFStreamViewer.WebAPI.Services.Mediator;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using FFStreamViewer.WebAPI.SignalR;
 using FFStreamViewer.WebAPI.SignalR.Utils;
+using Gagspeak.API.Data;
+using Gagspeak.API.SignalR;
+using GagSpeak.API.Dto.Connection;
+using GagSpeak.API.Dto.Permissions;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Reflection;
-using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services;
-using FFStreamViewer.WebAPI.PlayerData.Pairs;
-using FFStreamViewer.WebAPI.GagspeakConfiguration;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
-using Dalamud.Utility;
-using FFStreamViewer.WebAPI.GagspeakConfiguration.Configurations;
-using Microsoft.AspNetCore.SignalR;
-using GagSpeak.API.Dto.Connection;
-using Gagspeak.API.Data;
-using FFStreamViewer.WebAPI.PlayerData.Data;
-using GagSpeak.API.Dto.Permissions;
 
 namespace FFStreamViewer.WebAPI;
 
@@ -27,7 +26,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
     private readonly OnFrameworkService _frameworkUtils;            // the on framework service
     private readonly HubFactory _hubFactory;                        // the hub factory
-    private readonly PlayerCharacterManager _playerCharManager;      // the player character manager
+    private readonly IPlayerCharacterManager _playerCharManager;      // the player character manager
     private readonly PairManager _pairManager;                      // for managing the clients paired users
     private readonly ServerConfigurationManager _serverConfigManager;// the server configuration manager
     private readonly TokenProvider _tokenProvider;                  // the token provider for authentications
@@ -35,15 +34,15 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     private CancellationTokenSource _connectionCTS;                 // token for connection creation
     private ConnectionDto? _connectionDto;                          // the connection data transfer object for the current connection
     private bool _doNotNotifyOnNextInfo = false;                    // flag to not notify on next info
-    private CancellationTokenSource? _healthCTS= new();             // token for health check
+    private CancellationTokenSource? _healthCTS = new();             // token for health check
     private bool _initialized;                                      // flag for if the hub is initialized
     private string? _lastUsedToken;                                 // the last used token
     private HubConnection? _gagspeakHub;                            // the current hub connection
     private ServerState _serverState;                               // the current state of the server
 
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, OnFrameworkService frameworkService,
-        PlayerCharacterManager playerCharManager, PairManager pairManager, ServerConfigurationManager serverManager, 
-        GagspeakMediator gagspeakMediator, TokenProvider tokenProvider, 
+        IPlayerCharacterManager playerCharManager, PairManager pairManager, ServerConfigurationManager serverManager,
+        GagspeakMediator gagspeakMediator, TokenProvider tokenProvider,
         GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
     {
         _frameworkUtils = frameworkService;
@@ -109,7 +108,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// </summary>
     public void DisconnectFromServer()
     {
-        _ = Task.Run(async () => {
+        _ = Task.Run(async () =>
+        {
             await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
             _connectionCTS?.Cancel();
         });
@@ -164,7 +164,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             var accountDetails = await _gagspeakHub.InvokeAsync<(string, string)>("OneTimeUseAccountGeneration");
             Logger.LogInformation("New Account Details Fetched.");
             // Return the fetched account details
-            return accountDetails;  
+            return accountDetails;
         }
         catch (HubException ex) // Assuming MissingClaimException is a custom exception you've defined
         {
@@ -290,7 +290,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 // if the connectionDTO is null, then stop the connection and return
                 if (_connectionDto == null)
                 {
-                    Logger.LogError("Connection DTO is null, this indicates that the secretkey for your character no longer exists in the database.\n"+
+                    Logger.LogError("Connection DTO is null, this indicates that the secretkey for your character no longer exists in the database.\n" +
                         "You will need to generate a new one. If the key was for your primary user, contact cordy.");
                     await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
                     return;
@@ -313,7 +313,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                             $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
                             $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
                             $"This client version is incompatible and will not be able to connect. Please update your Gagspeak Synchronos client.",
-                            Dalamud.Interface.Internal.Notifications.NotificationType.Error));
+                            NotificationType.Error));
                     }
                     // stop connection
                     await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
@@ -328,9 +328,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                         $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
                         $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
                         $"Please keep your Gagspeak Synchronos client up-to-date.",
-                        Dalamud.Interface.Internal.Notifications.NotificationType.Warning));
+                        NotificationType.Warning));
                 }
-
                 // load the initial pairs for our client
                 await LoadIninitialPairs().ConfigureAwait(false);
                 // load in the online pairs for our client
@@ -437,14 +436,14 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         _connectionCTS?.Cancel();
     }
 
-     /// <summary>
-     /// Performs a health check on the client by periodically checking the client's health state.
-     /// <para> We must check this periodically because if the client changes their key we will need to reconnect.</para>
-     /// </summary>
-     /// <param name="ct">The cancellation token to stop the health check.</param>
-     /// <returns>A task representing the asynchronous health check operation.</returns>
-     private async Task ClientHealthCheck(CancellationToken ct)
-     {
+    /// <summary>
+    /// Performs a health check on the client by periodically checking the client's health state.
+    /// <para> We must check this periodically because if the client changes their key we will need to reconnect.</para>
+    /// </summary>
+    /// <param name="ct">The cancellation token to stop the health check.</param>
+    /// <returns>A task representing the asynchronous health check operation.</returns>
+    private async Task ClientHealthCheck(CancellationToken ct)
+    {
         // while the cancellation token is not requested and the hub is not null
         while (!ct.IsCancellationRequested && _gagspeakHub != null)
         {
@@ -460,7 +459,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // otherwise, invoke the check client health function on the server to get an update on its state.
             _ = await CheckClientHealth().ConfigureAwait(false);
         }
-     }
+    }
 
     /// <summary> GagSpeakMediator will call this function when the client logs into the game instance.
     /// <para> This will run the createConnections function, connecting us to the servers </para>
@@ -499,7 +498,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         OnUserAddClientPair(dto => _ = Client_UserAddClientPair(dto));
         OnUserRemoveClientPair(dto => _ = Client_UserRemoveClientPair(dto));
         OnUpdateUserIndividualPairStatusDto(dto => _ = Client_UpdateUserIndividualPairStatusDto(dto));
-        
+
         OnUserUpdateSelfPairPermsGlobal(dto => _ = Client_UserUpdateSelfPairPermsGlobal(dto));
         OnUserUpdateSelfPairPerms(dto => _ = Client_UserUpdateSelfPairPerms(dto));
         OnUserUpdateSelfPairPermAccess(dto => _ = Client_UserUpdateSelfPairPermAccess(dto));
@@ -536,7 +535,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         foreach (var userPair in await UserGetPairedClients().ConfigureAwait(false))
         {
             // debug the pair, then add it to the pair manager.
-            Logger.LogDebug("Individual Pair: {userPair}", userPair);
+            Logger.LogTrace("Individual Pair Found: {userPair}", userPair.User.AliasOrUID);
             _pairManager.AddUserPair(userPair);
         }
     }

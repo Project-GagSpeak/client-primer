@@ -1,7 +1,7 @@
 using FFStreamViewer.WebAPI.PlayerData.Factories;
 using FFStreamViewer.WebAPI.PlayerData.Handlers;
 using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using FFStreamViewer.WebAPI.SignalR.Utils;
 using Gagspeak.API.Data;
 using Gagspeak.API.Data.Enum;

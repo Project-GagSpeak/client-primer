@@ -49,7 +49,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
 
         WorldData = new(() =>
         {
-            return gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.World>(Dalamud.ClientLanguage.English)!
+            return gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.World>(Dalamud.Game.ClientLanguage.English)!
                 .Where(w => w.IsPublic && !w.Name.RawData.IsEmpty)
                 .ToDictionary(w => (ushort)w.RowId, w => w.Name.ToString());
         });
@@ -77,7 +77,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     /// <summary> Create a game object based off its pointer address reference </summary>
     /// <param name="reference">The pointer address of the game object</param>
     /// <returns>ClientState.Objects.Types.GameObject, type of Gameobject</returns>
-    public Dalamud.Game.ClientState.Objects.Types.GameObject? CreateGameObject(IntPtr reference)
+    public Dalamud.Game.ClientState.Objects.Types.IGameObject? CreateGameObject(IntPtr reference)
     {
         // ensure we are on the framework thread
         EnsureIsOnFramework();
@@ -88,7 +88,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     /// <summary> An asyncronous task that create a game object based on its pointer address.</summary>
     /// <param name="reference">The pointer address of the game object</param>
     /// <returns></returns>Task of Dalamud.Game.ClientState.Objects.Types.GameObject, type of Gameobject</returns>
-    public async Task<Dalamud.Game.ClientState.Objects.Types.GameObject?> CreateGameObjectAsync(IntPtr reference)
+    public async Task<Dalamud.Game.ClientState.Objects.Types.IGameObject?> CreateGameObjectAsync(IntPtr reference)
     {
         return await RunOnFrameworkThread(() => _objectTable.CreateObjectReference(reference)).ConfigureAwait(false);
     }
@@ -160,7 +160,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     }
 
     /// <summary> Gets the player characters homeworld ID</summary>
-    /// <returns> a <c>uint</c> of your PlayerCharacters homeworld ID</returns>
+    /// <returns> a <c>uint</c> of your IPlayerCharacters homeworld ID</returns>
     public uint GetHomeWorldId()
     {
         EnsureIsOnFramework();
@@ -168,7 +168,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     }
 
     /// <summary> Gets the player characters homeworld ID asynchronously</summary>
-    /// <returns> a <c>uint</c> of Your PlayerCharacters homeworld ID</returns>
+    /// <returns> a <c>uint</c> of Your IPlayerCharacters homeworld ID</returns>
     public async Task<uint> GetHomeWorldIdAsync()
     {
         return await RunOnFrameworkThread(GetHomeWorldId).ConfigureAwait(false);
@@ -191,7 +191,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
 
     /// <summary> Gets the player characters ID of the world they are currently in.</summary>
     /// <returns> a <c>uint</c> type for the ID of the current world.</returns>
-    public IntPtr GetPlayerCharacterFromCachedTableByIdent(string characterName)
+    public IntPtr GetIPlayerCharacterFromCachedTableByIdent(string characterName)
     {
         if (_playerCharas.TryGetValue(characterName, out var pchar)) return pchar.Address;
         return IntPtr.Zero;

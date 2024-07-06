@@ -2,19 +2,18 @@ using FFStreamViewer.WebAPI.GagspeakConfiguration;
 using FFStreamViewer.WebAPI.GagspeakConfiguration.Models;
 using FFStreamViewer.WebAPI.Services.Mediator;
 
-namespace FFStreamViewer.WebAPI.Services.ServerConfiguration;
+namespace FFStreamViewer.WebAPI.Services.ConfigurationServices;
 
 /// <summary>
-/// There are several configuration files in this project.
-/// <para> This particular configuration manager plays a central role in managing server-specific configurations for the plugin.</para>
+/// This configuration manager helps manage the various interactions with all config files related to server-end activity.
 /// <para> It provides a comprehensive interface for configuring servers, managing tags and nicknames, and handling authentication keys. </para>
 /// </summary>
 public class ServerConfigurationManager
 {
-    private readonly ServerConfigService _configService;            // the config service for the server
     private readonly OnFrameworkService _frameworkUtils;            // a utilities class with methods that work with the Dalamud framework
     private readonly ILogger<ServerConfigurationManager> _logger;   // the logger for the server config manager
     private readonly GagspeakMediator _gagspeakMediator;            // the mediator for our Gagspeak Mediator
+    private readonly ServerConfigService _configService;            // the config service for the server
     private readonly NicknamesConfigService _nicknamesConfig;       // config for the nicknames service (This adds lots of files that seem unessisary, but we'll see down the line.)
     private readonly ServerTagConfigService _serverTagConfig;       // the config service for the server tags (also dont think we need this, but we'll see)
 

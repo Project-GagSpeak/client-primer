@@ -1,19 +1,17 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.GameFonts;
-using Dalamud.Interface.Internal;
 using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using Dalamud.Utility;
 using FFStreamViewer.Localization;
-using FFStreamViewer.WebAPI.GagspeakConfiguration;
 using FFStreamViewer.WebAPI.Interop.Ipc;
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
 using ImGuiNET;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -25,34 +23,32 @@ namespace FFStreamViewer.WebAPI.UI;
 public partial class UiSharedService : DisposableMediatorSubscriberBase
 {
     public const string TooltipSeparator = "--SEP--";                           // the tooltip seperator                                
-    public static readonly ImGuiWindowFlags PopupWindowFlags =                  // the basic flags for our imgui windows
-        ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar |
-        ImGuiWindowFlags.NoScrollWithMouse;
+    public static readonly ImGuiWindowFlags PopupWindowFlags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
     private const string _nicknameEnd = "##GAGSPEAK_USER_NICKNAME_END##";       // the end of the nickname
     private const string _nicknameStart = "##GAGSPEAK_USER_NICKNAME_START##";   // the start of the nickname
     private readonly ApiController _apiController;                              // our api controller for the server connectivity
-    private readonly GagspeakConfigService _configService;                      // the config service for our plugin
+    private readonly ClientConfigurationManager _clientConfigurationManager;    // the client-end related config service 
+    private readonly ServerConfigurationManager _serverConfigurationManager;    // the server-end related config manager
     private readonly OnFrameworkService _frameworkUtil;                         // helpers for functions that should occur dalamud's framework  thread
     private readonly IpcManager _ipcManager;                                    // manager for the IPC's our plugin links with
     private readonly Dalamud.Localization _localization;                        // language localization for our plugin
-    private readonly DalamudPluginInterface _pluginInterface;                   // the primary interface for our plugin
+    private readonly IDalamudPluginInterface _pluginInterface;                   // the primary interface for our plugin
     private readonly Dictionary<string, object> _selectedComboItems;            // the selected combo items
-    private readonly ServerConfigurationManager _serverConfigurationManager;    // the config service for the server manager
     private bool _glamourerExists = false;                                      // if glamourer currently exists on the client
     private bool _moodlesExists = false;                                        // if moodles currently exists on the client
     private bool _penumbraExists = false;                                       // if penumbra currently exists on the client
     public UiSharedService(ILogger<UiSharedService> logger, IpcManager ipcManager, ApiController apiController,
-        GagspeakConfigService configService, OnFrameworkService frameworkutil,
-        DalamudPluginInterface pluginInterface, Dalamud.Localization localization,
-        ServerConfigurationManager serverManager, GagspeakMediator mediator) : base(logger, mediator)
+        OnFrameworkService frameworkutil, IDalamudPluginInterface pluginInterface, Dalamud.Localization localization,
+        ClientConfigurationManager clientManager, ServerConfigurationManager serverManager,
+        GagspeakMediator mediator) : base(logger, mediator)
     {
         _ipcManager = ipcManager;
         _apiController = apiController;
-        _configService = configService;
         _frameworkUtil = frameworkutil;
         _pluginInterface = pluginInterface;
         _localization = localization;
         _selectedComboItems = new(StringComparer.Ordinal);
+        _clientConfigurationManager = clientManager;
         _serverConfigurationManager = serverManager;
         _localization.SetupWithLangCode("en");
 
@@ -571,11 +567,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public void IconText(FontAwesomeIcon icon, Vector4? color = null)
     {
         IconText(icon, color == null ? ImGui.GetColorU32(ImGuiCol.Text) : ImGui.GetColorU32(color.Value));
-    }
-
-    public IDalamudTextureWrap LoadImage(byte[] imageData)
-    {
-        return _pluginInterface.UiBuilder.LoadImage(imageData);
     }
 
     public void LoadLocalization(string languageCode)

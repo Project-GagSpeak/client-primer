@@ -3,31 +3,24 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
-using ImGuiNET;
-using Gagspeak.API.Data;
-using Gagspeak.API.Data.Comparer;
-using FFStreamViewer.WebAPI.Interop.Ipc;
 using FFStreamViewer.WebAPI.GagspeakConfiguration;
-using FFStreamViewer.WebAPI.GagspeakConfiguration.Models;
-using FFStreamViewer.WebAPI.PlayerData.Handlers;
+using FFStreamViewer.WebAPI.Interop.Ipc;
+using FFStreamViewer.WebAPI.PlayerData.Data;
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services;
 using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
-using FFStreamViewer.WebAPI;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using FFStreamViewer.WebAPI.SignalR.Utils;
-using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
+using ImGuiNET;
 using System.Globalization;
 using System.Numerics;
-using System.Text.Json;
-using FFStreamViewer.WebAPI.UI;
 
 namespace FFStreamViewer.WebAPI.UI;
 
 public class SettingsUi : WindowMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
+    private readonly IPlayerCharacterManager _playerCharacterManager;
     private readonly IpcManager _ipcManager;
     private readonly OnFrameworkService _frameworkUtil;
     private readonly GagspeakConfigService _configService;
@@ -45,16 +38,16 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private bool _wasOpen = false;
     private CancellationTokenSource? _validationCts;
 
-    public SettingsUi(ILogger<SettingsUi> logger, UiSharedService uiShared, 
+    public SettingsUi(ILogger<SettingsUi> logger, UiSharedService uiShared,
         GagspeakConfigService configService, PairManager pairManager, 
-        ServerConfigurationManager serverConfigurationManager, GagspeakMediator mediator, 
-        ApiController apiController, IpcManager ipcManager,
-        OnFrameworkService frameworkUtil) : base(logger, mediator, "GagSpeak Settings")
+        IPlayerCharacterManager playerCharacterManager,
+        ServerConfigurationManager serverConfigurationManager, GagspeakMediator mediator,
+        IpcManager ipcManager, OnFrameworkService frameworkUtil) : base(logger, mediator, "GagSpeak Settings")
     {
+        _playerCharacterManager = playerCharacterManager;
         _configService = configService;
         _pairManager = pairManager;
         _serverConfigurationManager = serverConfigurationManager;
-        _apiController = apiController;
         _ipcManager = ipcManager;
         _frameworkUtil = frameworkUtil;
         _uiShared = uiShared;
@@ -146,7 +139,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         // the nicknames section
         _uiShared.BigText("Nicknames");
-        
+
         // see if the user wants to allow a popup to create nicknames upon adding a paired user
         var openPopupOnAddition = _configService.Current.OpenPopupOnAdd;
         if (ImGui.Checkbox("Open Nickname Popup when adding a GagSpeak user", ref openPopupOnAddition))
@@ -154,7 +147,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Current.OpenPopupOnAdd = openPopupOnAddition;
             _configService.Save();
         }
-        _uiShared.DrawHelpText("When enabled, a popup will automatically display after adding another user,"+
+        _uiShared.DrawHelpText("When enabled, a popup will automatically display after adding another user," +
             "allowing you to enter a nickname for them.");
 
         // form a separator for the UI
@@ -233,7 +226,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
         _uiShared.DrawHelpText("This will show the configured user profile after a set delay");
-        
+
         ImGui.Indent(); // see if we want to pop the profiles out to the right of the menu
         if (!showProfiles) ImGui.BeginDisabled();
         if (ImGui.Checkbox("Popout profiles on the right", ref profileOnRight))
@@ -259,7 +252,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var onlineNotifs = _configService.Current.ShowOnlineNotifications;
         var onlineNotifsPairsOnly = _configService.Current.ShowOnlineNotificationsOnlyForIndividualPairs;
         var onlineNotifsNamedOnly = _configService.Current.ShowOnlineNotificationsOnlyForNamedPairs;
-        
+
         _uiShared.BigText("Notifications");
 
         // see if they want to be notified when an online paired user connects to GagSpeak
@@ -340,7 +333,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
 
         // display the list of characters our keys are bound to, their UID's and the place to insert the key for them
-        if(_serverConfigurationManager.CurrentServer.SecretKeys.Any())
+        if (_serverConfigurationManager.CurrentServer.SecretKeys.Any())
         {
             UiSharedService.ColorTextWrapped("Characters listed here will automatically connect to the selected Gagspeak service with the settings as provided below." +
                 " Make sure to enter the character names correctly or use the 'Add current character' button at the bottom.", ImGuiColors.DalamudYellow);
@@ -356,19 +349,21 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 {
                     // get the name of the character
                     var charaName = item.CharacterName;
+                    ImGui.SetNextItemWidth(175*ImGuiHelpers.GlobalScale);
                     ImGui.InputText("##CharaName" + charaName + i, ref charaName, 32);
 
                     ImGui.SameLine();
                     // grab the world the player is in.
                     var worldIdx = (ushort)item.WorldId;
                     var worldName = _uiShared.WorldData[worldIdx];
+                    ImGui.SetNextItemWidth(125 * ImGuiHelpers.GlobalScale);
                     ImGui.InputText("##CharaWorld" + charaName + i, ref worldName, 32);
                 }
                 finally
                 {
                     ImGui.EndDisabled();
                 }
-
+                ImGui.SameLine();
                 // draw a button to remove the character
                 if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Remove Profile from Account") && UiSharedService.CtrlPressed())
                     _serverConfigurationManager.RemoveCharacterFromServer(i, item);
@@ -383,6 +378,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 }
                 // allow player to configure the secret key for the character
                 var key = secretKey.Key;
+                ImGui.SetNextItemWidth(510 * ImGuiHelpers.GlobalScale);
                 if (ImGui.InputText("Secret Key", ref key, 64))
                 {
                     keys[secretKeyIdx].Key = key;
@@ -405,12 +401,150 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     _serverConfigurationManager.AddCurrentCharacterToServer(true);
                 }
             }
-        }
-        else
-        {
-            UiSharedService.ColorTextWrapped("You need to add a Secret Key first before adding Characters.", ImGuiColors.DalamudYellow);
+
+            ImGui.Separator();
+            // draw debug information for character information.
+            ImGui.Text("PlayerCharacter Debug Information:");
+            if (ImGui.CollapsingHeader("Global Data")) { DrawGlobalInfo(); }
+            if (ImGui.CollapsingHeader("Appearance Data")) { DrawAppearanceInfo(); }
+            if (ImGui.CollapsingHeader("Wardrobe Data")) { DrawWardrobeInfo(); }
+
+            if (ImGui.CollapsingHeader("AliasData"))
+            {
+                foreach(var alias in _playerCharacterManager.GetAllAliasListKeys())
+                {
+                    var aliasData = _playerCharacterManager.GetAliasData(alias);
+                    if (ImGui.CollapsingHeader($"Alias Data for {alias}"))
+                    {
+                        ImGui.Text("List of Alias's For this User:");
+                        // begin a table.
+                        using var table = ImRaii.Table($"##table-for-{alias}", 2);
+                        if (!table) { return; }
+
+                        using var spacing = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGui.GetStyle().ItemInnerSpacing);
+                        ImGui.TableSetupColumn("If You Say:", ImGuiTableColumnFlags.WidthFixed, ImGuiHelpers.GlobalScale * 100);
+                        ImGui.TableSetupColumn("They will Execute:", ImGuiTableColumnFlags.WidthStretch);
+
+                        foreach(var aliasTrigger in aliasData.AliasList)
+                        {
+                            ImGui.Separator();
+                            ImGui.Text("[INPUT TRIGGER]: ");
+                            ImGui.SameLine();
+                            ImGui.Text(aliasTrigger.InputCommand);
+                            ImGui.NewLine();
+                            ImGui.Text("[OUTPUT RESPONSE]: ");
+                            ImGui.SameLine();
+                            ImGui.Text(aliasTrigger.OutputCommand);
+                        }
+                    }
+                }
+            }
+
+            if (ImGui.CollapsingHeader("Patterns Data")) { DrawPatternsInfo(); }
         }
     }
+
+    private void DrawGlobalInfo()
+    {
+        var globalPerms = _playerCharacterManager.GlobalPerms;
+        ImGui.Text($"Safeword: {globalPerms.Safeword}");
+        ImGui.Text($"SafewordUsed: {globalPerms.SafewordUsed}");
+        ImGui.Text($"CommandsFromFriends: {globalPerms.CommandsFromFriends}");
+        ImGui.Text($"CommandsFromParty: {globalPerms.CommandsFromParty}");
+        ImGui.Text($"LiveChatGarblerActive: {globalPerms.LiveChatGarblerActive}");
+        ImGui.Text($"LiveChatGarblerLocked: {globalPerms.LiveChatGarblerLocked}");
+        ImGui.Separator();
+        ImGui.Text($"WardrobeEnabled: {globalPerms.WardrobeEnabled}");
+        ImGui.Text($"ItemAutoEquip: {globalPerms.ItemAutoEquip}");
+        ImGui.Text($"RestraintSetAutoEquip: {globalPerms.RestraintSetAutoEquip}");
+        ImGui.Text($"LockGagStorageOnGagLock: {globalPerms.LockGagStorageOnGagLock}");
+        ImGui.Separator();
+        ImGui.Text($"PuppeteerEnabled: {globalPerms.PuppeteerEnabled}");
+        ImGui.Text($"GlobalTriggerPhrase: {globalPerms.GlobalTriggerPhrase}");
+        ImGui.Text($"GlobalAllowSitRequests: {globalPerms.GlobalAllowSitRequests}");
+        ImGui.Text($"GlobalAllowMotionRequests: {globalPerms.GlobalAllowMotionRequests}");
+        ImGui.Text($"GlobalAllowAllRequests: {globalPerms.GlobalAllowAllRequests}");
+        ImGui.Separator();
+        ImGui.Text($"MoodlesEnabled: {globalPerms.MoodlesEnabled}");
+        ImGui.Separator();
+        ImGui.Text($"ToyboxEnabled: {globalPerms.ToyboxEnabled}");
+        ImGui.Text($"LockToyboxUI: {globalPerms.LockToyboxUI}");
+        ImGui.Text($"ToyIsActive: {globalPerms.ToyIsActive}");
+        ImGui.Text($"ToyIntensity: {globalPerms.ToyIntensity}");
+        ImGui.Text($"SpatialVibratorAudio: {globalPerms.SpatialVibratorAudio}");
+    }
+
+    private void DrawAppearanceInfo()
+    {
+        var appearanceData = _playerCharacterManager.AppearanceData;
+        ImGui.Text("Underlayer Gag:");
+        ImGui.Indent();
+        ImGui.Text($"Gag Type: {appearanceData.SlotOneGagType}");
+        ImGui.Text($"Gag Padlock: {appearanceData.SlotOneGagPadlock}");
+        ImGui.Text($"Gag Password: {appearanceData.SlotOneGagPassword}");
+        ImGui.Text($"Gag Expiration Timer: {appearanceData.SlotOneGagTimer}");
+        ImGui.Text($"Gag Assigner: {appearanceData.SlotOneGagAssigner}");
+        ImGui.Unindent();
+        ImGui.Separator();
+        ImGui.Text("Middle Gag:");
+        ImGui.Indent();
+        ImGui.Text($"Gag Type: {appearanceData.SlotTwoGagType}");
+        ImGui.Text($"Gag Padlock: {appearanceData.SlotTwoGagPadlock}");
+        ImGui.Text($"Gag Password: {appearanceData.SlotTwoGagPassword}");
+        ImGui.Text($"Gag Expiration Timer: {appearanceData.SlotTwoGagTimer}");
+        ImGui.Text($"Gag Assigner: {appearanceData.SlotTwoGagAssigner}");
+        ImGui.Unindent();
+        ImGui.Separator();
+        ImGui.Text("Overlayer Gag:");
+        ImGui.Indent();
+        ImGui.Text($"Gag Type: {appearanceData.SlotThreeGagType}");
+        ImGui.Text($"Gag Padlock: {appearanceData.SlotThreeGagPadlock}");
+        ImGui.Text($"Gag Password: {appearanceData.SlotThreeGagPassword}");
+        ImGui.Text($"Gag Expiration Timer: {appearanceData.SlotThreeGagTimer}");
+        ImGui.Text($"Gag Assigner: {appearanceData.SlotThreeGagAssigner}");
+        ImGui.Unindent();
+    }
+
+    private void DrawWardrobeInfo()
+    {
+        var wardrobeData = _playerCharacterManager.WardrobeData;
+        ImGui.Text("Wardrobe Outfits:");
+        ImGui.Indent();
+        foreach ( var item in wardrobeData.OutfitNames ) {
+            ImGui.Text(item);
+        }
+        ImGui.Unindent();
+        if(wardrobeData.ActiveSetName != string.Empty)
+        {
+            ImGui.Text("Active Set Info: ");
+            ImGui.Indent();
+            ImGui.Text($"Name: {wardrobeData.ActiveSetName}");
+            ImGui.Text($"Description: {wardrobeData.ActiveSetDescription}");
+            ImGui.Text($"Enabled By: {wardrobeData.ActiveSetEnabledBy}");
+            ImGui.Text($"Is Locked: {wardrobeData.ActiveSetIsLocked}");
+            ImGui.Text($"Locked By: {wardrobeData.ActiveSetLockedBy}");
+            ImGui.Text($"Locked Until: {wardrobeData.ActiveSetLockTime}");
+            ImGui.Unindent();
+        }
+    }
+
+    private void DrawPatternsInfo()
+    {
+        var patternData = _playerCharacterManager.PatternData;
+        foreach (var item in patternData.PatternList)
+        {
+            ImGui.Text($"Info for Pattern: {item.Name}");
+            ImGui.Indent();
+            ImGui.Text($"Description: {item.Description}");
+            ImGui.Text($"Duration: {item.Duration}");
+            ImGui.Text($"Is Active: {item.IsActive}");
+            ImGui.Text($"Should Loop: {item.ShouldLoop}");
+            ImGui.Unindent();
+        }
+    }
+
+
+
 
     /// <summary>
     /// The actual function that draws the content of the settings window.
@@ -418,7 +552,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawSettingsContent()
     {
         // check the current server state. If it is connected.
-        if (_apiController.ServerState is ServerState.Connected)
+        if (ApiController.ServerState is ServerState.Connected)
         {
             // display the Server name, that it is available, and the number of users online.
             ImGui.TextUnformatted("Server is " + _serverConfigurationManager.CurrentServer!.ServerName + ":");
@@ -427,7 +561,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             ImGui.SameLine();
             ImGui.TextUnformatted("(");
             ImGui.SameLine();
-            ImGui.TextColored(ImGuiColors.ParsedGreen, _apiController.OnlineUsers.ToString(CultureInfo.InvariantCulture));
+            ImGui.TextColored(ImGuiColors.ParsedGreen, ApiController.OnlineUsers.ToString(CultureInfo.InvariantCulture));
             ImGui.SameLine();
             ImGui.TextUnformatted("Users Online");
             ImGui.SameLine();

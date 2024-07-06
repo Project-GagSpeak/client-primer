@@ -5,7 +5,7 @@ using ImGuiScene;
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using FFStreamViewer.WebAPI.GagspeakConfiguration;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 
 namespace FFStreamViewer.WebAPI.UI.Handlers;
 

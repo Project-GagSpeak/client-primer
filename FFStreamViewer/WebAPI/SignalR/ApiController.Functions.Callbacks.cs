@@ -1,4 +1,4 @@
-using Dalamud.Interface.Internal.Notifications;
+using Dalamud.Interface.ImGuiNotification;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using Gagspeak.API.Data.Enum;
 using Gagspeak.API.Dto;

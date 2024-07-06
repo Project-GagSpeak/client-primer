@@ -18,7 +18,7 @@ using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services;
 using FFStreamViewer.WebAPI.Services.Events;
 using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services.ServerConfiguration;
+using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using FFStreamViewer.WebAPI.SignalR;
 using FFStreamViewer.WebAPI.UI;
 using FFStreamViewer.WebAPI.UI.Components;
@@ -35,24 +35,23 @@ namespace FFStreamViewer;
 public sealed class FFStreamViewer : IDalamudPlugin
 {
     private readonly IHost _host;  // the host builder for the plugin instance. (What makes everything work)
-    public FFStreamViewer(DalamudPluginInterface pi, IChatGui chatGui, IClientState clientState,
-        ICommandManager commandManager, ICondition condition,
-        IDataManager dataManager, IDtrBar dtrBar, IFramework framework, IGameGui gameGui,
-        IGameInteropProvider gameInteropProvider, INotificationManager notificationManager,
-        IObjectTable objectTable, IPluginLog pluginLog, ISigScanner sigScanner,
-        ITargetManager targetManager)
+    public FFStreamViewer(IDalamudPluginInterface pi, IChatGui chatGui, IClientState clientState,
+        ICommandManager commandManager, ICondition condition, IDataManager dataManager, 
+        IDtrBar dtrBar, IFramework framework, IGameGui gameGui, IGameInteropProvider gameInteropProvider, 
+        INotificationManager notificationManager, IObjectTable objectTable, IPluginLog pluginLog, 
+        ISigScanner sigScanner, ITargetManager targetManager, ITextureProvider textureProvider)
     {
         // create the host builder for the plugin
         _host = ConstructHostBuilder(pi, pluginLog, commandManager, dataManager, framework, objectTable,
-                    clientState, condition, chatGui, gameGui, dtrBar, targetManager, notificationManager);
+            clientState, condition, chatGui, gameGui, dtrBar, targetManager, notificationManager, textureProvider);
         // start up the host
         _ = _host.StartAsync();
     }
 
     // Method that creates the host builder for the FFStreamViewer plugin
-    public IHost ConstructHostBuilder(DalamudPluginInterface pi, IPluginLog pl, ICommandManager cm,
+    public IHost ConstructHostBuilder(IDalamudPluginInterface pi, IPluginLog pl, ICommandManager cm,
         IDataManager dm, IFramework fw, IObjectTable ot, IClientState cs, ICondition con, IChatGui cg,
-        IGameGui gg, IDtrBar bar, ITargetManager tm, INotificationManager nm)
+        IGameGui gg, IDtrBar bar, ITargetManager tm, INotificationManager nm, ITextureProvider tp)
     {
         // create a new host builder for the plugin
         return new HostBuilder()
@@ -62,12 +61,12 @@ public sealed class FFStreamViewer : IDalamudPlugin
             .ConfigureLogging((hostContext, loggingBuilder) => GetPluginLogConfiguration(loggingBuilder, pl))
             // get the plugin service collection for our plugin
             .ConfigureServices((hostContext, serviceCollection)
-                => GetPluginServices(serviceCollection, pi, pl, cm, dm, fw, ot, cs, con, cg, gg, bar, tm, nm))
+                => GetPluginServices(serviceCollection, pi, pl, cm, dm, fw, ot, cs, con, cg, gg, bar, tm, nm, tp))
             // Build the host builder so it becomes an IHost object.
             .Build();
     }
     /// <summary> Gets the folder content location to know where the config files are saved. </summary>
-    private string GetPluginContentRoot(DalamudPluginInterface pi) => pi.ConfigDirectory.FullName;
+    private string GetPluginContentRoot(IDalamudPluginInterface pi) => pi.ConfigDirectory.FullName;
 
 
     /// <summary> Gets the log configuration for the plugin. </summary>
@@ -80,9 +79,9 @@ public sealed class FFStreamViewer : IDalamudPlugin
     }
 
     /// <summary> Gets the plugin services for the FFStreamViewer plugin. </summary>
-    private IServiceCollection GetPluginServices(IServiceCollection collection, DalamudPluginInterface pi,
+    private IServiceCollection GetPluginServices(IServiceCollection collection, IDalamudPluginInterface pi,
         IPluginLog pl, ICommandManager cm, IDataManager dm, IFramework fw, IObjectTable ot, IClientState cs, ICondition con, IChatGui cg,
-        IGameGui gg, IDtrBar bar, ITargetManager tm, INotificationManager nm)
+        IGameGui gg, IDtrBar bar, ITargetManager tm, INotificationManager nm, ITextureProvider tp)
     {
         return collection
             // add the general services to the collection
@@ -90,13 +89,13 @@ public sealed class FFStreamViewer : IDalamudPlugin
             .AddSingleton<FileDialogManager>()
             .AddSingleton(new Dalamud.Localization("FFStreamViewer.Localization.", "", useEmbedded: true))
             // add the generic services for FFStreamViewer
-            .AddFFStreamViewerGeneric(pi, cs, con, dm, fw, gg, ot, tm)
+            .AddFFStreamViewerGeneric(pi, cs, con, dm, fw, gg, ot, tm, tp)
             // add the services related to the IPC calls for FFStreamViewer
             .AddFFStreamViewerIPC(pi)
             // add the services related to the configs for FFStreamViewer
             .AddFFStreamViewerConfigs(pi)
             // add the scoped services for FFStreamViewer
-            .AddFFStreamViewerScoped(pi)
+            .AddFFStreamViewerScoped(pi, tp, nm, cg)
             // add the hosted services for FFStreamViewer (these should all contain startAsync and stopAsync methods)
             .AddFFStreamViewerHosted();
     }
@@ -112,8 +111,8 @@ public static class FFStreamViewerServiceExtensions
 {
     #region GenericServices
     public static IServiceCollection AddFFStreamViewerGeneric(this IServiceCollection services,
-        DalamudPluginInterface pi, IClientState cs, ICondition con, IDataManager dm, IFramework fw,
-        IGameGui gg, IObjectTable ot, ITargetManager tm)
+        IDalamudPluginInterface pi, IClientState cs, ICondition con, IDataManager dm, IFramework fw,
+        IGameGui gg, IObjectTable ot, ITargetManager tm, ITextureProvider tp)
     => services
         // Data Services
         .AddSingleton<FFSV_Config>()
@@ -155,23 +154,25 @@ public static class FFStreamViewerServiceExtensions
         .AddSingleton<HubFactory>()
         .AddSingleton<TokenProvider>()
         // PlayerData Services
+        .AddSingleton<IPlayerCharacterManager>()
         .AddSingleton<GameObjectHandlerFactory>()
         .AddSingleton<PairFactory>()
         .AddSingleton<PairHandlerFactory>()
         .AddSingleton<PairManager>()
         // Service Services
+        .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()
         .AddSingleton<GagspeakMediator>()
         .AddSingleton((s) => new GagspeakProfileManager(s.GetRequiredService<ILogger<GagspeakProfileManager>>(),
             s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<GagspeakMediator>(), 
-            s.GetRequiredService<ApiController>(), pi))
+            s.GetRequiredService<ApiController>(), pi, tp))
         .AddSingleton((s) => new OnFrameworkService(s.GetRequiredService<ILogger<OnFrameworkService>>(),
             cs, con, dm, fw, gg, tm, ot,
             s.GetRequiredService<GagspeakMediator>()));
     #endregion GenericServices
 
     #region IpcServices
-    public static IServiceCollection AddFFStreamViewerIPC(this IServiceCollection services, DalamudPluginInterface pi)
+    public static IServiceCollection AddFFStreamViewerIPC(this IServiceCollection services, IDalamudPluginInterface pi)
     => services
         .AddSingleton((s) => new IpcCallerMoodles(s.GetRequiredService<ILogger<IpcCallerMoodles>>(), pi,
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
@@ -180,9 +181,14 @@ public static class FFStreamViewerServiceExtensions
 
     #endregion IpcServices
     #region ConfigServices
-    public static IServiceCollection AddFFStreamViewerConfigs(this IServiceCollection services, DalamudPluginInterface pi)
+    public static IServiceCollection AddFFStreamViewerConfigs(this IServiceCollection services, IDalamudPluginInterface pi)
     => services
+        // client-end configs
         .AddSingleton((s) => new GagspeakConfigService(pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new WardrobeConfigService(pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new AliasConfigService(pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new PatternConfigService(pi.ConfigDirectory.FullName))
+        // server-end configs
         .AddSingleton((s) => new ServerConfigService(pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new NicknamesConfigService(pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new ServerTagConfigService(pi.ConfigDirectory.FullName));
@@ -190,7 +196,8 @@ public static class FFStreamViewerServiceExtensions
 
     #endregion ConfigServices
     #region ScopedServices
-    public static IServiceCollection AddFFStreamViewerScoped(this IServiceCollection services, DalamudPluginInterface pi)
+    public static IServiceCollection AddFFStreamViewerScoped(this IServiceCollection services, IDalamudPluginInterface pi, 
+        ITextureProvider tp, INotificationManager nm, IChatGui cg)
     => services
         // WebAPI Services
 
@@ -200,7 +207,6 @@ public static class FFStreamViewerServiceExtensions
 
         // PlayerData Services
         .AddScoped<OnlinePlayerManager>()
-        .AddScoped<PlayerCharacterManager>() // if not scoped it should be singleton but i don't fucking know atm.
         // Service Services
         .AddScoped<DrawEntityFactory>()
         .AddScoped<UiFactory>()
@@ -212,7 +218,7 @@ public static class FFStreamViewerServiceExtensions
         //.AddScoped<WindowMediatorSubscriberBase, DataAnalysisUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
         .AddScoped<WindowMediatorSubscriberBase, EditProfileUi>((s) => new EditProfileUi(s.GetRequiredService<ILogger<EditProfileUi>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(), pi.UiBuilder, s.GetRequiredService<UiSharedService>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(), tp, s.GetRequiredService<UiSharedService>(),
             s.GetRequiredService<FileDialogManager>(), s.GetRequiredService<GagspeakProfileManager>()))
         .AddScoped<WindowMediatorSubscriberBase, PopupHandler>()
         .AddScoped<IStickyUiHandler, VerificationPopupHandler>()
@@ -223,12 +229,12 @@ public static class FFStreamViewerServiceExtensions
             s.GetRequiredService<UiFactory>(), s.GetRequiredService<GagspeakMediator>()))
 /*        .AddScoped((s) => new CommandManagerService(commandManager, s.GetRequiredService<PerformanceCollectorService>(),
             s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<CacheMonitor>(), s.GetRequiredService<ApiController>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>()))
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>())) */
         .AddScoped((s) => new NotificationService(s.GetRequiredService<ILogger<NotificationService>>(),
-            s.GetRequiredService<GagspeakMediator>(), notificationManager, chatGui, s.GetRequiredService<GagspeakConfigService>()))*/
+            s.GetRequiredService<GagspeakMediator>(), nm, cg, s.GetRequiredService<GagspeakConfigService>()))
         .AddScoped((s) => new UiSharedService(s.GetRequiredService<ILogger<UiSharedService>>(), s.GetRequiredService<IpcManager>(), s.GetRequiredService<ApiController>(),
-            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<OnFrameworkService>(),
-            pi, s.GetRequiredService<Dalamud.Localization>(), s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<GagspeakMediator>()));
+            s.GetRequiredService<OnFrameworkService>(), pi, s.GetRequiredService<Dalamud.Localization>(),
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<GagspeakMediator>()));
 
 
     #endregion ScopedServices

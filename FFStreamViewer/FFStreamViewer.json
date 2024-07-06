@@ -8,7 +8,7 @@
   "RepoUrl": "https://github.com/CordeliaMist/FFStreamViewer",
   "ApplicableVersion": "any",
   "Tags": [ "Livestreams", "Events", "Venue" ],
-  "DalamudApiLevel": 9,
+  "DalamudApiLevel": 10,
   "LoadPriority": 69,
   "IconUrl": "https://raw.githubusercontent.com/CordeliaMist/FFStreamViewer/main/images/icon.png"
 }

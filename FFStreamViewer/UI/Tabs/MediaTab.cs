@@ -10,6 +10,7 @@ using Dalamud.Plugin;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFStreamViewer.WebAPI.Services.Mediator;
+using Dalamud.Interface.Textures.TextureWraps;
 
 
 namespace FFStreamViewer.UI.Tabs.MediaTab;
@@ -30,10 +31,13 @@ public class MediaTab : ITab, IDisposable
     #endregion General Variables
     #region Video Variables
     private             IDalamudTextureWrap     _textureWrap;       // the texture wrap for the video
-    private             DalamudPluginInterface  _pluginInterface;   // the plugin interface for the plugin
+    private readonly    ITextureProvider        _textureProvider;   // the texture provider for the texture wraps.
+    private             IDalamudPluginInterface _pluginInterface;   // the plugin interface for the plugin
     private readonly    Stopwatch               _deadStreamTimer = new Stopwatch();   // set to determine when a stream is dead
     private             System.Numerics.Vector2?_windowSize;        // the adjustable window size
     private             System.Numerics.Vector2?_initialSize;       // the initial window size
+    private bool                                _taskAlreadyRunning = false; // for dumb apiX update
+    private byte[]                              _lastFrameBytes;    // the last frame in memory bytes
     #endregion Video Variables
     #region Abstract Attributes
     private unsafe      Camera*                 _camera;
@@ -42,7 +46,7 @@ public class MediaTab : ITab, IDisposable
     public MediaTab(ILogger<MediaTab> logger, ILoggerFactory loggerFactory,
         FFSV_Config config, IChatGui chat, IGameConfig gameConfig,
         IClientState clientState, MediaGameObject playerObject, MediaManager mediaManager,
-        DalamudPluginInterface dalamudPluginInterface)
+        IDalamudPluginInterface dalamudPluginInterface, ITextureProvider textureProvider)
     {
         // set the service collection instances
         _logger = logger;
@@ -50,6 +54,7 @@ public class MediaTab : ITab, IDisposable
         _chat = chat;
         _gameConfig = gameConfig;
         _clientState = clientState;
+        _textureProvider = textureProvider;
         _playerObject = playerObject;
         _mediaManager = mediaManager;
         _pluginInterface = dalamudPluginInterface;
@@ -214,13 +219,39 @@ public class MediaTab : ITab, IDisposable
 public void DrawLivestreamDisplay() {
     try {
         // Check if the media manager exists and has a valid last frame
-        if (_mediaManager != null && _mediaManager.LastFrame != null && _mediaManager.LastFrame.Length > 0) {
-            // Lock the last frame to prevent other threads from modifying it while we're using it
-            lock (_mediaManager.LastFrame) {
-                // Load the last frame as an image
-                _textureWrap = _pluginInterface.UiBuilder.LoadImage(_mediaManager.LastFrame);
-                // Draw the image in the ImGui interface (may be able to make this interchangable in size but right now it looks limited)
-                ImGui.Image(_textureWrap.ImGuiHandle, new System.Numerics.Vector2(500, 281));
+        if (_mediaManager != null && _mediaManager.LastFrame != null && _mediaManager.LastFrame.Length > 0)
+        {
+            try
+            {
+                if (!_taskAlreadyRunning)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        _taskAlreadyRunning = true;
+                        ReadOnlyMemory<byte> bytes = null;
+                        lock (_mediaManager.LastFrame)
+                        {
+                            bytes = _mediaManager.LastFrame;
+                        }
+                        if (_lastFrameBytes.Length > 0)
+                        {
+                            if (_lastFrameBytes != _mediaManager.LastFrame)
+                            {
+                                _textureWrap = await _textureProvider.CreateFromImageAsync(_mediaManager.LastFrame);
+                                _lastFrameBytes = _mediaManager.LastFrame;
+                            }
+                        }
+                        _taskAlreadyRunning = false;
+                    });
+                }
+                if (_textureWrap != null)
+                {
+                    ImGui.Image(_textureWrap.ImGuiHandle, new System.Numerics.Vector2(500, 281));
+                }
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"An error occurred while attempting to draw the livestream display. {e.Message}");
             }
             // If the dead stream timer is running, stop and reset it
             if (_deadStreamTimer.IsRunning) {
@@ -228,7 +259,7 @@ public void DrawLivestreamDisplay() {
                 _deadStreamTimer.Reset();
             }
             // Indicate that we're currently streaming
-            _config.WasStreaming = true;
+        _config.WasStreaming = true;
         } else {
             // If we were previously streaming but aren't anymore
             if (_config.WasStreaming) {

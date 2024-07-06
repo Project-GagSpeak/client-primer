@@ -21,7 +21,7 @@ public class WebAPITestingTab : ITab, IDisposable
     private readonly    ApiController           _apiController;     // the API controller for the plugin
 
     public WebAPITestingTab(ILogger<WebAPITestingTab> logger, FFSV_Config config, IChatGui chat,
-        IGameConfig gameConfig, IClientState clientState, DalamudPluginInterface dalamudPluginInterface, 
+        IGameConfig gameConfig, IClientState clientState, IDalamudPluginInterface dalamudPluginInterface, 
         ApiController apiController)
     {
         _logger = logger;

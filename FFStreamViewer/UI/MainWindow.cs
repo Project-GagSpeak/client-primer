@@ -26,12 +26,12 @@ public class MainWindow : Window
 
     /// <summary> Initializes a new instance of the <see cref="MainWindow"/> class.
     /// <list type="bullet">
-    /// <item><c>pluginInt</c><param name="pluginInt"> - The DalamudPluginInterface.</param></item>
+    /// <item><c>pluginInt</c><param name="pluginInt"> - The IDalamudPluginInterface.</param></item>
     /// <item><c>config</c><param name="config"> - The FFStreamViewer configuration.</param></item>
     /// <item><c>general</c><param name="general"> - The general tab.</param></item>
     /// <item><c>changelog</c><param name="changelog"> - The changelog.</param></item>
     /// </list> </summary>
-    public MainWindow(DalamudPluginInterface pluginInt, FFSV_Config config, MediaTab media,
+    public MainWindow(IDalamudPluginInterface pluginInt, FFSV_Config config, MediaTab media,
     WebAPITestingTab webAPITestingTab, FFStreamViewerChangelog changelog): base(GetLabel()) {
         // let the user know if their direct chat garlber is still enabled upon launch
         // Let's first make sure that we disable the plugin while inside of gpose.

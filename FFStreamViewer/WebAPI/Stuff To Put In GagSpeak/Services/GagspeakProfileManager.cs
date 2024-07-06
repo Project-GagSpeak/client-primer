@@ -1,17 +1,18 @@
-using Dalamud.Interface;
+using Dalamud.Interface.Textures;
 using Dalamud.Interface.Internal;
 using Dalamud.Plugin;
 using FFStreamViewer.WebAPI.GagspeakConfiguration;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using Gagspeak.API.Data;
 using Gagspeak.API.Data.Comparer;
+using Dalamud.Interface.Textures.TextureWraps;
+using Dalamud.Plugin.Services;
 
 namespace FFStreamViewer.WebAPI.Services;
 
 public class GagspeakProfileManager : MediatorSubscriberBase
 {
-    IDalamudTextureWrap? _defaultGagspeakLogoTexture;
-    private const string _gagspeakLogo = "";            // the string for the gagspeak logo image
+    private ISharedImmediateTexture _gagspeakLogo; // the string for the file path of the gagspeak logo image
     private const string _gagspeakLogoLoading = "";     // the string for the gagspeak logo loading image
     private const string _gagspeakSupporter = "";       // the string for the gagspeak supporter image overlay
     private const string _noDescription = "-- User has no description set --";  // the string for the description of the profile that is set
@@ -19,14 +20,15 @@ public class GagspeakProfileManager : MediatorSubscriberBase
     private readonly GagspeakConfigService _gagspeakConfigService; // the gagspeak config service (for the client side config)
     private readonly ConcurrentDictionary<UserData, GagspeakProfileData> _gagspeakProfiles; // the dictionary of gagspeak profiles, with the keys being the UserData they belong to.
     // the default profile data, for when we don't have a profile for a user
-    private readonly GagspeakProfileData _defaultProfileData = new(IsFlagged: false, _gagspeakLogo, string.Empty, _noDescription);
+    private readonly GagspeakProfileData _defaultProfileData = new(IsFlagged: false, _gagspeakLogoLoading, string.Empty, _noDescription);
     // the loading profile data, for when we are waiting for the profile to be fetched from the server
     private readonly GagspeakProfileData _loadingProfileData = new(IsFlagged: false, _gagspeakLogoLoading, string.Empty, "Loading Data from server...");
 
     public GagspeakProfileManager(ILogger<GagspeakProfileManager> logger, GagspeakConfigService gagspeakConfigService,
-        GagspeakMediator mediator, ApiController apiController, DalamudPluginInterface pi) : base(logger, mediator)
+        GagspeakMediator mediator, ApiController apiController, IDalamudPluginInterface pi,
+        ITextureProvider textureProvider) : base(logger, mediator)
     {
-        _defaultGagspeakLogoTexture = pi.UiBuilder.LoadImage(Path.Combine(pi.AssemblyLocation.Directory?.FullName!, "GagSpeakIconNoRadial.png"));
+        _gagspeakLogo =  textureProvider.GetFromFile(Path.Combine(pi.AssemblyLocation.Directory?.FullName!, "GagSpeakIconNoRadial.png"));
         _gagspeakConfigService = gagspeakConfigService;
         _apiController = apiController;
         _gagspeakProfiles = new(UserDataComparer.Instance);
@@ -75,7 +77,7 @@ public class GagspeakProfileManager : MediatorSubscriberBase
             var profile = await _apiController.UserGetProfile(new Gagspeak.API.Dto.User.UserDto(data)).ConfigureAwait(false);
             // we will create a new gagspeakprofile data object from the profile data Dto we received.
             GagspeakProfileData profileData = new(profile.Disabled,
-                string.IsNullOrEmpty(profile.ProfilePictureBase64) ? _gagspeakLogo : profile.ProfilePictureBase64,
+                string.IsNullOrEmpty(profile.ProfilePictureBase64) ? _gagspeakLogo.GetWrapOrEmpty().ImGuiHandle.ToString() : profile.ProfilePictureBase64,
                 !string.IsNullOrEmpty(data.Alias) && !string.Equals(data.Alias, data.UID, StringComparison.Ordinal) ? _gagspeakSupporter : string.Empty,
                 string.IsNullOrEmpty(profile.Description) ? _noDescription : profile.Description);
 

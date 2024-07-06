@@ -2,7 +2,9 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Internal;
+using Dalamud.Interface.Textures.TextureWraps; // This is discouraged, try and look into better way to do it later.
 using Dalamud.Interface.Utility;
+using Dalamud.Plugin.Services;
 using FFStreamViewer.WebAPI.Services;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using Gagspeak.API.Data;
@@ -18,7 +20,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private readonly ApiController _apiController;
     private readonly FileDialogManager _fileDialogManager;
     private readonly GagspeakProfileManager _gagspeakProfileManager;
-    private readonly UiBuilder _uiBuilder;
+    private readonly ITextureProvider _textureProvider;
     private readonly UiSharedService _uiSharedService;
     private bool _adjustedForScollBarsLocalProfile = false;
     private bool _adjustedForScollBarsOnlineProfile = false;
@@ -30,7 +32,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     private bool _wasOpen;
 
     public EditProfileUi(ILogger<EditProfileUi> logger, GagspeakMediator mediator,
-        ApiController apiController, UiBuilder uiBuilder, UiSharedService uiSharedService,
+        ApiController apiController, ITextureProvider textureProvider, UiSharedService uiSharedService,
         FileDialogManager fileDialogManager, GagspeakProfileManager gagspeakProfileManager)
         : base(logger, mediator, "GagSpeak Edit Profile###GagSpeakEditProfileUI")
     {
@@ -41,7 +43,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             MaximumSize = new(768, 2000)
         };
         _apiController = apiController;
-        _uiBuilder = uiBuilder;
+        _textureProvider = textureProvider;
         _uiSharedService = uiSharedService;
         _fileDialogManager = fileDialogManager;
         _gagspeakProfileManager = gagspeakProfileManager;
@@ -68,24 +70,24 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             UiSharedService.ColorTextWrapped(profile.Description, ImGuiColors.DalamudRed);
             return;
         }
-
-        if (!_profileImage.SequenceEqual(profile.ImageData.Value))
+        // Waiting for people to figure out how to manage this part until later.
+/*        if (!_profileImage.SequenceEqual(profile.ImageData.Value))
         {
             _profileImage = profile.ImageData.Value;
             _pfpTextureWrap?.Dispose();
-            _pfpTextureWrap = _uiBuilder.LoadImage(_profileImage);
-        }
+            _pfpTextureWrap = _textureProvider.CreateFromImageAsync(_profileImage);
+        }*/
 
         if (!string.Equals(_profileDescription, profile.Description, StringComparison.OrdinalIgnoreCase))
         {
             _profileDescription = profile.Description;
             _descriptionText = _profileDescription;
         }
-
+/*
         if (_pfpTextureWrap != null)
         {
             ImGui.Image(_pfpTextureWrap.ImGuiHandle, ImGuiHelpers.ScaledVector2(_pfpTextureWrap.Width, _pfpTextureWrap.Height));
-        }
+        }*/
 
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         ImGuiHelpers.ScaledRelativeSameLine(256, spacing);

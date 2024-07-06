@@ -11,7 +11,7 @@ namespace FFStreamViewer.Livestream;
 /// /// This class is used to handle the game objects for the FFStreamViewer plugin.
 /// </summary>
 public class MediaGameObject {
-    private GameObject _gameObject; // define the game object this is based on
+    private IGameObject _gameObject; // define the game object this is based on
     private string _name;           // define the name of the object
     private Vector3 _position;      // define the position of the object 
 
@@ -23,14 +23,14 @@ public class MediaGameObject {
         _position = new Vector3();
     }
 
-    public MediaGameObject(GameObject gameObject) {
+    public MediaGameObject(IGameObject gameObject) {
         _gameObject = gameObject;
         //_gameObject = gameObject;
         _name = "";
         _position = new Vector3();
     }
 
-    public void SetGameObject(GameObject gameObject) {
+    public void SetGameObject(IGameObject gameObject) {
         _gameObject = gameObject;
     }
 
@@ -46,7 +46,7 @@ public class MediaGameObject {
         _position = position;
     }
 
-    /// <summary> Override for the GameObject's name attribute. </summary>
+    /// <summary> Override for the IGameObject's name attribute. </summary>
     public string Name {
         get {
             try {
@@ -57,7 +57,7 @@ public class MediaGameObject {
         }
     }
 
-    /// <summary> Override for the GameObject's position attribute. </summary>
+    /// <summary> Override for the IGameObject's position attribute. </summary>
     public Vector3 Position {
         get {
             try {
@@ -68,7 +68,7 @@ public class MediaGameObject {
         }
     }
 
-    /// <summary> Override for the GameObject's rotation attribute. </summary>
+    /// <summary> Override for the IGameObject's rotation attribute. </summary>
     public float Rotation {
         get {
             try {
@@ -79,7 +79,7 @@ public class MediaGameObject {
         }
     }
 
-    /// <summary> Override for the GameObject's forward attribute. </summary>
+    /// <summary> Override for the IGameObject's forward attribute. </summary>
     public Vector3 Forward {
         get {
             float rotation = _gameObject != null ? _gameObject.Rotation : 0;
@@ -87,14 +87,14 @@ public class MediaGameObject {
         }
     }
 
-    /// <summary> Override for the GameObject's top attribute. </summary>
+    /// <summary> Override for the IGameObject's top attribute. </summary>
     public Vector3 Top {
         get {
             return new Vector3(0, 1, 0);
         }
     }
     
-    /// <summary> Override for the GameObject's focused player object attribute. </summary>
+    /// <summary> Override for the IGameObject's focused player object attribute. </summary>
     public string FocusedPlayerObject {
         get {
             if (_gameObject != null) {

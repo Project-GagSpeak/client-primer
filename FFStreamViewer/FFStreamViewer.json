@@ -1,14 +1,14 @@
 {
-  "Author": "Cordelia",
-  "Name": "FFStreamViewer",
-  "Punchline": "Enhance your venue experience with embedded livestreams!",
-  "Description": "Embed livestreams into your game to watch DJ's or stream events while you enjoy the venue experience!",
-  "InternalName": "FFStreamViewer",
-  "AssemblyVersion": "0.3.0.0",
-  "RepoUrl": "https://github.com/CordeliaMist/FFStreamViewer",
-  "ApplicableVersion": "any",
-  "Tags": [ "Livestreams", "Events", "Venue" ],
-  "DalamudApiLevel": 10,
-  "LoadPriority": 69,
-  "IconUrl": "https://raw.githubusercontent.com/CordeliaMist/FFStreamViewer/main/images/icon.png"
+    "Author": "Cordelia",
+    "Name": "FFStreamViewer",
+    "Punchline": "Enhance your venue experience with embedded livestreams!",
+    "Description": "Embed livestreams into your game to watch DJ's or stream events while you enjoy the venue experience!",
+    "InternalName": "FFStreamViewer",
+    "AssemblyVersion": "0.3.0.1",
+    "RepoUrl": "https://github.com/CordeliaMist/FFStreamViewer",
+    "ApplicableVersion": "any",
+    "Tags": [ "Livestreams", "Events", "Venue" ],
+    "DalamudApiLevel": 10,
+    "LoadPriority": 69,
+    "IconUrl": "https://raw.githubusercontent.com/CordeliaMist/FFStreamViewer/main/images/icon.png"
 }

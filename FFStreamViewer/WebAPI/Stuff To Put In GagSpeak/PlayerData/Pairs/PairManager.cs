@@ -180,6 +180,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // if the pair has a cached player, recreate the lazy list.
         if (pair.HasCachedPlayer)
         {
+            Logger.LogDebug("Pair {pair} already has a cached player, recreating the lazy list of direct pairs.", pair.UserData);
             RecreateLazy();
             return;
         }

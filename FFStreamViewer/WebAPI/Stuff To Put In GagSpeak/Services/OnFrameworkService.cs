@@ -1,8 +1,12 @@
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using FFStreamViewer.WebAPI.SignalR.Utils;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using Microsoft.Extensions.Hosting;
 
 namespace FFStreamViewer.WebAPI.Services;
@@ -25,8 +29,11 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     public bool IsOnFrameworkThread => _framework.IsInFrameworkUpdateThread;
     private DateTime _delayedFrameworkUpdateCheck = DateTime.Now; // for letting us know if we are in a delayed framework check
 
-    // list of visible player characters???
+    // The list of player characters, to associate their hashes with the player character name and addresses. Useful for indicating if they are visible or not.
     private readonly Dictionary<string, (string Name, nint Address)> _playerCharas;
+    private readonly List<string> _notUpdatedCharas = [];
+
+    // the world data associated with the world ID
     public Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
     public bool IsZoning => _condition[ConditionFlag.BetweenAreas] || _condition[ConditionFlag.BetweenAreas51];
 
@@ -289,6 +296,41 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         {
             return;
         }
+
+        // we need to update our stored playercharacters to know if they are still valid, and to update our pair handlers
+        // Begin by adding the range of existing player character keys
+        _notUpdatedCharas.AddRange(_playerCharas.Keys);
+
+        // for each object in the renderable object table
+        for (int i = 0; i < _objectTable.Length; i++)
+        {
+            IGameObject? chara = _objectTable[i];
+            // if the character is null or the object kind is not a player, then continue to next object.
+            if (chara == null || chara.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player)
+                continue;
+
+            // otherwise, get the character name and hash it
+            string charaName = chara.Name.ToString();
+            var hash = (charaName, ((BattleChara*)chara.Address)->Character.HomeWorld).GetHash256();
+            
+            // there was a check to see if anything was drawing here, but we can add back if problems arise.
+            _notUpdatedCharas.Remove(hash);
+            // store the sucessful hash into the player characters list
+            _playerCharas[hash] = (charaName, chara.Address);
+        }
+
+        // for the remaining characters that are not yet updated, remove them from the player characters list
+        foreach (var notUpdatedChara in _notUpdatedCharas)
+        {
+            // removing them should invalidate the pair handler BUT I COULD BE TOTALLY WRONG ITS JUST SPECULATION
+            _playerCharas.Remove(notUpdatedChara);
+        }
+
+        // clear the list of not updated characters
+        _notUpdatedCharas.Clear();
+
+
+
 
         // check if we are in the middle of a delayed framework update
         bool isNormalFrameworkUpdate = DateTime.Now < _delayedFrameworkUpdateCheck.AddSeconds(1);

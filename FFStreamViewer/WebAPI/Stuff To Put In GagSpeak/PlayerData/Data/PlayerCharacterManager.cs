@@ -36,6 +36,10 @@ public class IPlayerCharacterManager : DisposableMediatorSubscriberBase
 
         _playerCharAliasData = new Dictionary<string, CharacterAliasData>(); // Initialize the dictionary
 
+        // we will need to call upon some initialization functions for assigning the data based on the configs.
+
+
+
         // Subscribe to the connected message update so we know when to update our global permissions
         Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
         {
@@ -43,6 +47,8 @@ public class IPlayerCharacterManager : DisposableMediatorSubscriberBase
             // update our permissions
             _playerCharGlobalPerms = msg.Connection.UserGlobalPermissions;
             _playerCharAppearanceData = msg.Connection.CharacterAppearanceData;
+
+            // maybe assign them here? If they need to get connected to establish permissions at all then perhaps it may help.
         });
 
         // At most we should subscribe to IPC updates so we can keep our IPC at the latest.

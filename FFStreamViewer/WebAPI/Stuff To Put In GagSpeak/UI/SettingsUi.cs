@@ -111,20 +111,29 @@ public class SettingsUi : WindowMediatorSubscriberBase
         // Iterate through all client pairs in the PairManager
         foreach (var clientPair in _pairManager.ClientPairs)
         {
-            // Display the UserData's UID
-            ImGui.Text($"UserData UID: {clientPair.Key.UID}");
-            ImGui.Indent();
+            if (ImGui.CollapsingHeader($"Pair: {clientPair.Key.UID} || {_serverConfigurationManager.GetNicknameForUid(clientPair.Key.UID)}"))
+            {
+                ImGui.Text($"UserData UID: {clientPair.Key.UID}");
+                ImGui.Indent();
 
-            // Accessing and displaying information from the Pair object
-            var pair = clientPair.Value;
-            ImGui.Text($"IsDirectlyPaired: {pair.IsDirectlyPaired}");
-            ImGui.Text($"IsOneSidedPair: {pair.IsOneSidedPair}");
-            ImGui.Text($"IsOnline: {pair.IsOnline}");
-            ImGui.Text($"IsPaired: {pair.IsPaired}");
-            ImGui.Text($"IsVisible: {pair.IsVisible}");
-            ImGui.Text($"PlayerName: {pair.PlayerName ?? "N/A"}");
+                // Accessing and displaying information from the Pair object
+                var pair = clientPair.Value;
+                ImGui.Text($"IsDirectlyPaired: {pair.IsDirectlyPaired}");
+                ImGui.Text($"IsOneSidedPair: {pair.IsOneSidedPair}");
+                ImGui.Text($"IsOnline: {pair.IsOnline}");
+                ImGui.Text($"IsPaired: {pair.IsPaired}");
+                ImGui.Text($"IsVisible: {pair.IsVisible}");
+                ImGui.Text($"PlayerName: {pair.PlayerName ?? "N/A"}");
 
-            ImGui.Unindent();
+                ImGui.Unindent();
+                if (pair.CachedPlayerOnlineDto != null)
+                {
+                    ImGui.Text($"OnlineUser UID: {pair.CachedPlayerOnlineDto.User.UID}");
+                    ImGui.Text($"OnlineUser Alias: {pair.CachedPlayerOnlineDto.User.Alias}");
+                    ImGui.Text($"OnlineUser Identifier: {pair.CachedPlayerOnlineDto.Ident}");
+                    ImGui.Text($"HasCachedPlayer? : {pair.HasCachedPlayer}");
+                }
+            }
         }
 
 

@@ -245,6 +245,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         {
             // then try and find the name by the online user identity
             var pc = _frameworkUtil.FindPlayerByNameHash(OnlineUser.Ident);
+
+            // Logger.LogTrace("pc pulled from onlineuserIdent: {pc}", pc);
             // if the player character is null, return
             if (pc == default((string, nint))) return;
 
@@ -259,7 +261,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         }
 
         // if the game object for this pair has a pointer that is not zero (meaning they are present) but the pair is marked as not visible
-        if (_charaHandler?.Address != nint.Zero && !IsVisible) // in other words, we apply this the first time they render into our view (in reality it should just be when they come online)
+        if (_charaHandler?.Address != nint.Zero && !IsVisible) // in other words, we apply this the first time they render into our view
         {
             // then we need to create appData for it.
             Guid appData = Guid.NewGuid();
@@ -270,7 +272,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             // if the pairs cachedData is not null
             if (_cachedData != null)
             {
-                Logger.LogTrace("[BASE-{appBase}] {this} visibility changed, now: {visi}, cached data exists", appData, this, IsVisible);
+                Logger.LogTrace("[BASE-{appBase}] {this} visibility changed, now: {visi}, cached IPC data exists", appData, this, IsVisible);
                 // then we should apply it to the character data
                 _ = Task.Run(() =>
                 {
@@ -280,7 +282,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             else
             {
                 // otherwise, do not apply it to the character as they are not present
-                Logger.LogTrace("{this} visibility changed, now: {visi}, no cached data exists", this, IsVisible);
+                Logger.LogTrace("{this} visibility changed, now: {visi}, no cached IPC data exists", this, IsVisible);
             }
         }
         // if the player address is 0 but they are visible, invalidate them
@@ -296,9 +298,11 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// <summary> Initializes a pair handler object </summary>
     private void Initialize(string name)
     {
+        Logger.LogTrace("Initializing PairHandler Character {this}", this);
         // set the player name to the name
         PlayerName = name;
         // create a new game object handler for the player character
+        Logger.LogTrace("Using Factory to make new GameObjectHandler {this}", this);
         _charaHandler = _gameObjectHandlerFactory.Create(() =>
             _frameworkUtil.GetIPlayerCharacterFromCachedTableByIdent(OnlineUser.Ident), isWatched: false).GetAwaiter().GetResult();
     }

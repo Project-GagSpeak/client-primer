@@ -77,7 +77,7 @@ public class Pair
     public bool IsDirectlyPaired => IndividualPairStatus != IndividualPairStatus.None;  // if the pair is directly paired.
     public bool IsOneSidedPair => IndividualPairStatus == IndividualPairStatus.OneSided; // if the pair is one sided.
     public bool IsOnline => CachedPlayer != null;                                       // lets us know if the paired user is online. 
-    
+    public OnlineUserIdentDto CachedPlayerOnlineDto => CachedPlayer.OnlineUser;       // the online user ident dto of the cached player.
     public bool IsPaired => IndividualPairStatus == IndividualPairStatus.Bidirectional; // if the user is paired bidirectionally.
     public bool IsPaused => UserPair.OwnPairPerms.IsPaused; 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;                          // if the paired user is visible.
@@ -210,12 +210,17 @@ public class Pair
             _creationSemaphore.Wait();
 
             // If the cachedPlayer is already stored for this pair, we do not need to create it again, so return.
-            if (CachedPlayer != null) return;
+            if (CachedPlayer != null)
+            {
+                _logger.LogDebug("CachedPlayer already exists for {uid}", UserData.UID);
+                return;
+            }
 
             // if the Dto sent to us by the server is null, and the pairs onlineUserIdentDto is null, dispose of the cached player and return.
             if (dto == null && _onlineUserIdentDto == null)
             {
                 // dispose of the cachedplayer and set it to null before returning
+                _logger.LogDebug("No DTO provided for {uid}, and OnlineUserIdentDto object in Pair class is null. Disposing of CachedPlayer", UserData.UID);
                 CachedPlayer?.Dispose();
                 CachedPlayer = null;
                 return;
@@ -224,9 +229,11 @@ public class Pair
             // if the OnlineUserIdentDto contains information, we should update our pairs _onlineUserIdentDto to the dto
             if (dto != null)
             {
+                _logger.LogDebug("Updating OnlineUserIdentDto for {uid}", UserData.UID);
                 _onlineUserIdentDto = dto;
             }
 
+            _logger.LogTrace("Disposing of existing CachedPlayer to create a new one for {uid}", UserData.UID);
             // not we can dispose of the cached player
             CachedPlayer?.Dispose();
             // and create a new one from our _cachedPlayerFactory (the pair handler factory)
@@ -274,6 +281,8 @@ public class Pair
             CachedPlayer = null;
             // dispose of the player object.
             player?.Dispose();
+            // log the pair as offline
+            _logger.LogTrace("Marked {uid} as offline", UserData.UID);
         }
         finally
         {

@@ -103,7 +103,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             // if they are both not 0, and the clear cts is not null (aka we want to cancel), cancel the clear cts.
             if (_clearCts != null)
             {
-                Logger.LogDebug("[{this}] Cancelling Clear Task", this);
+                Logger.LogDebug("Cancelling Clear Task");
                 _clearCts.CancelDispose();
                 _clearCts = null;
             }
@@ -111,7 +111,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             // if this is not a owned object, instantly publish the character changed message and return.
             if (!_isOwnedObject)
             {
-                Logger.LogTrace("[{this}] Is not a owned object.", this);
+                Logger.LogTrace("Is not a owned object.");
                 /* Consume */
                 return;
             }
@@ -119,7 +119,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             // if there was a difference in the address, or draw object, and it is an owned object, then publish the cache creation.
             if ((addrDiff || drawObjDiff) && _isOwnedObject)
             {
-                Logger.LogDebug("[{this}] Changed, Sending CreateCacheObjectMessage", this);
+                Logger.LogDebug("Changed, Sending CreateCacheObjectMessage");
                 Mediator.Publish(new CreateCacheForObjectMessage(this));
             }
         }
@@ -143,9 +143,9 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
     /// <returns> Clears the cache for the object handler in the cache creation service via mediator publish. </returns>
     private async Task ClearAsync(CancellationToken token)
     {
-        Logger.LogDebug("[{this}] Running Clear Task", this);
+        Logger.LogDebug("Running Clear Task");
         await Task.Delay(TimeSpan.FromSeconds(1), token).ConfigureAwait(false);
-        Logger.LogDebug("[{this}] Sending ClearCachedForObjectMessage", this);
+        Logger.LogDebug("Sending ClearCachedForObjectMessage");
         Mediator.Publish(new ClearCacheForObjectMessage(this));
         _clearCts = null;
     }

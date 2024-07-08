@@ -207,7 +207,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             {
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
-                propertyInfo.SetValue(pair.UserPair.OwnPairPerms, value);
+                propertyInfo.SetValue(pair.UserPair.OwnEditAccessPerms, value);
                 Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'");
             }
             else

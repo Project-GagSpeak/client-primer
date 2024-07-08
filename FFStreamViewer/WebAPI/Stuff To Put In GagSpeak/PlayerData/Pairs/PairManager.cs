@@ -226,6 +226,15 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
         // apply the other appearances to the pair.
         _allClientPairs[dto.User].ApplyAppearanceData(new OnlineUserCharaAppearanceDataDto(dto.User, dto.CompositeData.AppearanceData));
+
+        // apply the wardrobe data to the pair.
+        _allClientPairs[dto.User].ApplyWardrobeData(new OnlineUserCharaWardrobeDataDto(dto.User, dto.CompositeData.WardrobeData));
+
+        // apply the alias data to the pair.
+        _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, dto.CompositeData.AliasData));
+
+        // apply the pattern data to the pair.
+        _allClientPairs[dto.User].ApplyPatternData(new OnlineUserCharaPatternDataDto(dto.User, dto.CompositeData.PatternData));
     }
 
     /// <summary> Method similar to compositeData, but this will only update the IPC data of the user pair. </summary>

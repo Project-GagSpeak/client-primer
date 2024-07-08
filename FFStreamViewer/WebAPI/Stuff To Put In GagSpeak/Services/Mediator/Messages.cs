@@ -8,6 +8,7 @@ using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using System.Numerics;
 using GagSpeak.API.Dto.Connection;
 using GagSpeak.API.Data.Character;
+using FFStreamViewer.WebAPI.UI.Permissions;
 
 namespace FFStreamViewer.WebAPI.Services.Mediator;
 
@@ -23,6 +24,7 @@ public record HubReconnectingMessage(Exception? Exception) : SameThreadMessage; 
 public record HubReconnectedMessage(string? Arg) : SameThreadMessage; // indicating the moment the hub has reconnected.
 public record HubClosedMessage(Exception? Exception) : SameThreadMessage; // indicating the moment the hub has closed.
 public record ConnectedMessage(ConnectionDto Connection) : MessageBase; // message published upon sucessful connection to the server
+public record OnlinePairsLoadedMessage : MessageBase; // message published completion of loading all online pairs for the client.
 public record DalamudLoginMessage : MessageBase; // record indicating the moment the client logs into the game instance.
 public record DalamudLogoutMessage : MessageBase; // record indicating the moment the client logs out of the game instance.
 public record EventMessage(Event Event) : MessageBase; // an event message for logging purposes. (used in APIController, see there for ref
@@ -47,7 +49,7 @@ public record ZoneSwitchStartMessage : MessageBase; // know when we are beginnin
 public record ZoneSwitchEndMessage : MessageBase; // know when we have finished switching zones
 public record HaltScanMessage(string Source) : MessageBase; // know when we should stop scanning
 public record ResumeScanMessage(string Source) : MessageBase; // know when we should resume scanning
-public record OpenUserPairPermissions(Pair? Pair) : MessageBase; // fired upon request to open the permissions window for a pair
+public record OpenUserPairPermissions(Pair? Pair, StickyWindowType PermsWindowType) : MessageBase; // fired upon request to open the permissions window for a pair
 public record RemoveWindowMessage(WindowMediatorSubscriberBase Window) : MessageBase; // fired upon request to remove a window from the UI service.
 public record ProfilePopoutToggle(Pair? Pair) : MessageBase; // toggles the profile popout window for a paired client.
 public record TargetPairMessage(Pair Pair) : MessageBase; // called when publishing a targeted pair connection (see UI)

@@ -15,6 +15,8 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Numerics;
 using System.Reflection;
+using OtterGuiInternal.Structs;
+using FFStreamViewer.WebAPI.UI.Permissions;
 
 namespace FFStreamViewer.WebAPI.UI;
 
@@ -140,7 +142,7 @@ public class CompactUi : WindowMediatorSubscriberBase
             logger.LogInformation("OpenUserPairPermission called for {0}", msg.Pair.UserData.AliasOrUID);
 
             // locate the DrawUserPair in the list where the pair matches the pair in it, and set that bool to true;
-            UpdateShouldOpenStatus(msg.Pair);
+            UpdateShouldOpenStatus(msg.Pair, msg.PermsWindowType);
 
         });
 
@@ -149,8 +151,8 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         SizeConstraints = new WindowSizeConstraints()
         {
-            MinimumSize = new Vector2(375, 400),
-            MaximumSize = new Vector2(375, 2000),
+            MinimumSize = new Vector2(325, 400),
+            MaximumSize = new Vector2(325, 2000),
         };
     }
 
@@ -168,29 +170,51 @@ public class CompactUi : WindowMediatorSubscriberBase
     /// Updates if the permissions window should be opened, optionally based on a specific Pair.
     /// </summary>
     /// <param name="specificPair">The specific Pair to update, or null to use the first Pair with ShouldOpen true.</param>
-    private void UpdateShouldOpenStatus(Pair? specificPair = null)
+    private void UpdateShouldOpenStatus(Pair? specificPair = null, StickyWindowType type = StickyWindowType.None)
     {
         int indexToKeep = -1;
 
         // If a specific Pair is provided, find its index. Otherwise, find the first Pair with ShouldOpen set to true.
         if (specificPair != null)
         {
-            _logger.LogInformation("Specific Pair provided: {0}", specificPair.UserData.AliasOrUID);
+            _logger.LogTrace("Specific Pair provided: {0}", specificPair.UserData.AliasOrUID);
             indexToKeep = _allUserPairDrawsDistinct.FindIndex(pair => pair.Pair == specificPair);
             // Toggle the ShouldOpen status if the Pair is found
             if (indexToKeep != -1)
             {
-                _logger.LogInformation("Found specific Pair, toggling ShouldOpen status to {0}", !_allUserPairDrawsDistinct[indexToKeep].ShouldOpen);
-                bool currentStatus = _allUserPairDrawsDistinct[indexToKeep].ShouldOpen;
-                _allUserPairDrawsDistinct[indexToKeep].ShouldOpen = !currentStatus;
+                _logger.LogDebug("Found specific Pair, Checking current window type.");
+                bool currentStatus = _allUserPairDrawsDistinct[indexToKeep].Pair.ShouldOpenPermWindow;
                 // If we're turning it off, reset indexToKeep to handle deactivation correctly
-                if (currentStatus) indexToKeep = -1;
+                if (currentStatus && type == _UserPairPermissionsSticky.DrawType)
+                {
+                    _logger.LogTrace("Requested Window is same type as current, toggling off");
+                    _allUserPairDrawsDistinct[indexToKeep].Pair.ShouldOpenPermWindow = !currentStatus;
+                    indexToKeep = -1;
+                }
+                else if(!currentStatus && type != StickyWindowType.None && _UserPairPermissionsSticky.DrawType == StickyWindowType.None)
+                {
+                    _logger.LogTrace("Requesting to open window from currently closed state");
+                    _allUserPairDrawsDistinct[indexToKeep].Pair.ShouldOpenPermWindow = true;
+                }
+                else if(currentStatus && (type == StickyWindowType.PairPerms || type == StickyWindowType.ClientPermsForPair) && _UserPairPermissionsSticky.DrawType != type)
+                {
+                    _logger.LogTrace("Requesting to change window type from client to pair, or vise versa");
+                }
+                else if(!currentStatus && (type == StickyWindowType.PairPerms || type == StickyWindowType.ClientPermsForPair))
+                {
+                    _logger.LogTrace("Opening the same window but for another user, switching pair and changing index");
+                    _allUserPairDrawsDistinct[indexToKeep].Pair.ShouldOpenPermWindow = !currentStatus;
+                }
+                else
+                {
+                    _logger.LogTrace("Don't know exactly how you got here");
+                }
             }
         }
         else
         {
-            _logger.LogInformation("No specific Pair provided, finding first Pair with ShouldOpen true");
-            indexToKeep = _allUserPairDrawsDistinct.FindIndex(pair => pair.ShouldOpen);
+            _logger.LogTrace("No specific Pair provided, finding first Pair with ShouldOpen true");
+            indexToKeep = _allUserPairDrawsDistinct.FindIndex(pair => pair.Pair.ShouldOpenPermWindow);
         }
 
         _logger.LogDebug("Index to keep: {0} || setting all others to false", indexToKeep);
@@ -199,20 +223,25 @@ public class CompactUi : WindowMediatorSubscriberBase
         {
             if (i != indexToKeep)
             {
-                _allUserPairDrawsDistinct[i].ShouldOpen = false;
+                _allUserPairDrawsDistinct[i].Pair.ShouldOpenPermWindow = false;
             }
         }
 
         // Update _PairToDrawPermissionsFor based on the current status
         if (indexToKeep != -1)
         {
-            _logger.LogDebug("Setting _PairToDrawPermissionsFor to {0}", _allUserPairDrawsDistinct[indexToKeep].Pair.UserData.AliasOrUID);
+            _logger.LogTrace("Setting _PairToDrawPermissionsFor to {0}", _allUserPairDrawsDistinct[indexToKeep].Pair.UserData.AliasOrUID);
             _PairToDrawPermissionsFor = _allUserPairDrawsDistinct[indexToKeep].Pair;
+            if(type != StickyWindowType.None)
+            {
+                _UserPairPermissionsSticky.DrawType = type;
+            }
         }
         else
         {
-            _logger.LogDebug("Setting _PairToDrawPermissionsFor to null");
+            _logger.LogTrace("Setting _PairToDrawPermissionsFor to null && Setting DrawType to none");
             _PairToDrawPermissionsFor = null;
+            _UserPairPermissionsSticky.DrawType = StickyWindowType.None;
         }
     }
 
@@ -257,8 +286,6 @@ public class CompactUi : WindowMediatorSubscriberBase
             float topMenuEnd = ImGui.GetCursorPosY();
             // then display our pairing list
             using (ImRaii.PushId("pairlist")) DrawPairs();
-            // after that, another seperator to create the footer of the window
-            ImGui.Separator();
             // fetch the cursor position where the footer is
             float pairlistEnd = ImGui.GetCursorPosY();
             // push a footer here maybe.
@@ -269,8 +296,6 @@ public class CompactUi : WindowMediatorSubscriberBase
             {
                 ChildWindowFocused = _UserPairPermissionsSticky.DrawSticky(topMenuEnd);
             }
-            // check if we currently have a permission window open and if so to refocus it when the main window is focused
-            FocusChildWhenMainRefocused(ChildWindowFocused);
         }
 
         // if we have configured to let the UI display a popup to set a nickname for the added UID upon adding them, then do so.
@@ -316,6 +341,9 @@ public class CompactUi : WindowMediatorSubscriberBase
             ImGui.EndPopup();
         }
 
+        // check if we currently have a permission window open and if so to refocus it when the main window is focused
+        FocusChildWhenMainRefocused(ChildWindowFocused);
+
         var pos = ImGui.GetWindowPos();
         var size = ImGui.GetWindowSize();
         if (_lastSize != size || _lastPosition != pos)
@@ -343,8 +371,10 @@ public class CompactUi : WindowMediatorSubscriberBase
             if (!isChildFocused && !ChildWindowFocusFixed)
             {
                 // FIX IT
+/*                _logger.LogWarning("I got focused!");
                 ImGui.SetWindowFocus(windowName);
                 ChildWindowFocusFixed = true;
+                ImGui.SetWindowFocus(this.WindowName);*/
             }
         }
 
@@ -443,6 +473,9 @@ public class CompactUi : WindowMediatorSubscriberBase
         else
         {
             ImGui.AlignTextToFramePadding();
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X 
+                + UiSharedService.GetWindowContentRegionWidth()) 
+                / 2 - (ImGui.CalcTextSize("Not connected to any server").X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
             ImGui.TextColored(ImGuiColors.DalamudRed, "Not connected to any server");
         }
 

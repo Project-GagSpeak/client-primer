@@ -112,7 +112,7 @@ public partial class ApiController
     public Task Client_UserUpdateSelfPairPermsGlobal(UserGlobalPermChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfPairPermsGlobal: {dto}", dto);
-        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        if (dto.User.UID == UID)
         {
             Logger.LogTrace("Callback matched player character, updating own global permission data");
             ExecuteSafely(() => _playerCharManager.ApplyGlobalPermChange(dto));

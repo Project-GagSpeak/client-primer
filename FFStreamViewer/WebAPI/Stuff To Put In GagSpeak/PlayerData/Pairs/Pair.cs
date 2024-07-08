@@ -9,6 +9,7 @@ using Gagspeak.API.Dto.User;
 using GagSpeak.API.Data.Character;
 using GagSpeak.API.Dto.Connection;
 using GagSpeak.API.Dto.UserPair;
+using GagSpeak.API.Data.Permissions;
 
 namespace FFStreamViewer.WebAPI.PlayerData.Pairs;
 
@@ -64,12 +65,15 @@ public class Pair
     /// </para>
     /// </summary>
     public UserPairDto UserPair { get; set; }
-    public UserData UserData => UserPair.User;              // The UserData associated with the pair.
-    public CharacterAppearanceData? UserPairAppearanceData; // the gag data associated with the user pair.
-    public CharacterWardrobeData? UserPairWardrobeData;     // the wardrobe data associated with the user pair.
-    public CharacterAliasData? UserPairAliasData;           // the alias data associated with the user pair.
-    public CharacterPatternInfo? UserPairPatternData;       // the pattern data associated with the user pair.
-    public CharacterIPCData? LastReceivedIpcData { get; set; } // reference to last IPC data applied to visible user.
+    public UserData UserData => UserPair.User;                                      // the UserData associated with the pair.
+    public UserGlobalPermissions UserPairGlobalPerms => UserPair.OtherGlobalPerms;  // the global permissions of the pair.
+    public UserPairPermissions UserPairUniquePairPerms => UserPair.OtherPairPerms;  // the pair permissions of the pair.
+    public UserEditAccessPermissions UserPairEditAccess => UserPair.OtherEditAccessPerms; // the edit permissions of the pair.
+    public CharacterAppearanceData UserPairAppearanceData { get; set; }             // the gag data associated with the user pair.
+    public CharacterWardrobeData UserPairWardrobeData { get; set; }                 // the wardrobe data associated with the user pair.
+    public CharacterAliasData UserPairAliasData { get; set; }                       // the alias data associated with the user pair.
+    public CharacterPatternInfo UserPairPatternData { get; set; }                   // the pattern data associated with the user pair.
+    public CharacterIPCData LastReceivedIpcData { get; set; }                       // reference to last IPC data applied to visible user.
 
     // Most of these attributes should be self explanatory, but they are public methods you can fetch from the pair manager.
     public bool HasCachedPlayer => CachedPlayer != null && !string.IsNullOrEmpty(CachedPlayer.PlayerName) && _onlineUserIdentDto != null;
@@ -82,6 +86,9 @@ public class Pair
     public bool IsPaused => UserPair.OwnPairPerms.IsPaused; 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;                          // if the paired user is visible.
     public string? PlayerName => CachedPlayer?.PlayerName ?? string.Empty;  // Name of pair player. If empty, (pair handler) CachedData is not initialized yet.
+                                                                            // Tells compactUI if this window is the window that should be open.
+    public bool ShouldOpenPermWindow = false;                               // if this pairs permissions window should open.
+
 
     /// <summary>
     /// Applies the IPC related data that should effect players within visible range of the client, to the user pair.
@@ -151,7 +158,7 @@ public class Pair
     /// </summary>
     public void ApplyWardrobeData(OnlineUserCharaWardrobeDataDto data)
     {
-        _logger.LogDebug("Applying updated appearance data for {uid}", data.User.UID);
+        _logger.LogDebug("Applying updated wardrobe data for {uid}", data.User.UID);
         UserPairWardrobeData = data.WardrobeData;
     }
 
@@ -163,7 +170,7 @@ public class Pair
     /// </summary>
     public void ApplyAliasData(OnlineUserCharaAliasDataDto data)
     {
-        _logger.LogDebug("Applying updated appearance data for {uid}", data.User.UID);
+        _logger.LogDebug("Applying updated alias data for {uid}", data.User.UID);
         UserPairAliasData = data.AliasData;
     }
 
@@ -175,7 +182,7 @@ public class Pair
     /// </summary>
     public void ApplyPatternData(OnlineUserCharaPatternDataDto data)
     {
-        _logger.LogDebug("Applying updated appearance data for {uid}", data.User.UID);
+        _logger.LogDebug("Applying updated pattern data for {uid}", data.User.UID);
         UserPairPatternData = data.PatternInfo;
     }
 

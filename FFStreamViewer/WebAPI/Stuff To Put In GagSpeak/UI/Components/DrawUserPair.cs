@@ -4,8 +4,12 @@ using Dalamud.Interface.Utility.Raii;
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services.Mediator;
 using FFStreamViewer.WebAPI.UI.Handlers;
+using FFStreamViewer.WebAPI.UI.Permissions;
+using GagSpeak.API.Dto.Permissions;
 using GagSpeak.API.Dto.UserPair;
 using ImGuiNET;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
+using System.Security;
 
 namespace FFStreamViewer.WebAPI.UI.Components;
 
@@ -36,7 +40,6 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         _uiSharedService = uiSharedService;
     }
 
-    public bool ShouldOpen = false; // public access attribute 
     public Pair Pair => _pair;
     public UserPairDto UserPair => _pair.UserPair!;
 
@@ -164,24 +167,13 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         DrawIndividualMenu();
     }
 
-    /*
-            using (ImRaii.PushFont(UiBuilder.IconFont))
-            {
-                using var disabled = ImRaii.Disabled(_globalControlCountdown > 0);
-
-                if (ImGui.Button(FontAwesomeIcon.Sun.ToIconString(), buttonSize))
-                {
-                    ImGui.OpenPopup("Individual VFX");
-                }
-            }
-            UiSharedService.AttachToolTip("Globally enable or disable VFX sync with all individual pairs." + UiSharedService.TooltipSeparator
-                + (_globalControlCountdown > 0 ? UiSharedService.TooltipSeparator + "Available again in " + _globalControlCountdown + " seconds." : string.Empty));
-    */
     private float DrawRightSide()
     {
+        var pauseIcon = _pair.UserPair!.OwnPairPerms.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
+        var pauseIconSize = _uiSharedService.GetIconButtonSize(pauseIcon);
         var permissionsButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Cog);
         var barButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV);
-        var spacingX = ImGui.GetStyle().ItemSpacing.X;
+        var spacingX = ImGui.GetStyle().ItemSpacing.X/2;
         var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
         float currentRightSide = windowEndX - barButtonSize.X;
 
@@ -197,11 +189,34 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         if (_uiSharedService.IconButton(FontAwesomeIcon.Cog))
         {
             // if we press the cog, we should modify its apperance, and set that we are drawing for this pair to true
-            _mediator.Publish(new OpenUserPairPermissions(_pair));
+            _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairPerms));
         }
         UiSharedService.AttachToolTip(!_pair.IsOnline
-            ? "View permissions configured with " + _pair.UserData.AliasOrUID
-            : "Close" + _pair.UserData.AliasOrUID + "'s permissions config window");
+            ? "Change " + _pair.UserData.AliasOrUID + "'s permissions"
+            : "Close " + _pair.UserData.AliasOrUID + "'s permissions window");
+
+        currentRightSide -= (permissionsButtonSize.X + spacingX);
+        ImGui.SameLine(currentRightSide);
+        if (_uiSharedService.IconButton(FontAwesomeIcon.Wrench))
+        {
+            // if we press the cog, we should modify its appearance, and set that we are drawing for this pair to true
+            _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.ClientPermsForPair));
+        }
+        UiSharedService.AttachToolTip(!_pair.IsOnline
+            ? "Change your permission access for " + _pair.UserData.AliasOrUID
+            : "Close your permissions access window");
+
+        currentRightSide -= (pauseIconSize.X + spacingX);
+        ImGui.SameLine(currentRightSide);
+        if (_uiSharedService.IconButton(pauseIcon))
+        {
+            var perm = _pair.UserPair!.OwnPairPerms;
+            _ = _apiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_pair.UserData,
+                new KeyValuePair<string, object>("IsPaused", !perm.IsPaused)));
+        }
+        UiSharedService.AttachToolTip(!_pair.UserPair!.OwnPairPerms.IsPaused
+            ? "Pause pairing with " + _pair.UserData.AliasOrUID
+            : "Resume pairing with " + _pair.UserData.AliasOrUID);
 
 
         if (ImGui.BeginPopup("User Flyout Menu"))

@@ -26,7 +26,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
     private readonly OnFrameworkService _frameworkUtils;            // the on framework service
     private readonly HubFactory _hubFactory;                        // the hub factory
-    private readonly IPlayerCharacterManager _playerCharManager;      // the player character manager
+    private readonly PlayerCharacterManager _playerCharManager;      // the player character manager
     private readonly PairManager _pairManager;                      // for managing the clients paired users
     private readonly ServerConfigurationManager _serverConfigManager;// the server configuration manager
     private readonly TokenProvider _tokenProvider;                  // the token provider for authentications
@@ -41,7 +41,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     private ServerState _serverState;                               // the current state of the server
 
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, OnFrameworkService frameworkService,
-        IPlayerCharacterManager playerCharManager, PairManager pairManager, ServerConfigurationManager serverManager,
+        PlayerCharacterManager playerCharManager, PairManager pairManager, ServerConfigurationManager serverManager,
         GagspeakMediator gagspeakMediator, TokenProvider tokenProvider,
         GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
     {
@@ -76,7 +76,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                                         .Version ?? new Version(0, 0, 0, 0)) >= (_connectionDto?.CurrentClientVersion ?? new Version(0, 0, 0, 0));
     public int OnlineUsers => SystemInfoDto.OnlineUsers;                                                    // the number of online users logged into the server
     public SystemInfoDto SystemInfoDto { get; private set; } = new();                                       // the system info data transfer object
-    public string UID => _connectionDto?.User.UID ?? string.Empty;                                          // the UID of the connected client user.
+    public string UID => _connectionDto?.User.UID ?? string.Empty;                                          // the UID of the connected client user
+    public UserData PlayerUserData => _connectionDto!.User;                                                        // the user data of the connected client user
     public ServerState ServerState                                                                          // the current state of the server.
     {
         get => _serverState;
@@ -301,6 +302,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
                 // declare the current client version from the executing assembly
                 var currentClientVer = Assembly.GetExecutingAssembly().GetName().Version!;
+                Logger.LogInformation("Current Client Version: {currentClientVer}", currentClientVer);
+                Logger.LogInformation("Server Version: {serverVersion}", _connectionDto.CurrentClientVersion);
 
                 // if the server version is not the same as the API version
                 if (_connectionDto.ServerVersion != IGagspeakHub.ApiVersion)
@@ -312,7 +315,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                         Mediator.Publish(new NotificationMessage("Client incompatible",
                             $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
                             $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
-                            $"This client version is incompatible and will not be able to connect. Please update your Gagspeak Synchronos client.",
+                            $"This client version is incompatible and will not be able to connect. Please update your Gagspeak client.",
                             NotificationType.Error));
                     }
                     // stop connection
@@ -327,8 +330,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                     Mediator.Publish(new NotificationMessage("Client outdated",
                         $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
                         $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
-                        $"Please keep your Gagspeak Synchronos client up-to-date.",
+                        $"Please keep your Gagspeak client up-to-date.",
                         NotificationType.Warning));
+
+                    // stop connection
+                    await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
+                    return;
+
                 }
                 // load the initial pairs for our client
                 await LoadIninitialPairs().ConfigureAwait(false);
@@ -387,7 +395,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // set the permission to true
             perm.IsPaused = true;
             // update the pair permissions
-            await UserUpdatePairPerms(new UserPairPermChangeDto(userData, new KeyValuePair<string, object>(nameof(perm.IsPaused), true))).ConfigureAwait(false);
+            await UserUpdateOwnPairPerm(new UserPairPermChangeDto(userData, new KeyValuePair<string, object>(nameof(perm.IsPaused), true))).ConfigureAwait(false);
             // wait until it's changed
             while (pair.UserPair!.OwnPairPerms != perm)
             {
@@ -396,7 +404,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             }
             // set it back to false;
             perm.IsPaused = false;
-            await UserUpdatePairPerms(new UserPairPermChangeDto(userData, new KeyValuePair<string, object>(nameof(perm.IsPaused), false))).ConfigureAwait(false);
+            await UserUpdateOwnPairPerm(new UserPairPermChangeDto(userData, new KeyValuePair<string, object>(nameof(perm.IsPaused), false))).ConfigureAwait(false);
         }, cts.Token).ContinueWith((t) => cts.Dispose());
 
         return Task.CompletedTask;
@@ -550,6 +558,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             Logger.LogDebug("Pair online: {pair}", entry);
             _pairManager.MarkPairOnline(entry, sendNotif: false);
         }
+        Mediator.Publish(new OnlinePairsLoadedMessage());
     }
 
     /// <summary> When the hub is closed, this function will be called. </summary>
@@ -586,6 +595,21 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             {
                 await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                 return;
+            }
+            // if it is greater than the current client version in general, let them know the client is outdated
+            if (_connectionDto.CurrentClientVersion > Assembly.GetExecutingAssembly().GetName().Version!)
+            {
+                // publish a notification message that the client is outdated
+                Mediator.Publish(new NotificationMessage("Client outdated",
+                    $"Your client is outdated ({Assembly.GetExecutingAssembly().GetName().Version!.Major}.{Assembly.GetExecutingAssembly().GetName().Version!.Minor}.{Assembly.GetExecutingAssembly().GetName().Version!.Build}), current is: " +
+                    $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
+                    $"Please keep your Gagspeak client up-to-date.",
+                    NotificationType.Warning));
+
+                // stop connection
+                await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
+                return;
+
             }
             // otherwise set it to connected and publish the connected message after loading the pairs.
             ServerState = ServerState.Connected;

@@ -4,7 +4,7 @@
     "Punchline": "Enhance your venue experience with embedded livestreams!",
     "Description": "Embed livestreams into your game to watch DJ's or stream events while you enjoy the venue experience!",
     "InternalName": "FFStreamViewer",
-    "AssemblyVersion": "0.3.0.1",
+    "AssemblyVersion": "0.3.1.0",
     "RepoUrl": "https://github.com/CordeliaMist/FFStreamViewer",
     "ApplicableVersion": "any",
     "Tags": [ "Livestreams", "Events", "Venue" ],

@@ -8,6 +8,7 @@ using FFStreamViewer.Events;
 using FFStreamViewer.Livestream;
 using FFStreamViewer.Services;
 using FFStreamViewer.UI;
+using FFStreamViewer.WebAPI.UI.Permissions;
 using FFStreamViewer.UI.Tabs.MediaTab;
 using FFStreamViewer.WebAPI;
 using FFStreamViewer.WebAPI.GagspeakConfiguration;
@@ -154,7 +155,7 @@ public static class FFStreamViewerServiceExtensions
         .AddSingleton<HubFactory>()
         .AddSingleton<TokenProvider>()
         // PlayerData Services
-        .AddSingleton<IPlayerCharacterManager>()
+        .AddSingleton<PlayerCharacterManager>()
         .AddSingleton<GameObjectHandlerFactory>()
         .AddSingleton<PairFactory>()
         .AddSingleton<PairHandlerFactory>()

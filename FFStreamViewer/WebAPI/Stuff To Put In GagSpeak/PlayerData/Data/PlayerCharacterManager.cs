@@ -12,7 +12,7 @@ using System.Reflection;
 namespace FFStreamViewer.WebAPI.PlayerData.Data;
 
 // unsure atm why we would need this, but we will find out soon.
-public class IPlayerCharacterManager : DisposableMediatorSubscriberBase
+public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
     private readonly ClientConfigurationManager _clientConfigManager;
@@ -23,7 +23,7 @@ public class IPlayerCharacterManager : DisposableMediatorSubscriberBase
     private CharacterPatternInfo _playerCharPatternData { get; set; } // the pattern data for our player character
     private UserGlobalPermissions _playerCharGlobalPerms { get; set; } // the global permissions for our player character
 
-    public IPlayerCharacterManager(ILogger<IPlayerCharacterManager> logger, GagspeakMediator mediator,
+    public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger, GagspeakMediator mediator,
         PairManager pairManager, ClientConfigurationManager clientConfiguration) : base(logger, mediator)
     {
         _pairManager = pairManager;

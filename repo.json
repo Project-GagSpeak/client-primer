@@ -10,8 +10,8 @@
             "Venue"
         ],
         "InternalName": "FFStreamViewer",
-        "AssemblyVersion": "0.3.0.1",
-        "TestingAssemblyVersion": "0.3.0.1",
+        "AssemblyVersion": "0.3.1.0",
+        "TestingAssemblyVersion": "0.3.1.0",
         "RepoUrl": "https://github.com/CordeliaMist/FFStreamViewer",
         "ApplicableVersion": "any",
         "DalamudApiLevel": 10,
@@ -19,9 +19,9 @@
         "IsTestingExclusive": "False",
         "DownloadCount": 420,
         "LastUpdate": 1618608322,
-        "DownloadLinkInstall": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/0.3.0.1/latest.zip",
-        "DownloadLinkUpdate": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/0.3.0.1/latest.zip",
-        "DownloadLinkTesting": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/0.3.0.1/latest.zip",
+        "DownloadLinkInstall": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/0.3.1.0/latest.zip",
+        "DownloadLinkUpdate": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/0.3.1.0/latest.zip",
+        "DownloadLinkTesting": "https://github.com/CordeliaMist/FFStreamViewer/releases/download/0.3.1.0/latest.zip",
         "IconUrl": "https://raw.githubusercontent.com/CordeliaMist/FFStreamViewer/main/images/icon.png"
     }
 ]

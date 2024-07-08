@@ -5,6 +5,7 @@ using FFStreamViewer.WebAPI.UI.Components;
 using FFStreamViewer.WebAPI.UI.Handlers;
 using System.Collections.Immutable;
 using System.Numerics;
+using FFStreamViewer.WebAPI.UI.Permissions;
 
 namespace FFStreamViewer.WebAPI.UI;
 

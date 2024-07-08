@@ -12,6 +12,7 @@ using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services;
 using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using FFStreamViewer.WebAPI.Services.Mediator;
+using Gagspeak.API.Data;
 using ImGuiNET;
 using System.Numerics;
 using System.Runtime.InteropServices;
@@ -80,6 +81,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     // public bool HasValidPenumbraModPath => !(_ipcManager.Penumbra.ModDirectory ?? string.Empty).IsNullOrEmpty() && Directory.Exists(_ipcManager.Penumbra.ModDirectory);
     public IFontHandle IconFont { get; init; } // the current icon font
     public string PlayerName => _frameworkUtil.GetPlayerName();
+    public UserData PlayerUserData => _apiController.GetConnectionDto().Result.User;
     public IFontHandle UidFont { get; init; } // the current UID font
     public Dictionary<ushort, string> WorldData => _frameworkUtil.WorldData.Value;
     public uint WorldId => _frameworkUtil.GetHomeWorldId(); // the homeworld ID of the current player
@@ -303,8 +305,9 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return result;
     }
 
-    private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null)
+    private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null, bool disabled = false)
     {
+        using var dis = ImRaii.PushStyle(ImGuiStyleVar.Alpha, disabled ? 0.5f : 1f);
         int num = 0;
         if (defaultColor.HasValue)
         {
@@ -333,16 +336,99 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         {
             ImGui.PopStyleColor(num);
         }
+        dis.Pop();
 
-        return result;
+        return result && !disabled;
     }
 
-    public bool IconTextButton(FontAwesomeIcon icon, string text, float? width = null, bool isInPopup = false)
+    public bool IconTextButton(FontAwesomeIcon icon, string text, float? width = null, bool isInPopup = false, bool disabled = false)
     {
         return IconTextButtonInternal(icon, text,
             isInPopup ? ColorHelpers.RgbaUintToVector4(ImGui.GetColorU32(ImGuiCol.PopupBg)) : null,
-            width <= 0 ? null : width);
+            width <= 0 ? null : width,
+            disabled);
     }
+
+
+    private bool IconInputTextInternal(FontAwesomeIcon icon, string label, string hint, ref string inputStr,
+        uint maxLength, Vector4? defaultColor = null, float? width = null, bool disabled = false)
+    {
+        using var dis = ImRaii.PushStyle(ImGuiStyleVar.Alpha, disabled ? 0.5f : 1f);
+        int num = 0;
+/*        if (defaultColor.HasValue)
+        {
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, defaultColor.Value);
+            num++;
+        }*/
+
+        ImGui.PushID(label);
+        Vector2 vector;
+        using (IconFont.Push())
+            vector = ImGui.CalcTextSize(icon.ToIconString());
+        Vector2 vector2 = ImGui.CalcTextSize(label);
+        ImDrawListPtr windowDrawList = ImGui.GetWindowDrawList();
+        Vector2 cursorScreenPos = ImGui.GetCursorScreenPos();
+        float num2 = 3f * ImGuiHelpers.GlobalScale;
+        float x = width ?? vector.X + vector2.X + ImGui.GetStyle().FramePadding.X * 2f + num2;
+        float frameHeight = ImGui.GetFrameHeight();
+        ImGui.SetCursorPosX(vector.X + ImGui.GetStyle().FramePadding.X * 2f + num2);
+        ImGui.SetNextItemWidth(x - vector.X - num2);
+        bool result = ImGui.InputTextWithHint(String.Empty, hint, ref inputStr, maxLength);
+
+        Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
+        using (IconFont.Push())
+            windowDrawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
+        ImGui.PopID();
+        if (num > 0)
+        {
+            ImGui.PopStyleColor(num);
+        }
+        dis.Pop();
+
+        return result && !disabled;
+    }
+
+    public bool IconInputText(FontAwesomeIcon icon, string label, string hint, ref string inputStr,
+        uint maxLength, float? width = null, bool isInPopup = false, bool disabled = false)
+    {
+        return IconInputTextInternal(icon, label, hint, ref inputStr, maxLength,
+            isInPopup ? ColorHelpers.RgbaUintToVector4(ImGui.GetColorU32(ImGuiCol.PopupBg)) : null,
+            width <= 0 ? null : width,
+            disabled);
+    }
+
+    /// <summary> Helper function to convert a timespan object into a string with format XdXhXmXs. </summary>
+    public string TimeSpanToString(TimeSpan timeSpan)
+    {
+        return $"{timeSpan.Days}d{timeSpan.Hours}h{timeSpan.Minutes}m{timeSpan.Seconds}s";
+    }
+
+    /// <summary>
+    /// Helper function to try and take the string version of timespan and convert it back to a timespan object.
+    /// </summary>
+    /// <param name="input"> the string variant of the timespan </param>
+    /// <param name="result"> the timespan equivalent of the string passed in </param>
+    /// <returns> if the parse was successful or not. </returns>
+    public bool TryParseTimeSpan(string input, out TimeSpan result)
+    {
+        result = TimeSpan.Zero;
+        var regex = new System.Text.RegularExpressions.Regex(@"(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?");
+        var match = regex.Match(input);
+
+        if (!match.Success)
+        {
+            return false;
+        }
+
+        int days = match.Groups[1].Success ? int.Parse(match.Groups[1].Value) : 0;
+        int hours = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
+        int minutes = match.Groups[3].Success ? int.Parse(match.Groups[3].Value) : 0;
+        int seconds = match.Groups[4].Success ? int.Parse(match.Groups[4].Value) : 0;
+
+        result = new TimeSpan(days, hours, minutes, seconds);
+        return true;
+    }
+
 
     public static bool IsDirectoryWritable(string dirPath, bool throwIfFails = false)
     {

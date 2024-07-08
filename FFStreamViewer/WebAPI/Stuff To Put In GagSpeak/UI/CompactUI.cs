@@ -122,7 +122,7 @@ public class CompactUi : WindowMediatorSubscriberBase
         // display info about the folders
         string dev = "Dev Build";
         var ver = Assembly.GetExecutingAssembly().GetName().Version!;
-        WindowName = $"GagSpeak {dev} ({ver.Major}.{ver.Minor}.{ver.Build})###GagSpeakMainUI";
+        WindowName = $"GagSpeak {dev} ({ver.Major}.{ver.Minor}.{ver.Build}.{ver.Revision})###GagSpeakMainUI";
 
         Toggle();
 
@@ -591,7 +591,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         // filter based on who is online (or paused but that shouldnt exist yet unless i decide to add it later here)
         bool FilterOnlineOrPausedSelf(Pair u)
-            => (u.IsOnline || (!u.IsOnline && !_configService.Current.ShowOfflineUsersSeparately));
+            => (u.IsOnline || (!u.IsOnline && !_configService.Current.ShowOfflineUsersSeparately) || u.UserPair.OwnPairPerms.IsPaused);
 
         // collect the sorted list
         List<Pair> BasicSortedList(IEnumerable<Pair> u)
@@ -609,7 +609,7 @@ public class CompactUi : WindowMediatorSubscriberBase
 
         bool FilterNotTaggedUsers(Pair u) => u.IsDirectlyPaired && !u.IsOneSidedPair && !_tagHandler.HasAnyTag(u.UserData.UID);
 
-        bool FilterOfflineUsers(Pair u) => u.IsDirectlyPaired && (!u.IsOneSidedPair) && !u.IsOnline;
+        bool FilterOfflineUsers(Pair u) => u.IsDirectlyPaired && (!u.IsOneSidedPair) && !u.IsOnline && !u.UserPair.OwnPairPerms.IsPaused;
 
 
         // if we wish to display our visible users separately, then do so.

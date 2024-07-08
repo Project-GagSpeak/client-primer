@@ -349,9 +349,18 @@ public partial class UserPairPermsSticky
 
             if (_uiSharedService.IconInputText(icon, label, ".", ref inputChar, 1, _menuWidth, true, false)) { /* Consume */ }
             // if deactivated set perm
-            if (ImGui.IsItemDeactivatedAfterEdit() && inputChar != (string)permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions)!)
+            if (ImGui.IsItemDeactivatedAfterEdit())
             {
-                SetPermission(permissions, permissionKey, inputChar, isEditAccessPerm);
+                // get the original value as a string (it is originally char)
+                string originalValue = permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions)?.ToString() ?? ".";
+
+                // see if it is different from the existing one
+                if (!inputChar.Equals(originalValue))
+                {
+                    // ensure new value is char before passing in
+                    char newValue = inputChar.Length > 0 ? inputChar[0] : '.';
+                    SetPermission(permissions, permissionKey, newValue, isEditAccessPerm);
+                }
             }
             // add tooltip
             UiSharedService.AttachToolTip(tooltip);

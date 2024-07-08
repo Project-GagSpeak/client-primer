@@ -181,7 +181,7 @@ public partial class ApiController
     /// </summary>
     public Task Client_UserUpdateOtherPairPermsGlobal(UserGlobalPermChangeDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateOtherAllPairPerms: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateOtherPairPermsGlobal: {dto}", dto);
         if(dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
@@ -202,7 +202,7 @@ public partial class ApiController
     /// </summary>
     public Task Client_UserUpdateOtherPairPerms(UserPairPermChangeDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateOtherAllPairPerms: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateOtherPairPerms: {dto}", dto);
         if(dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
@@ -230,7 +230,7 @@ public partial class ApiController
     /// </summary>
     public Task Client_UserUpdateOtherPairPermAccess(UserPairAccessChangeDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateOtherAllPairPerms: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateOtherPairPermAccess: {dto}", dto);
         if(dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");

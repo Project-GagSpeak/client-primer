@@ -1,6 +1,7 @@
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using FFStreamViewer.WebAPI.Services.Mediator;
+using FFXIVClientStructs.FFXIV.Common.Lua;
 using Gagspeak.API.Data;
 using Gagspeak.API.Data.Enum;
 using GagSpeak.API.Data.Character;
@@ -8,6 +9,7 @@ using GagSpeak.API.Data.Permissions;
 using GagSpeak.API.Dto.Connection;
 using GagSpeak.API.Dto.Permissions;
 using System.Reflection;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
 
 namespace FFStreamViewer.WebAPI.PlayerData.Data;
 
@@ -154,7 +156,17 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         PropertyInfo? propertyInfo = typeof(UserGlobalPermissions).GetProperty(changeDto.ChangedPermission.Key);
 
         // If the property exists and is found, update its value
-        if (propertyInfo != null && propertyInfo.CanWrite)
+        if (changeDto.ChangedPermission.Value.GetType() == typeof(UInt64) && propertyInfo.PropertyType == typeof(TimeSpan))
+        {
+            // property should be converted back from its Uint64 [MaxLockTime, 36000000000] to the timespan.
+            propertyInfo.SetValue(_playerCharGlobalPerms, TimeSpan.FromTicks((long)(ulong)changeDto.ChangedPermission.Value));
+        }
+        // char recognition. (these are converted to byte for Dto's instead of char)
+        else if (changeDto.ChangedPermission.Value.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
+        {
+            propertyInfo.SetValue(_playerCharGlobalPerms, Convert.ToChar(changeDto.ChangedPermission.Value));
+        }
+        else if (propertyInfo != null && propertyInfo.CanWrite)
         {
             // Convert the value to the appropriate type before setting
             object value = Convert.ChangeType(changeDto.ChangedPermission.Value, propertyInfo.PropertyType);

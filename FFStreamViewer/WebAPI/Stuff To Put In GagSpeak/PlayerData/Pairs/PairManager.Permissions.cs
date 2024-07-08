@@ -11,6 +11,7 @@ using GagSpeak.API.Dto.Connection;
 using GagSpeak.API.Dto.Permissions;
 using GagSpeak.API.Dto.UserPair;
 using System.Reflection;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
 
 namespace FFStreamViewer.WebAPI.PlayerData.Pairs;
 
@@ -69,7 +70,17 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         PropertyInfo? propertyInfo = typeof(UserGlobalPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)
         {
-            if (propertyInfo.CanWrite)
+            if (ChangedValue.GetType() == typeof(UInt64) && propertyInfo.PropertyType == typeof(TimeSpan))
+            {
+                // property should be converted back from its Uint64 [MaxLockTime, 36000000000] to the timespan.
+                propertyInfo.SetValue(pair.UserPair.OtherGlobalPerms, TimeSpan.FromTicks((long)(ulong)ChangedValue));
+            }
+            // char recognition. (these are converted to byte for Dto's instead of char)
+            else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
+            {
+                propertyInfo.SetValue(pair.UserPair.OtherGlobalPerms, Convert.ToChar(ChangedValue));
+            }
+            else if (propertyInfo.CanWrite)
             {
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
@@ -106,7 +117,17 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         PropertyInfo? propertyInfo = typeof(UserPairPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)
         {
-            if (propertyInfo.CanWrite)
+            if (ChangedValue.GetType() == typeof(UInt64) && propertyInfo.PropertyType == typeof(TimeSpan))
+            {
+                // property should be converted back from its Uint64 [MaxLockTime, 36000000000] to the timespan.
+                propertyInfo.SetValue(pair.UserPair.OtherPairPerms, TimeSpan.FromTicks((long)(ulong)ChangedValue));
+            }
+            // char recognition. (these are converted to byte for Dto's instead of char)
+            else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
+            {
+                propertyInfo.SetValue(pair.UserPair.OtherPairPerms, Convert.ToChar(ChangedValue));
+            }
+            else if (propertyInfo.CanWrite)
             {
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
@@ -134,7 +155,17 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         PropertyInfo? propertyInfo = typeof(UserEditAccessPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)
         {
-            if (propertyInfo.CanWrite)
+            if (ChangedValue.GetType() == typeof(UInt64) && propertyInfo.PropertyType == typeof(TimeSpan))
+            {
+                // property should be converted back from its Uint64 [MaxLockTime, 36000000000] to the timespan.
+                propertyInfo.SetValue(pair.UserPair.OtherEditAccessPerms, TimeSpan.FromTicks((long)(ulong)ChangedValue));
+            }
+            // char recognition. (these are converted to byte for Dto's instead of char)
+            else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
+            {
+                propertyInfo.SetValue(pair.UserPair.OtherEditAccessPerms, Convert.ToChar(ChangedValue));
+            }
+            else if (propertyInfo.CanWrite)
             {
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
@@ -169,7 +200,17 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         PropertyInfo? propertyInfo = typeof(UserPairPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)
         {
-            if (propertyInfo.CanWrite)
+            if (ChangedValue.GetType() == typeof(UInt64) && propertyInfo.PropertyType == typeof(TimeSpan))
+            {
+                // property should be converted back from its Uint64 [MaxLockTime, 36000000000] to the timespan.
+                propertyInfo.SetValue(pair.UserPair.OwnPairPerms, TimeSpan.FromTicks((long)(ulong)ChangedValue));
+            }
+            // char recognition. (these are converted to byte for Dto's instead of char)
+            else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
+            {
+                propertyInfo.SetValue(pair.UserPair.OwnPairPerms, Convert.ToChar(ChangedValue));
+            }
+            else if (propertyInfo.CanWrite)
             {
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);

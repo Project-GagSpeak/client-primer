@@ -241,7 +241,7 @@ public partial class UserPairPermsSticky
             bool newValueState = (bool)permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions);
             if (_uiSharedService.IconTextButton(icon, label, _menuWidth, true, !canEdit))
             {
-                SetPermission(permissions, permissionKey, !newValueState, isGlobalPerm);
+                SetPermissionPair(permissions, permissionKey, !newValueState, isGlobalPerm);
             }
             UiSharedService.AttachToolTip(tooltip);
         }
@@ -257,7 +257,7 @@ public partial class UserPairPermsSticky
             {
                 if (_uiSharedService.TryParseTimeSpan(timeSpanString, out TimeSpan result))
                 {
-                    SetPermission(permissions, permissionKey, result, isGlobalPerm);
+                    SetPermissionPair(permissions, permissionKey, result, isGlobalPerm);
                 }
                 else
                 {
@@ -282,7 +282,7 @@ public partial class UserPairPermsSticky
             {
                 if (inputStr != permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions)?.ToString())
                 {
-                    SetPermission(permissions, permissionKey, inputStr, isGlobalPerm);
+                    SetPermissionPair(permissions, permissionKey, inputStr, isGlobalPerm);
                 }
             }
             else
@@ -302,7 +302,7 @@ public partial class UserPairPermsSticky
             {
                 if (inputChar != permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions)?.ToString())
                 {
-                    SetPermission(permissions, permissionKey, inputChar, isGlobalPerm);
+                    SetPermissionPair(permissions, permissionKey, inputChar, isGlobalPerm);
                 }
             }
             else

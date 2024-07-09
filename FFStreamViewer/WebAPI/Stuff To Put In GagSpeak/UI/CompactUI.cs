@@ -20,6 +20,7 @@ using FFStreamViewer.WebAPI.UI.Permissions;
 
 namespace FFStreamViewer.WebAPI.UI;
 
+// this can easily become the "contact list" tab of the "main UI" window.
 public class CompactUi : WindowMediatorSubscriberBase
 {
     private readonly ApiController _apiController;

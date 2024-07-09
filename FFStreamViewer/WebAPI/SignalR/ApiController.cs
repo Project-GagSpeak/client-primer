@@ -15,6 +15,7 @@ using GagSpeak.API.Dto.Permissions;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Reflection;
+using GagSpeak.API.Dto.Toybox;
 
 namespace FFStreamViewer.WebAPI;
 
@@ -31,14 +32,23 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     private readonly ServerConfigurationManager _serverConfigManager;// the server configuration manager
     private readonly TokenProvider _tokenProvider;                  // the token provider for authentications
     private readonly GagspeakConfigService _gagspeakConfigService;  // the Gagspeak configuration service
-    private CancellationTokenSource _connectionCTS;                 // token for connection creation
-    private ConnectionDto? _connectionDto;                          // the connection data transfer object for the current connection
+
     private bool _doNotNotifyOnNextInfo = false;                    // flag to not notify on next info
+    // gagspeak hub variables
+    private ConnectionDto? _connectionDto;                          // dto of our connection to main server
+    private CancellationTokenSource _connectionCTS;                 // token for connection creation
     private CancellationTokenSource? _healthCTS = new();             // token for health check
     private bool _initialized;                                      // flag for if the hub is initialized
-    private string? _lastUsedToken;                                 // the last used token
+    private string? _lastUsedToken;                                 // the last used token (will use this for toybox connection too)
     private HubConnection? _gagspeakHub;                            // the current hub connection
     private ServerState _serverState;                               // the current state of the server
+
+    // toybox hub variables
+    private ToyboxConnectionDto? _toyboxConnectionDto;              // dto of our connection to toybox server
+    private CancellationTokenSource _connectionToyboxCTS;           // token for connection creation
+    private bool _toyboxInitialized;                                // flag for if the toybox hub is initialized
+    private HubConnection? _toyboxHub;                              // the toybox hub connection
+    private ServerState _toyboxServerState;                         // the current state of the toybox server
 
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, OnFrameworkService frameworkService,
         PlayerCharacterManager playerCharManager, PairManager pairManager, ServerConfigurationManager serverManager,
@@ -57,12 +67,15 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         // subscribe to our mediator publishers for login/logout, and connection statuses
         Mediator.Subscribe<DalamudLoginMessage>(this, (_) => FrameworkUtilOnLogIn());
         Mediator.Subscribe<DalamudLogoutMessage>(this, (_) => FrameworkUtilOnLogOut());
+        Mediator.Subscribe<CyclePauseMessage>(this, (msg) => _ = CyclePause(msg.UserData));
+        // main hub connection subscribers
         Mediator.Subscribe<HubClosedMessage>(this, (msg) => GagspeakHubOnClosed(msg.Exception));
         Mediator.Subscribe<HubReconnectedMessage>(this, (msg) => _ = GagspeakHubOnReconnected());
         Mediator.Subscribe<HubReconnectingMessage>(this, (msg) => GagspeakHubOnReconnecting(msg.Exception));
-        Mediator.Subscribe<CyclePauseMessage>(this, (msg) => _ = CyclePause(msg.UserData));
         // initially set the server state to offline.
         ServerState = ServerState.Offline;
+        ToyboxServerState = ServerState.Offline;
+        _serverConfigManager.CurrentServer.ToyboxFullPause = true;
 
         // if we are already logged in, then run the login function
         if (_frameworkUtils.IsLoggedIn) { FrameworkUtilOnLogIn(); }
@@ -72,9 +85,11 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     public Version CurrentClientVersion => _connectionDto?.CurrentClientVersion ?? new Version(0, 0, 0);    // current client version
     public string DisplayName => _connectionDto?.User.AliasOrUID ?? string.Empty;                           // display name of user (the UID you see in the UI for yourself)
     public bool IsConnected => ServerState == ServerState.Connected;                                        // if we are connected to the server
+    public bool IsToyboxConnected => ToyboxServerState == ServerState.Connected;                            // if we are connected to the toybox server
     public bool IsCurrentVersion => (Assembly.GetExecutingAssembly().GetName()                              // if the current version is the same as the version from the executing assembly
                                         .Version ?? new Version(0, 0, 0, 0)) >= (_connectionDto?.CurrentClientVersion ?? new Version(0, 0, 0, 0));
     public int OnlineUsers => SystemInfoDto.OnlineUsers;                                                    // the number of online users logged into the server
+    public int ToyboxOnlineUsers => SystemInfoDto.OnlineToyboxUsers;
     public SystemInfoDto SystemInfoDto { get; private set; } = new();                                       // the system info data transfer object
     public string UID => _connectionDto?.User.UID ?? string.Empty;                                          // the UID of the connected client user
     public UserData PlayerUserData => _connectionDto!.User;                                                        // the user data of the connected client user
@@ -89,6 +104,18 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     }
     public bool ServerAlive => ServerState is ServerState.Connected or ServerState.Unauthorized or ServerState.Disconnected;
 
+    public ServerState ToyboxServerState
+    {
+        get => _toyboxServerState;
+        private set
+        {
+            Logger.LogDebug($"New ToyboxServerState: {value}, prev ToyboxServerState: {_toyboxServerState}");
+            _toyboxServerState = value;
+        }
+    }
+    public bool ToyboxServerAlive => ToyboxServerState is ServerState.Connected or ServerState.Unauthorized or ServerState.Disconnected;
+
+
     /* ---------------------------------------------- METHODS ----------------------------------------------------- */
 
     /// <summary>Invoke a call to the server's hub function CHECKCLIENTHEALTH function.</summary>
@@ -96,25 +123,6 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     public async Task<bool> CheckClientHealth()
     {
         return await _gagspeakHub!.InvokeAsync<bool>(nameof(CheckClientHealth)).ConfigureAwait(false);
-    }
-
-    /// <summary> Call a task that will attempt to connect to the server. </summary>
-    public void ConnectToServer()
-    {
-        _ = Task.Run(() => CreateConnections());
-    }
-
-    /// <summary> Call a task that will disconnect from the server.
-    /// <para>Additionally, it will also call the cancelation token and set the state to offline</para>
-    /// </summary>
-    public void DisconnectFromServer()
-    {
-        _ = Task.Run(async () =>
-        {
-            await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
-            _connectionCTS?.Cancel();
-        });
-        ServerState = ServerState.Offline;
     }
 
     public async Task<(string, string)> FetchNewAccountDetailsAndDisconnect()
@@ -189,10 +197,139 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         }
     }
 
+    // create toybox server connection
+    public async Task CreateToyboxConnection()
+    {
+        // perform the same regular checks as the main server connection, minus the redundancy.
+        Logger.LogInformation("CreateToyboxConnection called");
+
+        // make sure we are connected to the main server. If not, shut it down.
+        if (!ToyboxServerAlive)
+        {
+            Logger.LogInformation("Stopping connection because connection to main server was lost.");
+            await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
+            _connectionToyboxCTS?.Cancel();
+            return;
+        }
+        // if we have opted to disconnect from the main server (manual button toggle)
+        if (_serverConfigManager.CurrentServer?.ToyboxFullPause ?? true)
+        {
+            Logger.LogInformation("Stopping connection to toybox server, as user wished to disconnect");
+            await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
+            _connectionToyboxCTS?.Cancel();
+            return;
+        }
+        // reset connection to toybox server (resuming a fullpause fully reconnects)
+        await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
+
+        // now we can recreate the connection
+        Logger.LogInformation("Recreating Toybox Connection");
+        Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), 
+            Services.Events.EventSeverity.Informational, $"Starting Connection to Toybox Server")));
+
+        // recreate CTS for the toybox connection
+        _connectionToyboxCTS?.Cancel();
+        _connectionToyboxCTS?.Dispose();
+        _connectionToyboxCTS = new CancellationTokenSource();
+        CancellationToken token = _connectionToyboxCTS.Token;
+
+        /* -------- WHILE THE SERVER STATE IS STILL NOT YET CONNECTED, (And the cancelation token hasn't been requested) -------- */
+        while (ToyboxServerState is not ServerState.Connected && !token.IsCancellationRequested)
+        {
+            // stop the connection so we can try again (since its in a while loop)
+            await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
+            ToyboxServerState = ServerState.Connecting;
+
+            try
+            {
+                Logger.LogDebug("Building connection to toybox WebSocket server");
+                // wait to connect to the server until they have logged in with their player character and make sure the cancelation token has not yet been called
+                while (!await _frameworkUtils.GetIsPlayerPresentAsync().ConfigureAwait(false) && !token.IsCancellationRequested)
+                {
+                    // log that the player has not yet loaded in and wait for 1 second
+                    Logger.LogDebug("Player not loaded in yet, waiting");
+                    await Task.Delay(TimeSpan.FromSeconds(1), token).ConfigureAwait(false);
+                }
+
+                // if the token is cancelled, then break out of the loop
+                if (token.IsCancellationRequested || _lastUsedToken == null) break;
+
+                // otherwise, create a new hub connection
+                _toyboxHub = _hubFactory.GetOrCreate(token, HubType.ToyboxHub, _lastUsedToken);
+                // initialize the API hooks that will listen to the signalR function calls from our server to the connected clients
+                InitializeApiHooks(HubType.ToyboxHub);
+
+                // start the hub we just created in async
+                await _toyboxHub.StartAsync(token).ConfigureAwait(false);
+
+                // then fetch the connection data transfer object from the server
+                _toyboxConnectionDto = await GetToyboxConnectionDto().ConfigureAwait(false);
+                // if the connectionDTO is null, then stop the connection and return
+                if (_toyboxConnectionDto == null)
+                {
+                    Logger.LogError("Toybox Connection DTO is null, this means you failed to connect (duh).");
+                    await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
+                    return;
+                }
+
+                // if we reach here it means we are officially connected to the server
+                ToyboxServerState = ServerState.Connected;
+
+                // declare the current client version from the executing assembly
+                Logger.LogInformation("Client Version for server: {clientServerVar}", IGagspeakHub.ApiVersion);
+                Logger.LogInformation("Server Version: {serverVersion}", _toyboxConnectionDto.ServerVersion);
+
+                // if the server version is not the same as the API version
+                if (_toyboxConnectionDto.ServerVersion != IGagspeakHub.ApiVersion)
+                {
+                    // publish a notification message to the client that their client is incompatible
+                    Mediator.Publish(new NotificationMessage("Toybox Server version incompatible with client.",
+                        $"Your client is outdated and will not be able to connect. Please update Gagspeak to fix.",
+                        NotificationType.Error));
+                    // stop connection
+                    await StopConnection(ServerState.VersionMisMatch, HubType.ToyboxHub).ConfigureAwait(false);
+                    return;
+                }
+            }
+            catch (OperationCanceledException) { Logger.LogWarning("Toybox Connection attempt cancelled"); return; }
+            catch (HttpRequestException ex) 
+            {
+                Logger.LogWarning($"{ex} HttpRequestException on Toybox Connection");
+
+                if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    // stop the connection and change the state to unauthorized.
+                    await StopConnection(ServerState.Unauthorized, HubType.ToyboxHub).ConfigureAwait(false);
+                    return;
+                }
+
+                // otherwise attempt to reconnect
+                ToyboxServerState = ServerState.Reconnecting;
+                Logger.LogInformation("Failed to establish connection to toybox server, retrying");
+                await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), token).ConfigureAwait(false);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // if we had an invalid operation exception then we should stop the connection (disconnect).
+                Logger.LogWarning($"{ex} InvalidOperationException on connection");
+                await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
+                return;
+            }
+            catch (Exception ex)
+            {
+                // if we had any other exception, log it and attempt to reconnect
+                Logger.LogWarning($"{ex} Exception on Toybox Connection");
+                Logger.LogInformation("Failed to establish connection, retrying");
+                await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), token).ConfigureAwait(false);
+            }
+        }
+
+    }
+
     // create a connection
     public async Task CreateConnections()
     {
-        Logger.LogDebug("CreateConnections called");
+        Logger.LogInformation("CreateConnections called");
 
         // if we have opted to disconnect from the server for now, then stop the connection and return.
         if (_serverConfigManager.CurrentServer?.FullPause ?? true)
@@ -410,12 +547,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// 
-    /// The generic call outlined by the interface in the API for the connectionDto.
-    /// This will call the augmented task below
-    /// 
-    /// </summary>
+    /// <summary> Call made to server when we request to get confirmation that we are connected </summary>
     public Task<ConnectionDto> GetConnectionDto() => GetConnectionDto(true);
 
     /// <summary>Invoke a call to the server's hub function GETCONNECTIONDTO function.</summary>
@@ -426,6 +558,21 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         var dto = await _gagspeakHub!.InvokeAsync<ConnectionDto>(nameof(GetConnectionDto)).ConfigureAwait(false);
         // if we are publishing the connected message, publish it
         if (publishConnected) Mediator.Publish(new ConnectedMessage(dto));
+        // return the ConnectionDto we got from the server
+        return dto;
+    }
+
+    /// <summary> Call made to toybox server when we request to get confirmation that we are connected </summary>
+    public Task<ToyboxConnectionDto> GetToyboxConnectionDto() => GetToyboxConnectionDto(true);
+
+    /// <summary>Invoke a call to the toybox server's to validate our connection.</summary>
+    /// <returns> The server will return back a connectionDto </returns>
+    public async Task<ToyboxConnectionDto> GetToyboxConnectionDto(bool publishConnected = true)
+    {
+        // invoke the call to the server's hub function GETCONNECTIONDTO, and await for the Dto in the responce.
+        var dto = await _toyboxHub!.InvokeAsync<ToyboxConnectionDto>(nameof(GetToyboxConnectionDto)).ConfigureAwait(false);
+        // if we are publishing the connected message, publish it
+        if (publishConnected) Mediator.Publish(new ConnectedToyboxMessage(dto));
         // return the ConnectionDto we got from the server
         return dto;
     }
@@ -442,6 +589,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         _healthCTS?.Cancel();
         _ = Task.Run(async () => await StopConnection(ServerState.Disconnected).ConfigureAwait(false));
         _connectionCTS?.Cancel();
+        _connectionToyboxCTS?.Cancel();
     }
 
     /// <summary>
@@ -485,55 +633,75 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     {
         // would run to stop the connection on logout
         _ = Task.Run(async () => await StopConnection(ServerState.Disconnected).ConfigureAwait(false));
+        _ = Task.Run(async () => await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false));
         ServerState = ServerState.Offline; // switch the state to offline.
+        ToyboxServerState = ServerState.Offline; // switch the toybox state to offline.
     }
 
     /// <summary>
     /// Method initializes the API Hooks, to establish listeners from SignalR
     /// <para> AKA the client starts recieving the function calls from the server to its connected clients. (because we declare ourselves are the client)</para>
     /// </summary>
-    private void InitializeApiHooks()
+    private void InitializeApiHooks(HubType hubType = HubType.MainHub)
     {
-        // if the hub is null, return
-        if (_gagspeakHub == null) return;
-        // otherwise, log that we are initializing the data, and initialize it.
-        Logger.LogDebug("Initializing data");
+        if (hubType == HubType.MainHub)
+        {
+            // if the hub is null, return
+            if (_gagspeakHub == null) return;
+            // otherwise, log that we are initializing the data, and initialize it.
+            Logger.LogDebug("Initializing data");
 
-        // On the left is the function from the gagspeakhubclient.cs in the API, on the right is the function to be called in the API controller.
-        OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
-        OnUpdateSystemInfo(dto => _ = Client_UpdateSystemInfo(dto));
+            // On the left is the function from the gagspeakhubclient.cs in the API, on the right is the function to be called in the API controller.
+            OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
+            OnUpdateSystemInfo(dto => _ = Client_UpdateSystemInfo(dto));
 
-        OnUserAddClientPair(dto => _ = Client_UserAddClientPair(dto));
-        OnUserRemoveClientPair(dto => _ = Client_UserRemoveClientPair(dto));
-        OnUpdateUserIndividualPairStatusDto(dto => _ = Client_UpdateUserIndividualPairStatusDto(dto));
+            OnUserAddClientPair(dto => _ = Client_UserAddClientPair(dto));
+            OnUserRemoveClientPair(dto => _ = Client_UserRemoveClientPair(dto));
+            OnUpdateUserIndividualPairStatusDto(dto => _ = Client_UpdateUserIndividualPairStatusDto(dto));
 
-        OnUserUpdateSelfPairPermsGlobal(dto => _ = Client_UserUpdateSelfPairPermsGlobal(dto));
-        OnUserUpdateSelfPairPerms(dto => _ = Client_UserUpdateSelfPairPerms(dto));
-        OnUserUpdateSelfPairPermAccess(dto => _ = Client_UserUpdateSelfPairPermAccess(dto));
-        OnUserUpdateOtherAllPairPerms(dto => _ = Client_UserUpdateOtherAllPairPerms(dto));
-        OnUserUpdateOtherPairPermsGlobal(dto => _ = Client_UserUpdateOtherPairPermsGlobal(dto));
-        OnUserUpdateOtherPairPerms(dto => _ = Client_UserUpdateOtherPairPerms(dto));
-        OnUserUpdateOtherPairPermAccess(dto => _ = Client_UserUpdateOtherPairPermAccess(dto));
+            OnUserUpdateSelfPairPermsGlobal(dto => _ = Client_UserUpdateSelfPairPermsGlobal(dto));
+            OnUserUpdateSelfPairPerms(dto => _ = Client_UserUpdateSelfPairPerms(dto));
+            OnUserUpdateSelfPairPermAccess(dto => _ = Client_UserUpdateSelfPairPermAccess(dto));
+            OnUserUpdateOtherAllPairPerms(dto => _ = Client_UserUpdateOtherAllPairPerms(dto));
+            OnUserUpdateOtherPairPermsGlobal(dto => _ = Client_UserUpdateOtherPairPermsGlobal(dto));
+            OnUserUpdateOtherPairPerms(dto => _ = Client_UserUpdateOtherPairPerms(dto));
+            OnUserUpdateOtherPairPermAccess(dto => _ = Client_UserUpdateOtherPairPermAccess(dto));
 
-        OnUserReceiveCharacterDataComposite(dto => _ = Client_UserReceiveCharacterDataComposite(dto));
-        OnUserReceiveCharacterDataIpc(dto => _ = Client_UserReceiveCharacterDataIpc(dto));
-        OnUserReceiveCharacterDataAppearance(dto => _ = Client_UserReceiveCharacterDataAppearance(dto));
-        OnUserReceiveCharacterDataWardrobe(dto => _ = Client_UserReceiveCharacterDataWardrobe(dto));
-        OnUserReceiveCharacterDataAlias(dto => _ = Client_UserReceiveCharacterDataAlias(dto));
-        OnUserReceiveCharacterDataPattern(dto => _ = Client_UserReceiveCharacterDataPattern(dto));
+            OnUserReceiveCharacterDataComposite(dto => _ = Client_UserReceiveCharacterDataComposite(dto));
+            OnUserReceiveCharacterDataIpc(dto => _ = Client_UserReceiveCharacterDataIpc(dto));
+            OnUserReceiveCharacterDataAppearance(dto => _ = Client_UserReceiveCharacterDataAppearance(dto));
+            OnUserReceiveCharacterDataWardrobe(dto => _ = Client_UserReceiveCharacterDataWardrobe(dto));
+            OnUserReceiveCharacterDataAlias(dto => _ = Client_UserReceiveCharacterDataAlias(dto));
+            OnUserReceiveCharacterDataPattern(dto => _ = Client_UserReceiveCharacterDataPattern(dto));
 
-        OnUserSendOffline(dto => _ = Client_UserSendOffline(dto));
-        OnUserSendOnline(dto => _ = Client_UserSendOnline(dto));
-        OnUserUpdateProfile(dto => _ = Client_UserUpdateProfile(dto));
-        OnDisplayVerificationPopup(dto => _ = Client_DisplayVerificationPopup(dto));
+            OnUserSendOffline(dto => _ = Client_UserSendOffline(dto));
+            OnUserSendOnline(dto => _ = Client_UserSendOnline(dto));
+            OnUserUpdateProfile(dto => _ = Client_UserUpdateProfile(dto));
+            OnDisplayVerificationPopup(dto => _ = Client_DisplayVerificationPopup(dto));
 
-        // create a new health check token
-        _healthCTS?.Cancel();
-        _healthCTS?.Dispose();
-        _healthCTS = new CancellationTokenSource();
-        _ = ClientHealthCheck(_healthCTS.Token);
-        // set us to initialized (yippee!!!)
-        _initialized = true;
+            // create a new health check token
+            _healthCTS?.Cancel();
+            _healthCTS?.Dispose();
+            _healthCTS = new CancellationTokenSource();
+            _ = ClientHealthCheck(_healthCTS.Token);
+            // set us to initialized (yippee!!!)
+            _initialized = true;
+        }
+        // initialize api hooks from the toybox hub.
+        else
+        {
+            // if the hub is null, return
+            if (_toyboxHub == null) return;
+            // otherwise, log that we are initializing the data, and initialize it.
+            Logger.LogDebug("Initializing data");
+
+            // On the left is the function from the gagspeakhubclient.cs in the API, on the right is the function to be called in the API controller.
+            OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
+            OnUpdateIntensity(dto => _ = Client_UpdateIntensity(dto));
+
+            // set us to initialized (yippee!!!)
+            _toyboxInitialized = true;
+        }
     }
 
     /// <summary> Load the initial pairs linked with the client</summary>
@@ -682,40 +850,75 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     }
 
     /// <summary> Stop the connection to the server. </summary>
-    private async Task StopConnection(ServerState state)
+    private async Task StopConnection(ServerState state, HubType hubType = HubType.MainHub)
     {
-        // set state to disconnecting
-        ServerState = ServerState.Disconnecting;
-        // dispose of the hub factory
-        Logger.LogInformation("Stopping existing connection");
-        await _hubFactory.DisposeHubAsync().ConfigureAwait(false);
-        // if the hub is not null
-        if (_gagspeakHub is not null)
+        if(hubType == HubType.MainHub)
         {
-            // publish the event message to the mediator that we are stopping the connection
-            Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Informational,
-                $"Stopping existing connection to {_serverConfigManager.CurrentServer.ServerName}")));
-            // set initialized to false, cancel the health CTS, and publish a disconnected message to the mediator
-            _initialized = false;
-            _healthCTS?.Cancel();
-            Mediator.Publish(new DisconnectedMessage());
-            // set the connectionDto and hub to null.
-            _gagspeakHub = null;
-            _connectionDto = null;
+            // set state to disconnecting
+            ServerState = ServerState.Disconnecting;
+            // dispose of the hub factory
+            Logger.LogInformation("Stopping existing connection");
+            await _hubFactory.DisposeHubAsync(HubType.MainHub).ConfigureAwait(false);
+            // if the hub is not null
+            if (_gagspeakHub is not null)
+            {
+                // publish the event message to the mediator that we are stopping the connection
+                Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Informational,
+                    $"Stopping existing connection to Main Hub :: {_serverConfigManager.CurrentServer.ServerName}")));
+                // set initialized to false, cancel the health CTS, and publish a disconnected message to the mediator
+                _initialized = false;
+                _healthCTS?.Cancel();
+                Mediator.Publish(new DisconnectedMessage(HubType.MainHub));
+                // set the connectionDto and hub to null.
+                _gagspeakHub = null;
+                _connectionDto = null;
+            }
+            // update the server state.
+            ServerState = state;
         }
-        // update the server state.
-        ServerState = state;
+        else // hub type is toybox hub
+        {
+            // set state to disconnecting
+            ToyboxServerState = ServerState.Disconnecting;
+            // dispose of the hub factory
+            Logger.LogInformation("Stopping existing Toybox connection");
+            await _hubFactory.DisposeHubAsync(HubType.ToyboxHub).ConfigureAwait(false);
+            // if the hub is not null
+            if (_toyboxHub is not null)
+            {
+                // publish the event message to the mediator that we are stopping the connection
+                Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Informational,
+                    $"Stopping existing connection to Toybox Hub")));
+                // set initialized to false, cancel the health CTS, and publish a disconnected message to the mediator
+                _toyboxInitialized = false;
+                Mediator.Publish(new DisconnectedMessage(HubType.ToyboxHub));
+                // set the connectionDto and hub to null.
+                _toyboxHub = null;
+            }
+            // update the server state.
+            ToyboxServerState = state;
+        }
     }
 
     /// <summary> A helper function to check if the connection is valid. 
     /// <para>Throws exception if not connected, preventing further code from executing.</para>
     /// </summary>
     /// <exception cref="InvalidDataException"></exception>
-    private void CheckConnection()
+    private void CheckConnection(HubType hubType = HubType.MainHub)
     {
-        if (ServerState is not (ServerState.Connected or ServerState.Connecting or ServerState.Reconnecting))
+        if(hubType == HubType.MainHub)
         {
-            throw new InvalidDataException("Not connected");
+            if (ServerState is not (ServerState.Connected or ServerState.Connecting or ServerState.Reconnecting))
+            {
+                throw new InvalidDataException("Not connected");
+            }
+        }
+        else // hub type is toybox hub
+        {
+            if (ToyboxServerState is not (ServerState.Connected or ServerState.Connecting or ServerState.Reconnecting))
+            {
+                throw new InvalidDataException("Not connected");
+            }
         }
     }
 }

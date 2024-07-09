@@ -9,6 +9,7 @@ using System.Numerics;
 using GagSpeak.API.Dto.Connection;
 using GagSpeak.API.Data.Character;
 using FFStreamViewer.WebAPI.UI.Permissions;
+using FFStreamViewer.WebAPI.SignalR.Utils;
 
 namespace FFStreamViewer.WebAPI.Services.Mediator;
 
@@ -19,11 +20,12 @@ namespace FFStreamViewer.WebAPI.Services.Mediator;
 public record NotificationMessage // the record indicating a notification message that should be send to the client.
     (string Title, string Message, NotificationType Type, TimeSpan? TimeShownOnScreen = null) : MessageBase;
 
-public record DisconnectedMessage : SameThreadMessage; // indicating a disconnection message from the server.
+public record DisconnectedMessage(HubType hubType = HubType.MainHub) : SameThreadMessage; // indicating a disconnection message from the server.
 public record HubReconnectingMessage(Exception? Exception) : SameThreadMessage; // indicating the moment the hub is reconnecting.
 public record HubReconnectedMessage(string? Arg) : SameThreadMessage; // indicating the moment the hub has reconnected.
 public record HubClosedMessage(Exception? Exception) : SameThreadMessage; // indicating the moment the hub has closed.
 public record ConnectedMessage(ConnectionDto Connection) : MessageBase; // message published upon sucessful connection to the server
+public record ConnectedToyboxMessage(ToyboxConnectionDto Connection) : MessageBase; // message published upon sucessful connection to the server
 public record OnlinePairsLoadedMessage : MessageBase; // message published completion of loading all online pairs for the client.
 public record DalamudLoginMessage : MessageBase; // record indicating the moment the client logs into the game instance.
 public record DalamudLogoutMessage : MessageBase; // record indicating the moment the client logs out of the game instance.

@@ -43,12 +43,46 @@ public partial class ApiController
                     break;
                 }
                 Mediator.Publish(new NotificationMessage("Info from " + 
-                    _serverConfigManager.CurrentServer!.ServerName, message, NotificationType.Info, TimeSpan.FromSeconds(5)));
+                    _serverConfigManager.CurrentServer!.ServerName, message, NotificationType.Info, TimeSpan.FromSeconds(7.5)));
                 break;
         }
         // return it as a completed task.
         return Task.CompletedTask;
     }
+
+    public Task Client_ReceiveHardReconnectMessage(MessageSeverity messageSeverity, string message, ServerState newServerState)
+    {
+        switch (messageSeverity)
+        {
+            case MessageSeverity.Error:
+                Mediator.Publish(new NotificationMessage("Warning from " +
+                    _serverConfigManager.CurrentServer!.ServerName, message, NotificationType.Error, TimeSpan.FromSeconds(7.5)));
+                break;
+
+            case MessageSeverity.Warning:
+                Mediator.Publish(new NotificationMessage("Warning from " +
+                    _serverConfigManager.CurrentServer!.ServerName, message, NotificationType.Warning, TimeSpan.FromSeconds(7.5)));
+                break;
+
+            case MessageSeverity.Information:
+                if (_doNotNotifyOnNextInfo)
+                {
+                    _doNotNotifyOnNextInfo = false;
+                    break;
+                }
+                Mediator.Publish(new NotificationMessage("Info from " +
+                    _serverConfigManager.CurrentServer!.ServerName, message, NotificationType.Info, TimeSpan.FromSeconds(5)));
+                break;
+        }
+        // we need to update the api server state to be stopped if connected
+        if (ServerState == ServerState.Connected)
+        {
+            _ = Task.Run(async () => await StopConnection(newServerState).ConfigureAwait(false));
+        }
+        // return completed
+        return Task.CompletedTask;
+    }
+
 
     /// <summary> Called when the toybox server sends a message to the client. </summary>
     /// <param name="messageSeverity">the severity level of the message</param>
@@ -495,6 +529,12 @@ public partial class ApiController
     {
         if (_initialized) return;
         _gagspeakHub!.On(nameof(Client_ReceiveServerMessage), act);
+    }
+
+    public void OnReceiveHardReconnectMessage(Action<MessageSeverity, string, ServerState> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_ReceiveHardReconnectMessage), act);
     }
 
     public void OnUpdateSystemInfo(Action<SystemInfoDto> act)

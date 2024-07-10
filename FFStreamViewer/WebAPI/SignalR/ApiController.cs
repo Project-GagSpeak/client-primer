@@ -1,21 +1,21 @@
-using Dalamud.Utility;
 using Dalamud.Interface.ImGuiNotification;
+using Dalamud.Utility;
 using FFStreamViewer.WebAPI.GagspeakConfiguration;
 using FFStreamViewer.WebAPI.PlayerData.Data;
 using FFStreamViewer.WebAPI.PlayerData.Pairs;
 using FFStreamViewer.WebAPI.Services;
-using FFStreamViewer.WebAPI.Services.Mediator;
 using FFStreamViewer.WebAPI.Services.ConfigurationServices;
+using FFStreamViewer.WebAPI.Services.Mediator;
 using FFStreamViewer.WebAPI.SignalR;
-using FFStreamViewer.WebAPI.SignalR.Utils;
 using Gagspeak.API.Data;
+using Gagspeak.API.Data.Enum;
 using Gagspeak.API.SignalR;
 using GagSpeak.API.Dto.Connection;
 using GagSpeak.API.Dto.Permissions;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.VisualBasic;
 using System.Reflection;
-using GagSpeak.API.Dto.Toybox;
 
 namespace FFStreamViewer.WebAPI;
 
@@ -72,6 +72,10 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         Mediator.Subscribe<HubClosedMessage>(this, (msg) => GagspeakHubOnClosed(msg.Exception));
         Mediator.Subscribe<HubReconnectedMessage>(this, (msg) => _ = GagspeakHubOnReconnected());
         Mediator.Subscribe<HubReconnectingMessage>(this, (msg) => GagspeakHubOnReconnecting(msg.Exception));
+        // toybox hub connection subscribers
+        Mediator.Subscribe<ToyboxHubClosedMessage>(this, (msg) => ToyboxHubOnClosed(msg.Exception));
+        Mediator.Subscribe<ToyboxHubReconnectedMessage>(this, (msg) => _ = ToyboxHubOnReconnected());
+        Mediator.Subscribe<ToyboxHubReconnectingMessage>(this, (msg) => ToyboxHubOnReconnecting(msg.Exception));
         // initially set the server state to offline.
         ServerState = ServerState.Offline;
         ToyboxServerState = ServerState.Offline;
@@ -204,7 +208,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         Logger.LogInformation("CreateToyboxConnection called");
 
         // make sure we are connected to the main server. If not, shut it down.
-        if (!ToyboxServerAlive)
+        if (!ServerAlive)
         {
             Logger.LogInformation("Stopping connection because connection to main server was lost.");
             await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
@@ -224,7 +228,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
         // now we can recreate the connection
         Logger.LogInformation("Recreating Toybox Connection");
-        Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), 
+        Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController),
             Services.Events.EventSeverity.Informational, $"Starting Connection to Toybox Server")));
 
         // recreate CTS for the toybox connection
@@ -292,7 +296,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 }
             }
             catch (OperationCanceledException) { Logger.LogWarning("Toybox Connection attempt cancelled"); return; }
-            catch (HttpRequestException ex) 
+            catch (HttpRequestException ex)
             {
                 Logger.LogWarning($"{ex} HttpRequestException on Toybox Connection");
 
@@ -572,7 +576,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         // invoke the call to the server's hub function GETCONNECTIONDTO, and await for the Dto in the responce.
         var dto = await _toyboxHub!.InvokeAsync<ToyboxConnectionDto>(nameof(GetToyboxConnectionDto)).ConfigureAwait(false);
         // if we are publishing the connected message, publish it
-        if (publishConnected) Mediator.Publish(new ConnectedToyboxMessage(dto));
+        if (publishConnected) Mediator.Publish(new ToyboxConnectedMessage(dto));
         // return the ConnectionDto we got from the server
         return dto;
     }
@@ -653,6 +657,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
             // On the left is the function from the gagspeakhubclient.cs in the API, on the right is the function to be called in the API controller.
             OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
+            OnReceiveHardReconnectMessage((sev, msg, state) => _ = Client_ReceiveHardReconnectMessage(sev, msg, state));
             OnUpdateSystemInfo(dto => _ = Client_UpdateSystemInfo(dto));
 
             OnUserAddClientPair(dto => _ = Client_UserAddClientPair(dto));
@@ -729,6 +734,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         Mediator.Publish(new OnlinePairsLoadedMessage());
     }
 
+    /* ================ Main Hub SignalR Functions ================ */
     /// <summary> When the hub is closed, this function will be called. </summary>
     private void GagspeakHubOnClosed(Exception? arg)
     {
@@ -808,6 +814,63 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             $"Connection interrupted, reconnecting to {_serverConfigManager.CurrentServer.ServerName}")));
     }
 
+    /* ================ Toybox Hub SignalR Functions ================ */
+    /// <summary> When the hub is closed, this function will be called. </summary>
+    private void ToyboxHubOnClosed(Exception? arg)
+    {
+        // dont publish disconnected message, because we dont want to stop anything (yet), but set state to offline
+        ToyboxServerState = ServerState.Offline;
+        if (arg != null)
+        {
+            Logger.LogWarning($"{arg} Toybox Connection closed");
+        }
+        else
+        {
+            Logger.LogInformation("Toybox Connection closed");
+        }
+    }
+
+    /// <summary> When the hub is reconnected, this function will be called. </summary>
+    private async Task ToyboxHubOnReconnected()
+    {
+        // set the state to reconnected
+        ToyboxServerState = ServerState.Reconnecting;
+        try
+        {
+            // initialize the api hooks again
+            InitializeApiHooks(HubType.ToyboxHub);
+            // get the new connectionDto
+            _toyboxConnectionDto = await GetToyboxConnectionDto(publishConnected: false).ConfigureAwait(false);
+            // if its not equal to the APIVersion then stop the connection
+            if (_toyboxConnectionDto.ServerVersion != IGagspeakHub.ApiVersion)
+            {
+                await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
+                return;
+            }
+
+            // otherwise set it to connected and publish the connected message after loading the pairs.
+            ToyboxServerState = ServerState.Connected;
+            Mediator.Publish(new ToyboxConnectedMessage(_toyboxConnectionDto));
+        }
+        catch (Exception ex)
+        {
+            // stop connection if this throws an exception at any point.
+            Logger.LogError($"{ex} Failure to obtain data after reconnection to toybox hub");
+            await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary> When the hub is reconnecting, this function will be called. </summary>
+    private void ToyboxHubOnReconnecting(Exception? arg)
+    {
+        // set the state to reconnecting
+        ToyboxServerState = ServerState.Reconnecting;
+        Logger.LogWarning($"{arg} Connection closed with toybox hub... Reconnecting");
+        // publish a event message to the mediator alerting us of the reconnection
+        Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Warning,
+            $"Connection interrupted, reconnecting to Toybox Hub")));
+    }
+
     /// <summary>
     /// Refresh the token and check if we need to reconnect.
     /// </summary>
@@ -852,7 +915,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// <summary> Stop the connection to the server. </summary>
     private async Task StopConnection(ServerState state, HubType hubType = HubType.MainHub)
     {
-        if(hubType == HubType.MainHub)
+        if (hubType == HubType.MainHub)
         {
             // set state to disconnecting
             ServerState = ServerState.Disconnecting;
@@ -894,6 +957,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 Mediator.Publish(new DisconnectedMessage(HubType.ToyboxHub));
                 // set the connectionDto and hub to null.
                 _toyboxHub = null;
+                _toyboxConnectionDto = null;
             }
             // update the server state.
             ToyboxServerState = state;
@@ -906,7 +970,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// <exception cref="InvalidDataException"></exception>
     private void CheckConnection(HubType hubType = HubType.MainHub)
     {
-        if(hubType == HubType.MainHub)
+        if (hubType == HubType.MainHub)
         {
             if (ServerState is not (ServerState.Connected or ServerState.Connecting or ServerState.Reconnecting))
             {

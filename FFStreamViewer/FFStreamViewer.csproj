@@ -2,104 +2,105 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <Import Project="Dalamud.Plugin.Bootstrap.targets" />
 
-  <PropertyGroup>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <Copyright>Copyright © 2023</Copyright>
-    <LangVersion>latest</LangVersion>
-    <Version>0.3.1.3</Version>
-    <Nullable>enable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Deterministic>true</Deterministic>
-    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
-    <Platforms>AnyCPU</Platforms>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net8.0-windows</TargetFramework>
+        <Copyright>Copyright © 2023</Copyright>
+        <LangVersion>latest</LangVersion>
+        <Version>0.3.1.4</Version>
+        <Nullable>enable</Nullable>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Deterministic>true</Deterministic>
+        <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
+        <Platforms>AnyCPU</Platforms>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="..\images\*.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-  </ItemGroup>
+    <ItemGroup>
+        <Content Include="..\images\*.png">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Visible>false</Visible>
+        </Content>
+    </ItemGroup>
+
+    <PropertyGroup>
+        <DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+        <OutputType>Library</OutputType>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss:fffZ"))</SourceRevisionId>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <NoWarn>$(NoWarn);IDE1006,CS8618</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Reference Include="Dalamud">
+            <HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="FFXIVClientStructs">
+            <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="ImGui.NET">
+            <HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="ImGuiScene">
+            <HintPath>$(DalamudLibPath)ImGuiScene.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Lumina">
+            <HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Lumina.Excel">
+            <HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Newtonsoft.Json">
+            <HintPath>$(DalamudLibPath)Newtonsoft.Json.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="FFXIVClientStructs">
+            <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="Serilog">
+            <HintPath>$(DalamudLibPath)Serilog.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
+        <Reference Include="JetBrains.Annotations">
+            <Private>false</Private>
+            <HintPath>$(DalamudLibPath)\JetBrains.Annotations.dll</HintPath>
+        </Reference>
+        <Reference Include="CheapLoc">
+            <HintPath>$(DalamudLibPath)CheapLoc.dll</HintPath>
+            <Private>false</Private>
+        </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.5.2" />
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.5" />
+        <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="8.0.5" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+        <ProjectReference Include="..\GagSpeak-API\GagSpeakAPI\GagSpeak.API.csproj" />
+        <ProjectReference Include="..\OtterGui\OtterGui.csproj" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+        <PackageReference Include="LibVLCSharp" Version="3.8.0" />
+        <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.18" />
+        <PackageReference Include="NAudio" Version="2.2.1" />
+        <PackageReference Include="NAudio.WinMM" Version="2.2.1" />
+        <PackageReference Include="NAudio.Vorbis" Version="1.5.0" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
+    </ItemGroup>
     
-	<PropertyGroup>
-		<DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
-		<OutputType>Library</OutputType>
-	</PropertyGroup>
-
-  <PropertyGroup>
-      <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss:fffZ"))</SourceRevisionId>
-      <ImplicitUsings>enable</ImplicitUsings>
-      <NoWarn>$(NoWarn);IDE1006,CS8618</NoWarn>
-  </PropertyGroup>
-
-  <ItemGroup>
-      <Reference Include="Dalamud">
-          <HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
-          <Private>False</Private>
-      </Reference>
-      <Reference Include="FFXIVClientStructs">
-        <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
-          <Private>False</Private>
-      </Reference>
-      <Reference Include="ImGui.NET">
-          <HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
-          <Private>False</Private>
-      </Reference>
-      <Reference Include="ImGuiScene">
-          <HintPath>$(DalamudLibPath)ImGuiScene.dll</HintPath>
-          <Private>False</Private>
-      </Reference>
-      <Reference Include="Lumina">
-          <HintPath>$(DalamudLibPath)Lumina.dll</HintPath>
-          <Private>False</Private>
-      </Reference>
-      <Reference Include="Lumina.Excel">
-          <HintPath>$(DalamudLibPath)Lumina.Excel.dll</HintPath>
-          <Private>False</Private>
-      </Reference>
-      <Reference Include="Newtonsoft.Json">
-        <HintPath>$(DalamudLibPath)Newtonsoft.Json.dll</HintPath>
-        <Private>False</Private>
-      </Reference>
-      <Reference Include="FFXIVClientStructs">
-        <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
-        <Private>False</Private>
-      </Reference>
-      <Reference Include="Serilog">
-          <HintPath>$(DalamudLibPath)Serilog.dll</HintPath>
-          <Private>False</Private>
-      </Reference>
-      <Reference Include="JetBrains.Annotations">
-              <Private>false</Private>
-              <HintPath>$(DalamudLibPath)\JetBrains.Annotations.dll</HintPath>
-      </Reference>
-      <Reference Include="CheapLoc">
-          <HintPath>$(DalamudLibPath)CheapLoc.dll</HintPath>
-          <Private>false</Private>
-      </Reference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.5.2" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="8.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
-    <ProjectReference Include="..\GagSpeak-API\GagSpeakAPI\GagSpeak.API.csproj" />
-    <ProjectReference Include="..\OtterGui\OtterGui.csproj" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-    <PackageReference Include="LibVLCSharp" Version="3.8.0" />
-    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.18" />
-    <PackageReference Include="NAudio" Version="2.2.1" />
-    <PackageReference Include="NAudio.WinMM" Version="2.2.1" />
-    <PackageReference Include="NAudio.Vorbis" Version="1.5.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="FFStreamViewer.json">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <EmbeddedResource Include="Localization\fr.json" />
-  </ItemGroup>
+    <!-- If i could use projectgagspeak.json i would, but sadly dalamud prevents this lol.-->
+    <ItemGroup>
+        <None Update="FFStreamViewer.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <EmbeddedResource Include="Localization\fr.json" />
+    </ItemGroup>
 
 </Project>

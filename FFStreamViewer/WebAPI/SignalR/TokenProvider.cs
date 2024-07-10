@@ -312,7 +312,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
     /// <summary> Unlike the <c>GetToken()</c> method, this both gets and updates the token</summary>
     /// <param name="ct">The cancelation token for the task</param>
     /// <returns>the token to be returned.</returns>
-    public async Task<string?> GetOrUpdateToken(CancellationToken ct)
+    public async Task<string?> GetOrUpdateToken(CancellationToken ct, string tokenKey = "")
     {
         // get the JWT identifier
         JwtIdentifier? jwtIdentifier = GetIdentifier();

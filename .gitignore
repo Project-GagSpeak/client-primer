@@ -2,4 +2,6 @@
 .vscode/
 obj/
 bin/
-*.json
+*.ps1
+OutputZip/
+*.sh

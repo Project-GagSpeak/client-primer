@@ -17,6 +17,7 @@ using System.Numerics;
 using System.Reflection;
 using OtterGuiInternal.Structs;
 using FFStreamViewer.WebAPI.UI.Permissions;
+using Gagspeak.API.Data.Enum;
 
 namespace FFStreamViewer.WebAPI.UI;
 

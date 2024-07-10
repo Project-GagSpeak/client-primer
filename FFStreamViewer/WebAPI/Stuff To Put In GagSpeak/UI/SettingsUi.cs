@@ -15,6 +15,7 @@ using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
 using ImGuiNET;
 using System.Globalization;
 using System.Numerics;
+using Gagspeak.API.Data.Enum;
 
 namespace FFStreamViewer.WebAPI.UI;
 

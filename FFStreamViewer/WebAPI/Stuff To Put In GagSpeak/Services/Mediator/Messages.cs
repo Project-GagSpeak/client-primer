@@ -10,6 +10,7 @@ using GagSpeak.API.Dto.Connection;
 using GagSpeak.API.Data.Character;
 using FFStreamViewer.WebAPI.UI.Permissions;
 using FFStreamViewer.WebAPI.SignalR.Utils;
+using Gagspeak.API.Data.Enum;
 
 namespace FFStreamViewer.WebAPI.Services.Mediator;
 
@@ -20,12 +21,20 @@ namespace FFStreamViewer.WebAPI.Services.Mediator;
 public record NotificationMessage // the record indicating a notification message that should be send to the client.
     (string Title, string Message, NotificationType Type, TimeSpan? TimeShownOnScreen = null) : MessageBase;
 
+// Main hub messages.
 public record DisconnectedMessage(HubType hubType = HubType.MainHub) : SameThreadMessage; // indicating a disconnection message from the server.
 public record HubReconnectingMessage(Exception? Exception) : SameThreadMessage; // indicating the moment the hub is reconnecting.
 public record HubReconnectedMessage(string? Arg) : SameThreadMessage; // indicating the moment the hub has reconnected.
 public record HubClosedMessage(Exception? Exception) : SameThreadMessage; // indicating the moment the hub has closed.
-public record ConnectedMessage(ConnectionDto Connection) : MessageBase; // message published upon sucessful connection to the server
-public record ConnectedToyboxMessage(ToyboxConnectionDto Connection) : MessageBase; // message published upon sucessful connection to the server
+public record ConnectedMessage(ConnectionDto Connection) : MessageBase; // message published upon successful connection to the 
+
+// Toybox hub messages
+public record ToyboxDisconnectedMessage(HubType hubType = HubType.MainHub) : SameThreadMessage; // indicating a disconnection message from the server.
+public record ToyboxHubReconnectingMessage(Exception? Exception) : SameThreadMessage; 
+public record ToyboxHubReconnectedMessage(string? Arg) : SameThreadMessage;
+public record ToyboxHubClosedMessage(Exception? Exception) : SameThreadMessage;
+public record ToyboxConnectedMessage(ToyboxConnectionDto Connection) : MessageBase;
+
 public record OnlinePairsLoadedMessage : MessageBase; // message published completion of loading all online pairs for the client.
 public record DalamudLoginMessage : MessageBase; // record indicating the moment the client logs into the game instance.
 public record DalamudLogoutMessage : MessageBase; // record indicating the moment the client logs out of the game instance.
@@ -82,17 +91,9 @@ public record GposeStartMessage : MessageBase;
 public record GposeEndMessage : MessageBase;
 public record CutsceneFrameworkUpdateMessage : SameThreadMessage;
 public record PlayerChangedMessage(CharacterData Data) : MessageBase;
-public record CharacterChangedMessage(GameObjectHandler GameObjectHandler) : MessageBase;
-public record TransientResourceChangedMessage(IntPtr Address) : MessageBase;
 public record CreateCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase;
 public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase;
-public record CharacterDataAnalyzedMessage : MessageBase;
-public record PenumbraStartRedrawMessage(IntPtr Address) : MessageBase;
-public record PenumbraEndRedrawMessage(IntPtr Address) : MessageBase;
-public record PlayerUploadingMessage(GameObjectHandler Handler, bool IsUploading) : MessageBase;
 public record CombatOrPerformanceStartMessage : MessageBase;
-public record CombatOrPerformanceEndMessage : MessageBase;
-public record PenumbraDirectoryChangedMessage(string? ModDirectory) : MessageBase;
-public record PenumbraRedrawCharacterMessage(Character Character) : SameThreadMessage;*/
+public record CombatOrPerformanceEndMessage : MessageBase;*/
 #pragma warning restore S2094
 #pragma warning restore MA0048 // File name must match type name

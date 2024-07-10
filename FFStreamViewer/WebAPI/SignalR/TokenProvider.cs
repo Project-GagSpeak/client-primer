@@ -45,7 +45,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
             _tokenCache.Clear();
         });
         // append a user agent to the http clients request headers to identify the client
-        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("GagSpeak", ver!.Major + "." + ver!.Minor + "." + ver!.Build));
+        _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("GagSpeak", ver!.Major + "." + ver!.Minor + "." + ver!.Build + "." + ver!.Revision));
     }
 
     /// <summary> Disposes of the token provider, unsubscribing from all events related to the token provider class </summary>
@@ -272,7 +272,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating JWT identifier. Attempting to use the last known good identifier.");
+            _logger.LogError(ex, "Error creating JWT identifier. Exception: {Message}, StackTrace: {StackTrace}", ex.Message, ex.StackTrace);
             // Fallback to the last known good identifier if an exception occurs
             if (_lastJwtIdentifier != null)
             {
@@ -285,30 +285,6 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
         }
     }
 
-
-
-    /// <summary> Method to get the token for the current JWT Idenfitier </summary>
-    /// <returns>the token for the current JWT Idenfitier</returns>
-    /// <exception cref="InvalidOperationException">Thrown if no token is present</exception>
-    public string? GetToken()
-    {
-        // create a new JWT identifier object and get its identifier
-        JwtIdentifier? jwtIdentifier = GetIdentifier();
-        // if it returns null, then return null for the function
-        if (jwtIdentifier == null) return null;
-
-        // otherwise if it did exist, try and get the token from the token cache using the jwtidentifier
-        if (_tokenCache.TryGetValue(jwtIdentifier, out var token))
-        {
-            _logger.LogDebug("GetToken: Returning token from cache");
-            // return the token if we got it
-            return token;
-        }
-
-        // if it wasnt present, throw an exception for that.
-        throw new InvalidOperationException("No token present");
-    }
-
     /// <summary> Unlike the <c>GetToken()</c> method, this both gets and updates the token</summary>
     /// <param name="ct">The cancelation token for the task</param>
     /// <returns>the token to be returned.</returns>
@@ -318,17 +294,14 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
         JwtIdentifier? jwtIdentifier = GetIdentifier();
         // if it is null, return null
         if (jwtIdentifier == null) return null;
-        // create a boolean for renewal, assume we are not renewing.
+        
+        // assume we dont need a renewal
         bool renewal = false;
-        // attempt to get the token for the cache with the identifier
         if (_tokenCache.TryGetValue(jwtIdentifier, out var token))
         {
             // create a new handler for the JWT token
             var handler = new JwtSecurityTokenHandler();
-            // read token
             var jwt = handler.ReadJwtToken(token);
-
-            // if the token is valid, return the token
             if (jwt.ValidTo == DateTime.MinValue || jwt.ValidTo.Subtract(TimeSpan.FromMinutes(5)) > DateTime.UtcNow)
             {
                 // token was valid, so return it
@@ -336,8 +309,8 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
                 return token;
             }
 
-            // token was not valid and requires renewal.
-            _logger.LogDebug("GetOrUpdate: Cached token requires renewal, token valid to: {valid}, UtcTime is {utcTime}", jwt.ValidTo, DateTime.UtcNow);
+            // token expired, requires renewal.
+            _logger.LogDebug("GetOrUpdate: Cached token was found but requires renewal, token valid to: {valid}, UtcTime is {utcTime}", jwt.ValidTo, DateTime.UtcNow);
             renewal = true;
         }
         // if we did not find the token in the cache, log that we did not find it.

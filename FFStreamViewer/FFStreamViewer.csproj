@@ -6,7 +6,7 @@
         <TargetFramework>net8.0-windows</TargetFramework>
         <Copyright>Copyright © 2023</Copyright>
         <LangVersion>latest</LangVersion>
-        <Version>0.3.1.4</Version>
+        $10.3.1.6</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
@@ -104,3 +104,4 @@
     </ItemGroup>
 
 </Project>
+

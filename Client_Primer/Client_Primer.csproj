@@ -84,7 +84,7 @@
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.5" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="8.0.5" />
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
-        <ProjectReference Include="..\GagSpeak-API\GagSpeakAPI\GagSpeak.API.csproj" />
+        <ProjectReference Include="..\GagspeakAPI\ProjectGagspeakAPI\ProjectGagspeakAPI.csproj" />
         <ProjectReference Include="..\OtterGui\OtterGui.csproj" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
         <PackageReference Include="LibVLCSharp" Version="3.8.0" />

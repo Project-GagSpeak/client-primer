@@ -68,8 +68,8 @@ public class IntroUi : WindowMediatorSubscriberBase
         {
             _uiShared.BigText("Welcome to CK's GagSpeak Plugin!");
             ImGui.Separator();
-            _uiShared.BigText("THIS PLUGIN IS IN BETA. IF YOU PROCEED FROM HERE, INFORM CORDY YOU ARE JOINING BETA."+
-                Environment.NewLine + "OTHERWISE, YOU WILL BE REMOVED WITHOUT WARNING");
+            _uiShared.BigText("THIS PLUGIN IS IN BETA.\nIF YOU PROCEED FROM HERE,\nINFORM CORDY YOU ARE JOINING BETA."+
+                Environment.NewLine + "OTHERWISE, YOU WILL BE REMOVED\n(WITHOUT WARNING)");
             ImGui.Separator();
             UiSharedService.ColorTextWrapped(Strings.ToS.CautionaryWarningPage1, ImGuiColors.DalamudRed);
             ImGui.NewLine();

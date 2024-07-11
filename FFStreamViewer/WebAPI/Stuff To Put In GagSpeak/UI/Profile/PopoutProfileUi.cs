@@ -10,7 +10,7 @@ using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 using ImGuiNET;
 using System.Numerics;
 
-namespace FFStreamViewer.WebAPI.UI;
+namespace FFStreamViewer.WebAPI.UI.Profile;
 
 public class PopoutProfileUi : WindowMediatorSubscriberBase
 {

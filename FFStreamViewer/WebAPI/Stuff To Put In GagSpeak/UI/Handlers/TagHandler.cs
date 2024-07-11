@@ -2,6 +2,10 @@ using FFStreamViewer.WebAPI.Services.ConfigurationServices;
 
 namespace FFStreamViewer.WebAPI.UI.Handlers;
 
+/// <summary>
+/// Handles the labels given to the dropdown menus in the userWhitelist panel. 
+/// Maps functionality to the server configuration manager.
+/// </summary>
 public class TagHandler
 {
     public const string CustomAllTag = "Gagspeak_All";

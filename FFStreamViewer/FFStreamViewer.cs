@@ -13,6 +13,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
+using Dalamud.Plugin.Internal.Types.Manifest;
+using Dalamud.Configuration;
 
 namespace FFStreamViewer;
 /// <summary> The main class for the FFStreamViewer plugin.
@@ -81,7 +83,6 @@ public class FFStreamViewerHost : MediatorSubscriberBase, IHostedService
         DalamudUtilOnLogOut();
 
         Logger.LogDebug("Halting GagspeakPlugin");
-
         return Task.CompletedTask;
     }
 

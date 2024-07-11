@@ -13,7 +13,7 @@ using ImGuiNET;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace FFStreamViewer.WebAPI.UI;
+namespace FFStreamViewer.WebAPI.UI.Profile;
 
 public class EditProfileUi : WindowMediatorSubscriberBase
 {

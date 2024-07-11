@@ -9,7 +9,7 @@ using FFStreamViewer.WebAPI.Services.Mediator;
 using FFStreamViewer.WebAPI;
 using System.Numerics;
 
-namespace FFStreamViewer.WebAPI.UI;
+namespace FFStreamViewer.WebAPI.UI.Components;
 
 /// <summary>
 /// The class for the custom top tab display (the bar in gagspeak just under the users online display)

@@ -20,7 +20,10 @@ using System.Text.RegularExpressions;
 
 namespace FFStreamViewer.WebAPI.UI;
 
-/// <summary> The shared service for UI elements within our plugin. </summary>
+/// <summary> 
+/// The shared service for UI elements within our plugin. 
+/// This function should be expected to take advantage of classes with common functionality, preventing copy pasting.
+/// </summary>
 public partial class UiSharedService : DisposableMediatorSubscriberBase
 {
     public const string TooltipSeparator = "--SEP--";                           // the tooltip seperator                                

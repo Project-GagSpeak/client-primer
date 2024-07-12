@@ -616,17 +616,17 @@
         "resolved": "4.5.0",
         "contentHash": "okurQJO6NRE/apDIP23ajJ0hpiNmJ+f0BwOlB/cSqTLQlw5upkf+5+96+iG2Jw40G1fCVCyPz/FhIABUjMR+RQ=="
       },
+      "gagspeak.api": {
+        "type": "Project",
+        "dependencies": {
+          "MessagePack.Annotations": "[2.5.129, )"
+        }
+      },
       "ottergui": {
         "type": "Project",
         "dependencies": {
           "JetBrains.Annotations": "[2023.3.0, )",
           "Microsoft.Extensions.DependencyInjection": "[8.0.0, )"
-        }
-      },
-      "projectgagspeakapi": {
-        "type": "Project",
-        "dependencies": {
-          "MessagePack.Annotations": "[2.5.129, )"
         }
       }
     }

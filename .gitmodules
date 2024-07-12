@@ -4,6 +4,3 @@
 [submodule "GagspeakAPI"]
 	path = GagspeakAPI
 	url = https://github.com/Project-GagSpeak/api.git
-[submodule "OtterGui/OtterGui"]
-	path = OtterGui/OtterGui
-	url = https://github.com/Ottermandias/OtterGui.git

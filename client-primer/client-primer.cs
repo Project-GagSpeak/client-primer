@@ -2,19 +2,20 @@ using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using FFStreamViewer.WebAPI.GagspeakConfiguration;
-using FFStreamViewer.WebAPI.PlayerData.Pairs;
-using FFStreamViewer.WebAPI.PlayerData.VisibleData;
-using FFStreamViewer.WebAPI.Services;
-using FFStreamViewer.WebAPI.Services.Events;
-using FFStreamViewer.WebAPI.Services.Mediator;
-using FFStreamViewer.WebAPI.Services.ConfigurationServices;
+using GagSpeak.PlayerData.Pairs;
+using GagSpeak.PlayerData.VisibleData;
+using GagSpeak.Services;
+using GagSpeak.Services.Events;
+using GagSpeak.Services.Mediator;
+using GagSpeak.Services.ConfigurationServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System.Reflection;
 using Dalamud.Plugin.Internal.Types.Manifest;
 using Dalamud.Configuration;
+using GagspeakConfiguration;
+using UpdateMonitoring;
 
 namespace FFStreamViewer;
 /// <summary> The main class for the FFStreamViewer plugin.

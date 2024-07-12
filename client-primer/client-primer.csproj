@@ -1,37 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+    <!--Import Nessisary Dalamud Targets-->
     <Import Project="Dalamud.Plugin.Bootstrap.targets" />
 
+    <!--Basic Plugin Definitions-->
     <PropertyGroup>
         <TargetFramework>net8.0-windows</TargetFramework>
-        <Copyright>Copyright © 2023</Copyright>
+        <Copyright>Copyright © 2024</Copyright>
         <LangVersion>latest</LangVersion>
-        <Version>0.3.1.9</Version>
+        <Version>0.3.2.0</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
         <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
-
-    <ItemGroup>
-        <Content Include="..\images\*.png">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Visible>false</Visible>
-        </Content>
-    </ItemGroup>
-
+    
+    
+    <!--Dalamud Plugin Bootstrap Targets brought into .csproj-->
     <PropertyGroup>
-        <DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
-        <OutputType>Library</OutputType>
-    </PropertyGroup>
-
-    <PropertyGroup>
-        <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss:fffZ"))</SourceRevisionId>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <NoWarn>$(NoWarn);IDE1006,CS8618</NoWarn>
-    </PropertyGroup>
-
+        <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+        <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Linux'))">$(HOME)/.xlcore/dalamud/Hooks/dev/</DalamudLibPath>
+        <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Application Support/XIV on Mac/dalamud/Hooks/dev/</DalamudLibPath>
+        <DalamudLibPath Condition="$(DALAMUD_HOME) != ''">$(DALAMUD_HOME)/</DalamudLibPath>
+        <AssemblyVersion></AssemblyVersion>
+    </PropertyGroup>    
+    
+    <!--Other DLL's for dalamud supporting module/components-->
     <ItemGroup>
         <Reference Include="Dalamud">
             <HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
@@ -61,45 +56,107 @@
             <HintPath>$(DalamudLibPath)Newtonsoft.Json.dll</HintPath>
             <Private>False</Private>
         </Reference>
-        <Reference Include="FFXIVClientStructs">
-            <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
-            <Private>False</Private>
-        </Reference>
+        <!--Allows us to tap into Dalamuds logging provider to override their log level filters with our own.-->
         <Reference Include="Serilog">
             <HintPath>$(DalamudLibPath)Serilog.dll</HintPath>
             <Private>False</Private>
         </Reference>
         <Reference Include="JetBrains.Annotations">
-            <Private>false</Private>
             <HintPath>$(DalamudLibPath)\JetBrains.Annotations.dll</HintPath>
+            <Private>false</Private>
         </Reference>
+        <!--For localization and language handling in the intro readme.-->
         <Reference Include="CheapLoc">
             <HintPath>$(DalamudLibPath)CheapLoc.dll</HintPath>
             <Private>false</Private>
         </Reference>
+        <!--For direct interaction with a users system. Useful for the hardcore 
+            functionality or for key & mouse detection dalamud does not provide.-->
+        <Reference Include="PInvoke.User32">
+            <HintPath>$(DalamudLibPath)PInvoke.User32.dll</HintPath>
+            <Private>False</Private>
+        </Reference>
     </ItemGroup>
 
     <ItemGroup>
+        <!--Include Images needed for UI Display-->
+        <Content Include="..\.images\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Visible>false</Visible>
+        </Content>
+        <!--Images for Gag Previews, supporter images, ext. Possibly merge \.images\ with this Later-->
+        <Content Include="..\.assets\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Visible>false</Visible>
+        </Content>
+        <!--Include files nessisary for GagSpeak's Muffler Core-->
+        <Content Include=".\GarblerCore\**\*.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Visible>false</Visible>
+        </Content>
+    </ItemGroup>
+
+    <!--Include Dalamud Libraries for dev hooks-->
+    <PropertyGroup>
+        <DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+        <OutputType>Library</OutputType>
+    </PropertyGroup>
+
+    <!--To Track the time each build occurs, grabbing UTC values. Purpose still not entirely clear. may remove-->
+    <PropertyGroup>
+        <SourceRevisionId>build$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ss:fffZ"))</SourceRevisionId>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <NoWarn>$(NoWarn);IDE1006,CS8618</NoWarn>
+    </PropertyGroup>
+    <ItemGroup>
+      <None Remove="UI\UserWhitelist\UserWhitelistREADME.md" />
+      <None Remove="UI\WindowMainUI\MainWindowREADME.md" />
+    </ItemGroup>
+    <ItemGroup>
+      <Compile Include="UI\UserWhitelist\UserWhitelistREADME.md" />
+      <Compile Include="UI\WindowMainUI\MainWindowREADME.md" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <!--Submodules-->
+        <ProjectReference Include="..\GagspeakAPI\ProjectGagspeakAPI\ProjectGagspeakAPI.csproj" />
         <ProjectReference Include="..\OtterGui\OtterGui.csproj" />
+        <ProjectReference Include="..\Penumbra.Api\Penumbra.Api.csproj" />
+        <ProjectReference Include="..\Penumbra.String\Penumbra.String.csproj" />
+        <ProjectReference Include="..\Penumbra.GameData\Penumbra.GameData.csproj" />
+        <ProjectReference Include="..\Glamourer.Api\Glamourer.Api.csproj" />
+        
+        <!--For JWT token handling, helpful for server connectivity processing-->
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.5.2" />
+        
+        <!--For SignalR server connectivity, helpful for server connectivity processing-->
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="8.0.5" />
         <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.MessagePack" Version="8.0.5" />
+        
+        <!--Handles our own plugin hosting methods for dependency injection and service management-->
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-        <PackageReference Include="LibVLCSharp" Version="3.8.0" />
-        <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.18" />
+        
+        <!--Adds support for our simulated vibrator (potentially replace with better audio option for more sound quality.-->
         <PackageReference Include="NAudio" Version="2.2.1" />
-        <PackageReference Include="NAudio.WinMM" Version="2.2.1" />
-        <PackageReference Include="NAudio.Vorbis" Version="1.5.0" />
+        <!-- Toybox Lovense Compatibility. (According to docs possibly estim too) -->
+        <PackageReference Include="Buttplug" Version="3.0.1" />
+        <PackageReference Include="Buttplug.Client.Connectors.WebsocketConnector" Version="3.0.1" />
+        
+        <!--For image processing and manipulation beyond dalamuds textureprovider capabilities..-->
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
     </ItemGroup>
     
     <!-- If i could use projectgagspeak.json i would, but sadly dalamud prevents this lol.-->
     <ItemGroup>
-        <None Update="FFStreamViewer.json">
+        <None Update="client-primer.json">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <EmbeddedResource Include="Localization\de.json" />
         <EmbeddedResource Include="Localization\fr.json" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="GagspeakConfiguration\4.0-Migrator\" />
     </ItemGroup>
 
 </Project>

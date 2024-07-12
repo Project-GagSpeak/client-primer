@@ -1,0 +1,6 @@
+/*
+ * 
+ * Placeholder file for GagStorageManager?
+ * 
+ * 
+ */

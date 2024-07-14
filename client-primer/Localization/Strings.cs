@@ -1,6 +1,6 @@
 using CheapLoc;
 
-namespace FFStreamViewer.Localization;
+namespace GagSpeak.Localization;
 
 /// <summary> Used to localize the strings to the respective languages for viewing the into and account creation. </summary>
 public static class Strings

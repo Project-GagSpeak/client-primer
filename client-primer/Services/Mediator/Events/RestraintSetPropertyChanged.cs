@@ -29,7 +29,7 @@ public class RS_PropertyChangedEvent
     public event RS_PropertyChangedHandler? SetChanged;                                 
     public void Invoke(HardcoreChangeType propertyType, RestraintSetChangeType changeType) {
         // remake this for the list update type
-        GSLogger.LogType.Debug($"[RS_PropertyChangedEvent] Property {propertyType} was {changeType}");
+        _logger.LogDebug($"[RS_PropertyChangedEvent] Property {propertyType} was {changeType}");
         SetChanged?.Invoke(this, new RS_PropertyChangedEventArgs(propertyType, changeType));
     }
 }

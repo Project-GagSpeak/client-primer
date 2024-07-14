@@ -45,7 +45,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
         if(!DisablePromptHooks)
         {
             base.Enable();
-            GSLogger.LogType.Information("[GagSpeak] Activating Listeners");
+            _logger.LogInformation("[GagSpeak] Activating Listeners");
             _addonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectString", AddonStrSetup);
             _addonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectYesno", AddonYNSetup);
             DisablePromptHooks = true; // set it to true so we dont keep repeating it
@@ -56,7 +56,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
         // if our disable prompt hooks was marked as enabled, then we should disable it!
         if(DisablePromptHooks) {
             base.Disable();
-            GSLogger.LogType.Information("[GagSpeak] Deactivating Listeners");
+            _logger.LogInformation("[GagSpeak] Deactivating Listeners");
             _addonLifecycle.UnregisterListener(AddonStrSetup);
             _addonLifecycle.UnregisterListener(AddonYNSetup);
             DisablePromptHooks = false; // set it to false so we dont keep repeating it
@@ -72,7 +72,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
         // get the text
         var text = GS_GetSeString.GetSeStringText(new nint(addon->AtkValues[0].String));
         _hcManager.LastSeenDialogText = Tuple.Create(text, new List<string>{ "No", "Yes" });
-        GSLogger.LogType.Debug($"[GagSpeak] YesNo Prompt Text => {text}");
+        _logger.LogDebug($"[GagSpeak] YesNo Prompt Text => {text}");
 
         var nodes = _hcManager.GetAllNodes().OfType<TextEntryNode>();
         foreach (var node in nodes) {
@@ -82,7 +82,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
             if (!EntryMatchesText(node, text))
                 continue;
 
-            GSLogger.LogType.Debug($"AddonSelectYesNo: Matched on {node.Text}");
+            _logger.LogDebug($"AddonSelectYesNo: Matched on {node.Text}");
             // if nobody is making us stay, then just escape and dont process it
             if (!_hcManager.IsForcedToStayForAny(out int enabledIdx, out string playerWhoForceStayedYou)) {
                 return;
@@ -98,22 +98,22 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
             var addonPtr = (AddonSelectYesno*)addon;
             var yesButton = addonPtr->YesButton;
             if (yesButton != null && !yesButton->IsEnabled) {
-                GSLogger.LogType.Debug("Auto-Select YesNo: Enabling yes button");
+                _logger.LogDebug("Auto-Select YesNo: Enabling yes button");
                 var flagsPtr = (ushort*)&yesButton->AtkComponentBase.OwnerNode->AtkResNode.NodeFlags;
                 *flagsPtr ^= 1 << 5;
             }
 
-            GSLogger.LogType.Debug("Auto-Select YesNo: Selecting yes");
+            _logger.LogDebug("Auto-Select YesNo: Selecting yes");
             ClickSelectYesNo.Using(addon).Yes();
         }
         else {
-            GSLogger.LogType.Debug("Auto-Select YesNo: Selecting no");
+            _logger.LogDebug("Auto-Select YesNo: Selecting no");
             ClickSelectYesNo.Using(addon).No();
         }
     }
 
     private static bool EntryMatchesText(TextEntryNode node, string text) {
-        GSLogger.LogType.Debug($"Comparing {node.Text} to {text}"); // for YesNo prompts, this is all we need
+        _logger.LogDebug($"Comparing {node.Text} to {text}"); // for YesNo prompts, this is all we need
         return text.Contains(node.Text);
     }
 
@@ -144,7 +144,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
         var nodes = _hcManager.GetAllNodes().OfType<TextEntryNode>();
         // iterate through all our nodes to see if their node.text matches the targetName
         foreach (var node in nodes) {
-            GSLogger.LogType.Verbose($"Auto-Select Dialog: Checking {node.Text} of size {node.Options.Length} against {targetName} of size {options.Count}");
+            _logger.LogVerbose($"Auto-Select Dialog: Checking {node.Text} of size {node.Options.Length} against {targetName} of size {options.Count}");
             // if the node is not enabled or the text is empty, then skip it
             if (!node.Enabled || string.IsNullOrEmpty(node.Text))
                 continue;
@@ -159,7 +159,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
                 continue;
 
             // if it does match, then select the index automatically
-            GSLogger.LogType.Information($"Auto-Select Dialog Matched!: Matched on {node.Text}");
+            _logger.LogInformation($"Auto-Select Dialog Matched!: Matched on {node.Text}");
             // if nobody is making us stay, then just escape and dont process it
             if (!_hcManager.IsForcedToStayForAny(out int enabledIdx, out string playerWhoForceStayedYou)) {
                 return;
@@ -167,20 +167,20 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
             SelectItemExecute((IntPtr)addon, node.SelectThisIndex);
             return;
         }
-        GSLogger.LogType.Information($"Node Check Finished");
-        GSLogger.LogType.Information($"StoredInfo: {_hcManager.LastSeenDialogText.Item1} => {string.Join(", ", _hcManager.LastSeenDialogText.Item2)}");
+        _logger.LogInformation($"Node Check Finished");
+        _logger.LogInformation($"StoredInfo: {_hcManager.LastSeenDialogText.Item1} => {string.Join(", ", _hcManager.LastSeenDialogText.Item2)}");
         // CompareNodesToEntryTexts((nint)addon, popupMenu);
     }
 
     private static bool EntryMatchesListText(TextEntryNode node, List<string> targetNodeOptions) {
         // try to see if the option at our index to select is at the same index in the list of the target nodes options
-        GSLogger.LogType.Verbose($"Checking if [{node.Options[node.SelectThisIndex]}] is in  any of the about found strings");
+        _logger.LogVerbose($"Checking if [{node.Options[node.SelectThisIndex]}] is in  any of the about found strings");
         // Compare the option at our index to select with the same index in the list of the target nodes options
         return node.Options[node.SelectThisIndex] == targetNodeOptions[node.SelectThisIndex];
     }
     
     protected override void SelectItemExecute(IntPtr addon, int index) {
-        GSLogger.LogType.Information($"Auto-Select Dialog: Selecting {index}");
+        _logger.LogInformation($"Auto-Select Dialog: Selecting {index}");
         ClickSelectString.Using(addon).SelectItem((ushort)index);
     }
 }

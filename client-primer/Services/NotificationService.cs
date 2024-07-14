@@ -3,8 +3,8 @@ using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
 using GagSpeak.Services.Mediator;
-using GagspeakConfiguration;
-using GagspeakConfiguration.Models;
+using GagSpeakConfiguration;
+using GagSpeakConfiguration.Models;
 using Microsoft.Extensions.Logging;
 
 namespace GagSpeak.Services;

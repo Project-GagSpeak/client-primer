@@ -1,11 +1,11 @@
 /*using Dalamud.Game.Command;
 using Dalamud.Plugin.Services;
-using MareSynchronos.FileCache;
-using MareSynchronos.MareConfiguration;
-using MareSynchronos.Services.Mediator;
-using MareSynchronos.Services.ServerConfiguration;
-using MareSynchronos.UI;
-using MareSynchronos.WebAPI;
+using Mare.FileCache;
+using Mare.MareConfiguration;
+using Mare.Services.Mediator;
+using Mare.Services.ServerConfiguration;
+using Mare.UI;
+using Mare.WebAPI;
 using System.Globalization;
 
 namespace GagSpeak.Services;
@@ -35,7 +35,7 @@ public sealed class CommandManagerService : IDisposable
         _mareConfigService = mareConfigService;
         _commandManager.AddHandler(_commandName, new CommandInfo(OnCommand)
         {
-            HelpMessage = "Opens the Mare Synchronos UI"
+            HelpMessage = "Opens the Mare  UI"
         });
     }
 
@@ -62,7 +62,7 @@ public sealed class CommandManagerService : IDisposable
         {
             if (_apiController.ServerState == WebAPI.SignalR.Utils.ServerState.Disconnecting)
             {
-                _mediator.Publish(new NotificationMessage("Mare disconnecting", "Cannot use /toggle while Mare Synchronos is still disconnecting",
+                _mediator.Publish(new NotificationMessage("Mare disconnecting", "Cannot use /toggle while Mare  is still disconnecting",
                     Dalamud.Interface.Internal.Notifications.NotificationType.Error));
             }
 

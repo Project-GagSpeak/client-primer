@@ -3,19 +3,18 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using GagspeakAPI.Data.Enum;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.WebAPI.Utils;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Render;
+using GagSpeak.Services.Mediator;
+using GagSpeak.UpdateMonitoring;
+using GagSpeak.WebAPI;
 using ImGuiNET;
 using System.Globalization;
 using System.Numerics;
-using Gagspeak.API.Data.Enum;
-using GagspeakConfiguration;
-using UpdateMonitoring;
 
 namespace GagSpeak.UI;
 
@@ -40,7 +39,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private CancellationTokenSource? _validationCts;
 
     public SettingsUi(ILogger<SettingsUi> logger, UiSharedService uiShared,
-        GagspeakConfigService configService, PairManager pairManager, 
+        GagspeakConfigService configService, PairManager pairManager,
         PlayerCharacterManager playerCharacterManager,
         ServerConfigurationManager serverConfigurationManager, GagspeakMediator mediator,
         IpcManager ipcManager, OnFrameworkService frameworkUtil) : base(logger, mediator, "GagSpeak Settings")
@@ -66,6 +65,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
     }
 
     private ApiController ApiController => _uiShared.ApiController;
+
+    protected override void PreDrawInternal() { }
+    protected override void PostDrawInternal() { }
 
     /// <summary>
     /// The internal draw method for the settings UI window.
@@ -206,14 +208,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"IsBlindfolded: {pair.UserPairUniquePairPerms.IsBlindfolded}");
                     }
                 }
-                if(pair.UserPairEditAccess != null)
+                if (pair.UserPairEditAccess != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.Key.UID}'s Edit Access || {_serverConfigurationManager.GetNicknameForUid(clientPair.Key.UID)}"))
                     {
                         ImGui.Text("Coming soon!");
                     }
                 }
-                if(pair.UserPairAppearanceData != null)
+                if (pair.UserPairAppearanceData != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.Key.UID}'s Appearance Data || {_serverConfigurationManager.GetNicknameForUid(clientPair.Key.UID)}"))
                     {
@@ -255,7 +257,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"ActiveSetLockTime: {pair.UserPairWardrobeData.ActiveSetLockTime}");
                     }
                 }
-                if(pair.UserPairAliasData != null)
+                if (pair.UserPairAliasData != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.Key.UID}'s Alias Data || {_serverConfigurationManager.GetNicknameForUid(clientPair.Key.UID)}"))
                     {
@@ -519,7 +521,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 {
                     // get the name of the character
                     var charaName = item.CharacterName;
-                    ImGui.SetNextItemWidth(175*ImGuiHelpers.GlobalScale);
+                    ImGui.SetNextItemWidth(175 * ImGuiHelpers.GlobalScale);
                     ImGui.InputText("##CharaName" + charaName + i, ref charaName, 32);
 
                     ImGui.SameLine();
@@ -581,7 +583,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             if (ImGui.CollapsingHeader("AliasData"))
             {
-                foreach(var alias in _playerCharacterManager.GetAllAliasListKeys())
+                foreach (var alias in _playerCharacterManager.GetAllAliasListKeys())
                 {
                     var aliasData = _playerCharacterManager.GetAliasData(alias);
                     if (ImGui.CollapsingHeader($"Alias Data for {alias}"))
@@ -595,7 +597,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.TableSetupColumn("If You Say:", ImGuiTableColumnFlags.WidthFixed, ImGuiHelpers.GlobalScale * 100);
                         ImGui.TableSetupColumn("They will Execute:", ImGuiTableColumnFlags.WidthStretch);
 
-                        foreach(var aliasTrigger in aliasData.AliasList)
+                        foreach (var aliasTrigger in aliasData.AliasList)
                         {
                             ImGui.Separator();
                             ImGui.Text("[INPUT TRIGGER]: ");
@@ -680,11 +682,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var wardrobeData = _playerCharacterManager.WardrobeData;
         ImGui.Text("Wardrobe Outfits:");
         ImGui.Indent();
-        foreach ( var item in wardrobeData.OutfitNames ) {
+        foreach (var item in wardrobeData.OutfitNames)
+        {
             ImGui.Text(item);
         }
         ImGui.Unindent();
-        if(wardrobeData.ActiveSetName != string.Empty)
+        if (wardrobeData.ActiveSetName != string.Empty)
         {
             ImGui.Text("Active Set Info: ");
             ImGui.Indent();

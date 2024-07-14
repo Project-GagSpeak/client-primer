@@ -41,7 +41,7 @@ public class MoveController : IDisposable
         if (*hold == (MButtonHoldState.Left | MButtonHoldState.Right)) {
             *hold = 0;
         }
-        // GSLogger.LogType.Debug($"{((IntPtr)hold).ToString("X")}");
+        // _logger.LogDebug($"{((IntPtr)hold).ToString("X")}");
         // update the original
         byte ret = MovementUpdateHook.Original(thisx);
         // restore the original
@@ -60,29 +60,29 @@ public class MoveController : IDisposable
         UnkTargetFollowStruct* temp = unk1;
         /*
         targetFollowVar = unk1;
-        GSLogger.LogType.Debug($"PRE:       UnkTargetFollowStruct: {((IntPtr)unk1).ToString("X")}");
-        GSLogger.LogType.Debug($"---------------------------------");
-        GSLogger.LogType.Debug($"PRE: Unk_0x450.Unk_GameObjectID0: {unk1->Unk_0x450.Unk_GameObjectID0.ToString("X")};");
+        _logger.LogDebug($"PRE:       UnkTargetFollowStruct: {((IntPtr)unk1).ToString("X")}");
+        _logger.LogDebug($"---------------------------------");
+        _logger.LogDebug($"PRE: Unk_0x450.Unk_GameObjectID0: {unk1->Unk_0x450.Unk_GameObjectID0.ToString("X")};");
         try {
-            GSLogger.LogType.Debug($"PRE      Struct target4 Unk_0x10: {unk1->Unk_0x450.Unk_0x10};");
-            GSLogger.LogType.Debug($"PRE      Struct target4 Unk_0x54: {unk1->Unk_0x450.Unk_0x54};");
+            _logger.LogDebug($"PRE      Struct target4 Unk_0x10: {unk1->Unk_0x450.Unk_0x10};");
+            _logger.LogDebug($"PRE      Struct target4 Unk_0x54: {unk1->Unk_0x450.Unk_0x54};");
         } catch (Exception ex) {
-            GSLogger.LogType.Error($"Error converting Unk_0x10 to string: {ex}");
+            _logger.LogError($"Error converting Unk_0x10 to string: {ex}");
         }
-        GSLogger.LogType.Debug($"PRE:             FollowingTarget: {unk1->FollowingTarget.ToString("X")}");
-        GSLogger.LogType.Debug($"PRE:                 Follow Type: {unk1->FollowType.ToString("X")}");
+        _logger.LogDebug($"PRE:             FollowingTarget: {unk1->FollowingTarget.ToString("X")}");
+        _logger.LogDebug($"PRE:                 Follow Type: {unk1->FollowType.ToString("X")}");
         */
         foreach (Dalamud.Game.ClientState.Objects.Types.GameObject obj in _objectTable)
         {
             if (obj.ObjectId == unk1->GameObjectIDToFollow)
             {
-                GSLogger.LogType.Debug($"Game Object To Follow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}");
+                _logger.LogDebug($"Game Object To Follow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}");
                 break;
             }
         }
         // if this condition it true, it means that the function is attempting to call a cancelation 
         if(DisablingMouseMovement && unk1->Unk_0x450.Unk_0x54 == 256) {
-            GSLogger.LogType.Verbose($"Early escaping to prevent canceling follow!");
+            _logger.LogVerbose($"Early escaping to prevent canceling follow!");
             return; // do an early return to prevent processing
         } else {
             // output the original
@@ -90,21 +90,21 @@ public class MoveController : IDisposable
         }
         /*
         try {
-            GSLogger.LogType.Debug($"POST       UnkTargetFollowStruct: {((IntPtr)unk1).ToString("X")}");
-            GSLogger.LogType.Debug($"---------------------------------");
-            GSLogger.LogType.Debug($"POST Unk_0x450.Unk_GameObjectID0: {unk1->Unk_0x450.Unk_GameObjectID0.ToString("X")};");
-            GSLogger.LogType.Debug($"POST     Struct target4 Unk_0x54: {unk1->Unk_0x450.Unk_0x54};");
-            GSLogger.LogType.Debug($"POST             FollowingTarget: {unk1->FollowingTarget.ToString("X")}");
-            GSLogger.LogType.Debug($"POST                 Follow Type: {unk1->FollowType.ToString("X")}");
+            _logger.LogDebug($"POST       UnkTargetFollowStruct: {((IntPtr)unk1).ToString("X")}");
+            _logger.LogDebug($"---------------------------------");
+            _logger.LogDebug($"POST Unk_0x450.Unk_GameObjectID0: {unk1->Unk_0x450.Unk_GameObjectID0.ToString("X")};");
+            _logger.LogDebug($"POST     Struct target4 Unk_0x54: {unk1->Unk_0x450.Unk_0x54};");
+            _logger.LogDebug($"POST             FollowingTarget: {unk1->FollowingTarget.ToString("X")}");
+            _logger.LogDebug($"POST                 Follow Type: {unk1->FollowType.ToString("X")}");
         } catch (Exception ex) {
-            GSLogger.LogType.Error($"Error {ex}");
+            _logger.LogError($"Error {ex}");
         }
         */
         foreach (Dalamud.Game.ClientState.Objects.Types.GameObject obj in _objectTable)
         {
             if (obj.ObjectId == unk1->GameObjectIDToFollow)
             {
-                GSLogger.LogType.Debug($"POST ObjectIDtoFollow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}");
+                _logger.LogDebug($"POST ObjectIDtoFollow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}");
                 break;
             }
         }
@@ -133,7 +133,7 @@ public class MoveController : IDisposable
 
     // the disposer
     public void Dispose() {
-        GSLogger.LogType.Debug($"Disposing of MoveController: {DisablingALLMovement}, {DisablingMouseMovement}");
+        _logger.LogDebug($"Disposing of MoveController: {DisablingALLMovement}, {DisablingMouseMovement}");
         DisableMovementHooks(); // disable the hooks
 
         // dispose of the hooks
@@ -147,7 +147,7 @@ public class MoveController : IDisposable
     public unsafe void CompletelyEnableMovement() {
         // if we have RestrictedMovement actively, and want to enable movement, we should set it to false
         if (DisablingALLMovement) {
-            GSLogger.LogType.Debug($"Enabling moving, {ForceDisableMovement}");
+            _logger.LogDebug($"Enabling moving, {ForceDisableMovement}");
             // if our pointer is above 0, it means that we are frozen, so let us move again
             if (ForceDisableMovement > 0) {
                 ForceDisableMovement--;
@@ -157,7 +157,7 @@ public class MoveController : IDisposable
         }
         // if we are toggling the mouse
         if(DisablingMouseMovement) {
-            GSLogger.LogType.Debug($"Enabling mouse");
+            _logger.LogDebug($"Enabling mouse");
             // let our code know we are no longer preventing mouse movement
             DisableMovementHooks();
             DisablingMouseMovement = false;
@@ -167,7 +167,7 @@ public class MoveController : IDisposable
     public unsafe void CompletelyDisableMovement(bool togglePointer, bool toggleMouse) {
         // if we are currenelty not preventing mouse movement, and we want to disable movement, we should set it to true
         if (!DisablingALLMovement && togglePointer) {
-            GSLogger.LogType.Debug($"Disabling moving, {ForceDisableMovement}");
+            _logger.LogDebug($"Disabling moving, {ForceDisableMovement}");
             // if our pointer is 0, it means that we are not frozen, so let us freeze
             if (ForceDisableMovement == 0) {
                 ForceDisableMovement++;
@@ -177,7 +177,7 @@ public class MoveController : IDisposable
         // if we are currenelty not preventing mouse movement, and we want to disable mouse movement, we should set it to true
         if (!DisablingMouseMovement && toggleMouse) {
             EnableMovementHooks();
-            GSLogger.LogType.Debug($"Disabling mouse");
+            _logger.LogDebug($"Disabling mouse");
             DisablingMouseMovement = true;
         }
     }

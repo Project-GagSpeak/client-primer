@@ -71,7 +71,7 @@ public class MovementManager : IDisposable
         // run an async task that will await to apply affects until we are logged in, after which it will fire the restraint effect logic
         Task.Run(async () => {
             if(!IsPlayerLoggedIn()) {
-                GSLogger.LogType.Debug($"[RestraintSetManager] Waiting for login to complete before activating restraint set");
+                _logger.LogDebug($"[RestraintSetManager] Waiting for login to complete before activating restraint set");
                 while (!_clientState.IsLoggedIn || _clientState.LocalPlayer == null || _clientState.LocalPlayer.Address == IntPtr.Zero && _clientState.LocalContentId == 0) {
                     await Task.Delay(2000); // Wait for 1 second before checking the login status again
                 }
@@ -108,7 +108,7 @@ public class MovementManager : IDisposable
     // this will be invoked when the hardcore manager is iniitalized. Only then will we finish enabling the rest of our information for the movement manager.
     private void OnHardcoreManagerInitialized() {
         // if the hardcore manager is initialized, we should set the movement controller
-        GSLogger.LogType.Information(" Completing Movement Manager Initialization ");
+        _logger.LogInformation(" Completing Movement Manager Initialization ");
         // start the framework update cycle
         _framework.Update += framework_Update;
         // start the action manager update cycle
@@ -117,7 +117,7 @@ public class MovementManager : IDisposable
     private unsafe void OnRestraintSetPropertyChanged(object sender, RS_PropertyChangedEventArgs e) {
         // let us go back into non-rp mode once weighted is disabled
         if (e.PropertyType == HardcoreChangeType.Weighty && e.ChangeType == RestraintSetChangeType.Disabled) {
-            GSLogger.LogType.Debug($"[Action Manager]: Letting you run again");
+            _logger.LogDebug($"[Action Manager]: Letting you run again");
             System.Threading.Tasks.Task.Delay(200);
             Marshal.WriteByte((IntPtr)gameControl, 23163, 0x0);
         }
@@ -179,7 +179,7 @@ public class MovementManager : IDisposable
                         var index = _hcManager._perPlayerConfigs.FindIndex(x => x._forcedFollow);
                         // set the forced follow to false
                         _hcManager.SetForcedFollow(index, false);
-                        GSLogger.LogType.Debug($"[MovementManager]: Player has been standing still for too long, forcing them to move again");
+                        _logger.LogDebug($"[MovementManager]: Player has been standing still for too long, forcing them to move again");
                     }
                 }
             }
@@ -305,7 +305,7 @@ public class MovementManager : IDisposable
                 _keyState.SetRawValue(x, 0);
                 // set was canceled to true
                 WasCancelled = true;
-                GSLogger.LogType.Verbose($"Cancelling key {x}");
+                _logger.LogVerbose($"Cancelling key {x}");
             }
         });
     }

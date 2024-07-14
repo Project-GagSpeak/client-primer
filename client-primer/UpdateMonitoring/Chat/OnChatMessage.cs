@@ -150,7 +150,7 @@ public class OnChatMessage
         // if the message is an incoming tell
         if (type == XivChatType.TellIncoming)
         {
-            if (senderName == null) { GSLogger.LogType.Error("senderName is null"); return; } // removes the possibly null reference warning
+            if (senderName == null) { _logger.LogError("senderName is null"); return; } // removes the possibly null reference warning
             // if not null, handle the tell incase it is encoded.
             _encodedMsgDetector.HandleInTellMsgForEncoding(senderName, chatmessage, fmessage, ref isHandled);
         } // skips directly to here if not a tell
@@ -163,7 +163,7 @@ public class OnChatMessage
             if (_triggerWordDetector.IsValidGlobalTriggerWord(chatmessage, type, out var messageToSend))
             {
                 // if we are in a valid chatchannel, then send it
-                GSLogger.LogType.Debug($"[OnChatMsgManager] Global Puppeteer message to send: {messageToSend.TextValue}");
+                _logger.LogDebug($"[OnChatMsgManager] Global Puppeteer message to send: {messageToSend.TextValue}");
                 messageQueue.Enqueue("/" + messageToSend.TextValue);
             }
         }
@@ -175,7 +175,7 @@ public class OnChatMessage
             if (_triggerWordDetector.IsValidPuppeteerTriggerWord(senderName, chatmessage, type, ref isHandled, out var messageToSend))
             {
                 // if we are in a valid chatchannel, then send it
-                GSLogger.LogType.Debug($"[OnChatMsgManager] Puppeteer message to send: {messageToSend.TextValue}");
+                _logger.LogDebug($"[OnChatMsgManager] Puppeteer message to send: {messageToSend.TextValue}");
                 messageQueue.Enqueue("/" + messageToSend.TextValue);
             }
         }
@@ -186,7 +186,7 @@ public class OnChatMessage
             if (_hardcoreMsgDetector.IsValidMsgTrigger(senderName, chatmessage, type, out var messageToSend))
             {
                 // if we are in a valid chatchannel, then send it
-                GSLogger.LogType.Debug($"[OnChatMsgManager] Hardcore message to send: {messageToSend.TextValue}");
+                _logger.LogDebug($"[OnChatMsgManager] Hardcore message to send: {messageToSend.TextValue}");
                 messageQueue.Enqueue("/" + messageToSend.TextValue);
             }
         }
@@ -208,7 +208,7 @@ public class OnChatMessage
         }
         catch (Exception e)
         {
-            GSLogger.LogType.Error($"[Chat Manager]: Failed to send message {e}: {message}");
+            _logger.LogError($"[Chat Manager]: Failed to send message {e}: {message}");
         }
     }
 
@@ -238,7 +238,7 @@ public class OnChatMessage
                             }
                             catch (Exception e)
                             {
-                                GSLogger.LogType.Warning($"{e},{e.Message}");
+                                _logger.LogWarning($"{e},{e.Message}");
                             }
                             messageTimer.Restart();
                         }
@@ -247,7 +247,7 @@ public class OnChatMessage
             }
             catch
             {
-                GSLogger.LogType.Error($"[Chat Manager]: Failed to process Framework Update!");
+                _logger.LogError($"[Chat Manager]: Failed to process Framework Update!");
             }
         }
     }

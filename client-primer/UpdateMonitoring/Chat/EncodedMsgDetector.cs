@@ -65,7 +65,7 @@ public class EncodedMsgDetector
                 break;
         }
         ////// Once we have reached this point, we know we have recieved a tell, and that it is from one of our filtered players. //////
-        GSLogger.LogType.Debug($"[Chat Manager]: Recieved tell from: {senderName} with message: {fmessage.ToString()}");
+        _logger.LogDebug($"[Chat Manager]: Recieved tell from: {senderName} with message: {fmessage.ToString()}");
         // if the message is a encoded message, then we can process it
         if (_messageDictionary.LookupMsgDictionary(chatmessage.TextValue, _decodedMessageMediator))
         {

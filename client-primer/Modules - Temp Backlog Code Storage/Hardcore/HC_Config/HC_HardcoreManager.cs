@@ -65,12 +65,12 @@ public partial class HardcoreManager : ISavable, IDisposable
     }
 #region Manager Helpers
     public void ManagerReadyForHardcoreManager() {
-        GSLogger.LogType.Information(" Completing Hardcore Manager Initialization ");
+        _logger.LogInformation(" Completing Hardcore Manager Initialization ");
         // run size integrity check
         IntegrityCheck(_restraintSetManager._restraintSets.Count);
         // find who it was that enabled the set, if it is enabled
         if(_restraintSetManager.IsAnySetEnabled(out int enabledIdx, out string assignerOfSet)) {
-            GSLogger.LogType.Debug($"[HardcoreManager]  Active set {enabledIdx} was enabled by: {assignerOfSet}");
+            _logger.LogDebug($"[HardcoreManager]  Active set {enabledIdx} was enabled by: {assignerOfSet}");
             // if the index if not -1, set up the multiplier
             if (enabledIdx != -1) {
                 ApplyMultipler();
@@ -171,7 +171,7 @@ public partial class HardcoreManager : ISavable, IDisposable
                         HC_SettingsforPlayer.Deserialize(itemValue);
                         _perPlayerConfigs.Add(HC_SettingsforPlayer);
                     } else {
-                        GSLogger.LogType.Error($"[HardcoreManager] Array contains an invalid entry (it is null), skipping!");
+                        _logger.LogError($"[HardcoreManager] Array contains an invalid entry (it is null), skipping!");
                     }
                 }
             }
@@ -181,9 +181,9 @@ public partial class HardcoreManager : ISavable, IDisposable
                 StoredEntriesFolder = storedEntriesFolder;
             }
         } catch (Exception ex) {
-            GSLogger.LogType.Error($"[HardcoreManager] Error loading HardcoreManager.json: {ex}");
+            _logger.LogError($"[HardcoreManager] Error loading HardcoreManager.json: {ex}");
         } finally {
-            GSLogger.LogType.Debug($"[HardcoreManager] HardcoreManager.json loaded!");
+            _logger.LogDebug($"[HardcoreManager] HardcoreManager.json loaded!");
 
         }
     }

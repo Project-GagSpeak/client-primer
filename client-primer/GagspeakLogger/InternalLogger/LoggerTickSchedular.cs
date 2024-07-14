@@ -31,7 +31,7 @@ public class TickScheduler
         try {
             function();
         } catch (Exception e) {
-            GSLogger.LogType.Error(e.Message + "\n" + e.StackTrace ?? "");
+            _logger.LogError(e.Message + "\n" + e.StackTrace ?? "");
         }
         Dispose();
     }

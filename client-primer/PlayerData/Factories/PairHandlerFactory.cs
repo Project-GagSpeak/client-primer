@@ -1,9 +1,9 @@
-using Gagspeak.API.Dto.User;
+using GagspeakAPI.Dto.User;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using Microsoft.Extensions.Hosting;
-using GagSpeak.API.Dto.Connection;
+using GagspeakAPI.Dto.Connection;
 using UpdateMonitoring;
 
 namespace GagSpeak.PlayerData.Factories;

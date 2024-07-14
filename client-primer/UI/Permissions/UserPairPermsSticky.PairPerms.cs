@@ -2,8 +2,8 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.Services.Mediator;
-using Gagspeak.API.Data.Enum;
-using GagSpeak.API.Dto.Permissions;
+using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 
 namespace GagSpeak.UI.Permissions;

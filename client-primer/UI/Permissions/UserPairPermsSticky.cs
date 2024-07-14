@@ -44,7 +44,7 @@ public partial class UserPairPermsSticky : DisposableMediatorSubscriberBase
     /// </para>
     /// </summary>
     /// <param name="userPairToDrawPermsFor">The user pair to draw the permissions for</param>
-    public bool DrawSticky(float topMenuEnd)
+    public void DrawSticky()
     {
         // Set the window flags
         var flags = ImGuiWindowFlags.NoCollapse

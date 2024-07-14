@@ -6,12 +6,12 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using Dalamud.Utility;
-using FFStreamViewer.Localization;
+using GagSpeak.Localization;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using Gagspeak.API.Data;
+using GagspeakAPI.Data;
 using ImGuiNET;
 using OtterGui;
 using Penumbra.GameData.Enums;
@@ -20,12 +20,21 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using UpdateMonitoring;
+using GagSpeak.Services.Textures;
+using GagSpeak.WebAPI;
+using GagSpeak.UpdateMonitoring;
+using Dalamud.Interface.Textures.TextureWraps;
+using Dalamud.Plugin.Services;
 
 namespace GagSpeak.UI;
 
 /// <summary> 
 /// The shared service for UI elements within our plugin. 
-/// This function should be expected to take advantage of classes with common functionality, preventing copy pasting.
+/// 
+/// This function should be expected to take advantage 
+/// of classes with common functionality, preventing copy pasting.
+/// 
+/// Think of it as a collection of helpers for all functions.
 /// </summary>
 public partial class UiSharedService : DisposableMediatorSubscriberBase
 {
@@ -37,13 +46,15 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigurationManager;    // the client-end related config service 
     private readonly ServerConfigurationManager _serverConfigurationManager;    // the server-end related config manager
     private readonly OnFrameworkService _frameworkUtil;                         // helpers for functions that should occur dalamud's framework  thread
-    private readonly IpcManager _ipcManager;                                    // manager for the IPC's our plugin links with
+    private readonly IpcManager _ipcManager;                                    // manager for the IPC's our plugin links 
+    private readonly ITextureProvider _textureProvider;                         // the texture provider for our plugin
     private readonly Dalamud.Localization _localization;                        // language localization for our plugin
     private readonly IDalamudPluginInterface _pluginInterface;                   // the primary interface for our plugin
     private readonly Dictionary<string, object> _selectedComboItems;            // the selected combo items
     private bool _glamourerExists = false;                                      // if glamourer currently exists on the client
     private bool _moodlesExists = false;                                        // if moodles currently exists on the client
     private bool _penumbraExists = false;                                       // if penumbra currently exists on the client
+    private bool _useTheme = true;                                              // if we should use the GagSpeak Theme
     public UiSharedService(ILogger<UiSharedService> logger, IpcManager ipcManager, ApiController apiController,
         OnFrameworkService frameworkutil, IDalamudPluginInterface pluginInterface, Dalamud.Localization localization,
         ClientConfigurationManager clientManager, ServerConfigurationManager serverManager,
@@ -89,8 +100,11 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public string PlayerName => _frameworkUtil.GetPlayerName();
     public UserData PlayerUserData => _apiController.GetConnectionDto().Result.User;
     public IFontHandle UidFont { get; init; } // the current UID font
+    public IFontHandle GagspeakFont { get; init; } // the current Gagspeak font
     public Dictionary<ushort, string> WorldData => _frameworkUtil.WorldData.Value;
     public uint WorldId => _frameworkUtil.GetHomeWorldId(); // the homeworld ID of the current player
+    public bool UseTheme => _useTheme;
+    public string SearchFilter { get; set; } // the search filter used in whitelist. Stored here to ensure the tab menu can clear it upon switching tabs.
 
     /// <summary> 
     /// A helper function to attach a tooltip to a section in the UI currently hovered. 
@@ -402,29 +416,87 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             width <= 0 ? null : width,
             disabled);
     }
+    /*
+     * Potentially a way to display selectables as the userdrawpairs. 
+        private bool IconTextSelectable(string id, Pair pair, ref bool isSelected)
+        {
+            ImGui.PushID(id);
+            bool result = false;
 
-    /// <summary> Draw a game icon display (not icon button or anything) </summary>
-    public static void DrawIcon(this EquipItem item, TextureService textures, Vector2 size, EquipSlot slot)
-    {
-        var isEmpty = item.PrimaryId.Id == 0;
-        var (ptr, textureSize, empty) = textures.GetIcon(item, slot);
-        if (empty)
+            // Determine icon and text based on pair status
+            FontAwesomeIcon icon = GetIconForPair(pair);
+            Vector4 iconColor = GetIconColorForPair(pair);
+            string text = GetPlayerText(pair).text;
+
+            // Calculate sizes
+            Vector2 iconSize;
+            using (IconFont.Push())
+                iconSize = ImGui.CalcTextSize(icon.ToIconString());
+            Vector2 textSize = ImGui.CalcTextSize(text);
+            float spacing = 3f * ImGuiHelpers.GlobalScale;
+            float totalWidth = iconSize.X + textSize.X + ImGui.GetStyle().FramePadding.X * 2f + spacing;
+            float frameHeight = ImGui.GetFrameHeight();
+
+            // Draw selectable
+            result = ImGui.Selectable("##Selectable", isSelected, ImGuiSelectableFlags.None, new Vector2(totalWidth, frameHeight));
+
+            // Update isSelected based on the result
+            isSelected = result ? !isSelected : isSelected;
+
+            // Draw icon and text
+            ImDrawListPtr windowDrawList = ImGui.GetWindowDrawList();
+            Vector2 cursorScreenPos = ImGui.GetCursorScreenPos();
+            using (var _ = ImRaii.PushColor(ImGuiCol.Text, iconColor))
+            {
+                using (IconFont.Push())
+                    windowDrawList.AddText(cursorScreenPos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
+            }
+            windowDrawList.AddText(new Vector2(cursorScreenPos.X + iconSize.X + spacing, cursorScreenPos.Y), ImGui.GetColorU32(ImGuiCol.Text), text);
+
+            ImGui.PopID();
+            return result;
+        }
+
+        private FontAwesomeIcon GetIconForPair(Pair pair)
         {
-            var (bgColor, tint) = isEmpty
-                ? (ImGui.GetColorU32(ImGuiCol.FrameBg), new Vector4(0.1f, 0.1f, 0.1f, 0.5f))
-                : (ImGui.GetColorU32(ImGuiCol.FrameBgActive), new Vector4(0.3f, 0.3f, 0.3f, 0.8f));
-            var pos = ImGui.GetCursorScreenPos();
-            ImGui.GetWindowDrawList().AddRectFilled(pos, pos + size, bgColor, 5 * ImGuiHelpers.GlobalScale);
-            if (ptr != nint.Zero)
-                ImGui.Image(ptr, size, Vector2.Zero, Vector2.One, tint);
+            // Logic to determine which icon to use based on the pair's status
+            if (!_pair.IsOnline)
+            {
+                return FontAwesomeIcon.UserSlash;
+            }
+            else if (_pair.IsVisible)
+            {
+                return FontAwesomeIcon.Eye;
+            }
             else
-                ImGui.Dummy(size);
+            {
+                return _pair.IndividualPairStatus == GagspeakAPI.Data.Enum.IndividualPairStatus.Bidirectional ? FontAwesomeIcon.User : FontAwesomeIcon.Users;
+            }
         }
-        else
+
+        private Vector4 GetIconColorForPair(Pair pair)
         {
-            ImGuiUtil.HoverIcon(ptr, textureSize, size);
-        }
+            // Logic to determine icon color based on the pair's status
+            if (!_pair.IsOnline)
+            {
+                return ImGuiColors.DalamudRed;
+            }
+            else if (_pair.IsVisible)
+            {
+                return ImGuiColors.ParsedGreen;
+            }
+            else
+            {
+                return ImGuiColors.HealerGreen;
+            }
+        }*/
+
+    public IDalamudTextureWrap LoadImage(byte[] imageData)
+    {
+        return _textureProvider.CreateFromImageAsync(imageData).Result;
     }
+
+
 
     /// <summary> Cleans sender string from the chatlog before processing, so it stays a valid player sender string. </summary>
     /// <param name="senderName"> The original uncleaned sender name string </param>

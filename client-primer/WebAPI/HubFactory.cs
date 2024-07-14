@@ -1,4 +1,4 @@
-using Gagspeak.API.SignalR;
+using GagspeakAPI.SignalR;
 using GagSpeak.Services.ConfigurationServices;
 using MessagePack;
 using MessagePack.Resolvers;
@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI.Utils;
-using Gagspeak.API.Data.Enum;
+using GagspeakAPI.Data.Enum;
 
 namespace GagSpeak.WebAPI;
 

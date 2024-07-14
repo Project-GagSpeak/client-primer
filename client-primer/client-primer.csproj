@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-    <!--Import Nessisary Dalamud Targets-->
-    <Import Project="Dalamud.Plugin.Bootstrap.targets" />
-
     <!--Basic Plugin Definitions-->
     <PropertyGroup>
         <TargetFramework>net8.0-windows</TargetFramework>
@@ -96,6 +93,11 @@
         </Content>
     </ItemGroup>
 
+    
+    <!-- We have yet to implement the logic, we are just in the UI Testing phase, so remove all folders with new logic-->
+
+    
+    
     <!--Include Dalamud Libraries for dev hooks-->
     <PropertyGroup>
         <DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
@@ -108,14 +110,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <NoWarn>$(NoWarn);IDE1006,CS8618</NoWarn>
     </PropertyGroup>
-    <ItemGroup>
-      <None Remove="UI\UserWhitelist\UserWhitelistREADME.md" />
-      <None Remove="UI\WindowMainUI\MainWindowREADME.md" />
-    </ItemGroup>
-    <ItemGroup>
-      <Compile Include="UI\UserWhitelist\UserWhitelistREADME.md" />
-      <Compile Include="UI\WindowMainUI\MainWindowREADME.md" />
-    </ItemGroup>
+
     
     <ItemGroup>
         <!--Submodules-->
@@ -157,6 +152,7 @@
     </ItemGroup>
     <ItemGroup>
       <Folder Include="GagspeakConfiguration\4.0-Migrator\" />
+      <Folder Include="UI\MainWindow\Sections\" />
     </ItemGroup>
 
 </Project>

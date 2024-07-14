@@ -81,7 +81,7 @@ public class PatternData
                     .ToList();
             }
         } catch (System.Exception e) {
-            GSLogger.LogType.Debug($"{e} Error deserializing pattern data");
+            _logger.LogDebug($"{e} Error deserializing pattern data");
         }
     }
 }

@@ -40,6 +40,7 @@ public enum UpdateType {
     Safeword,
 }
 
+
 public class GagSpeakGlamourEvent
 {
     public delegate void GagSpeakGlamourEventHandler(object sender, GagSpeakGlamourEventArgs e); // define the event handler
@@ -48,7 +49,7 @@ public class GagSpeakGlamourEvent
 
     /// <summary> Manually triggered event invoker </summary>
     public void Invoke(UpdateType updateType, string gagType = "None", string assignerName = "", int setIndex = -1) {
-        GSLogger.LogType.Debug($"[GagSpeakGlamourEvent] Invoked Type: {updateType} with gagtype: {gagType} from {assignerName} (Optional extra var: {setIndex})");
+        _logger.LogDebug($"[GagSpeakGlamourEvent] Invoked Type: {updateType} with gagtype: {gagType} from {assignerName} (Optional extra var: {setIndex})");
         IsGagSpeakGlamourEventExecuting = true;
         GlamourEventFired?.Invoke(this, new GagSpeakGlamourEventArgs(updateType, gagType, assignerName, setIndex));
     }
@@ -75,3 +76,6 @@ public class GagSpeakGlamourEventArgs : EventArgs
         SetIndex = setIndex;
     }
 }
+
+
+// KEEPING THIS AS A REFERENCE FOR WHEN I ENCOUNTER THEM.

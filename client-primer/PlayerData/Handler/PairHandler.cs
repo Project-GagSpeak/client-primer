@@ -4,8 +4,8 @@ using GagSpeak.PlayerData.Factories;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI.Utils;
-using GagSpeak.API.Data.Character;
-using GagSpeak.API.Dto.Connection;
+using GagspeakAPI.Data.Character;
+using GagspeakAPI.Dto.Connection;
 using Microsoft.Extensions.Hosting;
 using UpdateMonitoring;
 

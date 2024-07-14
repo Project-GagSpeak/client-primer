@@ -1,12 +1,10 @@
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using GagSpeak.PlayerData.Data;
+using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Factories;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
-using Microsoft.Extensions.Logging;
-using GagSpeak.API.Data.Character;
-using GagSpeak.Interop.Ipc;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
+using GagspeakAPI.Data.Character;
 
 namespace GagSpeak.PlayerData.VisibleData;
 
@@ -16,7 +14,7 @@ namespace GagSpeak.PlayerData.VisibleData;
 public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 {
     private readonly SemaphoreSlim _cacheCreateLock = new(1);
-    private          GameObjectHandler _cacheToCreate;          // player object cache to create.
+    private GameObjectHandler _cacheToCreate;          // player object cache to create.
     private readonly OnFrameworkService _frameworkUtil;
     private readonly IpcManager _ipcManager;
     private readonly CancellationTokenSource _cts = new();

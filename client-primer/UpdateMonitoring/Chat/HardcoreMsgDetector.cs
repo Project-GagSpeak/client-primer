@@ -129,7 +129,7 @@ public class HardcoreMsgDetector
                     // and nobody else currently is forcing you to follow
                     if (_hcManager.IsForcedFollowingForAny(out var enabledIdx, out var playerWhoForceFollowedYou))
                     {
-                        GSLogger.LogType.Debug($"[HardcoreMsgDetector] Forced to follow is already enabled by {playerWhoForceFollowedYou}, declining.");
+                        _logger.LogDebug($"[HardcoreMsgDetector] Forced to follow is already enabled by {playerWhoForceFollowedYou}, declining.");
                         return false;
                     }
 
@@ -162,11 +162,11 @@ public class HardcoreMsgDetector
                     // here, we want to make sure we are not already being forced to sit
                     if (_hcManager.IsForcedSittingForAny(out var enabledIdx, out var playerWhoForceSatYou))
                     {
-                        GSLogger.LogType.Debug($"[HardcoreMsgDetector] Forced to sit is already enabled by someone else so we cannot enable it. Declining.");
+                        _logger.LogDebug($"[HardcoreMsgDetector] Forced to sit is already enabled by someone else so we cannot enable it. Declining.");
                         return false;
                     }
                     // we need to make sure that the player who forced us to sit is the same as the sender
-                    GSLogger.LogType.Debug($"[HardcoreMsgDetector] {senderName} is now forcing you to sit, behave well ♥");
+                    _logger.LogDebug($"[HardcoreMsgDetector] {senderName} is now forcing you to sit, behave well ♥");
                     _hcManager.SetForcedSit(senderIdx, true);
                     // then we should execute /sit
                     messageToSend = "sit";
@@ -178,12 +178,12 @@ public class HardcoreMsgDetector
                     // here, we want to make sure we are not already being forced to sit
                     if (_hcManager.IsForcedSittingForAny(out var enabledIdx, out var playerWhoForceSatYou))
                     {
-                        GSLogger.LogType.Debug($"[HardcoreMsgDetector] Forced to sit is already enabled by someone else so we cannot enable it. Declining.");
+                        _logger.LogDebug($"[HardcoreMsgDetector] Forced to sit is already enabled by someone else so we cannot enable it. Declining.");
                         return false;
                     }
 
                     // we need to make sure that the player who forced us to sit is the same as the sender
-                    GSLogger.LogType.Debug($"[HardcoreMsgDetector] {senderName} is now forcing you to sit, behave well ♥");
+                    _logger.LogDebug($"[HardcoreMsgDetector] {senderName} is now forcing you to sit, behave well ♥");
                     _hcManager.SetForcedSit(senderIdx, true);
                     // then we should execute /sit
                     messageToSend = "groundsit";
@@ -196,7 +196,7 @@ public class HardcoreMsgDetector
                     // if we are not forced to sit by anyone currently, exit early
                     if (_hcManager.IsForcedSittingForAny(out var enabledIdx, out var playerWhoForceSatYou) == false)
                     {
-                        GSLogger.LogType.Debug($"[HardcoreMsgDetector] Forced to sit is not enabled by anyone, but we are trying to release it. Declining.");
+                        _logger.LogDebug($"[HardcoreMsgDetector] Forced to sit is not enabled by anyone, but we are trying to release it. Declining.");
                         return false;
                     }
 
@@ -210,7 +210,7 @@ public class HardcoreMsgDetector
                     }
                     else
                     {
-                        GSLogger.LogType.Debug($"[HardcoreMsgDetector] {senderName} tried to release you, but that were not the person who forced you to sit! Declining.");
+                        _logger.LogDebug($"[HardcoreMsgDetector] {senderName} tried to release you, but that were not the person who forced you to sit! Declining.");
                         return false;
                     }
                 }
@@ -226,12 +226,12 @@ public class HardcoreMsgDetector
                     if (_hcManager.IsForcedToStayForAny(out var enabledIdx, out var playerWhoForceStayedYou))
                     {
                         // this is true, meaning that we are already forced to stay, so we should decline the request
-                        GSLogger.LogType.Debug($"[HardcoreMsgDetector] Forced to stay is already enabled by {playerWhoForceStayedYou}, declining.");
+                        _logger.LogDebug($"[HardcoreMsgDetector] Forced to stay is already enabled by {playerWhoForceStayedYou}, declining.");
                         return false;
                     }
 
                     // if we reach here, it means we are not forced to stay by anyone, so let's enable it
-                    GSLogger.LogType.Debug($"[HardcoreMsgDetector] {senderName} is now forcing you to stay put in this area until they allow you to leave!");
+                    _logger.LogDebug($"[HardcoreMsgDetector] {senderName} is now forcing you to stay put in this area until they allow you to leave!");
                     _hcManager.SetForcedToStay(senderIdx, true);
                     return false;
                 }
@@ -241,7 +241,7 @@ public class HardcoreMsgDetector
                     // if we are not forced to stay by anyone currently, exit early
                     if (_hcManager.IsForcedToStayForAny(out var enabledIdx, out var playerWhoForceStayedYou) == false)
                     {
-                        GSLogger.LogType.Debug($"[HardcoreMsgDetector] Forced to stay is not enabled by anyone, but we are trying to release it. Declining.");
+                        _logger.LogDebug($"[HardcoreMsgDetector] Forced to stay is not enabled by anyone, but we are trying to release it. Declining.");
                         return false;
                     }
 
@@ -250,12 +250,12 @@ public class HardcoreMsgDetector
                     {
                         // then we should set forced to stay to false, unlocking our movement
                         _hcManager.SetForcedToStay(senderIdx, false);
-                        GSLogger.LogType.Debug($"[HardcoreMsgDetector] {playerWhoForceStayedYou} has decided to release you from staying in the area.");
+                        _logger.LogDebug($"[HardcoreMsgDetector] {playerWhoForceStayedYou} has decided to release you from staying in the area.");
                         return false;
                     }
                     else
                     {
-                        GSLogger.LogType.Debug($"[HardcoreMsgDetector] {senderName} tried to release you, but that were not the person who forced you to stay! Declining.");
+                        _logger.LogDebug($"[HardcoreMsgDetector] {senderName} tried to release you, but that were not the person who forced you to stay! Declining.");
                         return false;
                     }
                 }

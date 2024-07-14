@@ -71,7 +71,7 @@ public class RealChatInteraction
         {
             throw new InvalidOperationException("Could not find signature for chat sending");
         }
-        //GagSpeak.GSLogger.LogType.Debug($"[RealChatInteraction]: Sending message of byte length: {bytes.Length}");
+        //GagSpeak._logger.LogDebug($"[RealChatInteraction]: Sending message of byte length: {bytes.Length}");
         // Assuming it meets the correct conditions, we can begin to obtain the UI module pointer for the chatbox within the framework instance
         SendMessageUnsafe(bytes);
     }

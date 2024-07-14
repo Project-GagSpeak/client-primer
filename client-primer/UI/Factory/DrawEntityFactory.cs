@@ -1,11 +1,13 @@
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.UI.Components;
 using GagSpeak.UI.Handlers;
 using System.Collections.Immutable;
 using System.Numerics;
 using GagSpeak.UI.Permissions;
+using UI.Components.UserPairList;
+using GagSpeak.UI.Components.UserPairList;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.UI;
 

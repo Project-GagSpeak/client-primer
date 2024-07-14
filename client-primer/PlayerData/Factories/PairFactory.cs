@@ -1,8 +1,8 @@
-using Gagspeak.API.Dto.User;
+using GagspeakAPI.Dto.User;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.API.Dto.UserPair;
+using GagspeakAPI.Dto.UserPair;
 
 namespace GagSpeak.PlayerData.Factories;
 

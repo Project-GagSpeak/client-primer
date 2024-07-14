@@ -3,13 +3,13 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.WebAPI.Utils;
-using Gagspeak.API.Data;
-using Gagspeak.API.Data.Enum;
-using Gagspeak.API.Dto.User;
-using GagSpeak.API.Data.Character;
-using GagSpeak.API.Dto.Connection;
-using GagSpeak.API.Dto.UserPair;
-using GagSpeak.API.Data.Permissions;
+using GagspeakAPI.Data;
+using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Dto.User;
+using GagspeakAPI.Data.Character;
+using GagspeakAPI.Dto.Connection;
+using GagspeakAPI.Dto.UserPair;
+using GagspeakAPI.Data.Permissions;
 
 namespace GagSpeak.PlayerData.Pairs;
 

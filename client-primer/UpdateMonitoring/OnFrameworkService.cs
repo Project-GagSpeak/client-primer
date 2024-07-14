@@ -1,12 +1,10 @@
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Memory;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI.Utils;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using Microsoft.Extensions.Hosting;
 
 namespace GagSpeak.UpdateMonitoring;

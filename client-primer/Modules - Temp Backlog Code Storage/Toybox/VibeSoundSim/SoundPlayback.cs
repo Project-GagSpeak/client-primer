@@ -55,34 +55,34 @@ public class SoundPlayer
         // now try and initalize it
         try {
             // if devicechange is false, assume we are initializing
-            GSLogger.LogType.Information($"Detected Device Count: {WaveOut.DeviceCount}");
+            _logger.LogInformation($"Detected Device Count: {WaveOut.DeviceCount}");
             // see what device is currently selected
             for(int i = 0; i< WaveOut.DeviceCount; i++){
                 var capabilities = WaveOut.GetCapabilities(i);
-                GSLogger.LogType.Information($"Device {i}: {capabilities.ProductName}");
+                _logger.LogInformation($"Device {i}: {capabilities.ProductName}");
                 DeviceNames.Add(capabilities.ProductName); // add the device name to the list
             }
 
             waveOutDevice.Init(waveProvider);
-            GSLogger.LogType.Information("SoundPlayer sucessfully setup with NAudio");
+            _logger.LogInformation("SoundPlayer sucessfully setup with NAudio");
         }
         catch (NAudio.MmException ex)
         {
             if (ex.Result == NAudio.MmResult.BadDeviceId)
             {
                 // Handle the exception, e.g. show a message to the user
-                GSLogger.LogType.Error("Bad Default Device ID. Attempting manual assignment.");
+                _logger.LogError("Bad Default Device ID. Attempting manual assignment.");
 
                 // attempt to do it manually
                 for(int i = 0; i< WaveOut.DeviceCount; i++){
                     try {
                         var capabilities = WaveOut.GetCapabilities(i);
-                        GSLogger.LogType.Information($"Device {i}: {capabilities.ProductName}\n"+
+                        _logger.LogInformation($"Device {i}: {capabilities.ProductName}\n"+
                         $" --- Supports Playback Control: {capabilities.SupportsPlaybackRateControl}");
 
                         waveOutDevice = new WaveOutEvent { DeviceNumber = i, DesiredLatency = 80, NumberOfBuffers = 3 };
                         waveOutDevice.Init(waveProvider);
-                        GSLogger.LogType.Information("SoundPlayer successfully setup with NAudio for device " + i);
+                        _logger.LogInformation("SoundPlayer successfully setup with NAudio for device " + i);
                         // if we reach here, the device is valid and we can break the loop
                         ActiveDeviceId = i+1;
                         break;
@@ -92,11 +92,11 @@ public class SoundPlayer
                         if (ex2.Result == NAudio.MmResult.BadDeviceId)
                         {
                             // Handle the exception, e.g. show a message to the user
-                            GSLogger.LogType.Error($"Bad Device ID for device {i}, trying next device.");
+                            _logger.LogError($"Bad Device ID for device {i}, trying next device.");
                         }
                         else
                         {
-                            GSLogger.LogType.Error("Unknown NAudio Exception: " + ex2.Message);
+                            _logger.LogError("Unknown NAudio Exception: " + ex2.Message);
                             throw;
                         }
                     }
@@ -104,7 +104,7 @@ public class SoundPlayer
             }
             else
             {
-                GSLogger.LogType.Error("Unknown NAudio Exception: " + ex.Message);
+                _logger.LogError("Unknown NAudio Exception: " + ex.Message);
                 throw;
             }
         }
@@ -114,7 +114,7 @@ public class SoundPlayer
     {
         if (deviceId < 0 || deviceId >= WaveOut.DeviceCount)
         {
-            GSLogger.LogType.Error($"Invalid device ID: {deviceId}");
+            _logger.LogError($"Invalid device ID: {deviceId}");
             return;
         }
 
@@ -131,7 +131,7 @@ public class SoundPlayer
 
         waveOutDevice = new WaveOutEvent { DeviceNumber = deviceId-1, DesiredLatency = 80, NumberOfBuffers = 3 };
         waveOutDevice.Init(pitchShifter.ToWaveProvider16());
-        GSLogger.LogType.Information($"Switched to device {deviceId}: {DeviceNames[deviceId]}");
+        _logger.LogInformation($"Switched to device {deviceId}: {DeviceNames[deviceId]}");
 
         if (wasActiveBeforeChange)
         {

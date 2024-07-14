@@ -1,224 +1,164 @@
-/*using Dalamud.Interface;
-using Dalamud.Interface.Colors;
-using Dalamud.Interface.ImGuiFileDialog;
-using Dalamud.Interface.Internal;
-using Dalamud.Interface.Textures.TextureWraps; // This is discouraged, try and look into better way to do it later.
+using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
+using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
-using Gagspeak.API.Data;
-using Gagspeak.API.Dto.User;
+using GagSpeak.UI.Components;
+using GagSpeak.Utils;
 using ImGuiNET;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
-
+using System.Numerics;
 namespace GagSpeak.UI;
 
-public class GagSetupUi : WindowMediatorSubscriberBase
+public class GagSetupUI : WindowMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
-    private readonly FileDialogManager _fileDialogManager;
-    private readonly GagspeakProfileManager _gagspeakProfileManager;
-    private readonly ITextureProvider _textureProvider;
+    private readonly IDalamudPluginInterface _pi;
     private readonly UiSharedService _uiSharedService;
-    private bool _adjustedForScollBarsLocalProfile = false;
-    private bool _adjustedForScollBarsOnlineProfile = false;
-    private string _descriptionText = string.Empty;
-    private IDalamudTextureWrap? _pfpTextureWrap;
-    private string _profileDescription = string.Empty;
-    private byte[] _profileImage = [];
-    private bool _showFileDialogError = false;
-    private bool _wasOpen;
+    private readonly GagSetupTabMenu _tabMenu;
+    private ITextureProvider _textureProvider;
+    private ISharedImmediateTexture _sharedSetupImage;
 
-    public GagSetupUi(ILogger<EditProfileUi> logger, GagspeakMediator mediator,
-        ApiController apiController, ITextureProvider textureProvider, UiSharedService uiSharedService,
-        FileDialogManager fileDialogManager, GagspeakProfileManager gagspeakProfileManager)
-        : base(logger, mediator, "GagSpeak Edit Profile###GagSpeakEditProfileUI")
+    public GagSetupUI(ILogger<GagSetupUI> logger, ITextureProvider textureProvider,
+        GagspeakMediator mediator, UiSharedService uiSharedService,
+        IDalamudPluginInterface pi) : base(logger, mediator, "Gag Setup UI")
     {
-        IsOpen = false;
-        this.SizeConstraints = new()
-        {
-            MinimumSize = new(768, 512),
-            MaximumSize = new(768, 2000)
-        };
-        _apiController = apiController;
         _textureProvider = textureProvider;
-        _uiSharedService = uiSharedService;
-        _fileDialogManager = fileDialogManager;
-        _gagspeakProfileManager = gagspeakProfileManager;
+        _pi = pi;
 
-        Mediator.Subscribe<DisconnectedMessage>(this, (_) => IsOpen = false);
-        Mediator.Subscribe<ClearProfileDataMessage>(this, (msg) =>
+        // define initial size of window and to not respect the close hotkey.
+        this.SizeConstraints = new WindowSizeConstraints
         {
-            if (msg.UserData == null || string.Equals(msg.UserData.UID, _apiController.UID, StringComparison.Ordinal))
-            {
-                _pfpTextureWrap?.Dispose();
-                _pfpTextureWrap = null;
-            }
-        });
+            MinimumSize = new Vector2(375, 330),
+            MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
+        };
+        RespectCloseHotkey = false;
     }
+    // perhaps migrate the opened selectable for the UIShared service so that other trackers can determine if they should refresh / update it or not.
+    // (this is not yet implemented, but we can modify it later when we need to adapt)
 
+    protected override void PreDrawInternal()
+    {
+        // include our personalized theme for this window here if we have themes enabled.
+    }
+    protected override void PostDrawInternal()
+    {
+        // include our personalized theme for this window here if we have themes enabled.
+    }
     protected override void DrawInternal()
     {
-        _uiSharedService.BigText("Current Profile (as saved on server)");
+        // get information about the window region, its item spacing, and the topleftside height.
+        var region = ImGui.GetContentRegionAvail();
+        var itemSpacing = ImGui.GetStyle().ItemSpacing;
+        var topLeftSideHeight = region.Y;
 
-        var profile = _gagspeakProfileManager.GetGagspeakProfile(new UserData(_apiController.UID));
-
-        if (profile.IsFlagged)
+        // create the draw-table for the selectable and viewport displays
+        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f), 0));
+        try
         {
-            UiSharedService.ColorTextWrapped(profile.Description, ImGuiColors.DalamudRed);
-            return;
-        }
-        // Waiting for people to figure out how to manage this part until later.
-*//*        if (!_profileImage.SequenceEqual(profile.ImageData.Value))
-        {
-            _profileImage = profile.ImageData.Value;
-            _pfpTextureWrap?.Dispose();
-            _pfpTextureWrap = _textureProvider.CreateFromImageAsync(_profileImage);
-        }*//*
-
-        if (!string.Equals(_profileDescription, profile.Description, StringComparison.OrdinalIgnoreCase))
-        {
-            _profileDescription = profile.Description;
-            _descriptionText = _profileDescription;
-        }
-*//*
-        if (_pfpTextureWrap != null)
-        {
-            ImGui.Image(_pfpTextureWrap.ImGuiHandle, ImGuiHelpers.ScaledVector2(_pfpTextureWrap.Width, _pfpTextureWrap.Height));
-        }*//*
-
-        var spacing = ImGui.GetStyle().ItemSpacing.X;
-        ImGuiHelpers.ScaledRelativeSameLine(256, spacing);
-        using (_uiSharedService.GameFont.Push())
-        {
-            var descriptionTextSize = ImGui.CalcTextSize(profile.Description, 256f);
-            var childFrame = ImGuiHelpers.ScaledVector2(256 + ImGui.GetStyle().WindowPadding.X + ImGui.GetStyle().WindowBorderSize, 256);
-            if (descriptionTextSize.Y > childFrame.Y)
+            using (var table = ImRaii.Table($"GagSetupUiWindowTable", 2, ImGuiTableFlags.SizingFixedFit))
             {
-                _adjustedForScollBarsOnlineProfile = true;
-            }
-            else
-            {
-                _adjustedForScollBarsOnlineProfile = false;
-            }
-            childFrame = childFrame with
-            {
-                X = childFrame.X + (_adjustedForScollBarsOnlineProfile ? ImGui.GetStyle().ScrollbarSize : 0),
-            };
-            if (ImGui.BeginChildFrame(101, childFrame))
-            {
-                UiSharedService.TextWrapped(profile.Description);
-            }
-            ImGui.EndChildFrame();
-        }
+                if (!table) return;
 
-        ImGui.Separator();
-        _uiSharedService.BigText("Nicknames and Rules for Profiles");
+                // define the left column, which contains an image of the component (added later), and the list of 'compartments' within the setup to view.
+                ImGui.TableSetupColumn("##LeftColumn", ImGuiTableColumnFlags.WidthFixed, ImGui.GetWindowWidth() / 2);
 
-        ImGui.TextWrapped($"- All users that are paired and unpaused with you will be able to see your profile picture and description.{Environment.NewLine}" +
-            $"- Other users have the possibility to report your profile for breaking the rules.{Environment.NewLine}" +
-            $"- !!! AVOID: anything as profile image that can be considered highly illegal or obscene (bestiality, anything that could be considered a sexual act with a minor (that includes Lalafells), etc.){Environment.NewLine}" +
-            $"- !!! AVOID: slurs of any kind in the description that can be considered highly offensive{Environment.NewLine}" +
-            $"- In case of valid reports from other users this can lead to disabling your profile forever or terminating your Gagspeak account indefinitely.{Environment.NewLine}" +
-            $"- Judgement of your profile validity from reports through staff is not up to debate and the decisions to disable your profile/account permanent.{Environment.NewLine}" +
-            $"- If your profile picture or profile description could be considered NSFW, enable the toggle below.");
-        ImGui.Separator();
-        _uiSharedService.BigText("Profile Settings");
+                ImGui.TableNextColumn();
 
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.FileUpload, "Upload new profile picture"))
-        {
-            _fileDialogManager.OpenFileDialog("Select new Profile picture", ".png", (success, file) =>
-            {
-                if (!success) return;
-                _ = Task.Run(async () =>
+                var regionSize = ImGui.GetContentRegionAvail();
+
+                ImGui.PushStyleVar(ImGuiStyleVar.SelectableTextAlign, new Vector2(0.5f, 0.5f));
+
+                using (var leftChild = ImRaii.Child($"###GagSetupLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
-                    var fileContent = File.ReadAllBytes(file);
-                    using MemoryStream ms = new(fileContent);
-                    var format = await Image.DetectFormatAsync(ms).ConfigureAwait(false);
-                    if (!format.FileExtensions.Contains("png", StringComparer.OrdinalIgnoreCase))
+                    // attempt to obtain an image wrap for it
+                    _sharedSetupImage = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "icon.png"));
+
+                    // if the image was valid, display it (at rescaled size
+                    if (!(_sharedSetupImage.GetWrapOrEmpty() is { } wrap))
                     {
-                        _showFileDialogError = true;
-                        return;
+                        _logger.LogWarning("Failed to render image!");
                     }
-                    using var image = Image.Load<Rgba32>(fileContent);
-
-                    if (image.Width > 256 || image.Height > 256 || (fileContent.Length > 250 * 1024))
+                    else
                     {
-                        _showFileDialogError = true;
-                        return;
+                        // aligns the image in the center like we want.
+                        UtilsExtensions.ImGuiLineCentered("###GagSetupLogo", () =>
+                        {
+                            ImGui.Image(wrap.ImGuiHandle,
+                                        new(125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f),
+                                            125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f)
+                                        ));
+
+                            if (ImGui.IsItemHovered())
+                            {
+                                ImGui.BeginTooltip();
+                                ImGui.Text($"You found a wild easter egg, Y I P P E E !!!");
+                                ImGui.EndTooltip();
+                            }
+                        });
                     }
-
-                    _showFileDialogError = false;
-                    await _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, Convert.ToBase64String(fileContent), Description: null))
-                        .ConfigureAwait(false);
-                });
-            });
-        }
-        UiSharedService.AttachToolTip("Select and upload a new profile picture");
-        ImGui.SameLine();
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Clear uploaded profile picture"))
-        {
-            _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, "", Description: null));
-        }
-        UiSharedService.AttachToolTip("Clear your currently uploaded profile picture");
-        if (_showFileDialogError)
-        {
-            UiSharedService.ColorTextWrapped("The profile picture must be a PNG file with a maximum height and width of 256px and 250KiB size", ImGuiColors.DalamudRed);
-        }
-        _uiSharedService.DrawHelpText("If your profile description or image can be considered NSFW, toggle this to ON");
-        var widthTextBox = 400;
-        var posX = ImGui.GetCursorPosX();
-        ImGui.TextUnformatted($"Description {_descriptionText.Length}/1500");
-        ImGui.SetCursorPosX(posX);
-        ImGuiHelpers.ScaledRelativeSameLine(widthTextBox, ImGui.GetStyle().ItemSpacing.X);
-        ImGui.TextUnformatted("Preview (approximate)");
-        using (_uiSharedService.GameFont.Push())
-            ImGui.InputTextMultiline("##description", ref _descriptionText, 1500, ImGuiHelpers.ScaledVector2(widthTextBox, 200));
-
-        ImGui.SameLine();
-
-        using (_uiSharedService.GameFont.Push())
-        {
-            var descriptionTextSizeLocal = ImGui.CalcTextSize(_descriptionText, 256f);
-            var childFrameLocal = ImGuiHelpers.ScaledVector2(256 + ImGui.GetStyle().WindowPadding.X + ImGui.GetStyle().WindowBorderSize, 200);
-            if (descriptionTextSizeLocal.Y > childFrameLocal.Y)
-            {
-                _adjustedForScollBarsLocalProfile = true;
+                    // add separator
+                    ImGui.Spacing();
+                    ImGui.Separator();
+                    // add the tab menu for the left side.
+                    _tabMenu.DrawSelectableTabMenu();
+                }
+                // pop pushed style variables and draw next column.
+                ImGui.PopStyleVar();
+                ImGui.TableNextColumn();
+                // display right half viewport based on the tab selection
+                using (var rightChild = ImRaii.Child($"###ArtisanRightSide", Vector2.Zero, false))
+                {
+                    switch (_tabMenu.SelectedTab)
+                    {
+                        case GagsetupTabSelection.ActiveGags: // shows the interface for inspecting or applying your own gags.
+                            DrawActiveGags();
+                            break;
+                        case GagsetupTabSelection.Lockpicker: // shows off the gag storage configuration for the user's gags.
+                            DrawLockPicker();
+                            break;
+                        case GagsetupTabSelection.GagStorage: // fancy WIP thingy to give players access to features based on achievements or unlocks.
+                            DrawGagStorage();
+                            break;
+                        case GagsetupTabSelection.ProfileCosmetics:
+                            DrawGagDisplayEdits();
+                            break;
+                        default:
+                            break;
+                    };
+                }
             }
-            else
-            {
-                _adjustedForScollBarsLocalProfile = false;
-            }
-            childFrameLocal = childFrameLocal with
-            {
-                X = childFrameLocal.X + (_adjustedForScollBarsLocalProfile ? ImGui.GetStyle().ScrollbarSize : 0),
-            };
-            if (ImGui.BeginChildFrame(102, childFrameLocal))
-            {
-                UiSharedService.TextWrapped(_descriptionText);
-            }
-            ImGui.EndChildFrame();
         }
-
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, "Save Description"))
+        catch (Exception ex)
         {
-            _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, ProfilePictureBase64: null, _descriptionText));
+            _logger.LogError($"Error: {ex}");
         }
-        UiSharedService.AttachToolTip("Sets your profile description text");
-        ImGui.SameLine();
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Clear Description"))
+        finally
         {
-            _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, ProfilePictureBase64: null, ""));
+            ImGui.PopStyleVar();
         }
-        UiSharedService.AttachToolTip("Clears your profile description text");
     }
 
-    protected override void Dispose(bool disposing)
+    // Draw the active gags tab
+    private void DrawActiveGags()
     {
-        base.Dispose(disposing);
-        _pfpTextureWrap?.Dispose();
+        ImGui.Text("Active Gags");
+    }
+
+    // Draw the lockpicker tab
+    private void DrawLockPicker()
+    {
+        ImGui.Text("Lockpicker");
+    }
+
+    // Draw the gag storage tab
+    private void DrawGagStorage()
+    {
+        ImGui.Text("Gag Storage");
+    }
+
+    // Draw the profile display edits tab
+    private void DrawGagDisplayEdits()
+    {
+        ImGui.Text("Profile Display Edits");
     }
 }
-*/

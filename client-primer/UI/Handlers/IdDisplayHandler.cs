@@ -5,7 +5,7 @@ using ImGuiScene;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
-using GagspeakConfiguration;
+using GagSpeak.GagspeakConfiguration;
 
 namespace GagSpeak.UI.Handlers;
 

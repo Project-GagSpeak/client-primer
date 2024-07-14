@@ -1,9 +1,9 @@
-using Gagspeak.API.Data;
-using Gagspeak.API.Dto.User;
-using GagSpeak.API.Data.Character;
-using GagSpeak.API.Dto.Connection;
-using GagSpeak.API.Dto.Permissions;
-using GagSpeak.API.Dto.UserPair;
+using GagspeakAPI.Data;
+using GagspeakAPI.Dto.User;
+using GagspeakAPI.Data.Character;
+using GagspeakAPI.Dto.Connection;
+using GagspeakAPI.Dto.Permissions;
+using GagspeakAPI.Dto.UserPair;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace GagSpeak.WebAPI;

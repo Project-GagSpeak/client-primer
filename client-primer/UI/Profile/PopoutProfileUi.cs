@@ -8,7 +8,8 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
 using ImGuiNET;
 using System.Numerics;
-using GagspeakConfiguration;
+using GagSpeakConfiguration;
+using GagSpeak.GagspeakConfiguration;
 
 namespace GagSpeak.UI.Profile;
 
@@ -86,7 +87,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
 
             var gagspeakProfile = _gagspeakProfileManager.GetGagspeakProfile(_pair.UserData);
 
-/*            if (_textureWrap == null || !gagspeakProfile.ImageData.Value.SequenceEqual(_lastProfilePicture))
+            if (_textureWrap == null || !gagspeakProfile.ImageData.Value.SequenceEqual(_lastProfilePicture))
             {
                 _textureWrap?.Dispose();
                 _lastProfilePicture = gagspeakProfile.ImageData.Value;
@@ -102,7 +103,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
                     _lastSupporterPicture = gagspeakProfile.SupporterImageData.Value;
                     _supporterTextureWrap = _uiSharedService.LoadImage(_lastSupporterPicture);
                 }
-            }*/
+            }
 
             var drawList = ImGui.GetWindowDrawList();
             var rectMin = drawList.GetClipRectMin();
@@ -128,7 +129,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
                 ImGui.SameLine();
                 ImGui.TextUnformatted($"({_pair.PlayerName})");
             }
-            if (_pair.UserPair.IndividualPairStatus == Gagspeak.API.Data.Enum.IndividualPairStatus.Bidirectional)
+            if (_pair.UserPair.IndividualPairStatus == GagspeakAPI.Data.Enum.IndividualPairStatus.Bidirectional)
             {
                 ImGui.TextUnformatted("Directly paired");
             }

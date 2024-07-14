@@ -1,12 +1,4 @@
-using System;
-using System.Collections.Generic;
 using Penumbra.GameData.Enums;
-using Newtonsoft.Json.Linq;
-using GagSpeak.UI.Equipment;
-using GagSpeak.Utility;
-using GagSpeak.Interop.Penumbra;
-using OtterGui.Classes;
-using Dalamud.Interface.ImGuiNotification;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
 
@@ -32,7 +24,7 @@ public record RestraintSet
 
     public DateTimeOffset LockedUntil { get; set; } = DateTimeOffset.MinValue;
 
-    // update to reflect glamourer slot data later.
-    public Dictionary<EquipSlot, EquipDrawData> _drawData; // stores the equipment draw data for the set
-    public List<(Mod mod, ModSettings modSettings, bool disableWhenInactive, bool redrawAfterToggle)> _associatedMods { get; private set; }
+    public Dictionary<EquipSlot, EquipDrawData> DrawData { get; set; } = new();
+
+    public List<AssociatedMod> AssociatedMods { get; private set; } = new();
 }

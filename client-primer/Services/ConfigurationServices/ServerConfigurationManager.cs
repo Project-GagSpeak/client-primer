@@ -1,6 +1,6 @@
 using GagSpeak.Services.Mediator;
-using GagspeakConfiguration;
-using GagspeakConfiguration.Models;
+using GagSpeakConfiguration;
+using GagSpeakConfiguration.Models;
 using UpdateMonitoring;
 
 namespace GagSpeak.Services.ConfigurationServices;

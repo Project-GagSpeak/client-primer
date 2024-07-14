@@ -95,6 +95,8 @@ internal class EventViewerUI : WindowMediatorSubscriberBase
         ClearFilters();
     }
 
+    protected override void PreDrawInternal() { }
+    protected override void PostDrawInternal() { }
     protected override void DrawInternal()
     {
         using (ImRaii.Disabled(!_eventAggregator.NewEventsAvailable))

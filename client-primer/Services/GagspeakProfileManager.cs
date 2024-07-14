@@ -1,12 +1,11 @@
 using Dalamud.Interface.Textures;
-using Dalamud.Interface.Internal;
 using Dalamud.Plugin;
-using GagSpeak.Services.Mediator;
-using Gagspeak.API.Data;
-using Gagspeak.API.Data.Comparer;
-using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Plugin.Services;
-using GagspeakConfiguration;
+using GagSpeak.GagspeakConfiguration;
+using GagSpeak.Services.Mediator;
+using GagSpeak.WebAPI;
+using GagspeakAPI.Data;
+using GagspeakAPI.Data.Comparer;
 
 namespace GagSpeak.Services;
 
@@ -28,7 +27,7 @@ public class GagspeakProfileManager : MediatorSubscriberBase
         GagspeakMediator mediator, ApiController apiController, IDalamudPluginInterface pi,
         ITextureProvider textureProvider) : base(logger, mediator)
     {
-        _gagspeakLogo =  textureProvider.GetFromFile(Path.Combine(pi.AssemblyLocation.Directory?.FullName!, "GagSpeakIconNoRadial.png"));
+        _gagspeakLogo = textureProvider.GetFromFile(Path.Combine(pi.AssemblyLocation.Directory?.FullName!, "GagSpeakIconNoRadial.png"));
         _gagspeakConfigService = gagspeakConfigService;
         _apiController = apiController;
         _gagspeakProfiles = new(UserDataComparer.Instance);
@@ -74,7 +73,7 @@ public class GagspeakProfileManager : MediatorSubscriberBase
             // set the profile to loading profile data
             _gagspeakProfiles[data] = _loadingProfileData;
             // fetch the user's prifile from the server
-            var profile = await _apiController.UserGetProfile(new Gagspeak.API.Dto.User.UserDto(data)).ConfigureAwait(false);
+            var profile = await _apiController.UserGetProfile(new GagspeakAPI.Dto.User.UserDto(data)).ConfigureAwait(false);
             // we will create a new gagspeakprofile data object from the profile data Dto we received.
             GagspeakProfileData profileData = new(profile.Disabled,
                 string.IsNullOrEmpty(profile.ProfilePictureBase64) ? _gagspeakLogo.GetWrapOrEmpty().ImGuiHandle.ToString() : profile.ProfilePictureBase64,

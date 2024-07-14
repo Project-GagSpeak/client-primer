@@ -4,45 +4,37 @@ using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using FFStreamViewer.Events;
-using FFStreamViewer.Livestream;
-using FFStreamViewer.Services;
-using FFStreamViewer.UI;
-using GagSpeak.UI.Permissions;
-using FFStreamViewer.UI.Tabs.MediaTab;
-using GagSpeak;
-using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Factories;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.PlayerData.VisibleData;
 using GagSpeak.Services;
+using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.WebAPI;
 using GagSpeak.UI;
-using GagSpeak.UI.Components;
+using GagSpeak.UI.Components.Popup;
 using GagSpeak.UI.Handlers;
+using GagSpeak.UI.Permissions;
+using GagSpeak.UpdateMonitoring;
+using GagSpeak.WebAPI;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using GagSpeak.UI.Components.Popup;
+using GagSpeak.UI.Components.UserPairList;
 using OtterGui.Classes;
-using GagSpeak.PlayerData.Data;
-using GagSpeak.PlayerData.VisibleData;
-using GagspeakConfiguration;
-using UI.WindowMainUI;
-using UpdateMonitoring;
+using GagSpeak.GagspeakConfiguration;
 
-namespace FFStreamViewer;
+namespace GagSpeak;
 
-public sealed class FFStreamViewer : IDalamudPlugin
+public sealed class GagSpeak : IDalamudPlugin
 {
     private readonly IHost _host;  // the host builder for the plugin instance. (What makes everything work)
-    public FFStreamViewer(IDalamudPluginInterface pi, IChatGui chatGui, IClientState clientState,
-        ICommandManager commandManager, ICondition condition, IDataManager dataManager, 
-        IDtrBar dtrBar, IFramework framework, IGameGui gameGui, IGameInteropProvider gameInteropProvider, 
-        INotificationManager notificationManager, IObjectTable objectTable, IPluginLog pluginLog, 
+    public GagSpeak(IDalamudPluginInterface pi, IChatGui chatGui, IClientState clientState,
+        ICommandManager commandManager, ICondition condition, IDataManager dataManager,
+        IDtrBar dtrBar, IFramework framework, IGameGui gameGui, IGameInteropProvider gameInteropProvider,
+        INotificationManager notificationManager, IObjectTable objectTable, IPluginLog pluginLog,
         ISigScanner sigScanner, ITargetManager targetManager, ITextureProvider textureProvider)
     {
         // create the host builder for the plugin
@@ -52,7 +44,7 @@ public sealed class FFStreamViewer : IDalamudPlugin
         _ = _host.StartAsync();
     }
 
-    // Method that creates the host builder for the FFStreamViewer plugin
+    // Method that creates the host builder for the GagSpeak plugin
     public IHost ConstructHostBuilder(IDalamudPluginInterface pi, IPluginLog pl, ICommandManager cm,
         IDataManager dm, IFramework fw, IObjectTable ot, IClientState cs, ICondition con, IChatGui cg,
         IGameGui gg, IDtrBar bar, ITargetManager tm, INotificationManager nm, ITextureProvider tp)
@@ -82,26 +74,26 @@ public sealed class FFStreamViewer : IDalamudPlugin
         lb.SetMinimumLevel(LogLevel.Trace);
     }
 
-    /// <summary> Gets the plugin services for the FFStreamViewer plugin. </summary>
+    /// <summary> Gets the plugin services for the GagSpeak plugin. </summary>
     private IServiceCollection GetPluginServices(IServiceCollection collection, IDalamudPluginInterface pi,
         IPluginLog pl, ICommandManager cm, IDataManager dm, IFramework fw, IObjectTable ot, IClientState cs, ICondition con, IChatGui cg,
         IGameGui gg, IDtrBar bar, ITargetManager tm, INotificationManager nm, ITextureProvider tp)
     {
         return collection
             // add the general services to the collection
-            .AddSingleton(new WindowSystem("FFStreamViewer"))
+            .AddSingleton(new WindowSystem("GagSpeak"))
             .AddSingleton<FileDialogManager>()
-            .AddSingleton(new Dalamud.Localization("FFStreamViewer.Localization.", "", useEmbedded: true))
-            // add the generic services for FFStreamViewer
-            .AddFFStreamViewerGeneric(pi, cs, con, dm, fw, gg, ot, tm, tp)
-            // add the services related to the IPC calls for FFStreamViewer
-            .AddFFStreamViewerIPC(pi)
-            // add the services related to the configs for FFStreamViewer
-            .AddFFStreamViewerConfigs(pi)
-            // add the scoped services for FFStreamViewer
-            .AddFFStreamViewerScoped(pi, tp, nm, cg)
-            // add the hosted services for FFStreamViewer (these should all contain startAsync and stopAsync methods)
-            .AddFFStreamViewerHosted();
+            .AddSingleton(new Dalamud.Localization("GagSpeak.Localization.", "", useEmbedded: true))
+            // add the generic services for GagSpeak
+            .AddGagSpeakGeneric(pi, cs, con, dm, fw, gg, ot, tm, tp)
+            // add the services related to the IPC calls for GagSpeak
+            .AddGagSpeakIPC(pi)
+            // add the services related to the configs for GagSpeak
+            .AddGagSpeakConfigs(pi)
+            // add the scoped services for GagSpeak
+            .AddGagSpeakScoped(pi, tp, nm, cg)
+            // add the hosted services for GagSpeak (these should all contain startAsync and stopAsync methods)
+            .AddGagSpeakHosted();
     }
 
     public void Dispose()
@@ -111,43 +103,20 @@ public sealed class FFStreamViewer : IDalamudPlugin
     }
 }
 
-public static class FFStreamViewerServiceExtensions
+public static class GagSpeakServiceExtensions
 {
     #region GenericServices
-    public static IServiceCollection AddFFStreamViewerGeneric(this IServiceCollection services,
+    public static IServiceCollection AddGagSpeakGeneric(this IServiceCollection services,
         IDalamudPluginInterface pi, IClientState cs, ICondition con, IDataManager dm, IFramework fw,
         IGameGui gg, IObjectTable ot, ITargetManager tm, ITextureProvider tp)
     => services
-        // Data Services
-        .AddSingleton<FFSV_Config>()
-        .AddSingleton<CommandManager>()
         // Events Services
-        .AddSingleton<MediaError>()
         .AddSingleton((s) => new EventAggregator(pi.ConfigDirectory.FullName,
             s.GetRequiredService<ILogger<EventAggregator>>(), s.GetRequiredService<GagspeakMediator>()))
-        // Livestream Services
-        .AddSingleton<MediaGameObject>()
-        .AddSingleton<MediaCameraObject>()
-        .AddSingleton<MediaManager>()
-        .AddSingleton<MediaObject>()
-        // Service Services
-        .AddSingleton<FrameworkManager>()
-        .AddSingleton<MessageService>()
-        .AddSingleton<BackupService>()
-        .AddSingleton<ConfigMigrationService>()
-        .AddSingleton<FilenameService>()
-        .AddSingleton<SaveService>()
-        // UI Services
-        .AddSingleton<FFSV_WindowManager>()
-        .AddSingleton<MediaTab>()
-        .AddSingleton<WebAPITestingTab>()
-        .AddSingleton<MainWindow>()
-        .AddSingleton<DebugWindow>()
-        .AddSingleton<FFStreamViewerChangelog>()
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
         // ((Additional Below is specifically for the implemented client-server related test classes))
-        .AddSingleton<FFStreamViewerHost>()
+        .AddSingleton<GagSpeakHost>()
         // UI general services
         .AddSingleton<IdDisplayHandler>()
         .AddSingleton<SelectPairForTagUi>()
@@ -168,7 +137,7 @@ public static class FFStreamViewerServiceExtensions
         .AddSingleton<ServerConfigurationManager>()
         .AddSingleton<GagspeakMediator>()
         .AddSingleton((s) => new GagspeakProfileManager(s.GetRequiredService<ILogger<GagspeakProfileManager>>(),
-            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<GagspeakMediator>(), 
+            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ApiController>(), pi, tp))
         .AddSingleton((s) => new OnFrameworkService(s.GetRequiredService<ILogger<OnFrameworkService>>(),
             cs, con, dm, fw, gg, tm, ot,
@@ -176,7 +145,7 @@ public static class FFStreamViewerServiceExtensions
     #endregion GenericServices
 
     #region IpcServices
-    public static IServiceCollection AddFFStreamViewerIPC(this IServiceCollection services, IDalamudPluginInterface pi)
+    public static IServiceCollection AddGagSpeakIPC(this IServiceCollection services, IDalamudPluginInterface pi)
     => services
         .AddSingleton((s) => new IpcCallerMoodles(s.GetRequiredService<ILogger<IpcCallerMoodles>>(), pi,
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
@@ -185,7 +154,7 @@ public static class FFStreamViewerServiceExtensions
 
     #endregion IpcServices
     #region ConfigServices
-    public static IServiceCollection AddFFStreamViewerConfigs(this IServiceCollection services, IDalamudPluginInterface pi)
+    public static IServiceCollection AddGagSpeakConfigs(this IServiceCollection services, IDalamudPluginInterface pi)
     => services
         // client-end configs
         .AddSingleton((s) => new GagspeakConfigService(pi.ConfigDirectory.FullName))
@@ -200,7 +169,7 @@ public static class FFStreamViewerServiceExtensions
 
     #endregion ConfigServices
     #region ScopedServices
-    public static IServiceCollection AddFFStreamViewerScoped(this IServiceCollection services, IDalamudPluginInterface pi, 
+    public static IServiceCollection AddGagSpeakScoped(this IServiceCollection services, IDalamudPluginInterface pi,
         ITextureProvider tp, INotificationManager nm, IChatGui cg)
     => services
         // WebAPI Services
@@ -231,9 +200,9 @@ public static class FFStreamViewerServiceExtensions
         .AddScoped((s) => new UiService(s.GetRequiredService<ILogger<UiService>>(), pi.UiBuilder, s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(),
             s.GetRequiredService<UiFactory>(), s.GetRequiredService<GagspeakMediator>()))
-/*        .AddScoped((s) => new CommandManagerService(commandManager, s.GetRequiredService<PerformanceCollectorService>(),
-            s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<CacheMonitor>(), s.GetRequiredService<ApiController>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>())) */
+        /*        .AddScoped((s) => new CommandManagerService(commandManager, s.GetRequiredService<PerformanceCollectorService>(),
+                    s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<CacheMonitor>(), s.GetRequiredService<ApiController>(),
+                    s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>())) */
         .AddScoped((s) => new NotificationService(s.GetRequiredService<ILogger<NotificationService>>(),
             s.GetRequiredService<GagspeakMediator>(), nm, cg, s.GetRequiredService<GagspeakConfigService>()))
         .AddScoped((s) => new UiSharedService(s.GetRequiredService<ILogger<UiSharedService>>(), s.GetRequiredService<IpcManager>(), s.GetRequiredService<ApiController>(),
@@ -243,7 +212,7 @@ public static class FFStreamViewerServiceExtensions
 
     #endregion ScopedServices
     #region HostedServices
-    public static IServiceCollection AddFFStreamViewerHosted(this IServiceCollection services)
+    public static IServiceCollection AddGagSpeakHosted(this IServiceCollection services)
     => services
         // WebAPI Services
 
@@ -258,6 +227,6 @@ public static class FFStreamViewerServiceExtensions
         .AddHostedService(p => p.GetRequiredService<OnFrameworkService>())
         .AddHostedService(p => p.GetRequiredService<EventAggregator>())
         // add our main Plugin.cs file as a hosted ;
-        .AddHostedService<FFStreamViewerHost>();
+        .AddHostedService<GagSpeakHost>();
     #endregion HostedServices
 }

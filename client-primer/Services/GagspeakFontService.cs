@@ -1,26 +1,27 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices;
+using Dalamud.Interface;
 using Dalamud.Plugin;
 using ImGuiNET;
 
-namespace GagSpeak.Services;
+namespace Custom.Services;
 /// <summary> Manages any extra font for the UI. The only font currently is meant to be one that can display UTF8 for phonems. </summary>
-public class GagspeakFontService : IDisposable
+public class CustomFontService : IDisposable
 {
     private IDalamudPluginInterface PluginInterface;     // used to get the plugin interface
-    public ImFontPtr GagspeakFont { get; private set; }  // the font used for the UID
-    public bool GagspeakFontBuilt { get; private set; }  // whether the font was built successfully
+    private UiBuilder uiBuilder;
+    public ImFontPtr CustomFont { get; private set; }  // the font used for the UID
+    public bool CustomFontBuilt { get; private set; }  // whether the font was built successfully
     
-    public GagspeakFontService(IDalamudPluginInterface pluginInterface) {
-#pragma warning disable CS0618 // I dont really care about if it is absolete at the moment
+    public CustomFontService(IDalamudPluginInterface pluginInterface) {
         PluginInterface = pluginInterface;
-/*        PluginInterface.UiBuilder. += BuildFont;  // subscribe to the build fonts event
-        PluginInterface.UiBuilder.RebuildFonts();           // rebuild the fonts*/ // The font builder here got fucked.
+        uiBuilder.BuildFonts += BuildFont;  // subscribe to the build fonts event
+        uiBuilder.RebuildFonts();           // rebuild the fonts // The font builder here got fucked.
     }
     private unsafe void BuildFont() {
         var fontFile = Path.Combine(PluginInterface.AssemblyLocation.Directory?.FullName!, "DoulosSIL-Regular.ttf");
-        GagspeakFontBuilt = false;
+        CustomFontBuilt = false;
         // check if the font exists
         if (File.Exists(fontFile)) {
             try {
@@ -65,22 +66,21 @@ public class GagspeakFontService : IDisposable
                 // pin the glyph ranges
                 GCHandle handle = GCHandle.Alloc(glyphRanges, GCHandleType.Pinned);
                 // attempt to load them in
-                GagspeakFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontFile, 30f, null, handle.AddrOfPinnedObject());
-                GagspeakFontBuilt = true;
-                // GSLogger.LogType.Debug($"[Font] Constructed. DoulosSIL-Regular.ttf");
+                CustomFont = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontFile, 30f, null, handle.AddrOfPinnedObject());
+                CustomFontBuilt = true;
+                // _logger.LogDebug($"[Font] Constructed. DoulosSIL-Regular.ttf");
             }
             catch (Exception ex) {
-                //GSLogger.LogType.Warning($"[Font] Failed to load Font :: {ex.Message}");
+                //_logger.LogWarning($"[Font] Failed to load Font :: {ex.Message}");
             }
         } else {
-            //GSLogger.LogType.Debug($"[Font] Error");
+            //_logger.LogDebug($"[Font] Error");
         }
     }
     /// <summary> Dispose of the font service </summary>
     public void Dispose() {
-        //GSLogger.LogType.Debug($"[Font] Disposing FontService");
-        //PluginInterface.UiBuilder.BuildFonts -= BuildFont;
-        #pragma warning restore CS0618 // I dont really care about if it is absolete at the moment
+        //_logger.LogDebug($"[Font] Disposing FontService");
+        PluginInterface.UiBuilder.BuildFonts -= BuildFont;
     }
 }
 /*  ======= Unicode block	Charis SIL support ==========

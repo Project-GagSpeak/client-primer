@@ -1,9 +1,8 @@
+using GagSpeak.GagspeakConfiguration;
+using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.Mediator;
-using GagspeakConfiguration;
-using GagspeakConfiguration.Configurations;
-using Lumina.Text.ReadOnly;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
 
 namespace GagSpeak.Services.ConfigurationServices;
 
@@ -21,8 +20,9 @@ public class ClientConfigurationManager
     private readonly AliasConfigService _aliasConfig;               // the config for the alias lists (puppeteer stuff)
     private readonly PatternConfigService _patternConfig;           // the config for the pattern service (toybox pattern storage))
 
-    public ClientConfigurationManager(ILogger<ClientConfigurationManager> logger, OnFrameworkService onFrameworkService,
-        GagspeakMediator GagspeakMediator, GagspeakConfigService configService, WardrobeConfigService wardrobeConfig,
+    public ClientConfigurationManager(ILogger<ClientConfigurationManager> logger, 
+        OnFrameworkService onFrameworkService, GagspeakMediator GagspeakMediator, 
+        GagspeakConfigService configService, WardrobeConfigService wardrobeConfig,
         AliasConfigService aliasConfig, PatternConfigService patternConfig)
     {
         _logger = logger;
@@ -39,16 +39,16 @@ public class ClientConfigurationManager
         if (_patternConfig.Current.PatternStorage == null) { _patternConfig.Current.PatternStorage = new(); }
     }
 
-    // define public access to various storages 
+    // define public access to various storages (THESE ARE ONLY GETTERS, NO SETTERS)
     public GagspeakConfig GagspeakConfig => _configService.Current;
+    private WardrobeConfig WardrobeConfig => _wardrobeConfig.Current;
+    private AliasConfig AliasConfig => _aliasConfig.Current;
+    private PatternConfig PatternConfig => _patternConfig.Current;
 
-    // the following below need to be replaced with internal functions for any functionality we determine we need to use these with.
-    public WardrobeConfig WardrobeConfig => _wardrobeConfig.Current;
-
-    public AliasConfig AliasConfig => _aliasConfig.Current;
-
-    public PatternConfig PatternConfig => _patternConfig.Current;
-
+    public bool HasCreatedConfigs()
+    {
+        return (GagspeakConfig != null && WardrobeConfig != null && AliasConfig != null && PatternConfig != null);
+    }
 
     /// <summary> Saves the GagspeakConfig. </summary>
     public void Save()
@@ -56,5 +56,35 @@ public class ClientConfigurationManager
         var caller = new StackTrace().GetFrame(1)?.GetMethod()?.ReflectedType?.Name ?? "Unknown";
         _logger.LogDebug("{caller} Calling config save", caller);
         _configService.Save();
+    }
+
+
+    /// <summary> Gets the total count of restraint sets in the wardrobe. </summary>
+    internal int GetRestraintSetCount()
+    {
+        return _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Count;
+    }
+
+    /// <summary> Gets index of selected restraint set. </summary>
+    internal int GetSelectedSetIdx()
+    {
+        return _wardrobeConfig.Current.WardrobeStorage.SelectedRestraintSet;
+    }
+
+    /// <summary> Gets the DrawData from a wardrobes restraint set. </summary>
+    internal List<AssociatedMod> GetAssociatedMods(int setIndex)
+    {
+        return _wardrobeConfig.Current.WardrobeStorage.RestraintSets[setIndex].AssociatedMods;
+    }
+
+    /// <summary> adds a mod to the restraint set's associated mods. </summary>
+    internal void AddAssociatedMod(int setIndex, AssociatedMod mod)
+    {
+        // make sure the associated mods list is not already in the list, and if not, add & save.
+        if (!_wardrobeConfig.Current.WardrobeStorage.RestraintSets[setIndex].AssociatedMods.Contains(mod))
+        {
+            _wardrobeConfig.Current.WardrobeStorage.RestraintSets[setIndex].AssociatedMods.Add(mod);
+        }
+        _wardrobeConfig.Save();
     }
 }

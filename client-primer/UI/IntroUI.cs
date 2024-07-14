@@ -1,16 +1,14 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
-using Dalamud.Utility;
-using ImGuiNET;
-using FFStreamViewer.Localization;
+using GagSpeak.Localization;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
-using Microsoft.Extensions.Logging;
-using System.Numerics;
+using GagSpeak.Services.Mediator;
+using GagSpeak.UpdateMonitoring;
+using ImGuiNET;
 using OtterGui;
-using GagspeakConfiguration;
-using UpdateMonitoring;
+using System.Numerics;
 
 namespace GagSpeak.UI;
 
@@ -34,7 +32,7 @@ public class IntroUi : WindowMediatorSubscriberBase
         ServerConfigurationManager serverConfigurationManager, GagspeakMediator gagspeakMediator,
         OnFrameworkService frameworkutils) : base(logger, gagspeakMediator, "Gagspeak Setup")
     {
-        _languages = new(StringComparer.Ordinal) { { "English", "en" } , { "Deutsch", "de" }, { "Français", "fr" } };
+        _languages = new(StringComparer.Ordinal) { { "English", "en" }, { "Deutsch", "de" }, { "Français", "fr" } };
         _uiShared = uiShared;
         _configService = configService;
         _serverConfigurationManager = serverConfigurationManager;
@@ -59,6 +57,9 @@ public class IntroUi : WindowMediatorSubscriberBase
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = true);
     }
 
+    protected override void PreDrawInternal() { }
+    protected override void PostDrawInternal() { }
+
     /// <summary> The interal draw method for the intro UI. </summary>
     protected override void DrawInternal()
     {
@@ -68,7 +69,7 @@ public class IntroUi : WindowMediatorSubscriberBase
         {
             _uiShared.BigText("Welcome to CK's GagSpeak Plugin!");
             ImGui.Separator();
-            _uiShared.BigText("THIS PLUGIN IS IN BETA.\nIF YOU PROCEED FROM HERE,\nINFORM CORDY YOU ARE JOINING BETA."+
+            _uiShared.BigText("THIS PLUGIN IS IN BETA.\nIF YOU PROCEED FROM HERE,\nINFORM CORDY YOU ARE JOINING BETA." +
                 Environment.NewLine + "OTHERWISE, YOU WILL BE REMOVED\n(WITHOUT WARNING)");
             ImGui.Separator();
             UiSharedService.ColorTextWrapped(Strings.ToS.CautionaryWarningPage1, ImGuiColors.DalamudRed);
@@ -170,18 +171,18 @@ public class IntroUi : WindowMediatorSubscriberBase
         {
             // title for this page of the intro UI
             using (_uiShared.UidFont.Push()) { ImGui.TextUnformatted("Account Registration / Creation"); }
-            
+
             ImGui.Separator();
-            
-            
-            UiSharedService.TextWrapped("Because this is a fresh install, you may generate one primary account key below. Once the key "+
+
+
+            UiSharedService.TextWrapped("Because this is a fresh install, you may generate one primary account key below. Once the key " +
                 "has been generated, you may hit 'Login' to log into your account.");
 
-            UiSharedService.TextWrapped("If you already have an account and are on a new computer or had to reinstall for any reason, "+
+            UiSharedService.TextWrapped("If you already have an account and are on a new computer or had to reinstall for any reason, " +
                 "paste the generated secret key for your account in the text field below and hit 'Login'.");
 
             ImGui.Separator();
-            
+
             // display the fields for generation and creation
             var oneTimeKeyGenButtonText = "One-Time Primary Key Generator";
             if (ImGuiUtil.DrawDisabledButton(oneTimeKeyGenButtonText, Vector2.Zero, oneTimeKeyGenButtonText, _configService.Current.ButtonUsed))
@@ -224,10 +225,10 @@ public class IntroUi : WindowMediatorSubscriberBase
                     _serverConfigurationManager.CurrentServer!.SecretKeys.Add(_serverConfigurationManager.CurrentServer.SecretKeys
                         .Select(k => k.Key)
                         .LastOrDefault() + 1, new SecretKey()
-                    {
-                        FriendlyName = $"GagSpeak Setup Generated AccountKey ({DateTime.Now:yyyy-MM-dd})",    // set a friendly name
-                        Key = _secretKey,                                                                     // then store the actual key
-                    });
+                        {
+                            FriendlyName = $"GagSpeak Setup Generated AccountKey ({DateTime.Now:yyyy-MM-dd})",    // set a friendly name
+                            Key = _secretKey,                                                                     // then store the actual key
+                        });
 
                     // add the currently logged in character to the server using the last added secret key
                     _serverConfigurationManager.AddCurrentCharacterToServer(addLastSecretKey: true);

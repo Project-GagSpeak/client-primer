@@ -96,12 +96,12 @@ public partial class HC_PerPlayerConfig
                         rsProperty.Deserialize(itemValue);
                         _rsProperties.Add(rsProperty);
                     } else {
-                        GSLogger.LogType.Error($"[HC_PerPlayerConfig] itemValue in the array of objects is null, skipping over!");
+                        _logger.LogError($"[HC_PerPlayerConfig] itemValue in the array of objects is null, skipping over!");
                     }
                 }
             }
         } catch (Exception ex) {
-            GSLogger.LogType.Error($"[HC_PerPlayerConfig] Error deserializing HC_PerPlayerConfig: {ex}");
+            _logger.LogError($"[HC_PerPlayerConfig] Error deserializing HC_PerPlayerConfig: {ex}");
         }
     }
 }

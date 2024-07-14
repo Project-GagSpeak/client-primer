@@ -29,14 +29,14 @@ public abstract class OnSetupSelectListFeature : BaseFeature, IDisposable
 
     protected virtual void Dispose(bool disposing) {
         if (disposing) {
-            GSLogger.LogType.Debug("OnSetupSelectListFeature: Dispose");
+            _logger.LogDebug("OnSetupSelectListFeature: Dispose");
             this.onItemSelectedHook?.Disable();
             this.onItemSelectedHook?.Dispose();
         }
     }
 
     protected unsafe void CompareNodesToEntryTexts(IntPtr addon, PopupMenu* popupMenu) {
-        GSLogger.LogType.Debug("CompareNodesToEntryTexts");
+        _logger.LogDebug("CompareNodesToEntryTexts");
         var target = _targetManager.Target;
         var targetName = target != null
             ? GS_GetSeString.GetSeStringText(target.Name)
@@ -73,10 +73,10 @@ public abstract class OnSetupSelectListFeature : BaseFeature, IDisposable
                     ? GS_GetSeString.GetSeStringText(target.Name)
                     : string.Empty;
 
-                GSLogger.LogType.Debug($"ItemSelected: target={targetName} text={entryText}");
+                _logger.LogDebug($"ItemSelected: target={targetName} text={entryText}");
             }
         } catch (Exception ex) {
-            GSLogger.LogType.Error($"Don't crash the game, please: {ex}");
+            _logger.LogError($"Don't crash the game, please: {ex}");
         }
         return this.onItemSelectedHook!.Original(popupMenu, index, a3, a4);
     }
@@ -85,7 +85,7 @@ public abstract class OnSetupSelectListFeature : BaseFeature, IDisposable
         var count = popupMenu->EntryCount;
         var entryTexts = new string?[count];
 
-        GSLogger.LogType.Debug($"SelectString: Reading {count} strings");
+        _logger.LogDebug($"SelectString: Reading {count} strings");
         for (var i = 0; i < count; i++)
         {
             var textPtr = popupMenu->EntryNames[i];
@@ -96,7 +96,7 @@ public abstract class OnSetupSelectListFeature : BaseFeature, IDisposable
             // Print out the string it finds
             if (entryTexts[i] != null)
             {
-                GSLogger.LogType.Debug($"Found string: {entryTexts[i]}");
+                _logger.LogDebug($"Found string: {entryTexts[i]}");
             }
 
         }

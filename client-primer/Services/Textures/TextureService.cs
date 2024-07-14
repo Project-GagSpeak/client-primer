@@ -47,7 +47,7 @@ public sealed class TextureService : TextureCache, IDisposable
 
         if (!uldWrapper.Valid)
         {
-            //GSLogger.LogType.Error($"[Texture Service] Could not get empty slot uld.");
+            //_logger.LogError($"[Texture Service] Could not get empty slot uld.");
             return ret;
         }
 
@@ -72,8 +72,8 @@ public sealed class TextureService : TextureCache, IDisposable
             }
             catch (Exception ex)
             {
-                //GSLogger.LogType.Error($"[Texture Service] Could not get empty slot texture for {slot.ToName()}, icon will be left empty. "
-                +$"This may be because of incompatible mods affecting your character screen interface:\n{ex}");
+                //_logger.LogError($"[Texture Service] Could not get empty slot texture for {slot.ToName()}, icon will be left empty. "
+                //+$"This may be because of incompatible mods affecting your character screen interface:\n{ex}");
                 ret[slot.ToIndex()] = null;
             }
         }

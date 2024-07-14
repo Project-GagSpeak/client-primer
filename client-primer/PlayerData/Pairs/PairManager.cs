@@ -4,13 +4,13 @@ using GagSpeak.PlayerData.Factories;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
-using Gagspeak.API.Data;
-using Gagspeak.API.Data.Comparer;
-using Gagspeak.API.Dto.User;
-using GagSpeak.API.Data.Permissions;
-using GagSpeak.API.Dto.Connection;
-using GagSpeak.API.Dto.Permissions;
-using GagSpeak.API.Dto.UserPair;
+using GagspeakAPI.Data;
+using GagspeakAPI.Data.Comparer;
+using GagspeakAPI.Dto.User;
+using GagspeakAPI.Data.Permissions;
+using GagspeakAPI.Dto.Connection;
+using GagspeakAPI.Dto.Permissions;
+using GagspeakAPI.Dto.UserPair;
 using System.Reflection;
 
 namespace GagSpeak.PlayerData.Pairs;
@@ -311,7 +311,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (_allClientPairs.TryGetValue(dto.User, out var pair))
         {
             // set the pair's individual pair status (your status for them) to none.
-            pair.UserPair.IndividualPairStatus = Gagspeak.API.Data.Enum.IndividualPairStatus.None;
+            pair.UserPair.IndividualPairStatus = GagspeakAPI.Data.Enum.IndividualPairStatus.None;
 
             // if the pair has no connections, mark them as offline.
             if (!pair.HasAnyConnection())
@@ -350,7 +350,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
     /// <summary> The lazy list of direct pairs, remade from the _allClientPairs</summary>
     private Lazy<List<Pair>> DirectPairsLazy() => new(() => _allClientPairs.Select(k => k.Value)
-        .Where(k => k.IndividualPairStatus != Gagspeak.API.Data.Enum.IndividualPairStatus.None).ToList());
+        .Where(k => k.IndividualPairStatus != GagspeakAPI.Data.Enum.IndividualPairStatus.None).ToList());
 
     /// <summary> Disposes of all the pairs in the client's pair list.</summary>
     private void DisposePairs()

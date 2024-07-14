@@ -1,5 +1,5 @@
 using Dalamud.Plugin.Services;
-using GagspeakConfiguration;
+using GagSpeakConfiguration;
 
 namespace GagSpeak.Interop;
 

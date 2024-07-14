@@ -1,4 +1,4 @@
-using Gagspeak.API.Data.Enum;
+using GagspeakAPI.Data.Enum;
 using Microsoft.Extensions.Logging;
 using GagSpeak.GagspeakConfiguration.Models;
 
@@ -33,6 +33,7 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool LiveGarblerZoneChangeWarn { get; set; }                 // if user wants to be warned about the live chat garbler on zone change
     public RevertStyle RevertStyle { get; set; }                        // how the user wants to revert their settings (can store locally?)
     public bool UsingSimulatedVibrator { get; set; }                    // if the user is using a simulated vibrator
+    public string LanguageDialect { get; set; }                         // the language dialect the user is using for MufflerCore
 
     public int Version { get; set; } = 1;                               // the version of the config file
 }

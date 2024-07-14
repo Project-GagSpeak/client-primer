@@ -10,7 +10,6 @@ public class TagHandler
 {
     public const string CustomAllTag = "Gagspeak_All";
     public const string CustomOfflineTag = "Gagspeak_Offline";
-    public const string CustomOfflineSyncshellTag = "Gagspeak_OfflineSyncshell";
     public const string CustomOnlineTag = "Gagspeak_Online";
     public const string CustomUnpairedTag = "Gagspeak_Unpaired";
     public const string CustomVisibleTag = "Gagspeak_Visible";

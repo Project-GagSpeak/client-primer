@@ -44,19 +44,19 @@ public class TriggerWordDetector
                     }
                     else
                     {
-                        GSLogger.LogType.Debug($"[TriggerWordDetector] Not an Enabled Chat Channel, or command didnt abide by your settings aborting");
+                        _logger.LogDebug($"[TriggerWordDetector] Not an Enabled Chat Channel, or command didnt abide by your settings aborting");
                         return false;
                     }
                 }
                 else
                 {
-                    GSLogger.LogType.Debug($"[TriggerWordDetector] Not an Enabled Chat Channel, aborting");
+                    _logger.LogDebug($"[TriggerWordDetector] Not an Enabled Chat Channel, aborting");
                     return false;
                 }
             }
             else
             {
-                GSLogger.LogType.Debug($"[TriggerWordDetector] Puppeteer message to send was empty, aborting");
+                _logger.LogDebug($"[TriggerWordDetector] Puppeteer message to send was empty, aborting");
                 return false;
             }
         }
@@ -91,25 +91,25 @@ public class TriggerWordDetector
                         }
                         else
                         {
-                            GSLogger.LogType.Debug($"[TriggerWordDetector] Command didnt abide by your settings aborting");
+                            _logger.LogDebug($"[TriggerWordDetector] Command didnt abide by your settings aborting");
                             return false;
                         }
                     }
                     else
                     {
-                        GSLogger.LogType.Debug($"[TriggerWordDetector] Not an Enabled Chat Channel, aborting");
+                        _logger.LogDebug($"[TriggerWordDetector] Not an Enabled Chat Channel, aborting");
                         return false;
                     }
                 }
                 else
                 {
-                    GSLogger.LogType.Debug($"[TriggerWordDetector] Not an Enabled Chat Channel, aborting");
+                    _logger.LogDebug($"[TriggerWordDetector] Not an Enabled Chat Channel, aborting");
                     return false;
                 }
             }
             else
             {
-                GSLogger.LogType.Debug($"[TriggerWordDetector] Puppeteer message to send was empty, aborting");
+                _logger.LogDebug($"[TriggerWordDetector] Puppeteer message to send was empty, aborting");
                 return false;
             }
         }

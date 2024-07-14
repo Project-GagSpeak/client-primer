@@ -1,7 +1,7 @@
 using Dalamud.Game.ClientState.Objects.Types;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
-using GagSpeak.API.Data.Character;
+using GagspeakAPI.Data.Character;
 using System.Text.Json;
 
 namespace GagSpeak.WebAPI.Utils;

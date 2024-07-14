@@ -1,14 +1,11 @@
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Internal;
-
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
+using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services;
+using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Mediator;
 using ImGuiNET;
-using GagspeakSynchronos.API.Data.Extensions;
-using GagspeakSynchronos.PlayerData.Pairs;
-using GagspeakSynchronos.Services;
-using GagspeakSynchronos.Services.Mediator;
-using GagspeakSynchronos.Services.ServerConfiguration;
-using Microsoft.Extensions.Logging;
 using System.Numerics;
 
 namespace GagSpeak.UI.Profile;
@@ -25,10 +22,10 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
     private IDalamudTextureWrap? _supporterTextureWrap;
     private IDalamudTextureWrap? _textureWrap;
 
-    public StandaloneProfileUi(ILogger<StandaloneProfileUi> logger, GagspeakMediator mediator, UiSharedService uiBuilder,
-        ServerConfigurationManager serverManager, GagspeakProfileManager gagspeakProfileManager, PairManager pairManager, Pair pair,
-        PerformanceCollectorService performanceCollector)
-        : base(logger, mediator, "Gagspeak Profile of " + pair.UserData.AliasOrUID + "##GagspeakSynchronosStandaloneProfileUI" + pair.UserData.AliasOrUID, performanceCollector)
+    public StandaloneProfileUi(ILogger<StandaloneProfileUi> logger, GagspeakMediator mediator,
+        UiSharedService uiBuilder, ServerConfigurationManager serverManager,
+        GagspeakProfileManager gagspeakProfileManager, PairManager pairManager,
+        Pair pair) : base(logger, mediator, "Gagspeak Profile of " + pair.UserData.AliasOrUID + "##GagspeakStandaloneProfileUI" + pair.UserData.AliasOrUID)
     {
         _uiSharedService = uiBuilder;
         _serverManager = serverManager;
@@ -45,6 +42,10 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
     }
 
     public Pair Pair { get; init; }
+
+    protected override void PreDrawInternal() { }
+    
+    protected override void PostDrawInternal() { }
 
     protected override void DrawInternal()
     {
@@ -113,7 +114,7 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             ImGui.EndChildFrame();
 
             ImGui.SetCursorPosY(postDummy);
-            var note = _serverManager.GetNoteForUid(Pair.UserData.UID);
+            var note = _serverManager.GetNicknameForUid(Pair.UserData.UID);
             if (!string.IsNullOrEmpty(note))
             {
                 UiSharedService.ColorText(note, ImGuiColors.DalamudGrey);
@@ -128,27 +129,15 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             if (Pair.UserPair != null)
             {
                 ImGui.TextUnformatted("Directly paired");
-                if (Pair.UserPair.OwnPermissions.IsPaused())
+                if (Pair.UserPair.OwnPairPerms.IsPaused)
                 {
                     ImGui.SameLine();
                     UiSharedService.ColorText("You: paused", ImGuiColors.DalamudYellow);
                 }
-                if (Pair.UserPair.OtherPermissions.IsPaused())
+                if (Pair.UserPair.OtherPairPerms.IsPaused)
                 {
                     ImGui.SameLine();
                     UiSharedService.ColorText("They: paused", ImGuiColors.DalamudYellow);
-                }
-            }
-
-            if (Pair.UserPair.Groups.Any())
-            {
-                ImGui.TextUnformatted("Paired through Syncshells:");
-                foreach (var group in Pair.UserPair.Groups)
-                {
-                    var groupNote = _serverManager.GetNoteForGid(group);
-                    var groupName = _pairManager.GroupPairs.First(f => string.Equals(f.Key.GID, group, StringComparison.Ordinal)).Key.GroupAliasOrGID;
-                    var groupString = string.IsNullOrEmpty(groupNote) ? groupName : $"{groupNote} ({groupName})";
-                    ImGui.TextUnformatted("- " + groupString);
                 }
             }
 

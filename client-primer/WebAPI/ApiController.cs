@@ -1,10 +1,10 @@
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Utility;
-using Gagspeak.API.Data;
-using Gagspeak.API.Data.Enum;
-using Gagspeak.API.SignalR;
-using GagSpeak.API.Dto.Connection;
-using GagSpeak.API.Dto.Permissions;
+using GagspeakAPI.Data;
+using GagspeakAPI.Data.Enum;
+using GagspeakAPI.SignalR;
+using GagspeakAPI.Dto.Connection;
+using GagspeakAPI.Dto.Permissions;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;

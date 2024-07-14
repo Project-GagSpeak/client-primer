@@ -36,17 +36,40 @@ public abstract class WindowMediatorSubscriberBase : Window, IMediatorSubscriber
     }
 
     /// <summary>
-    /// A draw method that logs performance, but since we have no performance logger this shouldnt be needed
+    /// Overrides the default WindowSystem Draw so we can call out own internal draws
     /// </summary>
-    public override void Draw()
-    {
-        DrawInternal();
-    }
+    public override void PreDraw() { PreDrawInternal(); base.PreDraw(); }
 
     /// <summary>
-    /// Same reasoning above follows here
+    /// Abstract method for DrawingInternally, defined by classes using the subscriber base
+    /// </summary>
+    protected abstract void PreDrawInternal();
+
+
+
+    /// <summary> 
+    /// Overrides the default WindowSystem Draw so we can call out own internal draws 
+    /// </summary>
+    public override void Draw() => DrawInternal();
+
+    /// <summary> 
+    /// Abstract method for DrawingInternally, defined by classes using the subscriber base 
     /// </summary>
     protected abstract void DrawInternal();
+
+
+
+    /// <summary> 
+    /// Overrides the default WindowSystem Draw so we can call out own internal draws 
+    /// </summary>
+    public override void PostDraw() { PostDrawInternal(); base.PostDraw(); }
+
+    /// <summary> 
+    /// Abstract method for DrawingInternally, defined by classes using the subscriber base 
+    /// </summary>
+    protected abstract void PostDrawInternal();
+
+
 
     /// <summary>
     /// All mediators require a startasync and stopasync method. This calls the stopasync method at the base.

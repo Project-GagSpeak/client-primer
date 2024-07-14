@@ -1,4 +1,4 @@
-using Gagspeak.API.Routes;
+using GagspeakAPI.Routes;
 using Dalamud.Interface.ImGuiNotification;
 using GagSpeak.WebAPI.Utils;
 using GagSpeak.Services.Mediator;

@@ -226,21 +226,21 @@ public partial class HardcoreManager
         if(IsAnySetEnabled(out int enabledIdx, out string assignerOfSet, out int assignerIdx)) {
             // it is valid, so let's set the multiplier based on the attribute
             if(_perPlayerConfigs[assignerIdx]._rsProperties[enabledIdx]._lightStimulationProperty) {
-                GSLogger.LogType.Verbose($"[HardcoreManager] Light Stimulation Multiplier applied from set with factor of 1.125x!");
+                _logger.LogVerbose($"[HardcoreManager] Light Stimulation Multiplier applied from set with factor of 1.125x!");
                 StimulationMultipler = 1.125;
             }
             // apply mild stim
             else if(_perPlayerConfigs[assignerIdx]._rsProperties[enabledIdx]._mildStimulationProperty) {
-                GSLogger.LogType.Verbose($"[HardcoreManager] Mild Stimulation Multiplier applied from set with factor of 1.25x!");
+                _logger.LogVerbose($"[HardcoreManager] Mild Stimulation Multiplier applied from set with factor of 1.25x!");
                 StimulationMultipler = 1.25;
             }
             // apply heavy stim
             else if(_perPlayerConfigs[assignerIdx]._rsProperties[enabledIdx]._heavyStimulationProperty) {
-                GSLogger.LogType.Verbose($"[HardcoreManager] Heavy Stimulation Multiplier applied from set with factor of 1.5x!");
+                _logger.LogVerbose($"[HardcoreManager] Heavy Stimulation Multiplier applied from set with factor of 1.5x!");
                 StimulationMultipler = 1.5;
             }
         } else {
-            GSLogger.LogType.Verbose($"[HardcoreManager] No Stimulation Multiplier applied from set, defaulting to 1.0x!");
+            _logger.LogVerbose($"[HardcoreManager] No Stimulation Multiplier applied from set, defaulting to 1.0x!");
             StimulationMultipler = 1.0;
         }
     }
@@ -248,7 +248,7 @@ public partial class HardcoreManager
 
 #region property setters
     public void SetAllowForcedFollow(int playerIdx, bool forcedFollow) {
-        GSLogger.LogType.Debug($"[HardcoreManager] Setting AllowForcedFollow to {forcedFollow}");
+        _logger.LogDebug($"[HardcoreManager] Setting AllowForcedFollow to {forcedFollow}");
         _perPlayerConfigs[playerIdx].SetAllowForcedFollow(forcedFollow);
         Save();
     }
@@ -257,7 +257,7 @@ public partial class HardcoreManager
         // set the last recorded time
         LastMovementTime = DateTimeOffset.Now;
         // log and set it
-        GSLogger.LogType.Debug($"[HardcoreManager] Setting ForcedFollow to {forcedFollow}");
+        _logger.LogDebug($"[HardcoreManager] Setting ForcedFollow to {forcedFollow}");
         _perPlayerConfigs[playerIdx].SetForcedFollow(forcedFollow);
         _saveService.QueueSave(this);
         // handle the forced follow logic
@@ -274,38 +274,38 @@ public partial class HardcoreManager
     }
 
     public void SetAllowForcedSit(int playerIdx, bool forcedSit) { 
-        GSLogger.LogType.Debug($"[HardcoreManager] Setting AllowForcedSit to {forcedSit}");
+        _logger.LogDebug($"[HardcoreManager] Setting AllowForcedSit to {forcedSit}");
         _perPlayerConfigs[playerIdx].SetAllowForcedSit(forcedSit);
         Save();
     }
 
     public void SetForcedSit(int playerIdx, bool forcedSit) { 
-        GSLogger.LogType.Debug($"[HardcoreManager] Setting ForcedSit to {forcedSit}");
+        _logger.LogDebug($"[HardcoreManager] Setting ForcedSit to {forcedSit}");
         _perPlayerConfigs[playerIdx].SetForcedSit(forcedSit);
         _saveService.QueueSave(this);
         // no need to toggle movement type, player will be immobile completely
     }
 
     public void SetAllowForcedToStay(int playerIdx, bool forcedToStay) {
-        GSLogger.LogType.Debug($"[HardcoreManager] Setting AllowForcedToStay to {forcedToStay}");
+        _logger.LogDebug($"[HardcoreManager] Setting AllowForcedToStay to {forcedToStay}");
         _perPlayerConfigs[playerIdx].SetAllowForcedToStay(forcedToStay);
         Save();
     }
 
     public void SetForcedToStay(int playerIdx, bool forcedToStay) {
-        GSLogger.LogType.Debug($"[HardcoreManager] Setting ForcedToStay to {forcedToStay}");
+        _logger.LogDebug($"[HardcoreManager] Setting ForcedToStay to {forcedToStay}");
         _perPlayerConfigs[playerIdx].SetForcedToStay(forcedToStay);
         _saveService.QueueSave(this);
     }
 
     public void SetAllowBlindfold(int playerIdx, bool allowBlindfold) { 
-        GSLogger.LogType.Debug($"[HardcoreManager] Setting AllowBlindfold to {allowBlindfold}");
+        _logger.LogDebug($"[HardcoreManager] Setting AllowBlindfold to {allowBlindfold}");
         _perPlayerConfigs[playerIdx].SetAllowBlindfold(allowBlindfold); 
         Save();
     }
 
     public void SetForcedFirstPerson(int playerIdx, bool forcedFirstPerson) { 
-        GSLogger.LogType.Debug($"[HardcoreManager] Setting ForcedFirstPerson to {forcedFirstPerson}");
+        _logger.LogDebug($"[HardcoreManager] Setting ForcedFirstPerson to {forcedFirstPerson}");
         _perPlayerConfigs[playerIdx].SetForcedFirstPerson(forcedFirstPerson); 
         Save();
     }
@@ -314,7 +314,7 @@ public partial class HardcoreManager
         // if our new state is enabled and there is currently any other index currently enabled, return false
         // (blindfolded == true means going from not blindfolded to blindfolded)
         if(blindfolded && IsBlindfoldedForAny(out int enabledIdx, out string playerWhoBlindfoldedYou)) {
-            GSLogger.LogType.Debug($"[HardcoreManager] Failed to set blindfolded to {blindfolded}, {playerWhoBlindfoldedYou} has already blindfolded you!");
+            _logger.LogDebug($"[HardcoreManager] Failed to set blindfolded to {blindfolded}, {playerWhoBlindfoldedYou} has already blindfolded you!");
             return;
         }
         // otherwise, we can handle the blindfold logic

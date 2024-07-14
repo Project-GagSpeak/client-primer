@@ -7,13 +7,13 @@ public class BaseFeature
 
     public virtual void Enable()
     {
-        GSLogger.LogType.Debug($"Enabling {Key}");
+        _logger.LogDebug($"Enabling {Key}");
         Enabled = true;
     }
 
     public virtual void Disable()
     {
-        GSLogger.LogType.Debug($"Disabling {Key}");
+        _logger.LogDebug($"Disabling {Key}");
         Enabled = false;
     }
 }

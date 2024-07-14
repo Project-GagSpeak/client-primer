@@ -1,24 +1,17 @@
-using Dalamud.Game;
-using Dalamud.Game.ClientState.Objects;
-using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.VisibleData;
 using GagSpeak.Services;
+using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.UpdateMonitoring;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using System.Reflection;
-using Dalamud.Plugin.Internal.Types.Manifest;
-using Dalamud.Configuration;
-using GagspeakConfiguration;
-using UpdateMonitoring;
 
-namespace FFStreamViewer;
-/// <summary> The main class for the FFStreamViewer plugin.
+namespace GagSpeak;
+/// <summary> The main class for the GagSpeak plugin.
 /// <para>
 /// I've been looking into better structures for a service collection than otters approach,
 /// and ive taken a liking to this one as it gives me an easier understanding for including
@@ -26,7 +19,7 @@ namespace FFStreamViewer;
 /// </para>
 /// </summary>
 
-public class FFStreamViewerHost : MediatorSubscriberBase, IHostedService
+public class GagSpeakHost : MediatorSubscriberBase, IHostedService
 {
     private readonly OnFrameworkService _frameworkUtil;                     // For running on the games framework thread
     private readonly ClientConfigurationManager _clientConfigurationManager;// the client-related config manager
@@ -35,7 +28,7 @@ public class FFStreamViewerHost : MediatorSubscriberBase, IHostedService
     private IServiceScope? _runtimeServiceScope;                            // the runtime service scope
     private Task? _launchTask;                                              // the task ran when plugin is launched.
 
-    public FFStreamViewerHost(ILogger<FFStreamViewer> logger, ClientConfigurationManager clientConfigurationManager,
+    public GagSpeakHost(ILogger<GagSpeak> logger, ClientConfigurationManager clientConfigurationManager,
         ServerConfigurationManager serverConfigurationManager, OnFrameworkService frameworkUtil,
         IServiceScopeFactory serviceScopeFactory, GagspeakMediator mediator) : base(logger, mediator)
     {
@@ -56,7 +49,7 @@ public class FFStreamViewerHost : MediatorSubscriberBase, IHostedService
         Logger.LogInformation("Launching {name} {major}.{minor}.{build}", "GagSpeak", version.Major, version.Minor, version.Build);
 
         // publish an event message to the mediator that we have started the plugin
-        Mediator.Publish(new EventMessage(new Event(nameof(FFStreamViewer), EventSeverity.Informational,
+        Mediator.Publish(new EventMessage(new Event(nameof(GagSpeak), EventSeverity.Informational,
             $"Starting Gagspeak{version.Major}.{version.Minor}.{version.Build}")));
 
         // subscribe to the main UI message window for making the primary UI be the main UI interface.

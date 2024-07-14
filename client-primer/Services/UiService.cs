@@ -3,7 +3,8 @@ using Dalamud.Interface.Windowing;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.GagspeakConfiguration;
-using UI.WindowMainUI;
+using GagSpeak.UI.MainWindow;
+using Dalamud.Interface.ImGuiFileDialog;
 
 namespace GagSpeak.Services;
 
@@ -11,7 +12,8 @@ namespace GagSpeak.Services;
 public sealed class UiService : DisposableMediatorSubscriberBase
 {
     private readonly List<WindowMediatorSubscriberBase> _createdWindows = [];   // the list of created windows as mediator subscribers
-    private readonly IUiBuilder _uiBuilder;                                      // the basic dalamud UI builder for the plugin
+    private readonly IUiBuilder _uiBuilder;                                     // the basic dalamud UI builder for the plugin
+    private readonly FileDialogManager _fileDialogManager;                      // for importing images
     private readonly ILogger<UiService> _logger;                                // our logger for the UI service.
     private readonly GagspeakConfigService _gagspeakConfigService;              // our configuration service for the gagspeak plugin
     private readonly WindowSystem _windowSystem;                                // the window system for our dalamud plugin.
@@ -20,7 +22,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
     public UiService(ILogger<UiService> logger, IUiBuilder uiBuilder,
         GagspeakConfigService gagspeakConfigService, WindowSystem windowSystem,
         IEnumerable<WindowMediatorSubscriberBase> windows, UiFactory uiFactory,
-        GagspeakMediator gagspeakMediator) : base(logger, gagspeakMediator)
+        GagspeakMediator gagspeakMediator, FileDialogManager fileDialogManager) : base(logger, gagspeakMediator)
     {
         _logger = logger;
         _logger.LogTrace("Creating {type}", GetType().Name);
@@ -28,6 +30,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         _gagspeakConfigService = gagspeakConfigService;
         _windowSystem = windowSystem;
         _uiFactory = uiFactory;
+        _fileDialogManager = fileDialogManager;
 
         // disable the UI builder while in gpose 
         _uiBuilder.DisableGposeUiHide = true;
@@ -45,7 +48,16 @@ public sealed class UiService : DisposableMediatorSubscriberBase
             _windowSystem.AddWindow(window);
         }
 
-        // subscribe to the event message for opening a standalone profile
+        // subscribe to the event message for removing a window
+        Mediator.Subscribe<RemoveWindowMessage>(this, (msg) =>
+        {
+            // remove it from the system and the creaed windows list, then dispose of the window.
+            _windowSystem.RemoveWindow(msg.Window);
+            _createdWindows.Remove(msg.Window);
+            msg.Window.Dispose();
+        });
+
+        /* ---------- The following subscribers are for factory made windows, meant to be unique to each pair ---------- */
         Mediator.Subscribe<ProfileOpenStandaloneMessage>(this, (msg) =>
         {
             /*if (!_createdWindows.Exists(p => p is StandaloneProfileUi ui
@@ -55,15 +67,6 @@ public sealed class UiService : DisposableMediatorSubscriberBase
                 _createdWindows.Add(window);
                 _windowSystem.AddWindow(window);
             }*/
-        });
-
-        // subscribe to the event message for removing a window
-        Mediator.Subscribe<RemoveWindowMessage>(this, (msg) =>
-        {
-            // remove it from the system and the creaed windows list, then dispose of the window.
-            _windowSystem.RemoveWindow(msg.Window);
-            _createdWindows.Remove(msg.Window);
-            msg.Window.Dispose();
         });
     }
 
@@ -79,7 +82,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
     {
         if (_gagspeakConfigService.Current.HasValidSetup())
         {
-            Mediator.Publish(new UiToggleMessage(typeof(CompactUi)));
+            Mediator.Publish(new UiToggleMessage(typeof(MainWindowUI)));
         }
         else
         {
@@ -134,5 +137,6 @@ public sealed class UiService : DisposableMediatorSubscriberBase
     private void Draw()
     {
         _windowSystem.Draw();
+        _fileDialogManager.Draw();
     }
 }

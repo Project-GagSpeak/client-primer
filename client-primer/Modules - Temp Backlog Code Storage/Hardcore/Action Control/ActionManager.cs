@@ -112,7 +112,7 @@ public unsafe class GsActionManager : IDisposable
 #region SlotManagment
     public void RestoreSavedSlots() {
         if(_clientState.LocalPlayer != null && _clientState.LocalPlayer.ClassJob != null && raptureHotarModule != null) {
-            GSLogger.LogType.Debug($"[Action Manager]: Restoring saved slots");
+            _logger.LogDebug($"[Action Manager]: Restoring saved slots");
             // restore all hotbar slots (DOES NOT WORK ON CROSS HOTBARS FROM WHAT I KNOW, USE AT OWN RISK)
             var baseSpan = raptureHotarModule->StandardHotBars; // the length of our hotbar count
             for(int i=0; i < baseSpan.Length; i++) {
@@ -125,7 +125,7 @@ public unsafe class GsActionManager : IDisposable
                 }
             }
         } else {
-            GSLogger.LogType.Debug($"[Action Manager]: Player is null, returning");
+            _logger.LogDebug($"[Action Manager]: Player is null, returning");
         }
     }
 
@@ -187,7 +187,7 @@ public unsafe class GsActionManager : IDisposable
     private void UpdateJobList() {
         // this will be called by the job changed event. When it does, we will update our job list with the new job.
         if(_clientState.LocalPlayer != null && _clientState.LocalPlayer.ClassJob != null) {
-            GSLogger.LogType.Debug($"[Action Manager]: Updating job list");
+            _logger.LogDebug($"[Action Manager]: Updating job list");
             ActionData.GetJobActionProperties((JobType)_clientState.LocalPlayer.ClassJob.Id, out var bannedJobActions);
             CurrentJobBannedActions = bannedJobActions; // updated our job list
             // only do this if we are logged in
@@ -199,7 +199,7 @@ public unsafe class GsActionManager : IDisposable
                 GenerateCooldowns();
             }
         } else {
-            GSLogger.LogType.Debug($"[Action Manager]: Player is null, returning");
+            _logger.LogDebug($"[Action Manager]: Player is null, returning");
         }
     }
 
@@ -232,7 +232,7 @@ public unsafe class GsActionManager : IDisposable
                         var recastTime = ActionManager.GetAdjustedRecastTime(ActionType.Action, adjustedId);
                         recastTime = (int)(recastTime * _hcManager.StimulationMultipler);
                         // if it is an action or general action, append it
-                        GSLogger.LogType.Verbose($"[Action Manager]: SlotID {slot->CommandId} Cooldown group {cooldownGroup} with recast time {recastTime}");
+                        _logger.LogVerbose($"[Action Manager]: SlotID {slot->CommandId} Cooldown group {cooldownGroup} with recast time {recastTime}");
                         if (!CooldownList.ContainsKey(cooldownGroup)) {
                             CooldownList.Add(cooldownGroup, new Tuple<float, DateTime>(recastTime, DateTime.MinValue));
                         }
@@ -245,16 +245,16 @@ public unsafe class GsActionManager : IDisposable
 #endregion SlotManagment
 #region EventHandlers
     private void OnMovementManagerInitialized() {
-        GSLogger.LogType.Information(" Completing Action Manager Initialization ");
+        _logger.LogInformation(" Completing Action Manager Initialization ");
         // if we are ready to initialize the actions, we should update our job list
         UpdateJobList();
         // see if we should enable the sets incase we load this prior to the restraint set manager loading.
         if(_hcManager.IsAnySetEnabled(out int enabledIdx, out string assignerOfSet, out int idxOfAssigner)) {
-            GSLogger.LogType.Debug($"[Action Manager]: Restraint set index {enabledIdx}, activated by {assignerOfSet}, is now active");            
+            _logger.LogDebug($"[Action Manager]: Restraint set index {enabledIdx}, activated by {assignerOfSet}, is now active");            
             EnableProperties(enabledIdx, idxOfAssigner);
         } 
         else {
-            GSLogger.LogType.Debug($"[Action Manager]: No restraint sets are active");
+            _logger.LogDebug($"[Action Manager]: No restraint sets are active");
         }
         _framework.Update += framework_Update;
         // invoke the actionManagerFinished method
@@ -268,13 +268,13 @@ public unsafe class GsActionManager : IDisposable
             // dont need to do this but it gives us the variables without us needing to use characterHandler, i know its messy
             if(_hcManager.IsAnySetEnabled(out int enabledIdx, out string assignerOfSet, out int idxOfAssigner)) {
                 EnableProperties(e.SetIndex, idxOfAssigner);
-                GSLogger.LogType.Debug($"[Action Manager]: Restraint set index {e.SetIndex} is now active");
+                _logger.LogDebug($"[Action Manager]: Restraint set index {e.SetIndex} is now active");
             }
         }
         // if we are disabling the restraint set, we should restore our hotbar slots to the saved state over the live state
         if(e.ToggleType == RestraintSetToggleType.Disabled) {
             DisableProperties();
-            GSLogger.LogType.Debug($"[Action Manager]: Restraint set index {e.SetIndex} is now disabled");
+            _logger.LogDebug($"[Action Manager]: Restraint set index {e.SetIndex} is now disabled");
         }
     }
 
@@ -335,7 +335,7 @@ public unsafe class GsActionManager : IDisposable
 #endregion Framework Updates
     private bool UseActionDetour(ActionManager* am, ActionType type, uint acId, long target, uint a5, uint a6, uint a7, void* a8) {
         try {
-            GSLogger.LogType.Verbose($"[Action Manager]: UseActionDetour called {acId} {type}");
+            _logger.LogVerbose($"[Action Manager]: UseActionDetour called {acId} {type}");
 
             // if we are allowing hardcore updates / in hardcore mode
             if (AllowFrameworkHardcoreUpdates())
@@ -344,12 +344,12 @@ public unsafe class GsActionManager : IDisposable
                 if(_hcManager.IsForcedToStayForAny(out int forcedFollowAssignerIdx, out string forcedFollowAssigner)) {
                     // check if we are trying to hit teleport or return from hotbars /  menus
                     if(type == ActionType.GeneralAction && (acId == 7 || acId == 8)) {
-                        GSLogger.LogType.Verbose($"[Action Manager]: You are currently locked away, canceling teleport/return execution");
+                        _logger.LogVerbose($"[Action Manager]: You are currently locked away, canceling teleport/return execution");
                         return false;
                     }
                     // if we somehow managed to start executing it, then stop that too
                     if(type == ActionType.Action && (acId == 5 || acId == 6 || acId == 11408)) {
-                        GSLogger.LogType.Verbose($"[Action Manager]: You are currently locked away, canceling teleport/return execution");
+                        _logger.LogVerbose($"[Action Manager]: You are currently locked away, canceling teleport/return execution");
                         return false;
                     }
 
@@ -369,26 +369,26 @@ public unsafe class GsActionManager : IDisposable
                             var adjustedId = am->GetAdjustedActionId(acId);
                             var recastGroup = am->GetRecastGroup((int)type, adjustedId);
                             if (CooldownList.ContainsKey(recastGroup)) {
-                                // GSLogger.LogType.Debug($"[Action Manager]: GROUP FOUND - Recast Time: {recastTime} | Cast Group: {recastGroup}");
+                                // _logger.LogDebug($"[Action Manager]: GROUP FOUND - Recast Time: {recastTime} | Cast Group: {recastGroup}");
                                 var cooldownData = CooldownList[recastGroup];
                                 // if we are beyond our recast time from the last time used, allow the execution
                                 if (DateTime.Now >= cooldownData.Item2.AddMilliseconds(cooldownData.Item1)) {
                                     // Update the last execution time before execution
-                                    GSLogger.LogType.Verbose($"[Action Manager]: ACTION COOLDOWN FINISHED");
+                                    _logger.LogVerbose($"[Action Manager]: ACTION COOLDOWN FINISHED");
                                     CooldownList[recastGroup] = new Tuple<float, DateTime>(cooldownData.Item1, DateTime.Now);
                                 } else {
-                                    GSLogger.LogType.Verbose($"[Action Manager]: ACTION COOLDOWN NOT FINISHED");
+                                    _logger.LogVerbose($"[Action Manager]: ACTION COOLDOWN NOT FINISHED");
                                     return false; // Do not execute the action
                                 }
                             } else {
-                                GSLogger.LogType.Debug($"[Action Manager]: GROUP NOT FOUND");
+                                _logger.LogDebug($"[Action Manager]: GROUP NOT FOUND");
                             }
                         }
                     }
                 }
             }
         } catch (Exception e) {
-            GSLogger.LogType.Error(e.ToString());
+            _logger.LogError(e.ToString());
         }
         // return the original if we reach here
         var ret = UseActionHook.Original(am, type, acId, target, a5, a6, a7, a8);

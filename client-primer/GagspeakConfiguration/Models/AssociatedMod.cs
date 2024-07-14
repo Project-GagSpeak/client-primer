@@ -19,4 +19,7 @@ public record AssociatedMod
 
     /// <summary> Whether the mod should be redrawn after toggling </summary>
     public bool RedrawAfterToggle { get; set; } = false;
+
+    /// <summary> If it should update display in drawtableUpdateDisplayData </summary>
+    
 }

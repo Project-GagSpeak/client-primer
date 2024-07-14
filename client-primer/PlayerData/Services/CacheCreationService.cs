@@ -6,7 +6,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Character;
 
-namespace GagSpeak.PlayerData.VisibleData;
+namespace GagSpeak.PlayerData.Services;
 
 #pragma warning disable MA0040
 
@@ -135,11 +135,11 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     /*   Creating and Buildering Character Information from IPC data */
     public async Task BuildCharacterData(CharacterCompositeData previousData, GameObjectHandler playerRelatedObject, CancellationToken token)
     {
-        if (playerRelatedObject == null || playerRelatedObject.Address == IntPtr.Zero) return;
+        if (playerRelatedObject == null || playerRelatedObject.Address == nint.Zero) return;
 
         try
         {
-            bool pointerIsZero = await CheckForNullDrawObject(playerRelatedObject.Address).ConfigureAwait(false);
+            var pointerIsZero = await CheckForNullDrawObject(playerRelatedObject.Address).ConfigureAwait(false);
             if (pointerIsZero)
             {
                 Logger.LogTrace("Pointer was zero for object being built");
@@ -158,13 +158,13 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         }
     }
 
-    private async Task<bool> CheckForNullDrawObject(IntPtr playerPointer)
+    private async Task<bool> CheckForNullDrawObject(nint playerPointer)
     {
         // Assuming _frameworkUtil is correctly defined in the class context
         return await _frameworkUtil.RunOnFrameworkThread(() => CheckForNullDrawObjectUnsafe(playerPointer)).ConfigureAwait(false);
     }
 
-    private unsafe bool CheckForNullDrawObjectUnsafe(IntPtr playerPointer)
+    private unsafe bool CheckForNullDrawObjectUnsafe(nint playerPointer)
     {
         // Correct handling for managed type pointers, assuming Character is correctly defined and accessible
         return ((Character*)playerPointer)->GameObject.DrawObject == null;
@@ -176,7 +176,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 
         Logger.LogDebug("Updating IPC data relevant to character data for {obj}", playerRelatedObject);
 
-        DateTime start = DateTime.UtcNow;
+        var start = DateTime.UtcNow;
 
         // grab the moodles data from the player object.
         previousData.IPCData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(playerRelatedObject.Address).ConfigureAwait(false) ?? string.Empty;

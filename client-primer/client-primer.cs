@@ -1,6 +1,5 @@
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.PlayerData.VisibleData;
 using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
@@ -8,6 +7,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using PlayerData.Services;
 using System.Reflection;
 
 namespace GagSpeak;

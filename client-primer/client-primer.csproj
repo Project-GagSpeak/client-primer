@@ -152,6 +152,7 @@
     </ItemGroup>
     <ItemGroup>
       <Folder Include="GagspeakConfiguration\4.0-Migrator\" />
+      <Folder Include="Interop\IpcHelpers\Glamourer\" />
       <Folder Include="UI\MainWindow\Sections\" />
     </ItemGroup>
 

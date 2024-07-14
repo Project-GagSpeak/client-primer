@@ -9,6 +9,7 @@ using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Connection;
+using Glamourer.Api.Enums;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using System.Numerics;
@@ -97,6 +98,15 @@ public record VerificationPopupMessage(VerificationDto VerificationCode) : Messa
 public record MoodlesMessage(IntPtr Address) : MessageBase; // indicated a moodles message was published.
 public record PenumbraInitializedMessage : MessageBase;
 public record PenumbraDisposedMessage : MessageBase;
+public record GlamourerChangedMessage(IntPtr Address, StateChangeType ChangeType) : MessageBase;
+public record UpdateGlamourerMessage(GlamourUpdateType GenericUpdateType) : MessageBase; // for full refreshes on states.
+public record UpdateGlamourGagsMessage(UpdatedNewState NewState, GagList.GagType GagType, string GagAssigner) : MessageBase; // Gag updates.
+public record UpdateGlamourRestraintsMessage(UpdatedNewState NewState) : MessageBase; // Restraint set updates.
+public record UpdateGlamourBlindfoldMessage(UpdatedNewState NewState) : MessageBase; // Blindfold updates.
+public record UpdateGlamourMessage : MessageBase; // change this into composed message as we update.
+public record DisableGlamourChangeEvents : MessageBase; // when we start processing a glamour changed event.
+public record GlamourChangeEventFinished : MessageBase; // when we finish processing a glamour changed event.
+public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
 
 public record PlayerCharIpcChanged(CharacterIPCData IPCData) : MessageBase; // for when the player character IPC data changes
 public record PlayerCharAppearanceChanged(CharacterAppearanceData AppearanceData) : MessageBase; // called whenever a gag is changed on the player character
@@ -111,10 +121,7 @@ public record PlayerCharPatternChanged(CharacterPatternInfo PatternData) : Messa
 
 /* Were included before, leaving in incase i need them later, but otherwise if functional without, remove.
 public record PenumbraModSettingChangedMessage : MessageBase;
-public record PenumbraInitializedMessage : MessageBase;
-public record PenumbraDisposedMessage : MessageBase;
 public record PenumbraRedrawMessage(IntPtr Address, int ObjTblIdx, bool WasRequested) : SameThreadMessage;
-public record GlamourerChangedMessage(IntPtr Address) : MessageBase;
 public record ClassJobChangedMessage(GameObjectHandler GameObjectHandler) : MessageBase;
 public record CutsceneStartMessage : MessageBase;
 public record GposeStartMessage : MessageBase;

@@ -1,18 +1,16 @@
-using System;
-using System.Numerics;
 using Dalamud.Interface.Utility;
-using ImGuiNET;
 using GagSpeak.Interop.Ipc;
+using ImGuiNET;
 using OtterGui.Classes;
-using OtterGui.Log;
 using OtterGui.Raii;
 using OtterGui.Widgets;
+using System.Numerics;
 
 // taken off Otter's ModCombo.cs from the mod association tab for convince purposes
 namespace GagSpeak.Interop.IpcHelpers.Penumbra;
-public sealed class ModCombo : FilterComboCache<(Mod Mod, ModSettings Settings)>
+public sealed class CustomModCombo : CustomFilterComboCache<(Mod Mod, ModSettings Settings)>
 {
-    public ModCombo(IpcCallerPenumbra penumbra, Logger log)
+    public CustomModCombo(IpcCallerPenumbra penumbra, ILogger log)
         : base(penumbra.GetMods, MouseWheelType.None, log)
     {
         SearchByParts = false;
@@ -36,9 +34,9 @@ public sealed class ModCombo : FilterComboCache<(Mod Mod, ModSettings Settings)>
         // draws a fancy box when the mod is hovered giving you the details about the mod.
         if (ImGui.IsItemHovered())
         {
-            using var style          = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 2 * ImGuiHelpers.GlobalScale);
-            using var tt             = ImRaii.Tooltip();
-            var       namesDifferent = mod.Name != mod.DirectoryName;
+            using var style = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, 2 * ImGuiHelpers.GlobalScale);
+            using var tt = ImRaii.Tooltip();
+            var namesDifferent = mod.Name != mod.DirectoryName;
             ImGui.Dummy(new Vector2(300 * ImGuiHelpers.GlobalScale, 0));
             using (var group = ImRaii.Group())
             {

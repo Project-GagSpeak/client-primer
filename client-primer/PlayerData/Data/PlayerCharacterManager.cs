@@ -1,3 +1,5 @@
+using GagSpeak.Interop.Ipc;
+using GagSpeak.Interop.IpcHelpers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
@@ -12,6 +14,7 @@ namespace GagSpeak.PlayerData.Data;
 // unsure atm why we would need this, but we will find out soon.
 public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 {
+    private readonly IpcManager _ipcManager;
     private readonly PairManager _pairManager;
     private readonly ClientConfigurationManager _clientConfigManager;
     private CharacterIPCData _playerCharIpcData { get; set; } // the IPC data for our player character
@@ -21,9 +24,14 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private CharacterPatternInfo _playerCharPatternData { get; set; } // the pattern data for our player character
     private UserGlobalPermissions _playerCharGlobalPerms { get; set; } // the global permissions for our player character
 
-    public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger, GagspeakMediator mediator,
-        PairManager pairManager, ClientConfigurationManager clientConfiguration) : base(logger, mediator)
+    // we need to store our Customize+ tuple list here, but we do not need to be sending it to other people, so stay out of IPC
+    IList<CustomizePlusProfileData> ClientCustomizeProfileList { get; set; } // the list of client customize profiles
+
+    public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger, 
+        GagspeakMediator mediator, IpcManager ipcManager, PairManager pairManager, 
+        ClientConfigurationManager clientConfiguration) : base(logger, mediator)
     {
+        _ipcManager = ipcManager;
         _pairManager = pairManager;
         _clientConfigManager = clientConfiguration;
 
@@ -33,10 +41,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         _playerCharPatternData = new CharacterPatternInfo(); // Initialize the pattern data
 
         _playerCharAliasData = new Dictionary<string, CharacterAliasData>(); // Initialize the dictionary
-
-        // we will need to call upon some initialization functions for assigning the data based on the configs.
-
-
 
         // Subscribe to the connected message update so we know when to update our global permissions
         Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
@@ -75,6 +79,12 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             _playerCharPatternData = msg.PatternData;
         });
 
+        // grab our customizeProfileList if the plugin is enabled.
+        if (_ipcManager.CustomizePlus.APIAvailable)
+        {
+            // get the list of profiles from the client
+            ClientCustomizeProfileList = _ipcManager.CustomizePlus.GetProfileListAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        }
     }
 
     // public access definitions.
@@ -94,6 +104,13 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         {
             throw new KeyNotFoundException($"Alias data for key '{userUID}' not found.");
         }
+    }
+
+    public bool IsPlayerGagged()
+    {
+        return AppearanceData.SlotOneGagType != "None"
+            || AppearanceData.SlotTwoGagType != "None"
+            || AppearanceData.SlotThreeGagType != "None";
     }
 
 

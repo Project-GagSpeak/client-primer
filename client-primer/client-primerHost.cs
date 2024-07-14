@@ -9,7 +9,6 @@ using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Factories;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.PlayerData.VisibleData;
 using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
@@ -25,6 +24,7 @@ using Microsoft.Extensions.Hosting;
 using GagSpeak.UI.Components.UserPairList;
 using OtterGui.Classes;
 using GagSpeak.GagspeakConfiguration;
+using PlayerData.Services;
 
 namespace GagSpeak;
 

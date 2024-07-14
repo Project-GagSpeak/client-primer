@@ -1,4 +1,5 @@
 using GagSpeak.Services.Mediator;
+using Interop.Ipc;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -7,11 +8,19 @@ namespace GagSpeak.Interop.Ipc;
 /// </summary>
 public sealed partial class IpcManager : DisposableMediatorSubscriberBase
 {
+    public IpcCallerCustomize CustomizePlus { get; init; }
+    public IpcCallerGlamourer Glamourer { get; }
+    public IpcCallerPenumbra Penumbra { get; }
     public IpcCallerMoodles Moodles { get; }
 
     public IpcManager(ILogger<IpcManager> logger, GagspeakMediator mediator,
-        IpcCallerMoodles moodlesIpc) : base(logger, mediator)
+        IpcCallerCustomize ipcCustomize, IpcCallerGlamourer ipcGlamourer,
+        IpcCallerPenumbra ipcPenumbra, IpcCallerMoodles moodlesIpc
+        ) : base(logger, mediator)
     {
+        CustomizePlus = ipcCustomize;
+        Glamourer = ipcGlamourer;
+        Penumbra = ipcPenumbra;
         Moodles = moodlesIpc;
 
         // subscribe to the delayed framework update message, which will call upon the periodic API state check.
@@ -29,6 +38,9 @@ public sealed partial class IpcManager : DisposableMediatorSubscriberBase
 
     private void PeriodicApiStateCheck()
     {
+        Penumbra.CheckAPI();
+        Glamourer.CheckAPI();
+        CustomizePlus.CheckAPI();
         Moodles.CheckAPI();
     }
 }

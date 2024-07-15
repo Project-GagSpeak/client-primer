@@ -1,10 +1,10 @@
-using Dalamud.Plugin.Services;
+/*using Dalamud.Plugin.Services;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Enums;
 using GagSpeak.ChatMessages.MessageTransfer;
 using GagSpeak.CharacterData;
-using GagSpeak.Utility;
+using GagSpeak.Utils;
 
 namespace UpdateMonitoring.Chat;
 /// <summary>
@@ -82,29 +82,6 @@ public class EncodedMsgDetector
         }
     }
 
-    /// <summary> For processing the result logic of the decoded message. </summary>
-    private bool ProcessDecodedMessage(string message, DecodedMessageType messageType, bool isHandled)
-    {
-        switch (messageType)
-        {
-            case DecodedMessageType.GagSpeak:
-                return _msgResultLogic.CommandMsgResLogic(message, _decodedMessageMediator, isHandled);
-            case DecodedMessageType.Relationship:
-                return _msgResultLogic.WhitelistMsgResLogic(message, _decodedMessageMediator, isHandled);
-            case DecodedMessageType.Wardrobe:
-                return _msgResultLogic.WardrobeMsgResLogic(message, _decodedMessageMediator, isHandled);
-            case DecodedMessageType.Puppeteer:
-                return _msgResultLogic.PuppeteerMsgResLogic(message, _decodedMessageMediator, isHandled);
-            case DecodedMessageType.Toybox:
-                return _msgResultLogic.ToyboxMsgResLogic(message, _decodedMessageMediator, isHandled);
-            case DecodedMessageType.InfoExchange:
-                return _msgResultLogic.ResLogicInfoRequestMessage(message, _decodedMessageMediator, isHandled);
-            case DecodedMessageType.Hardcore:
-                return _msgResultLogic.HardcoreMsgResLogic(message, _decodedMessageMediator, isHandled);
-            default:
-                return false;
-        }
-    }
 
     /// <summary> Will search through the senders friend list to see if they are a friend or not. </summary>
     private bool IsFriend(string nameInput)
@@ -115,7 +92,7 @@ public class EncodedMsgDetector
         foreach (var t in _objectTable)
         {
             // If the object is a player character (us), we found ourselves, so conmtinue on..
-            if (!(t is PlayerCharacter pc)) continue;
+            if (!(t is IPlayerCharacter pc)) continue;
             // If the player characters name matches the list of names from local players 
             if (pc.Name.TextValue == nameInput)
             {
@@ -132,7 +109,7 @@ public class EncodedMsgDetector
         if (nameInput == _clientState.LocalPlayer?.Name.TextValue) return true;
         foreach (var t in _objectTable)
         {
-            if (!(t is PlayerCharacter pc)) continue;
+            if (!(t is IPlayerCharacter pc)) continue;
             if (pc.Name.TextValue == nameInput)
                 return pc.StatusFlags.HasFlag(StatusFlags.PartyMember);
         }
@@ -149,7 +126,7 @@ public class EncodedMsgDetector
         }
         foreach (var t in _objectTable)
         {
-            if (!(t is PlayerCharacter pc)) continue;
+            if (!(t is IPlayerCharacter pc)) continue;
             if (pc.Name.TextValue == nameInput)
             {
                 if (AltCharHelpers.IsPlayerInWhitelist(nameInput))
@@ -160,4 +137,4 @@ public class EncodedMsgDetector
         }
         return false;
     }
-}
+}*/

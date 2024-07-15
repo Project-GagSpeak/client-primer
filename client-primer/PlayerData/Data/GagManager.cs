@@ -1,9 +1,7 @@
-using GagSpeak.Garbler.Translator;
+using GagSpeak.MufflerCore.Handler;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data.Enum;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 
 namespace GagSpeak.PlayerData.Data;
 
@@ -11,12 +9,12 @@ public class GagManager : DisposableMediatorSubscriberBase
 {
     private readonly PlayerCharacterManager _characterManager;
     private readonly GagDataHandler _gagDataHandler;
-    private readonly IpaParserEN_FR_JP_SP _IPAParser;
+    private readonly Ipa_EN_FR_JP_SP_Handler _IPAParser;
     public List<GagData> _activeGags;
 
     public GagManager(ILogger<GagManager> logger, GagspeakMediator mediator,
         PlayerCharacterManager characterManager, GagDataHandler gagDataHandler,
-        IpaParserEN_FR_JP_SP IPAParser) : base(logger, mediator)
+        Ipa_EN_FR_JP_SP_Handler IPAParser) : base(logger, mediator)
     {
         _characterManager = characterManager;
         _gagDataHandler = gagDataHandler;
@@ -48,7 +46,7 @@ public class GagManager : DisposableMediatorSubscriberBase
     private void OnGagTypeChanged(GagTypeChanged message)
     {
         // Update the corresponding slot in CharacterAppearanceData based on the GagLayer
-        switch (message.layer)
+        switch (message.Layer)
         {
             case GagLayer.UnderLayer:
                 _characterManager.AppearanceData.SlotOneGagType = message.NewGagType.Name;
@@ -156,7 +154,7 @@ public class GagManager : DisposableMediatorSubscriberBase
         }
         catch (Exception e)
         {
-            _logger.LogError($"[GagGarbleManager] Error converting from IPA Spaced to final output. Puncutation error or other type possible : {e.Message}");
+            Logger.LogError($"[GagGarbleManager] Error converting from IPA Spaced to final output. Puncutation error or other type possible : {e.Message}");
         }
         return finalMessage.ToString().Trim();
     }
@@ -183,7 +181,7 @@ public class GagManager : DisposableMediatorSubscriberBase
             }
             catch (Exception e)
             {
-                _logger.LogError($"Error converting phonetic {phonetic} to GagSpeak: {e.Message}");
+                Logger.LogError($"Error converting phonetic {phonetic} to GagSpeak: {e.Message}");
             }
         }
         string result = outputString.ToString();

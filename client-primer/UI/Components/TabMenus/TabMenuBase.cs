@@ -20,7 +20,7 @@ public abstract class TabMenuBase
     {
         foreach (var window in Enum.GetValues(TabSelectionType))
         {
-            if (window.Equals(SelectedTab)) continue;
+            if (window.ToString() == "None") continue;
 
             if (ImGui.Selectable($"{window}", window.Equals(SelectedTab)))
             {

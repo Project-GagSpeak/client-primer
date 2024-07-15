@@ -3,11 +3,12 @@ using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Factories;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Dto.Connection;
 using Microsoft.Extensions.Hosting;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
 
 namespace GagSpeak.PlayerData.Handlers;
 

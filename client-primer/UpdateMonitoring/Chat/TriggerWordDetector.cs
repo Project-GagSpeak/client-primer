@@ -1,7 +1,8 @@
-using Dalamud.Game.Text;
+/*using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using GagSpeak.ChatMessages;
-using GagSpeak.ToyboxandPuppeteer;
+using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.UpdateMonitoring.Chat.Handler;
 
 namespace UpdateMonitoring.Chat;
 /// <summary>
@@ -9,13 +10,16 @@ namespace UpdateMonitoring.Chat;
 /// Messages passed through here are scanned to see if they are encoded, for puppeteer, or include any hardcore features.
 public class TriggerWordDetector
 {
-    private readonly GagSpeakConfig _config;                            // config from GagSpeak
-    private readonly PuppeteerMediator _puppeteerMediator;                 // puppeteer mediator
+    private readonly ILogger<TriggerWordDetector> _logger;                // logger for the class
+    private readonly ClientConfigurationManager _clientConfigs;
+    private readonly PuppeteerHandler _puppeteerMediator;                 // puppeteer mediator
 
     /// <summary> This is the constructor for the OnChatMsgManager class. </summary>
-    public TriggerWordDetector(GagSpeakConfig config, PuppeteerMediator puppeteerMediator)
+    public TriggerWordDetector(ILogger<TriggerWordDetector> logger,
+        ClientConfigurationManager clientConfigs, PuppeteerHandler puppeteerMediator)
     {
-        _config = config;
+        _logger = logger;
+        _clientConfigs = clientConfigs;
         _puppeteerMediator = puppeteerMediator;
     }
 
@@ -119,3 +123,4 @@ public class TriggerWordDetector
         }
     }
 }
+*/

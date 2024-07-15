@@ -1,7 +1,8 @@
+using GagSpeak.GagspeakConfiguration;
+using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.Mediator;
-using GagSpeakConfiguration;
-using GagSpeakConfiguration.Models;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.Services.ConfigurationServices;
 
@@ -330,7 +331,7 @@ public class ServerConfigurationManager
         if (!string.Equals(_configService.Current.ServerStorage.ServiceUri, ApiController.MainServiceUri, StringComparison.OrdinalIgnoreCase))
         {
             // then set it to the main server
-            _configService.Current.ServerStorage = new ServerStorage() 
+            _configService.Current.ServerStorage = new ServerStorage()
             {
                 ServerName = ApiController.MainServer,
                 ServiceUri = ApiController.MainServiceUri,

@@ -1,5 +1,5 @@
 using Dalamud.Plugin.Services;
-using GagSpeakConfiguration;
+using GagSpeak.GagspeakConfiguration;
 using Serilog.Events;
 
 namespace GagSpeak.Interop;

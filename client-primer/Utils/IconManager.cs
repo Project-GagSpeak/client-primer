@@ -18,7 +18,7 @@ using OtterGui.Services;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Textures;
 
-namespace GagSpeak.Utility;
+namespace GagSpeak.Utils;
 public class IconManager : IDisposable
 {
     private readonly IDataManager _data;

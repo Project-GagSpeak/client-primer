@@ -2,6 +2,7 @@ using Dalamud.Plugin;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
 using Newtonsoft.Json;
 
 namespace GagSpeak.PlayerData.Handlers;
@@ -30,12 +31,12 @@ public class GagDataHandler : DisposableMediatorSubscriberBase
         }
         catch (FileNotFoundException)
         {
-            _logger.LogDebug($"[IPA Parser] File does not exist");
+            Logger.LogDebug($"[IPA Parser] File does not exist");
             _gagData = new Dictionary<string, GagData>();
         }
         catch (Exception ex)
         {
-            _logger.LogDebug($"[IPA Parser] An error occurred while reading the file: {ex.Message}");
+            Logger.LogDebug($"[IPA Parser] An error occurred while reading the file: {ex.Message}");
             _gagData = new Dictionary<string, GagData>();
         }
 
@@ -63,7 +64,7 @@ public class GagDataHandler : DisposableMediatorSubscriberBase
     private void CreateGags()
     {
         List<string> masterList;
-        switch (_clientConfigs.GagspeakConfig.languageDialect)
+        switch (_clientConfigs.GagspeakConfig.LanguageDialect)
         {
             case "IPA_UK": masterList = GagPhonetics.MasterListEN_UK; break;
             case "IPA_US": masterList = GagPhonetics.MasterListEN_US; break;

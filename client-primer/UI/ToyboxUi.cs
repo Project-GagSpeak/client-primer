@@ -18,12 +18,14 @@ public class ToyboxUI : WindowMediatorSubscriberBase
     private ITextureProvider _textureProvider;
     private ISharedImmediateTexture _sharedSetupImage;
 
-    public ToyboxUI(ILogger<ToyboxUI> logger, ITextureProvider textureProvider,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
+    public ToyboxUI(ILogger<ToyboxUI> logger, GagspeakMediator mediator,
+        UiSharedService uiSharedService, ITextureProvider textureProvider, 
         IDalamudPluginInterface pi) : base(logger, mediator, "Toybox UI")
     {
         _textureProvider = textureProvider;
         _pi = pi;
+
+        _tabMenu = new ToyboxTabMenu();
 
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints

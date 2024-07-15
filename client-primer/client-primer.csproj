@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="Dalamud.Plugin.Bootstrap.targets" />
+    
     <!--Basic Plugin Definitions-->
     <PropertyGroup>
         <TargetFramework>net8.0-windows</TargetFramework>
@@ -12,17 +14,32 @@
         <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
+
     
+    <ItemGroup>
+        <!--Include Images needed for UI Display-->
+        <Content Include="..\.images\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Visible>false</Visible>
+        </Content>
+        <!--Images for Gag Previews, supporter images, ext. Possibly merge \.images\ with this Later-->
+        <Content Include="..\.assets\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Visible>false</Visible>
+        </Content>
+        <!--Include files nessisary for GagSpeak's Muffler Core-->
+        <Content Include=".\GarblerCore\**\*.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+            <Visible>false</Visible>
+        </Content>
+    </ItemGroup>
     
     <!--Dalamud Plugin Bootstrap Targets brought into .csproj-->
     <PropertyGroup>
-        <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
-        <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('Linux'))">$(HOME)/.xlcore/dalamud/Hooks/dev/</DalamudLibPath>
-        <DalamudLibPath Condition="$([MSBuild]::IsOSPlatform('OSX'))">$(HOME)/Library/Application Support/XIV on Mac/dalamud/Hooks/dev/</DalamudLibPath>
-        <DalamudLibPath Condition="$(DALAMUD_HOME) != ''">$(DALAMUD_HOME)/</DalamudLibPath>
-        <AssemblyVersion></AssemblyVersion>
-    </PropertyGroup>    
-    
+        <DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
+        <OutputType>Library</OutputType>
+    </PropertyGroup>
+
     <!--Other DLL's for dalamud supporting module/components-->
     <ItemGroup>
         <Reference Include="Dalamud">
@@ -75,23 +92,6 @@
         </Reference>
     </ItemGroup>
 
-    <ItemGroup>
-        <!--Include Images needed for UI Display-->
-        <Content Include="..\.images\**">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Visible>false</Visible>
-        </Content>
-        <!--Images for Gag Previews, supporter images, ext. Possibly merge \.images\ with this Later-->
-        <Content Include="..\.assets\**">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Visible>false</Visible>
-        </Content>
-        <!--Include files nessisary for GagSpeak's Muffler Core-->
-        <Content Include=".\GarblerCore\**\*.json">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Visible>false</Visible>
-        </Content>
-    </ItemGroup>
 
     
     <!-- We have yet to implement the logic, we are just in the UI Testing phase, so remove all folders with new logic-->
@@ -114,6 +114,7 @@
     
     <ItemGroup>
         <!--Submodules-->
+        
         <ProjectReference Include="..\GagspeakAPI\ProjectGagspeakAPI\ProjectGagspeakAPI.csproj" />
         <ProjectReference Include="..\OtterGui\OtterGui.csproj" />
         <ProjectReference Include="..\Penumbra.Api\Penumbra.Api.csproj" />
@@ -150,12 +151,6 @@
         <EmbeddedResource Include="Localization\de.json" />
         <EmbeddedResource Include="Localization\fr.json" />
     </ItemGroup>
-    <ItemGroup>
-      <Folder Include="GagspeakConfiguration\4.0-Migrator\" />
-      <Folder Include="Interop\IpcHelpers\Glamourer\" />
-      <Folder Include="UI\MainWindow\Sections\" />
-    </ItemGroup>
-
 </Project>
 
 

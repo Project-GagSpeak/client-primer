@@ -83,7 +83,6 @@ public partial class MainWindowUI
         UiSharedService.AttachToolTip("Use your personal Lovense Remote to send vibrations to yourself or other pairs ");
         
         // Opens the Orders Module UI
-        ImGui.SameLine();
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.ClipboardList, "Orders Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(OrdersUI)));
@@ -91,7 +90,6 @@ public partial class MainWindowUI
         UiSharedService.AttachToolTip("View your active Orders or setup orders for others");
 
         // Opens the Gags Status Interface UI
-        ImGui.SameLine();
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.CommentSlash, "Gags Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(GagSetupUI)));
@@ -99,7 +97,6 @@ public partial class MainWindowUI
         UiSharedService.AttachToolTip("View and analyze your generated character data");
 
         // Opens the Wardrobe Module UI
-        ImGui.SameLine();
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.ToiletPortable, "Wardrobe Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(WardrobeUI)));
@@ -107,7 +104,6 @@ public partial class MainWindowUI
         UiSharedService.AttachToolTip("View and analyze your generated character data");
 
         // Opens the Puppeteer Module UI
-        ImGui.SameLine();
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.PersonHarassing, "Puppeteer Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(PuppeteerUI)));
@@ -115,11 +111,11 @@ public partial class MainWindowUI
         UiSharedService.AttachToolTip("View and analyze your generated character data");
 
         // Opens the Toybox Module UI
-        ImGui.SameLine();
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.BoxOpen, "Toybox Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
         }
         UiSharedService.AttachToolTip("View and analyze your generated character data");
+
     }
 }

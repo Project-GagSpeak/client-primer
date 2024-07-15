@@ -79,12 +79,15 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             _playerCharPatternData = msg.PatternData;
         });
 
-        // grab our customizeProfileList if the plugin is enabled.
-        if (_ipcManager.CustomizePlus.APIAvailable)
+        // call upon the initialization for profiles
+
+        Task.Run(async () =>
         {
-            // get the list of profiles from the client
-            ClientCustomizeProfileList = _ipcManager.CustomizePlus.GetProfileListAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-        }
+            // wait 15 seconds then call getprofilelistasync
+            Logger.LogInformation("Waiting...");
+            await Task.Delay(5000);
+            ClientCustomizeProfileList = await _ipcManager.CustomizePlus.GetProfileListAsync();
+        });
     }
 
     // public access definitions.

@@ -1,4 +1,4 @@
-using System;
+/*using System;
 using System.Linq;
 using System.Diagnostics;
 using System.Collections.Generic;
@@ -7,8 +7,8 @@ using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using GagSpeak.CharacterData;
-using GagSpeak.ToyboxandPuppeteer;
-using GagSpeak.Utility;
+using GagSpeak.Utils;
+using GagSpeak.UpdateMonitoring.Chat.Handler;
 
 namespace UpdateMonitoring.Chat;
 /// <summary>
@@ -22,7 +22,7 @@ public class OnChatMessage
     private readonly IFramework _framework;          // framework for dalamud and the game
     private readonly GagSpeakConfig _config;             // config from GagSpeak
     private readonly CharacterHandler _characterHandler;   // character data manager
-    private readonly PuppeteerMediator _puppeteerMediator;  // puppeteer mediator
+    private readonly PuppeteerHandler _puppeteerMediator;  // puppeteer mediator
     private readonly RealChatInteraction _realChatInteraction;// real chat interaction
     private readonly EncodedMsgDetector _encodedMsgDetector; // detector for encoded messages
     private readonly TriggerWordDetector _triggerWordDetector;// detector for trigger words
@@ -32,7 +32,7 @@ public class OnChatMessage
 
     /// <summary> This is the constructor for the OnChatMsgManager class. </summary>
     public OnChatMessage(IChatGui clientChat, IClientState clientState, IFramework framework,
-    GagSpeakConfig config, CharacterHandler characterHandler, PuppeteerMediator puppeteerMediator,
+    GagSpeakConfig config, CharacterHandler characterHandler, PuppeteerHandler puppeteerMediator,
     RealChatInteraction realChatInteraction, EncodedMsgDetector encodedMsgDetector,
     TriggerWordDetector triggerWordDetector, HardcoreMsgDetector hardcoreMsgDetector)
     {
@@ -252,3 +252,4 @@ public class OnChatMessage
         }
     }
 }
+*/

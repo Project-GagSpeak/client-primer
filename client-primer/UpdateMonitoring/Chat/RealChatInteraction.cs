@@ -92,7 +92,7 @@ public class RealChatInteraction
             throw new InvalidOperationException("Could not find signature for chat sending");
         }
         // Assuming it meets the correct conditions, we can begin to obtain the UI module pointer for the chatbox within the framework instance
-        var uiModule = (nint)Framework.Instance()->GetUiModule();
+        var uiModule = (nint)Framework.Instance()->GetUIModule();
 
         // create a payload for our chat message
         using var payload = new ChatPayload(message);

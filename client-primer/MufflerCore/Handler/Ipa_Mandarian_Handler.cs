@@ -1,13 +1,8 @@
-using System;
-using System.IO;
-using System.Text.RegularExpressions;
-using System.Collections.Generic;
-using System.Linq;
 using Dalamud.Plugin;
-using Newtonsoft.Json;
-using PlayerData.Data;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Utils;
+using Newtonsoft.Json;
+using System.Text.RegularExpressions;
 
 
 // This file has no current use, but is here for any potential future implementations of the IPA parser.

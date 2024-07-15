@@ -6,7 +6,7 @@ using GagSpeak.Services.ConfigurationServices;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Reflection;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
 
 namespace GagSpeak.WebAPI;
 

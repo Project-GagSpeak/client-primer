@@ -19,7 +19,7 @@ using Penumbra.GameData.Structs;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
 using GagSpeak.Services.Textures;
 using GagSpeak.WebAPI;
 using GagSpeak.UpdateMonitoring;
@@ -104,7 +104,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public Dictionary<ushort, string> WorldData => _frameworkUtil.WorldData.Value;
     public uint WorldId => _frameworkUtil.GetHomeWorldId(); // the homeworld ID of the current player
     public bool UseTheme => _useTheme;
-    public string SearchFilter { get; set; } // the search filter used in whitelist. Stored here to ensure the tab menu can clear it upon switching tabs.
+    public string SearchFilter { get; set; } = ""; // the search filter used in whitelist. Stored here to ensure the tab menu can clear it upon switching tabs.
 
     /// <summary> 
     /// A helper function to attach a tooltip to a section in the UI currently hovered. 

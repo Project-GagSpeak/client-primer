@@ -1,4 +1,4 @@
-using Serilog.Events;
+/*using Serilog.Events;
 using System;
 
 namespace GagSpeak.GSLogger;
@@ -23,4 +23,4 @@ public record struct InternalLogMessage
             : Level == LogEventLevel.Verbose ? "VRB"
             : "UNK"; // default value in case level doesn't match any
         }
-}
+}*/

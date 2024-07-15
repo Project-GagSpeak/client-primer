@@ -1,4 +1,4 @@
-using System;
+/*using System;
 using System.Collections.Generic;
 using System.Linq;
 using Dalamud.Game.ClientState.Objects;
@@ -9,7 +9,7 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
 using GagSpeak.CharacterData;
 using GagSpeak.Hardcore;
-using GagSpeak.Utility;
+using GagSpeak.Utils;
 
 namespace UpdateMonitoring.Chat;
 /// <summary>
@@ -286,4 +286,4 @@ public class HardcoreMsgDetector
     {
         _targetManager.Target = obj;
     }
-}
+}*/

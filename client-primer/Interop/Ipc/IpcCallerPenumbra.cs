@@ -16,6 +16,7 @@ using Dalamud.Interface.ImGuiNotification;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.GagspeakConfiguration.Models;
+using Lumina.Excel.GeneratedSheets;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -49,6 +50,7 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
     private readonly IDalamudPluginInterface _pi;
     private readonly OnFrameworkService _frameworkService;
     private readonly GagspeakMediator _mediator;
+    private bool _shownPenumbraUnavailable = false; // safety net to prevent notification spam.
 
     /* ------- Penumbra API Event Subscribers ---------- */
     private readonly EventSubscriber _penumbraInitialized;
@@ -94,7 +96,7 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
 
     public void CheckAPI()
     {
-        try 
+        try
         {
             try
             {
@@ -117,18 +119,23 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
             if (API_CurrentMajor != RequiredPenumbraAPIBreakingVersion || API_CurrentMinor < RequiredPenumbraAPIFeatureVersion)
             {
                 throw new Exception(
-                    $"Invalid Version {API_CurrentMajor}.{API_CurrentMinor:D4}, required major "+
+                    $"Invalid Version {API_CurrentMajor}.{API_CurrentMinor:D4}, required major " +
                     $"Version {RequiredPenumbraAPIBreakingVersion} with feature greater or equal to {RequiredPenumbraAPIFeatureVersion}.");
             }
-
             // API check sucessful.
             APIAvailable = true;
+            _shownPenumbraUnavailable = _shownPenumbraUnavailable && !APIAvailable;
         }
         catch // caught by the exception thrown if not compatible.
         {
-            _mediator.Publish(new NotificationMessage("Penumbra inactive",
-                "Your Penumbra installation is not active or out of date. Update Penumbra and/or the Enable Mods setting in "+
-                "Penumbra to continue to use Mare. If you just updated Penumbra, ignore this message.", NotificationType.Error));
+            if (!APIAvailable && !_shownPenumbraUnavailable)
+            {
+                _shownPenumbraUnavailable = true;
+
+                _mediator.Publish(new NotificationMessage("Penumbra inactive",
+                    "Your Penumbra installation is not active or out of date. Update Penumbra and/or the Enable Mods setting in " +
+                    "Penumbra to continue to use Mare. If you just updated Penumbra, ignore this message.", NotificationType.Error));
+            }
         }
     }
 

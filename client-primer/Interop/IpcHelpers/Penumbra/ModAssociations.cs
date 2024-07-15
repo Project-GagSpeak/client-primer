@@ -6,6 +6,7 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagspeakAPI.Data.Enum;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Raii;
@@ -38,7 +39,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
         // if the set is being enabled, we should toggle on the mods
         if (_clientState.IsLoggedIn && _clientState.LocalContentId != 0)
         {
-            if (msg.newSetStateActive)
+            if (msg.State == UpdatedNewState.Enabled)
             {
                 // enable the mods.
                 foreach (var associatedMod in _clientManager.GetAssociatedMods(msg.RestraintSetIndex))

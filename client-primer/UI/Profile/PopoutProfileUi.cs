@@ -1,15 +1,13 @@
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Internal;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
-using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Mediator;
 using ImGuiNET;
 using System.Numerics;
-using GagSpeakConfiguration;
-using GagSpeak.GagspeakConfiguration;
 
 namespace GagSpeak.UI.Profile;
 
@@ -75,6 +73,15 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
         });
 
         IsOpen = false;
+    }
+
+    protected override void PreDrawInternal()
+    {
+        // include our personalized theme for this window here if we have themes enabled.
+    }
+    protected override void PostDrawInternal()
+    {
+        // include our personalized theme for this window here if we have themes enabled.
     }
 
     protected override void DrawInternal()

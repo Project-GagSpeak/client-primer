@@ -1,6 +1,8 @@
 using GagspeakAPI.Data.Enum;
 using Microsoft.Extensions.Logging;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.UI;
+using GagSpeak.Hardcore.Movement;
 
 namespace GagSpeak.GagspeakConfiguration.Configurations;
 
@@ -31,10 +33,12 @@ public class GagspeakConfig : IGagspeakConfiguration
 
     // migrated from gagspeak information for client user. (stuff unessisary to be in the DB)
     public bool LiveGarblerZoneChangeWarn { get; set; }                 // if user wants to be warned about the live chat garbler on zone change
+    public BlindfoldType BlindfoldStyle { get; set; }                   // the blindfold style the user is using
     public RevertStyle RevertStyle { get; set; }                        // how the user wants to revert their settings (can store locally?)
     public bool UsingSimulatedVibrator { get; set; }                    // if the user is using a simulated vibrator
     public string LanguageDialect { get; set; }                         // the language dialect the user is using for MufflerCore
-
+    public bool UsingLegacyControls { get; set; } = GameConfig.UiControl.GetBool("MoveMode"); // grabs our movement mode for the game.
     public int Version { get; set; } = 1;                               // the version of the config file
+    public string IntifaceConnectionSocket { get; set; } = "ws://localhost:12345"; // connection link from plugin to intiface
 }
 

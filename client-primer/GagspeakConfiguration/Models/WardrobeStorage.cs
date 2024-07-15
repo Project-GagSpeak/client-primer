@@ -8,4 +8,7 @@ public class WardrobeStorage
 
     /// <summary> the currently selected restraint set (may not need this as part of the config?) </summary>
     public int SelectedRestraintSet { get; set; } = 0;
+
+    /// <summary> The DrawData for the Hardcore Blindfold Item </summary>
+    public BlindfoldModel BlindfoldInfo;
 }

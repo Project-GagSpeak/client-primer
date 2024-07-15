@@ -1,4 +1,4 @@
-using Dalamud.Plugin.Services;
+/*using Dalamud.Plugin.Services;
 using Serilog.Events;
 // taken directly off ECommens, for the sake of not including the full lib. ref code is here:
 // https://github.com/NightmareXIV/ECommons/blob/fd3ceab5345b2a42eb51f998d6dcf6b696643f45/ECommons/Logging/
@@ -58,4 +58,4 @@ public class LogType
     {
         Information(s);
     }
-}
+}*/

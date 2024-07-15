@@ -7,6 +7,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Dto.User;
 using ImGuiNET;
@@ -57,6 +58,15 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 _pfpTextureWrap = null;
             }
         });
+    }
+
+    protected override void PreDrawInternal()
+    {
+        // include our personalized theme for this window here if we have themes enabled.
+    }
+    protected override void PostDrawInternal()
+    {
+        // include our personalized theme for this window here if we have themes enabled.
     }
 
     protected override void DrawInternal()

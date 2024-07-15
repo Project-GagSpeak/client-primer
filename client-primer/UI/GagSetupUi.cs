@@ -18,12 +18,14 @@ public class GagSetupUI : WindowMediatorSubscriberBase
     private ITextureProvider _textureProvider;
     private ISharedImmediateTexture _sharedSetupImage;
 
-    public GagSetupUI(ILogger<GagSetupUI> logger, ITextureProvider textureProvider,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
+    public GagSetupUI(ILogger<GagSetupUI> logger, GagspeakMediator mediator, 
+        UiSharedService uiSharedService, ITextureProvider textureProvider,
         IDalamudPluginInterface pi) : base(logger, mediator, "Gag Setup UI")
     {
         _textureProvider = textureProvider;
         _pi = pi;
+
+        _tabMenu = new GagSetupTabMenu();
 
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints

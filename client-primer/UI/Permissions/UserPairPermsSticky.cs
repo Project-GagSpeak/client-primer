@@ -2,6 +2,7 @@ using Dalamud.Interface.Utility;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
+using GagSpeak.WebAPI;
 using ImGuiNET;
 using System.Numerics;
 
@@ -81,7 +82,6 @@ public partial class UserPairPermsSticky : DisposableMediatorSubscriberBase
         {
             ImGui.End();
         }
-        return isFocused;
     }
 
     private void DrawContent(Pair userPairToDrawPermsFor)

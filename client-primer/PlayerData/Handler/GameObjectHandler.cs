@@ -1,6 +1,6 @@
 using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI.Utils;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
 
 namespace GagSpeak.PlayerData.Handlers;
 public sealed class GameObjectHandler : DisposableMediatorSubscriberBase

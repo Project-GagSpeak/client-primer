@@ -28,9 +28,8 @@ namespace Interop.Ipc;
 public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcCaller
 {
     /* ------------- Class Attributes ------------- */
-    //private readonly ILogger<IpcCallerCustomize> _logger;
     private readonly OnFrameworkService _frameworkUtils;
-    //private readonly GagspeakMediator _mediator;
+    private bool _shownCustomizeUnavailable = false; // prevent notifcation spam
 
     /* --------- Glamourer API Event Subscribers -------- */
     // called when our client updates state of any profile in their customizePlus
@@ -47,7 +46,7 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
     private readonly ICallGateSubscriber<Guid, int> _enableProfileByUniqueId; // enabled a particular profile via its GUID
     private readonly ICallGateSubscriber<Guid, int> _disableProfileByUniqueId; // disables a particular profile via its GUID
 
-    public IpcCallerCustomize(ILogger<IpcCallerGlamourer> logger,
+    public IpcCallerCustomize(ILogger<IpcCallerCustomize> logger,
         IDalamudPluginInterface pluginInterface, IClientState clientState, 
         OnFrameworkService OnFrameworkService, GagspeakMediator mediator) : base(logger, mediator)
     {
@@ -71,7 +70,7 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
         CheckAPI();
     }
 
-    public bool APIAvailable { get; private set; }
+    public bool APIAvailable { get; private set; } = false;
 
     public void CheckAPI()
     {
@@ -86,8 +85,12 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
         }
         finally
         {
-            if (!APIAvailable)
+            _shownCustomizeUnavailable = _shownCustomizeUnavailable && !APIAvailable;
+
+            if (!APIAvailable && !_shownCustomizeUnavailable)
             {
+                _shownCustomizeUnavailable = true;
+
                 Mediator.Publish(new NotificationMessage("Glamourer inactive", "Your Glamourer "+
                     "installation is not active or out of date. If you want to interact with modules "+
                     "that use Glamourer, update Glamourer. If you just updated Glamourer, ignore "+
@@ -105,8 +108,13 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
 
     public async Task<IList<CustomizePlusProfileData>> GetProfileListAsync()
     {
+        Logger.LogInformation("Fetching profile list.");
         // return blank list if no api is available.
-        if (!APIAvailable) return new List<CustomizePlusProfileData>();
+        if (!APIAvailable)
+        {
+            Logger.LogWarning("Customize+ API is not available, returning empty list.");
+            return new List<CustomizePlusProfileData>();
+        }
         
         // otherwise, return the list of profiles.
         return await _frameworkUtils.RunOnFrameworkThread(() =>

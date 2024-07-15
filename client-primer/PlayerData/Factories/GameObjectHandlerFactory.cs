@@ -1,6 +1,6 @@
 using GagSpeak.Services.Mediator;
 using GagSpeak.PlayerData.Handlers;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
 
 namespace GagSpeak.PlayerData.Factories;
 /// <summary>

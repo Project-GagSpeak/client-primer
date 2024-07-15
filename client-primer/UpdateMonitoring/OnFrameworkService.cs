@@ -22,7 +22,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     private readonly ILogger<OnFrameworkService> _logger;
     private readonly IObjectTable _objectTable;
     private ushort _lastZone = 0;
-    private bool _sentBetweenAreas = false;
+    public bool _sentBetweenAreas = false;
     public bool IsLoggedIn { get; private set; }
     public bool IsOnFrameworkThread => _framework.IsInFrameworkUpdateThread;
     private DateTime _delayedFrameworkUpdateCheck = DateTime.Now; // for letting us know if we are in a delayed framework check
@@ -34,6 +34,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     // the world data associated with the world ID
     public Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
     public bool IsZoning => _condition[ConditionFlag.BetweenAreas] || _condition[ConditionFlag.BetweenAreas51];
+    public uint _playerClassJobId = 0;
 
     // the mediator for Gagspeak's event services
     public GagspeakMediator Mediator { get; }

@@ -26,6 +26,7 @@ public class OrdersUI : WindowMediatorSubscriberBase
         _textureProvider = textureProvider;
         _pi = pi;
 
+        _tabMenu = new OrdersTabMenu();
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints
         {

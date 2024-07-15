@@ -46,9 +46,15 @@ public class PopupHandler : WindowMediatorSubscriberBase
         _uiSharedService = uiSharedService;
     }
 
-    /// <summary>
-    /// The internal draw function for the UI of the popup display
-    /// </summary>
+    protected override void PreDrawInternal()
+    {
+        // include our personalized theme for this window here if we have themes enabled.
+    }
+    protected override void PostDrawInternal()
+    {
+        // include our personalized theme for this window here if we have themes enabled.
+    }
+
     protected override void DrawInternal()
     {
         // If there is no handler, do nothing

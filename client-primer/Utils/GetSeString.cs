@@ -2,7 +2,7 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Memory;
 
-namespace GagSpeak.Utility;
+namespace GagSpeak.Utils;
 
 /// <summary> Various approaches for creating SeString objects or obtaining them. Be it safe, or unsafe. </summary>
 public static class GS_GetSeString

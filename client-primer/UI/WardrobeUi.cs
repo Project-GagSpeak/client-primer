@@ -19,12 +19,14 @@ public class WardrobeUI : WindowMediatorSubscriberBase
     private ITextureProvider _textureProvider;
     private ISharedImmediateTexture _sharedSetupImage;
 
-    public WardrobeUI(ILogger<WardrobeUI> logger, ITextureProvider textureProvider,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
+    public WardrobeUI(ILogger<WardrobeUI> logger, GagspeakMediator mediator, 
+        UiSharedService uiSharedService, ITextureProvider textureProvider, 
         IDalamudPluginInterface pi) : base(logger, mediator, "Wardrobe UI")
     {
         _textureProvider = textureProvider;
         _pi = pi;
+
+        _tabMenu = new WardrobeTabMenu();
 
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints

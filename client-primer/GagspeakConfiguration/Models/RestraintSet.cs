@@ -27,4 +27,10 @@ public record RestraintSet
     public Dictionary<EquipSlot, EquipDrawData> DrawData { get; set; } = new();
 
     public List<AssociatedMod> AssociatedMods { get; private set; } = new();
+
+    /// <summary> 
+    /// The Hardcore Set Properties to apply when restraint set is toggled.
+    /// The string indicates the UID associated with the set properties.
+    /// </summary>
+    public Dictionary<string, HardcoreSetProperties> SetProperties { get; set; } = new();
 }

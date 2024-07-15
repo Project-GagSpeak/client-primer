@@ -24,6 +24,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private readonly IDalamudPluginInterface _pi;
     private readonly IClientState _clientState;
     private readonly OnFrameworkService _onFrameworkService;
+    private bool _shownGlamourerUnavailable = false; // safety net to prevent notification spam.
 
     /* --------- Glamourer API Event Subscribers -------- */
     public readonly EventSubscriber<nint, StateChangeType> _glamourChanged;
@@ -77,13 +78,15 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             {
                 apiAvailable = true;
             }
+            _shownGlamourerUnavailable = _shownGlamourerUnavailable && !apiAvailable;
         }
         catch { /* Do not allow legacy catch checks, consume */ }
         finally
         {
             APIAvailable = apiAvailable;
-            if (!apiAvailable)
+            if (!apiAvailable && !_shownGlamourerUnavailable)
             {
+                _shownGlamourerUnavailable = true;
                 Mediator.Publish(new NotificationMessage("Glamourer inactive", "Your Glamourer "+
                     "installation is not active or out of date. If you want to interact with modules "+
                     "that use Glamourer, update Glamourer. If you just updated Glamourer, ignore "+

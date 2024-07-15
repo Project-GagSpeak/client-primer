@@ -4,7 +4,7 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using Microsoft.Extensions.Hosting;
 using GagspeakAPI.Dto.Connection;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
 
 namespace GagSpeak.PlayerData.Factories;
 

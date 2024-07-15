@@ -1,4 +1,4 @@
-using GagSpeakConfiguration;
+using GagSpeak.GagspeakConfiguration;
 using Microsoft.Extensions.Hosting;
 using System.Reflection;
 

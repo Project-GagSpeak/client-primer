@@ -1,4 +1,4 @@
-using System;
+/*using System;
 using System.Runtime.InteropServices;
 using System.Collections.Generic;
 using System.Text;
@@ -7,7 +7,7 @@ using System.Text.RegularExpressions;
 using Dalamud.Game;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using GagSpeak.Utility;
+using GagSpeak.Utils;
 using GagSpeak.Gagsandlocks;
 using GagSpeak.CharacterData;
 using GagSpeak.ChatMessages.MessageTransfer;
@@ -235,3 +235,4 @@ public unsafe class ChatInputProcessor : IDisposable {
         Enabled = false;
     }
 }
+*/

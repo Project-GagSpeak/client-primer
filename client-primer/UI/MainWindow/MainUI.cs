@@ -48,7 +48,7 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
 
     public MainWindowUI(ILogger<MainWindowUI> logger, GagspeakMediator mediator,
         UiSharedService uiShared, ApiController apiController, GagspeakConfigService configService, 
-        PairManager pairManager, ServerConfigurationManager serverManager, 
+        PairManager pairManager, ServerConfigurationManager serverManager,
         DrawEntityFactory drawEntityFactory, UserPairPermsSticky userpermssticky, 
         UserPairListHandler userPairListHandler) : base(logger, mediator, "###GagSpeakMainUI")
     {
@@ -205,10 +205,10 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
                     using (ImRaii.PushId("whitelistComponent")) DrawWhitelistSection(ref _tabBarHeight);
                     break;
                 case MainTabMenu.SelectedTab.Discover:
-                    using (ImRaii.PushId("discoverComponent")) DrawDiscoverSection();
+                    // using (ImRaii.PushId("discoverComponent")) DrawDiscoverSection();
                     break;
                 case MainTabMenu.SelectedTab.MySettings:
-                    using (ImRaii.PushId("accountSettingsComponent")) DrawAccountSettingsSection();
+                    // using (ImRaii.PushId("accountSettingsComponent")) DrawAccountSettingsSection();
                     break;
             }
             // fetch the cursor position where the footer is

@@ -2,7 +2,8 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.PlayerData.Pairs;
 

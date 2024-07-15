@@ -23,10 +23,9 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
 
     public Pair? selectedPair = null; // the selected pair we are referncing when drawing the right half.
 
-    public PuppeteerUI(ILogger<PuppeteerUI> logger, ITextureProvider textureProvider,
-        GagspeakMediator mediator, UiSharedService uiSharedService, 
-        UserPairListHandler userPairListHandler,
-        IDalamudPluginInterface pi) : base(logger, mediator, "Puppeteer UI")
+    public PuppeteerUI(ILogger<PuppeteerUI> logger, GagspeakMediator mediator, 
+        UiSharedService uiSharedService, UserPairListHandler userPairListHandler,
+        ITextureProvider textureProvider, IDalamudPluginInterface pi) : base(logger, mediator, "Puppeteer UI")
     {
         _textureProvider = textureProvider;
         _pi = pi;

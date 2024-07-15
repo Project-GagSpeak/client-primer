@@ -2,9 +2,10 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
+using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.Mediator;
-using GagSpeakConfiguration;
-using GagSpeakConfiguration.Models;
+using GagSpeak.GagspeakConfiguration;
+using GagSpeak.GagspeakConfiguration.Models;
 using Microsoft.Extensions.Logging;
 
 namespace GagSpeak.Services;

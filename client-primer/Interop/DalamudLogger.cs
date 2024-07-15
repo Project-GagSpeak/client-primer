@@ -1,5 +1,5 @@
 using Dalamud.Plugin.Services;
-using GagSpeakConfiguration;
+using GagSpeak.GagspeakConfiguration;
 
 namespace GagSpeak.Interop;
 
@@ -47,7 +47,7 @@ internal sealed class DalamudLogger : ILogger
         // temp string builder string for exceptions if we have them
         StringBuilder exceptionStr;
         // now apply the message to the appropriate logger
-        switch(logLevel)
+        switch (logLevel)
         {
             case LogLevel.Trace:
                 _pluginLog.Verbose(noExceptionStr);

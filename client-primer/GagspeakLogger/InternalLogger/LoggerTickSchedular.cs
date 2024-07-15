@@ -1,4 +1,4 @@
-using System;
+/*using System;
 using Dalamud.Plugin.Services;
 
 namespace GagSpeak.GSLogger;
@@ -35,4 +35,4 @@ public class TickScheduler
         }
         Dispose();
     }
-}
+}*/

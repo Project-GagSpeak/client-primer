@@ -2,7 +2,7 @@ using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using GagSpeak.Services.Mediator;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -16,6 +16,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     private readonly ILogger<IpcCallerMoodles> _logger;
     private readonly OnFrameworkService _frameworkUtil;
     private readonly GagspeakMediator _gagspeakMediator;
+    private bool _shownMoodlesUnavailable = false; // safety net to prevent notification spam.
 
     public IpcCallerMoodles(ILogger<IpcCallerMoodles> logger, IDalamudPluginInterface pi,
         OnFrameworkService frameworkUtil, GagspeakMediator gagspeakMediator)
@@ -51,7 +52,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     {
         try
         {
-            APIAvailable = _moodlesApiVersion.InvokeFunc() == 1;
+            APIAvailable = _moodlesApiVersion.InvokeFunc() >= 1;
         }
         catch
         {

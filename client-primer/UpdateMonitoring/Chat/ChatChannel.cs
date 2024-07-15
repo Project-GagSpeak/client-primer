@@ -1,9 +1,6 @@
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;         // this is the agent that handles the chatlog
-using FFXIVClientStructs.FFXIV.Client.System.Framework; // this is the framework that the game uses to handle all of its UI
-using System;                                           // this is used for the enum
-using System.Collections.Generic;                       // this is used for the lists
-using System.Linq;
 using Dalamud.Game.Text;                                      // this is used for the lists
+using FFXIVClientStructs.FFXIV.Client.System.Framework; // this is the framework that the game uses to handle all of its UI
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;         // this is the agent that handles the chatlog
 
 namespace GagSpeak.ChatMessages;
 
@@ -11,13 +8,15 @@ namespace GagSpeak.ChatMessages;
 public static class ChatChannel
 {
     // this is the agent that handles the chatlog
-    private static unsafe AgentChatLog* ChatlogAgent = (AgentChatLog*)Framework.Instance()->GetUiModule()->GetAgentModule()->GetAgentByInternalId(AgentId.ChatLog);
+    private static unsafe AgentChatLog* ChatlogAgent = (AgentChatLog*)Framework.Instance()->GetUIModule()->GetAgentModule()->GetAgentByInternalId(AgentId.ChatLog);
 
     // this is the enum that handles the chat channels
     [AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    sealed class EnumOrderAttribute : Attribute {
+    sealed class EnumOrderAttribute : Attribute
+    {
         public int Order { get; }
-        public EnumOrderAttribute(int order) {
+        public EnumOrderAttribute(int order)
+        {
             Order = order;
         }
     }
@@ -102,11 +101,13 @@ public static class ChatChannel
     }
 
     /// <summary> This method is used to get the current chat channel. </summary>
-    public static ChatChannels GetChatChannel() {
+    public static ChatChannels GetChatChannel()
+    {
         // this is the channel that we are going to return
         ChatChannels channel;
         // this is unsafe code, so we need to use unsafe
-        unsafe {
+        unsafe
+        {
             channel = (ChatChannels)ChatlogAgent->CurrentChannel;
         }
         //return the channel now using
@@ -114,7 +115,8 @@ public static class ChatChannel
     }
 
     /// <summary> This method is used to get the ordered list of channels. </summary>
-    public static IEnumerable<ChatChannels> GetOrderedChannels() {
+    public static IEnumerable<ChatChannels> GetOrderedChannels()
+    {
         return Enum.GetValues(typeof(ChatChannels))
                 .Cast<ChatChannels>()
                 .Where(e => e != ChatChannels.Tell_In && e != ChatChannels.NoviceNetwork)
@@ -124,7 +126,7 @@ public static class ChatChannel
     // Match Channel types with command aliases for them
     public static string[] GetChannelAlias(this ChatChannels channel) => channel switch
     {
-        ChatChannels.Tell => new[] { "/t", "/tell"},
+        ChatChannels.Tell => new[] { "/t", "/tell" },
         ChatChannels.Say => new[] { "/s", "/say" },
         ChatChannels.Party => new[] { "/p", "/party" },
         ChatChannels.Alliance => new[] { "/a", "/alliance" },
@@ -169,26 +171,27 @@ public static class ChatChannel
     }
 
     // get the chat channel type from the XIVChatType
-    public static ChatChannels? GetChatChannelFromXivChatType(XivChatType type) {
+    public static ChatChannels? GetChatChannelFromXivChatType(XivChatType type)
+    {
         return type switch
         {
-            XivChatType.TellIncoming    => ChatChannels.Tell,
-            XivChatType.TellOutgoing    => ChatChannels.Tell,
-            XivChatType.Say             => ChatChannels.Say,
-            XivChatType.Party           => ChatChannels.Party,
-            XivChatType.Alliance        => ChatChannels.Alliance,
-            XivChatType.Yell            => ChatChannels.Yell,
-            XivChatType.Shout           => ChatChannels.Shout,
-            XivChatType.FreeCompany     => ChatChannels.FreeCompany,
-            XivChatType.NoviceNetwork   => ChatChannels.NoviceNetwork,
-            XivChatType.Ls1             => ChatChannels.LS1,
-            XivChatType.Ls2             => ChatChannels.LS2,
-            XivChatType.Ls3             => ChatChannels.LS3,
-            XivChatType.Ls4             => ChatChannels.LS4,
-            XivChatType.Ls5             => ChatChannels.LS5,
-            XivChatType.Ls6             => ChatChannels.LS6,
-            XivChatType.Ls7             => ChatChannels.LS7,
-            XivChatType.Ls8             => ChatChannels.LS8,
+            XivChatType.TellIncoming => ChatChannels.Tell,
+            XivChatType.TellOutgoing => ChatChannels.Tell,
+            XivChatType.Say => ChatChannels.Say,
+            XivChatType.Party => ChatChannels.Party,
+            XivChatType.Alliance => ChatChannels.Alliance,
+            XivChatType.Yell => ChatChannels.Yell,
+            XivChatType.Shout => ChatChannels.Shout,
+            XivChatType.FreeCompany => ChatChannels.FreeCompany,
+            XivChatType.NoviceNetwork => ChatChannels.NoviceNetwork,
+            XivChatType.Ls1 => ChatChannels.LS1,
+            XivChatType.Ls2 => ChatChannels.LS2,
+            XivChatType.Ls3 => ChatChannels.LS3,
+            XivChatType.Ls4 => ChatChannels.LS4,
+            XivChatType.Ls5 => ChatChannels.LS5,
+            XivChatType.Ls6 => ChatChannels.LS6,
+            XivChatType.Ls7 => ChatChannels.LS7,
+            XivChatType.Ls8 => ChatChannels.LS8,
             XivChatType.CrossLinkShell1 => ChatChannels.CWL1,
             XivChatType.CrossLinkShell2 => ChatChannels.CWL2,
             XivChatType.CrossLinkShell3 => ChatChannels.CWL3,
@@ -202,7 +205,8 @@ public static class ChatChannel
     }
 
     /// <summary> This method is used to get the order of the enum, which is then given to getOrderedChannels. </summary>
-    private static int GetOrder(ChatChannels channel) {
+    private static int GetOrder(ChatChannels channel)
+    {
         // get the attribute of the channel
         var attribute = channel.GetType()
             .GetField(channel.ToString())

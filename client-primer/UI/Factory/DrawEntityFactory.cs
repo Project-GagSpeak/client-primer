@@ -5,7 +5,7 @@ using GagSpeak.UI.Handlers;
 using System.Collections.Immutable;
 using System.Numerics;
 using GagSpeak.UI.Permissions;
-using UI.Components.UserPairList;
+using GagSpeak.UI.Components.UserPairList;
 using GagSpeak.UI.Components.UserPairList;
 using GagSpeak.WebAPI;
 

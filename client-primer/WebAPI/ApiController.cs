@@ -13,7 +13,7 @@ using GagSpeak.Services.Mediator;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Reflection;
-using UpdateMonitoring;
+using GagSpeak.UpdateMonitoring;
 
 namespace GagSpeak.WebAPI;
 

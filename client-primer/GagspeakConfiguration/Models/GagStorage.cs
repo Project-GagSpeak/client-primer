@@ -1,3 +1,4 @@
+using GagspeakAPI.Data.Enum;
 using System.Diagnostics;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
@@ -6,5 +7,5 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 [Serializable]
 public class GagStorage
 {
-    public Dictionary<GagList.GagType, EquipDrawData> _gagEquipData = new();
+    public Dictionary<GagList.GagType, GagDrawData> GagEquipData = new();
 }

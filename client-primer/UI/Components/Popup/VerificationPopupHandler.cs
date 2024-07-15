@@ -1,13 +1,11 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
-using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services.Mediator;
-using GagSpeak;
-using System.Numerics;
 using Dalamud.Interface.Utility;
-using OtterGui;
+using Dalamud.Interface.Utility.Raii;
+using GagSpeak.Services.Mediator;
+using GagSpeak.WebAPI;
+using ImGuiNET;
+using System.Numerics;
 
 namespace GagSpeak.UI.Components.Popup;
 

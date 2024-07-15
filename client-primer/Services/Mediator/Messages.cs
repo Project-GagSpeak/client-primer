@@ -4,6 +4,7 @@ using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Events;
+using GagSpeak.UI;
 using GagSpeak.UI.Permissions;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
@@ -74,11 +75,54 @@ public record MufflerLanguageChanged : MessageBase; // called whenever the clien
 public record GagTypeChanged(GagData NewGagType, GagLayer Layer) : MessageBase; // called whenever the client changes their gag type.
 public record ActiveGagTypesUpdated : MessageBase; // unsure if i'll ever need this.
 public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase; // for penumbra tooltip application to restraint set
-public record RestraintSetToggledMessage(bool newSetStateActive, int RestraintSetIndex, string AssignerName) : MessageBase; // whenever the restraint set is toggled.
 public record RestraintSetAddedMessage(RestraintSet RestraintSetToAdd) : MessageBase; // A newly added restraint set
 public record RestraintSetModified(int RestraintSetIndex) : MessageBase; // fired when a restraint set is modified.
 public record RestraintSetReplacedMessage(RestraintSet RestraintSetToReplace, int RestraintSetIndex) : MessageBase; // Set being replaced
 public record RestraintSetRemovedMessage(int RestraintSetIndex) : MessageBase; // Set being removed
+
+/* ----------------- PLAYERDATA WARDROBE HANDLER RECORDS ----------------- */
+public record RestraintSetToggledMessage(UpdatedNewState State, int RestraintSetIndex, string AssignerUID) : MessageBase; // whenever the restraint set is toggled.
+public record RestraintSetPropertyChanged(string UidPropertiesChangedFor) : MessageBase; // fired when property is changed for a particular user.
+public record HardcoreRestraintSetDisabledMessage : MessageBase; // when a restraint set is removed.
+public record HardcoreRestraintSetEnabledMessage : MessageBase; // when a restraint set is added.
+public record BeginForcedToFollowMessage(Pair Pair) : MessageBase; // pair issuing the startup of the forced to follow command
+public record EndForcedToFollowMessage(Pair Pair) : MessageBase; 
+public record BeginForcedToSitMessage(Pair Pair) : MessageBase; // pair issuing the startup of the forced to sit command
+public record EndForcedToSitMessage(Pair Pair) : MessageBase;
+public record BeginForcedToStayMessage(Pair Pair) : MessageBase; // pair issuing the startup of the forced to stay command
+public record EndForcedToStayMessage(Pair Pair) : MessageBase;
+public record BeginForcedBlindfoldMessage(Pair Pair) : MessageBase; // when a pair forces another to follow
+public record EndForcedBlindfoldMessage(Pair Pair) : MessageBase;
+
+/* ------------------ PLAYERDATA TOYBOX HANDLER RECORDS ------------------ */
+public record ToyboxActiveDeviceChangedMessage(int DeviceIndex) : MessageBase; // for when the active device is changed.
+public record UpdateVibratorIntensity(int newIntensity) : MessageBase; // for when the vibrator intensity is changed.
+
+/* ------------------ PLAYERDATA CLIENTSIDE PERMISSION HANDLING ------------------- */
+public record ClientGlobalPermissionChanged(string Permission, object Value) : MessageBase; // for when a client global permission is changed.
+public record ClientOwnPairPermissionChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed.
+public record ClientOwnPairPermissionAccessChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed.
+public record ClientOtherPairPermissionChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed
+public record ClientOtherPairPermissionAccessChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed
+
+/* ------------------ IPC HANDLER RECORDS------------------ */
+public record MoodlesMessage(IntPtr Address) : MessageBase; // indicated a moodles message was published.
+public record PenumbraInitializedMessage : MessageBase;
+public record PenumbraDisposedMessage : MessageBase;
+public record GlamourerChangedMessage(IntPtr Address, StateChangeType ChangeType) : MessageBase;
+public record UpdateGlamourMessage(GlamourUpdateType GenericUpdateType) : MessageBase; // for full refreshes on states.
+public record UpdateGlamourGagsMessage(UpdatedNewState NewState, GagLayer Layer, GagList.GagType GagType, string AssignerName) : MessageBase; // Gag updates.
+public record UpdateGlamourRestraintsMessage(UpdatedNewState NewState) : MessageBase; // Restraint set updates.
+public record UpdateGlamourBlindfoldMessage(UpdatedNewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
+public record DisableGlamourChangeEvents : MessageBase; // when we start processing a glamour changed event.
+public record GlamourChangeEventFinished : MessageBase; // when we finish processing a glamour changed event.
+public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
+
+public record PlayerCharIpcChanged(CharacterIPCData IPCData) : MessageBase; // for when the player character IPC data changes
+public record PlayerCharAppearanceChanged(CharacterAppearanceData AppearanceData) : MessageBase; // called whenever a gag is changed on the player character
+public record PlayerCharWardrobeChanged(CharacterWardrobeData WardrobeData) : MessageBase;  // called whenever client's wardrobe is changed.
+public record PlayerCharAliasChanged(CharacterAliasData AliasData, string playerUID) : MessageBase;  // called whenever the player changes their alias list for another player
+public record PlayerCharPatternChanged(CharacterPatternInfo PatternData) : MessageBase; // called whenever the player changes their pattern list for their vibrators
 
 /* ------------------ USER INTERFACE (UI) RECORDS------------------ */
 public record RefreshUiMessage : MessageBase; // a message indicating the need to refresh the UI.
@@ -93,44 +137,7 @@ public record ProfileOpenStandaloneMessage(Pair Pair) : MessageBase; // for open
 public record ProfilePopoutToggle(Pair? Pair) : MessageBase; // toggles the profile popout window for a paired client.
 public record ClearProfileDataMessage(UserData? UserData = null) : MessageBase; // a message indicating the need to clear profile data.
 public record VerificationPopupMessage(VerificationDto VerificationCode) : MessageBase; // indicating that we have received a verification code popup.
+public record BlindfoldUiTypeChange(BlindfoldType NewType) : MessageBase; // for changing blindfold type.
 
-/* ------------------ IPC HANDLER RECORDS------------------ */
-public record MoodlesMessage(IntPtr Address) : MessageBase; // indicated a moodles message was published.
-public record PenumbraInitializedMessage : MessageBase;
-public record PenumbraDisposedMessage : MessageBase;
-public record GlamourerChangedMessage(IntPtr Address, StateChangeType ChangeType) : MessageBase;
-public record UpdateGlamourerMessage(GlamourUpdateType GenericUpdateType) : MessageBase; // for full refreshes on states.
-public record UpdateGlamourGagsMessage(UpdatedNewState NewState, GagList.GagType GagType, string GagAssigner) : MessageBase; // Gag updates.
-public record UpdateGlamourRestraintsMessage(UpdatedNewState NewState) : MessageBase; // Restraint set updates.
-public record UpdateGlamourBlindfoldMessage(UpdatedNewState NewState) : MessageBase; // Blindfold updates.
-public record UpdateGlamourMessage : MessageBase; // change this into composed message as we update.
-public record DisableGlamourChangeEvents : MessageBase; // when we start processing a glamour changed event.
-public record GlamourChangeEventFinished : MessageBase; // when we finish processing a glamour changed event.
-public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
-
-public record PlayerCharIpcChanged(CharacterIPCData IPCData) : MessageBase; // for when the player character IPC data changes
-public record PlayerCharAppearanceChanged(CharacterAppearanceData AppearanceData) : MessageBase; // called whenever a gag is changed on the player character
-public record PlayerCharWardrobeChanged(CharacterWardrobeData WardrobeData) : MessageBase;  // called whenever client's wardrobe is changed.
-public record PlayerCharAliasChanged(CharacterAliasData AliasData, string playerUID) : MessageBase;  // called whenever the player changes their alias list for another player
-public record PlayerCharPatternChanged(CharacterPatternInfo PatternData) : MessageBase; // called whenever the player changes their pattern list for their vibrators
-
-/* --------------- MIGRATED EVENT RECORDS --------------- */
-
-
-
-
-/* Were included before, leaving in incase i need them later, but otherwise if functional without, remove.
-public record PenumbraModSettingChangedMessage : MessageBase;
-public record PenumbraRedrawMessage(IntPtr Address, int ObjTblIdx, bool WasRequested) : SameThreadMessage;
-public record ClassJobChangedMessage(GameObjectHandler GameObjectHandler) : MessageBase;
-public record CutsceneStartMessage : MessageBase;
-public record GposeStartMessage : MessageBase;
-public record GposeEndMessage : MessageBase;
-public record CutsceneFrameworkUpdateMessage : SameThreadMessage;
-public record PlayerChangedMessage(CharacterData Data) : MessageBase;
-public record CreateCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase;
-public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase;
-public record CombatOrPerformanceStartMessage : MessageBase;
-public record CombatOrPerformanceEndMessage : MessageBase;*/
 #pragma warning restore S2094
 #pragma warning restore MA0048 // File name must match type name

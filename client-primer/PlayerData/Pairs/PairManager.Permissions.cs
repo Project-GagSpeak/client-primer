@@ -15,6 +15,8 @@ using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Del
 
 namespace GagSpeak.PlayerData.Pairs;
 
+// Personal note, this could easily become part of Pair Handler.
+
 /// <summary>
 /// General note to self, pairs used to have "own permissions" and "other permissions" but they were removed.
 /// <para> If down the line something like this is an answer to a problem of mine, then find a way to utilize it.</para>

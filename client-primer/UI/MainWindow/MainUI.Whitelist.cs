@@ -55,19 +55,26 @@ public partial class MainWindowUI
         // if we are connected to the server
         if (_apiController.ServerState is ServerState.Connected)
         {
-            // draw the heading label with its left and right buttons.
-            ImGui.Text("Header Placeholder");
-            // show the search filter just above the contacts list to form a nice separation.
-            using (ImRaii.PushId("search-filter")) _userPairListHandler.DrawSearchFilter(_windowContentWidth, ImGui.GetStyle().ItemSpacing.X);
-            // then display our pairing list
-            using (ImRaii.PushId("pair-list")) _userPairListHandler.DrawPairs(ref lowerPartHeight, _windowContentWidth);
-            // fetch the cursor position where the footer is
-            pairlistEnd = ImGui.GetCursorPosY();
-
-            // Draw sticky permissions window the client pair if we should.
-            if (_PairToDrawPermissionsFor != null)
+            try
             {
-                _userPairPermissionsSticky.DrawSticky();
+                // show the search filter just above the contacts list to form a nice separation.
+                _userPairListHandler.DrawSearchFilter(_windowContentWidth, ImGui.GetStyle().ItemSpacing.X);
+                ImGui.Separator();
+                // then display our pairing list
+                _userPairListHandler.DrawPairs(ref lowerPartHeight, _windowContentWidth);
+                ImGui.Separator();
+                // fetch the cursor position where the footer is
+                pairlistEnd = ImGui.GetCursorPosY();
+
+                // Draw sticky permissions window the client pair if we should.
+                if (_PairToDrawPermissionsFor != null)
+                {
+                    _userPairPermissionsSticky.DrawSticky();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error drawing whitelist section");
             }
         }
 
@@ -123,64 +130,6 @@ public partial class MainWindowUI
     }
 
     /// <summary>
-    /// Draws the list of pairs belonging to the client user.
-    /// </summary>
-    private void DrawPairs()
-    {
-        // span the height of the pair list to be the height of the window minus the transfer section, which we are removing later anyways.
-        var ySize = _transferPartHeight == 0
-            ? 1
-            : ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y
-                + ImGui.GetTextLineHeight() - ImGui.GetStyle().WindowPadding.Y - ImGui.GetStyle().WindowBorderSize - _transferPartHeight - ImGui.GetCursorPosY();
-
-        // begin the list child, with no border and of the height calculated above
-        ImGui.BeginChild("list", new Vector2(_windowContentWidth, ySize), border: false);
-
-        // for each item in the draw folders,
-        // _logger.LogTrace("Drawing {count} folders", _drawFolders.Count);
-        foreach (var item in _drawFolders)
-        {
-            // draw the content
-            item.Draw();
-        }
-
-        // then end the list child
-        ImGui.EndChild();
-    }
-
-    /// <summary>
-    /// Not really sure how or when this is ever fired, but we will see in due time i suppose.
-    /// </summary>
-    private void DrawAddCharacter()
-    {
-        ImGuiHelpers.ScaledDummy(10f);
-        var keys = _serverManager.CurrentServer!.SecretKeys;
-        if (keys.Any())
-        {
-            if (_secretKeyIdx == -1) _secretKeyIdx = keys.First().Key;
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, "Add current character with secret key"))
-            {
-                _serverManager.CurrentServer!.Authentications.Add(new GagspeakConfiguration.Models.Authentication()
-                {
-                    CharacterName = _uiSharedService.PlayerName,
-                    WorldId = _uiSharedService.WorldId,
-                    SecretKeyIdx = _secretKeyIdx
-                });
-
-                _serverManager.Save();
-
-                _ = _apiController.CreateConnections();
-            }
-
-            _uiSharedService.DrawCombo("Secret Key##addCharacterSecretKey", keys, (f) => f.Value.FriendlyName, (f) => _secretKeyIdx = f.Key);
-        }
-        else
-        {
-            UiSharedService.ColorTextWrapped("No secret keys are configured for the current server.", ImGuiColors.DalamudYellow);
-        }
-    }
-
-    /// <summary>
     /// Funky ass logic to determine if we should open sticky permission window for the selected pair. 
     /// Also determines if we show pairs permissions, or our permissions for the pair.
     /// </summary>
@@ -193,9 +142,11 @@ public partial class MainWindowUI
             _logger.LogTrace("No specific Pair provided, finding first Pair with ShouldOpen true");
             indexToKeep = _userPairListHandler.AllPairDrawsDistinct.FindIndex(pair => pair.Pair.ShouldOpenPermWindow);
         }
-
-        _logger.LogTrace("Specific Pair provided: {0}", specificPair.UserData.AliasOrUID);
-        indexToKeep = _userPairListHandler.AllPairDrawsDistinct.FindIndex(pair => pair.Pair == specificPair);
+        else
+        {
+            _logger.LogTrace("Specific Pair provided: {0}", specificPair.UserData.AliasOrUID);
+            indexToKeep = _userPairListHandler.AllPairDrawsDistinct.FindIndex(pair => pair.Pair == specificPair);
+        }
         // Toggle the ShouldOpen status if the Pair is found
         if (indexToKeep != -1)
         {

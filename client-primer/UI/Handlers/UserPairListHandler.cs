@@ -53,7 +53,8 @@ public class UserPairListHandler
         var ySize = lowerTabBarHeight == 0
             ? 1
             : ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y
-                + ImGui.GetTextLineHeight() - ImGui.GetStyle().WindowPadding.Y - ImGui.GetStyle().WindowBorderSize - _transferPartHeight - ImGui.GetCursorPosY();
+                + ImGui.GetTextLineHeight() - ImGui.GetStyle().WindowPadding.Y - ImGui.GetStyle().WindowBorderSize - lowerTabBarHeight - ImGui.GetCursorPosY();
+        
 
         // begin the list child, with no border and of the height calculated above
         ImGui.BeginChild("list", new Vector2(windowContentWidth, ySize), border: false);

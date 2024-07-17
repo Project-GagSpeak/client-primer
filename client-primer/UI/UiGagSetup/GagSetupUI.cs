@@ -23,22 +23,17 @@ public class GagSetupUI : WindowMediatorSubscriberBase
     private readonly IDalamudPluginInterface _pi;
     private readonly UiSharedService _uiSharedService;
     private readonly GagSetupTabMenu _tabMenu;
-    private readonly PlayerCharacterManager _playerManager; // for grabbing lock data
+    private readonly ActiveGags _activeGags;
     private readonly PadlockHandler _lockHandler;
+    private readonly PlayerCharacterManager _playerManager; // for grabbing lock data
     private ITextureProvider _textureProvider;
     private ISharedImmediateTexture _sharedSetupImage;
     // gag images
-    private ISharedImmediateTexture _gagImageOne;
-    private ISharedImmediateTexture _gagImageTwo;
-    private ISharedImmediateTexture _gagImageThree;
-    private ISharedImmediateTexture _lockImageOne;
-    private ISharedImmediateTexture _lockImageTwo;
-    private ISharedImmediateTexture _lockImageThree;
 
     public GagSetupUI(ILogger<GagSetupUI> logger, GagspeakMediator mediator,
-        UiSharedService uiSharedService, PadlockHandler padlockHandler,
-        PlayerCharacterManager playerManager, ITextureProvider textureProvider,
-        IDalamudPluginInterface pi) : base(logger, mediator, "Gag Setup UI")
+        UiSharedService uiSharedService, ActiveGags activeGags, 
+        PadlockHandler padlockHandler, PlayerCharacterManager playerManager, 
+        ITextureProvider textureProvider, IDalamudPluginInterface pi) : base(logger, mediator, "Gag Setup UI")
     {
         _textureProvider = textureProvider;
         _uiSharedService = uiSharedService;

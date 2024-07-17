@@ -135,6 +135,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
         .AddSingleton<GagSpeakHost>()
         // UI general services
+        .AddSingleton((s) => new ActiveGags(s.GetRequiredService<ILogger<ActiveGags>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
+            s.GetRequiredService<PadlockHandler>(), s.GetRequiredService<PlayerCharacterManager>(), tp, pi))
         .AddSingleton<IdDisplayHandler>()
         .AddSingleton<SelectPairForTagUi>()
         .AddSingleton<TagHandler>()
@@ -213,8 +216,8 @@ public static class GagSpeakServiceExtensions
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
         .AddScoped<WindowMediatorSubscriberBase, LovenseRemoteUI>() // might be factory driven later.
         .AddScoped<WindowMediatorSubscriberBase, GagSetupUI>((s) => new GagSetupUI(s.GetRequiredService<ILogger<GagSetupUI>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<PadlockHandler>(), 
-            s.GetRequiredService<PlayerCharacterManager>(), tp, pi))
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ActiveGags>(),
+            s.GetRequiredService<PadlockHandler>(), s.GetRequiredService<PlayerCharacterManager>(), tp, pi))
         .AddScoped<WindowMediatorSubscriberBase, WardrobeUI>((s) => new WardrobeUI(s.GetRequiredService<ILogger<WardrobeUI>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), tp, pi))
         .AddScoped<WindowMediatorSubscriberBase, PuppeteerUI>((s) => new PuppeteerUI(s.GetRequiredService<ILogger<PuppeteerUI>>(),

@@ -6,7 +6,7 @@ obj/
 bin/
 
 # Not needed got git publishes, or contains excess file size bloat.
-OutputZip/      # Excess File Size
+OutputZip/      # Why is this even being included???
 .PhotoshopWork/
 
 # Shell scripts containing personal information and passwords

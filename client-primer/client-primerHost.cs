@@ -7,8 +7,10 @@ using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
+using GagSpeak.MufflerCore.Handler;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Factories;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services;
@@ -22,6 +24,7 @@ using GagSpeak.UI.Handlers;
 using GagSpeak.UI.MainWindow;
 using GagSpeak.UI.Permissions;
 using GagSpeak.UI.Profile;
+using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using Interop.Ipc;
@@ -115,9 +118,21 @@ public static class GagSpeakServiceExtensions
         // Events Services
         .AddSingleton((s) => new EventAggregator(pi.ConfigDirectory.FullName,
             s.GetRequiredService<ILogger<EventAggregator>>(), s.GetRequiredService<GagspeakMediator>()))
+        // MufflerCore
+        .AddSingleton((s) => new GagDataHandler(s.GetRequiredService<ILogger<GagDataHandler>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(), pi))
+        .AddSingleton((s) => new Ipa_EN_FR_JP_SP_Handler(s.GetRequiredService<ILogger<Ipa_EN_FR_JP_SP_Handler>>(),
+            s.GetRequiredService<ClientConfigurationManager>(), pi))
+        // PlayerData Services
+        .AddSingleton<GagManager>()
+        .AddSingleton<PadlockHandler>()
+        .AddSingleton<PlayerCharacterManager>()
+        .AddSingleton<GameObjectHandlerFactory>()
+        .AddSingleton<PairFactory>()
+        .AddSingleton<PairHandlerFactory>()
+        .AddSingleton<PairManager>()
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
-        // ((Additional Below is specifically for the implemented client-server related test classes))
         .AddSingleton<GagSpeakHost>()
         // UI general services
         .AddSingleton<IdDisplayHandler>()
@@ -129,12 +144,6 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ApiController>()
         .AddSingleton<HubFactory>()
         .AddSingleton<TokenProvider>()
-        // PlayerData Services
-        .AddSingleton<PlayerCharacterManager>()
-        .AddSingleton<GameObjectHandlerFactory>()
-        .AddSingleton<PairFactory>()
-        .AddSingleton<PairHandlerFactory>()
-        .AddSingleton<PairManager>()
         // Service Services
         .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()
@@ -204,7 +213,8 @@ public static class GagSpeakServiceExtensions
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
         .AddScoped<WindowMediatorSubscriberBase, LovenseRemoteUI>() // might be factory driven later.
         .AddScoped<WindowMediatorSubscriberBase, GagSetupUI>((s) => new GagSetupUI(s.GetRequiredService<ILogger<GagSetupUI>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), tp, pi))
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<PadlockHandler>(), 
+            s.GetRequiredService<PlayerCharacterManager>(), tp, pi))
         .AddScoped<WindowMediatorSubscriberBase, WardrobeUI>((s) => new WardrobeUI(s.GetRequiredService<ILogger<WardrobeUI>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), tp, pi))
         .AddScoped<WindowMediatorSubscriberBase, PuppeteerUI>((s) => new PuppeteerUI(s.GetRequiredService<ILogger<PuppeteerUI>>(),

@@ -25,6 +25,7 @@ using GagSpeak.WebAPI;
 using GagSpeak.UpdateMonitoring;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Plugin.Services;
+using static GagspeakAPI.Data.Enum.GagList;
 
 namespace GagSpeak.UI;
 
@@ -416,87 +417,11 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             width <= 0 ? null : width,
             disabled);
     }
-    /*
-     * Potentially a way to display selectables as the userdrawpairs. 
-        private bool IconTextSelectable(string id, Pair pair, ref bool isSelected)
-        {
-            ImGui.PushID(id);
-            bool result = false;
-
-            // Determine icon and text based on pair status
-            FontAwesomeIcon icon = GetIconForPair(pair);
-            Vector4 iconColor = GetIconColorForPair(pair);
-            string text = GetPlayerText(pair).text;
-
-            // Calculate sizes
-            Vector2 iconSize;
-            using (IconFont.Push())
-                iconSize = ImGui.CalcTextSize(icon.ToIconString());
-            Vector2 textSize = ImGui.CalcTextSize(text);
-            float spacing = 3f * ImGuiHelpers.GlobalScale;
-            float totalWidth = iconSize.X + textSize.X + ImGui.GetStyle().FramePadding.X * 2f + spacing;
-            float frameHeight = ImGui.GetFrameHeight();
-
-            // Draw selectable
-            result = ImGui.Selectable("##Selectable", isSelected, ImGuiSelectableFlags.None, new Vector2(totalWidth, frameHeight));
-
-            // Update isSelected based on the result
-            isSelected = result ? !isSelected : isSelected;
-
-            // Draw icon and text
-            ImDrawListPtr windowDrawList = ImGui.GetWindowDrawList();
-            Vector2 cursorScreenPos = ImGui.GetCursorScreenPos();
-            using (var _ = ImRaii.PushColor(ImGuiCol.Text, iconColor))
-            {
-                using (IconFont.Push())
-                    windowDrawList.AddText(cursorScreenPos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
-            }
-            windowDrawList.AddText(new Vector2(cursorScreenPos.X + iconSize.X + spacing, cursorScreenPos.Y), ImGui.GetColorU32(ImGuiCol.Text), text);
-
-            ImGui.PopID();
-            return result;
-        }
-
-        private FontAwesomeIcon GetIconForPair(Pair pair)
-        {
-            // Logic to determine which icon to use based on the pair's status
-            if (!_pair.IsOnline)
-            {
-                return FontAwesomeIcon.UserSlash;
-            }
-            else if (_pair.IsVisible)
-            {
-                return FontAwesomeIcon.Eye;
-            }
-            else
-            {
-                return _pair.IndividualPairStatus == GagspeakAPI.Data.Enum.IndividualPairStatus.Bidirectional ? FontAwesomeIcon.User : FontAwesomeIcon.Users;
-            }
-        }
-
-        private Vector4 GetIconColorForPair(Pair pair)
-        {
-            // Logic to determine icon color based on the pair's status
-            if (!_pair.IsOnline)
-            {
-                return ImGuiColors.DalamudRed;
-            }
-            else if (_pair.IsVisible)
-            {
-                return ImGuiColors.ParsedGreen;
-            }
-            else
-            {
-                return ImGuiColors.HealerGreen;
-            }
-        }*/
 
     public IDalamudTextureWrap LoadImage(byte[] imageData)
     {
         return _textureProvider.CreateFromImageAsync(imageData).Result;
     }
-
-
 
     /// <summary> Cleans sender string from the chatlog before processing, so it stays a valid player sender string. </summary>
     /// <param name="senderName"> The original uncleaned sender name string </param>
@@ -532,10 +457,46 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
 
+    /// <summary> Validates a password </summary>
+    public bool ValidatePassword(string password)
+    {
+        Logger.LogDebug($"Validating Password {password}");
+        return !string.IsNullOrWhiteSpace(password) && password.Length <= 20 && !password.Contains(" ");
+    }
+
+    /// <summary> Validates a 4 digit combination </summary>
+    public bool ValidateCombination(string combination)
+    {
+        Logger.LogDebug($"Validating Combination {combination}");
+        return int.TryParse(combination, out _) && combination.Length == 4;
+    }
+
     /// <summary> Helper function to convert a timespan object into a string with format XdXhXmXs. </summary>
     public string TimeSpanToString(TimeSpan timeSpan)
     {
         return $"{timeSpan.Days}d{timeSpan.Hours}h{timeSpan.Minutes}m{timeSpan.Seconds}s";
+    }
+
+    public static DateTimeOffset GetEndTime(string input)
+    {
+        // Match days, hours, minutes, and seconds in the input string
+        var match = Regex.Match(input, @"^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$");
+
+        if (match.Success)
+        {
+            // Parse days, hours, minutes, and seconds 
+            int.TryParse(match.Groups[1].Value, out int days);
+            int.TryParse(match.Groups[2].Value, out int hours);
+            int.TryParse(match.Groups[3].Value, out int minutes);
+            int.TryParse(match.Groups[4].Value, out int seconds);
+            // Create a TimeSpan from the parsed values
+            TimeSpan duration = new TimeSpan(days, hours, minutes, seconds);
+            // Add the duration to the current DateTime to get a DateTimeOffset
+            return DateTimeOffset.Now.Add(duration);
+        }
+
+        // If the input string is not in the correct format, throw an exception
+        throw new FormatException($"Invalid duration format: {input}");
     }
 
     /// <summary>
@@ -724,7 +685,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
     }
 
-    public T? DrawCombo<T>(string comboName, IEnumerable<T> comboItems, Func<T, string> toName,
+    public T? DrawCombo<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName,
         Action<T?>? onSelected = null, T? initialSelectedItem = default)
     {
         if (!comboItems.Any()) return default;
@@ -745,6 +706,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             }
         }
 
+        ImGui.SetNextItemWidth(width);
         if (ImGui.BeginCombo(comboName, toName((T)selectedItem!)))
         {
             foreach (var item in comboItems)
@@ -759,9 +721,79 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
             ImGui.EndCombo();
         }
+        // Check if the item was right-clicked. If so, reset to default value.
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        {
+            selectedItem = comboItems.First();
+            _selectedComboItems[comboName] = selectedItem!;
+            onSelected?.Invoke((T)selectedItem!);
+        }
 
         return (T)_selectedComboItems[comboName];
     }
+
+    public T? DrawComboSearchable<T>(string comboName, float width, ref string searchString, IEnumerable<T> comboItems, 
+        Func<T, string> toName, bool showLabel = true, Action<T?>? onSelected = null, T? initialSelectedItem = default)
+    {
+        // Return default if there are no items to display in the combo box.
+        if (!comboItems.Any()) return default;
+
+        // try to get currently selected item from a dictionary storing selections for each combo box.
+        if (!_selectedComboItems.TryGetValue(comboName, out var selectedItem) && selectedItem == null)
+        {
+            if (!EqualityComparer<T>.Default.Equals(initialSelectedItem, default))
+            {
+                selectedItem = initialSelectedItem;
+                _selectedComboItems[comboName] = selectedItem!;
+
+/*                if (!EqualityComparer<T>.Default.Equals(initialSelectedItem, default))
+                    onSelected?.Invoke(initialSelectedItem);*/
+            }
+            else
+            {
+                selectedItem = comboItems.First();
+                _selectedComboItems[comboName] = selectedItem!;
+            }
+        }
+
+        ImGui.SetNextItemWidth(width);
+        string comboLabel = showLabel ? $"{comboName}##{comboName}" : $"##{comboName}";
+        if (ImGui.BeginCombo(comboLabel, toName((T)selectedItem!)))
+        {
+            // Search filter
+            ImGui.SetNextItemWidth(width);
+            ImGui.InputTextWithHint("##filter", "Filter...", ref searchString, 255);
+            var searchText = searchString.ToLowerInvariant();
+
+            var filteredItems = string.IsNullOrEmpty(searchText)
+                ? comboItems
+                : comboItems.Where(item => toName(item).ToLowerInvariant().Contains(searchText));
+
+            // display filtered content.
+            foreach (var item in filteredItems)
+            {
+                bool isSelected = EqualityComparer<T>.Default.Equals(item, (T?)selectedItem);
+                if (ImGui.Selectable(toName(item), isSelected))
+                {
+                    _selectedComboItems[comboName] = item!;
+                    onSelected?.Invoke(item!);
+                }
+            }
+
+            ImGui.EndCombo();
+        }
+        // Check if the item was right-clicked. If so, reset to default value.
+        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        {
+            Logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboName);
+            selectedItem = comboItems.First();
+            _selectedComboItems[comboName] = selectedItem!;
+            onSelected?.Invoke((T)selectedItem!);
+        }
+
+        return (T)_selectedComboItems[comboName];
+    }
+
 
     public void DrawHelpText(string helpText)
     {

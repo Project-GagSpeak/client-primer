@@ -36,7 +36,7 @@ public class GagspeakConfig : IGagspeakConfiguration
     public BlindfoldType BlindfoldStyle { get; set; }                   // the blindfold style the user is using
     public RevertStyle RevertStyle { get; set; }                        // how the user wants to revert their settings (can store locally?)
     public bool UsingSimulatedVibrator { get; set; }                    // if the user is using a simulated vibrator
-    public string LanguageDialect { get; set; }                         // the language dialect the user is using for MufflerCore
+    public string LanguageDialect { get; set; } = "IPA_US";             // the language dialect the user is using for MufflerCore
     public bool UsingLegacyControls { get; set; } = GameConfig.UiControl.GetBool("MoveMode"); // grabs our movement mode for the game.
     public int Version { get; set; } = 1;                               // the version of the config file
     public string IntifaceConnectionSocket { get; set; } = "ws://localhost:12345"; // connection link from plugin to intiface

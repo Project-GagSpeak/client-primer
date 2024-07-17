@@ -20,7 +20,6 @@ public class GagManager : DisposableMediatorSubscriberBase
         _gagDataHandler = gagDataHandler;
         _IPAParser = IPAParser;
         // Call initial update for our gags.
-        UpdateActiveGags();
 
         // Subscribe to the GagTypeChanged event through the mediator
         Mediator.Subscribe<GagTypeChanged>(this, (msg) => OnGagTypeChanged(msg));
@@ -45,17 +44,18 @@ public class GagManager : DisposableMediatorSubscriberBase
     /// </summary>
     private void OnGagTypeChanged(GagTypeChanged message)
     {
+        Logger.LogTrace("GagTypeChanged event received.");
         // Update the corresponding slot in CharacterAppearanceData based on the GagLayer
         switch (message.Layer)
         {
             case GagLayer.UnderLayer:
-                _characterManager.AppearanceData.SlotOneGagType = message.NewGagType.Name;
+                _characterManager.AppearanceData.SlotOneGagType = message.NewGagType.GetGagAlias();
                 break;
             case GagLayer.MiddleLayer:
-                _characterManager.AppearanceData.SlotTwoGagType = message.NewGagType.Name;
+                _characterManager.AppearanceData.SlotTwoGagType = message.NewGagType.GetGagAlias();
                 break;
             case GagLayer.TopLayer:
-                _characterManager.AppearanceData.SlotThreeGagType = message.NewGagType.Name;
+                _characterManager.AppearanceData.SlotThreeGagType = message.NewGagType.GetGagAlias();
                 break;
         }
 

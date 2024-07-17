@@ -46,7 +46,7 @@ public partial class MainWindowUI
     /// <summary>
     /// Main Draw function for the Whitelist/Contacts tab of the main UI
     /// </summary>
-    private float DrawWhitelistSection(ref float lowerPartHeight)
+    private float DrawWhitelistSection()
     {
         // get the width of the window content region we set earlier
         _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
@@ -61,7 +61,7 @@ public partial class MainWindowUI
                 _userPairListHandler.DrawSearchFilter(_windowContentWidth, ImGui.GetStyle().ItemSpacing.X);
                 ImGui.Separator();
                 // then display our pairing list
-                _userPairListHandler.DrawPairs(ref lowerPartHeight, _windowContentWidth);
+                _userPairListHandler.DrawPairs(_windowContentWidth);
                 ImGui.Separator();
                 // fetch the cursor position where the footer is
                 pairlistEnd = ImGui.GetCursorPosY();

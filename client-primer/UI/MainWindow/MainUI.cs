@@ -195,6 +195,9 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
         // if we are connected to the server
         if (_apiController.ServerState is ServerState.Connected)
         {
+            // draw the bottom tab bar
+            using (ImRaii.PushId("MainMenuTabBar")) _tabMenu.Draw();
+
             // display content based on the tab selected
             switch (_tabMenu.TabSelection)
             {
@@ -202,7 +205,7 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
                     using (ImRaii.PushId("homepageComponent")) DrawHomepageSection();
                     break;
                 case MainTabMenu.SelectedTab.Whitelist:
-                    using (ImRaii.PushId("whitelistComponent")) DrawWhitelistSection(ref _tabBarHeight);
+                    using (ImRaii.PushId("whitelistComponent")) DrawWhitelistSection();
                     break;
                 case MainTabMenu.SelectedTab.Discover:
                     // using (ImRaii.PushId("discoverComponent")) DrawDiscoverSection();
@@ -211,13 +214,6 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
                     // using (ImRaii.PushId("accountSettingsComponent")) DrawAccountSettingsSection();
                     break;
             }
-            // fetch the cursor position where the footer is
-            var pairlistEnd = ImGui.GetCursorPosY();
-            // draw the bottom tab bar
-            using (ImRaii.PushId("MainMenuTabBar")) _tabMenu.Draw();
-
-            // push transfer height so we know how to set the ysize of the menuComponent limit based on the scale of the main menu.
-            _tabBarHeight = ImGui.GetCursorPosY() - pairlistEnd - ImGui.GetTextLineHeight();
         }
 
         var pos = ImGui.GetWindowPos();

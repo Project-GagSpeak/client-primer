@@ -94,7 +94,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared.BigText("Debug Configuration");
 
         // display the combo box for setting the log level we wish to have for our plugin
-        _uiShared.DrawCombo("Log Level", Enum.GetValues<LogLevel>(), (level) => level.ToString(), (level) =>
+        _uiShared.DrawCombo("Log Level", 400, Enum.GetValues<LogLevel>(), (level) => level.ToString(), (level) =>
         {
             _configService.Current.LogLevel = level;
             _configService.Save();

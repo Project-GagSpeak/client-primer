@@ -5,6 +5,7 @@ using OtterGui;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using System.Numerics;
+using static GagspeakAPI.Data.Enum.GagList;
 
 namespace GagSpeak.Utils;
 
@@ -51,4 +52,68 @@ public static class UtilsExtensions
         CenteredLineWidths[id] = ImGui.GetCursorPosX() - oldCur;
         ImGui.Dummy(Vector2.Zero);
     }
+
+    public static GagType GetGagFromAlias(this string alias) => alias switch
+    {
+        "Ball Gag" => GagType.BallGag,
+        "Ball Gag Mask" => GagType.BallGagMask,
+        "Bamboo Gag" => GagType.BambooGag,
+        "Belt Strap Gag" => GagType.BeltStrapGag,
+        "Bit Gag" => GagType.BitGag,
+        "Bit Gag Padded" => GagType.BitGagPadded,
+        "Bone Gag" => GagType.BoneGag,
+        "Bone Gag (XL)" => GagType.BoneGagXL,
+        "Candle Gag" => GagType.CandleGag,
+        "Cage Muzzle" => GagType.CageMuzzle,
+        "Cleave Gag" => GagType.CleaveGag,
+        "Chloroform Gag" => GagType.ChloroformGag,
+        "Chopstick Gag" => GagType.ChopStickGag,
+        "Cloth Wrap Gag" => GagType.ClothWrapGag,
+        "Cloth Stuffing Gag" => GagType.ClothStuffingGag,
+        "Crop Gag" => GagType.CropGag,
+        "Cup Holder Gag" => GagType.CupHolderGag,
+        "Deepthroat Penis Gag" => GagType.DeepthroatPenisGag,
+        "Dental Gag" => GagType.DentalGag,
+        "Dildo Gag" => GagType.DildoGag,
+        "Duct Tape Gag" => GagType.DuctTapeGag,
+        "Duster Gag" => GagType.DusterGag,
+        "Funnel Gag" => GagType.FunnelGag,
+        "Futuristic Harness Ball Gag" => GagType.FuturisticHarnessBallGag,
+        "Futuristic Harness Panel Gag" => GagType.FuturisticHarnessPanelGag,
+        "Gas Mask" => GagType.GasMask,
+        "Harness Ball Gag" => GagType.HarnessBallGag,
+        "Harness Ball Gag XL" => GagType.HarnessBallGagXL,
+        "Harness Panel Gag" => GagType.HarnessPanelGag,
+        "Hook Gag Mask" => GagType.HookGagMask,
+        "Inflatable Hood" => GagType.InflatableHood,
+        "Large Dildo Gag" => GagType.LargeDildoGag,
+        "Latex Hood" => GagType.LatexHood,
+        "Latex Ball Muzzle Gag" => GagType.LatexBallMuzzleGag,
+        "Latex Posture Collar Gag" => GagType.LatexPostureCollarGag,
+        "Leather Corset Collar Gag" => GagType.LeatherCorsetCollarGag,
+        "Leather Hood" => GagType.LeatherHood,
+        "Lip Gag" => GagType.LipGag,
+        "Medical Mask" => GagType.MedicalMask,
+        "Muzzle Gag" => GagType.MuzzleGag,
+        "Panty Stuffing Gag" => GagType.PantyStuffingGag,
+        "Plastic Wrap Gag" => GagType.PlasticWrapGag,
+        "Plug Gag" => GagType.PlugGag,
+        "Pony Gag" => GagType.PonyGag,
+        "Pump Gag Lv.1" => GagType.PumpGaglv1,
+        "Pump Gag Lv.2" => GagType.PumpGaglv2,
+        "Pump Gag Lv.3" => GagType.PumpGaglv3,
+        "Pump Gag Lv.4" => GagType.PumpGaglv4,
+        "Ribbon Gag" => GagType.RibbonGag,
+        "Ring Gag" => GagType.RingGag,
+        "Rope Gag" => GagType.RopeGag,
+        "Scarf Gag" => GagType.ScarfGag,
+        "Sensory Deprivation Hood" => GagType.SensoryDeprivationHood,
+        "Sock Stuffing Gag" => GagType.SockStuffingGag,
+        "Spider Gag" => GagType.SpiderGag,
+        "Tentacle Gag" => GagType.TenticleGag,
+        "Web Gag" => GagType.WebGag,
+        "Wiffle Gag" => GagType.WiffleGag,
+        "None" => GagType.None,
+        _ => GagType.None
+    };
 }

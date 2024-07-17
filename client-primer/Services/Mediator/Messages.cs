@@ -72,8 +72,9 @@ public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : 
 public record MufflerLanguageChanged : MessageBase; // called whenever the client language changes to a new language.
 
 /* ------------- PLAYER DATA MODULE INTERACTIONS --------- */
-public record GagTypeChanged(GagData NewGagType, GagLayer Layer) : MessageBase; // called whenever the client changes their gag type.
+public record GagTypeChanged(GagList.GagType NewGagType, GagLayer Layer) : MessageBase; // called whenever the client changes their gag type.
 public record ActiveGagTypesUpdated : MessageBase; // unsure if i'll ever need this.
+public record GagLockToggle(PadlockData PadlockInfo, bool Unlocking) : MessageBase; // called whenever the client changes their padlock.
 public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase; // for penumbra tooltip application to restraint set
 public record RestraintSetAddedMessage(RestraintSet RestraintSetToAdd) : MessageBase; // A newly added restraint set
 public record RestraintSetModified(int RestraintSetIndex) : MessageBase; // fired when a restraint set is modified.
@@ -86,7 +87,7 @@ public record RestraintSetPropertyChanged(string UidPropertiesChangedFor) : Mess
 public record HardcoreRestraintSetDisabledMessage : MessageBase; // when a restraint set is removed.
 public record HardcoreRestraintSetEnabledMessage : MessageBase; // when a restraint set is added.
 public record BeginForcedToFollowMessage(Pair Pair) : MessageBase; // pair issuing the startup of the forced to follow command
-public record EndForcedToFollowMessage(Pair Pair) : MessageBase; 
+public record EndForcedToFollowMessage(Pair Pair) : MessageBase;
 public record BeginForcedToSitMessage(Pair Pair) : MessageBase; // pair issuing the startup of the forced to sit command
 public record EndForcedToSitMessage(Pair Pair) : MessageBase;
 public record BeginForcedToStayMessage(Pair Pair) : MessageBase; // pair issuing the startup of the forced to stay command

@@ -47,17 +47,15 @@ public class UserPairListHandler
     /// Draws the list of pairs belonging to the client user.
     /// Groups the pairs by their tags (folders)
     /// </summary>
-    public void DrawPairs(ref float lowerTabBarHeight, float windowContentWidth)
+    public void DrawPairs(float windowContentWidth)
     {
         // span the height of the pair list to be the height of the window minus the transfer section, which we are removing later anyways.
-        var ySize = lowerTabBarHeight == 0
-            ? 1
-            : ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y
-                + ImGui.GetTextLineHeight() - ImGui.GetStyle().WindowPadding.Y - ImGui.GetStyle().WindowBorderSize - lowerTabBarHeight - ImGui.GetCursorPosY();
+        var ySize = ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y
+                + ImGui.GetTextLineHeight() - ImGui.GetStyle().WindowPadding.Y - ImGui.GetStyle().WindowBorderSize - ImGui.GetCursorPosY();
         
 
         // begin the list child, with no border and of the height calculated above
-        ImGui.BeginChild("list", new Vector2(windowContentWidth, ySize), border: false);
+        ImGui.BeginChild("list", new Vector2(windowContentWidth, ySize), border: false, ImGuiWindowFlags.NoScrollbar);
 
         // for each item in the draw folders,
         // _logger.LogTrace("Drawing {count} folders", _drawFolders.Count);

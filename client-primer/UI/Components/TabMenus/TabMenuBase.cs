@@ -9,9 +9,9 @@ public abstract class TabMenuBase
     protected abstract Type TabSelectionType { get; }
 
     /// <summary>
-    /// The currently selected tab
+    /// The currently selected tab (Does so by storing the enum equivalent value of the selected item.
     /// </summary>
-    public Enum SelectedTab { get; set; } = null;
+    public Enum SelectedTab { get; set; } = null!;
 
     /// <summary>
     /// Draws out selectable list to determine what draws on the right half of the UI

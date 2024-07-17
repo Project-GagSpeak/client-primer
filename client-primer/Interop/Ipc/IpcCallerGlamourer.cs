@@ -87,10 +87,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             if (!apiAvailable && !_shownGlamourerUnavailable)
             {
                 _shownGlamourerUnavailable = true;
-                Mediator.Publish(new NotificationMessage("Glamourer inactive", "Your Glamourer "+
-                    "installation is not active or out of date. If you want to interact with modules "+
-                    "that use Glamourer, update Glamourer. If you just updated Glamourer, ignore "+
-                    "this message.", NotificationType.Warning));
+                Mediator.Publish(new NotificationMessage("Glamourer inactive", "Features Using Glamourer will not function.", NotificationType.Warning));
             }
         }
     }

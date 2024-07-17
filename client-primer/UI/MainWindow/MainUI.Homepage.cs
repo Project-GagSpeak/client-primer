@@ -1,28 +1,8 @@
 using Dalamud.Interface;
-using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
-using Dalamud.Utility;
-using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.WebAPI.Utils;
-using GagSpeak.UI.Components;
-using GagSpeak.UI.Handlers;
+using GagSpeak.UI.UiGagSetup;
 using ImGuiNET;
-using System.Collections.Immutable;
-using System.Globalization;
 using System.Numerics;
-using System.Reflection;
-using OtterGuiInternal.Structs;
-using GagSpeak.UI.Permissions;
-using GagspeakAPI.Data.Enum;
-using GagSpeak.GagspeakConfiguration;
-using GagSpeak;
-using GagSpeak.UI;
-using GagSpeak.WebAPI;
-using static FFXIVClientStructs.FFXIV.Client.LayoutEngine.LayoutManager;
-using GagSpeak.UI.Profile;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -45,10 +25,8 @@ public partial class MainWindowUI
         var spacing = ImGui.GetStyle().ItemSpacing;
 
         // span the height of the pair list to be the height of the window minus the transfer section, which we are removing later anyways.
-        var ySize = _tabBarHeight == 0
-            ? 1
-            : ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y
-                + ImGui.GetTextLineHeight() - ImGui.GetStyle().WindowPadding.Y - ImGui.GetStyle().WindowBorderSize - _tabBarHeight - ImGui.GetCursorPosY();
+        var ySize = ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y
+            + ImGui.GetTextLineHeight() - ImGui.GetStyle().WindowPadding.Y - ImGui.GetStyle().WindowBorderSize - ImGui.GetCursorPosY();
 
         // begin the list child, with no border and of the height calculated above
         ImGui.BeginChild("homepageModuleListings", new Vector2(_windowContentWidth, ySize), border: false);
@@ -81,7 +59,7 @@ public partial class MainWindowUI
             Mediator.Publish(new UiToggleMessage(typeof(LovenseRemoteUI)));
         }
         UiSharedService.AttachToolTip("Use your personal Lovense Remote to send vibrations to yourself or other pairs ");
-        
+
         // Opens the Orders Module UI
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.ClipboardList, "Orders Interface", buttonX))
         {

@@ -68,58 +68,6 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         color.Dispose();
     }
 
-    private void DrawCommonClientMenu()
-    {
-        if (!_pair.IsPaired)
-        {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.User, "Open Profile", _menuWidth, true))
-            {
-                _displayHandler.OpenProfile(_pair);
-                ImGui.CloseCurrentPopup();
-            }
-            UiSharedService.AttachToolTip("Opens the profile for this user in a new window");
-        }
-        if (_pair.IsVisible)
-        {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Sync, "Reload last data", _menuWidth, true))
-            {
-                _pair.ApplyLastReceivedIpcData(forced: true);
-                ImGui.CloseCurrentPopup();
-            }
-            UiSharedService.AttachToolTip("This reapplies the last received character data to this character");
-        }
-
-        ImGui.Separator();
-    }
-
-    private void DrawIndividualMenu()
-    {
-        ImGui.TextUnformatted("Individual Pair Functions");
-        var entryUID = _pair.UserData.AliasOrUID;
-
-        if (_pair.IndividualPairStatus != GagspeakAPI.Data.Enum.IndividualPairStatus.None)
-        {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Folder, "Pair Groups", _menuWidth, true))
-            {
-                _selectTagForPairUi.Open(_pair);
-            }
-            UiSharedService.AttachToolTip("Choose pair groups for " + entryUID);
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", _menuWidth, true) && UiSharedService.CtrlPressed())
-            {
-                _ = _apiController.UserRemovePair(new(_pair.UserData));
-            }
-            UiSharedService.AttachToolTip("Hold CTRL and click to unpair permanently from " + entryUID);
-        }
-        else
-        {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, "Pair individually", _menuWidth, true))
-            {
-                _ = _apiController.UserAddPair(new(_pair.UserData));
-            }
-            UiSharedService.AttachToolTip("Pair individually with " + entryUID);
-        }
-    }
-
     private void DrawLeftSide()
     {
         var userPairText = string.Empty;
@@ -171,15 +119,8 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         _displayHandler.DrawPairText(_id, _pair, leftSide, () => rightSide - leftSide);
     }
 
-    private void DrawPairedClientMenu()
-    {
-        DrawIndividualMenu();
-    }
-
     private float DrawRightSide()
     {
-        var pauseIcon = _pair.UserPair!.OwnPairPerms.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
-        var pauseIconSize = _uiSharedService.GetIconButtonSize(pauseIcon);
         var permissionsButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Cog);
         var barButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV);
         var spacingX = ImGui.GetStyle().ItemSpacing.X / 2;
@@ -215,18 +156,6 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
             ? "Change your permission access for " + _pair.UserData.AliasOrUID
             : "Close your permissions access window");
 
-        currentRightSide -= pauseIconSize.X + spacingX;
-        ImGui.SameLine(currentRightSide);
-        if (_uiSharedService.IconButton(pauseIcon))
-        {
-            var perm = _pair.UserPair!.OwnPairPerms;
-            _ = _apiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_pair.UserData,
-                new KeyValuePair<string, object>("IsPaused", !perm.IsPaused)));
-        }
-        UiSharedService.AttachToolTip(!_pair.UserPair!.OwnPairPerms.IsPaused
-            ? "Pause pairing with " + _pair.UserData.AliasOrUID
-            : "Resume pairing with " + _pair.UserData.AliasOrUID);
-
 
         if (ImGui.BeginPopup("User Flyout Menu"))
         {
@@ -246,5 +175,183 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         }
 
         return currentRightSide - spacingX;
+    }
+
+    private void DrawPairedClientMenu()
+    {
+        if (ImGui.BeginMenu("Gag Interactions"))
+        {
+            DrawGagInteractionsMenu("Undermost Layer");
+            DrawGagInteractionsMenu("Middle Layer");
+            DrawGagInteractionsMenu("Outermost Layer");
+            ImGui.EndMenu();
+        }
+        ImGui.Separator();
+
+        if (ImGui.BeginMenu("Wardrobe Interactions"))
+        {
+            if (ImGui.BeginMenu("Enable Restraint Set"))
+            {
+                // Code to display list of pair's restraint sets
+                ImGui.EndMenu();
+            }
+            if (ImGui.MenuItem("Lock Active Set"))
+            {
+                // locks the restraint set, if given permission
+            }
+            if (ImGui.MenuItem("Unlock Active Set"))
+            {
+                // unlocks the restraint set, if given permission
+            }
+            if (ImGui.MenuItem("Disable Restraint Set"))
+            {
+                // removes the restraint set, if given permission
+            }
+            ImGui.EndMenu();
+        }
+        ImGui.Separator();
+
+        if (ImGui.BeginMenu("Puppeteer Interactions"))
+        {
+            if (ImGui.MenuItem("TriggerPhrase"))
+            {
+                // display trigger phrase
+            }
+            if (ImGui.MenuItem("Start Character"))
+            {
+                // show start char
+            }
+            if (ImGui.MenuItem("End Character"))
+            {
+                // show end char
+            }
+            if (ImGui.BeginMenu("Alias List"))
+            {
+                // display the list of alias's, with tooltips of what they do
+            }
+            ImGui.EndMenu();
+        }
+        ImGui.Separator();
+
+        if (ImGui.BeginMenu("Toybox Interactions"))
+        {
+            if (ImGui.MenuItem("Vibrator Remote"))
+            {
+                // open vibrator remote preset to request control to this pair.
+            }
+            if (ImGui.BeginMenu("Patterns"))
+            {
+                // display list of patterns
+                // for each pattern:
+                if(ImGui.MenuItem("Execute"))
+                {
+                    // execute the pattern
+                }
+            }
+            if (ImGui.MenuItem("Stop Pattern"))
+            {
+
+            }
+            if (ImGui.MenuItem("Lock Toybox"))
+            {
+                // lock the toybox
+            }
+            if (ImGui.MenuItem("Unlock Toybox"))
+            {
+                // unlock the toybox
+            }
+            ImGui.EndMenu();
+        }
+
+
+        DrawIndividualMenu();
+    }
+
+    private void DrawGagInteractionsMenu(string layerID)
+    {
+        if (ImGui.BeginMenu(layerID))
+        {
+            if (ImGui.MenuItem("Apply Gag"))
+            {
+                // Code to display list of gags
+            }
+            if (ImGui.BeginMenu("Lock Gag"))
+            {
+                // Code to list lock types
+                ImGui.EndMenu();
+            }
+            if (ImGui.BeginMenu("Unlock Gag"))
+            {
+                // Code to list lock types and possibly show a password insertion field
+                ImGui.EndMenu();
+            }
+            if (ImGui.MenuItem("Remove Gag"))
+            {
+                // Action to remove gag on this layer
+            }
+            ImGui.EndMenu();
+        }
+    }
+
+
+    private void DrawCommonClientMenu()
+    {
+        if (!_pair.IsPaused)
+        {
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.User, "Open Profile", _menuWidth, true))
+            {
+                _displayHandler.OpenProfile(_pair);
+                ImGui.CloseCurrentPopup();
+            }
+            UiSharedService.AttachToolTip("Opens the profile for this user in a new window");
+        }
+        if (_pair.IsPaired)
+        {
+            var pauseIcon = _pair.UserPair!.OwnPairPerms.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
+            var pauseIconSize = _uiSharedService.GetIconButtonSize(pauseIcon);
+            var pauseText = _pair.UserPair!.OwnPairPerms.IsPaused ? $"Unpause {_pair.UserData.AliasOrUID}" : $"Pause {_pair.UserData.AliasOrUID}";
+            if (_uiSharedService.IconTextButton(pauseIcon, pauseText, _menuWidth, true))
+            {
+                var perm = _pair.UserPair!.OwnPairPerms;
+                _ = _apiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_pair.UserData,
+                    new KeyValuePair<string, object>("IsPaused", !perm.IsPaused)));
+            }
+            UiSharedService.AttachToolTip(!_pair.UserPair!.OwnPairPerms.IsPaused
+                ? "Pause pairing with " + _pair.UserData.AliasOrUID
+                : "Resume pairing with " + _pair.UserData.AliasOrUID);
+        }
+        if (_pair.IsVisible)
+        {
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Sync, "Reload last data", _menuWidth, true))
+            {
+                _pair.ApplyLastReceivedIpcData(forced: true);
+                ImGui.CloseCurrentPopup();
+            }
+            UiSharedService.AttachToolTip("This reapplies the last received character data to this character");
+        }
+
+        ImGui.Separator();
+    }
+
+    private void DrawIndividualMenu()
+    {
+        var entryUID = _pair.UserData.AliasOrUID;
+
+        if (_pair.IndividualPairStatus != GagspeakAPI.Data.Enum.IndividualPairStatus.None)
+        {
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", _menuWidth, true) && UiSharedService.CtrlPressed())
+            {
+                _ = _apiController.UserRemovePair(new(_pair.UserData));
+            }
+            UiSharedService.AttachToolTip("Hold CTRL and click to unpair permanently from " + entryUID);
+        }
+        else
+        {
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, "Pair individually", _menuWidth, true))
+            {
+                _ = _apiController.UserAddPair(new(_pair.UserData));
+            }
+            UiSharedService.AttachToolTip("Pair individually with " + entryUID);
+        }
     }
 }

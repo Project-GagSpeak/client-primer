@@ -1,4 +1,5 @@
 using GagSpeak.GagspeakConfiguration;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services;
@@ -126,8 +127,11 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             // before we do lets recreate the runtime service scope
             _runtimeServiceScope?.Dispose();
             _runtimeServiceScope = _serviceScopeFactory.CreateScope();
+            // startup services that have no other services that call on them, yet are essential.
             _runtimeServiceScope.ServiceProvider.GetRequiredService<UiService>();
             // _runtimeServiceScope.ServiceProvider.GetRequiredService<CommandManagerService>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<GagManager>();
+
             _clientConfigurationManager.GagspeakConfig.ButtonUsed = false;
 
             // if the client does not have a valid setup or config, switch to the intro ui

@@ -4,6 +4,7 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data.Character;
+using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
@@ -79,14 +80,64 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             _playerCharPatternData = msg.PatternData;
         });
 
-        // call upon the initialization for profiles
-
-        Task.Run(async () =>
+        Mediator.Subscribe<ActiveGagTypesUpdated>(this, (msg) =>
         {
-            // wait 15 seconds then call getprofilelistasync
-            Logger.LogInformation("Waiting...");
-            await Task.Delay(5000);
-            ClientCustomizeProfileList = await _ipcManager.CustomizePlus.GetProfileListAsync();
+            Logger.LogTrace("ACTIVEGAGTYPES UPDATED RECIEVED, SENDING INFO OUT TO PLAYERS");
+        });
+
+        Mediator.Subscribe<GagLockToggle>(this, (msg) =>
+        {
+            // see what state it is going to first.
+            if (msg.Unlocking == true)
+            {
+                // we need to handle the unlock logic. (we already verified it could be unlocked on the server)
+                if (msg.PadlockInfo.Layer == GagLayer.UnderLayer)
+                {
+                    _playerCharAppearanceData.SlotOneGagAssigner = string.Empty;
+                    _playerCharAppearanceData.SlotOneGagTimer = DateTimeOffset.MinValue;
+                    _playerCharAppearanceData.SlotOneGagPassword = string.Empty;
+                    _playerCharAppearanceData.SlotOneGagPadlock = "None";
+                }
+                else if (msg.PadlockInfo.Layer == GagLayer.MiddleLayer)
+                {
+                    _playerCharAppearanceData.SlotTwoGagAssigner = string.Empty;
+                    _playerCharAppearanceData.SlotTwoGagTimer = DateTimeOffset.MinValue;
+                    _playerCharAppearanceData.SlotTwoGagPassword = string.Empty;
+                    _playerCharAppearanceData.SlotTwoGagPadlock = "None";
+                }
+                else if (msg.PadlockInfo.Layer == GagLayer.TopLayer)
+                {
+                    _playerCharAppearanceData.SlotThreeGagAssigner = string.Empty;
+                    _playerCharAppearanceData.SlotThreeGagTimer = DateTimeOffset.MinValue;
+                    _playerCharAppearanceData.SlotThreeGagPassword = string.Empty;
+                    _playerCharAppearanceData.SlotThreeGagPadlock = "None";
+                }
+            }
+            else
+            {
+                if (msg.PadlockInfo.Layer == GagLayer.UnderLayer)
+                {
+                    _playerCharAppearanceData.SlotOneGagAssigner = msg.PadlockInfo.Assigner;
+                    _playerCharAppearanceData.SlotOneGagTimer = msg.PadlockInfo.Timer;
+                    _playerCharAppearanceData.SlotOneGagPassword = msg.PadlockInfo.Password;
+                    _playerCharAppearanceData.SlotOneGagPadlock = msg.PadlockInfo.PadlockType.ToString();
+                }
+                else if (msg.PadlockInfo.Layer == GagLayer.MiddleLayer)
+                {
+                    _playerCharAppearanceData.SlotTwoGagAssigner = msg.PadlockInfo.Assigner;
+                    _playerCharAppearanceData.SlotTwoGagTimer = msg.PadlockInfo.Timer;
+                    _playerCharAppearanceData.SlotTwoGagPassword = msg.PadlockInfo.Password;
+                    _playerCharAppearanceData.SlotTwoGagPadlock = msg.PadlockInfo.PadlockType.ToString();
+                }
+                else if (msg.PadlockInfo.Layer == GagLayer.TopLayer)
+                {
+                    _playerCharAppearanceData.SlotThreeGagAssigner = msg.PadlockInfo.Assigner;
+                    _playerCharAppearanceData.SlotThreeGagTimer = msg.PadlockInfo.Timer;
+                    _playerCharAppearanceData.SlotThreeGagPassword = msg.PadlockInfo.Password;
+                    _playerCharAppearanceData.SlotThreeGagPadlock = msg.PadlockInfo.PadlockType.ToString();
+                }
+            }
+            // create an appearance change push.
         });
     }
 

@@ -28,7 +28,7 @@
             <Visible>false</Visible>
         </Content>
         <!--Include files nessisary for GagSpeak's Muffler Core-->
-        <Content Include=".\GarblerCore\**\*.json">
+        <Content Include=".\MufflerCore\**\*.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
             <Visible>false</Visible>
         </Content>
@@ -151,6 +151,14 @@
         <EmbeddedResource Include="Localization\de.json" />
         <EmbeddedResource Include="Localization\fr.json" />
     </ItemGroup>
+    <ItemGroup>
+      <Folder Include="UI\Components\Dropdowns\" />
+      <Folder Include="UI\UiOrders\" />
+      <Folder Include="UI\UiToybox\" />
+      <Folder Include="UI\UiWardrobe\" />
+    </ItemGroup>
 </Project>
+
+
 
 

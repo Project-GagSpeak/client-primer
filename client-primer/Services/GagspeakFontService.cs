@@ -6,7 +6,7 @@ using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Plugin;
 using ImGuiNET;
 
-namespace Custom.Services;
+namespace GagSpeak.Services;
 /// <summary> Manages any extra font for the UI. The only font currently is meant to be one that can display UTF8 for phonems. </summary>
 public class CustomFontService : IDisposable
 {
@@ -31,7 +31,6 @@ public class CustomFontService : IDisposable
                 e => e.OnPreBuild(
                     tk => tk.AddFontFromFile(gagspeakFontFile, new SafeFontConfig { SizePx = 22, GlyphRanges = glyphRanges })
                 ));
-
         }
     }
 

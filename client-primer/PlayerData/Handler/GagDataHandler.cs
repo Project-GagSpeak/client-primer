@@ -11,7 +11,7 @@ public class GagDataHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly IDalamudPluginInterface _pi;
-    private Dictionary<string, GagData> _gagData;
+    private Dictionary<string, Dictionary<string, PhonemeProperties>> _gagData;
     public List<GagData> _gagTypes;
 
     public GagDataHandler(ILogger<GagDataHandler> logger, GagspeakMediator mediator,
@@ -25,19 +25,19 @@ public class GagDataHandler : DisposableMediatorSubscriberBase
         // Try to read the JSON file and de-serialize it into the obj dictionary
         try
         {
-            string jsonFilePath = Path.Combine(_pi.AssemblyLocation.Directory?.FullName!, "GarblerCore\\collectedGagData\\gag_data.json");
+            string jsonFilePath = Path.Combine(_pi.AssemblyLocation.Directory?.FullName!, "MufflerCore\\GagData\\gag_data.json");
             string json = File.ReadAllText(jsonFilePath);
-            _gagData = JsonConvert.DeserializeObject<Dictionary<string, GagData>>(json) ?? new Dictionary<string, GagData>();
+            _gagData = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, PhonemeProperties>>>(json) ?? new Dictionary<string, Dictionary<string, PhonemeProperties>>();
         }
         catch (FileNotFoundException)
         {
             Logger.LogDebug($"[IPA Parser] File does not exist");
-            _gagData = new Dictionary<string, GagData>();
+            _gagData = new Dictionary<string, Dictionary<string, PhonemeProperties>>();
         }
         catch (Exception ex)
         {
             Logger.LogDebug($"[IPA Parser] An error occurred while reading the file: {ex.Message}");
-            _gagData = new Dictionary<string, GagData>();
+            _gagData = new Dictionary<string, Dictionary<string, PhonemeProperties>>();
         }
 
         // create our gag listings
@@ -81,7 +81,7 @@ public class GagDataHandler : DisposableMediatorSubscriberBase
         foreach (var gagEntry in _gagData)
         {
             var gagName = gagEntry.Key;
-            var phonemes = gagEntry.Value.Phonemes;
+            var phonemes = gagEntry.Value;
 
             var gag = new GagData(gagName, phonemes);
             _gagTypes.Add(gag);

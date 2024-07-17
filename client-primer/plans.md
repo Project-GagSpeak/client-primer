@@ -92,9 +92,6 @@ Settings Viewable in profile window: (maybe add functionality so some settings o
 	- Disable active Restraint Set
 	- Unlock & Disable active Restraint Set
 	<Puppeteer Interactions>
-	- Trigger Phrase (READONLY)
-	- Trigger Start Char (READONLY)
-	- Trigger End Char (READONLY)
 	- Alias List >>
 		- (List of user pair's Aliases they set for you) >>
 			- Copy alias to clipboard

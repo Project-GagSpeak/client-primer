@@ -7,7 +7,6 @@ bin/
 
 # Not needed got git publishes, or contains excess file size bloat.
 OutputZip/
-
 .PhotoshopWork/
 
 # Shell scripts containing personal information and passwords

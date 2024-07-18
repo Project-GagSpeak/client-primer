@@ -1,19 +1,44 @@
 namespace GagSpeak.UI.Components;
 
-public enum GagsetupTabSelection
-{
-    None, // should never be here except on startup.
-    ActiveGags, // for displaying the status of our 3 gag layers.
-    Lockpicker, // feature-creep addon for minigames to lockpick gags.
-    GagStorage, // for configuring the Glamour for our gags.
-    Cosmetics, // lets you add custom overlay effects to gag images (supporter only)
-}
-
 /// <summary> Tab Menu for the GagSetup UI </summary>
 public class GagSetupTabMenu : TabMenuBase
 {
+
     /// <summary> Defines the type of tab selection to use. </summary>
-    protected override Type TabSelectionType => typeof(GagsetupTabSelection);
+    protected override Type TabSelectionType => typeof(GagSetupTabs.Tabs);
 
     public GagSetupTabMenu() { }
+
+    protected override string GetTabDisplayName(Enum tab)
+    {
+        if (tab is GagSetupTabs.Tabs gagTab)
+        {
+            return GagSetupTabs.GetTabName(gagTab);
+        }
+
+        return "Unknown"; // Fallback for tabs that don't match the expected type.
+    }
+}
+
+public static class GagSetupTabs
+{
+    public enum Tabs
+    {
+        ActiveGags,
+        LockPicker,
+        GagStorage,
+        Cosmetics,
+    }
+
+    public static string GetTabName(Tabs tab)
+    {
+        return tab switch
+        {
+            Tabs.ActiveGags => "Active Gags",
+            Tabs.LockPicker => "Lock Picker",
+            Tabs.GagStorage => "Gag Storage",
+            Tabs.Cosmetics  => "Gag Cosmetics",
+            _ => "None",
+        };
+    }
 }

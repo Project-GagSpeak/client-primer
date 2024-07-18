@@ -54,13 +54,14 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
         DrawEntityFactory drawEntityFactory, UserPairPermsSticky userpermssticky, 
         UserPairListHandler userPairListHandler, IDalamudPluginInterface pi) : base(logger, mediator, "###GagSpeakMainUI")
     {
-        _uiSharedService = uiShared;
         _apiController = apiController;
         _configService = configService;
         _pairManager = pairManager;
         _serverManager = serverManager;
         _userPairPermissionsSticky = userpermssticky;
         _userPairListHandler = userPairListHandler;
+        _pi = pi;
+        _uiSharedService = uiShared;
 
 
         // the bottomTabMenu

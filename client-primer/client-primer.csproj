@@ -147,8 +147,6 @@
     <ItemGroup>
       <Folder Include="UI\Components\Dropdowns\" />
       <Folder Include="UI\UiOrders\" />
-      <Folder Include="UI\UiToybox\" />
-      <Folder Include="UI\UiWardrobe\" />
     </ItemGroup>
 </Project>
 

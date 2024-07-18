@@ -14,6 +14,11 @@ public abstract class TabMenuBase
     public Enum SelectedTab { get; set; } = null!;
 
     /// <summary>
+    /// Abstract method to get the display name of the tab
+    /// </summary>
+    protected abstract string GetTabDisplayName(Enum tab);
+
+    /// <summary>
     /// Draws out selectable list to determine what draws on the right half of the UI
     /// </summary>
     public void DrawSelectableTabMenu()
@@ -21,13 +26,14 @@ public abstract class TabMenuBase
         foreach (var window in Enum.GetValues(TabSelectionType))
         {
             if (window.ToString() == "None") continue;
+            
+            var displayName = GetTabDisplayName((Enum)window);
 
-            if (ImGui.Selectable($"{window}", window.Equals(SelectedTab)))
+            if (ImGui.Selectable($"{displayName}", window.Equals(SelectedTab)))
             {
                 SelectedTab = (Enum)window;
             }
         }
-
         ImGui.Spacing();
     }
 }

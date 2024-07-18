@@ -7,7 +7,7 @@ public class LovenseRemoteUI : WindowMediatorSubscriberBase
 {
     private readonly UiSharedService _uiSharedService;
 
-    public LovenseRemoteUI(ILogger<WardrobeUI> logger, GagspeakMediator mediator,
+    public LovenseRemoteUI(ILogger<ToyboxUI> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService) : base(logger, mediator, "Lovense Remote UI")
     {
         // define initial size of window and to not respect the close hotkey.

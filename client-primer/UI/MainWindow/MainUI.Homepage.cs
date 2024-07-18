@@ -78,7 +78,7 @@ public partial class MainWindowUI
         // Opens the Wardrobe Module UI
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.ToiletPortable, "Wardrobe Interface", buttonX))
         {
-            Mediator.Publish(new UiToggleMessage(typeof(WardrobeUI)));
+            Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
         }
         UiSharedService.AttachToolTip("View and analyze your generated character data");
 
@@ -92,7 +92,7 @@ public partial class MainWindowUI
         // Opens the Toybox Module UI
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.BoxOpen, "Toybox Interface", buttonX))
         {
-            Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
+            Mediator.Publish(new UiToggleMessage(typeof(ManageAlarms)));
         }
         UiSharedService.AttachToolTip("View and analyze your generated character data");
 

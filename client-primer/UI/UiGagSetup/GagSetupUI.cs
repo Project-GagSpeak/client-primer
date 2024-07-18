@@ -45,13 +45,11 @@ public class GagSetupUI : WindowMediatorSubscriberBase
         // define initial size of window and to not respect the close hotkey.
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(744, 350),
+            MinimumSize = new Vector2(700, 409),
             MaximumSize = new Vector2(744, 409)
         };
         RespectCloseHotkey = false;
     }
-    // perhaps migrate the opened selectable for the UIShared service so that other trackers can determine if they should refresh / update it or not.
-    // (this is not yet implemented, but we can modify it later when we need to adapt)
 
     protected override void PreDrawInternal()
     {
@@ -76,7 +74,6 @@ public class GagSetupUI : WindowMediatorSubscriberBase
             {
                 if (!table) return;
 
-                // define the left column, which contains an image of the component (added later), and the list of 'compartments' within the setup to view.
                 ImGui.TableSetupColumn("##LeftColumn", ImGuiTableColumnFlags.WidthFixed, 200f * ImGuiHelpers.GlobalScale);
                 ImGui.TableSetupColumn("##RightColumn", ImGuiTableColumnFlags.WidthStretch);
 
@@ -90,8 +87,6 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                 {
                     // attempt to obtain an image wrap for it
                     _sharedSetupImage = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "icon.png"));
-
-                    // if the image was valid, display it (at rescaled size
                     if (!(_sharedSetupImage.GetWrapOrEmpty() is { } wrap))
                     {
                         _logger.LogWarning("Failed to render image!");
@@ -101,10 +96,8 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                         // aligns the image in the center like we want.
                         UtilsExtensions.ImGuiLineCentered("###GagSetupLogo", () =>
                         {
-                            ImGui.Image(wrap.ImGuiHandle,
-                                        new(125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f),
-                                            125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f)
-                                        ));
+                            ImGui.Image(wrap.ImGuiHandle, new(125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f), 
+                                125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f)));
 
                             if (ImGui.IsItemHovered())
                             {
@@ -131,16 +124,16 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                 {
                     switch (_tabMenu.SelectedTab)
                     {
-                        case GagsetupTabSelection.ActiveGags: // shows the interface for inspecting or applying your own gags.
+                        case GagSetupTabs.Tabs.ActiveGags: // shows the interface for inspecting or applying your own gags.
                             _activeGags.DrawActiveGagsPanel();
                             break;
-                        case GagsetupTabSelection.Lockpicker: // shows off the gag storage configuration for the user's gags.
+                        case GagSetupTabs.Tabs.LockPicker: // shows off the gag storage configuration for the user's gags.
                             DrawLockPickerPanel();
                             break;
-                        case GagsetupTabSelection.GagStorage: // fancy WIP thingy to give players access to features based on achievements or unlocks.
+                        case GagSetupTabs.Tabs.GagStorage: // fancy WIP thingy to give players access to features based on achievements or unlocks.
                             _gagStorage.DrawGagStoragePanel();
                             break;
-                        case GagsetupTabSelection.Cosmetics:
+                        case GagSetupTabs.Tabs.Cosmetics:
                             DrawGagDisplayEditsPanel();
                             break;
                         default:

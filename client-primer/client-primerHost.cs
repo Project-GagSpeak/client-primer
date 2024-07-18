@@ -247,12 +247,12 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ActiveGagsPanel>(),
             s.GetRequiredService<GagStoragePanel>(), s.GetRequiredService<PadlockHandler>(), 
             s.GetRequiredService<PlayerCharacterManager>(), tp, pi))
-        .AddScoped<WindowMediatorSubscriberBase, WardrobeUI>((s) => new WardrobeUI(s.GetRequiredService<ILogger<WardrobeUI>>(),
+        .AddScoped<WindowMediatorSubscriberBase, ToyboxUI>((s) => new WardrobeUI(s.GetRequiredService<ILogger<ToyboxUI>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), tp, pi))
         .AddScoped<WindowMediatorSubscriberBase, PuppeteerUI>((s) => new PuppeteerUI(s.GetRequiredService<ILogger<PuppeteerUI>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), 
             s.GetRequiredService<UserPairListHandler>(), tp, pi))
-        .AddScoped<WindowMediatorSubscriberBase, ToyboxUI>((s) => new ToyboxUI(s.GetRequiredService<ILogger<ToyboxUI>>(),
+        .AddScoped<WindowMediatorSubscriberBase, ManageAlarms>((s) => new ManageAlarms(s.GetRequiredService<ILogger<ManageAlarms>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), tp, pi))
         .AddScoped<WindowMediatorSubscriberBase, OrdersUI>((s) => new OrdersUI(s.GetRequiredService<ILogger<OrdersUI>>(), tp,
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), pi))

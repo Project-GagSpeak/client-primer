@@ -13,6 +13,6 @@ public record EquipDrawData(EquipItem gameItem)
     public bool Locked = false; // remove if no use
     public EquipSlot Slot = EquipSlot.Head;
     public EquipItem GameItem = gameItem;
-    public StainId GameStain = 0;
+    public StainIds GameStain = StainIds.None;
     public int ActiveSlotId = 0; // what slot of the equipment it is.
 }

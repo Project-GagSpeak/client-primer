@@ -5,8 +5,7 @@ public class ServerTagConfigService : ConfigurationServiceBase<ServerTagConfig>
 {
     public const string ConfigName = "servertags.json";
 
-    public ServerTagConfigService(string configDir) : base(configDir)
-    {
+    public ServerTagConfigService(string configDir) : base(configDir) {
     }
 
     protected override string ConfigurationName => ConfigName;

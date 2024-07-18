@@ -22,6 +22,7 @@ using GagSpeak;
 using GagSpeak.UI;
 using GagSpeak.WebAPI;
 using Lumina.Excel.GeneratedSheets;
+using Dalamud.Plugin;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -36,6 +37,7 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
     private readonly MainTabMenu _tabMenu;
     private readonly UserPairPermsSticky _userPairPermissionsSticky;
     private readonly UserPairListHandler _userPairListHandler;
+    private readonly IDalamudPluginInterface _pi;
     private Vector2 _lastPosition = Vector2.One;
     private Vector2 _lastSize = Vector2.One;
     private int _secretKeyIdx = -1;
@@ -50,7 +52,7 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
         UiSharedService uiShared, ApiController apiController, GagspeakConfigService configService, 
         PairManager pairManager, ServerConfigurationManager serverManager,
         DrawEntityFactory drawEntityFactory, UserPairPermsSticky userpermssticky, 
-        UserPairListHandler userPairListHandler) : base(logger, mediator, "###GagSpeakMainUI")
+        UserPairListHandler userPairListHandler, IDalamudPluginInterface pi) : base(logger, mediator, "###GagSpeakMainUI")
     {
         _uiSharedService = uiShared;
         _apiController = apiController;
@@ -59,6 +61,7 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
         _serverManager = serverManager;
         _userPairPermissionsSticky = userpermssticky;
         _userPairListHandler = userPairListHandler;
+
 
         // the bottomTabMenu
         _tabMenu = new MainTabMenu(Mediator, _apiController, _pairManager, _uiSharedService);
@@ -202,7 +205,7 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
             switch (_tabMenu.TabSelection)
             {
                 case MainTabMenu.SelectedTab.Homepage:
-                    using (ImRaii.PushId("homepageComponent")) DrawHomepageSection();
+                    using (ImRaii.PushId("homepageComponent")) DrawHomepageSection(_pi);
                     break;
                 case MainTabMenu.SelectedTab.Whitelist:
                     using (ImRaii.PushId("whitelistComponent")) DrawWhitelistSection();

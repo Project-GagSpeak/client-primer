@@ -1,5 +1,7 @@
 using GagSpeak.GagspeakConfiguration.Configurations;
-using System.Text.Json;
+using GagSpeak.Services.ConfigurationServices;
+using System.CodeDom;
+using Newtonsoft.Json;
 
 namespace GagSpeak.GagspeakConfiguration;
 /// <summary>
@@ -9,8 +11,8 @@ namespace GagSpeak.GagspeakConfiguration;
 public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagspeakConfiguration
 {
     private readonly CancellationTokenSource _periodicCheckCts = new(); // cancellation token source for periodic checks
-    private bool _configIsDirty = false;    // if the config is dirty
-    private DateTime _configLastWriteTime; // last write time
+    protected bool _configIsDirty = false;    // if the config is dirty
+    protected DateTime _configLastWriteTime; // last write time
     private Lazy<T> _currentConfigInternal; // current config
 
     protected ConfigurationServiceBase(string configurationDirectory)
@@ -46,7 +48,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         if (_configIsDirty) SaveDirtyConfig();
     }
 
-    protected T LoadConfig()
+    protected virtual T LoadConfig()
     {
         T? config;
         if (!File.Exists(ConfigurationPath))
@@ -58,10 +60,15 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         {
             try
             {
-                config = JsonSerializer.Deserialize<T>(File.ReadAllText(ConfigurationPath));
+                string json = File.ReadAllText(ConfigurationPath);
+                config = JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings()
+                {
+                    Converters = new List<JsonConverter> { new EquipItemConverter() },
+                });
             }
-            catch
+            catch(Exception ex)
             {
+                throw new Exception($"Failed to load {ConfigurationName} configuration. {ex.StackTrace}");
                 // config failed to load for some reason
                 config = default;
             }
@@ -76,7 +83,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         return config;
     }
 
-    protected void SaveDirtyConfig()
+    protected virtual void SaveDirtyConfig()
     {
         _configIsDirty = false;
         var existingConfigs = Directory.EnumerateFiles(ConfigurationDirectory, ConfigurationName + ".bak.*").Select(c => new FileInfo(c))
@@ -97,12 +104,12 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         {
             // ignore if file cannot be backupped once
         }
-
         var temp = ConfigurationPath + ".tmp";
-        File.WriteAllText(temp, JsonSerializer.Serialize(Current, new JsonSerializerOptions()
+        string json = JsonConvert.SerializeObject(Current, Formatting.Indented, new JsonSerializerSettings
         {
-            WriteIndented = true
-        }));
+            Converters = new List<JsonConverter> { new EquipItemConverter() }
+        });
+        File.WriteAllText(temp, json);
         File.Move(temp, ConfigurationPath, true);
         _configLastWriteTime = new FileInfo(ConfigurationPath).LastWriteTimeUtc;
     }
@@ -134,7 +141,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         }
     }
 
-    private DateTime GetConfigLastWriteTime() => new FileInfo(ConfigurationPath).LastWriteTimeUtc;
+    protected DateTime GetConfigLastWriteTime() => new FileInfo(ConfigurationPath).LastWriteTimeUtc;
 
     private Lazy<T> LazyConfig()
     {

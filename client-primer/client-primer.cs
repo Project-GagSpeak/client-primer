@@ -19,6 +19,10 @@ namespace GagSpeak;
 /// interfaces and scoped services and hosted services.
 /// </para>
 /// </summary>
+public static class LoggingProvider
+{
+    public static ILogger UniversalLogger { get; set; }
+}
 
 public class GagSpeakHost : MediatorSubscriberBase, IHostedService
 {
@@ -28,16 +32,16 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
     private readonly IServiceScopeFactory _serviceScopeFactory;             // the service scope factory.
     private IServiceScope? _runtimeServiceScope;                            // the runtime service scope
     private Task? _launchTask;                                              // the task ran when plugin is launched.
-
     public GagSpeakHost(ILogger<GagSpeak> logger, ClientConfigurationManager clientConfigurationManager,
         ServerConfigurationManager serverConfigurationManager, OnFrameworkService frameworkUtil,
         IServiceScopeFactory serviceScopeFactory, GagspeakMediator mediator) : base(logger, mediator)
     {
         // set the services
         _frameworkUtil = frameworkUtil;
+        _serviceScopeFactory = serviceScopeFactory;
+        LoggingProvider.UniversalLogger = logger;
         _clientConfigurationManager = clientConfigurationManager;
         _serverConfigurationManager = serverConfigurationManager;
-        _serviceScopeFactory = serviceScopeFactory;
     }
     /// <summary> The task to run after all services have been properly constructed.
     /// <para> this will kickstart the server and begin all operations and verifications.</para>
@@ -65,6 +69,9 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
 
         // start processing the mediator queue.
         Mediator.StartQueueProcessing();
+
+        // Assign the resolved logger to the static logger provider
+        LoggingProvider.UniversalLogger = _serviceScopeFactory.CreateScope().ServiceProvider.GetRequiredService<ILogger<GagSpeak>>();
 
         // return that the startAsync has been completed.
         return Task.CompletedTask;

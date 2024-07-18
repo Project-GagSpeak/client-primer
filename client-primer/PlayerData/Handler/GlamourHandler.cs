@@ -54,7 +54,7 @@ public class GlamourerHandler : DisposableMediatorSubscriberBase
         || msg.ChangeType == StateChangeType.Reapply
         || msg.ChangeType == StateChangeType.Reset
         || msg.ChangeType == StateChangeType.Equip
-        || msg.ChangeType == StateChangeType.Stain
+        || msg.ChangeType == StateChangeType.Stains
         || msg.ChangeType == StateChangeType.Weapon)
         {
             Logger.LogTrace($"StateChangeType is {msg.ChangeType}");
@@ -129,7 +129,11 @@ public class GlamourerHandler : DisposableMediatorSubscriberBase
         Mediator.Publish(new DisableGlamourChangeEvents());
 
         // do not accept if we have enable wardrobe turned off.
-        if (!_playerManager.GlobalPerms.WardrobeEnabled) return;
+        if (!_playerManager.GlobalPerms.WardrobeEnabled)
+        {
+            Logger.LogDebug("Wardrobe is disabled, so not processing Gag Update");
+            return;
+        }
 
         try
         {
@@ -156,7 +160,7 @@ public class GlamourerHandler : DisposableMediatorSubscriberBase
                 var gagType = Enum.GetValues(typeof(GagList.GagType)).Cast<GagList.GagType>().First(g => g.GetGagAlias() == msg.GagType.GetGagAlias());
                 // this should replace it with nothing
                 await _Interop.SetItemToCharacterAsync(_frameworkUtils.GetPlayerPointer(), (ApiEquipSlot)_clientConfigs.GetGagTypeEquipSlot(gagType),
-                    ItemIdVars.NothingItem(_clientConfigs.GetGagTypeEquipSlot(gagType)).Id.Id, 0, 0);
+                    ItemIdVars.NothingItem(_clientConfigs.GetGagTypeEquipSlot(gagType)).Id.Id, new byte[0], 0);
                 // reapply any restraints hiding under them, if any
                 await ApplyRestrainSetToCachedCharacterData();
                 // update blindfold (TODO)
@@ -302,7 +306,7 @@ public class GlamourerHandler : DisposableMediatorSubscriberBase
         // attempt to equip the blindfold to the player
         await _Interop.SetItemToCharacterAsync(_frameworkUtils.GetPlayerPointer(),
             (ApiEquipSlot)_clientConfigs.GetBlindfoldItem().Slot, _clientConfigs.GetBlindfoldItem().GameItem.Id.Id,
-            _clientConfigs.GetBlindfoldItem().GameStain.Id, 0);
+            [_clientConfigs.GetBlindfoldItem().GameStain.Stain1.Id, _clientConfigs.GetBlindfoldItem().GameStain.Stain2.Id], 0);
     }
 
     public async Task UnequipBlindfold(int idxOfBlindfold)
@@ -311,7 +315,7 @@ public class GlamourerHandler : DisposableMediatorSubscriberBase
         // attempt to unequip the blindfold from the player
         await _Interop.SetItemToCharacterAsync(_frameworkUtils.GetPlayerPointer(),
             (ApiEquipSlot)_clientConfigs.GetBlindfoldItem().Slot,
-            ItemIdVars.NothingItem(_clientConfigs.GetBlindfoldItem().Slot).Id.Id, 0, 0);
+            ItemIdVars.NothingItem(_clientConfigs.GetBlindfoldItem().Slot).Id.Id, [0], 0);
     }
     /// <summary> Updates the raw glamourer customization data with our gag items and restraint sets, if applicable </summary>
     public async Task UpdateCachedCharacterData()
@@ -354,7 +358,7 @@ public class GlamourerHandler : DisposableMediatorSubscriberBase
                             _frameworkUtils.GetPlayerPointer(),
                             (ApiEquipSlot)pair.Key, // the key (EquipSlot)
                             pair.Value.GameItem.Id.Id, // Set this slot to nothing (naked)
-                            pair.Value.GameStain.Id, // The _drawData._gameStain.Id
+                            [pair.Value.GameStain.Stain1.Id, pair.Value.GameStain.Stain2.Id], // The _drawData._gameStain.Id
                             0));
                     }
                     else
@@ -368,7 +372,7 @@ public class GlamourerHandler : DisposableMediatorSubscriberBase
                                 _frameworkUtils.GetPlayerPointer(),
                                 (ApiEquipSlot)pair.Key, // the key (EquipSlot)
                                 pair.Value.GameItem.Id.Id, // The _drawData._gameItem.Id.Id
-                                pair.Value.GameStain.Id, // The _drawData._gameStain.Id
+                                [pair.Value.GameStain.Stain1.Id, pair.Value.GameStain.Stain2.Id],
                                 0));
                         }
                         else
@@ -421,7 +425,7 @@ public class GlamourerHandler : DisposableMediatorSubscriberBase
         try
         {
             await _Interop.SetItemToCharacterAsync(_frameworkUtils.GetPlayerPointer(), (ApiEquipSlot)_clientConfigs.GetGagTypeEquipSlot(gagType),
-                _clientConfigs.GetGagTypeEquipItem(gagType).Id.Id, _clientConfigs.GetGagTypeStain(gagType).Id, 0);
+                _clientConfigs.GetGagTypeEquipItem(gagType).Id.Id, _clientConfigs.GetGagTypeStainIds(gagType), 0);
 
             Logger.LogDebug($"Set item {_clientConfigs.GetGagTypeEquipItem(gagType)} to slot {_clientConfigs.GetGagTypeEquipSlot(gagType)} for gag {gagName}");
         }

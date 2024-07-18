@@ -1,5 +1,7 @@
+using ImGuiNET;
 using PInvoke;
 using System.Windows.Forms;
+using Lumina.Misc;
 
 namespace GagSpeak.Utils;
 
@@ -61,4 +63,11 @@ public static class GenericHelpers
 
     // see if the key bit is set
     public static bool IsBitSet(short b, int pos) => (b & (1 << pos)) != 0;
+
+    public static void OpenCombo(string comboLabel)
+    {
+        var windowId = ImGui.GetID(comboLabel);
+        var popupId = ~Crc32.Get("##ComboPopup", windowId);
+        ImGui.OpenPopup(popupId); // was originally popup ID
+    }
 }

@@ -7,14 +7,13 @@
         <TargetFramework>net8.0-windows</TargetFramework>
         <Copyright>Copyright © 2024</Copyright>
         <LangVersion>latest</LangVersion>
-        <Version>0.3.2.2</Version>
+        <Version>0.3.2.3</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
         <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
-
     
     <ItemGroup>
         <!--Include Images needed for UI Display-->
@@ -91,12 +90,6 @@
             <Private>False</Private>
         </Reference>
     </ItemGroup>
-
-
-    
-    <!-- We have yet to implement the logic, we are just in the UI Testing phase, so remove all folders with new logic-->
-
-    
     
     <!--Include Dalamud Libraries for dev hooks-->
     <PropertyGroup>
@@ -113,8 +106,7 @@
 
     
     <ItemGroup>
-        <!--Submodules-->
-        
+        <!--Submodules-->        
         <ProjectReference Include="..\GagspeakAPI\ProjectGagspeakAPI\ProjectGagspeakAPI.csproj" />
         <ProjectReference Include="..\OtterGui\OtterGui.csproj" />
         <ProjectReference Include="..\Penumbra.Api\Penumbra.Api.csproj" />
@@ -132,6 +124,7 @@
         <!--Handles our own plugin hosting methods for dependency injection and service management-->
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         
         <!--Adds support for our simulated vibrator (potentially replace with better audio option for more sound quality.-->
         <PackageReference Include="NAudio" Version="2.2.1" />
@@ -158,6 +151,7 @@
       <Folder Include="UI\UiWardrobe\" />
     </ItemGroup>
 </Project>
+
 
 
 

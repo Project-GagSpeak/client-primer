@@ -5,6 +5,7 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration;
+using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.MufflerCore.Handler;
@@ -17,6 +18,7 @@ using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
 using GagSpeak.UI;
 using GagSpeak.UI.Components.Popup;
 using GagSpeak.UI.Components.UserPairList;
@@ -24,12 +26,17 @@ using GagSpeak.UI.Handlers;
 using GagSpeak.UI.MainWindow;
 using GagSpeak.UI.Permissions;
 using GagSpeak.UI.Profile;
+using GagSpeak.UI.Tabs.WardrobeTab;
 using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using Interop.Ipc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using OtterGui.Log;
+using Penumbra.GameData.Data;
+using Penumbra.GameData.DataContainers;
+using PlayerData.Handler;
 
 namespace GagSpeak;
 
@@ -96,7 +103,7 @@ public sealed class GagSpeak : IDalamudPlugin
             // add the services related to the configs for GagSpeak
             .AddGagSpeakConfigs(pi)
             // add the scoped services for GagSpeak
-            .AddGagSpeakScoped(pi, tp, nm, cg)
+            .AddGagSpeakScoped(pi, tp, nm, cg, dm)
             // add the hosted services for GagSpeak (these should all contain startAsync and stopAsync methods)
             .AddGagSpeakHosted();
     }
@@ -118,6 +125,8 @@ public static class GagSpeakServiceExtensions
         // Events Services
         .AddSingleton((s) => new EventAggregator(pi.ConfigDirectory.FullName,
             s.GetRequiredService<ILogger<EventAggregator>>(), s.GetRequiredService<GagspeakMediator>()))
+        .AddSingleton<GlamourerHandler>()
+        
         // MufflerCore
         .AddSingleton((s) => new GagDataHandler(s.GetRequiredService<ILogger<GagDataHandler>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(), pi))
@@ -134,10 +143,24 @@ public static class GagSpeakServiceExtensions
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
         .AddSingleton<GagSpeakHost>()
+        // apparently adding services from submodules is cursed
+        .AddSingleton((s) => new DictStain(pi, new Logger(), dm))
+        .AddSingleton<ItemData>()
+        .AddSingleton((s) => new ItemsByType(pi, new Logger(), dm))
+        .AddSingleton((s) => new ItemsPrimaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>()))
+        .AddSingleton((s) => new ItemsSecondaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>()))
+        .AddSingleton((s) => new ItemsTertiaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>(),
+            s.GetRequiredService<ItemsSecondaryModel>()))
+
         // UI general services
-        .AddSingleton((s) => new ActiveGags(s.GetRequiredService<ILogger<ActiveGags>>(),
+        .AddSingleton((s) => new ActiveGagsPanel(s.GetRequiredService<ILogger<ActiveGagsPanel>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
             s.GetRequiredService<PadlockHandler>(), s.GetRequiredService<PlayerCharacterManager>(), tp, pi))
+        .AddSingleton((s) => new GagStoragePanel(s.GetRequiredService<ILogger<GagStoragePanel>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
+            s.GetRequiredService<UiSharedService>(), s.GetRequiredService<DictStain>(), 
+            s.GetRequiredService<ItemData>(), s.GetRequiredService<TextureService>() ,dm))
+
         .AddSingleton<IdDisplayHandler>()
         .AddSingleton<SelectPairForTagUi>()
         .AddSingleton<TagHandler>()
@@ -195,7 +218,7 @@ public static class GagSpeakServiceExtensions
     #endregion ConfigServices
     #region ScopedServices
     public static IServiceCollection AddGagSpeakScoped(this IServiceCollection services, IDalamudPluginInterface pi,
-        ITextureProvider tp, INotificationManager nm, IChatGui cg)
+        ITextureProvider tp, INotificationManager nm, IChatGui cg, IDataManager dm)
     => services
         // WebAPI Services
 
@@ -211,13 +234,19 @@ public static class GagSpeakServiceExtensions
         .AddScoped<SelectTagForPairUi>()
         .AddScoped<WindowMediatorSubscriberBase, SettingsUi>()
         .AddScoped<WindowMediatorSubscriberBase, IntroUi>()
-        .AddScoped<WindowMediatorSubscriberBase, MainWindowUI>()
+        .AddScoped<WindowMediatorSubscriberBase, MainWindowUI>((s) => new MainWindowUI(s.GetRequiredService<ILogger<MainWindowUI>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
+            s.GetRequiredService<ApiController>(), s.GetRequiredService<GagspeakConfigService>(),
+            s.GetRequiredService<PairManager>(), s.GetRequiredService<ServerConfigurationManager>(),
+            s.GetRequiredService<DrawEntityFactory>(), s.GetRequiredService<UserPairPermsSticky>(),
+            s.GetRequiredService<UserPairListHandler>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
         .AddScoped<WindowMediatorSubscriberBase, LovenseRemoteUI>() // might be factory driven later.
         .AddScoped<WindowMediatorSubscriberBase, GagSetupUI>((s) => new GagSetupUI(s.GetRequiredService<ILogger<GagSetupUI>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ActiveGags>(),
-            s.GetRequiredService<PadlockHandler>(), s.GetRequiredService<PlayerCharacterManager>(), tp, pi))
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ActiveGagsPanel>(),
+            s.GetRequiredService<GagStoragePanel>(), s.GetRequiredService<PadlockHandler>(), 
+            s.GetRequiredService<PlayerCharacterManager>(), tp, pi))
         .AddScoped<WindowMediatorSubscriberBase, WardrobeUI>((s) => new WardrobeUI(s.GetRequiredService<ILogger<WardrobeUI>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), tp, pi))
         .AddScoped<WindowMediatorSubscriberBase, PuppeteerUI>((s) => new PuppeteerUI(s.GetRequiredService<ILogger<PuppeteerUI>>(),
@@ -236,7 +265,9 @@ public static class GagSpeakServiceExtensions
         .AddScoped<WindowMediatorSubscriberBase, PopupHandler>()
         .AddScoped<IStickyUiHandler, VerificationPopupHandler>()
         .AddScoped<CacheCreationService>()
+        .AddScoped<TextureService>()
         .AddScoped<OnlinePlayerManager>()
+        .AddScoped((s) => new TextureService(pi.UiBuilder, dm, tp))
         .AddScoped((s) => new UiService(s.GetRequiredService<ILogger<UiService>>(), pi.UiBuilder, s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(),
             s.GetRequiredService<UiFactory>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<FileDialogManager>()))

@@ -1,4 +1,5 @@
 using Dalamud.Interface;
+using Dalamud.Plugin;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.UiGagSetup;
 using ImGuiNET;
@@ -15,7 +16,7 @@ public partial class MainWindowUI
     /// <summary>
     /// Main Draw function for the Whitelist/Contacts tab of the main UI
     /// </summary>
-    private float DrawHomepageSection()
+    private float DrawHomepageSection(IDalamudPluginInterface pi)
     {
         // get the width of the window content region we set earlier
         _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
@@ -32,7 +33,7 @@ public partial class MainWindowUI
         ImGui.BeginChild("homepageModuleListings", new Vector2(_windowContentWidth, ySize), border: false);
 
         // draw the buttons (basic for now) for access to other windows
-        DrawHomepageModules(availableWidth, spacing.X);
+        DrawHomepageModules(availableWidth, spacing.X, pi);
 
         // then end the list child
         ImGui.EndChild();
@@ -47,7 +48,7 @@ public partial class MainWindowUI
     /// <summary>
     /// Draws the list of pairs belonging to the client user.
     /// </summary>
-    private void DrawHomepageModules(float availableWidth, float spacingX)
+    private void DrawHomepageModules(float availableWidth, float spacingX, IDalamudPluginInterface pi)
     {
         var buttonX = (availableWidth - spacingX) / 2f;
 
@@ -94,6 +95,20 @@ public partial class MainWindowUI
             Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
         }
         UiSharedService.AttachToolTip("View and analyze your generated character data");
+
+        if (ImGui.Button("Open Plugin Config Folder", new Vector2(5f * ImGui.GetFrameHeight(), ImGui.GetFrameHeight())))
+        {
+            ImGui.SetTooltip("For when you need to inspect or remove config files for debugging purposes.\nModifying them directly could lead to TONS of bugs, so be careful!");
+            try
+            {
+                var ConfigDirectory = pi.ConfigDirectory.FullName;
+                Process.Start(new ProcessStartInfo { FileName = ConfigDirectory, UseShellExecute = true });
+            }
+            catch (Exception e)
+            {
+                _logger.LogError($"[ConfigFileOpen] Failed to open the config directory. {e.Message}");
+            }
+        }
 
     }
 }

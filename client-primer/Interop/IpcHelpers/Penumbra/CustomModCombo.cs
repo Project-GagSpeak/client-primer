@@ -5,6 +5,7 @@ using OtterGui.Classes;
 using OtterGui.Raii;
 using OtterGui.Widgets;
 using System.Numerics;
+using GagSpeak.UI.Components.Combos;
 
 // taken off Otter's ModCombo.cs from the mod association tab for convince purposes
 namespace GagSpeak.Interop.IpcHelpers.Penumbra;

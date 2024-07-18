@@ -7,5 +7,5 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 [Serializable]
 public class GagStorage
 {
-    public Dictionary<GagList.GagType, GagDrawData> GagEquipData = new();
+    public Dictionary<GagList.GagType, GagDrawData> GagEquipData { get; set; } = new();
 }

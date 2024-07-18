@@ -111,7 +111,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     // A note: ApplyAll and Customizations have been removed, as applyEquipmentOnly does not work
     // as intended and is more difficult to achieve with the way glamourer's API is structured.
 
-    public async Task SetItemToCharacterAsync(nint character, ApiEquipSlot slot, ulong item, byte dye, uint variant)
+    public async Task SetItemToCharacterAsync(nint character, ApiEquipSlot slot, ulong item, IReadOnlyList<byte> dye, uint variant)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
         if (!APIAvailable || _onFrameworkService.IsZoning) return;

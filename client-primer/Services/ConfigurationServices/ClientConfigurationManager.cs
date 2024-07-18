@@ -4,7 +4,9 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
+using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
+using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using static GagspeakAPI.Data.Enum.GagList;
@@ -43,6 +45,25 @@ public class ClientConfigurationManager
 
         // insure the nicknames and tag configs exist in the main server.
         if (_gagStorageConfig.Current.GagStorage == null) { _gagStorageConfig.Current.GagStorage = new(); }
+        // create a new storage file
+        if (_gagStorageConfig.Current.GagStorage.GagEquipData.IsNullOrEmpty())
+        {
+            _logger.LogWarning("Gag Storage Config is empty, creating a new one.");
+            try
+            {
+                _gagStorageConfig.Current.GagStorage.GagEquipData =
+                    Enum.GetValues(typeof(GagList.GagType))
+                        .Cast<GagList.GagType>()
+                        .ToDictionary(gagType => gagType, gagType => new GagDrawData(ItemIdVars.NothingItem(EquipSlot.Head)));
+                // print the keys in the dictionary
+                _logger.LogInformation("Gag Storage Config Created with {count} keys", _gagStorageConfig.Current.GagStorage.GagEquipData.Count);
+                _gagStorageConfig.Save();
+            }
+            catch (Exception e)
+            {
+                _logger.LogError(e, "Failed to create Gag Storage Config");
+            }
+        }
         if (_wardrobeConfig.Current.WardrobeStorage == null) { _wardrobeConfig.Current.WardrobeStorage = new(); }
         if (_aliasConfig.Current.AliasStorage == null) { _aliasConfig.Current.AliasStorage = new(); }
         if (_patternConfig.Current.PatternStorage == null) { _patternConfig.Current.PatternStorage = new(); }
@@ -50,7 +71,7 @@ public class ClientConfigurationManager
 
     // define public access to various storages (THESE ARE ONLY GETTERS, NO SETTERS)
     public GagspeakConfig GagspeakConfig => _configService.Current;
-    private GagStorageConfig GagStorageConfig => _gagStorageConfig.Current;
+    public GagStorageConfig GagStorageConfig => _gagStorageConfig.Current;
     private WardrobeConfig WardrobeConfig => _wardrobeConfig.Current;
     private AliasConfig AliasConfig => _aliasConfig.Current;
     private PatternConfig PatternConfig => _patternConfig.Current;
@@ -69,40 +90,53 @@ public class ClientConfigurationManager
     }
 
     /* --------------------- Gag Storage Config Methods --------------------- */
-    internal bool IsGagEnabled(GagType gagType) => GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.IsEnabled;
-    internal EquipSlot GetGagTypeEquipSlot(GagType gagType) => GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot;
-    internal EquipItem GetGagTypeEquipItem(GagType gagType) => GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem;
-    internal StainId GetGagTypeStain(GagType gagType) => GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameStain;
-    internal int GetGagTypeSlotId(GagType gagType) => GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.ActiveSlotId;
+    internal bool IsGagEnabled(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.IsEnabled;
+    internal GagDrawData GetDrawData(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData[gagType];
+    internal EquipSlot GetGagTypeEquipSlot(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot;
+    internal EquipItem GetGagTypeEquipItem(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem;
+    internal StainIds GetGagTypeStain(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameStain;
+    internal IReadOnlyList<byte> GetGagTypeStainIds(GagType gagType)
+    {
+        var GameStains = _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameStain;
+        return [GameStains.Stain1.Id, GameStains.Stain2.Id];
+    }
+    internal int GetGagTypeSlotId(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.ActiveSlotId;
 
     internal void SetGagEnabled(GagType gagType, bool isEnabled)
     {
-        GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.IsEnabled = isEnabled;
+        _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.IsEnabled = isEnabled;
         _gagStorageConfig.Save();
     }
 
     internal void SetGagTypeEquipSlot(GagType gagType, EquipSlot slot)
     {
-        GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot = slot;
+        _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot = slot;
         _gagStorageConfig.Save();
     }
 
     internal void SetGagTypeEquipItem(GagType gagType, EquipItem item)
     {
-        GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem = item;
+        _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem = item;
         _gagStorageConfig.Save();
     }
 
     internal void SetGagTypeStain(GagType gagType, StainId stain)
     {
-        GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameStain = stain;
+        _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameStain = stain;
         _gagStorageConfig.Save();
     }
 
     internal void SetGagTypeSlotId(GagType gagType, int slotId)
     {
-        GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.ActiveSlotId = slotId;
+        _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.ActiveSlotId = slotId;
         _gagStorageConfig.Save();
+    }
+
+    internal void UpdateGagItem(GagType gagType, GagDrawData newData)
+    {
+        _gagStorageConfig.Current.GagStorage.GagEquipData[gagType] = newData;
+        _gagStorageConfig.Save();
+        _logger.LogInformation("GagStorage Config Saved");
     }
 
     /* --------------------- Wardrobe Config Methods --------------------- */

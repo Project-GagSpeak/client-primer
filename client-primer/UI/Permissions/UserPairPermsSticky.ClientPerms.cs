@@ -169,7 +169,7 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPair.OwnEditAccessPerms.CanExecuteTriggersAllowed,
             FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
 
-        DrawSetting("Can Create Triggers", "CanCreateTriggersAllowed",
+        DrawSetting("Can Create Triggers", "CanToyboxTriggerCreatorsAllowed",
             UserPairForPerms.UserPair.OwnEditAccessPerms.CanCreateTriggersAllowed,
             FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
 

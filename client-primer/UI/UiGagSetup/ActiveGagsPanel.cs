@@ -1,20 +1,10 @@
 using Dalamud.Interface;
-using Dalamud.Interface.Textures;
-using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
-using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI.Components;
-using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
 using ImGuiNET;
-using Lumina.Misc;
-using OtterGui;
-using Penumbra.GameData.Files.Utility;
 using System.Numerics;
 namespace GagSpeak.UI.UiGagSetup;
 
@@ -22,66 +12,61 @@ public class ActiveGagsPanel
 {
     private readonly ILogger<ActiveGagsPanel> _logger;
     private readonly GagspeakMediator _mediator;
-    private readonly IDalamudPluginInterface _pi;
     private readonly UiSharedService _uiSharedService;
     private readonly PlayerCharacterManager _playerManager; // for grabbing lock data
     private readonly PadlockHandler _lockHandler;
-    private ITextureProvider _textureProvider;
-    // gag images
-    private ISharedImmediateTexture _sharedSetupImage;
 
-    public ActiveGagsPanel(ILogger<ActiveGagsPanel> logger, GagspeakMediator mediator,
-        UiSharedService uiSharedService, PadlockHandler padlockHandler,
-        PlayerCharacterManager playerManager, ITextureProvider textureProvider,
-        IDalamudPluginInterface pi)
+    public ActiveGagsPanel(ILogger<ActiveGagsPanel> logger,
+        GagspeakMediator mediator, UiSharedService uiSharedService,
+        PadlockHandler padlockHandler, PlayerCharacterManager playerManager)
     {
         _logger = logger;
         _mediator = mediator;
         _uiSharedService = uiSharedService;
         _playerManager = playerManager;
         _lockHandler = padlockHandler;
-        _textureProvider = textureProvider;
-        _pi = pi;
     }
+
+    private string GagTypeOnePath => $"ItemMouth\\{_playerManager.AppearanceData.SlotOneGagType}.png" ?? $"ItemMouth\\None.png";
+    private string GagTypeTwoPath => $"ItemMouth\\{_playerManager.AppearanceData.SlotTwoGagType}.png" ?? $"ItemMouth\\None.png";
+    private string GagTypeThreePath => $"ItemMouth\\{_playerManager.AppearanceData.SlotThreeGagType}.png" ?? $"ItemMouth\\None.png";
+    private string GagPadlockOnePath => $"Padlocks\\{_playerManager.AppearanceData.SlotOneGagPadlock}.png" ?? $"Padlocks\\None.png";
+    private string GagPadlockTwoPath => $"Padlocks\\{_playerManager.AppearanceData.SlotTwoGagPadlock}.png" ?? $"Padlocks\\None.png";
+    private string GagPadlockThreePath => $"Padlocks\\{_playerManager.AppearanceData.SlotThreeGagPadlock}.png" ?? $"Padlocks\\None.png";
+    private string GagTypeOne => _playerManager.AppearanceData.SlotOneGagType;
+    private string GagTypeTwo => _playerManager.AppearanceData.SlotTwoGagType;
+    private string GagTypeThree => _playerManager.AppearanceData.SlotThreeGagType;
+    private string PadlockOne => _playerManager.AppearanceData.SlotOneGagPadlock;
+    private string PadlockTwo => _playerManager.AppearanceData.SlotTwoGagPadlock;
+    private string PadlockThree => _playerManager.AppearanceData.SlotThreeGagPadlock;
 
     // Draw the active gags tab
     public void DrawActiveGagsPanel()
     {
-        // we should start by
-
+        var region = ImGui.GetContentRegionAvail();
         try
         {
-            var region = ImGui.GetContentRegionAvail();
-            _uiSharedService.BigText("Inner Gag:"); 
+            _uiSharedService.BigText("Inner Gag:");
 
-            Enum.TryParse<Padlocks>(_playerManager.AppearanceData.SlotOneGagPadlock, true, out var Padlock);
+            var lock1 = _uiSharedService.GetPadlock(PadlockOne);
+            var lock2 = _uiSharedService.GetPadlock(PadlockTwo);
+            var lock3 = _uiSharedService.GetPadlock(PadlockThree);
 
-            DrawGagAndLockSection(0, $"ItemMouth\\{_playerManager.AppearanceData.SlotOneGagType}.png",
-                $"Padlocks\\{_playerManager.AppearanceData.SlotOneGagPadlock}.png",
-                Padlock != Padlocks.None,
-                GagList.AliasToGagTypeMap[_playerManager.AppearanceData.SlotOneGagType],
-                Padlock == Padlocks.None ? _lockHandler.PadlockPrevs[0] : Padlock);
+            // Selection 1
+            DrawGagAndLockSection(0, GagTypeOnePath, GagPadlockOnePath, (lock1 != Padlocks.None),
+                GagList.AliasToGagTypeMap[GagTypeOne], (lock1 == Padlocks.None ? _lockHandler.PadlockPrevs[0] : lock1));
 
+            // Selection 2
             _uiSharedService.BigText("Central Gag:");
-            // draw the listing
-            Enum.TryParse<Padlocks>(_playerManager.AppearanceData.SlotTwoGagPadlock, true, out var Padlock2);
 
-            DrawGagAndLockSection(1, $"ItemMouth\\{_playerManager.AppearanceData.SlotTwoGagType}.png", 
-                $"Padlocks\\{_playerManager.AppearanceData.SlotTwoGagPadlock}.png",
-                Padlock2 != Padlocks.None,
-                GagList.AliasToGagTypeMap[_playerManager.AppearanceData.SlotTwoGagType],
-                Padlock2 == Padlocks.None ? _lockHandler.PadlockPrevs[1] : Padlock2);
+            DrawGagAndLockSection(1, GagTypeTwoPath, GagPadlockTwoPath, (lock2 != Padlocks.None),
+                GagList.AliasToGagTypeMap[GagTypeTwo], (lock2 == Padlocks.None ? _lockHandler.PadlockPrevs[1] : lock2));
 
+            // Selection 3
             _uiSharedService.BigText("Outermost Gag:");
-            // Draw it
-            Enum.TryParse<Padlocks>(_playerManager.AppearanceData.SlotThreeGagPadlock, true, out var Padlock3);
 
-            DrawGagAndLockSection(2,
-                $"ItemMouth\\{_playerManager.AppearanceData.SlotThreeGagType}.png",
-                $"Padlocks\\{_playerManager.AppearanceData.SlotThreeGagPadlock}.png",
-                Padlock3 != Padlocks.None,
-                GagList.AliasToGagTypeMap[_playerManager.AppearanceData.SlotThreeGagType],
-                Padlock3 == Padlocks.None ? _lockHandler.PadlockPrevs[2] : Padlock3);
+            DrawGagAndLockSection(2, GagTypeThreePath, GagPadlockThreePath, (lock3 != Padlocks.None),
+                GagList.AliasToGagTypeMap[GagTypeThree], (lock3 == Padlocks.None ? _lockHandler.PadlockPrevs[2] : lock3));
         }
         catch (Exception ex)
         {
@@ -93,22 +78,22 @@ public class ActiveGagsPanel
 
     private void DrawGagAndLockSection(int slotNumber, string gagTypePath, string lockTypePath, bool currentlyLocked, GagList.GagType gagType, Padlocks padlockType)
     {
-        using (var gaglockOuterGroup = ImRaii.Group())
+        using (var gagAndLockOuterGroup = ImRaii.Group())
         {
             // Display gag image
-            _sharedSetupImage = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, gagTypePath));
-            if (!(_sharedSetupImage.GetWrapOrEmpty() is { } wrapGag)) 
+            var gagOneTexture = _uiSharedService.GetImageFromDirectoryFile(gagTypePath);
+            if (!(gagOneTexture is { } wrapGag))
             {
                 _logger.LogWarning("Failed to render image!");
             }
-            else 
-            { 
+            else
+            {
                 ImGui.Image(wrapGag.ImGuiHandle, new Vector2(80, 80));
             }
             ImGui.SameLine();
 
             // Display combo for gag type and lock
-            using (var gaglockInnerGroup = ImRaii.Group())
+            using (var gagAndLockInnerGroup = ImRaii.Group())
             {
                 bool isLocked = padlockType != Padlocks.None;
                 _uiSharedService.DrawComboSearchable($"Gag Type {slotNumber}", 250, ref _lockHandler.Filters[slotNumber],
@@ -133,6 +118,7 @@ public class ActiveGagsPanel
                     }, padlockType);
                 }
                 ImGui.SameLine(0, 2);
+
                 using (ImRaii.Disabled(padlockType == Padlocks.None))
                 {
                     // draw the lock button
@@ -140,31 +126,43 @@ public class ActiveGagsPanel
                     {
                         if (_lockHandler.PasswordValidated(slotNumber, currentlyLocked))
                         {
-                            _mediator.Publish(new GagLockToggle(new PadlockData((GagLayer)slotNumber, _lockHandler.PadlockPrevs[slotNumber], 
-                                _lockHandler.Passwords[slotNumber], UiSharedService.GetEndTime(_lockHandler.Timers[slotNumber]), "SelfApplied"), currentlyLocked));
-                            _lockHandler.Passwords[slotNumber] = string.Empty;
-                            _lockHandler.Timers[slotNumber] = string.Empty;
+                            _mediator.Publish(new GagLockToggle(new PadlockData(
+                                (GagLayer)slotNumber,
+                                _lockHandler.PadlockPrevs[slotNumber],
+                                _lockHandler.Passwords[slotNumber],
+                                UiSharedService.GetEndTime(_lockHandler.Timers[slotNumber]), "SelfApplied"), currentlyLocked));
                         }
-                        else
-                        {
-                            _lockHandler.Passwords[slotNumber] = string.Empty;
-                            _lockHandler.Timers[slotNumber] = string.Empty;
-                        }
+                        // reset the password and timer
+                        _lockHandler.Passwords[slotNumber] = string.Empty;
+                        _lockHandler.Timers[slotNumber] = string.Empty;
                     }
-                    _lockHandler.DisplayPasswordField(slotNumber);
+                }
+                // display associated password field for padlock type.
+                _lockHandler.DisplayPasswordField(slotNumber);
+            }
+
+            // Display lock image if we should
+            if (_uiSharedService.GetPadlock(PadlockTwo) != Padlocks.None)
+            {
+                ImGui.SameLine();
+                using (var lockGroup = ImRaii.Group())
+                {
+                    var lockTexture = _uiSharedService.GetImageFromDirectoryFile(lockTypePath);
+                    if (!(lockTexture is { } wrapLock))
+                    {
+                        _logger.LogWarning("Failed to render image!");
+                    }
+                    else
+                    {
+                        ImGui.Image(wrapLock.ImGuiHandle, new Vector2(80, 80));
+                    }
                 }
             }
-            ImGui.SameLine();
-            // Display lock image
-            _sharedSetupImage = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, lockTypePath));
-            if (!(_sharedSetupImage.GetWrapOrEmpty() is { } wrapLock)) 
-            {
-                _logger.LogWarning("Failed to render image!");
-            }
-            else
-            {
-                ImGui.Image(wrapLock.ImGuiHandle, new Vector2(80, 80));
-            }
-        }
+
+            // ImGui.SameLine();
+            // display the lock timer if we should
+
+
+        } // end of the USING IMRAII.GROUP here
     }
 }

@@ -194,7 +194,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"CanUseRealtimeVibeRemote: {pair.UserPairUniquePairPerms.CanUseRealtimeVibeRemote}");
                         ImGui.Text($"CanExecutePatterns: {pair.UserPairUniquePairPerms.CanExecutePatterns}");
                         ImGui.Text($"CanExecuteTriggers: {pair.UserPairUniquePairPerms.CanExecuteTriggers}");
-                        ImGui.Text($"CanCreateTriggers: {pair.UserPairUniquePairPerms.CanCreateTriggers}");
+                        ImGui.Text($"CanToyboxTriggerCreators: {pair.UserPairUniquePairPerms.CanCreateTriggers}");
                         ImGui.Text($"CanSendTriggers: {pair.UserPairUniquePairPerms.CanSendTriggers}");
                         ImGui.Separator();
                         ImGui.Text($"AllowForcedFollow: {pair.UserPairUniquePairPerms.AllowForcedFollow}");

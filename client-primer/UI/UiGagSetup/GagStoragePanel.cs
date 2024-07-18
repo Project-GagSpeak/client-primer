@@ -28,7 +28,6 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
 
     private readonly IDataManager _gameData;
     private readonly TextureService _textures;
-    private readonly ISharedImmediateTexture _sharedTexture;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly UiSharedService _uiShared;
     private readonly DictStain StainData;

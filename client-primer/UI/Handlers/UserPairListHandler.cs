@@ -18,6 +18,7 @@ namespace GagSpeak.UI.Handlers;
 /// </summary>
 public class UserPairListHandler
 {
+    private readonly ILogger<UserPairListHandler> _logger;
     private List<IDrawFolder> _drawFolders;
     private List<DrawUserPair> _allUserPairDrawsDistinct; // disinct userpairs to draw
     private readonly TagHandler _tagHandler;
@@ -26,10 +27,12 @@ public class UserPairListHandler
     private readonly GagspeakConfigService _configService;
     private readonly UiSharedService _uiSharedService;
 
-    public UserPairListHandler(TagHandler tagHandler, PairManager pairManager,
+    public UserPairListHandler(ILogger<UserPairListHandler> logger,
+        TagHandler tagHandler, PairManager pairManager,
         DrawEntityFactory drawEntityFactory, GagspeakConfigService configService,
         UiSharedService uiSharedService)
     {
+        _logger = logger;
         _tagHandler = tagHandler;
         _pairManager = pairManager;
         _drawEntityFactory = drawEntityFactory;
@@ -62,6 +65,8 @@ public class UserPairListHandler
         foreach (var item in _drawFolders)
         {
             // draw the content
+            if (item is DrawFolderBase folderBase && folderBase.ID == TagHandler.CustomAllTag && _configService.Current.ShowOfflineUsersSeparately) continue;
+            // draw folder if not all tag.
             item.Draw();
         }
 
@@ -70,24 +75,23 @@ public class UserPairListHandler
     }
 
     /// <summary> Draws all bi-directionally paired users (online or offline) without any tag header. </summary>
-    public void DrawPairsNoGroups()
+    public void DrawPairsNoGroups(float windowContentWidth)
     {
         // Assuming _drawFolders is your list of IDrawFolder
         var allTagFolder = _drawFolders
             .FirstOrDefault(folder => folder is DrawFolderBase && ((DrawFolderBase)folder).ID == TagHandler.CustomAllTag);
 
-        if (allTagFolder == null)
-        {
-            return; /*CONSUME*/
-        }
+        if (allTagFolder == null) return;
 
         var drawFolderBase = (DrawFolderBase)allTagFolder; // Cast to DrawFolderBase
-        // using var indent = ImRaii.PushIndent(_uiSharedService.GetIconData(FontAwesomeIcon.EllipsisV).X + ImGui.GetStyle().ItemSpacing.X, false);
+        
+        using var indent = ImRaii.PushIndent(_uiSharedService.GetIconData(FontAwesomeIcon.EllipsisV).X + ImGui.GetStyle().ItemSpacing.X, false);
+        
         if (drawFolderBase.DrawPairs.Any())
         {
             foreach (var item in drawFolderBase.DrawPairs)
             {
-                item.DrawPairedClient(false); // Draw each pair directly
+                item.DrawPairedClientListForm(); // Draw each pair directly
             }
         }
         else
@@ -160,6 +164,10 @@ public class UserPairListHandler
         bool FilterOnlineOrPausedSelf(Pair u)
             => u.IsOnline || !u.IsOnline && !_configService.Current.ShowOfflineUsersSeparately || u.UserPair.OwnPairPerms.IsPaused;
 
+        bool FilterPairedOrPausedSelf(Pair u)
+             => u.IsOnline || !u.IsOnline || u.UserPair.OwnPairPerms.IsPaused;
+
+
         // collect the sorted list
         List<Pair> BasicSortedList(IEnumerable<Pair> u)
             => u.OrderByDescending(u => u.IsVisible)
@@ -198,7 +206,7 @@ public class UserPairListHandler
         // for each tag
         foreach (var tag in tags)
         {
-            /*_logger.LogDebug("Adding Pair Section List Tag: {tag}", tag);*/
+            _logger.LogDebug("Adding Pair Section List Tag: {tag}", tag);
             // display the pairs that have the tag, and are not one sided pairs, and are online or paused
             var allTagPairs = ImmutablePairList(allPairs
                 .Where(u => FilterTagusers(u, tag)));
@@ -216,15 +224,22 @@ public class UserPairListHandler
         var onlineNotTaggedPairs = BasicSortedList(filteredPairs
             .Where(u => FilterNotTaggedUsers(u) && FilterOnlineOrPausedSelf(u)));
 
-        // create the draw folders for the online untagged pairs
-        /*_logger.LogDebug("Adding Pair Section List Tag: {tag}", TagHandler.CustomAllTag);*/
-        drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(
-            _configService.Current.ShowOfflineUsersSeparately ? TagHandler.CustomOnlineTag : TagHandler.CustomAllTag,
-            onlineNotTaggedPairs, allOnlineNotTaggedPairs));
+        var bidirectionalTaggedPairs = BasicSortedList(filteredPairs
+            .Where(u => FilterNotTaggedUsers(u) && FilterPairedOrPausedSelf(u)));
+
+        _logger.LogDebug("Adding Pair Section List Tag: {tag}", TagHandler.CustomAllTag);
+        drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomAllTag,
+            bidirectionalTaggedPairs, allOnlineNotTaggedPairs));
+
 
         // if we want to show offline users seperately,
         if (_configService.Current.ShowOfflineUsersSeparately)
         {
+            // create the draw folders for the online untagged pairs
+            _logger.LogDebug("Adding Pair Section List Tag: {tag}", TagHandler.CustomOnlineTag);
+            drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomOnlineTag,
+                onlineNotTaggedPairs, allOnlineNotTaggedPairs));
+
             // then do so.
             var allOfflinePairs = ImmutablePairList(allPairs
                 .Where(FilterOfflineUsers));
@@ -232,14 +247,14 @@ public class UserPairListHandler
                 .Where(FilterOfflineUsers));
 
             // add the folder.
-            /*_logger.LogDebug("Adding Pair Section List Tag: {tag}", TagHandler.CustomOfflineTag);*/
+            _logger.LogDebug("Adding Pair Section List Tag: {tag}", TagHandler.CustomOfflineTag);
             drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomOfflineTag, filteredOfflinePairs,
                 allOfflinePairs));
 
         }
 
         // finally, add the unpaired users to the list.
-        /*_logger.LogDebug("Adding Unpaired Pairs Section List Tag: {tag}", TagHandler.CustomUnpairedTag);*/
+        _logger.LogDebug("Adding Pair Section List Tag: {tag}", TagHandler.CustomUnpairedTag);
         drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomUnpairedTag,
             BasicSortedList(filteredPairs.Where(u => u.IsOneSidedPair)),
             ImmutablePairList(allPairs.Where(u => u.IsOneSidedPair))));

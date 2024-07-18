@@ -25,8 +25,8 @@ public static class ToyboxTabs
     {
         ToyManager, // manage connections, active toys, audio sounds, ext.
         PatternManager, // manage, create, or send patterns.
-        CreateTrigger, // create a new trigger.
-        ManageTriggers, // manage trigger presets
+        ToyboxTriggerCreator, // create a new trigger.
+        ToyboxTriggerManager, // manage trigger presets
         AlarmManager, // manage, create, or send alarms.
         ToyboxCosmetics, // lets you add custom display effects related to toybox actions.
     }
@@ -37,8 +37,8 @@ public static class ToyboxTabs
         {
             Tabs.ToyManager => "Toys Overview",
             Tabs.PatternManager => "Patterns",
-            Tabs.CreateTrigger => "Create Trigger",
-            Tabs.ManageTriggers => "Manage Triggers",
+            Tabs.ToyboxTriggerCreator => "Create Trigger",
+            Tabs.ToyboxTriggerManager => "Manage Triggers",
             Tabs.AlarmManager => "Alarms",
             Tabs.ToyboxCosmetics => "Toybox Cosmetics",
             _ => "None",

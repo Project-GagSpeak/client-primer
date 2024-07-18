@@ -1,47 +1,35 @@
-using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
-using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
-using GagSpeak.UI.UiWardrobe;
 using GagSpeak.Utils;
 using ImGuiNET;
 using System.Numerics;
 
-namespace GagSpeak.UI;
+namespace GagSpeak.UI.UiWardrobe;
 
-public class ToyboxUI : WindowMediatorSubscriberBase
+public class WardrobeUI : WindowMediatorSubscriberBase
 {
-    private readonly IDalamudPluginInterface _pi;
     private readonly UiSharedService _uiSharedService;
     private readonly WardrobeTabMenu _tabMenu;
-    private readonly ActiveRestraintSet _activeSet;
-    private readonly ToyboxPatterns _restraintOverview;
-    private readonly RestraintSetCreate _restraintSetCreate;
-    private readonly ManageTriggers _restraintSetEdit;
-    private readonly ToyboxCosmetics _restraintCosmetics;
-    private ITextureProvider _textureProvider;
-    private ISharedImmediateTexture _sharedSetupImage;
+    private readonly ActiveRestraintSet _activePanel;
+    private readonly RestraintSetsOverview _overviewPanel;
+    private readonly RestraintSetCreator _creatorPanel;
+    private readonly RestraintSetEditor _editorPanel;
+    private readonly RestraintCosmetics _cosmeticsPanel;
 
-    public ToyboxUI(ILogger<ToyboxUI> logger, GagspeakMediator mediator, 
-        UiSharedService uiSharedService, ActiveRestraintSet activeSet,
-        ToyboxPatterns restraintOverview, RestraintSetCreate restraintSetCreate,
-        ManageTriggers restraintSetEdit, ToyboxCosmetics restraintCosmetics,
-        ITextureProvider textureProvider, 
-        IDalamudPluginInterface pi) : base(logger, mediator, "Wardrobe UI")
+    public WardrobeUI(ILogger<WardrobeUI> logger,
+        GagspeakMediator mediator, UiSharedService uiSharedService,
+        ActiveRestraintSet activeSet, RestraintSetsOverview restraintOverview,
+        RestraintSetCreator restraintSetCreate, RestraintSetEditor restraintSetEdit,
+        RestraintCosmetics restraintCosmetics) : base(logger, mediator, "Wardrobe UI")
     {
         _uiSharedService = uiSharedService;
-        _activeSet = activeSet;
-        _restraintOverview = restraintOverview;
-        _restraintSetCreate = restraintSetCreate;
-        _restraintSetEdit = restraintSetEdit;
-        _restraintCosmetics = restraintCosmetics;
-        _textureProvider = textureProvider;
-        _pi = pi;
+        _activePanel = activeSet;
+        _overviewPanel = restraintOverview;
+        _creatorPanel = restraintSetCreate;
+        _editorPanel = restraintSetEdit;
+        _cosmeticsPanel = restraintCosmetics;
 
         _tabMenu = new WardrobeTabMenu();
 
@@ -70,38 +58,32 @@ public class ToyboxUI : WindowMediatorSubscriberBase
         var topLeftSideHeight = region.Y;
 
         // create the draw-table for the selectable and viewport displays
-        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f), 0));
+        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiSharedService.GetFontScalerFloat(), 0));
         try
         {
             using (var table = ImRaii.Table($"WardrobeUiWindowTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
             {
                 if (!table) return;
-
+                // setup the columns for the table
                 ImGui.TableSetupColumn("##LeftColumn", ImGuiTableColumnFlags.WidthFixed, 200f * ImGuiHelpers.GlobalScale);
                 ImGui.TableSetupColumn("##RightColumn", ImGuiTableColumnFlags.WidthStretch);
-
                 ImGui.TableNextColumn();
 
                 var regionSize = ImGui.GetContentRegionAvail();
-
                 ImGui.PushStyleVar(ImGuiStyleVar.SelectableTextAlign, new Vector2(0.5f, 0.5f));
 
                 using (var leftChild = ImRaii.Child($"###WardrobeLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
-                    // attempt to obtain an image wrap for it
-                    _sharedSetupImage = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "icon.png"));
-                    if (!(_sharedSetupImage.GetWrapOrEmpty() is { } wrap))
+                    var iconTexture = _uiSharedService.GetImageFromDirectoryFile("icon.png");
+                    if (!(iconTexture is { } wrap))
                     {
                         _logger.LogWarning("Failed to render image!");
                     }
                     else
                     {
-                        // aligns the image in the center like we want.
                         UtilsExtensions.ImGuiLineCentered("###WardrobeLogo", () =>
                         {
-                            ImGui.Image(wrap.ImGuiHandle, new(125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f),
-                                125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f)));
-
+                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiSharedService.GetFontScalerFloat(), 125f * _uiSharedService.GetFontScalerFloat()));
                             if (ImGui.IsItemHovered())
                             {
                                 ImGui.BeginTooltip();
@@ -128,19 +110,19 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                     switch (_tabMenu.SelectedTab)
                     {
                         case WardrobeTabs.Tabs.ActiveSet:
-                            _activeSet.DrawActiveSet();
+                            _activePanel.DrawActiveSet();
                             break;
                         case WardrobeTabs.Tabs.SetsOverview:
-                            _restraintOverview.DrawSetsOverview();
+                            _overviewPanel.DrawSetsOverview();
                             break;
                         case WardrobeTabs.Tabs.CreateNewSet:
-                            _restraintSetCreate.DrawRestraintSetCreate();
+                            _creatorPanel.DrawRestraintSetCreator();
                             break;
                         case WardrobeTabs.Tabs.ModifySet:
-                            _restraintSetEdit.DrawRestraintSetEdit();
+                            _editorPanel.DrawRestraintSetEditor();
                             break;
                         case WardrobeTabs.Tabs.Cosmetics:
-                            _restraintCosmetics.DrawCosmetics();
+                            _cosmeticsPanel.DrawCosmetics();
                             break;
                         default:
                             break;

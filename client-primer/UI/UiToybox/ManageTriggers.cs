@@ -3,13 +3,13 @@ using ImGuiNET;
 
 namespace GagSpeak.UI.UiToybox;
 
-public class ManageTriggers
+public class ToyboxTriggerManager
 {
-    private readonly ILogger<ManageTriggers> _logger;
+    private readonly ILogger<ToyboxTriggerManager> _logger;
     private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiSharedService;
 
-    public ManageTriggers(ILogger<ManageTriggers> logger, GagspeakMediator mediator,
+    public ToyboxTriggerManager(ILogger<ToyboxTriggerManager> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService)
     {
         _logger = logger;

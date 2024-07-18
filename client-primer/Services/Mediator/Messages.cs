@@ -63,6 +63,7 @@ public record ResumeScanMessage(string Source) : MessageBase; // know when we sh
 public record PairHandlerVisibleMessage(PairHandler Player) : MessageBase; // a message indicating the visibility of a pair handler.
 public record OpenUserPairPermissions(Pair? Pair, StickyWindowType PermsWindowType) : MessageBase; // fired upon request to open the permissions window for a pair
 public record TargetPairMessage(Pair Pair) : MessageBase; // called when publishing a targeted pair connection (see UI)
+public record UpdateDisplayWithPair(Pair Pair) : MessageBase; // called when we need to update the display with a pair.
 public record CyclePauseMessage(UserData UserData) : MessageBase; // for cycling the paused state of self
 public record GameObjectHandlerCreatedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase; // whenever a gameobjecthandler for a pair is made
 public record GameObjectHandlerDestroyedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase; // whenever a gameobjecthandler for a pair is destroyed

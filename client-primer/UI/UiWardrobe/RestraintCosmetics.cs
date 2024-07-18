@@ -3,13 +3,13 @@ using ImGuiNET;
 
 namespace GagSpeak.UI.UiWardrobe;
 
-public class ToyboxCosmetics
+public class RestraintCosmetics
 {
-    private readonly ILogger<ToyboxCosmetics> _logger;
+    private readonly ILogger<RestraintCosmetics> _logger;
     private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiSharedService;
 
-    public ToyboxCosmetics(ILogger<ToyboxCosmetics> logger, GagspeakMediator mediator,
+    public RestraintCosmetics(ILogger<RestraintCosmetics> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService)
     {
         _logger = logger;

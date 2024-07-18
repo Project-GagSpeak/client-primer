@@ -30,7 +30,7 @@ public class IdDisplayHandler
         _gagspeakConfigService = gagspeakConfigService;
     }
 
-    public void DrawPairText(string id, Pair pair, float textPosX, Func<float> editBoxWidth)
+    public void DrawPairText(string id, Pair pair, float textPosX, Func<float> editBoxWidth, bool isASelectable)
     {
         ImGui.SameLine(textPosX);
         (bool textIsUid, string playerText) = GetPlayerText(pair);
@@ -40,7 +40,7 @@ public class IdDisplayHandler
 
             using (ImRaii.PushFont(UiBuilder.MonoFont, textIsUid)) ImGui.TextUnformatted(playerText);
 
-            if (ImGui.IsItemHovered())
+            if (ImGui.IsItemHovered() && !isASelectable)
             {
                 if (!string.Equals(_lastMouseOverUid, id))
                 {

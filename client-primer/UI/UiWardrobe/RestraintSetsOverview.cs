@@ -3,13 +3,13 @@ using ImGuiNET;
 
 namespace GagSpeak.UI.UiWardrobe;
 
-public class ManageTriggers
+public class RestraintSetsOverview
 {
-    private readonly ILogger<ManageTriggers> _logger;
+    private readonly ILogger<RestraintSetsOverview> _logger;
     private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiSharedService;
 
-    public ManageTriggers(ILogger<ManageTriggers> logger, GagspeakMediator mediator,
+    public RestraintSetsOverview(ILogger<RestraintSetsOverview> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService)
     {
         _logger = logger;
@@ -17,8 +17,8 @@ public class ManageTriggers
         _uiSharedService = uiSharedService;
     }
 
-    public void DrawRestraintSetEdit()
+    public void DrawSetsOverview()
     {
-        ImGui.Text("Edit Restraint Set");
+        ImGui.Text("Restraint Sets Overview");
     }
 }

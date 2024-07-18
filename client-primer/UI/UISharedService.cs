@@ -2,30 +2,27 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.GameFonts;
 using Dalamud.Interface.ManagedFontAtlas;
+using Dalamud.Interface.Textures;
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using GagSpeak.Localization;
 using GagSpeak.Interop.Ipc;
+using GagSpeak.Localization;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UpdateMonitoring;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
+using GagspeakAPI.Data.Enum;
 using ImGuiNET;
 using OtterGui;
-using Penumbra.GameData.Enums;
-using Penumbra.GameData.Structs;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using GagSpeak.UpdateMonitoring;
-using GagSpeak.Services.Textures;
-using GagSpeak.WebAPI;
-using GagSpeak.UpdateMonitoring;
-using Dalamud.Interface.Textures.TextureWraps;
-using Dalamud.Plugin.Services;
-using static GagspeakAPI.Data.Enum.GagList;
 
 namespace GagSpeak.UI;
 
@@ -43,35 +40,44 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public static readonly ImGuiWindowFlags PopupWindowFlags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
     private const string _nicknameEnd = "##GAGSPEAK_USER_NICKNAME_END##";       // the end of the nickname
     private const string _nicknameStart = "##GAGSPEAK_USER_NICKNAME_START##";   // the start of the nickname
+    private readonly Dalamud.Localization _localization;                        // language localization for our plugin
+
     private readonly ApiController _apiController;                              // our api controller for the server connectivity
-    private readonly ClientConfigurationManager _clientConfigurationManager;    // the client-end related config service 
-    private readonly ServerConfigurationManager _serverConfigurationManager;    // the server-end related config manager
+    private readonly ClientConfigurationManager _clientConfigs;    // the client-end related config service 
+    private readonly ServerConfigurationManager _serverConfigs;    // the server-end related config manager
     private readonly OnFrameworkService _frameworkUtil;                         // helpers for functions that should occur dalamud's framework  thread
     private readonly IpcManager _ipcManager;                                    // manager for the IPC's our plugin links 
-    private readonly ITextureProvider _textureProvider;                         // the texture provider for our plugin
-    private readonly Dalamud.Localization _localization;                        // language localization for our plugin
-    private readonly IDalamudPluginInterface _pluginInterface;                   // the primary interface for our plugin
-    private readonly Dictionary<string, object> _selectedComboItems;            // the selected combo items
-    private bool _glamourerExists = false;                                      // if glamourer currently exists on the client
-    private bool _moodlesExists = false;                                        // if moodles currently exists on the client
-    private bool _penumbraExists = false;                                       // if penumbra currently exists on the client
-    private bool _useTheme = true;                                              // if we should use the GagSpeak Theme
-    public UiSharedService(ILogger<UiSharedService> logger, IpcManager ipcManager, ApiController apiController,
-        OnFrameworkService frameworkutil, IDalamudPluginInterface pluginInterface, Dalamud.Localization localization,
-        ClientConfigurationManager clientManager, ServerConfigurationManager serverManager,
-        GagspeakMediator mediator) : base(logger, mediator)
-    {
-        _ipcManager = ipcManager;
-        _apiController = apiController;
-        _frameworkUtil = frameworkutil;
-        _pluginInterface = pluginInterface;
-        _localization = localization;
-        _selectedComboItems = new(StringComparer.Ordinal);
-        _clientConfigurationManager = clientManager;
-        _serverConfigurationManager = serverManager;
-        _localization.SetupWithLangCode("en");
 
-        // A subsciption from our mediator to see on each delayed framework if the IPC's are available from the IPC manager
+    private readonly IDalamudPluginInterface _pi;       // the primary interface for our plugin
+    private readonly ITextureProvider _textureProvider; // the texture provider for our plugin
+    private ISharedImmediateTexture _sharedTextures;    // represents a shared texture cache for plugin images.
+
+    private readonly Dictionary<string, object> _selectedComboItems;    // the selected combo items
+    private bool _glamourerExists = false;                              // if glamourer currently exists on the client
+    private bool _moodlesExists = false;                                // if moodles currently exists on the client
+    private bool _penumbraExists = false;                               // if penumbra currently exists on the client
+    private bool _useTheme = true;                                      // if we should use the GagSpeak Theme
+    public UiSharedService(ILogger<UiSharedService> logger, GagspeakMediator mediator,
+        Dalamud.Localization localization, ApiController apiController,
+        ClientConfigurationManager clientConfigurationManager,
+        ServerConfigurationManager serverConfigurationManager,
+        OnFrameworkService frameworkUtil, IpcManager ipcManager,
+        IDalamudPluginInterface pluginInterface, ITextureProvider textureProvider)
+        : base(logger, mediator)
+    {
+        _localization = localization;
+        _apiController = apiController;
+        _clientConfigs = clientConfigurationManager;
+        _serverConfigs = serverConfigurationManager;
+        _frameworkUtil = frameworkUtil;
+        _ipcManager = ipcManager;
+        _pi = pluginInterface;
+        _textureProvider = textureProvider;
+
+        _localization.SetupWithLangCode("en");
+        _selectedComboItems = new(StringComparer.Ordinal);
+
+        // A subscription from our mediator to see on each delayed framework if the IPC's are available from the IPC manager
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) =>
         {
             // _penumbraExists = _ipcManager.Penumbra.APIAvailable; (add soon)
@@ -80,7 +86,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         });
 
         // the font atlas for our UID display (make it the font from gagspeak probably unless this fits more)
-        UidFont = _pluginInterface.UiBuilder.FontAtlas.NewDelegateFontHandle(e =>
+        UidFont = _pi.UiBuilder.FontAtlas.NewDelegateFontHandle(e =>
         {
             e.OnPreBuild(tk => tk.AddDalamudAssetFont(Dalamud.DalamudAsset.NotoSansJpMedium, new()
             {
@@ -89,9 +95,9 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         });
 
         // the font atlas for our game font
-        GameFont = _pluginInterface.UiBuilder.FontAtlas.NewGameFontHandle(new(GameFontFamilyAndSize.Axis12));
+        GameFont = _pi.UiBuilder.FontAtlas.NewGameFontHandle(new(GameFontFamilyAndSize.Axis12));
         // the font atlas for our icon font
-        IconFont = _pluginInterface.UiBuilder.IconFontFixedWidthHandle;
+        IconFont = _pi.UiBuilder.IconFontFixedWidthHandle;
     }
 
     public ApiController ApiController => _apiController;   // a public accessible api controller for the plugin, pulled from the private field
@@ -267,6 +273,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public static Vector4 GetBoolColor(bool input) => input ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed;
 
+    public float GetFontScalerFloat() => ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f);
+
     public float GetIconTextButtonSize(FontAwesomeIcon icon, string text)
     {
         Vector2 vector;
@@ -299,10 +307,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return sb.ToString();
     }
 
-    public static float GetWindowContentRegionWidth()
-    {
-        return ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
-    }
+    public static float GetWindowContentRegionWidth() => ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
 
     public bool IconButton(FontAwesomeIcon icon, float? height = null)
     {
@@ -376,11 +381,11 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     {
         using var dis = ImRaii.PushStyle(ImGuiStyleVar.Alpha, disabled ? 0.5f : 1f);
         int num = 0;
-/*        if (defaultColor.HasValue)
-        {
-            ImGui.PushStyleColor(ImGuiCol.FrameBg, defaultColor.Value);
-            num++;
-        }*/
+        /*        if (defaultColor.HasValue)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.FrameBg, defaultColor.Value);
+                    num++;
+                }*/
 
         ImGui.PushID(label);
         Vector2 vector;
@@ -418,9 +423,24 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             disabled);
     }
 
+    /// <summary> Grabs a TextureWrap from the sharedIntermediateTexture interface via a path directory. </summary>
+    /// <returns> A DalamudTexture Wrap. Advised to use [ if(!(RESULT is { } wrap) to verify validity. </returns>
+    public IDalamudTextureWrap GetImageFromDirectoryFile(string path)
+    {
+        // fetch the image from plugin directory and store as the active shared intermediate texture
+        _sharedTextures = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, path));
+        return _sharedTextures.GetWrapOrEmpty();
+    }
+
     public IDalamudTextureWrap LoadImage(byte[] imageData)
     {
         return _textureProvider.CreateFromImageAsync(imageData).Result;
+    }
+
+    public Padlocks GetPadlock(string padlockType)
+    {
+        Enum.TryParse<Padlocks>(padlockType, true, out var PadlockType);
+        return PadlockType;
     }
 
     /// <summary> Cleans sender string from the chatlog before processing, so it stays a valid player sender string. </summary>
@@ -649,8 +669,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                 var splittedEntry = note.Split(":", 2, StringSplitOptions.RemoveEmptyEntries);
                 var uid = splittedEntry[0];
                 var comment = splittedEntry[1].Trim('"');
-                if (_serverConfigurationManager.GetNicknameForUid(uid) != null && !overwrite) continue;
-                _serverConfigurationManager.SetNicknameForUid(uid, comment);
+                if (_serverConfigs.GetNicknameForUid(uid) != null && !overwrite) continue;
+                _serverConfigs.SetNicknameForUid(uid, comment);
             }
             catch
             {
@@ -658,7 +678,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             }
         }
 
-        _serverConfigurationManager.SaveNicknames();
+        _serverConfigs.SaveNicknames();
 
         return true;
     }
@@ -732,7 +752,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return (T)_selectedComboItems[comboName];
     }
 
-    public T? DrawComboSearchable<T>(string comboName, float width, ref string searchString, IEnumerable<T> comboItems, 
+    public T? DrawComboSearchable<T>(string comboName, float width, ref string searchString, IEnumerable<T> comboItems,
         Func<T, string> toName, bool showLabel = true, Action<T?>? onSelected = null, T? initialSelectedItem = default)
     {
         // Return default if there are no items to display in the combo box.
@@ -746,8 +766,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                 selectedItem = initialSelectedItem;
                 _selectedComboItems[comboName] = selectedItem!;
 
-/*                if (!EqualityComparer<T>.Default.Equals(initialSelectedItem, default))
-                    onSelected?.Invoke(initialSelectedItem);*/
+                /*                if (!EqualityComparer<T>.Default.Equals(initialSelectedItem, default))
+                                    onSelected?.Invoke(initialSelectedItem);*/
             }
             else
             {

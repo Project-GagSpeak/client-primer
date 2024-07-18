@@ -3,13 +3,13 @@ using ImGuiNET;
 
 namespace GagSpeak.UI.UiToybox;
 
-public class ManageAlarms
+public class ToyboxAlarmManager
 {
-    private readonly ILogger<ManageAlarms> _logger;
+    private readonly ILogger<ToyboxAlarmManager> _logger;
     private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiSharedService;
 
-    public ManageAlarms(ILogger<ManageAlarms> logger, GagspeakMediator mediator,
+    public ToyboxAlarmManager(ILogger<ToyboxAlarmManager> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService)
     {
         _logger = logger;

@@ -13,28 +13,28 @@ namespace GagSpeak.UI.UiToybox;
 
 public class ToyboxUI : WindowMediatorSubscriberBase
 {
-    private readonly IDalamudPluginInterface _pi;
     private readonly UiSharedService _uiSharedService;
     private readonly ToyboxTabMenu _tabMenu;
-    private readonly ToysOverview _toysOverview;
+    private readonly ToyboxOverview _toysOverview;
     private readonly ToyboxPatterns _patterns;
-    private readonly CreateTrigger _triggerCreator;
-    private readonly ManageTriggers _triggerManager;
-    private readonly ManageAlarms _alarmManager;
+    private readonly ToyboxTriggerCreator _triggerCreator;
+    private readonly ToyboxTriggerManager _triggerManager;
+    private readonly ToyboxAlarmManager _alarmManager;
     private readonly ToyboxCosmetics _cosmetics;
-    private ITextureProvider _textureProvider;
-    private ISharedImmediateTexture _sharedSetupImage;
 
     public ToyboxUI(ILogger<ToyboxUI> logger, GagspeakMediator mediator,
-        UiSharedService uiSharedService, ToysOverview toysOverview,
-        ToyboxPatterns patterns, CreateTrigger triggerCreator,
-        ManageTriggers triggerManager, ManageAlarms alarmManager,
-        ToyboxCosmetics cosmetics, ITextureProvider textureProvider,
-        IDalamudPluginInterface pi) : base(logger, mediator, "Toybox UI")
+        UiSharedService uiSharedService, ToyboxOverview toysOverview,
+        ToyboxPatterns patterns, ToyboxTriggerCreator triggerCreator,
+        ToyboxTriggerManager triggerManager, ToyboxAlarmManager alarmManager,
+        ToyboxCosmetics cosmetics) : base(logger, mediator, "Toybox UI")
     {
         _uiSharedService = uiSharedService;
-        _textureProvider = textureProvider;
-        _pi = pi;
+        _toysOverview = toysOverview;
+        _patterns = patterns;
+        _triggerCreator = triggerCreator;
+        _triggerManager = triggerManager;
+        _alarmManager = alarmManager;
+        _cosmetics = cosmetics;
 
         _tabMenu = new ToyboxTabMenu();
 
@@ -63,7 +63,7 @@ public class ToyboxUI : WindowMediatorSubscriberBase
         var topLeftSideHeight = region.Y;
 
         // create the draw-table for the selectable and viewport displays
-        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f), 0));
+        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiSharedService.GetFontScalerFloat(), 0));
         try
         {
             using (var table = ImRaii.Table($"ToyboxUiWindowTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
@@ -82,8 +82,8 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                 using (var leftChild = ImRaii.Child($"###ToyboxLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
                     // attempt to obtain an image wrap for it
-                    _sharedSetupImage = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "icon.png"));
-                    if (!(_sharedSetupImage.GetWrapOrEmpty() is { } wrap))
+                    var iconTexture = _uiSharedService.GetImageFromDirectoryFile("icon.png");
+                    if (!(iconTexture is { } wrap))
                     {
                         _logger.LogWarning("Failed to render image!");
                     }
@@ -92,8 +92,8 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                         // aligns the image in the center like we want.
                         UtilsExtensions.ImGuiLineCentered("###ToyboxLogo", () =>
                         {
-                            ImGui.Image(wrap.ImGuiHandle, new(125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f),
-                                125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f)));
+                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiSharedService.GetFontScalerFloat(),
+                                125f * _uiSharedService.GetFontScalerFloat()));
 
                             if (ImGui.IsItemHovered())
                             {
@@ -126,10 +126,10 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                         case ToyboxTabs.Tabs.PatternManager:
                             _patterns.DrawPatternManagerPanel();
                             break;
-                        case ToyboxTabs.Tabs.CreateTrigger:
-                            _triggerCreator.DrawCreateTriggerPanel();
+                        case ToyboxTabs.Tabs.ToyboxTriggerCreator:
+                            _triggerCreator.DrawToyboxTriggerCreatorPanel();
                             break;
-                        case ToyboxTabs.Tabs.ManageTriggers:
+                        case ToyboxTabs.Tabs.ToyboxTriggerManager:
                             _triggerManager.DrawTriggerManagerPanel();
                             break;
                         case ToyboxTabs.Tabs.AlarmManager:

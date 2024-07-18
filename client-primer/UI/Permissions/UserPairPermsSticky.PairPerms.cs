@@ -113,7 +113,7 @@ public partial class UserPairPermsSticky
         DrawSettingPair("Can Execute Triggers", "CanExecuteTriggers", UserPairForPerms.UserPair.OtherPairPerms.CanExecuteTriggers,
             UserPairForPerms.UserPair.OtherEditAccessPerms.CanExecuteTriggersAllowed, FontAwesomeIcon.Wifi, FontAwesomeIcon.Wifi, false, PermType.YesNo);
 
-        DrawSettingPair("Can Create Triggers", "CanCreateTriggers", UserPairForPerms.UserPair.OtherPairPerms.CanCreateTriggers,
+        DrawSettingPair("Can Create Triggers", "CanToyboxTriggerCreators", UserPairForPerms.UserPair.OtherPairPerms.CanCreateTriggers,
             UserPairForPerms.UserPair.OtherEditAccessPerms.CanCreateTriggersAllowed, FontAwesomeIcon.Wifi, FontAwesomeIcon.Wifi, false, PermType.YesNo);
 
         DrawSettingPair("Can Send Triggers", "CanSendTriggers", UserPairForPerms.UserPair.OtherPairPerms.CanSendTriggers,

@@ -88,9 +88,9 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         _configIsDirty = false;
         var existingConfigs = Directory.EnumerateFiles(ConfigurationDirectory, ConfigurationName + ".bak.*").Select(c => new FileInfo(c))
             .OrderByDescending(c => c.LastWriteTime).ToList();
-        if (existingConfigs.Skip(5).Any())
+        if (existingConfigs.Skip(3).Any())
         {
-            foreach (var config in existingConfigs.Skip(5).ToList())
+            foreach (var config in existingConfigs.Skip(3).ToList())
             {
                 config.Delete();
             }

@@ -1,9 +1,14 @@
 using Dalamud.Interface;
 using Dalamud.Plugin;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI.UiGagSetup;
+using System.Diagnostics;
 using ImGuiNET;
 using System.Numerics;
+using GagSpeak.UI.UiGagSetup;
+using GagSpeak.UI.UiOrders;
+using GagSpeak.UI.UiToybox;
+using GagSpeak.UI.UiPuppeteer;
+using GagSpeak.UI.UiWardrobe;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -78,7 +83,7 @@ public partial class MainWindowUI
         // Opens the Wardrobe Module UI
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.ToiletPortable, "Wardrobe Interface", buttonX))
         {
-            Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
+            Mediator.Publish(new UiToggleMessage(typeof(WardrobeUI)));
         }
         UiSharedService.AttachToolTip("View and analyze your generated character data");
 
@@ -92,7 +97,7 @@ public partial class MainWindowUI
         // Opens the Toybox Module UI
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.BoxOpen, "Toybox Interface", buttonX))
         {
-            Mediator.Publish(new UiToggleMessage(typeof(ManageAlarms)));
+            Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
         }
         UiSharedService.AttachToolTip("View and analyze your generated character data");
 

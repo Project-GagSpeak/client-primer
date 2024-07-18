@@ -1,8 +1,5 @@
-using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
@@ -11,34 +8,29 @@ using GagSpeak.UI.Tabs.WardrobeTab;
 using GagSpeak.Utils;
 using ImGuiNET;
 using System.Numerics;
+
 namespace GagSpeak.UI.UiGagSetup;
 
 public class GagSetupUI : WindowMediatorSubscriberBase
 {
-    private readonly IDalamudPluginInterface _pi;
     private readonly UiSharedService _uiSharedService;
     private readonly GagSetupTabMenu _tabMenu;
     private readonly ActiveGagsPanel _activeGags;
     private readonly GagStoragePanel _gagStorage;
     private readonly PadlockHandler _lockHandler;
     private readonly PlayerCharacterManager _playerManager; // for grabbing lock data
-    private ITextureProvider _textureProvider;
-    private ISharedImmediateTexture _sharedSetupImage;
     // gag images
 
     public GagSetupUI(ILogger<GagSetupUI> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService, ActiveGagsPanel activeGags,
         GagStoragePanel gagStorage, PadlockHandler padlockHandler,
-        PlayerCharacterManager playerManager, ITextureProvider textureProvider,
-        IDalamudPluginInterface pi) : base(logger, mediator, "Gag Setup UI")
+        PlayerCharacterManager playerManager) : base(logger, mediator, "Gag Setup UI")
     {
-        _textureProvider = textureProvider;
         _uiSharedService = uiSharedService;
         _playerManager = playerManager;
         _lockHandler = padlockHandler;
         _activeGags = activeGags;
         _gagStorage = gagStorage;
-        _pi = pi;
 
         _tabMenu = new GagSetupTabMenu();
 
@@ -67,27 +59,25 @@ public class GagSetupUI : WindowMediatorSubscriberBase
         var topLeftSideHeight = region.Y;
 
         // create the draw-table for the selectable and viewport displays
-        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f), 0));
+        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiSharedService.GetFontScalerFloat(), 0));
         try
         {
             using (var table = ImRaii.Table($"GagSetupUiWindowTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
             {
                 if (!table) return;
-
+                // setup columns.
                 ImGui.TableSetupColumn("##LeftColumn", ImGuiTableColumnFlags.WidthFixed, 200f * ImGuiHelpers.GlobalScale);
                 ImGui.TableSetupColumn("##RightColumn", ImGuiTableColumnFlags.WidthStretch);
-
                 ImGui.TableNextColumn();
 
                 var regionSize = ImGui.GetContentRegionAvail();
-
                 ImGui.PushStyleVar(ImGuiStyleVar.SelectableTextAlign, new Vector2(0.5f, 0.5f));
 
                 using (var leftChild = ImRaii.Child($"###GagSetupLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
-                    // attempt to obtain an image wrap for it
-                    _sharedSetupImage = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "icon.png"));
-                    if (!(_sharedSetupImage.GetWrapOrEmpty() is { } wrap))
+                    // get the gag setup logo image
+                    var iconTexture = _uiSharedService.GetImageFromDirectoryFile("icon.png");
+                    if (!(iconTexture is { } wrap))
                     {
                         _logger.LogWarning("Failed to render image!");
                     }
@@ -96,8 +86,7 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                         // aligns the image in the center like we want.
                         UtilsExtensions.ImGuiLineCentered("###GagSetupLogo", () =>
                         {
-                            ImGui.Image(wrap.ImGuiHandle, new(125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f), 
-                                125f * ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f)));
+                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiSharedService.GetFontScalerFloat(), 125f * _uiSharedService.GetFontScalerFloat()));
 
                             if (ImGui.IsItemHovered())
                             {

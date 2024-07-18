@@ -46,7 +46,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
     public Pair Pair => _pair;
     public UserPairDto UserPair => _pair.UserPair!;
 
-    public void DrawPairedClient(bool DrawRightSideButtons = true)
+    public void DrawPairedClient()
     {
         using var id = ImRaii.PushId(GetType() + _id);
         var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), _wasHovered);
@@ -58,11 +58,33 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
 
             float rightSide = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() 
                               - (_uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV).X);
-            if (DrawRightSideButtons)
-            {
-                rightSide = DrawRightSide();
-            }
-            DrawName(posX, rightSide);
+            
+            rightSide = DrawRightSide();
+            
+            DrawName(posX, rightSide, false);
+        }
+        _wasHovered = ImGui.IsItemHovered();
+        color.Dispose();
+    }
+
+    public void DrawPairedClientListForm()
+    {
+        using var id = ImRaii.PushId(GetType() + _id);
+        var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), _wasHovered);
+        using (ImRaii.Child(GetType() + _id, new System.Numerics.Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
+        {
+            DrawLeftSide();
+            ImGui.SameLine();
+            var posX = ImGui.GetCursorPosX();
+
+            float rightSide = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()
+                              - (_uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV).X);
+            DrawName(posX, rightSide, true);
+        }
+        // if we left clicked this item, we should set the selected pair to this pair.
+        if (ImGui.IsItemClicked())
+        {
+            _mediator.Publish(new UpdateDisplayWithPair(_pair));
         }
         _wasHovered = ImGui.IsItemHovered();
         color.Dispose();
@@ -114,9 +136,9 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         ImGui.SameLine();
     }
 
-    private void DrawName(float leftSide, float rightSide)
+    private void DrawName(float leftSide, float rightSide, bool isASelectable)
     {
-        _displayHandler.DrawPairText(_id, _pair, leftSide, () => rightSide - leftSide);
+        _displayHandler.DrawPairText(_id, _pair, leftSide, () => rightSide - leftSide, isASelectable);
     }
 
     private float DrawRightSide()

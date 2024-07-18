@@ -1,15 +1,14 @@
 using GagSpeak.Services.Mediator;
 using ImGuiNET;
 
-namespace GagSpeak.UI.UiToybox;
-
-public class ToyboxTriggerCreator
+namespace GagSpeak.UI.UiOrders;
+public class OrdersViewActive
 {
-    private readonly ILogger<ToyboxTriggerCreator> _logger;
+    private readonly ILogger<OrdersViewActive> _logger;
     private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiSharedService;
 
-    public ToyboxTriggerCreator(ILogger<ToyboxTriggerCreator> logger, GagspeakMediator mediator,
+    public OrdersViewActive(ILogger<OrdersViewActive> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService)
     {
         _logger = logger;
@@ -17,8 +16,8 @@ public class ToyboxTriggerCreator
         _uiSharedService = uiSharedService;
     }
 
-    public void DrawToyboxTriggerCreatorPanel()
+    public void DrawActiveOrdersPanel()
     {
-        ImGui.Text("Create Trigger Panel");
+        ImGui.Text("My Active Orders");
     }
 }

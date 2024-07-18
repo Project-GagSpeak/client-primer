@@ -21,12 +21,40 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
     protected override GagStorageConfig LoadConfig()
     {
         GagStorageConfig config = new GagStorageConfig();
+        if (!File.Exists(ConfigurationPath))
+        {
+            Save();
+            return config;
+        }
         if (File.Exists(ConfigurationPath))
         {
             try
             {
                 string json = File.ReadAllText(ConfigurationPath);
                 JObject configObject = JObject.Parse(json);
+
+                // Check for Version property
+                JToken versionToken = configObject["Version"];
+                if (versionToken == null)
+                {
+                    return config!;
+                }
+
+                if (versionToken.ToObject<int>() != config.Version)
+                {
+                    // Version mismatch or missing, remove associated files
+                    var gagStorageFiles = Directory.EnumerateFiles(ConfigurationDirectory, "gag-storage.json");
+                    // if migrating from version 0 to version 1
+                    if (versionToken.ToObject<int>() == 0 && config.Version == 1)
+                    {
+                        // perform a full reset
+                        foreach (var file in gagStorageFiles)
+                        {
+                            File.Delete(file);
+                        }
+                        return config;
+                    }
+                }
 
                 // Assuming GagStorage has a default constructor
                 config.GagStorage = new GagStorage();
@@ -45,13 +73,13 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
                         config.GagStorage.GagEquipData.Add(gagType,gagDrawData);
                     }
                 }
+                Save();
             }
             catch (Exception ex)
             {
                 throw new Exception($"Failed to load {ConfigurationName} configuration.", ex);
             }
         }
-
         _configLastWriteTime = GetConfigLastWriteTime();
         return config;
     }
@@ -78,7 +106,10 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
             // Log or handle the error as needed
         }
 
-        JObject configObject = new JObject();
+        JObject configObject = new JObject()
+        {
+            ["Version"] = Current.Version // Include the version of GagStorageConfig
+        };
         JObject gagEquipDataObject = new JObject();
 
         foreach (var kvp in Current.GagStorage.GagEquipData)

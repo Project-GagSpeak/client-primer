@@ -67,7 +67,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         {
             if (UnsavedDrawData == null && !hasShown)
             {
-                SelectedGag = GagList.GagType.None;
+                SelectedGag = GagList.GagType.BallGag;
                 UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
             }
         }

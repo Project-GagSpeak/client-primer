@@ -77,14 +77,14 @@ public record GagTypeChanged(GagList.GagType NewGagType, GagLayer Layer) : Messa
 public record ActiveGagTypesUpdated : MessageBase; // unsure if i'll ever need this.
 public record GagLockToggle(PadlockData PadlockInfo, bool Unlocking) : MessageBase; // called whenever the client changes their padlock.
 public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase; // for penumbra tooltip application to restraint set
+public record AliasListUpdated(string UserUID) : MessageBase; // called whenever the client changes their alias list.
+/* ----------------- PLAYERDATA WARDROBE HANDLER RECORDS ----------------- */
+public record RestraintSetToggledMessage(UpdatedNewState State, int RestraintSetIndex, string AssignerUID) : MessageBase; // whenever the restraint set is toggled.
+public record RestraintSetPropertyChanged(string UidPropertiesChangedFor) : MessageBase; // fired when property is changed for a particular user
 public record RestraintSetAddedMessage(RestraintSet RestraintSetToAdd) : MessageBase; // A newly added restraint set
 public record RestraintSetModified(int RestraintSetIndex) : MessageBase; // fired when a restraint set is modified.
 public record RestraintSetReplacedMessage(RestraintSet RestraintSetToReplace, int RestraintSetIndex) : MessageBase; // Set being replaced
 public record RestraintSetRemovedMessage(int RestraintSetIndex) : MessageBase; // Set being removed
-
-/* ----------------- PLAYERDATA WARDROBE HANDLER RECORDS ----------------- */
-public record RestraintSetToggledMessage(UpdatedNewState State, int RestraintSetIndex, string AssignerUID) : MessageBase; // whenever the restraint set is toggled.
-public record RestraintSetPropertyChanged(string UidPropertiesChangedFor) : MessageBase; // fired when property is changed for a particular user.
 public record HardcoreRestraintSetDisabledMessage : MessageBase; // when a restraint set is removed.
 public record HardcoreRestraintSetEnabledMessage : MessageBase; // when a restraint set is added.
 public record BeginForcedToFollowMessage(Pair Pair) : MessageBase; // pair issuing the startup of the forced to follow command
@@ -111,13 +111,10 @@ public record ClientOtherPairPermissionAccessChanged(Pair Pair, string Permissio
 public record MoodlesMessage(IntPtr Address) : MessageBase; // indicated a moodles message was published.
 public record PenumbraInitializedMessage : MessageBase;
 public record PenumbraDisposedMessage : MessageBase;
-public record GlamourerChangedMessage(IntPtr Address, StateChangeType ChangeType) : MessageBase;
 public record UpdateGlamourMessage(GlamourUpdateType GenericUpdateType) : MessageBase; // for full refreshes on states.
 public record UpdateGlamourGagsMessage(UpdatedNewState NewState, GagLayer Layer, GagList.GagType GagType, string AssignerName) : MessageBase; // client side notifier for visual changes.
 public record UpdateGlamourRestraintsMessage(UpdatedNewState NewState) : MessageBase; // Restraint set updates.
 public record UpdateGlamourBlindfoldMessage(UpdatedNewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
-public record DisableGlamourChangeEvents : MessageBase; // when we start processing a glamour changed event.
-public record GlamourChangeEventFinished : MessageBase; // when we finish processing a glamour changed event.
 public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
 
 public record PlayerCharIpcChanged(CharacterIPCData IPCData) : MessageBase; // for when the player character IPC data changes

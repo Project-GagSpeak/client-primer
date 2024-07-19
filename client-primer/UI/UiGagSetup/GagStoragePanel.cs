@@ -116,9 +116,18 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             ImGui.AlignTextToFramePadding();
             if (_uiShared.IconButton(FontAwesomeIcon.Save))
             {
-                _clientConfigs.UpdateGagItem(SelectedGag, UnsavedDrawData);
+                _clientConfigs.UpdateGagItem(SelectedGag, UnsavedDrawData!);
             }
-            ImGui.NewLine();
+            // next line
+            ImGui.AlignTextToFramePadding();
+            ImGui.TextUnformatted($"Enable Configuration for {SelectedGag.GetGagAlias()}");
+            ImGui.SameLine();
+            var refEnabled = UnsavedDrawData!.IsEnabled;
+            if (ImGui.Checkbox($"##EnableGag{SelectedGag}", ref refEnabled))
+            {
+                UnsavedDrawData.IsEnabled = refEnabled;
+                Logger.LogTrace($"Gag {SelectedGag.GetGagAlias()} is now {(UnsavedDrawData.IsEnabled ? "enabled" : "disabled")}");
+            }
 
             // on the new line, lets draw out a group, containing the image, and the slot, item, and stain listings.
             using (var gagStorage = ImRaii.Group())
@@ -128,6 +137,12 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
                 try
                 {
                     UnsavedDrawData.GameItem.DrawIcon(_textures, IconSize, UnsavedDrawData.Slot);
+                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                    {
+                        Logger.LogTrace($"Item changed to {ItemIdVars.NothingItem(UnsavedDrawData.Slot)} [{ItemIdVars.NothingItem(UnsavedDrawData.Slot).ItemId}] " +
+                            $"from {UnsavedDrawData.GameItem} [{UnsavedDrawData.GameItem.ItemId}]");
+                        UnsavedDrawData.GameItem = ItemIdVars.NothingItem(UnsavedDrawData.Slot);
+                    }
                 }
                 catch (Exception e)
                 {

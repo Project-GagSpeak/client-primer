@@ -9,5 +9,5 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 public class AliasStorage
 {
     /// <summary> The storage of all aliases you have for the spesified user (defined in key) </summary>
-    public List<PhonemeProperties> AliasList { get; set; } = [];
+    public List<AliasTrigger> AliasList { get; set; } = [];
 }

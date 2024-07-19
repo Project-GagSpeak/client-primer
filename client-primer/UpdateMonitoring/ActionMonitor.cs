@@ -11,6 +11,7 @@ using GagSpeak.Hardcore.Hotbar;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
@@ -31,6 +32,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     private readonly WardrobeHandler _wardrobeHandler;
     private readonly HotbarLocker _hotbarLocker;
     private readonly OnFrameworkService _frameworkUtils;
+    private readonly GlamourFastUpdate _glamourFastEvent;
     // for direct access inspection
 
     public Control* gameControl = Control.Instance(); // instance to have control over our walking
@@ -52,7 +54,8 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         IClientState clientState, IGameInteropProvider interop, IDataManager dataManager,
         ClientConfigurationManager clientConfigs, PlayerCharacterManager manager,
         HotbarLocker hotbarLocker, HardcoreHandler handler, PairManager pairManager,
-        WardrobeHandler wardrobeHandler, OnFrameworkService frameworkUtils) : base(logger, mediator)
+        WardrobeHandler wardrobeHandler, OnFrameworkService frameworkUtils,
+        GlamourFastUpdate fastUpdate) : base(logger, mediator)
     {
         _clientState = clientState;
         _gameInteropProvider = interop;
@@ -64,6 +67,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         _pairManager = pairManager;
         _wardrobeHandler = wardrobeHandler;
         _frameworkUtils = frameworkUtils;
+        _glamourFastEvent = fastUpdate;
 
         // set up a hook to fire every time the address signature is detected in our game.
         UseActionHook = _gameInteropProvider.HookFromAddress<UseActionDelegate>((nint)ActionManager.MemberFunctionPointers.UseAction, UseActionDetour);
@@ -299,7 +303,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
                 // update the stored class job
                 _frameworkUtils._playerClassJobId = _clientState.LocalPlayer.ClassJob.Id;
                 // invoke jobChangedEvent to call the job changed glamour event
-                Mediator.Publish(new UpdateGlamourMessage(GlamourUpdateType.JobChange));
+                _glamourFastEvent.Invoke(GlamourUpdateType.JobChange);
                 // regenerate our slots
                 UpdateJobList();
                 RestoreSavedSlots();

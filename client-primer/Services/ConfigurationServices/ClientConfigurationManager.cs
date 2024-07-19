@@ -5,6 +5,7 @@ using GagSpeak.Interop.Ipc;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
+using GagspeakAPI.Data;
 using GagspeakAPI.Data.Enum;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
@@ -21,7 +22,7 @@ public class ClientConfigurationManager
 {
     private readonly OnFrameworkService _frameworkUtils;            // a utilities class with methods that work with the Dalamud framework
     private readonly ILogger<ClientConfigurationManager> _logger;   // the logger for the server config manager
-    private readonly GagspeakMediator _gagspeakMediator;            // the mediator for our Gagspeak Mediator
+    private readonly GagspeakMediator _mediator;            // the mediator for our Gagspeak Mediator
     private readonly GagspeakConfigService _configService;          // the primary gagspeak config service.
     private readonly GagStorageConfigService _gagStorageConfig;     // the config for the gag storage service (toybox gag storage)
     private readonly WardrobeConfigService _wardrobeConfig;         // the config for the wardrobe service (restraint sets)
@@ -36,7 +37,7 @@ public class ClientConfigurationManager
     {
         _logger = logger;
         _frameworkUtils = onFrameworkService;
-        _gagspeakMediator = GagspeakMediator;
+        _mediator = GagspeakMediator;
         _configService = configService;
         _gagStorageConfig = gagStorageConfig;
         _wardrobeConfig = wardrobeConfig;
@@ -206,7 +207,7 @@ public class ClientConfigurationManager
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods.Add(mod);
 
         _wardrobeConfig.Save();
-        _gagspeakMediator.Publish(new RestraintSetModified(setIndex));
+        _mediator.Publish(new RestraintSetModified(setIndex));
     }
 
     /// <summary> removes a mod from the restraint set's associated mods. </summary>
@@ -218,7 +219,7 @@ public class ClientConfigurationManager
 
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods.Remove(ModToRemove);
         _wardrobeConfig.Save();
-        _gagspeakMediator.Publish(new RestraintSetModified(setIndex));
+        _mediator.Publish(new RestraintSetModified(setIndex));
     }
 
     /// <summary> Updates a mod in the restraint set's associated mods. </summary>
@@ -230,7 +231,7 @@ public class ClientConfigurationManager
 
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods[associatedModIdx] = mod;
         _wardrobeConfig.Save();
-        _gagspeakMediator.Publish(new RestraintSetModified(setIndex));
+        _mediator.Publish(new RestraintSetModified(setIndex));
     }
 
     internal bool IsBlindfoldActive()
@@ -270,7 +271,55 @@ public class ClientConfigurationManager
     }
 
     /* --------------------- Puppeteer Alias Configs --------------------- */
+    public List<AliasTrigger> FetchListForPair(string userId)
+    {
+        if (!_aliasConfig.Current.AliasStorage.ContainsKey(userId))
+        {
+            _logger.LogDebug("User {userId} does not have an alias list, creating one.", userId);
+            // If not, initialize it with a new AliasList object
+            _aliasConfig.Current.AliasStorage[userId] = new AliasStorage();
+            _aliasConfig.Save();
+        }
+        return _aliasConfig.Current.AliasStorage[userId].AliasList;
+    }
+    public void AddAlias(string userId, AliasTrigger alias)
+    {
+        // Check if the userId key exists in the AliasStorage dictionary
+        if (!_aliasConfig.Current.AliasStorage.ContainsKey(userId))
+        {
+            _logger.LogDebug("User {userId} does not have an alias list, creating one.", userId);
+            // If not, initialize it with a new AliasList object
+            _aliasConfig.Current.AliasStorage[userId] = new AliasStorage();
+        }
+        // Add alias logic
+        _aliasConfig.Current.AliasStorage[userId].AliasList.Add(alias);
+        _aliasConfig.Save();
+        _mediator.Publish(new AliasListUpdated(userId));
+    }
 
+    public void RemoveAlias(string userId, AliasTrigger alias)
+    {
+        // Remove alias logic
+        _aliasConfig.Current.AliasStorage[userId].AliasList.Remove(alias);
+        _aliasConfig.Save();
+        _mediator.Publish(new AliasListUpdated(userId));
+    }
+
+    public void UpdateAliasInput(string userId, int aliasIndex, string input)
+    {
+        // Update alias input logic
+        _aliasConfig.Current.AliasStorage[userId].AliasList[aliasIndex].InputCommand = input;
+        _aliasConfig.Save();
+        _mediator.Publish(new AliasListUpdated(userId));
+    }
+
+    public void UpdateAliasOutput(string userId, int aliasIndex, string output)
+    {
+        // Update alias output logic
+        _aliasConfig.Current.AliasStorage[userId].AliasList[aliasIndex].OutputCommand = output;
+        _aliasConfig.Save();
+        _mediator.Publish(new AliasListUpdated(userId));
+    }
 
 
     /* --------------------- Toybox Pattern Configs --------------------- */

@@ -6,6 +6,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI.Utils;
 using Microsoft.Extensions.Hosting;
+using System.Net;
 
 namespace GagSpeak.UpdateMonitoring;
 
@@ -33,8 +34,12 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
 
     // the world data associated with the world ID
     public Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
+
     public bool IsZoning => _condition[ConditionFlag.BetweenAreas] || _condition[ConditionFlag.BetweenAreas51];
-    public uint _playerClassJobId = 0;
+    public uint _playerClassJobId = 0; // the player class job id
+    public IntPtr _playerAddr; // player address
+    public static bool GlamourChangeEventsDisabled = false; // 1st variable responsible for handling glamour change events
+    public static bool GlamourChangeFinishedDrawing = false; // 2nd variable responsible for handling glamour change events
 
     // the mediator for Gagspeak's event services
     public GagspeakMediator Mediator { get; }
@@ -51,6 +56,9 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         _gameGui = gameGui;
         _objectTable = objectTable;
         Mediator = mediator;
+        
+        _playerAddr = GetPlayerPointerAsync().GetAwaiter().GetResult();
+
         _playerCharas = new(StringComparer.Ordinal);
 
         WorldData = new(() =>
@@ -59,6 +67,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                 .Where(w => w.IsPublic && !w.Name.RawData.IsEmpty)
                 .ToDictionary(w => (ushort)w.RowId, w => w.Name.ToString());
         });
+
         // stores added pairs character name and addresses when added.
         mediator.Subscribe<TargetPairMessage>(this, (msg) =>
         {
@@ -296,6 +305,21 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
             return;
         }
 
+        // check glamour change variables.
+        if (GlamourChangeFinishedDrawing)
+        {
+            // and we have disabled the glamour change event still
+            if (GlamourChangeEventsDisabled)
+            {
+                // make sure to turn that off and reset it
+                GlamourChangeFinishedDrawing = false;
+                GlamourChangeEventsDisabled = false;
+                _logger.LogDebug($"Re-Allowing Glamour Change Event");
+            }
+        }
+
+
+
         // we need to update our stored playercharacters to know if they are still valid, and to update our pair handlers
         // Begin by adding the range of existing player character keys
         _notUpdatedCharas.AddRange(_playerCharas.Keys);
@@ -387,6 +411,8 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
             _logger.LogDebug("Logged in");
             IsLoggedIn = true;
             _lastZone = _clientState.TerritoryType;
+            _playerAddr = GetPlayerPointerAsync().GetAwaiter().GetResult();
+            _playerClassJobId = _clientState.LocalPlayer?.ClassJob.Id ?? 0;
             Mediator.Publish(new DalamudLoginMessage());
         }
         // otherwise, if the local player is null and isLoggedIn is true, meaning they just logged out

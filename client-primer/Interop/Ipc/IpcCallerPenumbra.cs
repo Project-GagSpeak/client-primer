@@ -237,7 +237,7 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
             if (AssociatedMod.RedrawAfterToggle == true)
             {
                 // redraw the object
-                RedrawObject(_frameworkService.GetPlayerPointer(), RedrawType.Redraw);
+                RedrawObject(_frameworkService._playerAddr, RedrawType.Redraw);
             }
 
             // get the recieved message

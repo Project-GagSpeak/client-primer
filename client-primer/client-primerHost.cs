@@ -39,7 +39,7 @@ using Microsoft.Extensions.Hosting;
 using OtterGui.Log;
 using Penumbra.GameData.Data;
 using Penumbra.GameData.DataContainers;
-using PlayerData.Handler;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 
 namespace GagSpeak;
 
@@ -128,7 +128,7 @@ public static class GagSpeakServiceExtensions
         // Events Services
         .AddSingleton((s) => new EventAggregator(pi.ConfigDirectory.FullName,
             s.GetRequiredService<ILogger<EventAggregator>>(), s.GetRequiredService<GagspeakMediator>()))
-        .AddSingleton<GlamourerHandler>()
+        .AddSingleton<GlamourFastUpdate>()
 
         // MufflerCore
         .AddSingleton((s) => new GagDataHandler(s.GetRequiredService<ILogger<GagDataHandler>>(),
@@ -168,6 +168,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<RestraintSetEditor>()
         .AddSingleton<RestraintCosmetics>()
 
+        .AddSingleton<AliasTable>()
+
         .AddSingleton<ToyboxOverview>()
         .AddSingleton<ToyboxPatterns>()
         .AddSingleton<ToyboxTriggerCreator>()
@@ -189,6 +191,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<HubFactory>()
         .AddSingleton<TokenProvider>()
         // Service Services
+        .AddSingleton<GlamourChangedService>()
         .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()
         .AddSingleton<GagspeakMediator>()
@@ -208,7 +211,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new IpcCallerPenumbra(s.GetRequiredService<ILogger<IpcCallerPenumbra>>(), pi,
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
         .AddSingleton((s) => new IpcCallerGlamourer(s.GetRequiredService<ILogger<IpcCallerGlamourer>>(), pi, cs,
-            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>(),
+            s.GetRequiredService<GlamourFastUpdate>()))
         .AddSingleton((s) => new IpcCallerCustomize(s.GetRequiredService<ILogger<IpcCallerCustomize>>(), pi, cs,
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
 

@@ -608,7 +608,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // wait for 30 seconds
             await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
             // log that we are checking the client health state
-            Logger.LogDebug("Checking Client Health State");
+            Logger.LogTrace("Checking Client Health State");
             // refresh the token and check if we need to reconnect
             bool requireReconnect = await RefreshToken(ct).ConfigureAwait(false);
             // if we need to reconnect, break out of the loop

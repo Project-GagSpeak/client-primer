@@ -66,6 +66,8 @@ public class Pair
     /// </summary>
     public UserPairDto UserPair { get; set; }
     public UserData UserData => UserPair.User;                                      // the UserData associated with the pair.
+    public UserPairPermissions UserPairOwnUniquePairPerms => UserPair.OwnPairPerms;    // the pair permissions of the pair.
+    public UserEditAccessPermissions UserPairOwnEditAccess => UserPair.OwnEditAccessPerms; // the edit permissions of the pair.
     public UserGlobalPermissions UserPairGlobalPerms => UserPair.OtherGlobalPerms;  // the global permissions of the pair.
     public UserPairPermissions UserPairUniquePairPerms => UserPair.OtherPairPerms;  // the pair permissions of the pair.
     public UserEditAccessPermissions UserPairEditAccess => UserPair.OtherEditAccessPerms; // the edit permissions of the pair.
@@ -85,7 +87,7 @@ public class Pair
     public bool IsPaired => IndividualPairStatus == IndividualPairStatus.Bidirectional; // if the user is paired bidirectionally.
     public bool IsPaused => UserPair.OwnPairPerms.IsPaused; 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;                          // if the paired user is visible.
-    public string? PlayerName => CachedPlayer?.PlayerName ?? string.Empty;  // Name of pair player. If empty, (pair handler) CachedData is not initialized yet.
+    public string? PlayerName => CachedPlayer?.PlayerName ?? UserData.AliasOrUID ?? string.Empty;  // Name of pair player. If empty, (pair handler) CachedData is not initialized yet.
                                                                             // Tells compactUI if this window is the window that should be open.
     public bool ShouldOpenPermWindow = false;                               // if this pairs permissions window should open.
 

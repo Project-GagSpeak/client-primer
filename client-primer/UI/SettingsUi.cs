@@ -15,6 +15,8 @@ using GagSpeak.WebAPI;
 using ImGuiNET;
 using System.Globalization;
 using System.Numerics;
+using GagspeakAPI.Data.Permissions;
+using Microsoft.IdentityModel.Tokens;
 
 namespace GagSpeak.UI;
 
@@ -56,7 +58,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         SizeConstraints = new WindowSizeConstraints()
         {
-            MinimumSize = new Vector2(800, 400),
+            MinimumSize = new Vector2(625, 400),
             MaximumSize = new Vector2(800, 2000),
         };
 
@@ -65,6 +67,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     }
 
     private ApiController ApiController => _uiShared.ApiController;
+    private UserGlobalPermissions PlayerGlobalPerms => _playerCharacterManager.GlobalPerms;
 
     protected override void PreDrawInternal() { }
     protected override void PostDrawInternal() { }
@@ -305,9 +308,178 @@ public class SettingsUi : WindowMediatorSubscriberBase
         // You might need to adjust its access modifier or provide a public method/property to access it safely.
     }
 
+
+    private void DrawGlobalSettings()
+    {
+        _lastTab = "Global Settings";
+
+        bool cmdsFromFriends = PlayerGlobalPerms.CommandsFromFriends;
+        bool cmdsFromParty = PlayerGlobalPerms.CommandsFromParty;
+        bool liveChatGarblerActive = PlayerGlobalPerms.LiveChatGarblerActive;
+        bool liveChatGarblerLocked = PlayerGlobalPerms.LiveChatGarblerLocked;
+
+        bool wardrobeEnabled = PlayerGlobalPerms.WardrobeEnabled;
+        bool itemAutoEquip = PlayerGlobalPerms.ItemAutoEquip;
+        bool restraintSetAutoEquip = PlayerGlobalPerms.RestraintSetAutoEquip;
+
+        bool puppeteerEnabled = PlayerGlobalPerms.PuppeteerEnabled;
+        string globalTriggerPhrase = PlayerGlobalPerms.GlobalTriggerPhrase;
+        bool globalAllowSitRequests = PlayerGlobalPerms.GlobalAllowSitRequests;
+        bool globalAllowMotionRequests = PlayerGlobalPerms.GlobalAllowMotionRequests;
+        bool globalAllowAllRequests = PlayerGlobalPerms.GlobalAllowAllRequests;
+
+        bool moodlesEnabled = PlayerGlobalPerms.MoodlesEnabled;
+
+        bool toyboxEnabled = PlayerGlobalPerms.ToyboxEnabled;
+        bool lockToyboxUI = PlayerGlobalPerms.LockToyboxUI;
+        bool toyIsActive = PlayerGlobalPerms.ToyIsActive;
+        bool spatialVibratorAudio = PlayerGlobalPerms.SpatialVibratorAudio;
+
+
+        _uiShared.BigText("Global Settings");
+
+        if (ImGui.Checkbox("Allow GagSpeak Commands from In-Game Friend list", ref cmdsFromFriends))
+        {
+            PlayerGlobalPerms.CommandsFromFriends = cmdsFromFriends;
+            // TODO: Perform a mediator call that we have updated a permission.
+            
+        }
+        _uiShared.DrawHelpText("If enabled, GagSpeak commands can be sent from friends in your friend list In-Game. Even if they are not paired.");
+
+        if (ImGui.Checkbox("Allow GagSpeak Commands from In-Game Party list", ref cmdsFromParty))
+        {
+            PlayerGlobalPerms.CommandsFromParty = cmdsFromParty;
+            // TODO: Perform a mediator call that we have updated a permission.
+            
+        }
+        _uiShared.DrawHelpText("If enabled, GagSpeak commands can be sent from party members in your party list In-Game. Even if they are not paired.");
+
+        using (ImRaii.Disabled(liveChatGarblerLocked))
+        {
+            if (ImGui.Checkbox("Enable Live Chat Garbler", ref liveChatGarblerActive))
+            {
+                PlayerGlobalPerms.LiveChatGarblerActive = liveChatGarblerActive;
+                // TODO: Perform a mediator call that we have updated a permission.
+                
+            }
+            _uiShared.DrawHelpText("If enabled, the Live Chat Garbler will garble your chat messages in-game. (This is done server-side, others will see it too)");
+        }
+
+
+
+        ImGui.Separator();
+        _uiShared.BigText("Wardrobe");
+
+        if (ImGui.Checkbox("Enable Wardrobe", ref wardrobeEnabled))
+        {
+            PlayerGlobalPerms.WardrobeEnabled = wardrobeEnabled;
+            // TODO: Perform a mediator call that we have updated a permission.
+            
+        }
+        _uiShared.DrawHelpText("If enabled, the all glamourer / penumbra / visual display information will become functional.");
+
+        using (ImRaii.Disabled(!wardrobeEnabled))
+        {
+            using var indent = ImRaii.PushIndent();
+
+            if (ImGui.Checkbox("Allow Items to be Auto-Equipped", ref itemAutoEquip))
+            {
+                PlayerGlobalPerms.ItemAutoEquip = itemAutoEquip;
+                // TODO: Perform a mediator call that we have updated a permission.
+                
+            }
+            _uiShared.DrawHelpText("Allows Glamourer to bind glamours to your character while gagged. These glamour's are defined by the Gag Storage.");
+
+            if (ImGui.Checkbox("Allow Restraint Sets to be Auto-Equipped", ref restraintSetAutoEquip))
+            {
+                PlayerGlobalPerms.RestraintSetAutoEquip = restraintSetAutoEquip;
+                // TODO: Perform a mediator call that we have updated a permission.
+                
+            }
+            _uiShared.DrawHelpText("Allows Glamourer to bind restraint sets to your character. Restraint sets can be created in the Wardrobe Interface.");
+        }
+
+
+
+        ImGui.Separator();
+        _uiShared.BigText("Puppeteer");
+
+        if (ImGui.Checkbox("Enable Puppeteer", ref puppeteerEnabled))
+        {
+            PlayerGlobalPerms.PuppeteerEnabled = puppeteerEnabled;
+            // TODO: Perform a mediator call that we have updated a permission.
+            
+        }
+        _uiShared.DrawHelpText("If enabled, the Puppeteer component will become functional.");
+
+        using (ImRaii.Disabled(!puppeteerEnabled))
+        {
+            using var indent = ImRaii.PushIndent();
+
+            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+            if (ImGui.InputText("Global Trigger Phrase", ref globalTriggerPhrase, 100, ImGuiInputTextFlags.EnterReturnsTrue))
+            {
+                PlayerGlobalPerms.GlobalTriggerPhrase = globalTriggerPhrase;
+                // TODO: Perform a mediator call that we have updated a permission.
+                
+            }
+            _uiShared.DrawHelpText("The global trigger phrase that will be used to trigger puppeteer commands.\n" +
+                "LEAVE THIS FIELD BLANK TO HAVE NO GLOBAL TRIGGER PHRASE");
+
+            if (ImGui.Checkbox("Globally Allow Sit Requests", ref globalAllowSitRequests))
+            {
+                PlayerGlobalPerms.GlobalAllowSitRequests = globalAllowSitRequests;
+                // TODO: Perform a mediator call that we have updated a permission.
+                
+            }
+            _uiShared.DrawHelpText("If enabled, the user will allow sit requests to be sent to them.");
+
+            if (ImGui.Checkbox("Globally Allow Motion Requests", ref globalAllowMotionRequests))
+            {
+                PlayerGlobalPerms.GlobalAllowMotionRequests = globalAllowMotionRequests;
+                // TODO: Perform a mediator call that we have updated a permission.
+                
+            }
+            _uiShared.DrawHelpText("If enabled, the user will allow motion requests to be sent to them.");
+
+            if (ImGui.Checkbox("Globally Allow All Requests", ref globalAllowAllRequests))
+            {
+                PlayerGlobalPerms.GlobalAllowAllRequests = globalAllowAllRequests;
+                // TODO: Perform a mediator call that we have updated a permission.
+                
+            }
+            _uiShared.DrawHelpText("If enabled, the user will allow all requests to be sent to them.");
+        }
+
+
+        ImGui.Separator();
+        _uiShared.BigText("Moodles");
+
+        if (ImGui.Checkbox("Enable Moodles", ref moodlesEnabled))
+        {
+            PlayerGlobalPerms.MoodlesEnabled = moodlesEnabled;
+            // TODO: Perform a mediator call that we have updated a permission.
+            
+        }
+        _uiShared.DrawHelpText("If enabled, the moodles component will become functional.");
+
+
+
+        ImGui.Separator();
+        _uiShared.BigText("Toybox");
+
+        if (ImGui.Checkbox("Enable Toybox", ref toyboxEnabled))
+        {
+            PlayerGlobalPerms.ToyboxEnabled = toyboxEnabled;
+            // TODO: Perform a mediator call that we have updated a permission.
+            
+        }
+        _uiShared.DrawHelpText("If enabled, the toybox component will become functional.");
+    }
+
     private void DrawPreferences()
     {
-        _lastTab = "Plugin Preferences";
+        _lastTab = "Preferences";
 
         // the nicknames section
         _uiShared.BigText("Nicknames");
@@ -410,6 +582,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared.DrawHelpText("Will show profiles on the right side of the main UI");
 
         // how long we should need to hover over it in order for the profile to display?
+        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
         if (ImGui.SliderFloat("Hover Delay", ref profileDelay, 1, 5))
         {
             _configService.Current.ProfileDelay = profileDelay;
@@ -427,8 +600,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         _uiShared.BigText("Notifications");
 
-        // see if they want to be notified when an online paired user connects to GagSpeak
-        _uiShared.DrawHelpText("Enabling this will not show any \"Warning\" labeled messages for missing optional plugins.");
         if (ImGui.Checkbox("Enable online notifications", ref onlineNotifs))
         {
             _configService.Current.ShowOnlineNotifications = onlineNotifs;
@@ -828,6 +999,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
         // draw out the tab bar for us.
         if (ImGui.BeginTabBar("mainTabBar"))
         {
+            if (ImGui.BeginTabItem("Global Settings"))
+            {
+                DrawGlobalSettings();
+                ImGui.EndTabItem();
+            }
             if (ImGui.BeginTabItem("Preferences"))
             {
                 DrawPreferences();

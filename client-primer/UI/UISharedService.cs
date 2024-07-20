@@ -113,6 +113,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public bool UseTheme => _useTheme;
     public string SearchFilter { get; set; } = ""; // the search filter used in whitelist. Stored here to ensure the tab menu can clear it upon switching tabs.
 
+
+
     /// <summary> 
     /// A helper function to attach a tooltip to a section in the UI currently hovered. 
     /// </summary>
@@ -765,15 +767,19 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             {
                 selectedItem = initialSelectedItem;
                 _selectedComboItems[comboName] = selectedItem!;
-
-                /*                if (!EqualityComparer<T>.Default.Equals(initialSelectedItem, default))
-                                    onSelected?.Invoke(initialSelectedItem);*/
             }
             else
             {
                 selectedItem = comboItems.First();
                 _selectedComboItems[comboName] = selectedItem!;
             }
+        }
+
+        // if the selected item is not in the list of items being passed in, update it to the first item in the comboItems list
+        if(!comboItems.Contains((T)selectedItem!))
+        {
+            selectedItem = comboItems.First();
+            _selectedComboItems[comboName] = selectedItem!;
         }
 
         ImGui.SetNextItemWidth(width);
@@ -799,7 +805,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                     onSelected?.Invoke(item!);
                 }
             }
-
             ImGui.EndCombo();
         }
         // Check if the item was right-clicked. If so, reset to default value.

@@ -1,4 +1,5 @@
 using GagSpeak.Interop.Ipc;
+using Newtonsoft.Json.Linq;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
 
@@ -21,5 +22,23 @@ public record AssociatedMod
     public bool RedrawAfterToggle { get; set; } = false;
 
     /// <summary> If it should update display in drawtableUpdateDisplayData </summary>
-    
+    public JObject Serialize()
+    {
+        return new JObject
+        {
+            ["Mod"] = new JObject
+            {
+                ["Name"] = Mod.Name,
+                ["DirectoryName"] = Mod.DirectoryName,
+            },
+            ["ModSettings"] = new JObject
+            {
+                ["Enabled"] = ModSettings.Enabled,
+                ["Settings"] = JObject.FromObject(ModSettings.Settings), // Assuming Settings is a suitable type for FromObject
+                ["Priority"] = ModSettings.Priority,
+            },
+            ["DisableWhenInactive"] = DisableWhenInactive,
+            ["RedrawAfterToggle"] = RedrawAfterToggle,
+        };
+    }
 }

@@ -15,7 +15,6 @@ namespace GagSpeak.PlayerData.Data;
 // unsure atm why we would need this, but we will find out soon.
 public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 {
-    private readonly IpcManager _ipcManager;
     private readonly PairManager _pairManager;
     private readonly ClientConfigurationManager _clientConfigManager;
     private CharacterIPCData _playerCharIpcData { get; set; } // the IPC data for our player character
@@ -29,10 +28,9 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     IList<CustomizePlusProfileData> ClientCustomizeProfileList { get; set; } // the list of client customize profiles
 
     public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger, 
-        GagspeakMediator mediator, IpcManager ipcManager, PairManager pairManager, 
+        GagspeakMediator mediator, PairManager pairManager, 
         ClientConfigurationManager clientConfiguration) : base(logger, mediator)
     {
-        _ipcManager = ipcManager;
         _pairManager = pairManager;
         _clientConfigManager = clientConfiguration;
 

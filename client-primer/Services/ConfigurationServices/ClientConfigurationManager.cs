@@ -144,7 +144,12 @@ public class ClientConfigurationManager
     /// <summary> 
     /// I swear to god, so not set anything inside this object through this fetch. Treat it as readonly.
     /// </summary>
-    public List<RestraintSet> StoredRestraintSets => WardrobeConfig.WardrobeStorage.RestraintSets;
+    internal List<RestraintSet> StoredRestraintSets => WardrobeConfig.WardrobeStorage.RestraintSets;
+
+    public List<string> GetRestraintSetNames()
+    {
+        return StoredRestraintSets.Select(set => set.Name).ToList();
+    }
 
     internal int GetActiveSetIdx() => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Enabled);
     internal RestraintSet GetActiveSet()
@@ -157,9 +162,33 @@ public class ClientConfigurationManager
 
     internal RestraintSet GetRestraintSet(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
 
+    internal void AddNewRestraintSet(RestraintSet newSet)
+    {
+        // add 1 to the name until it is unique.
+        while (WardrobeConfig.WardrobeStorage.RestraintSets.Any(x => x.Name == newSet.Name))
+        {
+            newSet.Name += "(copy)";
+        }
+        _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(newSet);
+        _wardrobeConfig.Save();
+        _logger.LogInformation("Restraint Set added to wardrobe");
+        // publish to mediator
+        _mediator.Publish(new RestraintSetAddedMessage(newSet));
+    }
+
+    // remove a restraint set
+    internal void RemoveRestraintSet(int setIndex)
+    {
+        _wardrobeConfig.Current.WardrobeStorage.RestraintSets.RemoveAt(setIndex);
+        _wardrobeConfig.Save();
+        // _mediator.Publish(new RestraintSetRemoved(setIndex));
+    }
+
     // make to see if a set has hardcore properties bound for it.
     internal bool PropertiesEnabledForSet(int setIndexToCheck, string UIDtoCheckPropertiesFor)
     {
+        if(UIDtoCheckPropertiesFor == "SelfApplied") return false;
+
         HardcoreSetProperties setProperties = WardrobeConfig.WardrobeStorage.RestraintSets[setIndexToCheck].SetProperties[UIDtoCheckPropertiesFor];
         // if no object for this exists, return false
         if (setProperties == null) return false;
@@ -176,22 +205,22 @@ public class ClientConfigurationManager
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Enabled = false;
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = string.Empty;
             _wardrobeConfig.Save();
+            // publish toggle to mediator
+            _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair));
         }
         else
         {
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Enabled = true;
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = UIDofPair;
             _wardrobeConfig.Save();
+            // publish toggle to mediator
+            _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair));
         }
+        // publish to the mediator the toggle message for updates TODO
     }
 
     /// <summary> Gets the total count of restraint sets in the wardrobe. </summary>
     internal int GetRestraintSetCount() => WardrobeConfig.WardrobeStorage.RestraintSets.Count;
-
-    /// <summary> Gets index of selected restraint set. </summary>
-    internal int GetSelectedSetIdx() => WardrobeConfig.WardrobeStorage.SelectedRestraintSet;
-
-    internal bool IsSetEnabled(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Enabled;
 
     /// <summary> Gets the DrawData from a wardrobes restraint set. </summary>
     internal List<AssociatedMod> GetAssociatedMods(int setIndex)
@@ -251,12 +280,6 @@ public class ClientConfigurationManager
     internal string GetBlindfoldedBy()
     {
         return WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldedBy;
-    }
-
-    internal void SetBlindfoldedBy(string player)
-    {
-        WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldedBy = player;
-        _wardrobeConfig.Save();
     }
 
     internal EquipDrawData GetBlindfoldItem()

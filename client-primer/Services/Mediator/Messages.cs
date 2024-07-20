@@ -83,7 +83,6 @@ public record RestraintSetToggledMessage(UpdatedNewState State, int RestraintSet
 public record RestraintSetPropertyChanged(string UidPropertiesChangedFor) : MessageBase; // fired when property is changed for a particular user
 public record RestraintSetAddedMessage(RestraintSet RestraintSetToAdd) : MessageBase; // A newly added restraint set
 public record RestraintSetModified(int RestraintSetIndex) : MessageBase; // fired when a restraint set is modified.
-public record RestraintSetReplacedMessage(RestraintSet RestraintSetToReplace, int RestraintSetIndex) : MessageBase; // Set being replaced
 public record RestraintSetRemovedMessage(int RestraintSetIndex) : MessageBase; // Set being removed
 public record HardcoreRestraintSetDisabledMessage : MessageBase; // when a restraint set is removed.
 public record HardcoreRestraintSetEnabledMessage : MessageBase; // when a restraint set is added.

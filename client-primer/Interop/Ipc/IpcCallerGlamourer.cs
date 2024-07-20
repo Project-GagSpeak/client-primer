@@ -210,17 +210,6 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     /// <summary> Fired upon by the IPC event subscriber when the glamourer changes. </summary>
     /// <param name="address"> The address of the character that changed. </param>
     /// <param name="changeType"> The type of change that occurred. </param>"
-/*    private void GlamourerChanged(nint address, StateChangeType changeType)
-    {
-        if (!GlamourChangeEventsDisabled)
-        {
-            Mediator.Publish(new GlamourerChangedMessage(address, changeType));
-        }
-        else
-        {
-            Logger.LogTrace("Glamourer change event disabled, blocking event with change type: {changeType}", changeType);
-        }
-    }*/
     private void GlamourerChanged(nint address, StateChangeType changeType)
     {
         if (OnFrameworkService.GlamourChangeEventsDisabled)
@@ -230,9 +219,6 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
         // do not accept if coming from other player besides us.
         if (address != _onFrameworkService._playerAddr) return;
-
-        // do not accept if we have enable wardrobe turned off.
-        //if (!_playerManager.GlobalPerms.WardrobeEnabled) return;
 
         // See if the change type is a type we are looking for
         if (changeType == StateChangeType.Design
@@ -246,7 +232,6 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
             // call the update glamourer appearance message.
             _fastUpdates.Invoke(GlamourUpdateType.RefreshAll);
-            //Mediator.Publish(new UpdateGlamourMessage(GlamourUpdateType.RefreshAll));
         }
         else // it is not a type we care about, so ignore
         {

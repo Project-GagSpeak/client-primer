@@ -89,9 +89,9 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
         _configIsDirty = false;
         var existingConfigs = Directory.EnumerateFiles(ConfigurationDirectory, ConfigurationName + ".bak.*").Select(c => new FileInfo(c))
             .OrderByDescending(c => c.LastWriteTime).ToList();
-        if (existingConfigs.Skip(5).Any())
+        if (existingConfigs.Skip(1).Any())
         {
-            foreach (var config in existingConfigs.Skip(5))
+            foreach (var config in existingConfigs.Skip(1))
             {
                 config.Delete();
             }
@@ -101,10 +101,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
         {
             File.Copy(ConfigurationPath, ConfigurationPath + ".bak." + DateTime.Now.ToString("yyyyMMddHHmmss"), overwrite: true);
         }
-        catch
-        {
-            // Log or handle the error as needed
-        }
+        catch {  /* Consume */}
 
         JObject configObject = new JObject()
         {

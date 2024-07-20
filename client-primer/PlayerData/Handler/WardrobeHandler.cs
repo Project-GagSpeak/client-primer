@@ -2,6 +2,7 @@ using Dalamud.Plugin;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.Movement;
+using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
@@ -30,6 +31,27 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         _playerManager = playerManager;
         _pairManager = pairManager;
 
+        // set the selected set to the first set in the list
+        SelectedSet = _clientConfigs.GetRestraintSet(0);
+
+        Mediator.Subscribe<RestraintSetAddedMessage>(this, (msg) =>
+        {
+            Logger.LogInformation("Set Added, Wardrobe Config Saved");
+        });
+
+        Mediator.Subscribe<RestraintSetRemovedMessage>(this, (msg) =>
+        {
+            Logger.LogInformation("Set Removed, Wardrobe Config Saved");
+        });
+
+        Mediator.Subscribe<RestraintSetModified>(this, (msg) =>
+        {
+            Logger.LogInformation("Set Was modified, updating reference set.");
+            // updated selected index too jussssssssst to be sure
+            SelectedSetIdx = msg.RestraintSetIndex;
+            SelectedSet = _clientConfigs.GetRestraintSet(msg.RestraintSetIndex);
+        });
+
         Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
         {
             if(msg.State == UpdatedNewState.Disabled)
@@ -55,6 +77,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
                 _clientConfigs.SetRestraintSetState(msg.State, msg.RestraintSetIndex, msg.AssignerUID);
                 // call the active set
                 ActiveSet = _clientConfigs.GetActiveSet();
+                Logger.LogInformation("ActiveSet Enabled at index {0}", msg.RestraintSetIndex);
                 // set the pair to who enabled the set
                 PairWhoEnabledSet = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == msg.AssignerUID);
                 // see if it has any hardcore properties attached for the UID enabling it
@@ -100,6 +123,104 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     /// <summary> The current Pair in our pair list who has blindfolded us. Null if none. </summary>
     public Pair? BlindfoldedByPair { get; private set; }
 
-    /// <summary> Methods to clear the set pairs are here below </summary>
+    /// <summary> The currently selected set from our restraint set list. </summary>
+    public int SelectedSetIdx { get; set; } = 0;
+    public RestraintSet SelectedSet { get; private set; }
+
+
+    /// <summary> Fetches the active restraint set index </summary>
+    public int GetActiveSetIndex()
+    {
+        return _clientConfigs.GetActiveSetIdx();
+    }
+
+    // TODO: much of this logic interacts with configs, while some can interact with pair permissions, which it should be.
+    // Care for this please.
+    /// <summary> Fetches the list of restraint set names. </summary>
+    public List<string> GetRestraintSetsByName()
+    {
+        return _clientConfigs.GetRestraintSetNames();
+    }
+
+    public RestraintSet GetRestraintSet(int index)
+    {
+        return _clientConfigs.GetRestraintSet(index);
+    }
+
+    public void EnableRestraintSet(int index, string assignerUID)
+    {
+        _clientConfigs.SetRestraintSetState(UpdatedNewState.Enabled, index, assignerUID);
+    }
+
+    public void DisableRestraintSet(int index, string assignerUID)
+    {
+        _clientConfigs.SetRestraintSetState(UpdatedNewState.Disabled, index, assignerUID);
+    }
+
+    public int RestraintSetCount()
+    {
+        return _clientConfigs.GetRestraintSetCount();
+    }
+
+    public void AddRestraintSet(RestraintSet set)
+    {
+        _clientConfigs.AddNewRestraintSet(set);
+    }
+
+    public void RemoveRestraintSet(int index)
+    {
+        _clientConfigs.RemoveRestraintSet(index);
+    }
+
+    public bool HardcorePropertiesEnabledForSet(int index, string UidToExamine)
+    {
+        return _clientConfigs.PropertiesEnabledForSet(index, UidToExamine);
+    }
+
+    public List<AssociatedMod> GetAssociatedMods(int setIndex)
+    {
+        return _clientConfigs.GetAssociatedMods(setIndex);
+    }
+
+    public void RemoveAssociatedMod(int setIndex, Mod mod)
+    {
+        _clientConfigs.RemoveAssociatedMod(setIndex, mod);
+    }
+
+    public void UpdateAssociatedMod(int setIndex, AssociatedMod mod)
+    {
+        _clientConfigs.UpdateAssociatedMod(setIndex, mod);
+    }
+
+    public void AddAssociatedMod(int setIndex, AssociatedMod mod)
+    {
+        _clientConfigs.AddAssociatedMod(setIndex, mod);
+    }
+
+    public bool IsBlindfoldActive()
+    {
+        return _clientConfigs.IsBlindfoldActive();
+    }
+
+    public void EnableBlindfold(string ApplierUID)
+    {
+        _clientConfigs.SetBlindfoldState(true, ApplierUID);
+    }
+
+    public void DisableBlindfold(string ApplierUID)
+    {
+        _clientConfigs.SetBlindfoldState(false, "");
+    }
+
+    public EquipDrawData GetBlindfoldDrawData()
+    {
+        return _clientConfigs.GetBlindfoldItem();
+    }
+
+    public void SetBlindfoldDrawData(EquipDrawData drawData)
+    {
+        _clientConfigs.SetBlindfoldItem(drawData);
+    }
+
 
 }

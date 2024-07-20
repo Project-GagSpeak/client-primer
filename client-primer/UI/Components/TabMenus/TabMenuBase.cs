@@ -19,14 +19,23 @@ public abstract class TabMenuBase
     protected abstract string GetTabDisplayName(Enum tab);
 
     /// <summary>
+    /// Virtual boolean that determines if a particular tab should be displayed or not
+    /// </summary>
+    protected virtual bool ShouldDisplayTab(Enum tab)
+    {
+        // By default, all tabs are displayed. But can be configured to hide tabs at will.
+        return true;
+    }
+
+    /// <summary>
     /// Draws out selectable list to determine what draws on the right half of the UI
     /// </summary>
     public void DrawSelectableTabMenu()
     {
         foreach (var window in Enum.GetValues(TabSelectionType))
         {
-            if (window.ToString() == "None") continue;
-            
+            if (window.ToString() == "None" || !ShouldDisplayTab((Enum)window)) continue;
+
             var displayName = GetTabDisplayName((Enum)window);
 
             if (ImGui.Selectable($"{displayName}", window.Equals(SelectedTab)))

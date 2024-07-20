@@ -57,6 +57,7 @@ public record GagDrawData
         {
             GameStain = StainIds.None;
         }
+        ActiveSlotId = jsonObject["ActiveSlotListIdx"]?.Value<int>() ?? 0;
     }
 }
 

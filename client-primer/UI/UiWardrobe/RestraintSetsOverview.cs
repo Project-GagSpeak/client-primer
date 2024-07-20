@@ -1,5 +1,18 @@
+using Dalamud.Interface;
+using Dalamud.Interface.Utility.Raii;
+using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
+using GagSpeak.UI.Components.Combos;
+using GagSpeak.Utils;
 using ImGuiNET;
+using OtterGui;
+using OtterGui.Text;
+using OtterGui.Widgets;
+using Penumbra.GameData.DataContainers;
+using Penumbra.GameData.Enums;
+using System.Numerics;
 
 namespace GagSpeak.UI.UiWardrobe;
 
@@ -7,18 +20,162 @@ public class RestraintSetsOverview
 {
     private readonly ILogger<RestraintSetsOverview> _logger;
     private readonly GagspeakMediator _mediator;
-    private readonly UiSharedService _uiSharedService;
+    private readonly UiSharedService _uiShared;
+    private readonly WardrobeHandler _handler;
+    private readonly TextureService _textures;
+    private readonly DictStain _stainDictionary;
 
-    public RestraintSetsOverview(ILogger<RestraintSetsOverview> logger, GagspeakMediator mediator,
-        UiSharedService uiSharedService)
+    public RestraintSetsOverview(ILogger<RestraintSetsOverview> logger, 
+        GagspeakMediator mediator, UiSharedService uiSharedService, 
+        WardrobeHandler handler, TextureService textureService,
+        DictStain stainDictionary)
     {
         _logger = logger;
         _mediator = mediator;
-        _uiSharedService = uiSharedService;
+        _uiShared = uiSharedService;
+        _handler = handler;
+        _textures = textureService;
+        _stainDictionary = stainDictionary;
+
+        GameIconSize = new Vector2(2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y);
+        StainColorCombos = new StainColorCombo(0, _stainDictionary, logger);
     }
+
+    private Vector2 GameIconSize;
+    private string RefSearchString = string.Empty;
+    private readonly StainColorCombo StainColorCombos;
 
     public void DrawSetsOverview()
     {
-        ImGui.Text("Restraint Sets Overview");
+        var itemSpacing = ImGui.GetStyle().ItemSpacing;
+        if (_handler.RestraintSetCount() == 0)
+        {
+            using (_uiShared.UidFont.Push())
+            {
+                ImGui.Text($"No Restraint Sets Created!");
+            }
+            ImGui.TextWrapped("To Create a Restraint Set, head over to the Restraint Set Creator tab.");
+            return;
+        }
+
+        if(_handler.SelectedSet == null)
+        {
+            _handler.SelectedSetIdx = 0;
+            _mediator.Publish(new RestraintSetModified(0)); // force an update to the selectedSet
+        }
+        // grab the list of names
+        List<string> nameList = _handler.GetRestraintSetsByName();
+        string defaultSelection = nameList.FirstOrDefault() ?? "No Restraint Sets Created!";
+
+        // Draw the combo box with the default selected item and the action
+        _uiShared.DrawComboSearchable("Restraint Set", 200f, ref RefSearchString,
+            nameList, (i) => i, true,
+        (i) =>
+        {
+            // Set the selected index to the selected item's index
+            _logger.LogInformation($"Selected Set: {i}");
+            int index = nameList.IndexOf(i);
+            _handler.SelectedSetIdx = index;
+            _mediator.Publish(new RestraintSetModified(index));
+        }, defaultSelection);
+
+        // if we reach this point it means we have a valid restraint set counter ( greater than 0 )
+        ImGui.SameLine();
+
+        var icon = _handler.SelectedSet.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff;
+        var text = _handler.SelectedSet.Enabled ? "Enabled" : "Disabled";
+        if (_uiShared.IconTextButton(icon, text))
+        {
+            if (_handler.SelectedSet.Enabled)
+            {
+                _handler.DisableRestraintSet(_handler.SelectedSetIdx, "SelfApplied");
+            }
+            else
+            {
+                _handler.EnableRestraintSet(_handler.SelectedSetIdx, "SelfApplied");
+            }
+        }
+
+        ImGui.SameLine();
+
+        if (_uiShared.IconTextButton(FontAwesomeIcon.TrashAlt, "Delete"))
+        {
+            var idxToDelete = _handler.SelectedSetIdx;
+            // publish update to reset back to 0 index,
+            _mediator.Publish(new RestraintSetModified(0));
+            // remove the set at the index.
+            _handler.RemoveRestraintSet(idxToDelete);
+        }
+
+        // table from here on out
+        using (var infoTable = ImRaii.Table("RestraintsOverviewTable", 2, ImGuiTableFlags.None))
+        {
+            if (!infoTable) return;
+            // setup the columns
+            ImGui.TableSetupColumn("BasicInfo", ImGuiTableColumnFlags.WidthFixed, 300f);
+            ImGui.TableSetupColumn("PreviewSet", ImGuiTableColumnFlags.WidthStretch);
+
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+
+            _uiShared.BigText(_handler.SelectedSet.Name); // display name
+            ImGui.TextWrapped(_handler.SelectedSet.Description); // display description
+
+
+            // rest of general information
+            ImGui.TableNextColumn();
+
+            // embed a new table within this table.
+            using (var equipIconsTable = ImRaii.Table("equipIconsTable", 2, ImGuiTableFlags.RowBg))
+            {
+                if (!equipIconsTable) return;
+                // Create the headers for the table
+                var width = GameIconSize.X + ImGui.GetFrameHeight() + itemSpacing.X;
+                // setup the columns
+                ImGui.TableSetupColumn("EquipmentSlots", ImGuiTableColumnFlags.WidthFixed, width);
+                ImGui.TableSetupColumn("AccessorySlots", ImGuiTableColumnFlags.WidthStretch);
+
+                // draw out the equipment slots
+                ImGui.TableNextRow(); ImGui.TableNextColumn();
+
+                foreach (var slot in EquipSlotExtensions.EquipmentSlots)
+                {
+                    _handler.SelectedSet.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                    ImGui.SameLine(0, 3);
+                    using (var groupDraw = ImRaii.Group())
+                    {
+                        DrawStain(slot);
+                    }
+                }
+                // i am dumb and dont know how to place adjustable divider lengths
+                ImGui.TableNextColumn();
+                //draw out the accessory slots
+                foreach (var slot in EquipSlotExtensions.AccessorySlots)
+                {
+                    _handler.SelectedSet.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                    ImGui.SameLine(0, 3);
+                    using (var groupDraw = ImRaii.Group())
+                    {
+                        DrawStain(slot);
+                    }
+                }
+            }
+        }
+    }
+
+    private void DrawStain(EquipSlot slot)
+    {
+
+        // draw the stain combo for each of the 2 dyes (or just one)
+        foreach (var (stainId, index) in _handler.SelectedSet.DrawData[slot].GameStain.WithIndex())
+        {
+            using var id = ImUtf8.PushId(index);
+            var found = _stainDictionary.TryGetValue(stainId, out var stain);
+            // draw the stain combo, but dont make it hoverable
+            using (var disabled = ImRaii.Disabled(true))
+            {
+                StainColorCombos.Draw($"##stain{_handler.SelectedSet.DrawData[slot].Slot}",
+                    stain.RgbaColor, stain.Name, found, stain.Gloss, MouseWheelType.None);
+            }
+        }
     }
 }

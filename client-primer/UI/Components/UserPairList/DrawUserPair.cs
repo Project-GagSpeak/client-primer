@@ -5,14 +5,10 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Handlers;
 using GagSpeak.UI.Permissions;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
 using ImGuiNET;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
-using System.Security;
-using GagSpeak.UI;
-using GagSpeak.WebAPI;
-using GagspeakAPI.Dto.UserPair;
 
 namespace GagSpeak.UI.Components.UserPairList;
 
@@ -56,11 +52,11 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
             ImGui.SameLine();
             var posX = ImGui.GetCursorPosX();
 
-            float rightSide = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() 
+            float rightSide = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()
                               - (_uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV).X);
-            
+
             rightSide = DrawRightSide();
-            
+
             DrawName(posX, rightSide, false);
         }
         _wasHovered = ImGui.IsItemHovered();
@@ -265,7 +261,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
             {
                 // display list of patterns
                 // for each pattern:
-                if(ImGui.MenuItem("Execute"))
+                if (ImGui.MenuItem("Execute"))
                 {
                     // execute the pattern
                 }

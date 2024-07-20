@@ -40,6 +40,7 @@ using OtterGui.Log;
 using Penumbra.GameData.Data;
 using Penumbra.GameData.DataContainers;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
+using GagSpeak.Interop.IpcHelpers.Penumbra;
 
 namespace GagSpeak;
 
@@ -146,7 +147,9 @@ public static class GagSpeakServiceExtensions
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
         .AddSingleton<GagSpeakHost>()
+        .AddSingleton<ModAssociations>()
         // apparently adding services from submodules is cursed
+        .AddSingleton((s) => new DictBonusItems(pi, new Logger(), dm))
         .AddSingleton((s) => new DictStain(pi, new Logger(), dm))
         .AddSingleton<ItemData>()
         .AddSingleton((s) => new ItemsByType(pi, new Logger(), dm))
@@ -164,9 +167,16 @@ public static class GagSpeakServiceExtensions
         
         .AddSingleton<ActiveRestraintSet>()
         .AddSingleton<RestraintSetsOverview>()
-        .AddSingleton<RestraintSetCreator>()
+        .AddSingleton((s) => new RestraintSetCreator(s.GetRequiredService<ILogger<RestraintSetCreator>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
+            s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<DictStain>(), 
+            s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(),
+            s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(),
+            s.GetRequiredService<PairManager>(), dm))
         .AddSingleton<RestraintSetEditor>()
         .AddSingleton<RestraintCosmetics>()
+        .AddSingleton<WardrobeHandler>()
+
 
         .AddSingleton<AliasTable>()
 

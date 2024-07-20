@@ -1,5 +1,6 @@
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
@@ -12,6 +13,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
 {
     private readonly UiSharedService _uiSharedService;
     private readonly WardrobeTabMenu _tabMenu;
+    private readonly WardrobeHandler _handler;
     private readonly ActiveRestraintSet _activePanel;
     private readonly RestraintSetsOverview _overviewPanel;
     private readonly RestraintSetCreator _creatorPanel;
@@ -20,18 +22,20 @@ public class WardrobeUI : WindowMediatorSubscriberBase
 
     public WardrobeUI(ILogger<WardrobeUI> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        ActiveRestraintSet activeSet, RestraintSetsOverview restraintOverview,
-        RestraintSetCreator restraintSetCreate, RestraintSetEditor restraintSetEdit,
-        RestraintCosmetics restraintCosmetics) : base(logger, mediator, "Wardrobe UI")
+        WardrobeHandler handler, ActiveRestraintSet activeSet, 
+        RestraintSetsOverview restraintOverview, RestraintSetCreator restraintSetCreate,
+        RestraintSetEditor restraintSetEdit, RestraintCosmetics restraintCosmetics) 
+        : base(logger, mediator, "Wardrobe UI")
     {
         _uiSharedService = uiSharedService;
+        _handler = handler;
         _activePanel = activeSet;
         _overviewPanel = restraintOverview;
         _creatorPanel = restraintSetCreate;
         _editorPanel = restraintSetEdit;
         _cosmeticsPanel = restraintCosmetics;
 
-        _tabMenu = new WardrobeTabMenu();
+        _tabMenu = new WardrobeTabMenu(_handler);
 
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints
@@ -41,6 +45,8 @@ public class WardrobeUI : WindowMediatorSubscriberBase
         };
         RespectCloseHotkey = false;
     }
+
+    private bool IsAnySetActive => _activePanel.ActiveSet != null;
 
     protected override void PreDrawInternal()
     {
@@ -56,6 +62,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
         var region = ImGui.GetContentRegionAvail();
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
         var topLeftSideHeight = region.Y;
+        var cellPadding = ImGui.GetStyle().CellPadding;
 
         // create the draw-table for the selectable and viewport displays
         ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiSharedService.GetFontScalerFloat(), 0));
@@ -116,7 +123,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                             _overviewPanel.DrawSetsOverview();
                             break;
                         case WardrobeTabs.Tabs.CreateNewSet:
-                            _creatorPanel.DrawRestraintSetCreator();
+                            _creatorPanel.DrawRestraintSetCreator(cellPadding);
                             break;
                         case WardrobeTabs.Tabs.ModifySet:
                             _editorPanel.DrawRestraintSetEditor();

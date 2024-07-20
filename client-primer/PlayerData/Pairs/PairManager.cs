@@ -30,9 +30,6 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     public List<Pair> DirectPairs => _directPairsInternal.Value;            // the direct pairs the client has with other users.
     public Pair? LastAddedUser { get; internal set; }                       // the user pair most recently added to the pair list.
 
-    // FOR DEBUGGING ONLY, REMOVE AFTER
-    public ConcurrentDictionary<UserData, Pair> ClientPairs => _allClientPairs; // a public access version of the client pair lists for other classes to access. (could be removed since its only used in settings idk)
-
     public PairManager(ILogger<PairManager> logger, PairFactory pairFactory,
         ClientConfigurationManager configurationService, GagspeakMediator mediator) : base(logger, mediator)
     {

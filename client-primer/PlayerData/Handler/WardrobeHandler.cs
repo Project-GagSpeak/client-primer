@@ -34,6 +34,13 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         // set the selected set to the first set in the list
         SelectedSet = _clientConfigs.GetRestraintSet(0);
 
+        // see if any sets are active, and if so, set the active set
+        int activeIdx = GetActiveSetIndex();
+        if (activeIdx != -1)
+        {
+            ActiveSet = _clientConfigs.GetRestraintSet(activeIdx);
+        }
+
         Mediator.Subscribe<RestraintSetAddedMessage>(this, (msg) =>
         {
             Logger.LogInformation("Set Added, Wardrobe Config Saved");
@@ -145,6 +152,12 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public RestraintSet GetRestraintSet(int index)
     {
         return _clientConfigs.GetRestraintSet(index);
+    }
+
+    // update set
+    public void UpdateRestraintSet(int index, RestraintSet set)
+    {
+        _clientConfigs.UpdateRestraintSet(index, set);
     }
 
     public void EnableRestraintSet(int index, string assignerUID)

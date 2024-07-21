@@ -1,8 +1,10 @@
+using Buttplug.Client;
 using Dalamud.Interface.ImGuiNotification;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services.Data;
 using GagSpeak.Services.Events;
 using GagSpeak.UI;
 using GagSpeak.UI.Permissions;
@@ -96,8 +98,16 @@ public record BeginForcedBlindfoldMessage(Pair Pair) : MessageBase; // when a pa
 public record EndForcedBlindfoldMessage(Pair Pair) : MessageBase;
 
 /* ------------------ PLAYERDATA TOYBOX HANDLER RECORDS ------------------ */
+public record ToyScanStarted : MessageBase; // for when the toybox scan is started.
+public record ToyScanFinished : MessageBase; // for when the toybox scan is finished.
+public record VibratorModeToggled(VibratorMode VibratorMode) : MessageBase; // for when the vibrator mode is toggled.
+public record ToyDeviceAdded(ButtplugClientDevice Device) : MessageBase; // for when a device is added.
+public record ToyDeviceRemoved(ButtplugClientDevice Device) : MessageBase; // for when a device is removed.
+public record ButtplugClientDisconnected : MessageBase; // for when the buttplug client disconnects.
 public record ToyboxActiveDeviceChangedMessage(int DeviceIndex) : MessageBase; // for when the active device is changed.
 public record UpdateVibratorIntensity(int newIntensity) : MessageBase; // for when the vibrator intensity is changed.
+
+
 
 /* ------------------ PLAYERDATA CLIENTSIDE PERMISSION HANDLING ------------------- */
 public record ClientGlobalPermissionChanged(string Permission, object Value) : MessageBase; // for when a client global permission is changed.

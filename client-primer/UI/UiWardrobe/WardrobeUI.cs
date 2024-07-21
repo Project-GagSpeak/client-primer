@@ -19,7 +19,6 @@ public class WardrobeUI : WindowMediatorSubscriberBase
     private readonly RestraintSetCreator _creatorPanel;
     private readonly RestraintSetEditor _editorPanel;
     private readonly RestraintCosmetics _cosmeticsPanel;
-
     public WardrobeUI(ILogger<WardrobeUI> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         WardrobeHandler handler, ActiveRestraintSet activeSet, 
@@ -40,8 +39,8 @@ public class WardrobeUI : WindowMediatorSubscriberBase
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(375, 330),
-            MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
+            MinimumSize = new Vector2(760, 439),
+            MaximumSize = new Vector2(760*1.5f, 439*1.5f)
         };
         RespectCloseHotkey = false;
     }
@@ -58,6 +57,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
     }
     protected override void DrawInternal()
     {
+        //_logger.LogInformation(ImGui.GetWindowSize().ToString()); // <-- USE FOR DEBUGGING ONLY.
         // get information about the window region, its item spacing, and the topleftside height.
         var region = ImGui.GetContentRegionAvail();
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
@@ -126,7 +126,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                             _creatorPanel.DrawRestraintSetCreator(cellPadding);
                             break;
                         case WardrobeTabs.Tabs.ModifySet:
-                            _editorPanel.DrawRestraintSetEditor();
+                            _editorPanel.DrawRestraintSetEditor(cellPadding);
                             break;
                         case WardrobeTabs.Tabs.Cosmetics:
                             _cosmeticsPanel.DrawCosmetics();

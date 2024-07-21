@@ -41,6 +41,7 @@ using Penumbra.GameData.Data;
 using Penumbra.GameData.DataContainers;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 using GagSpeak.Interop.IpcHelpers.Penumbra;
+using GagSpeak.Services.Data;
 
 namespace GagSpeak;
 
@@ -139,11 +140,17 @@ public static class GagSpeakServiceExtensions
         // PlayerData Services
         .AddSingleton<GagManager>()
         .AddSingleton<PadlockHandler>()
+        .AddSingleton<ToyboxHandler>()
         .AddSingleton<PlayerCharacterManager>()
         .AddSingleton<GameObjectHandlerFactory>()
         .AddSingleton<PairFactory>()
         .AddSingleton<PairHandlerFactory>()
         .AddSingleton<PairManager>()
+        // Toybox Services
+        .AddSingleton<ConnectedDevice>()
+        .AddSingleton<DeviceFactory>()
+        .AddSingleton<DeviceHandler>()
+
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
         .AddSingleton<GagSpeakHost>()
@@ -173,7 +180,12 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(),
             s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(),
             s.GetRequiredService<PairManager>(), dm))
-        .AddSingleton<RestraintSetEditor>()
+        .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
+            s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<DictStain>(),
+            s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(),
+            s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(),
+            s.GetRequiredService<PairManager>(), dm))
         .AddSingleton<RestraintCosmetics>()
         .AddSingleton<WardrobeHandler>()
 
@@ -182,7 +194,7 @@ public static class GagSpeakServiceExtensions
 
         .AddSingleton<ToyboxOverview>()
         .AddSingleton<ToyboxPatterns>()
-        .AddSingleton<ToyboxTriggerCreator>()
+        .AddSingleton<ToyboxVibeServer>()
         .AddSingleton<ToyboxTriggerManager>()
         .AddSingleton<ToyboxAlarmManager>()
         .AddSingleton<ToyboxCosmetics>()

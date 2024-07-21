@@ -1,7 +1,10 @@
 using Dalamud.Game.ClientState.Objects.Types;
+using GagSpeak.Interop.IpcHelpers.GameData;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagspeakAPI.Data.Character;
+using Newtonsoft.Json;
+using Penumbra.GameData.Structs;
 using System.Text.Json;
 
 namespace GagSpeak.WebAPI.Utils;
@@ -47,9 +50,18 @@ public static class GenericUtils
         return charaDataToUpdate;
     }
 
+
     public static T DeepClone<T>(this T obj)
     {
-        return JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(obj))!;
+        var settings = new JsonSerializerSettings
+        {
+            TypeNameHandling = TypeNameHandling.Auto,
+            PreserveReferencesHandling = PreserveReferencesHandling.Objects,
+            Converters = new List<JsonConverter> { new EquipItemConverter(), new GameStainConverter() },
+        };
+
+        var jsonString = JsonConvert.SerializeObject(obj, settings);
+        return JsonConvert.DeserializeObject<T>(jsonString, settings)!;
     }
 
     public static unsafe int? ObjectTableIndex(this IGameObject? gameObject)

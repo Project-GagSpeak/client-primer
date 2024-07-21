@@ -1,8 +1,5 @@
-using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
@@ -13,25 +10,25 @@ namespace GagSpeak.UI.UiToybox;
 
 public class ToyboxUI : WindowMediatorSubscriberBase
 {
-    private readonly UiSharedService _uiSharedService;
+    private readonly UiSharedService _uiShared;
     private readonly ToyboxTabMenu _tabMenu;
     private readonly ToyboxOverview _toysOverview;
+    private readonly ToyboxVibeServer _vibeServer;
     private readonly ToyboxPatterns _patterns;
-    private readonly ToyboxTriggerCreator _triggerCreator;
     private readonly ToyboxTriggerManager _triggerManager;
     private readonly ToyboxAlarmManager _alarmManager;
     private readonly ToyboxCosmetics _cosmetics;
 
     public ToyboxUI(ILogger<ToyboxUI> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService, ToyboxOverview toysOverview,
-        ToyboxPatterns patterns, ToyboxTriggerCreator triggerCreator,
+        ToyboxVibeServer vibeServer, ToyboxPatterns patterns,
         ToyboxTriggerManager triggerManager, ToyboxAlarmManager alarmManager,
         ToyboxCosmetics cosmetics) : base(logger, mediator, "Toybox UI")
     {
-        _uiSharedService = uiSharedService;
+        _uiShared = uiSharedService;
         _toysOverview = toysOverview;
+        _vibeServer = vibeServer;
         _patterns = patterns;
-        _triggerCreator = triggerCreator;
         _triggerManager = triggerManager;
         _alarmManager = alarmManager;
         _cosmetics = cosmetics;
@@ -60,10 +57,11 @@ public class ToyboxUI : WindowMediatorSubscriberBase
         // get information about the window region, its item spacing, and the topleftside height.
         var region = ImGui.GetContentRegionAvail();
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
+        var cellPadding = ImGui.GetStyle().CellPadding;
         var topLeftSideHeight = region.Y;
 
         // create the draw-table for the selectable and viewport displays
-        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiSharedService.GetFontScalerFloat(), 0));
+        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiShared.GetFontScalerFloat(), 0));
         try
         {
             using (var table = ImRaii.Table($"ToyboxUiWindowTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
@@ -82,7 +80,7 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                 using (var leftChild = ImRaii.Child($"###ToyboxLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
                     // attempt to obtain an image wrap for it
-                    var iconTexture = _uiSharedService.GetImageFromDirectoryFile("icon.png");
+                    var iconTexture = _uiShared.GetImageFromDirectoryFile("icon.png");
                     if (!(iconTexture is { } wrap))
                     {
                         _logger.LogWarning("Failed to render image!");
@@ -92,8 +90,8 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                         // aligns the image in the center like we want.
                         UtilsExtensions.ImGuiLineCentered("###ToyboxLogo", () =>
                         {
-                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiSharedService.GetFontScalerFloat(),
-                                125f * _uiSharedService.GetFontScalerFloat()));
+                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiShared.GetFontScalerFloat(),
+                                125f * _uiShared.GetFontScalerFloat()));
 
                             if (ImGui.IsItemHovered())
                             {
@@ -107,7 +105,7 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                     ImGui.Spacing();
                     ImGui.Separator();
                     // add the tab menu for the left side.
-                    using (_uiSharedService.UidFont.Push())
+                    using (_uiShared.UidFont.Push())
                     {
                         _tabMenu.DrawSelectableTabMenu();
                     }
@@ -115,22 +113,23 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                 // pop pushed style variables and draw next column.
                 ImGui.PopStyleVar();
                 ImGui.TableNextColumn();
+
                 // display right half viewport based on the tab selection
                 using (var rightChild = ImRaii.Child($"###ToyboxRight", Vector2.Zero, false))
                 {
                     switch (_tabMenu.SelectedTab)
                     {
-                        case ToyboxTabs.Tabs.ToyManager:
+                        case ToyboxTabs.Tabs.ToyOverview:
                             _toysOverview.DrawOverviewPanel();
+                            break;
+                        case ToyboxTabs.Tabs.VibeServer:
+                            _vibeServer.DrawVibeServerPanel();
                             break;
                         case ToyboxTabs.Tabs.PatternManager:
                             _patterns.DrawPatternManagerPanel();
                             break;
-                        case ToyboxTabs.Tabs.ToyboxTriggerCreator:
-                            _triggerCreator.DrawToyboxTriggerCreatorPanel();
-                            break;
-                        case ToyboxTabs.Tabs.ToyboxTriggerManager:
-                            _triggerManager.DrawTriggerManagerPanel();
+                        case ToyboxTabs.Tabs.TriggerManager:
+                            _triggerManager.DrawTriggersPanel();
                             break;
                         case ToyboxTabs.Tabs.AlarmManager:
                             _alarmManager.DrawAlarmManagerPanel();

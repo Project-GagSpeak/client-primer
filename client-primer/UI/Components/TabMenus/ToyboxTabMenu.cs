@@ -23,10 +23,10 @@ public static class ToyboxTabs
 {
     public enum Tabs
     {
-        ToyManager, // manage connections, active toys, audio sounds, ext.
+        ToyOverview, // manage connections, active toys, audio sounds, ext.
+        VibeServer, // connect to hub, create groups, invite others, access instanced vibrators for each
         PatternManager, // manage, create, or send patterns.
-        ToyboxTriggerCreator, // create a new trigger.
-        ToyboxTriggerManager, // manage trigger presets
+        TriggerManager, // create a new trigger.
         AlarmManager, // manage, create, or send alarms.
         ToyboxCosmetics, // lets you add custom display effects related to toybox actions.
     }
@@ -35,10 +35,10 @@ public static class ToyboxTabs
     {
         return tab switch
         {
-            Tabs.ToyManager => "Toys Overview",
+            Tabs.ToyOverview => "Overview",
+            Tabs.VibeServer => "Vibe Server",
             Tabs.PatternManager => "Patterns",
-            Tabs.ToyboxTriggerCreator => "Create Trigger",
-            Tabs.ToyboxTriggerManager => "Manage Triggers",
+            Tabs.TriggerManager => "Triggers",
             Tabs.AlarmManager => "Alarms",
             Tabs.ToyboxCosmetics => "Toybox Cosmetics",
             _ => "None",

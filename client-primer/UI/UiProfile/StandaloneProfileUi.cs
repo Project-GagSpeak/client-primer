@@ -55,22 +55,11 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
 
             var gagspeakProfile = _gagspeakProfileManager.GetGagspeakProfile(Pair.UserData);
 
-            if (_textureWrap == null || !gagspeakProfile.ImageData.Value.SequenceEqual(_lastProfilePicture))
+            if (_textureWrap == null || !gagspeakProfile.ProfilePicData.Value.SequenceEqual(_lastProfilePicture))
             {
                 _textureWrap?.Dispose();
-                _lastProfilePicture = gagspeakProfile.ImageData.Value;
+                _lastProfilePicture = gagspeakProfile.ProfilePicData.Value;
                 _textureWrap = _uiSharedService.LoadImage(_lastProfilePicture);
-            }
-
-            if (_supporterTextureWrap == null || !gagspeakProfile.SupporterImageData.Value.SequenceEqual(_lastSupporterPicture))
-            {
-                _supporterTextureWrap?.Dispose();
-                _supporterTextureWrap = null;
-                if (!string.IsNullOrEmpty(gagspeakProfile.Base64SupporterPicture))
-                {
-                    _lastSupporterPicture = gagspeakProfile.SupporterImageData.Value;
-                    _supporterTextureWrap = _uiSharedService.LoadImage(_lastSupporterPicture);
-                }
             }
 
             var drawList = ImGui.GetWindowDrawList();

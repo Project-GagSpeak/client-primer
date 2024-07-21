@@ -1,4 +1,5 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
@@ -120,6 +121,72 @@ public class RestraintSetsOverview
             _uiShared.BigText(_handler.SelectedSet.Name); // display name
             ImGui.TextWrapped(_handler.SelectedSet.Description); // display description
 
+            // display attached hardcore attributes if we have any
+            _uiShared.BigText("Hardcore Attributes:");
+            // create a list of strings from the hardcore set properties dictionary keyset
+            string UIDtoView = _handler.SelectedSet.SetProperties.Keys.FirstOrDefault() ?? "No User Selected";
+            if(!_handler.SelectedSet.SetProperties.Keys.Any())
+            {
+               ImGui.Text("No Hardcore Attributes Attached");
+            }
+            else
+            {
+                _uiShared.DrawCombo("View Properties for Pair", 150f, _handler.SelectedSet.SetProperties.Keys.ToList(),
+                                (i) => i,
+                            (i) =>
+                            {
+                                // set the viewing UID to the index selected
+                                UIDtoView = i;
+                            }, UIDtoView);
+                if (UIDtoView != "No User Selected")
+                {
+                    // display the properties
+                    ImGui.Text("Legs Restrainted");
+                    _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].LegsRestrained);
+                    ImGui.Text("Arms Restrainted");
+                    _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].ArmsRestrained);
+                    ImGui.Text("Gagged");
+                    _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].Gagged);
+                    ImGui.Text("Blindfolded");
+                    _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].Blindfolded);
+                    ImGui.Text("Immobile");
+                    _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].Immobile);
+                    ImGui.Text("Weighty");
+                    _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].Weighty);
+                    ImGui.Text("Light Stimulation");
+                    _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].LightStimulation);
+                    ImGui.Text("Mild Stimulation");
+                    _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].MildStimulation);
+                    ImGui.Text("Heavy Stimulation");
+                    _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].HeavyStimulation);
+                }
+            }
+            // end of hardcore attributes
+
+            // display the active associated mods
+            _uiShared.BigText("Attached Mods");
+
+            if (_handler.SelectedSet.AssociatedMods.Count == 0)
+            {
+                ImGui.Text("No Mods Attached");
+            }
+            else
+            {
+                foreach (var mod in _handler.SelectedSet.AssociatedMods)
+                {
+                    ImGui.Text(mod.Mod.Name);
+                    ImGui.SameLine(0, 4);
+                    if(mod.DisableWhenInactive)
+                    {
+                       ImGui.TextColored(ImGuiColors.ParsedGreen, "Toggles Mod");
+                    }
+                    ImGui.SameLine(0, 4);
+                    if(mod.RedrawAfterToggle)
+                    {
+                        ImGui.TextColored(ImGuiColors.ParsedGreen, "Forces Redraw");
+                    }
+                }
+            }
 
             // rest of general information
             ImGui.TableNextColumn();
@@ -145,6 +212,10 @@ public class RestraintSetsOverview
                     {
                         DrawStain(slot);
                     }
+                }
+                foreach (var slot in BonusExtensions.AllFlags)
+                {
+                    _handler.SelectedSet.BonusDrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
                 }
                 // i am dumb and dont know how to place adjustable divider lengths
                 ImGui.TableNextColumn();

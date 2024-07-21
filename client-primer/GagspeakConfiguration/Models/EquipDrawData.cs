@@ -10,14 +10,13 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 [Serializable]
 public record EquipDrawData
 {
-    public bool IsEnabled = false; // determines if it will be applied during event handling.
-    public string EquippedBy = string.Empty; // remove if no use
-    public bool Locked = false; // remove if no use
-    public EquipSlot Slot = EquipSlot.Head;
-    public EquipItem GameItem;
-    public StainIds GameStain = StainIds.None;
-    public int ActiveSlotId = 0; // what slot of the equipment it is.
-
+    public bool IsEnabled { get; set; } = false; // determines if it will be applied during event handling.
+    public string EquippedBy { get; set; } = string.Empty; // remove if no use
+    public bool Locked { get; set; } = false; // remove if no use
+    public EquipSlot Slot { get; set; } = EquipSlot.Head;
+    public EquipItem GameItem { get; set; } = new EquipItem();
+    public StainIds GameStain { get; set; } = StainIds.None;
+    public int ActiveSlotId { get; set; } = 0; // what slot of the equipment it is.
 
     public EquipDrawData(EquipItem gameItem) => GameItem = gameItem;
 

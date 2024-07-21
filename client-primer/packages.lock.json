@@ -30,6 +30,12 @@
         "resolved": "2.1.13",
         "contentHash": "rMN1omGe8536f4xLMvx9NwfvpAc9YFFfeXJ1t4P4PE6Gu8WCIoFliR1sh07hM+bfODmesk/dvMbji7vNI+B/pQ=="
       },
+      "DebounceThrottle": {
+        "type": "Direct",
+        "requested": "[3.0.1, )",
+        "resolved": "3.0.1",
+        "contentHash": "5Kuor4ym0rG9x1n/nhDwBGyl19dRfWougnkqZo9Sj91NsEDKREfWPE97y6tNtZBRWkMBX7kjECVh5zPz0kFY5w=="
+      },
       "Microsoft.AspNetCore.SignalR.Client": {
         "type": "Direct",
         "requested": "[8.0.5, )",

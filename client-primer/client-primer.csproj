@@ -128,6 +128,10 @@
         
         <!--Adds support for our simulated vibrator (potentially replace with better audio option for more sound quality.-->
         <PackageReference Include="NAudio" Version="2.2.1" />
+        
+        <!--For handling debouncing inputs to send vibrations to connected devices, for stablizing overload -->
+        <PackageReference Include="DebounceThrottle" Version="3.0.1" />
+        
         <!-- Toybox Lovense Compatibility. (According to docs possibly estim too) -->
         <PackageReference Include="Buttplug" Version="3.0.1" />
         <PackageReference Include="Buttplug.Client.Connectors.WebsocketConnector" Version="3.0.1" />

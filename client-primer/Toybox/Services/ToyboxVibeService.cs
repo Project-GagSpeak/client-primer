@@ -1,4 +1,4 @@
-using Buttplug.Client;
+/*using Buttplug.Client;
 using Buttplug.Client.Connectors.WebsocketConnector;
 using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Text.SeStringHandling;
@@ -8,12 +8,11 @@ using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 
-namespace GagSpeak.Services;
+namespace GagSpeak.Toybox.Services;
 public class ToyboxVibeService : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterManager _playerManager;
-    private readonly IChatGui _chatGui; // for sending messages to the chat
     public ButtplugClient client;
     public ButtplugWebsocketConnector connector;
     public ButtplugClientDevice? ActiveDevice; // our connected, active device from the list of devices in the ButtplugClient.
@@ -27,7 +26,6 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
     {
         _clientConfigs = config;
         _playerManager = characterHandler;
-        _chatGui = chatGui;
 
         // initially assume we have no connected devices
         AnyDeviceConnected = false;
@@ -335,6 +333,7 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
             {
                 if (ActiveDevice.VibrateAttributes.Count > 0)
                 {
+                    ActiveDevice.VibrateAttributes.
                     StepCount = (int)ActiveDevice.VibrateAttributes.First().StepCount;
                     StepInterval = 1.0 / StepCount;
                 }
@@ -408,3 +407,7 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
     #endregion Toy Functions
 }
 
+
+
+
+*/

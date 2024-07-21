@@ -17,7 +17,7 @@ public class ToyboxTriggerManager
         _uiSharedService = uiSharedService;
     }
 
-    public void DrawTriggerManagerPanel()
+    public void DrawTriggersPanel()
     {
         ImGui.Text("Trigger Manager Panel");
     }

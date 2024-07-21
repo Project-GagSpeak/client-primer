@@ -184,6 +184,13 @@ public class ClientConfigurationManager
         // _mediator.Publish(new RestraintSetRemoved(setIndex));
     }
 
+    internal void UpdateRestraintSet(int setIndex, RestraintSet updatedSet)
+    {
+        _wardrobeConfig.Current.WardrobeStorage.RestraintSets[setIndex] = updatedSet;
+        _wardrobeConfig.Save();
+        _mediator.Publish(new RestraintSetModified(setIndex));
+    }
+
     // make to see if a set has hardcore properties bound for it.
     internal bool PropertiesEnabledForSet(int setIndexToCheck, string UIDtoCheckPropertiesFor)
     {

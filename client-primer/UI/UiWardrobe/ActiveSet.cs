@@ -33,7 +33,7 @@ public class ActiveRestraintSet
         _handler = handler;
         _textures = textures;
 
-        IconSize = ImGuiHelpers.ScaledVector2(1.5f * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y);
+        IconSize = ImGuiHelpers.ScaledVector2(2.5f * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y);
     }
 
     private Vector2 IconSize; // size of icons that can display
@@ -49,7 +49,7 @@ public class ActiveRestraintSet
         using var table = ImRaii.Table("RestraintEquipSelection", 2, ImGuiTableFlags.RowBg);
         if (!table) return;
         // Create the headers for the table
-        var width = ImGui.GetContentRegionAvail().X / 2 - ImGui.GetStyle().ItemSpacing.X;
+        var width = IconSize.X + ImGui.GetStyle().ItemSpacing.X;
         // setup the columns
         ImGui.TableSetupColumn("EquipmentSlots", ImGuiTableColumnFlags.WidthFixed, width);
         ImGui.TableSetupColumn("AccessorySlots", ImGuiTableColumnFlags.WidthStretch);
@@ -61,6 +61,10 @@ public class ActiveRestraintSet
         {
             // draw the icon display
             ActiveSet.DrawData[slot].GameItem.DrawIcon(_textures, IconSize, slot);
+        }
+        foreach (var slot in BonusExtensions.AllFlags)
+        {
+            ActiveSet.BonusDrawData[slot].GameItem.DrawIcon(_textures, IconSize, slot);
         }
         // i am dumb and dont know how to place adjustable divider lengths
         ImGui.TableNextColumn();

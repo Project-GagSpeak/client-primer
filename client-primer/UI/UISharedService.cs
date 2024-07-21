@@ -57,6 +57,14 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private bool _moodlesExists = false;                                // if moodles currently exists on the client
     private bool _penumbraExists = false;                               // if penumbra currently exists on the client
     private bool _useTheme = true;                                      // if we should use the GagSpeak Theme
+
+    // default image paths
+    private const string GagspeakLogoPath = "iconUI.png";
+    private const string GagspeakLogoPathSmall = "icon.png";
+    private const string SupporterTierOnePath = "Tier1Supporter.png";
+    private const string SupporterTierTwoPath = "Tier2Supporter.png";
+    private const string SupporterTierThreePath = "Tier3Supporter.png";
+
     public UiSharedService(ILogger<UiSharedService> logger, GagspeakMediator mediator,
         Dalamud.Localization localization, ApiController apiController,
         ClientConfigurationManager clientConfigurationManager,
@@ -433,6 +441,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         _sharedTextures = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, path));
         return _sharedTextures.GetWrapOrEmpty();
     }
+
+    // helpers to get the static images
+    public IDalamudTextureWrap GetGagspeakLogo() => GetImageFromDirectoryFile(GagspeakLogoPath);
+    public IDalamudTextureWrap GetGagspeakLogoSmall() => GetImageFromDirectoryFile(GagspeakLogoPathSmall);
+    public IDalamudTextureWrap GetSupporterTierOne() => GetImageFromDirectoryFile(SupporterTierOnePath);
+    public IDalamudTextureWrap GetSupporterTierTwo() => GetImageFromDirectoryFile(SupporterTierTwoPath);
+    public IDalamudTextureWrap GetSupporterTierThree() => GetImageFromDirectoryFile(SupporterTierThreePath);
 
     public IDalamudTextureWrap LoadImage(byte[] imageData)
     {

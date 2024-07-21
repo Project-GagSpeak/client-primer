@@ -94,7 +94,7 @@ public class DeviceHandler : DisposableMediatorSubscriberBase
     public void DrawDevicesTable()
     {
         using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, 4));
-        using var table = ImRaii.Table("ConnectedDevices", 7, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY, );
+        using var table = ImRaii.Table("ConnectedDevices", 7, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY);
         if (!table) { return; }
 
         var refX = ImGui.GetCursorPos();

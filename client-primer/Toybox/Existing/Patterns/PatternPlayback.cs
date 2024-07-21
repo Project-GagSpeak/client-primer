@@ -24,7 +24,7 @@ public class PatternPlayback : IDisposable
     private readonly ToyboxHandler  _vibeHandler;
     private readonly SoundPlayer        _soundPlayer;
     private PatternData                 _tempStoredPattern;
-    private MakeshiftDebouncer               _MakeshiftDebouncer;
+    private TimerRecorder               _TimerRecorder;
     public Stopwatch                    _recordingStopwatch;
     private List<byte>                  storedRecordedPositions = new List<byte>(); // the stored pattern data to playback
     private double[]                    currentPos = new double[2];  // The plotted points position on the wavelength graph
@@ -41,7 +41,7 @@ public class PatternPlayback : IDisposable
         // Create a new stopwatch
         _recordingStopwatch = new Stopwatch();
         // create a timer for realtime feedback display. This data is disposed of automatically after 300 entries (15s of data)
-        _MakeshiftDebouncer = new MakeshiftDebouncer(20, ReadVibePosFromBuffer);
+        _TimerRecorder = new TimerRecorder(20, ReadVibePosFromBuffer);
     }
 
     public void Dispose() {
@@ -51,7 +51,7 @@ public class PatternPlayback : IDisposable
         }
         _soundPlayer.Dispose();
         // dispose of the timers
-        _MakeshiftDebouncer.Dispose();
+        _TimerRecorder.Dispose();
         _recordingStopwatch.Stop();
         _recordingStopwatch.Reset();
     }
@@ -134,7 +134,7 @@ public void Draw() {
         }
         // start our timers
         _recordingStopwatch.Start();
-        _MakeshiftDebouncer.Start();
+        _TimerRecorder.Start();
         // start our simulated sound if active
         if(_characterHandler.playerChar._usingSimulatedVibe) {
             _soundPlayer.Play();
@@ -160,7 +160,7 @@ public void Draw() {
         // clear the temp stored reference data, replacing it with a blank one
         _tempStoredPattern = new PatternData();
         // reset the timers
-        _MakeshiftDebouncer.Stop();
+        _TimerRecorder.Stop();
         _recordingStopwatch.Stop();
         _recordingStopwatch.Reset();
         // stop the simulated sound if active

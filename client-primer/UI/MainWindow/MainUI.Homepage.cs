@@ -9,6 +9,8 @@ using GagSpeak.UI.UiOrders;
 using GagSpeak.UI.UiToybox;
 using GagSpeak.UI.UiPuppeteer;
 using GagSpeak.UI.UiWardrobe;
+using UI.UiRemote;
+using GagSpeak.UI.UiRemote;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -62,7 +64,7 @@ public partial class MainWindowUI
         {
             // possibly use a factory to generate pair-unique remotes, or, if you want to incorporate multiple use functionality,
             // you can configure users in the remote menu.
-            Mediator.Publish(new UiToggleMessage(typeof(LovenseRemoteUI)));
+            Mediator.Publish(new UiToggleMessage(typeof(LoveneseRemote)));
         }
         UiSharedService.AttachToolTip("Use your personal Lovense Remote to send vibrations to yourself or other pairs ");
 

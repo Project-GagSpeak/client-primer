@@ -15,6 +15,7 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
+using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Enum;
@@ -23,6 +24,7 @@ using OtterGui;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace GagSpeak.UI;
 
@@ -283,6 +285,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public static Vector4 GetBoolColor(bool input) => input ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudRed;
 
+    public Vector2 GetGlobalHelperScaleSize(Vector2 size) => size * ImGuiHelpers.GlobalScale;
+
     public float GetFontScalerFloat() => ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f);
 
     public float GetIconTextButtonSize(FontAwesomeIcon icon, string text)
@@ -318,6 +322,41 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public static float GetWindowContentRegionWidth() => ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
+
+    public bool DrawScaledCenterButtonImage(string ID, Vector2 buttonSize, Vector4 buttonColor,
+        Vector2 imageSize, IDalamudTextureWrap image)
+    {
+        // push ID for the function
+        ImGui.PushID(ID);
+        // grab the current cursor position
+        var InitialPos = ImGui.GetCursorPos();
+        // calculate the difference in height between the button and the image
+        var heightDiff = buttonSize.Y - imageSize.Y;
+        // draw out the button centered
+        if (UtilsExtensions.CenteredLineWidths.TryGetValue(ID, out var dims))
+        {
+            ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - dims / 2);
+        }
+        var oldCur = ImGui.GetCursorPosX();
+        bool result = ImGui.Button(string.Empty, buttonSize);
+        //Logger.LogTrace("Result of button: {result}", result);
+        ImGui.SameLine(0, 0);
+        UtilsExtensions.CenteredLineWidths[ID] = ImGui.GetCursorPosX() - oldCur;
+        ImGui.Dummy(Vector2.Zero);
+
+        // now go back up to the inital position, then step down by the height difference/2
+        ImGui.SetCursorPosY(InitialPos.Y + heightDiff / 2);
+
+        // now draw out the image over the button
+        UtilsExtensions.ImGuiLineCentered($"###CenterImage{ID}", () =>
+        {
+            ImGui.Image(image.ImGuiHandle, imageSize, Vector2.Zero, Vector2.One, buttonColor);
+        });
+        ImGui.PopID();
+        // return the result
+        return result;
+    }
+
 
     public bool IconButton(FontAwesomeIcon icon, float? height = null)
     {

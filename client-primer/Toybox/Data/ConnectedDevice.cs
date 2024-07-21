@@ -216,7 +216,7 @@ public class ConnectedDevice
 
 
     /// <summary> Send a vibration command.(create worker threads for this later or something idfk) </summary>
-    public async Task SendVibrationAsync(byte intensity, int motorIndex = -1)
+    public void SendVibration(byte intensity, int motorIndex = -1)
     {
         if (ClientDevice == null || !CanVibrate || !IsConnected)
         {
@@ -242,8 +242,10 @@ public class ConnectedDevice
             // create the storage we are sending off.
             double[] motorIntensitysToSend = new double[VibratorMortors];
             // convert the bytes to the doubles that will be sent off
-            foreach (var intensityByte in CurrentVibratorIntensity)
-                motorIntensitysToSend[motorIndex] = GetVibrationDoubleFromByte(intensityByte);
+            for (int i = 0; i < CurrentVibratorIntensity.Length; i++)
+            {
+                motorIntensitysToSend[i] = GetVibrationDoubleFromByte(CurrentVibratorIntensity[i]);
+            }
 
             // send the vibration off to each motor asyncronously.
             VibrateDebouncer.Debounce(delegate
@@ -253,7 +255,7 @@ public class ConnectedDevice
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error Sending Vibration: {ex.Message}");
+            _logger.LogError($"Error Sending Vibration: {ex}");
         }
     }
 
@@ -285,8 +287,10 @@ public class ConnectedDevice
             // prepare sendoff
             List<(double, bool)> motorIntensitysToSend = new List<(double, bool)>();
             // store the bytes as doubles.
-            foreach (var intensityByte in CurrentRotationIntensity)
-                motorIntensitysToSend.Add((GetRotateDoubleFromByte(intensityByte), clockwise));
+            for (int i = 0; i < CurrentRotationIntensity.Length; i++)
+            {
+                motorIntensitysToSend.Add((GetRotateDoubleFromByte(CurrentRotationIntensity[i]), clockwise));
+            }
 
             // send them off.
             RotateDebouncer.Debounce(delegate
@@ -332,8 +336,10 @@ public class ConnectedDevice
             // prepare the sendoff
             List<(uint, double)> motorIntensitysToSend = new List<(uint, double)>();
             // update each motor accordingly.
-            foreach (var intensityByte in CurrentLinearIntensity)
-                motorIntensitysToSend.Add(((uint)period, GetLinearDoubleFromByte(intensityByte)));
+            for (int i = 0; i < CurrentLinearIntensity.Length; i++)
+            {
+                motorIntensitysToSend.Add(((uint)period, GetLinearDoubleFromByte(CurrentLinearIntensity[i])));
+            }
 
             // send it off to the debouncer
             LinearDebouncer.Debounce(delegate
@@ -379,8 +385,10 @@ public class ConnectedDevice
             // prepare the sendoff
             List<(uint, double)> motorIntensitysToSend = new List<(uint, double)>();
             // update each motor accordingly.
-            foreach (var intensityByte in CurrentOscillationIntensity)
-                motorIntensitysToSend.Add(((uint)period, GetOscillateDoubleFromByte(intensityByte)));
+            for (int i = 0; i < CurrentOscillationIntensity.Length; i++)
+            {
+                motorIntensitysToSend.Add(((uint)period, GetOscillateDoubleFromByte(CurrentOscillationIntensity[i])));
+            }
 
             // send it off to the debouncer
             OscillateDebouncer.Debounce(delegate

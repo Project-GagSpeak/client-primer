@@ -17,6 +17,7 @@ using OtterGui.Text;
 using GagSpeak.GagspeakConfiguration.Models;
 using System.Numerics;
 using Dalamud.Interface.Utility;
+using GagSpeak.UI.UiRemote;
 
 namespace GagSpeak.UI.UiToybox;
 
@@ -92,7 +93,6 @@ public class ToyboxOverview
 
         ImGui.SameLine(textSize.X + ImGui.GetStyle().ItemSpacing.X);
         var color = _IntifaceHandler.ScanningForDevices ? ImGuiColors.DalamudYellow : ImGuiColors.DalamudRed;
-        var buttonText = _IntifaceHandler.ScanningForDevices ? "Stop Scanning" : "Start Scanning";
         using (ImRaii.PushColor(ImGuiCol.Text, color))
         {
             ImGui.TextUnformatted(_IntifaceHandler.ScanningForDevices ? "Scanning..." : "Idle");
@@ -100,7 +100,24 @@ public class ToyboxOverview
 
         ImGui.SameLine(textSize.X + ImGui.GetStyle().ItemSpacing.X + ImGui.CalcTextSize("Scanning...").X + ImGui.GetStyle().ItemSpacing.X);
         var width = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Search, "Start Scanning for Devices");
-        _uiShared.IconTextButton(FontAwesomeIcon.Search, buttonText, width);
+        if (_uiShared.IconButton(FontAwesomeIcon.Search))
+        {
+            // search scanning if we are not scanning, otherwise stop scanning.
+            if (_IntifaceHandler.ScanningForDevices)
+            {
+                _IntifaceHandler.StopDeviceScanAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                _IntifaceHandler.StartDeviceScanAsync().ConfigureAwait(false);
+            }
+        }
+
+        if(_uiShared.IconTextButton(FontAwesomeIcon.TabletAlt, "Personal Remote"))
+        {
+            // open the personal remote window
+            _mediator.Publish(new UiToggleMessage(typeof(LoveneseRemote)));
+        }
 
         // draw out the list of devices
         ImGui.Separator();

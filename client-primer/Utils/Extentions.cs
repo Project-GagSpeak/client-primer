@@ -61,7 +61,7 @@ public static class UtilsExtensions
     /// Not my code, pulled from:
     /// https://github.com/PunishXIV/PunishLib/blob/8cea907683c36fd0f9edbe700301a59f59b6c78e/PunishLib/ImGuiMethods/ImGuiEx.cs
     /// </summary>
-    static readonly Dictionary<string, float> CenteredLineWidths = new();
+    public static readonly Dictionary<string, float> CenteredLineWidths = new();
     public static void ImGuiLineCentered(string id, Action func)
     {
         if (CenteredLineWidths.TryGetValue(id, out var dims))

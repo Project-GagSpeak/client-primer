@@ -27,7 +27,7 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
     private ISharedImmediateTexture _sharedBlindfoldSensualTexture;
 
     // private variables and objects
-    private MakeshiftDebouncer _MakeshiftDebouncer;
+    private TimerRecorder _TimerRecorder;
     private Stopwatch stopwatch = new Stopwatch();
     private float alpha = 0.0f; // Alpha channel for the image
     private float imageAlpha = 0.0f; // Alpha channel for the image
@@ -60,7 +60,7 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
         _sharedBlindfoldLightTexture = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Blindfold_Light.png"));
         _sharedBlindfoldSensualTexture = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "BlindfoldLace_Sensual.png"));
         // set the stopwatch to send an elapsed time event after 2 seconds then stop
-        _MakeshiftDebouncer = new MakeshiftDebouncer(2000, ToggleWindow);
+        _TimerRecorder = new TimerRecorder(2000, ToggleWindow);
 
         Mediator.Subscribe<DisconnectedMessage>(this, (_) => IsOpen = false);
 
@@ -84,24 +84,24 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
         if (IsOpen && !isShowing)
         {
             this.Toggle();
-            _MakeshiftDebouncer.Stop();
+            _TimerRecorder.Stop();
         }
         else
         {
             // just stop 
             AnimationProgress = AnimType.None;
-            _MakeshiftDebouncer.Stop();
+            _TimerRecorder.Stop();
         }
     }
 
     public void ActivateWindow()
     {
         // if an active timer is running
-        if (_MakeshiftDebouncer.IsRunning)
+        if (_TimerRecorder.IsRunning)
         {
             // we were trying to deactivate the window, so stop the timer and turn off the window
             _logger.LogDebug($"BlindfoldWindow: Timer is running, stopping it");
-            _MakeshiftDebouncer.Stop();
+            _TimerRecorder.Stop();
             this.Toggle();
         }
         // now turn it back on and reset all variables
@@ -116,19 +116,19 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
         AnimationProgress = AnimType.ActivateWindow;
         isShowing = true;
         // Start the stopwatch when the window starts showing
-        _MakeshiftDebouncer.Start();
+        _TimerRecorder.Start();
     }
 
     public void DeactivateWindow()
     {
         // if an active timer is running
-        if (_MakeshiftDebouncer.IsRunning)
+        if (_TimerRecorder.IsRunning)
         {
             // we were trying to deactivate the window, so stop the timer and turn off the window
-            _MakeshiftDebouncer.Stop();
+            _TimerRecorder.Stop();
         }
         // start the timer to deactivate the window
-        _MakeshiftDebouncer.Start();
+        _TimerRecorder.Start();
         AnimationProgress = AnimType.DeactivateWindow;
         alpha = 1.0f;
         imageAlpha = 1.0f;
@@ -173,7 +173,7 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
             // see if we are playing the active animation
             if (AnimationProgress == AnimType.ActivateWindow)
             {
-                progress = (float)_MakeshiftDebouncer.Elapsed.TotalMilliseconds / 2000.0f; // 2.0f is the total duration of the animation in seconds
+                progress = (float)_TimerRecorder.Elapsed.TotalMilliseconds / 2000.0f; // 2.0f is the total duration of the animation in seconds
                 progress = Math.Min(progress, 1.0f); // Ensure progress does not exceed 1.0f
                 // Use a sine function for the easing
                 startY = -ImGui.GetIO().DisplaySize.Y;
@@ -202,7 +202,7 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
             else if (AnimationProgress == AnimType.DeactivateWindow)
             {
                 // Calculate the progress of the animation based on the elapsed time
-                progress = (float)_MakeshiftDebouncer.Elapsed.TotalMilliseconds / 2000.0f; // 2.0f is the total duration of the animation in seconds
+                progress = (float)_TimerRecorder.Elapsed.TotalMilliseconds / 2000.0f; // 2.0f is the total duration of the animation in seconds
                 progress = Math.Min(progress, 1.0f); // Ensure progress does not exceed 1.0f
                 // Use a sine function for the easing
                 startY = -ImGui.GetIO().DisplaySize.Y;

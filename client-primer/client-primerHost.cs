@@ -42,6 +42,8 @@ using Penumbra.GameData.DataContainers;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 using GagSpeak.Interop.IpcHelpers.Penumbra;
 using GagSpeak.Services.Data;
+using UI.UiRemote;
+using GagSpeak.UI.UiRemote;
 
 namespace GagSpeak;
 
@@ -141,6 +143,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<GagManager>()
         .AddSingleton<PadlockHandler>()
         .AddSingleton<ToyboxHandler>()
+        .AddSingleton<RemoteHandler>()
         .AddSingleton<PlayerCharacterManager>()
         .AddSingleton<GameObjectHandlerFactory>()
         .AddSingleton<PairFactory>()
@@ -150,6 +153,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ConnectedDevice>()
         .AddSingleton<DeviceFactory>()
         .AddSingleton<DeviceHandler>()
+
 
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
@@ -286,7 +290,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<UserPairListHandler>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
-        .AddScoped<WindowMediatorSubscriberBase, LovenseRemoteUI>() // might be factory driven later.
+        .AddScoped<WindowMediatorSubscriberBase, LoveneseRemote>() // might be factory driven later.
         .AddScoped<WindowMediatorSubscriberBase, GagSetupUI>()
         .AddScoped<WindowMediatorSubscriberBase, WardrobeUI>()
         .AddScoped<WindowMediatorSubscriberBase, PuppeteerUI>()

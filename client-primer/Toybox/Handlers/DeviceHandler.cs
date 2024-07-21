@@ -119,7 +119,6 @@ public class DeviceHandler : DisposableMediatorSubscriberBase
             {
                 device.DisplayName = displayName;
             }
-            ImGui.Text(device.DisplayName);
             ImGui.TableNextColumn();
             _uiShared.BooleanToColoredIcon(device.CanVibrate, false);
             ImGui.TableNextColumn();
@@ -392,5 +391,69 @@ public class DeviceHandler : DisposableMediatorSubscriberBase
         }
     }
 
+    public void StopAllDevices()
+    {
+        // halt the vibration of all devices on all motors
+        foreach (ConnectedDevice device in Devices)
+        {
+            try
+            {
+                device.StopInTheNameOfTheVibe();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError($"Error stopping device {device.DeviceName} | {ex.Message}");
+            }
+        }
+    }
 
+    public void SendVibeToAllDevices(byte intensity)
+    {
+        // if we are not connected do not allow
+        if (!ConnectedToIntiface || ButtplugClient == null)
+        {
+            Logger.LogWarning("Cannot send vibration to devices if not connected to Intiface Central");
+            return;
+        }
+        // send the vibration to all devices on all motors
+        foreach (ConnectedDevice device in Devices)
+        {
+            if(device.CanVibrate)
+                device.SendVibration(intensity);
+
+            if(device.CanRotate)
+                device.SendRotate(intensity);
+
+            if(device.CanLinear)
+                device.SendLinear(intensity);
+
+            if(device.CanOscillate)
+                device.SendOscillate(intensity);
+        }
+    }
+
+    public void SendVibrateToDevice(ConnectedDevice device, byte intensity, int motorId = -1)
+    {
+        device.SendVibration(intensity, motorId);
+    }
+
+    public void SendRotateToDevice(ConnectedDevice device, byte intensity, bool clockwise = true, int motorId = -1)
+    {
+        device.SendRotate(intensity, clockwise, motorId);
+    }
+
+    public void SendLinearToDevice(ConnectedDevice device, byte intensity, int motorId = -1)
+    {
+        device.SendLinear(intensity, motorId);
+    }
+
+    public void SendOscillateToDevice(ConnectedDevice device, byte intensity, int motorId = -1)
+    {
+        device.SendOscillate(intensity, motorId);
+    }
+
+    public void SendStopRequestToDevice(ConnectedDevice device)
+    {
+        device.StopInTheNameOfTheVibe();
+    }
 }

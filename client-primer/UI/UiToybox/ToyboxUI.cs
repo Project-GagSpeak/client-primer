@@ -92,13 +92,6 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                         {
                             ImGui.Image(wrap.ImGuiHandle, new(125f * _uiShared.GetFontScalerFloat(),
                                 125f * _uiShared.GetFontScalerFloat()));
-
-                            if (ImGui.IsItemHovered())
-                            {
-                                ImGui.BeginTooltip();
-                                ImGui.Text($"You found a wild easter egg, Y I P P E E !!!");
-                                ImGui.EndTooltip();
-                            }
                         });
                     }
                     // add separator

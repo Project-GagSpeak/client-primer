@@ -142,6 +142,7 @@ public static class GagSpeakServiceExtensions
         // PlayerData Services
         .AddSingleton<GagManager>()
         .AddSingleton<PadlockHandler>()
+        .AddSingleton<PatternHandler>()
         .AddSingleton<ToyboxHandler>()
         .AddSingleton<RemoteHandler>()
         .AddSingleton<PlayerCharacterManager>()
@@ -290,7 +291,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<UserPairListHandler>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
-        .AddScoped<WindowMediatorSubscriberBase, LoveneseRemote>() // might be factory driven later.
+        .AddScoped<WindowMediatorSubscriberBase, LovenseRemote>() // might be factory driven later.
         .AddScoped<WindowMediatorSubscriberBase, GagSetupUI>()
         .AddScoped<WindowMediatorSubscriberBase, WardrobeUI>()
         .AddScoped<WindowMediatorSubscriberBase, PuppeteerUI>()

@@ -49,7 +49,7 @@ public class RestraintSetsOverview
     public void DrawSetsOverview()
     {
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
-        if (_handler.RestraintSetCount() == 0)
+        if (_handler.RestraintSetCount() <= 0)
         {
             using (_uiShared.UidFont.Push())
             {
@@ -59,11 +59,6 @@ public class RestraintSetsOverview
             return;
         }
 
-        if(_handler.SelectedSet == null)
-        {
-            _handler.SelectedSetIdx = 0;
-            _mediator.Publish(new RestraintSetModified(0)); // force an update to the selectedSet
-        }
         // grab the list of names
         List<string> nameList = _handler.GetRestraintSetsByName();
         string defaultSelection = nameList.FirstOrDefault() ?? "No Restraint Sets Created!";
@@ -79,6 +74,7 @@ public class RestraintSetsOverview
             _handler.SelectedSetIdx = index;
             _mediator.Publish(new RestraintSetModified(index));
         }, defaultSelection);
+
 
         // if we reach this point it means we have a valid restraint set counter ( greater than 0 )
         ImGui.SameLine();
@@ -103,7 +99,7 @@ public class RestraintSetsOverview
         {
             var idxToDelete = _handler.SelectedSetIdx;
             // publish update to reset back to 0 index,
-            _mediator.Publish(new RestraintSetModified(0));
+            _mediator.Publish(new RestraintSetRemovedMessage(idxToDelete));
             // remove the set at the index.
             _handler.RemoveRestraintSet(idxToDelete);
         }

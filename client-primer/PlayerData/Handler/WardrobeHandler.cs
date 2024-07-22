@@ -31,8 +31,17 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         _playerManager = playerManager;
         _pairManager = pairManager;
 
-        // set the selected set to the first set in the list
-        SelectedSet = _clientConfigs.GetRestraintSet(0);
+        // set the selected set to the first set in the list, if we have any sets in our storage
+        if (_clientConfigs.GetRestraintSetCount() > 0)
+        {
+            SelectedSet = _clientConfigs.GetRestraintSet(0);
+            SelectedSetIdx = 0;
+        }
+        else
+        {
+            SelectedSet = null!;
+            SelectedSetIdx = -1;
+        }
 
         // see if any sets are active, and if so, set the active set
         int activeIdx = GetActiveSetIndex();
@@ -41,14 +50,28 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
             ActiveSet = _clientConfigs.GetRestraintSet(activeIdx);
         }
 
+
+
         Mediator.Subscribe<RestraintSetAddedMessage>(this, (msg) =>
         {
             Logger.LogInformation("Set Added, Wardrobe Config Saved");
+            // see if the current selected set is null, if so, set it to the newly added set
+            if (SelectedSet == null)
+            {
+                SelectedSet = _clientConfigs.GetRestraintSet(0);
+                SelectedSetIdx = 0;
+            }
         });
 
         Mediator.Subscribe<RestraintSetRemovedMessage>(this, (msg) =>
         {
             Logger.LogInformation("Set Removed, Wardrobe Config Saved");
+            // if the set removed was index 0, and the storage has no more sets left, set the selected set & idx to null 
+            if (msg.RestraintSetIndex == 0 && _clientConfigs.GetRestraintSetCount() == 0)
+            {
+                SelectedSet = null!;
+                SelectedSetIdx = -1;
+            }
         });
 
         Mediator.Subscribe<RestraintSetModified>(this, (msg) =>
@@ -131,7 +154,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public Pair? BlindfoldedByPair { get; private set; }
 
     /// <summary> The currently selected set from our restraint set list. </summary>
-    public int SelectedSetIdx { get; set; } = 0;
+    public int SelectedSetIdx { get; set; }
     public RestraintSet SelectedSet { get; private set; }
 
 

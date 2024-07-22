@@ -1,13 +1,10 @@
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.UI.Components.UserPairList;
 using GagSpeak.UI.Handlers;
-using System.Collections.Immutable;
-using System.Numerics;
 using GagSpeak.UI.Permissions;
-using GagSpeak.UI.Components.UserPairList;
-using GagSpeak.UI.Components.UserPairList;
 using GagSpeak.WebAPI;
+using System.Collections.Immutable;
 
 namespace GagSpeak.UI;
 
@@ -24,9 +21,9 @@ public class DrawEntityFactory
     private readonly TagHandler _tagHandler;
     private readonly IdDisplayHandler _uidDisplayHandler;
 
-    public DrawEntityFactory(ILogger<DrawEntityFactory> logger, ApiController apiController, 
+    public DrawEntityFactory(ILogger<DrawEntityFactory> logger, ApiController apiController,
         IdDisplayHandler uidDisplayHandler, SelectTagForPairUi selectTagForPairUi, GagspeakMediator mediator,
-        ILoggerFactory loggerfactory, TagHandler tagHandler, SelectPairForTagUi selectPairForTagUi, 
+        ILoggerFactory loggerfactory, TagHandler tagHandler, SelectPairForTagUi selectPairForTagUi,
         UserPairPermsSticky stickyPairPerms, UiSharedService uiSharedService)
     {
         _loggerfactory = loggerfactory;
@@ -49,7 +46,7 @@ public class DrawEntityFactory
 
     public DrawUserPair CreateDrawPair(string id, Pair user)
     {
-        return new DrawUserPair(_loggerfactory.CreateLogger<DrawUserPair>(), id + user.UserData.UID, 
+        return new DrawUserPair(_loggerfactory.CreateLogger<DrawUserPair>(), id + user.UserData.UID,
             user, _apiController, _uidDisplayHandler, _mediator, _selectTagForPairUi, _uiSharedService);
     }
 }

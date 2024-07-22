@@ -1,28 +1,22 @@
-using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Debouncer;
-using GagSpeak.Utils;
 using ImGuiNET;
 using ImPlotNET;
 using OtterGui;
-using System.Drawing;
 using System.Numerics;
 using System.Timers;
-using UI.UiRemote;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 
 namespace GagSpeak.UI.UiRemote;
 
 /// <summary>
 /// I Blame ImPlot for its messiness as a result for this abyssmal display of code here.
 /// </summary>
-public class LoveneseRemote : WindowMediatorSubscriberBase
+public class LovenseRemote : WindowMediatorSubscriberBase
 {
     // Colors that i will sort out later.
     Vector4 VibrantPink = new Vector4(.977f, .380f, .640f, .914f);
@@ -41,7 +35,7 @@ public class LoveneseRemote : WindowMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly DeviceHandler _IntifaceHandler;
 
-    public LoveneseRemote(ILogger<LoveneseRemote> logger,
+    public LovenseRemote(ILogger<LovenseRemote> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         DeviceHandler IntifaceHandler) : base(logger, mediator, "Lovense Remote UI")
     {
@@ -221,7 +215,7 @@ public class LoveneseRemote : WindowMediatorSubscriberBase
         {
             if (!table2) { return; } // make sure our table was made
             ImGui.TableSetupColumn("InteractivePatternDrawer", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("InteractionButtons", ImGuiTableColumnFlags.WidthFixed, ImGuiHelpers.GlobalScale*60);
+            ImGui.TableSetupColumn("InteractionButtons", ImGuiTableColumnFlags.WidthFixed, ImGuiHelpers.GlobalScale * 60);
             ImGui.TableNextColumn();
 
             // create styles for the next plot
@@ -326,14 +320,14 @@ public class LoveneseRemote : WindowMediatorSubscriberBase
             {
                 Vector4 buttonColor = IsLooping ? LushPinkButton : SideButton;
                 // aligns the image in the center like we want.
-                if(_uiShared.DrawScaledCenterButtonImage("LoopButton", new Vector2(50, 50), 
+                if (_uiShared.DrawScaledCenterButtonImage("LoopButton", new Vector2(50, 50),
                     buttonColor, new Vector2(40, 40), wrap))
                 {
                     IsLooping = !IsLooping;
                     if (IsFloating) { IsFloating = false; }
                 }
             }
-            
+
             // move it down from current position by another .2f scale
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .05f);
 
@@ -356,7 +350,7 @@ public class LoveneseRemote : WindowMediatorSubscriberBase
 
             ImGui.SetCursorPosY(CurrentRegion.Y * .775f);
 
-            var power= _uiShared.GetImageFromDirectoryFile("power.png");
+            var power = _uiShared.GetImageFromDirectoryFile("power.png");
             if (!(power is { } wrap3))
             {
                 _logger.LogWarning("Failed to render image!");
@@ -418,10 +412,10 @@ public class LoveneseRemote : WindowMediatorSubscriberBase
     {
         _logger.LogTrace("Starting Recording!");
         StoredVibrationData.Clear();
-        
+
         Recorder.Start();
         StoredRecordedData.Start();
-        
+
         DurationStopwatch.Start();  // Start the stopwatch
         IsRecording = true;
         // start up the sound audio
@@ -526,12 +520,12 @@ public class LoveneseRemote : WindowMediatorSubscriberBase
             // send the vibration data to all connected devices
             if (IsLooping && !IsDragging && StoredLoopDataBlock.Count > 0)
             {
-                _logger.LogTrace($"{(byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex])}");
+                //_logger.LogTrace($"{(byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex])}");
                 _IntifaceHandler.SendVibeToAllDevices((byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex]));
             }
             else
             {
-                _logger.LogTrace($"{(byte)Math.Round(CirclePosition[1])}");
+                //_logger.LogTrace($"{(byte)Math.Round(CirclePosition[1])}");
                 _IntifaceHandler.SendVibeToAllDevices((byte)Math.Round(CirclePosition[1]));
             }
         }

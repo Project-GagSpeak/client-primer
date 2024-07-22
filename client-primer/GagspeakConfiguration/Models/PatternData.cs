@@ -21,9 +21,6 @@ public record PatternData
     /// <summary> The duration of the pattern </summary>
     public string Duration { get; set; } = string.Empty;
 
-    /// <summary> If the pattern is selected </summary>
-    public bool Selected { get; set; } = false;
-
     /// <summary> If the pattern is active </summary>
     public bool IsActive { get; set; } = false;
 

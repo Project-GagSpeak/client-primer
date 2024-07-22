@@ -105,9 +105,12 @@ public record ToyDeviceAdded(ButtplugClientDevice Device) : MessageBase; // for 
 public record ToyDeviceRemoved(ButtplugClientDevice Device) : MessageBase; // for when a device is removed.
 public record ButtplugClientDisconnected : MessageBase; // for when the buttplug client disconnects.
 public record ToyboxActiveDeviceChangedMessage(int DeviceIndex) : MessageBase; // for when the active device is changed.
-public record UpdateVibratorIntensity(int newIntensity) : MessageBase; // for when the vibrator intensity is changed.
-
-
+public record UpdateVibratorIntensity(int NewIntensity) : MessageBase; // for when the vibrator intensity is changed.
+public record PatternAddedMessage(PatternData Pattern) : MessageBase; // for when a pattern is added.
+public record PatternRemovedMessage : MessageBase; // for when a pattern is removed.
+public record PatternActivedMessage(int PatternIndex) : MessageBase; // for when a pattern is activated.
+public record PatternDeactivedMessage(int PatternIndex) : MessageBase; // for when a pattern is deactivated.
+public record PatternDataChanged(int PatternIndex) : MessageBase; // for when a pattern is changed.
 
 /* ------------------ PLAYERDATA CLIENTSIDE PERMISSION HANDLING ------------------- */
 public record ClientGlobalPermissionChanged(string Permission, object Value) : MessageBase; // for when a client global permission is changed.

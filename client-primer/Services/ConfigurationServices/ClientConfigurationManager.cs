@@ -7,6 +7,7 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Enum;
+using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
@@ -352,5 +353,132 @@ public class ClientConfigurationManager
     }
 
 
-    /* --------------------- Toybox Pattern Configs --------------------- */
+    /* --------------------- Toybox Pattern Configs --------------------- */    
+    
+    // best to use getters here since the pattern storage can tend to be large.
+    public string GetNameForPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].Name;
+    public void SetNameForPattern(int idx, string newName)
+    {
+        var newNameFinalized = EnsureUniqueName(newName);
+        _patternConfig.Current.PatternStorage.Patterns[idx].Name = newNameFinalized;
+        _patternConfig.Save();
+        _mediator.Publish(new PatternDataChanged(idx));
+    }
+
+    public string GetDescriptionForPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].Description;
+    public void ModifyDescription(int index, string newDescription)
+    {
+        _patternConfig.Current.PatternStorage.Patterns[index].Description = newDescription;
+        _patternConfig.Save();
+        // publish to mediator one was modified
+        _mediator.Publish(new PatternDataChanged(index));
+    }
+
+    public string GetAuthorForPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].Author;
+    public void SetAuthorForPattern(int idx, string newAuthor)
+    {
+        _patternConfig.Current.PatternStorage.Patterns[idx].Author = newAuthor;
+        _patternConfig.Save();
+        _mediator.Publish(new PatternDataChanged(idx));
+    }
+
+    public List<string> GetTagsForPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].Tags;
+    public void AddTagToPattern(int idx, string newTag)
+    {
+        _patternConfig.Current.PatternStorage.Patterns[idx].Tags.Add(newTag);
+        _patternConfig.Save();
+        _mediator.Publish(new PatternDataChanged(idx));
+    }
+    public void RemoveTagFromPattern(int idx, string tagToRemove)
+    {
+        _patternConfig.Current.PatternStorage.Patterns[idx].Tags.Remove(tagToRemove);
+        _patternConfig.Save();
+        _mediator.Publish(new PatternDataChanged(idx));
+    }
+
+    public string GetDurationForPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].Duration;
+
+    public bool PatternLoops(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].ShouldLoop;
+    public void SetPatternLoops(int idx, bool loops)
+    {
+        _patternConfig.Current.PatternStorage.Patterns[idx].ShouldLoop = loops;
+        _patternConfig.Save();
+        _mediator.Publish(new PatternDataChanged(idx));
+    }
+
+    public bool GetUserIsAllowedToView(int idx, string userId)
+    {
+        return _patternConfig.Current.PatternStorage.Patterns[idx].AllowedUsers.Contains(userId);
+    }
+
+    public void AddTrustedUserToPattern(int idx, string userId)
+    {
+        _patternConfig.Current.PatternStorage.Patterns[idx].AllowedUsers.Add(userId);
+        _patternConfig.Save();
+        _mediator.Publish(new PatternDataChanged(idx));
+    }
+
+    public void RemoveTrustedUserFromPattern(int idx, string userId)
+    {
+        _patternConfig.Current.PatternStorage.Patterns[idx].AllowedUsers.Remove(userId);
+        _patternConfig.Save();
+        _mediator.Publish(new PatternDataChanged(idx));
+    }
+
+    public bool IsIndexInBounds(int index)
+    {
+        return index >= 0 && index < _patternConfig.Current.PatternStorage.Patterns.Count;
+    }
+    
+    public bool IsAnyPatternPlaying()
+    {
+        return _patternConfig.Current.PatternStorage.Patterns.Any(p => p.IsActive);
+    }
+
+    public int ActivePatternIdx()
+    {
+        return _patternConfig.Current.PatternStorage.Patterns.FindIndex(p => p.IsActive);
+    }
+
+    public string EnsureUniqueName(string baseName)
+    {
+        int copyNumber = 1;
+        string newName = baseName;
+
+        while (_patternConfig.Current.PatternStorage.Patterns.Any(set => set.Name == newName))
+            newName = baseName + $"(copy{copyNumber++})";
+
+        return newName;
+    }
+
+    public void AddNewPattern(PatternData newPattern)
+    {
+        _patternConfig.Current.PatternStorage.Patterns.Add(newPattern);
+        _patternConfig.Save();
+        // publish to mediator one was added
+        _mediator.Publish(new PatternAddedMessage(newPattern));
+    }
+
+    public void RemovePattern(int indexToRemove)
+    {
+        _patternConfig.Current.PatternStorage.Patterns.RemoveAt(indexToRemove);
+        _patternConfig.Save();
+        // publish to mediator one was removed
+        _mediator.Publish(new PatternRemovedMessage());
+    }
+
+    public List<string> GetPatternNames()
+    {
+        return _patternConfig.Current.PatternStorage.Patterns.Select(set => set.Name).ToList();
+    }
+
+    public int GetPatternIdxByName(string name)
+    {
+        return _patternConfig.Current.PatternStorage.Patterns.FindIndex(p => p.Name == name);
+    }
+
+    public PatternData GetPatternFromIndex(int index)
+    {
+        return _patternConfig.Current.PatternStorage.Patterns[index];
+    }
 }

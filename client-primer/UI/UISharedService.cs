@@ -673,8 +673,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     /// <param name="text"> the text we are editing </param>
     /// <param name="maxLength"> the max length of the text </param>
     /// <param name="helpText"> the help text for the popup </param>
-    /// <param name="tooltip"> the tooltip for the text when we hover over it </param>
-    public static void EditableTextFieldWithPopup(string popupId, ref string text, uint maxLength, string helpText, string tooltip)
+
+    public static void EditableTextFieldWithPopup(string popupId, ref string text, uint maxLength, string helpText)
     {
         ImGui.TextWrapped(text);
         if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
@@ -697,7 +697,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                 // close the popup
                 ImGui.CloseCurrentPopup();
             }
-            ImGuiUtil.HoverTooltip(tooltip);
             ImGui.EndPopup();
         }
     }

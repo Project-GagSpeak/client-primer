@@ -19,7 +19,5 @@ public class ToyboxHandler : DisposableMediatorSubscriberBase
     {
         _clientConfigs = clientConfiguration;
         _playerManager = playerManager;
-
-
     }
 }

@@ -91,7 +91,7 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
         // if there are currently no created sets, then display in beg text that they must first create a set to edit one, and then return.
         if (_handler.GetRestraintSetsByName().Count == 0)
         {
-            _uiShared.BigText("No Restraint Sets Created! Please Create a Set First.");
+            _uiShared.BigText("No Restraint Sets Created!\n\nPlease Create a Set First.");
             return;
         }
         // check if the set is null, meaning it has not been set. If this is the case, update it to the selected set.

@@ -1,23 +1,16 @@
-using Dalamud.Interface.Colors;
 using Dalamud.Interface;
-using GagSpeak.GagspeakConfiguration.Configurations;
+using Dalamud.Interface.Colors;
+using Dalamud.Interface.Utility.Raii;
+using Dalamud.Utility;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.WebAPI;
-using GagspeakAPI.Data.Enum;
-using ImGuiNET;
-using System.Diagnostics;
-using System.IO;
-using System.Runtime.InteropServices;
-using Dalamud.Interface.Utility.Raii;
-using Dalamud.Utility;
-using PInvoke;
-using OtterGui.Text;
-using GagSpeak.GagspeakConfiguration.Models;
-using System.Numerics;
-using Dalamud.Interface.Utility;
 using GagSpeak.UI.UiRemote;
+using GagSpeak.WebAPI;
+using ImGuiNET;
+using OtterGui.Text;
+using PInvoke;
+using System.Runtime.InteropServices;
 
 namespace GagSpeak.UI.UiToybox;
 
@@ -29,11 +22,11 @@ public class ToyboxOverview
     private readonly UiSharedService _uiShared;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly ServerConfigurationManager _serverConfigs;
-/*    private readonly SoundPlayer _soundPlayer; // this is tmp until we find a better way (possibly via ingame SCD's)*/
+    /*    private readonly SoundPlayer _soundPlayer; // this is tmp until we find a better way (possibly via ingame SCD's)*/
     private readonly DeviceHandler _IntifaceHandler;
 
-    public ToyboxOverview(ILogger<ToyboxOverview> logger, 
-        GagspeakMediator mediator, ApiController controller, 
+    public ToyboxOverview(ILogger<ToyboxOverview> logger,
+        GagspeakMediator mediator, ApiController controller,
         UiSharedService uiSharedService,
         ClientConfigurationManager clientConfigs,
         ServerConfigurationManager serverConfigs,
@@ -113,10 +106,10 @@ public class ToyboxOverview
             }
         }
 
-        if(_uiShared.IconTextButton(FontAwesomeIcon.TabletAlt, "Personal Remote"))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.TabletAlt, "Personal Remote"))
         {
             // open the personal remote window
-            _mediator.Publish(new UiToggleMessage(typeof(LoveneseRemote)));
+            _mediator.Publish(new UiToggleMessage(typeof(LovenseRemote)));
         }
 
         // draw out the list of devices
@@ -196,8 +189,8 @@ public class ToyboxOverview
         var intifaceIconSize = _uiShared.GetIconButtonSize(intifaceOpenIcon);
 
         ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + windowPadding.X);
-        ImGui.SetCursorPosY(ImGui.GetCursorPosY() 
-            - ((addrSize.Y + textSize.Y) / 2 + addrTextSize.Y) / 2 
+        ImGui.SetCursorPosY(ImGui.GetCursorPosY()
+            - ((addrSize.Y + textSize.Y) / 2 + addrTextSize.Y) / 2
             - ImGui.GetStyle().ItemSpacing.Y + intifaceIconSize.Y / 2);
 
         if (_uiShared.IconButton(intifaceOpenIcon))

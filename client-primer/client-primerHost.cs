@@ -44,6 +44,7 @@ using GagSpeak.Interop.IpcHelpers.Penumbra;
 using GagSpeak.Services.Data;
 using UI.UiRemote;
 using GagSpeak.UI.UiRemote;
+using GagSpeak.Toybox.Services;
 
 namespace GagSpeak;
 
@@ -155,7 +156,6 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<DeviceFactory>()
         .AddSingleton<DeviceHandler>()
 
-
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
         .AddSingleton<GagSpeakHost>()
@@ -218,6 +218,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<HubFactory>()
         .AddSingleton<TokenProvider>()
         // Service Services
+        .AddSingleton<ToyboxRemoteService>()
         .AddSingleton<GlamourChangedService>()
         .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()
@@ -291,7 +292,9 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<UserPairListHandler>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
-        .AddScoped<WindowMediatorSubscriberBase, LovenseRemote>() // might be factory driven later.
+        .AddScoped<WindowMediatorSubscriberBase, RemotePersonal>()
+        .AddScoped<WindowMediatorSubscriberBase, RemotePatternMaker>()
+        // RemoteController made via the factory is defined via the factory and not here.
         .AddScoped<WindowMediatorSubscriberBase, GagSetupUI>()
         .AddScoped<WindowMediatorSubscriberBase, WardrobeUI>()
         .AddScoped<WindowMediatorSubscriberBase, PuppeteerUI>()

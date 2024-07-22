@@ -1,10 +1,12 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using FFXIVClientStructs.FFXIV.Common.Lua;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Debouncer;
+using GagSpeak.Toybox.Services;
 using ImGuiNET;
 using ImPlotNET;
 using OtterGui;
@@ -14,33 +16,26 @@ using System.Timers;
 namespace GagSpeak.UI.UiRemote;
 
 /// <summary>
-/// I Blame ImPlot for its messiness as a result for this abyssmal display of code here.
+/// RemoteBase is created with unique distinct variables for each instance that it is made with.
+/// Any attributes or methods that should share common functionality should be managed via the 
+/// toybox remote service.
 /// </summary>
-public class LovenseRemote : WindowMediatorSubscriberBase
+public abstract class RemoteBase : WindowMediatorSubscriberBase
 {
-    // Colors that i will sort out later.
-    Vector4 VibrantPink = new Vector4(.977f, .380f, .640f, .914f);
-    Vector4 VibrantPinkHovered = new Vector4(.986f, .464f, .691f, .955f);
-    Vector4 VibrantPinkPressed = new Vector4(.846f, .276f, .523f, .769f);
-    Vector4 LushPinkLine = new Vector4(.806f, .102f, .407f, 1);
-    Vector4 LushPinkButton = new Vector4(1, .051f, .462f, 1);
-    Vector4 LovenseScrollingBG = new Vector4(0.042f, 0.042f, 0.042f, 0.930f);
-    Vector4 LovenseDragButtonBG = new Vector4(0.110f, 0.110f, 0.110f, 0.930f);
-    Vector4 LovenseDragButtonBGAlt = new Vector4(0.1f, 0.1f, 0.1f, 0.930f);
-    Vector4 ButtonDrag = new Vector4(0.097f, 0.097f, 0.097f, 0.930f);
-    Vector4 SideButton = new Vector4(0.451f, 0.451f, 0.451f, 1);
-    Vector4 SideButtonBG = new Vector4(0.451f, 0.451f, 0.451f, .25f);
-
+    // the class includes are shared however (i think), so dont worry about that.
     private readonly UiSharedService _uiShared;
-    private readonly ClientConfigurationManager _clientConfigs;
-    private readonly DeviceHandler _IntifaceHandler;
+    private readonly DeviceHandler _intifaceHandler;
+    private readonly ToyboxRemoteService _remoteService;
 
-    public LovenseRemote(ILogger<LovenseRemote> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
-        DeviceHandler IntifaceHandler) : base(logger, mediator, "Lovense Remote UI")
+    public RemoteBase(ILogger logger,
+        GagspeakMediator mediator, UiSharedService uiShared,
+        ToyboxRemoteService remoteService, DeviceHandler deviceHandler,
+        string windowName): base(logger, mediator, $"Lovense Remote UI " + windowName)
     {
-        _uiShared = uiSharedService;
-        _IntifaceHandler = IntifaceHandler;
+        // grab the shared services
+        _uiShared = uiShared;
+        _intifaceHandler = deviceHandler;
+        _remoteService = remoteService;
 
         Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoResize;
 
@@ -52,41 +47,74 @@ public class LovenseRemote : WindowMediatorSubscriberBase
         };
         RespectCloseHotkey = false;
 
-        DurationStopwatch = new Stopwatch(); // create new stopwatch for our counter.
-        Recorder = new TimerRecorder(10, AddCirclePositionToBuffer);
-        StoredRecordedData = new TimerRecorder(20, RecordData);
+        // label the window with the identifier name
+        WindowBaseName = $"Lovense Remote UI " + windowName;
 
+        // create a new timer stopwatch, unique to this base class instance.
+        DurationStopwatch = new Stopwatch();
+
+        // A timer for recording graph display updates. Nessisary for smooth lines, and Unique to this base class instance
+        DisplayUpdateTimer = new TimerRecorder(10, AddCirclePositionToBuffer);
+
+        // A timer for recording intensity data. Nessisary for all types, but must remain distinct for each. (base class)
+        IntensityUpdateTimer = new TimerRecorder(20, RecordData);
     }
 
-    private Stopwatch DurationStopwatch;
-    private TimerRecorder Recorder;
-    private TimerRecorder StoredRecordedData;
-    private List<double> RecordedPositions = new List<double>(); // recorded Y positions of the circle, used for realtime feedback
-    private List<double> StoredLoopDataBlock = new List<double>(); // Records & Stores info about Y value of circle.
-    public List<byte> StoredVibrationData = new List<byte>(); // Stores the vibration data for the pattern (converted from circle positions.
-    private double[] CirclePosition = new double[2];
+    private string WindowBaseName;
 
-    // public accessors.
+    // Stores the duration of the recording. Must be distinct for all (base class)
+    protected Stopwatch DurationStopwatch;
+
+    // Manages the recording of the circle's Y position. Must be distinct for all (base class)
+    protected TimerRecorder DisplayUpdateTimer;
+
+    // Manages the interval at which we append handle new vibration intensity data. Must be distinct for all (base class)
+    protected TimerRecorder IntensityUpdateTimer;
+
+    // the Recorded Y positions from the circle. Must be distinct for all to ensure draws dont share (base class)
+    protected List<double> RecordedPositions = new List<double>();
+
+    // the Recorded Y positions during the latest loop segment. Must be distinct for all to ensure draws dont share (base class)
+    protected List<double> StoredLoopDataBlock = new List<double>();
+
+    // the current circle position, stores the X and Y double. Unique to each instance (Base Class)
+    protected double[] CirclePosition = new double[2];
+
+    // Must be unique for each base class so that we ensure themes are not overlapped
     private bool ThemePushed = false;
-    public int BufferLoopIndex { get; private set; } = 0;
-    public bool IsRecording { get; private set; } = false;
-    public bool HasFinishedRecording { get; private set; } = false;
-    public bool IsDragging { get; private set; } = false;
-    public bool IsLooping { get; private set; }
-    public bool IsFloating { get; private set; }
-    public float XAxisLimit { get; private set; } = 40;
-    public float YAxisLimitLower { get; private set; } = 0;
-    public float YAxisLimitUpper { get; private set; } = 100;
-    public double[] Positions = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 }; // positions of the ticks
-    public string[] Labels = { "0%", "", "", "", "", "", "", "", "", "", "100%" }; // labels of the ticks
 
+    // the buffer index telling us where in the bufferloop we are reading data from we are at. (base class)
+    public int BufferLoopIndex { get; protected set; } = 0;
+
+    // if the remote is powered on (base class)
+    public bool RemoteOnline { get; protected set; } = false;
+
+    // if we are dragging the pink circle. (base class)
+    public bool IsDragging { get; protected set; } = false;
+
+    // if we have the loop button toggled. (base class)
+    public bool IsLooping { get; protected set; }
+
+    // if we have the float button toggled. (base class)
+    public bool IsFloating { get; protected set; }
+
+    // Graph data. Does not need to be distinct, but is shared across all types. (base class)
+    public const float XAxisLimit = 40;
+    public const float YAxisLimitLower = 0;
+    public const float YAxisLimitUpper = 100;
+    public double[] Positions = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 }; 
+    public string[] Labels = { "0%", "", "", "", "", "", "", "", "", "", "100%" };
+    
+    // the disposal for the base class
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
 
-        // dispose of the timer recorders
-        StoredRecordedData.Dispose();
-        Recorder.Dispose();
+        // dispose of the timer recorders & stop the stopwatch
+        DurationStopwatch.Stop();
+
+        DisplayUpdateTimer.Dispose();
+        IntensityUpdateTimer.Dispose();
     }
 
     protected override void PreDrawInternal()
@@ -115,28 +143,51 @@ public class LovenseRemote : WindowMediatorSubscriberBase
     }
     protected override void DrawInternal()
     {
-        using var child = ImRaii.Child("##RemoteUIChild", new Vector2(ImGui.GetContentRegionAvail().X, -1), true, ImGuiWindowFlags.NoDecoration);
+        using (var child = ImRaii.Child("##RemoteUIChild", new Vector2(ImGui.GetContentRegionAvail().X, -1), true, ImGuiWindowFlags.NoDecoration))
+        {
 
-        if (!child) { return; }
+            if (!child) { return; }
 
-        // get the xpos so we can draw it back a bit to span the whole width of the window.
-        float xPos = ImGui.GetCursorPosX();
-        float yPos = ImGui.GetCursorPosY();
-        ImGui.SetCursorPos(new Vector2(xPos - ImGuiHelpers.GlobalScale * 10, yPos - ImGuiHelpers.GlobalScale * 10));
-        float width = ImGui.GetContentRegionAvail().X + ImGuiHelpers.GlobalScale * 10;
+            // get the xpos so we can draw it back a bit to span the whole width of the window.
+            float xPos = ImGui.GetCursorPosX();
+            float yPos = ImGui.GetCursorPosY();
+            ImGui.SetCursorPos(new Vector2(xPos - ImGuiHelpers.GlobalScale * 10, yPos - ImGuiHelpers.GlobalScale * 10));
+            float width = ImGui.GetContentRegionAvail().X + ImGuiHelpers.GlobalScale * 10;
 
-        // draw the playback display
-        DrawRecordedDisplay(ref xPos, ref yPos, ref width);
+            // draw the playback display
+            DrawRecordedDisplay(ref xPos, ref yPos, ref width);
 
-        // draw the center bar for recording information and things
-        DrawCenterBar(ref xPos, ref yPos, ref width);
+            // draw the center bar for recording information and things
+            DrawCenterBar(ref xPos, ref yPos, ref width);
 
-        // draw the core of the vibe remote
-        DrawVibrationRecorder(ref xPos, ref yPos, ref width);
+            // draw the core of the vibe remote
+            DrawVibrationRecorder(ref xPos, ref yPos, ref width);
 
+            if(ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            {
+                ProcessLoopToggle();
+            }
+            if(ImGui.IsMouseClicked(ImGuiMouseButton.Middle))
+            {
+                ProcessFloatToggle();
+            }
+        }
+
+    
     }
 
-    #region ImPlot Hell
+    public void ProcessLoopToggle()
+    {
+        IsLooping = !IsLooping;
+/*        if (IsFloating) { IsFloating = false; }*/
+    }
+
+    public void ProcessFloatToggle()
+    {
+        IsFloating = !IsFloating;
+/*        if (IsLooping) { IsLooping = false; }*/
+    }
+
     public void DrawRecordedDisplay(ref float xPos, ref float yPos, ref float width)
     {
         try
@@ -146,15 +197,13 @@ public class LovenseRemote : WindowMediatorSubscriberBase
             float[] ys = RecordedPositions.Select(pos => (float)pos).ToArray();  // y-values
             float latestX = xs.Length > 0 ? xs[xs.Length - 1] : 0; // The latest x-value
 
-            // Transform the x-values so that the latest position appears at x=0
+            // Transform the x-values so that the latest position appears at x=0 (ensure it doesnt start smack dab in the middle)
             for (int i = 0; i < xs.Length; i++)
-            {
                 xs[i] -= latestX;
-            }
 
             // set up the color map for our plots.
-            ImPlot.PushStyleColor(ImPlotCol.Line, LushPinkLine);
-            ImPlot.PushStyleColor(ImPlotCol.PlotBg, LovenseScrollingBG);
+            ImPlot.PushStyleColor(ImPlotCol.Line, _remoteService.LushPinkLine);
+            ImPlot.PushStyleColor(ImPlotCol.PlotBg, _remoteService.LovenseScrollingBG);
 
             // setup and draw the waveform graph axis
             ImPlot.SetNextAxesLimits(-150, 0, -5, 110, ImPlotCond.Always);
@@ -191,20 +240,14 @@ public class LovenseRemote : WindowMediatorSubscriberBase
         }
     }
 
-    public void DrawCenterBar(ref float xPos, ref float yPos, ref float width)
-    {
-        // grab the content region of the current section
-        var CurrentRegion = ImGui.GetContentRegionAvail();
-        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGuiHelpers.GlobalScale * 5);
-        using (var color = ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.2f, 0.2f, 0.2f, 0.930f)))
-        {
-            // create a child for the center bar
-            using (var canterBar = ImRaii.Child($"###CenterBarDraw", new Vector2(CurrentRegion.X, 40f), false))
-            {
-                UiSharedService.ColorText("CenterBar dummy placement", ImGuiColors.ParsedGreen);
-            }
-        }
-    }
+    /// <summary>
+    /// This abstract method for the center bar will change how it is drawn based on the remote type.
+    /// <para> Personal will display personal devices, their motors and additional options. </para>
+    /// <para> Patterns will display the device the pattern is being recorded for, which motor and type we are recording for.</para>
+    /// <para> Pattern will display </para>
+    /// </summary>
+    public abstract void DrawCenterBar(ref float xPos, ref float yPos, ref float width);
+    
 
     public void DrawVibrationRecorder(ref float xPos, ref float yPos, ref float width)
     {
@@ -219,7 +262,7 @@ public class LovenseRemote : WindowMediatorSubscriberBase
             ImGui.TableNextColumn();
 
             // create styles for the next plot
-            ImPlot.PushStyleColor(ImPlotCol.PlotBg, LovenseDragButtonBG);
+            ImPlot.PushStyleColor(ImPlotCol.PlotBg, _remoteService.LovenseDragButtonBG);
             DrawCircleButtonGraph(ref width, ref yPos);
 
             // end of using disabled & first column
@@ -230,10 +273,10 @@ public class LovenseRemote : WindowMediatorSubscriberBase
         // end of table here.
     }
 
-    public void DrawCircleButtonGraph(ref float width, ref float yPos)
+    private void DrawCircleButtonGraph(ref float width, ref float yPos)
     {
-        using var disabled = ImRaii.Disabled(!IsRecording && HasFinishedRecording);
-        using var color = ImRaii.PushColor(ImPlotCol.PlotBg, LovenseDragButtonBG);
+        using var disabled = ImRaii.Disabled(!RemoteOnline);
+        using var color = ImRaii.PushColor(ImPlotCol.PlotBg, _remoteService.LovenseDragButtonBG);
         // Draw a thin line with a timer to show the current position of the circle
         width = ImGui.GetContentRegionAvail().X;
         var height = ImGui.GetContentRegionAvail().Y + ImGui.GetTextLineHeight() + ImGuiHelpers.GlobalScale * 5;
@@ -254,7 +297,7 @@ public class LovenseRemote : WindowMediatorSubscriberBase
             ImPlot.SetupAxisTicks(ImAxis.Y1, ref Positions[0], 11, Labels);
 
             // setup the drag point circle
-            ImPlot.DragPoint(0, ref CirclePosition[0], ref CirclePosition[1], LushPinkButton, 20, ImPlotDragToolFlags.NoCursors);
+            ImPlot.DragPoint(0, ref CirclePosition[0], ref CirclePosition[1], _remoteService.LushPinkButton, 20, ImPlotDragToolFlags.NoCursors);
 
             // if the mouse button is released, while we are looping and dragging turn dragging off
             if (IsDragging && ImGui.IsMouseReleased(ImGuiMouseButton.Left))
@@ -277,113 +320,18 @@ public class LovenseRemote : WindowMediatorSubscriberBase
                 }
             }
 
-            // account for floating and boundry crossing for REALISM BABY
-            AccountForFloating();
+            // If looping on & Left Mouse isn't down, then we're reading off the loop buffer, so skip float accounting.
+            if (!(IsLooping && !ImGui.IsMouseDown(ImGuiMouseButton.Left)))
+            {
+                AccountForFloating();
+            }
             // end the plot
             ImPlot.EndPlot();
         }
     }
 
-    public void DrawSideButtonsTable(Vector2 region)
-    {
-        // push our styles
-        using var styleColor = ImRaii.PushColor(ImGuiCol.Button, new Vector4(.2f, .2f, .2f, .2f))
-            .Push(ImGuiCol.ButtonHovered, new Vector4(.3f, .3f, .3f, .4f))
-            .Push(ImGuiCol.ButtonActive, LushPinkButton);
-        using var styleVar = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 40);
-
-        // grab the content region of the current section
-        var CurrentRegion = ImGui.GetContentRegionAvail();
-        var yPos2 = ImGui.GetCursorPosY();
-
-        // setup a child for the table cell space
-        using (var leftChild = ImRaii.Child($"###ButtonsList", CurrentRegion with { Y = region.Y }, false, ImGuiWindowFlags.NoDecoration))
-        {
-            var InitPos = ImGui.GetCursorPosY();
-            if (IsRecording)
-            {
-                ImGuiUtil.Center($"{Recorder.Elapsed.ToString(@"mm\:ss")}");
-            }
-
-            // move our yposition down to the top of the frame height times a .3f scale of the current region
-            ImGui.SetCursorPosY(InitPos + CurrentRegion.Y * .1f);
-            ImGui.Separator();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .025f);
-
-            // attempt to obtain an image wrap for it
-            var spinnyArrow = _uiShared.GetImageFromDirectoryFile("arrows-spin.png");
-            if (!(spinnyArrow is { } wrap))
-            {
-                _logger.LogWarning("Failed to render image!");
-            }
-            else
-            {
-                Vector4 buttonColor = IsLooping ? LushPinkButton : SideButton;
-                // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("LoopButton", new Vector2(50, 50),
-                    buttonColor, new Vector2(40, 40), wrap))
-                {
-                    IsLooping = !IsLooping;
-                    if (IsFloating) { IsFloating = false; }
-                }
-            }
-
-            // move it down from current position by another .2f scale
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .05f);
-
-            var circlesDot = _uiShared.GetImageFromDirectoryFile("circle-dot.png");
-            if (!(circlesDot is { } wrap2))
-            {
-                _logger.LogWarning("Failed to render image!");
-            }
-            else
-            {
-                Vector4 buttonColor2 = IsFloating ? LushPinkButton : SideButton;
-                // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("FloatButton", new Vector2(50, 50),
-                    buttonColor2, new Vector2(40, 40), wrap2))
-                {
-                    IsFloating = !IsFloating;
-                    if (IsLooping) { IsLooping = false; }
-                }
-            }
-
-            ImGui.SetCursorPosY(CurrentRegion.Y * .775f);
-
-            var power = _uiShared.GetImageFromDirectoryFile("power.png");
-            if (!(power is { } wrap3))
-            {
-                _logger.LogWarning("Failed to render image!");
-            }
-            else
-            {
-                Vector4 buttonColor3 = IsRecording ? LushPinkButton : SideButton;
-                // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("PowerToggleButton", new Vector2(50, 50),
-                    buttonColor3, new Vector2(40, 40), wrap3))
-                {
-                    if (!IsRecording)
-                    {
-                        _logger.LogTrace("Starting Recording!");
-                        // invert the recording state and start recording
-                        IsRecording = !IsRecording;
-                        StartRecording();
-                    }
-                    else
-                    {
-                        _logger.LogTrace("Stopping Recording!");
-                        // invert the recording state and stop recording
-                        IsRecording = !IsRecording;
-                        StopRecording();
-                    }
-                }
-            }
-        }
-        // pop what we appended
-        styleColor.Pop(3);
-        styleVar.Pop();
-    }
-    #endregion ImPlot Hell
+    public abstract void DrawSideButtonsTable(Vector2 region);
+    
 
     // When active, the circle will not fall back to the 0 coordinate on the Y axis of the plot, and remain where it is
     public void AccountForFloating()
@@ -408,39 +356,41 @@ public class LovenseRemote : WindowMediatorSubscriberBase
         }
     }
 
-    public void StartRecording()
+    public virtual void StartVibrating()
     {
-        _logger.LogTrace("Starting Recording!");
-        StoredVibrationData.Clear();
-
-        Recorder.Start();
-        StoredRecordedData.Start();
-
-        DurationStopwatch.Start();  // Start the stopwatch
-        IsRecording = true;
-        // start up the sound audio
+        _logger.LogInformation($"Starting Recording on {WindowBaseName}!");
+        // start up our timers and stopwatch
+        DisplayUpdateTimer.Start();
+        IntensityUpdateTimer.Start();
+        DurationStopwatch.Start();
+        RemoteOnline = true;
+        // start up the simulated vibrator if active.
         // TODO: Spacial & Simulated Audio integration
     }
 
-    public void StopRecording()
+    public virtual void StopVibrating()
     {
-        _logger.LogTrace("Stopping Recording!");
-        Recorder.Stop();
-        StoredRecordedData.Stop();
+        _logger.LogInformation($"Stopping Recording on {WindowBaseName}!");
+        // halt our recorders and stopwatch
+        DisplayUpdateTimer.Stop();
+        IntensityUpdateTimer.Stop();
+        DurationStopwatch.Stop();
+        RemoteOnline = false;
+        // clear our stored data (not the byte intensity block)
         RecordedPositions.Clear();
         StoredLoopDataBlock.Clear();
-        DurationStopwatch.Stop();
-        IsRecording = false;
-        HasFinishedRecording = true;
-        // TODO: Reset vibrations on motors prior to recording back to original state. unsure how to do this yet.
+        // Reset vibrations on motors prior to recording back to original state.
+        _intifaceHandler.StopAllDevices();
     }
 
-    #region TimerResolveFuncs
-    // Function to add the Circles Y-Position into the buffer of stored positions
+    /// <summary>
+    /// Because this function simply appends information to the DisplayPositionBuffer, it can be called in the base class.
+    /// </summary>
     private void AddCirclePositionToBuffer(object? sender, ElapsedEventArgs e)
     {
+        
         // Limit recorded position doubles to 1000. 
-        // Once limit reached, reset to new list with last 200 entries.
+        // Once limit reached, reset to new list with last 200 entries. (ensures display isnt fucked up)
         if (RecordedPositions.Count > 1000)
         {
             RecordedPositions = RecordedPositions.GetRange(RecordedPositions.Count - 200, 200);
@@ -489,46 +439,9 @@ public class LovenseRemote : WindowMediatorSubscriberBase
         }
     }
 
-    /// <summary> Sends the recorded data to the connected devices. (every 20ms) </summary>
-    private void RecordData(object? sender, ElapsedEventArgs e)
-    {
-        if (IsLooping && !IsDragging && StoredLoopDataBlock.Count > 0)
-        {
-            //_logger.LogTrace($"Looping & not Dragging: {(byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex])}");
-            // If looping, but not dragging, and have stored LoopData, add the stored data to the vibration data.
-            StoredVibrationData.Add((byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex]));
-        }
-        else
-        {
-            //_logger.LogTrace($"Injecting new data: {(byte)Math.Round(CirclePosition[1])}");
-            // Otherwise, add the current circle position to the vibration data.
-            StoredVibrationData.Add((byte)Math.Round(CirclePosition[1]));
-        }
-
-        // if we reached passed our "capped limit", (its like 3 hours) stop recording.
-        if (StoredVibrationData.Count > 270000)
-        {
-            //_logger.LogWarning("Capped the stored data, stopping recording!");
-            StopRecording();
-        }
-
-        // _logger.LogTrace($"AnyDeviceConnected: {_IntifaceHandler.AnyDeviceConnected}, ConnectedToIntiface: {_IntifaceHandler.ConnectedToIntiface}");
-        // if any devices are currently connected, and our intiface client is connected,
-        if (_IntifaceHandler.AnyDeviceConnected && _IntifaceHandler.ConnectedToIntiface)
-        {
-            //_logger.LogTrace("Sending Vibration Data to Devices!");
-            // send the vibration data to all connected devices
-            if (IsLooping && !IsDragging && StoredLoopDataBlock.Count > 0)
-            {
-                //_logger.LogTrace($"{(byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex])}");
-                _IntifaceHandler.SendVibeToAllDevices((byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex]));
-            }
-            else
-            {
-                //_logger.LogTrace($"{(byte)Math.Round(CirclePosition[1])}");
-                _IntifaceHandler.SendVibeToAllDevices((byte)Math.Round(CirclePosition[1]));
-            }
-        }
-    }
-    #endregion TimerResolveFuncs
+    /// <summary>
+    /// This is an abstract class, as this function determines what happens to the data after it is recorded.
+    /// <para> This is unique to each kind of device calling it, so we will handle that based on who is calling it.</para>
+    /// </summary>
+    public abstract void RecordData(object? sender, ElapsedEventArgs e);
 }

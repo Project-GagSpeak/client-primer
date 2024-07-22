@@ -650,6 +650,11 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public static bool ShiftPressed() => (GetKeyState(0xA1) & 0x8000) != 0 || (GetKeyState(0xA0) & 0x8000) != 0;
 
+    public static bool RightMouseButtonDown() => (GetKeyState(0x02) & 0x8000) != 0;
+
+    public static bool MiddleMouseButtonDown() => (GetKeyState(0x04) & 0x8000) != 0;
+
+
     public static void CopyableDisplayText(string text, string tooltip = "Click to copy")
     {
         // then when the item is clicked, copy it to clipboard so we can share with others

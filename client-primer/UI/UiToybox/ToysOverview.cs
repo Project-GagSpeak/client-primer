@@ -109,7 +109,7 @@ public class ToyboxOverview
         if (_uiShared.IconTextButton(FontAwesomeIcon.TabletAlt, "Personal Remote"))
         {
             // open the personal remote window
-            _mediator.Publish(new UiToggleMessage(typeof(LovenseRemote)));
+            _mediator.Publish(new UiToggleMessage(typeof(RemotePersonal)));
         }
 
         // draw out the list of devices

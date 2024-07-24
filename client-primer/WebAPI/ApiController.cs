@@ -599,7 +599,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         _healthCTS?.Cancel();
         _toyboxHealthCTS?.Cancel();
 
-        _ = Task.Run(async () => await StopConnection(ServerState.Disconnected).ConfigureAwait(false));
+        _ = Task.Run(async () => await StopConnection(ServerState.Disconnected, HubType.MainHub).ConfigureAwait(false));
+        _ = Task.Run(async () => await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false));
         _connectionCTS?.Cancel();
         _connectionToyboxCTS?.Cancel();
     }

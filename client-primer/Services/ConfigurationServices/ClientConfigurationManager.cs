@@ -446,6 +446,7 @@ public class ClientConfigurationManager
     #endregion Pattern Config Methods
     /* --------------------- Toybox Alarm Configs --------------------- */
     #region Alarm Config Methods
+    public List<Alarm> AlarmsRef => _alarmConfig.Current.AlarmStorage.Alarms; // readonly accessor
     public Alarm FetchAlarm(int idx) => _alarmConfig.Current.AlarmStorage.Alarms[idx];
     public int FetchAlarmCount() => _alarmConfig.Current.AlarmStorage.Alarms.Count;
 

@@ -22,24 +22,24 @@ public class AlarmHandler : MediatorSubscriberBase
         _clientConfigs = clientConfigs;
         _IntifaceHandler = handler;
 
-/*        Mediator.Subscribe<AlarmAddedMessage>(this, (msg) =>
+        Mediator.Subscribe<AlarmAddedMessage>(this, (msg) =>
         {
-            // update the list of names
-            AlarmNames = _clientConfigs.GetAlarmNames();
+            // update the alarm refs
+            AlarmListRef = _clientConfigs.AlarmsRef;
         });
 
         Mediator.Subscribe<AlarmRemovedMessage>(this, (msg) =>
         {
             // update the list of names
-            AlarmNames = _clientConfigs.GetAlarmNames();
+            AlarmListRef = _clientConfigs.AlarmsRef;
         });
 
         // probably dont need this because c# magic?
         Mediator.Subscribe<AlarmDataChanged>(this, (msg) =>
         {
             // update the list of names
-            AlarmNames = _clientConfigs.GetAlarmNames();
-        });*/
+            EditingAlarm = _clientConfigs.FetchAlarm(msg.AlarmIndex);
+        });
     }
 
     // store a public accessor

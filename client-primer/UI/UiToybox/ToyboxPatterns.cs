@@ -7,6 +7,8 @@ using GagSpeak.Interop.IpcHelpers.GameData;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI.Components;
+using GagSpeak.UI.UiRemote;
 using ImGuiNET;
 using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using Microsoft.IdentityModel.Tokens;
@@ -36,6 +38,7 @@ public class ToyboxPatterns
         _pairManager = pairManager;
     }
 
+    private PatternData? SelectedPattern = null;
     private int SelectedPatternIdx = -1;
     private Vector2 DefaultItemSpacing { get; set; }
     private LowerString PairSearchString = LowerString.Empty;
@@ -44,28 +47,24 @@ public class ToyboxPatterns
     public void DrawPatternManagerPanel()
     {
         // if the pattern list is empty, fetch it
-        if(_handler.PatternNames == null)
-        {
-            _handler.InitalizePatternNames();
-            return;
-        }
+        if(_handler.PatternNames == null) return;
 
         _uiShared.BigText("Patterns");
 
         var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
-        var currentRightSide = windowEndX - (_uiShared.GetIconTextButtonSize(FontAwesomeIcon.Save, "Import Pattern") + 
-            ImGui.GetStyle().ItemSpacing.X*2 + _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Plus, "Create Pattern"));
+        var currentRightSide = windowEndX - (_uiShared.GetIconTextButtonSize(FontAwesomeIcon.Save, "Import") + 
+            ImGui.GetStyle().ItemSpacing.X*2 + _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Plus, "Create"));
         ImGui.SameLine(currentRightSide);
         using (_ = ImRaii.Group())
         {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Create Pattern", _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Save, "Revert Changes")))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Create"))
             {
                 // Open the lovense remote in PATTERN mode
-                // TODO: Implement this
+                _mediator.Publish(new UiToggleMessage(typeof(RemotePatternMaker)));
             }
             ImGui.SameLine(0, 4);
             // draw revert button at the same locatoin but right below that button
-            if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import Pattern"))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import"))
             {
                 // Paste in the pattern data from the clipboard if valid.
                 SetFromClipboard();
@@ -74,7 +73,7 @@ public class ToyboxPatterns
 
         ImGui.Separator();
 
-        // if the counter is 0, perform an early return
+        // if the counter is 0, perform an early return. Prevents us from drawing null pattern data.
         if (_handler.PatternNames.Count == 0)
         {
             UiSharedService.ColorText("No patterns found.", ImGuiColors.DalamudYellow);
@@ -86,15 +85,6 @@ public class ToyboxPatterns
 
     private void DrawPatterns()
     {
-        using var table = ImRaii.Table("PatternStorageList", 2);
-        if (!table) return;
-
-        // setup columns.
-        ImGui.TableSetupColumn("##PatternFilterList", ImGuiTableColumnFlags.WidthFixed, 160 * ImGuiHelpers.GlobalScale);
-        ImGui.TableSetupColumn("##FilteredPatternInfo", ImGuiTableColumnFlags.WidthStretch);
-
-        ImGui.TableNextRow(); ImGui.TableNextColumn();
-
         var searchString = PatternSearchString.Lower;
         // draw the selector on the left
         _uiShared.DrawComboSearchable("##PatternSelector", ImGui.GetContentRegionAvail().X, ref searchString,
@@ -105,10 +95,10 @@ public class ToyboxPatterns
             if (_handler.IsIndexInBounds(foundMatch))
             {
                 SelectedPatternIdx = foundMatch;
+                SelectedPattern = _handler.FetchPattern(SelectedPatternIdx);
             }
         }, default);
 
-        ImGui.TableNextColumn();
         // draw out the pattern information
         if(SelectedPatternIdx != -1)
         {
@@ -129,19 +119,33 @@ public class ToyboxPatterns
             return;
         }
         // display pattern information
-        _uiShared.BigText(_handler.GetPatternName(SelectedPatternIdx));
-        ImGui.SameLine();
-        ImGui.TextUnformatted("(By " + _handler.GetPatternAuthor(SelectedPatternIdx) + ")");
-        // new line, display tags (or maybe off to the right? Idk)
-        UiSharedService.TextWrapped(_handler.GetPatternDescription(SelectedPatternIdx));
-        ImGui.TextUnformatted("Duration : " + _handler.GetDurationForPattern(SelectedPatternIdx));
-        _uiShared.IconTextButton(FontAwesomeIcon.Repeat, _handler.GetIfPatternLoops(SelectedPatternIdx) ? "Looping" : "Not Looping");
+        _uiShared.BigText(SelectedPattern!.Name);
+
+        UiSharedService.ColorText("(By " + SelectedPattern!.Author + ")", ImGuiColors.ParsedGold);
+
+        UiSharedService.TextWrapped(SelectedPattern!.Description);
+
+        ImGui.TextUnformatted("Duration : " + SelectedPattern!.Duration);
+
+        if(_uiShared.IconTextButton(FontAwesomeIcon.Repeat, SelectedPattern!.ShouldLoop ? "Looping" : "Not Looping"))
+        {
+            if(SelectedPattern!.ShouldLoop)
+            {
+                // set to not looping
+                _handler.SetPatternLoop(SelectedPatternIdx, false);
+            }
+            else
+            {
+                // set to looping
+                _handler.SetPatternLoop(SelectedPatternIdx, true);
+            }
+        }
+
         var widthRef = ImGui.GetContentRegionAvail().X;
         var currentWidth = 0f;
         ImGui.Text("Tags: ");
-        foreach (string tag in _handler.GetTagsForPattern(SelectedPatternIdx))
+        foreach (string tag in SelectedPattern!.Tags)
         {
-            _uiShared.IconTextButton(FontAwesomeIcon.Tag, tag);
             currentWidth += _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Tag, tag);
             if (currentWidth < widthRef)
             {
@@ -152,27 +156,33 @@ public class ToyboxPatterns
                 // reset currentwidth
                 currentWidth = 0f;
             }
+            _uiShared.IconTextButton(FontAwesomeIcon.Tag, tag);
         }
         ImGui.Separator();
         // display filterable search list
         DrawSearchFilter(ImGui.GetContentRegionAvail().X, ImGui.GetStyle().ItemSpacing.X);
-        using (var table = ImRaii.Table("userListForVisibility", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY, new Vector2(region.X, 60f)))
+        using (var table = ImRaii.Table("userListForVisibility", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY, 
+            new Vector2(region.X, ImGui.GetContentRegionAvail().Y)))
         {
             if (!table) return;
 
-            ImGui.TableSetupColumn("Alias/UID", ImGuiTableColumnFlags.WidthFixed, 150f);
-            ImGui.TableSetupColumn("Can View", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("Alias/UID", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("Can View", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Can View ").X);
             ImGui.TableHeadersRow();
 
-            var PairList = _pairManager.DirectPairs;
+            var PairList = _pairManager.DirectPairs
+                .Where(pair => string.IsNullOrEmpty(PairSearchString) ||
+                               pair.UserData.AliasOrUID.Contains(PairSearchString, StringComparison.OrdinalIgnoreCase) ||
+                               (pair.GetNickname() != null && pair.GetNickname().Contains(PairSearchString, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(p => p.GetNickname() ?? p.UserData.AliasOrUID, StringComparer.OrdinalIgnoreCase);
 
-            foreach (Pair pair in PairList.OrderBy(p => p.GetNickname() ?? p.UserData.AliasOrUID, StringComparer.OrdinalIgnoreCase))
+            foreach (Pair pair in PairList)
             {
                 using var tableId = ImRaii.PushId("userTable_" + pair.UserData.UID);
 
                 ImGui.TableNextColumn(); // alias or UID of user.
                 var nickname = pair.GetNickname();
-                var text = nickname == null ? pair.UserData.AliasOrUID : nickname;
+                var text = nickname == null ? pair.UserData.AliasOrUID : nickname + " (" + pair.UserData.UID + ")";
                 ImGui.AlignTextToFramePadding();
                 ImGui.TextUnformatted(text);
 
@@ -258,10 +268,11 @@ public class ToyboxPatterns
             }
         }
 
-        // If an item was selected during this ImGui frame, update the _selectedPattern
+        // If an item was selected during this ImGui frame, update the selected pattern
         if (itemSelected && newlySelectedPattern != -1)
         {
             SelectedPatternIdx = newlySelectedPattern;
+            SelectedPattern = _handler.FetchPattern(SelectedPatternIdx);
         }
     }
 
@@ -282,9 +293,8 @@ public class ToyboxPatterns
             string baseName = _handler.EnsureUniqueName(pattern.Name);
 
             // Set the active pattern
-            _handler.AddPattern(pattern);
-
             _logger.LogInformation("Set pattern data from clipboard");
+            _handler.AddPattern(pattern);
         }
         catch (Exception ex)
         {

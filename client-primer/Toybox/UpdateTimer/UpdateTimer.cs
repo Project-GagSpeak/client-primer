@@ -1,13 +1,13 @@
 using System.Timers;
 
 namespace GagSpeak.Toybox.Debouncer;
-public class TimerRecorder : IDisposable
+public class UpdateTimer : IDisposable
 {
     private readonly System.Timers.Timer _timer;
     private readonly ElapsedEventHandler _handler;
     private DateTime _startTime;
 
-    public TimerRecorder(int interval, ElapsedEventHandler handler)
+    public UpdateTimer(int interval, ElapsedEventHandler handler)
     {
         _timer = new System.Timers.Timer(interval);
         _handler = handler;

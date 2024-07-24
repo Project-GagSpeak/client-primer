@@ -4,7 +4,6 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services.Data;
 using GagSpeak.Services.Events;
 using GagSpeak.UI;
 using GagSpeak.UI.Permissions;
@@ -16,6 +15,7 @@ using Glamourer.Api.Enums;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using System.Numerics;
+using GagSpeak.Toybox.Models;
 
 namespace GagSpeak.Services.Mediator;
 
@@ -111,6 +111,12 @@ public record PatternRemovedMessage : MessageBase; // for when a pattern is remo
 public record PatternActivedMessage(int PatternIndex) : MessageBase; // for when a pattern is activated.
 public record PatternDeactivedMessage(int PatternIndex) : MessageBase; // for when a pattern is deactivated.
 public record PatternDataChanged(int PatternIndex) : MessageBase; // for when a pattern is changed.
+public record AlarmAddedMessage(Alarm Alarm) : MessageBase; // When Alarm is added.
+public record AlarmRemovedMessage : MessageBase; // for when an alarm is removed, force a recollection of pattern list.
+public record AlarmActivated(int AlarmIndex) : MessageBase; // for when an alarm is activated.
+public record AlarmDeactivated(int AlarmIndex) : MessageBase; // for when an alarm is deactivated.
+public record AlarmDataChanged(int AlarmIndex) : MessageBase; // for when an alarm is changed.
+
 
 /* ------------------ PLAYERDATA CLIENTSIDE PERMISSION HANDLING ------------------- */
 public record ClientGlobalPermissionChanged(string Permission, object Value) : MessageBase; // for when a client global permission is changed.
@@ -148,6 +154,7 @@ public record ProfileOpenStandaloneMessage(Pair Pair) : MessageBase; // for open
 public record ProfilePopoutToggle(Pair? Pair) : MessageBase; // toggles the profile popout window for a paired client.
 public record ClearProfileDataMessage(UserData? UserData = null) : MessageBase; // a message indicating the need to clear profile data.
 public record VerificationPopupMessage(VerificationDto VerificationCode) : MessageBase; // indicating that we have received a verification code popup.
+public record PatternSavePromptMessage(List<byte> StoredData, string Duration) : MessageBase; // prompts the popup and passes in savedata
 public record BlindfoldUiTypeChange(BlindfoldType NewType) : MessageBase; // for changing blindfold type.
 
 #pragma warning restore S2094

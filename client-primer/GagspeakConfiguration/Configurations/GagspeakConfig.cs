@@ -9,8 +9,9 @@ namespace GagSpeak.GagspeakConfiguration.Configurations;
 [Serializable]
 public class GagspeakConfig : IGagspeakConfiguration
 {
-    public bool AcknowledgementUnderstood { get; set; } = false;       // if the user has acknowledged the terms of service
-    public bool ButtonUsed { get; set; } = false;                      // if the user has used the button
+    public int Version { get; set; } = 1;                               // the version of the config file
+    public bool AcknowledgementUnderstood { get; set; } = false;        // if the user has acknowledged the terms of service
+    public bool ButtonUsed { get; set; } = false;                       // if the user has used the button
     public bool AccountCreated { get; set; } = false;                   // if the user has created an account in the plugin
     public bool AccountClaimed { get; set; } = false;                   // if the user has claimed their account sucessfully.
     public bool EnableDtrEntry { get; set; } = false;                   // enable the DTR entry
@@ -38,7 +39,6 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool UsingSimulatedVibrator { get; set; }                    // if the user is using a simulated vibrator
     public string LanguageDialect { get; set; } = "IPA_US";             // the language dialect the user is using for MufflerCore
     public bool UsingLegacyControls { get; set; } = GameConfig.UiControl.GetBool("MoveMode"); // grabs our movement mode for the game.
-    public int Version { get; set; } = 1;                               // the version of the config file
     public string IntifaceConnectionSocket { get; set; } = "ws://localhost:12345"; // connection link from plugin to intiface
 }
 

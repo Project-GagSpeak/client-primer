@@ -1,8 +1,8 @@
 using Buttplug.Client;
 using Buttplug.Core.Messages;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Services.VibeServices;
 using DebounceThrottle;
+using GagSpeak.Toybox.Models;
 
 namespace GagSpeak.Services.Data;
 

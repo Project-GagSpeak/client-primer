@@ -29,12 +29,15 @@ public class ClientConfigurationManager
     private readonly WardrobeConfigService _wardrobeConfig;         // the config for the wardrobe service (restraint sets)
     private readonly AliasConfigService _aliasConfig;               // the config for the alias lists (puppeteer stuff)
     private readonly PatternConfigService _patternConfig;           // the config for the pattern service (toybox pattern storage))
+    private readonly AlarmConfigService _alarmConfig;               // the config for the alarm service (toybox alarm storage)
+    private readonly TriggerConfigService _triggersConfig;          // the config for the triggers service (toybox triggers storage)
 
-    public ClientConfigurationManager(ILogger<ClientConfigurationManager> logger, 
-        OnFrameworkService onFrameworkService, GagspeakMediator GagspeakMediator, 
+    public ClientConfigurationManager(ILogger<ClientConfigurationManager> logger,
+        OnFrameworkService onFrameworkService, GagspeakMediator GagspeakMediator,
         GagspeakConfigService configService, GagStorageConfigService gagStorageConfig,
         WardrobeConfigService wardrobeConfig, AliasConfigService aliasConfig,
-        PatternConfigService patternConfig)
+        PatternConfigService patternConfig, AlarmConfigService alarmConfig,
+        TriggerConfigService triggersConfig)
     {
         _logger = logger;
         _frameworkUtils = onFrameworkService;
@@ -44,6 +47,8 @@ public class ClientConfigurationManager
         _wardrobeConfig = wardrobeConfig;
         _aliasConfig = aliasConfig;
         _patternConfig = patternConfig;
+        _alarmConfig = alarmConfig;
+        _triggersConfig = triggersConfig;
 
         // insure the nicknames and tag configs exist in the main server.
         if (_gagStorageConfig.Current.GagStorage == null) { _gagStorageConfig.Current.GagStorage = new(); }
@@ -69,6 +74,9 @@ public class ClientConfigurationManager
         if (_wardrobeConfig.Current.WardrobeStorage == null) { _wardrobeConfig.Current.WardrobeStorage = new(); }
         if (_aliasConfig.Current.AliasStorage == null) { _aliasConfig.Current.AliasStorage = new(); }
         if (_patternConfig.Current.PatternStorage == null) { _patternConfig.Current.PatternStorage = new(); }
+        if (_alarmConfig.Current.AlarmStorage == null) { _alarmConfig.Current.AlarmStorage = new(); }
+        if (_triggersConfig.Current.TriggerStorage == null) { _triggersConfig.Current.TriggerStorage = new(); }
+
     }
 
     // define public access to various storages (THESE ARE ONLY GETTERS, NO SETTERS)
@@ -77,6 +85,9 @@ public class ClientConfigurationManager
     private WardrobeConfig WardrobeConfig => _wardrobeConfig.Current;
     private AliasConfig AliasConfig => _aliasConfig.Current;
     private PatternConfig PatternConfig => _patternConfig.Current;
+    private AlarmConfig AlarmConfig => _alarmConfig.Current;
+    private TriggerConfig TriggerConfig => _triggersConfig.Current;
+
 
     public bool HasCreatedConfigs()
     {
@@ -92,6 +103,7 @@ public class ClientConfigurationManager
     }
 
     /* --------------------- Gag Storage Config Methods --------------------- */
+    #region Gag Storage Methods
     internal bool IsGagEnabled(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.IsEnabled;
     internal GagDrawData GetDrawData(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData[gagType];
     internal EquipSlot GetGagTypeEquipSlot(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot;
@@ -140,27 +152,16 @@ public class ClientConfigurationManager
         _gagStorageConfig.Save();
         _logger.LogInformation("GagStorage Config Saved");
     }
-
+    #endregion Gag Storage Methods
     /* --------------------- Wardrobe Config Methods --------------------- */
+    #region Wardrobe Config Methods
     /// <summary> 
     /// I swear to god, so not set anything inside this object through this fetch. Treat it as readonly.
     /// </summary>
     internal List<RestraintSet> StoredRestraintSets => WardrobeConfig.WardrobeStorage.RestraintSets;
-
-    public List<string> GetRestraintSetNames()
-    {
-        return StoredRestraintSets.Select(set => set.Name).ToList();
-    }
-
+    public List<string> GetRestraintSetNames() => WardrobeConfig.WardrobeStorage.RestraintSets.Select(set => set.Name).ToList();
     internal int GetActiveSetIdx() => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Enabled);
-    internal RestraintSet GetActiveSet()
-    {
-        var activeSetIndex = WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Enabled);
-        if(activeSetIndex == -1) return null;
-
-        return WardrobeConfig.WardrobeStorage.RestraintSets[activeSetIndex];
-    }
-
+    internal RestraintSet GetActiveSet() => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.Enabled)!; // this can be null.
     internal RestraintSet GetRestraintSet(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
 
     internal void AddNewRestraintSet(RestraintSet newSet)
@@ -182,7 +183,7 @@ public class ClientConfigurationManager
     {
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.RemoveAt(setIndex);
         _wardrobeConfig.Save();
-        // _mediator.Publish(new RestraintSetRemoved(setIndex));
+        _mediator.Publish(new RestraintSetRemovedMessage(setIndex));
     }
 
     internal void UpdateRestraintSet(int setIndex, RestraintSet updatedSet)
@@ -192,23 +193,21 @@ public class ClientConfigurationManager
         _mediator.Publish(new RestraintSetModified(setIndex));
     }
 
-    // make to see if a set has hardcore properties bound for it.
     internal bool PropertiesEnabledForSet(int setIndexToCheck, string UIDtoCheckPropertiesFor)
     {
-        if(UIDtoCheckPropertiesFor == "SelfApplied") return false;
+        if (UIDtoCheckPropertiesFor == "SelfApplied") return false;
 
         HardcoreSetProperties setProperties = WardrobeConfig.WardrobeStorage.RestraintSets[setIndexToCheck].SetProperties[UIDtoCheckPropertiesFor];
         // if no object for this exists, return false
         if (setProperties == null) return false;
         // check if any properties are enabled
-        return setProperties.LegsRestrained || setProperties.ArmsRestrained || setProperties.Gagged || setProperties.Blindfolded || setProperties.Immobile 
+        return setProperties.LegsRestrained || setProperties.ArmsRestrained || setProperties.Gagged || setProperties.Blindfolded || setProperties.Immobile
             || setProperties.Weighty || setProperties.LightStimulation || setProperties.MildStimulation || setProperties.HeavyStimulation;
     }
 
-    /// <summary> Changes variables for the restraint set to disable them, then saves the config. </summary>
     internal void SetRestraintSetState(UpdatedNewState newState, int setIndex, string UIDofPair)
     {
-        if(newState == UpdatedNewState.Disabled)
+        if (newState == UpdatedNewState.Disabled)
         {
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Enabled = false;
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = string.Empty;
@@ -227,16 +226,9 @@ public class ClientConfigurationManager
         // publish to the mediator the toggle message for updates TODO
     }
 
-    /// <summary> Gets the total count of restraint sets in the wardrobe. </summary>
     internal int GetRestraintSetCount() => WardrobeConfig.WardrobeStorage.RestraintSets.Count;
+    internal List<AssociatedMod> GetAssociatedMods(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods;
 
-    /// <summary> Gets the DrawData from a wardrobes restraint set. </summary>
-    internal List<AssociatedMod> GetAssociatedMods(int setIndex)
-    {
-        return WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods;
-    }
-
-    /// <summary> adds a mod to the restraint set's associated mods. </summary>
     internal void AddAssociatedMod(int setIndex, AssociatedMod mod)
     {
         // make sure the associated mods list is not already in the list, and if not, add & save.
@@ -247,7 +239,6 @@ public class ClientConfigurationManager
         _mediator.Publish(new RestraintSetModified(setIndex));
     }
 
-    /// <summary> removes a mod from the restraint set's associated mods. </summary>
     internal void RemoveAssociatedMod(int setIndex, Mod mod)
     {
         // make sure the associated mods list is not already in the list, and if not, add & save.
@@ -259,7 +250,6 @@ public class ClientConfigurationManager
         _mediator.Publish(new RestraintSetModified(setIndex));
     }
 
-    /// <summary> Updates a mod in the restraint set's associated mods. </summary>
     internal void UpdateAssociatedMod(int setIndex, AssociatedMod mod)
     {
         // make sure the associated mods list is not already in the list, and if not, add & save.
@@ -271,10 +261,7 @@ public class ClientConfigurationManager
         _mediator.Publish(new RestraintSetModified(setIndex));
     }
 
-    internal bool IsBlindfoldActive()
-    {
-        return WardrobeConfig.WardrobeStorage.BlindfoldInfo.IsActive;
-    }
+    internal bool IsBlindfoldActive() => WardrobeConfig.WardrobeStorage.BlindfoldInfo.IsActive;
 
     internal void SetBlindfoldState(bool newState, string applierUID)
     {
@@ -283,25 +270,19 @@ public class ClientConfigurationManager
         _wardrobeConfig.Save();
     }
 
-    // this logic is flawed, and so is above, as this should not be manipulated by the client.
+    // TODO this logic is flawed, and so is above, as this should not be manipulated by the client.
     // rework later to fix and make it scan against pair list.
-    internal string GetBlindfoldedBy()
-    {
-        return WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldedBy;
-    }
-
-    internal EquipDrawData GetBlindfoldItem()
-    {
-       return WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldItem;
-    }
-
+    internal string GetBlindfoldedBy() => WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldedBy;
+    internal EquipDrawData GetBlindfoldItem() => WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldItem;
     internal void SetBlindfoldItem(EquipDrawData drawData)
     {
         WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldItem = drawData;
         _wardrobeConfig.Save();
     }
+    #endregion Wardrobe Config Methods
 
     /* --------------------- Puppeteer Alias Configs --------------------- */
+    #region Alias Config Methods
     public List<AliasTrigger> FetchListForPair(string userId)
     {
         if (!_aliasConfig.Current.AliasStorage.ContainsKey(userId))
@@ -352,11 +333,27 @@ public class ClientConfigurationManager
         _mediator.Publish(new AliasListUpdated(userId));
     }
 
+    #endregion Alias Config Methods
+    /* --------------------- Toybox Pattern Configs --------------------- */
+    #region Pattern Config Methods
+    public PatternData FetchPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx];
+    public int GetPatternIdxByName(string name) => _patternConfig.Current.PatternStorage.Patterns.FindIndex(p => p.Name == name);
+    public List<string> GetPatternNames() => _patternConfig.Current.PatternStorage.Patterns.Select(set => set.Name).ToList();
+    public bool IsIndexInBounds(int index) => index >= 0 && index < _patternConfig.Current.PatternStorage.Patterns.Count;
+    public bool IsAnyPatternPlaying() => _patternConfig.Current.PatternStorage.Patterns.Any(p => p.IsActive);
+    public int ActivePatternIdx() => _patternConfig.Current.PatternStorage.Patterns.FindIndex(p => p.IsActive);
 
-    /* --------------------- Toybox Pattern Configs --------------------- */    
-    
-    // best to use getters here since the pattern storage can tend to be large.
-    public string GetNameForPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].Name;
+    public TimeSpan GetPatternLength(int idx)
+    {
+        var pattern = _patternConfig.Current.PatternStorage.Patterns[idx].Duration;
+
+        if (string.IsNullOrWhiteSpace(pattern) || !TimeSpan.TryParseExact(pattern, "mm\\:ss", null, out var timespanDuration))
+        {
+            timespanDuration = TimeSpan.Zero; // Default to 0 minutes and 0 seconds
+        }
+        return timespanDuration;
+    }
+
     public void SetNameForPattern(int idx, string newName)
     {
         var newNameFinalized = EnsureUniqueName(newName);
@@ -365,7 +362,6 @@ public class ClientConfigurationManager
         _mediator.Publish(new PatternDataChanged(idx));
     }
 
-    public string GetDescriptionForPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].Description;
     public void ModifyDescription(int index, string newDescription)
     {
         _patternConfig.Current.PatternStorage.Patterns[index].Description = newDescription;
@@ -374,7 +370,6 @@ public class ClientConfigurationManager
         _mediator.Publish(new PatternDataChanged(index));
     }
 
-    public string GetAuthorForPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].Author;
     public void SetAuthorForPattern(int idx, string newAuthor)
     {
         _patternConfig.Current.PatternStorage.Patterns[idx].Author = newAuthor;
@@ -382,13 +377,13 @@ public class ClientConfigurationManager
         _mediator.Publish(new PatternDataChanged(idx));
     }
 
-    public List<string> GetTagsForPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].Tags;
     public void AddTagToPattern(int idx, string newTag)
     {
         _patternConfig.Current.PatternStorage.Patterns[idx].Tags.Add(newTag);
         _patternConfig.Save();
         _mediator.Publish(new PatternDataChanged(idx));
     }
+
     public void RemoveTagFromPattern(int idx, string tagToRemove)
     {
         _patternConfig.Current.PatternStorage.Patterns[idx].Tags.Remove(tagToRemove);
@@ -396,9 +391,6 @@ public class ClientConfigurationManager
         _mediator.Publish(new PatternDataChanged(idx));
     }
 
-    public string GetDurationForPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].Duration;
-
-    public bool PatternLoops(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx].ShouldLoop;
     public void SetPatternLoops(int idx, bool loops)
     {
         _patternConfig.Current.PatternStorage.Patterns[idx].ShouldLoop = loops;
@@ -406,10 +398,9 @@ public class ClientConfigurationManager
         _mediator.Publish(new PatternDataChanged(idx));
     }
 
-    public bool GetUserIsAllowedToView(int idx, string userId)
-    {
-        return _patternConfig.Current.PatternStorage.Patterns[idx].AllowedUsers.Contains(userId);
-    }
+    public bool GetUserIsAllowedToView(int idx, string userId) =>
+        _patternConfig.Current.PatternStorage.Patterns[idx].AllowedUsers.Contains(userId);
+
 
     public void AddTrustedUserToPattern(int idx, string userId)
     {
@@ -423,21 +414,6 @@ public class ClientConfigurationManager
         _patternConfig.Current.PatternStorage.Patterns[idx].AllowedUsers.Remove(userId);
         _patternConfig.Save();
         _mediator.Publish(new PatternDataChanged(idx));
-    }
-
-    public bool IsIndexInBounds(int index)
-    {
-        return index >= 0 && index < _patternConfig.Current.PatternStorage.Patterns.Count;
-    }
-    
-    public bool IsAnyPatternPlaying()
-    {
-        return _patternConfig.Current.PatternStorage.Patterns.Any(p => p.IsActive);
-    }
-
-    public int ActivePatternIdx()
-    {
-        return _patternConfig.Current.PatternStorage.Patterns.FindIndex(p => p.IsActive);
     }
 
     public string EnsureUniqueName(string baseName)
@@ -467,18 +443,48 @@ public class ClientConfigurationManager
         _mediator.Publish(new PatternRemovedMessage());
     }
 
-    public List<string> GetPatternNames()
+    #endregion Pattern Config Methods
+    /* --------------------- Toybox Alarm Configs --------------------- */
+    #region Alarm Config Methods
+    public Alarm FetchAlarm(int idx) => _alarmConfig.Current.AlarmStorage.Alarms[idx];
+    public int FetchAlarmCount() => _alarmConfig.Current.AlarmStorage.Alarms.Count;
+
+    public void AddNewAlarm(Alarm alarm)
     {
-        return _patternConfig.Current.PatternStorage.Patterns.Select(set => set.Name).ToList();
+        // ensure the alarm has a unique name.
+        int copyNumber = 1;
+        string newName = alarm.Name;
+
+        while (_alarmConfig.Current.AlarmStorage.Alarms.Any(set => set.Name == newName))
+            newName = alarm.Name + $"(copy{copyNumber++})";
+
+        alarm.Name = newName;
+        _alarmConfig.Current.AlarmStorage.Alarms.Add(alarm);
+        _alarmConfig.Save();
+        _mediator.Publish(new AlarmAddedMessage(alarm));
     }
 
-    public int GetPatternIdxByName(string name)
+    public void RemoveAlarm(int indexToRemove)
     {
-        return _patternConfig.Current.PatternStorage.Patterns.FindIndex(p => p.Name == name);
+        _alarmConfig.Current.AlarmStorage.Alarms.RemoveAt(indexToRemove);
+        _alarmConfig.Save();
+        _mediator.Publish(new AlarmRemovedMessage());
     }
 
-    public PatternData GetPatternFromIndex(int index)
+    public void SetAlarmState(int idx, bool newState)
     {
-        return _patternConfig.Current.PatternStorage.Patterns[index];
+        _alarmConfig.Current.AlarmStorage.Alarms[idx].Enabled = newState;
+        _alarmConfig.Save();
+        _mediator.Publish(new AlarmDataChanged(idx));
     }
+
+    #endregion Alarm Config Methods
+
+    /* --------------------- Toybox Trigger Configs --------------------- */
+    #region Trigger Config Methods
+
+    // stuff
+
+    #endregion Trigger Config Methods
+
 }

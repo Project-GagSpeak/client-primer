@@ -45,6 +45,7 @@ using GagSpeak.Services.Data;
 using UI.UiRemote;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.Toybox.Services;
+using GagSpeak.UI.Components;
 
 namespace GagSpeak;
 
@@ -155,6 +156,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ConnectedDevice>()
         .AddSingleton<DeviceFactory>()
         .AddSingleton<DeviceHandler>()
+        .AddSingleton<PatternPlayback>()
+        .AddSingleton<AlarmHandler>()
 
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
@@ -259,6 +262,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new WardrobeConfigService(pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new AliasConfigService(pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new PatternConfigService(pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new AlarmConfigService(pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new TriggerConfigService(pi.ConfigDirectory.FullName))
         // server-end configs
         .AddSingleton((s) => new ServerConfigService(pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new NicknamesConfigService(pi.ConfigDirectory.FullName))
@@ -307,7 +312,8 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(), tp, s.GetRequiredService<UiSharedService>(),
             s.GetRequiredService<FileDialogManager>(), s.GetRequiredService<GagspeakProfileManager>()))
         .AddScoped<WindowMediatorSubscriberBase, PopupHandler>()
-        .AddScoped<IStickyUiHandler, VerificationPopupHandler>()
+        .AddScoped<IPopupHandler, VerificationPopupHandler>()
+        .AddScoped<IPopupHandler, SavePatternPopupHandler>()
         .AddScoped<CacheCreationService>()
         .AddScoped<TextureService>()
         .AddScoped<OnlinePlayerManager>()
@@ -330,15 +336,6 @@ public static class GagSpeakServiceExtensions
     #region HostedServices
     public static IServiceCollection AddGagSpeakHosted(this IServiceCollection services)
     => services
-        // WebAPI Services
-
-        // GagSpeak Configuration Services
-
-        // Interop Services
-
-        // PlayerData Services
-
-        // Service Services
         .AddHostedService(p => p.GetRequiredService<GagspeakMediator>())
         .AddHostedService(p => p.GetRequiredService<OnFrameworkService>())
         .AddHostedService(p => p.GetRequiredService<EventAggregator>())

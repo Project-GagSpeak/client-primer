@@ -1,4 +1,4 @@
-namespace GagSpeak.Services.VibeServices;
+namespace GagSpeak.Toybox.Models;
 
 public enum VibrateType
 {

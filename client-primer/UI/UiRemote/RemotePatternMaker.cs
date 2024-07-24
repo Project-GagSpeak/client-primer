@@ -27,7 +27,7 @@ public class RemotePatternMaker : RemoteBase
     public RemotePatternMaker(ILogger<RemotePatternMaker> logger,
         GagspeakMediator mediator, UiSharedService uiShared,
         ToyboxRemoteService remoteService, DeviceHandler deviceHandler,
-        string windowName = "PatternMaker") : base(logger, mediator, uiShared, remoteService, deviceHandler, windowName)
+        string windowName = "Pattern Creator") : base(logger, mediator, uiShared, remoteService, deviceHandler, windowName)
     {
         // grab the shared services
         _uiShared = uiShared;
@@ -141,31 +141,39 @@ public class RemotePatternMaker : RemoteBase
             }
 
             ImGui.SetCursorPosY(CurrentRegion.Y * .775f);
-
-            var power = _uiShared.GetImageFromDirectoryFile("power.png");
-            if (!(power is { } wrap3))
+            Vector4 buttonColor3 = IsRecording ? _remoteService.LushPinkButton : _remoteService.SideButton;
+            // display the stop or play icon depending on if we are recording or not.
+            if (!IsRecording)
             {
-                _logger.LogWarning("Failed to render image!");
-            }
-            else
-            {
-                Vector4 buttonColor3 = IsRecording ? _remoteService.LushPinkButton : _remoteService.SideButton;
-                // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("PowerToggleButton", new Vector2(50, 50),
-                    buttonColor3, new Vector2(40, 40), wrap3))
+                var play = _uiShared.GetImageFromDirectoryFile("play.png");
+                if (!(play is { } wrap3))
                 {
-                    if (!IsRecording)
+                    _logger.LogWarning("Failed to render image!");
+                }
+                else
+                {
+                    if (_uiShared.DrawScaledCenterButtonImage("RecordStartButton", new Vector2(50, 50),
+                        buttonColor3, new Vector2(40, 40), wrap3))
                     {
                         _logger.LogTrace("Starting Recording!");
-                        // invert the recording state and start recording
-                        IsRecording = !IsRecording;
                         StartVibrating();
                     }
-                    else
+                }
+            }
+            // we are recording so display stop
+            else
+            {
+                var stop = _uiShared.GetImageFromDirectoryFile("stop.png");
+                if (!(stop is { } wrap4))
+                {
+                    _logger.LogWarning("Failed to render image!");
+                }
+                else
+                {
+                    if (_uiShared.DrawScaledCenterButtonImage("RecordStopButton", new Vector2(50, 50),
+                        buttonColor3, new Vector2(40, 40), wrap4))
                     {
                         _logger.LogTrace("Stopping Recording!");
-                        // invert the recording state and stop recording
-                        IsRecording = !IsRecording;
                         StopVibrating();
                     }
                 }
@@ -188,12 +196,16 @@ public class RemotePatternMaker : RemoteBase
 
     public override void StopVibrating()
     {
+        // before we stop the stopwatch from the base call, we must make sure that we extract it here
+        var Duration = DurationStopwatch.Elapsed.ToString(@"mm\:ss");
         _logger.LogDebug($"Stopping Recording on parent class {_windowName}!");
         // call the base stop
         base.StopVibrating();
         // stop recording and set that we have finished
         IsRecording = false;
         FinishedRecording = true;
+        // compile together and send off the popup handler for compiling a newly created pattern
+        Mediator.Publish(new PatternSavePromptMessage(StoredVibrationData, Duration));
     }
 
 

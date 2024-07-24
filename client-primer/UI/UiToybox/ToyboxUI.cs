@@ -18,12 +18,14 @@ public class ToyboxUI : WindowMediatorSubscriberBase
     private readonly ToyboxTriggerManager _triggerManager;
     private readonly ToyboxAlarmManager _alarmManager;
     private readonly ToyboxCosmetics _cosmetics;
+    private readonly PatternPlayback _patternPlayback;
 
     public ToyboxUI(ILogger<ToyboxUI> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService, ToyboxOverview toysOverview,
         ToyboxVibeServer vibeServer, ToyboxPatterns patterns,
         ToyboxTriggerManager triggerManager, ToyboxAlarmManager alarmManager,
-        ToyboxCosmetics cosmetics) : base(logger, mediator, "Toybox UI")
+        ToyboxCosmetics cosmetics, PatternPlayback playback) 
+        : base(logger, mediator, "Toybox UI")
     {
         _uiShared = uiSharedService;
         _toysOverview = toysOverview;
@@ -32,14 +34,15 @@ public class ToyboxUI : WindowMediatorSubscriberBase
         _triggerManager = triggerManager;
         _alarmManager = alarmManager;
         _cosmetics = cosmetics;
+        _patternPlayback = playback;
 
         _tabMenu = new ToyboxTabMenu();
 
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(375, 330),
-            MaximumSize = new Vector2(float.MaxValue, float.MaxValue)
+            MinimumSize = new Vector2(525, 500),
+            MaximumSize = new Vector2(575, 500)
         };
         RespectCloseHotkey = false;
     }
@@ -56,6 +59,7 @@ public class ToyboxUI : WindowMediatorSubscriberBase
     {
         // get information about the window region, its item spacing, and the topleftside height.
         var region = ImGui.GetContentRegionAvail();
+        var winPadding = ImGui.GetStyle().WindowPadding;
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
         var cellPadding = ImGui.GetStyle().CellPadding;
         var topLeftSideHeight = region.Y;
@@ -68,7 +72,7 @@ public class ToyboxUI : WindowMediatorSubscriberBase
             {
                 if (!table) return;
 
-                ImGui.TableSetupColumn("##LeftColumn", ImGuiTableColumnFlags.WidthFixed, 200f * ImGuiHelpers.GlobalScale);
+                ImGui.TableSetupColumn("##LeftColumn", ImGuiTableColumnFlags.WidthFixed, 200 * ImGuiHelpers.GlobalScale);
                 ImGui.TableSetupColumn("##RightColumn", ImGuiTableColumnFlags.WidthStretch);
 
                 ImGui.TableNextColumn();
@@ -102,9 +106,12 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                     {
                         _tabMenu.DrawSelectableTabMenu();
                     }
+                    ImGui.SetCursorPosY(region.Y - 80f);
+                    _patternPlayback.DrawPlaybackDisplay();
                 }
                 // pop pushed style variables and draw next column.
                 ImGui.PopStyleVar();
+
                 ImGui.TableNextColumn();
 
                 // display right half viewport based on the tab selection

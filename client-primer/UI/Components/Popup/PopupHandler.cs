@@ -13,11 +13,11 @@ namespace GagSpeak.UI.Components.Popup;
 public class PopupHandler : WindowMediatorSubscriberBase
 {
     protected bool _openPopup = false;
-    private readonly HashSet<IStickyUiHandler> _handlers;
+    private readonly HashSet<IPopupHandler> _handlers;
     private readonly UiSharedService _uiSharedService;
-    private IStickyUiHandler? _currentHandler = null;
+    private IPopupHandler? _currentHandler = null;
 
-    public PopupHandler(ILogger<PopupHandler> logger, GagspeakMediator mediator, IEnumerable<IStickyUiHandler> popupHandlers,
+    public PopupHandler(ILogger<PopupHandler> logger, GagspeakMediator mediator, IEnumerable<IPopupHandler> popupHandlers,
         UiSharedService uiSharedService) : base(logger, mediator, "GagspeakPopupHandler")
     {
         Flags = ImGuiWindowFlags.NoBringToFrontOnFocus
@@ -39,6 +39,17 @@ public class PopupHandler : WindowMediatorSubscriberBase
             // set the current popup handler to the verification popup handler
             _currentHandler = _handlers.OfType<VerificationPopupHandler>().Single();
             ((VerificationPopupHandler)_currentHandler).Open(msg);
+            // set is open to true after processing the open function.
+            IsOpen = true;
+        });
+
+        Mediator.Subscribe<PatternSavePromptMessage>(this, (msg) =>
+        {
+            // open the save pattern popup, and label the handler that one is open.
+            _openPopup = true;
+            // set the current popup handler to the save pattern popup handler
+            _currentHandler = _handlers.OfType<SavePatternPopupHandler>().Single();
+            ((SavePatternPopupHandler)_currentHandler).Open(msg);
             // set is open to true after processing the open function.
             IsOpen = true;
         });

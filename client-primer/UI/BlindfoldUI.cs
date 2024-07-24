@@ -27,7 +27,7 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
     private ISharedImmediateTexture _sharedBlindfoldSensualTexture;
 
     // private variables and objects
-    private TimerRecorder _TimerRecorder;
+    private UpdateTimer _TimerRecorder;
     private Stopwatch stopwatch = new Stopwatch();
     private float alpha = 0.0f; // Alpha channel for the image
     private float imageAlpha = 0.0f; // Alpha channel for the image
@@ -60,7 +60,7 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
         _sharedBlindfoldLightTexture = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Blindfold_Light.png"));
         _sharedBlindfoldSensualTexture = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "BlindfoldLace_Sensual.png"));
         // set the stopwatch to send an elapsed time event after 2 seconds then stop
-        _TimerRecorder = new TimerRecorder(2000, ToggleWindow);
+        _TimerRecorder = new UpdateTimer(2000, ToggleWindow);
 
         Mediator.Subscribe<DisconnectedMessage>(this, (_) => IsOpen = false);
 

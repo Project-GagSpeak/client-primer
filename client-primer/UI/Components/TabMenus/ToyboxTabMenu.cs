@@ -40,7 +40,7 @@ public static class ToyboxTabs
             Tabs.PatternManager => "Patterns",
             Tabs.TriggerManager => "Triggers",
             Tabs.AlarmManager => "Alarms",
-            Tabs.ToyboxCosmetics => "Toybox Cosmetics",
+            Tabs.ToyboxCosmetics => "Vibe Cosmetics",
             _ => "None",
         };
     }

@@ -125,7 +125,6 @@ public class ToyboxOverview
         var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
         var buttplugServerAddr = DeviceHandler.IntifaceClientName;
         var addrSize = ImGui.CalcTextSize(buttplugServerAddr);
-        var textSize = ImGui.CalcTextSize("Connected");
 
         string intifaceConnectionStr = $"Intiface Central Connection";
 
@@ -136,10 +135,8 @@ public class ToyboxOverview
         if (_IntifaceHandler.ConnectedToIntiface)
         {
             // fancy math shit for clean display, adjust when moving things around
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (addrSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (addrSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
             ImGui.TextColored(ImGuiColors.ParsedGreen, buttplugServerAddr);
-            ImUtf8.SameLineInner();
-            ImGui.TextUnformatted("Connected");
 
         }
         // otherwise, if we are not connected, display that we aren't connected.
@@ -162,7 +159,7 @@ public class ToyboxOverview
         var connectedIcon = !_IntifaceHandler.ConnectedToIntiface ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
 
         ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
-        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((addrSize.Y + textSize.Y) / 2 + addrTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
+        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (addrSize.Y / 2 + addrTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
 
         // we need to turn the button from the connected link to the disconnected link.
         using (ImRaii.PushColor(ImGuiCol.Text, color))
@@ -190,7 +187,7 @@ public class ToyboxOverview
 
         ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + windowPadding.X);
         ImGui.SetCursorPosY(ImGui.GetCursorPosY()
-            - ((addrSize.Y + textSize.Y) / 2 + addrTextSize.Y) / 2
+            - (addrSize.Y / 2 + addrTextSize.Y) / 2
             - ImGui.GetStyle().ItemSpacing.Y + intifaceIconSize.Y / 2);
 
         if (_uiShared.IconButton(intifaceOpenIcon))

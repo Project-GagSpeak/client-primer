@@ -30,7 +30,7 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
     public RemoteBase(ILogger logger,
         GagspeakMediator mediator, UiSharedService uiShared,
         ToyboxRemoteService remoteService, DeviceHandler deviceHandler,
-        string windowName): base(logger, mediator, $"Lovense Remote UI " + windowName)
+        string windowName): base(logger, mediator, windowName + " Remote")
     {
         // grab the shared services
         _uiShared = uiShared;
@@ -54,10 +54,10 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
         DurationStopwatch = new Stopwatch();
 
         // A timer for recording graph display updates. Nessisary for smooth lines, and Unique to this base class instance
-        DisplayUpdateTimer = new TimerRecorder(10, AddCirclePositionToBuffer);
+        DisplayUpdateTimer = new UpdateTimer(10, AddCirclePositionToBuffer);
 
         // A timer for recording intensity data. Nessisary for all types, but must remain distinct for each. (base class)
-        IntensityUpdateTimer = new TimerRecorder(20, RecordData);
+        IntensityUpdateTimer = new UpdateTimer(20, RecordData);
     }
 
     private string WindowBaseName;
@@ -66,10 +66,10 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
     protected Stopwatch DurationStopwatch;
 
     // Manages the recording of the circle's Y position. Must be distinct for all (base class)
-    protected TimerRecorder DisplayUpdateTimer;
+    protected UpdateTimer DisplayUpdateTimer;
 
     // Manages the interval at which we append handle new vibration intensity data. Must be distinct for all (base class)
-    protected TimerRecorder IntensityUpdateTimer;
+    protected UpdateTimer IntensityUpdateTimer;
 
     // the Recorded Y positions from the circle. Must be distinct for all to ensure draws dont share (base class)
     protected List<double> RecordedPositions = new List<double>();
@@ -143,7 +143,8 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
     }
     protected override void DrawInternal()
     {
-        using (var child = ImRaii.Child("##RemoteUIChild", new Vector2(ImGui.GetContentRegionAvail().X, -1), true, ImGuiWindowFlags.NoDecoration))
+        var isFocused = ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows);
+        using (var child = ImRaii.Child($"##RemoteUIChild{WindowBaseName}", new Vector2(ImGui.GetContentRegionAvail().X, -1), true, ImGuiWindowFlags.NoDecoration))
         {
 
             if (!child) { return; }
@@ -163,17 +164,15 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
             // draw the core of the vibe remote
             DrawVibrationRecorder(ref xPos, ref yPos, ref width);
 
-            if(ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            if(ImGui.IsMouseClicked(ImGuiMouseButton.Right) && isFocused)
             {
                 ProcessLoopToggle();
             }
-            if(ImGui.IsMouseClicked(ImGuiMouseButton.Middle))
+            if(ImGui.IsMouseClicked(ImGuiMouseButton.Middle) && isFocused)
             {
                 ProcessFloatToggle();
             }
         }
-
-    
     }
 
     public void ProcessLoopToggle()

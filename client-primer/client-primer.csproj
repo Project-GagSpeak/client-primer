@@ -38,6 +38,16 @@
         <DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
         <OutputType>Library</OutputType>
     </PropertyGroup>
+    <ItemGroup>
+      <None Remove="Services\ConfigurationServices\EquipItemConverter.cs.bak" />
+      <None Remove="Services\ConfigurationServices\EquipItemSurrogate.cs.bak" />
+    </ItemGroup>
+    <ItemGroup>
+      <Compile Include="Services\ConfigurationServices\EquipItemConverter.cs.bak" />
+      <Compile Include="Services\ConfigurationServices\EquipItemSurrogate.cs.bak" />
+      <Compile Include="Toybox\.Old\VibeSoundSim\LoopStream.cs" />
+      <Compile Include="Toybox\.Old\VibeSoundSim\SoundPlayback.cs" />
+    </ItemGroup>
 
     <!--Other DLL's for dalamud supporting module/components-->
     <ItemGroup>

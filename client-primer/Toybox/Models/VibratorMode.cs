@@ -1,4 +1,4 @@
-namespace GagSpeak.Services.Data;
+namespace GagSpeak.Toybox.Models;
 
 public enum VibratorMode
 {

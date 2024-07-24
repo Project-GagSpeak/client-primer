@@ -9,7 +9,7 @@ using System.Numerics;
 
 namespace GagSpeak.UI.Components.Popup;
 
-internal class VerificationPopupHandler : IStickyUiHandler
+internal class VerificationPopupHandler : IPopupHandler
 {
     private readonly ApiController _apiController;
     private readonly UiSharedService _uiSharedService;

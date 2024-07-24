@@ -2,6 +2,7 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using System.Reflection.Metadata;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -20,14 +21,36 @@ public class PatternHandler : MediatorSubscriberBase
         _playerManager = playerManager;
         _IntifaceHandler = handler;
 
+        // init nessisary things
+        if (PatternNames == null)
+        {
+            InitalizePatternNames();
+        }
+
+
+
         Mediator.Subscribe<PatternActivedMessage>(this, (msg) =>
         {
-            ActivePattern = _clientConfigs.GetPatternFromIndex(msg.PatternIndex);
+            ActivePattern = _clientConfigs.FetchPattern(msg.PatternIndex);
+            PlaybackRunning = true;
         });
 
         Mediator.Subscribe<PatternDeactivedMessage>(this, (msg) =>
         {
             ActivePattern = null!;
+            PlaybackRunning = false;
+        });
+
+        Mediator.Subscribe<PatternAddedMessage>(this, (msg) =>
+        {
+            // update the list of names
+            PatternNames = _clientConfigs.GetPatternNames();
+        });
+
+        Mediator.Subscribe<PatternRemovedMessage>(this, (msg) =>
+        {
+            // update the list of names
+            PatternNames = _clientConfigs.GetPatternNames();
         });
 
         // probably dont need this because c# magic?
@@ -35,16 +58,33 @@ public class PatternHandler : MediatorSubscriberBase
         {
             // update the list of names
             PatternNames = _clientConfigs.GetPatternNames();
-            if (ActivePattern != null)
-            {
-                ActivePattern = _clientConfigs.GetPatternFromIndex(msg.PatternIndex);
-            }
         });
     }
 
-    // public accessor values
+    // public accessor values (We store and update these so that we do not fetch them every draw loop.
     public PatternData ActivePattern { get; private set; } = null!;
     public List<string> PatternNames { get; private set; } = null!;
+    public bool PlaybackRunning { get; private set; } = false;
+
+    /// <summary> Initializes the list of pattern names into the patternHandler </summary>
+    public void InitalizePatternNames() => PatternNames = _clientConfigs.GetPatternNames();
+
+    public TimeSpan GetPatternLength(string name)
+    {
+        var idx = _clientConfigs.GetPatternIdxByName(name);
+        if (idx == -1)
+        {
+            return TimeSpan.Zero;
+        }
+        return _clientConfigs.GetPatternLength(idx);
+    }
+
+    /// <summary>
+    /// Get the pattern located at the spesified index
+    /// </summary>
+    /// <param name="index"> The index of the pattern to get </param>
+    /// <returns> The pattern located at the index </returns>
+    public PatternData FetchPattern(int index) => _clientConfigs.FetchPattern(index);
 
     /// <summary>
     /// Check if the index is in bounds of the pattern list
@@ -84,33 +124,13 @@ public class PatternHandler : MediatorSubscriberBase
     /// <param name="indexToRemove"> The index of the pattern to remove </param>
     public void RemovePattern(int indexToRemove) => _clientConfigs.RemovePattern(indexToRemove);
 
-    /// <summary>
+    /// <summary> 
     /// Get the index of a pattern by its name
     /// </summary>
     /// <param name="name"> The name of the pattern to get the index of </param>
     /// <returns> The index of the pattern </returns>
     public int GetPatternIdxByName(string name) => _clientConfigs.GetPatternIdxByName(name);
 
-
-    /// <summary>
-    /// Get the pattern located at the spesified index
-    /// </summary>
-    /// <param name="index"> The index of the pattern to get </param>
-    /// <returns> The pattern located at the index </returns>
-    public PatternData GetPatternFromIndex(int index) => _clientConfigs.GetPatternFromIndex(index);
-
-    /// <summary>
-    /// Gets the list of strings reflecting the names of the patterns.
-    /// </summary>
-    /// <returns></returns>
-    public void InitalizePatternNames() => PatternNames = _clientConfigs.GetPatternNames();
-
-    public string GetPatternName(int idx) => _clientConfigs.GetNameForPattern(idx);
-    public string GetPatternDescription(int idx) => _clientConfigs.GetDescriptionForPattern(idx);
-    public string GetPatternAuthor(int idx) => _clientConfigs.GetAuthorForPattern(idx);
-    public List<string> GetTagsForPattern(int idx) => _clientConfigs.GetTagsForPattern(idx);
-    public string GetDurationForPattern(int idx) => _clientConfigs.GetDurationForPattern(idx);
-    public bool GetIfPatternLoops(int idx) => _clientConfigs.PatternLoops(idx);
     public bool GetUserIsAllowedToView(int idx, string userID) => _clientConfigs.GetUserIsAllowedToView(idx, userID);
 
     /// <summary>
@@ -127,16 +147,47 @@ public class PatternHandler : MediatorSubscriberBase
     /// <param name="newDesc"> The new description of the pattern </param>
     public void ChangeDescription(int idx, string newDesc) => _clientConfigs.ModifyDescription(idx, newDesc);
 
+    /// <summary>
+    /// Change the author of a pattern
+    /// </summary>
+    /// <param name="idx">The index of the pattern to change the author of</param>
+    /// <param name="newAuthor">The new author of the pattern</param>
     public void ChangeAuthor(int idx, string newAuthor) => _clientConfigs.SetAuthorForPattern(idx, newAuthor);
 
+    /// <summary>
+    /// Add a tag to a pattern
+    /// </summary>
+    /// <param name="idx">The index of the pattern to add the tag to</param>
+    /// <param name="tag">The tag to add to the pattern</param>
     public void AddTagForPattern(int idx, string tag) => _clientConfigs.AddTagToPattern(idx, tag);
 
+    /// <summary>
+    /// Remove a tag from a pattern
+    /// </summary>
+    /// <param name="idx">The index of the pattern to remove the tag from</param>
+    /// <param name="tag">The tag to remove from the pattern</param>
     public void RemoveTagForPattern(int idx, string tag) => _clientConfigs.RemoveTagFromPattern(idx, tag);
 
+    /// <summary>
+    /// Set whether a pattern should loop
+    /// </summary>
+    /// <param name="idx">The index of the pattern to set the loop status for</param>
+    /// <param name="shouldLoop">Whether the pattern should loop</param>
     public void SetPatternLoop(int idx, bool shouldLoop) => _clientConfigs.SetPatternLoops(idx, shouldLoop);
 
+    /// <summary>
+    /// Grant a user access to a pattern
+    /// </summary>
+    /// <param name="idx">The index of the pattern to grant access to</param>
+    /// <param name="user">The user to grant access to the pattern</param>
     public void GrantUserAccessToPattern(int idx, string user) => _clientConfigs.AddTrustedUserToPattern(idx, user);
 
+    /// <summary>
+    /// Revoke a user's access to a pattern
+    /// </summary>
+    /// <param name="idx">The index of the pattern to revoke access from</param>
+    /// <param name="user">The user to revoke access from the pattern</param>
     public void RevokeUserAccessToPattern(int idx, string user) => _clientConfigs.RemoveTrustedUserFromPattern(idx, user);
+
 }
 

@@ -44,6 +44,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     // toybox hub variables
     private ToyboxConnectionDto? _toyboxConnectionDto;              // dto of our connection to toybox server
     private CancellationTokenSource _connectionToyboxCTS;           // token for connection creation
+    private CancellationTokenSource? _toyboxHealthCTS = new();             // token for health check
     private bool _toyboxInitialized;                                // flag for if the toybox hub is initialized
     private HubConnection? _toyboxHub;                              // the toybox hub connection
     private ServerState _toyboxServerState;                         // the current state of the toybox server
@@ -122,9 +123,16 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
     /// <summary>Invoke a call to the server's hub function CHECKCLIENTHEALTH function.</summary>
     /// <returns>a boolean value indicating if the client is healthy</returns>
-    public async Task<bool> CheckClientHealth()
+    public async Task<bool> CheckMainClientHealth()
     {
-        return await _gagspeakHub!.InvokeAsync<bool>(nameof(CheckClientHealth)).ConfigureAwait(false);
+        return await _gagspeakHub!.InvokeAsync<bool>(nameof(CheckMainClientHealth)).ConfigureAwait(false);
+    }
+
+    /// <summary>Invoke a call to the toybox hub CHECKCLIENTHEALTH function.</summary>
+    /// <returns>a boolean value indicating if the client is healthy</returns>
+    public async Task<bool> CheckToyboxClientHealth()
+    {
+        return await _toyboxHub!.InvokeAsync<bool>(nameof(CheckToyboxClientHealth)).ConfigureAwait(false);
     }
 
     public async Task<(string, string)> FetchNewAccountDetailsAndDisconnect()
@@ -589,6 +597,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         base.Dispose(disposing);
         // cancel the tokens and stop the connection
         _healthCTS?.Cancel();
+        _toyboxHealthCTS?.Cancel();
+
         _ = Task.Run(async () => await StopConnection(ServerState.Disconnected).ConfigureAwait(false));
         _connectionCTS?.Cancel();
         _connectionToyboxCTS?.Cancel();
@@ -600,7 +610,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// </summary>
     /// <param name="ct">The cancellation token to stop the health check.</param>
     /// <returns>A task representing the asynchronous health check operation.</returns>
-    private async Task ClientHealthCheck(CancellationToken ct)
+    private async Task ClientMainHealthCheck(CancellationToken ct)
     {
         // while the cancellation token is not requested and the hub is not null
         while (!ct.IsCancellationRequested && _gagspeakHub != null)
@@ -608,16 +618,37 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // wait for 30 seconds
             await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
             // log that we are checking the client health state
-            Logger.LogTrace("Checking Client Health State");
+            Logger.LogTrace("Checking Main Server Client Health State");
             // refresh the token and check if we need to reconnect
             bool requireReconnect = await RefreshToken(ct).ConfigureAwait(false);
             // if we need to reconnect, break out of the loop
             if (requireReconnect) break;
 
             // otherwise, invoke the check client health function on the server to get an update on its state.
-            _ = await CheckClientHealth().ConfigureAwait(false);
+            _ = await CheckMainClientHealth().ConfigureAwait(false);
         }
     }
+
+    private async Task ClientToyboxHealthCheck(CancellationToken ct)
+    {
+        // while the cancellation token is not requested and the hub is not null
+        while (!ct.IsCancellationRequested && _toyboxHealthCTS != null)
+        {
+            // wait for 30 seconds
+            await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
+            // log that we are checking the client health state
+            Logger.LogTrace("Checking Toybox Client Health State");
+            // refresh the token and check if we need to reconnect
+            bool requireReconnect = await RefreshToken(ct).ConfigureAwait(false);
+            // if we need to reconnect, break out of the loop
+            if (requireReconnect) break;
+
+            // otherwise, invoke the check client health function on the server to get an update on its state.
+            _ = await CheckToyboxClientHealth().ConfigureAwait(false);
+        }
+    }
+
+
 
     /// <summary> GagSpeakMediator will call this function when the client logs into the game instance.
     /// <para> This will run the createConnections function, connecting us to the servers </para>
@@ -686,7 +717,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             _healthCTS?.Cancel();
             _healthCTS?.Dispose();
             _healthCTS = new CancellationTokenSource();
-            _ = ClientHealthCheck(_healthCTS.Token);
+            _ = ClientMainHealthCheck(_healthCTS.Token);
             // set us to initialized (yippee!!!)
             _initialized = true;
         }
@@ -702,6 +733,11 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
             OnUpdateIntensity(dto => _ = Client_UpdateIntensity(dto));
 
+            // create a new health check token
+            _toyboxHealthCTS?.Cancel();
+            _toyboxHealthCTS?.Dispose();
+            _toyboxHealthCTS = new CancellationTokenSource();
+            _ = ClientToyboxHealthCheck(_toyboxHealthCTS.Token);
             // set us to initialized (yippee!!!)
             _toyboxInitialized = true;
         }
@@ -816,6 +852,10 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// <summary> When the hub is closed, this function will be called. </summary>
     private void ToyboxHubOnClosed(Exception? arg)
     {
+        // cancel the health token
+        _toyboxHealthCTS?.Cancel();
+        // publish a disconnected message to the mediator, and set the server state to offline. Then log the result
+        Mediator.Publish(new DisconnectedMessage(HubType.ToyboxHub));
         // dont publish disconnected message, because we dont want to stop anything (yet), but set state to offline
         ToyboxServerState = ServerState.Offline;
         if (arg != null)
@@ -861,6 +901,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// <summary> When the hub is reconnecting, this function will be called. </summary>
     private void ToyboxHubOnReconnecting(Exception? arg)
     {
+        // call the healthcheck token and cancel it
+        _toyboxHealthCTS?.Cancel();
         // set the state to reconnecting
         ToyboxServerState = ServerState.Reconnecting;
         Logger.LogWarning($"{arg} Connection closed with toybox hub... Reconnecting");
@@ -952,6 +994,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                     $"Stopping existing connection to Toybox Hub")));
                 // set initialized to false, cancel the health CTS, and publish a disconnected message to the mediator
                 _toyboxInitialized = false;
+                _toyboxHealthCTS?.Cancel();
                 Mediator.Publish(new DisconnectedMessage(HubType.ToyboxHub));
                 // set the connectionDto and hub to null.
                 _toyboxHub = null;

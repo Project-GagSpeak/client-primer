@@ -88,6 +88,7 @@ public class PatternHandler : MediatorSubscriberBase
         return _clientConfigs.GetPatternLength(idx);
     }
 
+    // TODO make it so the pattern also takes in an extra parameter for the max duration to play.
     public void PlayPattern(int idx)
     {
         ActivePattern = _clientConfigs.FetchPattern(idx);

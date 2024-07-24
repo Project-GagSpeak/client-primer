@@ -4,15 +4,12 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
-using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Models;
 using ImGuiNET;
-using OtterGui;
 using OtterGui.Classes;
+using System.Globalization;
 using System.Numerics;
-using System.Linq;
-using System.Runtime.CompilerServices;
 namespace GagSpeak.UI.UiToybox;
 
 public class ToyboxAlarmManager
@@ -57,7 +54,7 @@ public class ToyboxAlarmManager
         {
             DrawCreateAlarmHeader();
             ImGui.Separator();
-            if (!_handler.AlarmListNull)
+            if (_handler.AlarmListSize() > 0)
                 DrawAlarmSelectableMenu();
 
             return; // perform early returns so we dont access other methods
@@ -68,8 +65,8 @@ public class ToyboxAlarmManager
         {
             DrawAlarmEditorHeader();
             ImGui.Separator();
-            if (!_handler.AlarmListNull)
-                DrawAlarmEditor(_handler.EditingAlarm);
+            if (_handler.AlarmListSize() > 0 && _handler.EditingAlarmIndex >= 0)
+                DrawAlarmEditor(_handler.AlarmBeingEdited);
         }
     }
 
@@ -136,8 +133,6 @@ public class ToyboxAlarmManager
             ImGui.SetCursorPosY(startYpos);
             using (_uiShared.UidFont.Push())
             {
-                ImGui.Text("Editing");
-                ImGui.SameLine();
                 UiSharedService.ColorText(CreatedAlarm.Name, ImGuiColors.ParsedPink);
             }
 
@@ -166,7 +161,7 @@ public class ToyboxAlarmManager
         Vector2 textSize;
         using (_uiShared.UidFont.Push())
         {
-            textSize = ImGui.CalcTextSize($"Editing {_handler.EditingAlarm.Name}");
+            textSize = ImGui.CalcTextSize($"{_handler.AlarmBeingEdited.Name}");
         }
         var centerYpos = (textSize.Y - iconSize.Y);
         var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), HeaderHovered);
@@ -180,29 +175,26 @@ public class ToyboxAlarmManager
             if (_uiShared.IconButton(FontAwesomeIcon.ArrowLeft))
             {
                 // reset the createdAlarm to a new alarm, and set editing alarm to true
-                CreatedAlarm = new Alarm();
-                CreatingAlarm = false;
+                _handler.ClearEditingAlarm();
+                return;
             }
             // now next to it we need to draw the header text
             ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(startYpos);
             using (_uiShared.UidFont.Push())
             {
-                ImGui.Text("Editing");
-                ImGui.SameLine();
-                UiSharedService.ColorText(_handler.EditingAlarm.Name, ImGuiColors.ParsedPink);
+                UiSharedService.ColorText(_handler.AlarmBeingEdited.Name, ImGuiColors.ParsedPink);
             }
 
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X + ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X - ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
 
             // the "fuck go back" button.
-            if (_uiShared.IconButton(FontAwesomeIcon.ArrowLeft))
+            if (_uiShared.IconButton(FontAwesomeIcon.Save))
             {
                 // reset the createdAlarm to a new alarm, and set editing alarm to true
-                CreatedAlarm = new Alarm();
-                CreatingAlarm = false;
+                _handler.UpdateEditedAlarm();
             }
         }
     }
@@ -217,63 +209,74 @@ public class ToyboxAlarmManager
         }
 
         // display the selectable for each alarm using a for loop to keep track of the index
-        for (int i = 0; i < _handler.AlarmListRef.Count; i++)
+        for (int i = 0; i < _handler.AlarmListSize(); i++)
         {
-            var alarm = _handler.AlarmListRef[i];
-            DrawAlarmSelectable(alarm, i); // Pass the index to DrawAlarmSelectable
+            DrawAlarmSelectable(i); // Pass the index to DrawAlarmSelectable
         }
     }
 
-    private void DrawAlarmSelectable(Alarm alarm, int idx)
+    private void DrawAlarmSelectable(int idx)
     {
+        // grab the temp alarm
+        var tmpAlarm = _handler.GetAlarm(idx);
+        //  automatically handle whether to use a 12-hour or 24-hour clock.
+        var localTime = tmpAlarm.SetTimeUTC.ToLocalTime().ToString("t", CultureInfo.CurrentCulture);
+
         // define our sizes
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
-        var toggleOnSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.ToggleOn);
-        var toggleOffSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.ToggleOff);
-        var nameTextSize = ImGui.CalcTextSize(alarm.Name);
-        Vector2 alarmTextSize;
-        var frequencyTextSize = ImGui.CalcTextSize(_handler.GetAlarmFrequencyString(alarm.RepeatFrequency));
-        var patternNameSize = ImGui.CalcTextSize(alarm.PatternToPlay);
+        var toggleSize = _uiShared.GetIconButtonSize(tmpAlarm.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff);
+        var nameTextSize = ImGui.CalcTextSize(tmpAlarm.Name);
+        Vector2 tmpAlarmTextSize;
+        var frequencyTextSize = ImGui.CalcTextSize(_handler.GetAlarmFrequencyString(tmpAlarm.RepeatFrequency));
+        var patternNameSize = ImGui.CalcTextSize(tmpAlarm.PatternToPlay);
         using (_uiShared.UidFont.Push())
         {
-            alarmTextSize = ImGui.CalcTextSize($"{alarm.SetTimeUTC.LocalDateTime}");
+            tmpAlarmTextSize = ImGui.CalcTextSize($"{localTime}");
         }
-        var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
-        using (ImRaii.Child("EditAlarmHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 150f)))
+        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
+        using (ImRaii.Child($"##EditAlarmHeader{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 65f)))
         {
             // create a group for the bounding area
             using (var group = ImRaii.Group())
             {
-                // Draw out the alarm time
-                _uiShared.BigText($"{alarm.SetTimeUTC.LocalDateTime}");
-                // on the same line
+                // scooch over a bit like 5f
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
+                _uiShared.BigText($"{localTime}");
                 ImGui.SameLine();
-                // move the Y cursor down.
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((alarmTextSize.Y - nameTextSize.Y) / 2));
-                // draw out the alarm name
-                UiSharedService.ColorText(alarm.Name, ImGuiColors.DalamudGrey2);
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((tmpAlarmTextSize.Y - nameTextSize.Y) / 2) + 5f);
+                UiSharedService.ColorText(tmpAlarm.Name, ImGuiColors.DalamudGrey2);
             }
 
             // now draw the lower section out.
             using (var group = ImRaii.Group())
             {
-                // draw the frequency text
-                UiSharedService.ColorText(_handler.GetAlarmFrequencyString(alarm.RepeatFrequency), ImGuiColors.DalamudGrey3);
-                // on the same line
+                // scooch over a bit like 5f
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
+                UiSharedService.ColorText(_handler.GetAlarmFrequencyString(tmpAlarm.RepeatFrequency), ImGuiColors.DalamudGrey3);
                 ImGui.SameLine();
-                // draw out the pattern name
-                UiSharedService.ColorText("| " + alarm.PatternToPlay, ImGuiColors.DalamudGrey3);
+                UiSharedService.ColorText("| " + tmpAlarm.PatternToPlay, ImGuiColors.DalamudGrey3);
             }
 
             // now, head to the sameline of the full width minus the width of the button
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - toggleOnSize.X);
-
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - toggleSize.X - ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (65f - toggleSize.Y) / 2);
             // draw out the icon button
-            if (_uiShared.IconButton(FontAwesomeIcon.ToggleOn))
+            if (_uiShared.IconButton(tmpAlarm.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff))
             {
-                // toggle the state
+                // set the enabled state of the alarm based on its current state so that we toggle it
+                if (tmpAlarm.Enabled)
+                    _handler.DisableAlarm(idx);
+                else
+                    _handler.EnableAlarm(idx);
+                // toggle the state & early return so we dont access the childclicked button
+                return;
             }
+        }
+        ListItemHovered[idx] = ImGui.IsItemHovered();
+        if (ImGui.IsItemClicked())
+        {
+            _handler.SetEditingAlarm(tmpAlarm, idx);
         }
     }
 
@@ -281,15 +284,13 @@ public class ToyboxAlarmManager
     {
         // Display the local time zone
         var textlength = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Clock, TimeZoneInfo.Local.StandardName);
-        int hour = alarmToCreate.SetTimeUTC.Hour;
-        int minute = alarmToCreate.SetTimeUTC.Minute;
+        var localTime = alarmToCreate.SetTimeUTC.ToLocalTime();
+        int hour = localTime.Hour;
+        int minute = localTime.Minute;
         // set the x position to center the icontext button
         ImGui.Spacing();
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - textlength) / 2);
-        using (var timezoneDisabled = ImRaii.Disabled())
-        {
-            _uiShared.IconTextButton(FontAwesomeIcon.Clock, TimeZoneInfo.Local.StandardName);
-        }
+        _uiShared.IconTextButton(FontAwesomeIcon.Clock, TimeZoneInfo.Local.StandardName, null!, true, true);
 
         // Draw out using the big pushed font, a large, blank button canvas
         using (ImRaii.Child("TimezoneFancyUI", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 90f)))
@@ -317,11 +318,15 @@ public class ToyboxAlarmManager
                 // adjust the hour with the mouse wheel
                 if (ImGui.IsItemHovered() && ImGui.GetIO().MouseWheel != 0)
                 {
-                    hour -= (int)ImGui.GetIO().MouseWheel;
+                    hour = (hour - (int)ImGui.GetIO().MouseWheel + 24) % 24;
+                    var newLocalTime = new DateTime(localTime.Year, localTime.Month, localTime.Day, hour, localTime.Minute, 0);
+                    alarmToCreate.SetTimeUTC = new DateTimeOffset(newLocalTime, TimeZoneInfo.Local.GetUtcOffset(newLocalTime)).ToUniversalTime();
+
+                    /*hour -= (int)ImGui.GetIO().MouseWheel;
                     hour = (hour + 24) % 24;  // hour = Math.Clamp(hour, 0, 23); <-- If we need to clamp.
                     alarmToCreate.SetTimeUTC = new DateTimeOffset(
                         alarmToCreate.SetTimeUTC.Year, alarmToCreate.SetTimeUTC.Month, alarmToCreate.SetTimeUTC.Day,
-                        hour, alarmToCreate.SetTimeUTC.Minute, 0, alarmToCreate.SetTimeUTC.Offset);
+                        hour, alarmToCreate.SetTimeUTC.Minute, 0, alarmToCreate.SetTimeUTC.Offset);*/
                 }
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (hourTextSize.X - ImGui.CalcTextSize(prevHour).X) / 2);
@@ -346,11 +351,15 @@ public class ToyboxAlarmManager
                 // adjust the hour with the mouse wheel
                 if (ImGui.IsItemHovered() && ImGui.GetIO().MouseWheel != 0)
                 {
-                    minute -= (int)ImGui.GetIO().MouseWheel;
+                    minute = (minute - (int)ImGui.GetIO().MouseWheel + 60) % 60;
+                    var newLocalTime = new DateTime(localTime.Year, localTime.Month, localTime.Day, localTime.Hour, minute, 0);
+                    alarmToCreate.SetTimeUTC = new DateTimeOffset(newLocalTime, TimeZoneInfo.Local.GetUtcOffset(newLocalTime)).ToUniversalTime();
+
+                    /*minute -= (int)ImGui.GetIO().MouseWheel;
                     minute = (minute + 60) % 60; // minute = Math.Clamp(minute, 0, 59); <-- If we need to clamp.
                     alarmToCreate.SetTimeUTC = new DateTimeOffset(
                         alarmToCreate.SetTimeUTC.Year, alarmToCreate.SetTimeUTC.Month, alarmToCreate.SetTimeUTC.Day,
-                        alarmToCreate.SetTimeUTC.Hour, minute, 0, alarmToCreate.SetTimeUTC.Offset);
+                        alarmToCreate.SetTimeUTC.Hour, minute, 0, alarmToCreate.SetTimeUTC.Offset);*/
                 }
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (minuteTextSize.X - ImGui.CalcTextSize(nextMinute).X) / 2);
@@ -373,6 +382,8 @@ public class ToyboxAlarmManager
         // Input field for the pattern the alarm will play
         var pattern = alarmToCreate.PatternToPlay;
         var searchString = PatternSearchString.Lower;
+        // store if we have selected a new pattern
+        bool newPatternSelected = false;
         // draw the selector on the left
         _uiShared.DrawComboSearchable("Alarm Pattern", UiSharedService.GetWindowContentRegionWidth() / 2,
         ref searchString, _patternHandler.PatternNames, (i) => i, true,
@@ -382,18 +393,19 @@ public class ToyboxAlarmManager
             if (_patternHandler.IsIndexInBounds(foundMatch))
             {
                 alarmToCreate.PatternToPlay = i;
+                newPatternSelected = true;
             }
         }, alarmToCreate.PatternToPlay ?? default);
-
+        // if the pattern is not the alarmTocreate.PatternToPlay, it has changed, so update newPatternMaxDuration
         TimeSpan newpatternMaxDuration = _patternHandler.GetPatternLength(alarmToCreate.PatternToPlay!);
-        var newduration = alarmToCreate.PatternDuration;
+        var newduration = newPatternSelected ? newpatternMaxDuration.ToString() : alarmToCreate.PatternDuration;
 
         _uiShared.DrawTimeSpanCombo("Alarm Duration", newpatternMaxDuration, ref newduration, UiSharedService.GetWindowContentRegionWidth() / 2);
         alarmToCreate.PatternDuration = newduration;
 
         // Frequency of occurrence
         ImGui.Text("Alarm Frequency Per Week");
-        var alarmRepeatValues = Enum.GetValues(typeof(AlarmRepeat)).Cast<AlarmRepeat>().ToArray();
+        var alarmRepeatValues = Enum.GetValues(typeof(DayOfWeek)).Cast<DayOfWeek>().ToArray();
         int totalValues = alarmRepeatValues.Length;
         int splitIndex = 4; // Index to split the groups
 
@@ -402,7 +414,7 @@ public class ToyboxAlarmManager
         {
             for (int i = 0; i < splitIndex && i < totalValues; i++)
             {
-                AlarmRepeat day = alarmRepeatValues[i];
+                DayOfWeek day = alarmRepeatValues[i];
                 bool isSelected = alarmToCreate.RepeatFrequency.Contains(day);
                 if (ImGui.Checkbox(day.ToString(), ref isSelected))
                 {
@@ -420,7 +432,7 @@ public class ToyboxAlarmManager
         {
             for (int i = splitIndex; i < totalValues; i++)
             {
-                AlarmRepeat day = alarmRepeatValues[i];
+                DayOfWeek day = alarmRepeatValues[i];
                 bool isSelected = alarmToCreate.RepeatFrequency.Contains(day);
                 if (ImGui.Checkbox(day.ToString(), ref isSelected))
                 {

@@ -7,7 +7,7 @@
         <TargetFramework>net8.0-windows</TargetFramework>
         <Copyright>Copyright © 2024</Copyright>
         <LangVersion>latest</LangVersion>
-        <Version>0.3.3.2</Version>
+        <Version>0.3.3.3</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
@@ -147,7 +147,7 @@
         <PackageReference Include="Buttplug.Client.Connectors.WebsocketConnector" Version="3.0.1" />
         
         <!--For image processing and manipulation beyond dalamuds textureprovider capabilities..-->
-        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.4" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
     </ItemGroup>
     
     <!-- If i could use projectgagspeak.json i would, but sadly dalamud prevents this lol.-->
@@ -162,6 +162,7 @@
       <Folder Include="UI\Components\Dropdowns\" />
     </ItemGroup>
 </Project>
+
 
 
 

@@ -3,6 +3,7 @@ using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using System.Reflection.Metadata;
+using static PInvoke.User32;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -21,19 +22,7 @@ public class PatternHandler : MediatorSubscriberBase
         _playerManager = playerManager;
         _IntifaceHandler = handler;
 
-        // init nessisary things
-        if (PatternNames == null)
-        {
-            InitalizePatternNames();
-        }
-
-
-
-        Mediator.Subscribe<PatternActivedMessage>(this, (msg) =>
-        {
-            ActivePattern = _clientConfigs.FetchPattern(msg.PatternIndex);
-            PlaybackRunning = true;
-        });
+        Mediator.Subscribe<PatternActivedMessage>(this, (msg) => PlaybackRunning = true);
 
         Mediator.Subscribe<PatternDeactivedMessage>(this, (msg) =>
         {
@@ -41,33 +30,53 @@ public class PatternHandler : MediatorSubscriberBase
             PlaybackRunning = false;
         });
 
-        Mediator.Subscribe<PatternAddedMessage>(this, (msg) =>
+        Mediator.Subscribe<PatternRemovedMessage>(this, (msg) => 
         {
-            // update the list of names
-            PatternNames = _clientConfigs.GetPatternNames();
+            // update thje selected patterns to the new first index if the count is > 0
+            if (PatternListSize() > 0)
+            {
+                SetSelectedPattern(FetchPattern(0), 0);
+            }
+            else
+            {
+                ClearSelectedPattern();
+            }
         });
 
-        Mediator.Subscribe<PatternRemovedMessage>(this, (msg) =>
-        {
-            // update the list of names
-            PatternNames = _clientConfigs.GetPatternNames();
-        });
-
-        // probably dont need this because c# magic?
-        Mediator.Subscribe<PatternDataChanged>(this, (msg) =>
-        {
-            // update the list of names
-            PatternNames = _clientConfigs.GetPatternNames();
-        });
     }
+
+    private PatternData? _selectedPattern;
+    public int SelectedPatternIdx { get; private set; } = -1;
+    public PatternData SelectedPattern
+    {
+        get
+        {
+            if (_selectedPattern == null && SelectedPatternIdx >= 0)
+            {
+                _selectedPattern = _clientConfigs.FetchPattern(SelectedPatternIdx);
+            }
+            return _selectedPattern!;
+        }
+        private set => _selectedPattern = value;
+    }
+    public bool SelectedPatternNull => SelectedPattern == null;
 
     // public accessor values (We store and update these so that we do not fetch them every draw loop.
     public PatternData ActivePattern { get; private set; } = null!;
-    public List<string> PatternNames { get; private set; } = null!;
+    public List<string> PatternNames => _clientConfigs.GetPatternNames();
     public bool PlaybackRunning { get; private set; } = false;
 
-    /// <summary> Initializes the list of pattern names into the patternHandler </summary>
-    public void InitalizePatternNames() => PatternNames = _clientConfigs.GetPatternNames();
+    public void SetSelectedPattern(PatternData pattern, int index)
+    {
+        SelectedPattern = pattern;
+        SelectedPatternIdx = index;
+    }
+
+    public void ClearSelectedPattern()
+    {
+        SelectedPatternIdx = -1;
+        SelectedPattern = null!;
+    }
 
     public TimeSpan GetPatternLength(string name)
     {
@@ -78,6 +87,23 @@ public class PatternHandler : MediatorSubscriberBase
         }
         return _clientConfigs.GetPatternLength(idx);
     }
+
+    public void PlayPattern(int idx)
+    {
+        ActivePattern = _clientConfigs.FetchPattern(idx);
+        _clientConfigs.SetPatternState(idx, true);
+    }
+
+    public void StopPattern(int idx)
+    {
+        _clientConfigs.SetPatternState(idx, false);
+    }
+
+    /// <summary>
+    /// Grabs the number of patterns stored.
+    /// </summary>
+    /// <returns> The number of patterns stored. </returns>
+    public int PatternListSize() => _clientConfigs.GetPatternCount();
 
     /// <summary>
     /// Get the pattern located at the spesified index

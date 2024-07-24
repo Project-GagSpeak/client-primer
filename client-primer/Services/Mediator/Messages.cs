@@ -107,7 +107,7 @@ public record ButtplugClientDisconnected : MessageBase; // for when the buttplug
 public record ToyboxActiveDeviceChangedMessage(int DeviceIndex) : MessageBase; // for when the active device is changed.
 public record UpdateVibratorIntensity(int NewIntensity) : MessageBase; // for when the vibrator intensity is changed.
 public record PatternAddedMessage(PatternData Pattern) : MessageBase; // for when a pattern is added.
-public record PatternRemovedMessage : MessageBase; // for when a pattern is removed.
+public record PatternRemovedMessage(PatternData pattern) : MessageBase; // for when a pattern is removed.
 public record PatternActivedMessage(int PatternIndex) : MessageBase; // for when a pattern is activated.
 public record PatternDeactivedMessage(int PatternIndex) : MessageBase; // for when a pattern is deactivated.
 public record PatternDataChanged(int PatternIndex) : MessageBase; // for when a pattern is changed.

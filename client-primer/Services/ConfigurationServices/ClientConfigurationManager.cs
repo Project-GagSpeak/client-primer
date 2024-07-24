@@ -342,6 +342,7 @@ public class ClientConfigurationManager
     public bool IsIndexInBounds(int index) => index >= 0 && index < _patternConfig.Current.PatternStorage.Patterns.Count;
     public bool IsAnyPatternPlaying() => _patternConfig.Current.PatternStorage.Patterns.Any(p => p.IsActive);
     public int ActivePatternIdx() => _patternConfig.Current.PatternStorage.Patterns.FindIndex(p => p.IsActive);
+    public int GetPatternCount() => _patternConfig.Current.PatternStorage.Patterns.Count;
 
     public TimeSpan GetPatternLength(int idx)
     {
@@ -352,6 +353,14 @@ public class ClientConfigurationManager
             timespanDuration = TimeSpan.Zero; // Default to 0 minutes and 0 seconds
         }
         return timespanDuration;
+    }
+
+    public void SetPatternState(int idx, bool newState)
+    {
+        _patternConfig.Current.PatternStorage.Patterns[idx].IsActive = newState;
+        _patternConfig.Save();
+        if(newState) _mediator.Publish(new PatternActivedMessage(idx));
+        else _mediator.Publish(new PatternDeactivedMessage(idx));
     }
 
     public void SetNameForPattern(int idx, string newName)
@@ -437,10 +446,12 @@ public class ClientConfigurationManager
 
     public void RemovePattern(int indexToRemove)
     {
+        // grab the patternData of the pattern we are removing.
+        var patternToRemove = _patternConfig.Current.PatternStorage.Patterns[indexToRemove];
         _patternConfig.Current.PatternStorage.Patterns.RemoveAt(indexToRemove);
         _patternConfig.Save();
         // publish to mediator one was removed
-        _mediator.Publish(new PatternRemovedMessage());
+        _mediator.Publish(new PatternRemovedMessage(patternToRemove));
     }
 
     #endregion Pattern Config Methods
@@ -449,6 +460,21 @@ public class ClientConfigurationManager
     public List<Alarm> AlarmsRef => _alarmConfig.Current.AlarmStorage.Alarms; // readonly accessor
     public Alarm FetchAlarm(int idx) => _alarmConfig.Current.AlarmStorage.Alarms[idx];
     public int FetchAlarmCount() => _alarmConfig.Current.AlarmStorage.Alarms.Count;
+
+    public void RemovePatternNameFromAlarms(string patternName)
+    {
+        for (int i = 0; i < _alarmConfig.Current.AlarmStorage.Alarms.Count; i++)
+        {
+            var alarm = _alarmConfig.Current.AlarmStorage.Alarms[i];
+            if (alarm.PatternToPlay == patternName)
+            {
+                alarm.PatternToPlay = "";
+                alarm.PatternDuration = "00:00";
+                _alarmConfig.Save();
+                _mediator.Publish(new AlarmDataChanged(i));
+            }
+        }
+    }
 
     public void AddNewAlarm(Alarm alarm)
     {
@@ -475,6 +501,16 @@ public class ClientConfigurationManager
     public void SetAlarmState(int idx, bool newState)
     {
         _alarmConfig.Current.AlarmStorage.Alarms[idx].Enabled = newState;
+        _alarmConfig.Save();
+        _mediator.Publish(new AlarmDataChanged(idx));
+        // publish the alarm added/removed based on state
+        if (newState) _mediator.Publish(new AlarmActivated(idx));
+        else _mediator.Publish(new AlarmDeactivated(idx));
+    }
+
+    public void UpdateAlarm(Alarm alarm, int idx)
+    {
+        _alarmConfig.Current.AlarmStorage.Alarms[idx] = alarm;
         _alarmConfig.Save();
         _mediator.Publish(new AlarmDataChanged(idx));
     }

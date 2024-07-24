@@ -889,7 +889,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public void DrawTimeSpanCombo(string label, TimeSpan patternMaxDuration, ref string patternDuration, float width)
     {
         // Parse the current pattern duration
-        
         if (!TimeSpan.TryParseExact(patternDuration, "hh\\:mm\\:ss", null, out TimeSpan duration) || duration > patternMaxDuration)
         {
             duration = patternMaxDuration;
@@ -900,7 +899,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         // Button to open popup
         var pos = ImGui.GetCursorScreenPos();
-        if (ImGui.Button($"{patternDuration}##TimeSpanCombo-{label}", new Vector2(width, ImGui.GetFrameHeight())))
+        if (ImGui.Button($"{patternDuration} / {patternMaxDuration}##TimeSpanCombo-{label}", new Vector2(width, ImGui.GetFrameHeight())))
         {
             ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
             ImGui.OpenPopup("TimeSpanPopup");
@@ -964,23 +963,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5f);
         BigText(currentValue);
         // adjust the value with the mouse wheel
-        // Adjust the value with the mouse wheel
         if (ImGui.IsItemHovered() && ImGui.GetIO().MouseWheel != 0)
         {
             int delta = -(int)ImGui.GetIO().MouseWheel;
-            if (isHour)
-            {
-                hours += delta;
-            }
-            else if (isMinute)
-            {
-                minutes += delta;
-            }
-            else // isSecond
-            {
-                seconds += delta;
-            }
-
+            if (isHour) { hours += delta; }
+            else if (isMinute) { minutes += delta; }
+            else { seconds += delta; }
             // Rollover and clamp logic
             if (seconds < 0)
             {
@@ -1018,15 +1006,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + offset2);
         ImGui.TextDisabled(nextValue); // Previous value (centered)
     }
-
-
-
-
-
-
-
-
-
 
     public void DrawHelpText(string helpText)
     {
@@ -1133,4 +1112,73 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         UidFont.Dispose();
         GameFont.Dispose();
     }
+
+    /*
+     * Simplified variation of the TimeSpan combo box that does not display the previous and post values.
+     * 
+    public void DrawTimeSpanCombo(string label, TimeSpan patternMaxDuration, ref string patternDuration, float width)
+    {
+        // Parse the current pattern duration
+        TimeSpan duration = TimeSpan.TryParseExact(patternDuration, "hh\\:mm\\:ss", null, out TimeSpan parsedDuration) && parsedDuration <= patternMaxDuration
+                            ? parsedDuration
+                            : patternMaxDuration;
+
+        // Button to open popup
+        var pos = ImGui.GetCursorScreenPos();
+        if (ImGui.Button($"{patternDuration} / {patternMaxDuration}##TimeSpanCombo-{label}", new Vector2(width, ImGui.GetFrameHeight())))
+        {
+            ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
+            ImGui.OpenPopup("TimeSpanPopup");
+        }
+        ImUtf8.SameLineInner();
+        ImGui.TextUnformatted(label); // Display the label
+
+        // Popup for adjusting time
+        if (ImGui.BeginPopup("TimeSpanPopup"))
+        {
+            DrawTimeSpanUI(patternMaxDuration, ref duration, ref patternDuration);
+            ImGui.EndPopup();
+        }
+    }
+
+    private void DrawTimeSpanUI(TimeSpan patternMaxDuration, ref TimeSpan duration, ref string patternDuration)
+    {
+        int patternHour = duration.Hours, patternMinute = duration.Minutes, patternSecond = duration.Seconds;
+
+        if (ImGui.BeginTable("TimeDurationTable", 3)) // 3 columns for hours, minutes, seconds
+        {
+            DrawTimeComponentUI("##Hours", ref patternHour, patternMaxDuration.Hours, "h");
+            ImGui.TableNextColumn();
+            DrawTimeComponentUI("##Minutes", ref patternMinute, 59, "m");
+            ImGui.TableNextColumn();
+            DrawTimeComponentUI("##Seconds", ref patternSecond, 59, "s");
+
+            ImGui.EndTable();
+        }
+
+        // Update duration and patternDuration if changed
+        TimeSpan newDuration = new TimeSpan(patternHour, patternMinute, patternSecond);
+        if (newDuration != duration)
+        {
+            duration = newDuration <= patternMaxDuration ? newDuration : patternMaxDuration;
+            patternDuration = duration.ToString("hh\\:mm\\:ss");
+        }
+    }
+
+    private void DrawTimeComponentUI(string label, ref int timeComponent, int maxValue, string suffix)
+    {
+        string currentValue = $"{timeComponent:00}{suffix}";
+        using (_uiShared.UidFont.Push())
+        {
+            ImGui.Text(currentValue); // Display current value with big font
+        }
+
+        // Adjust the value with the mouse wheel
+        if (ImGui.IsItemHovered() && ImGui.GetIO().MouseWheel != 0)
+        {
+            timeComponent += (int)-ImGui.GetIO().MouseWheel;
+            timeComponent = (timeComponent < 0) ? 0 : (timeComponent > maxValue) ? maxValue : timeComponent; // Clamp
+        }
+    }
+    */
 }

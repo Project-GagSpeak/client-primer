@@ -38,8 +38,6 @@ public class ToyboxPatterns
         _pairManager = pairManager;
     }
 
-    private PatternData? SelectedPattern = null;
-    private int SelectedPatternIdx = -1;
     private Vector2 DefaultItemSpacing { get; set; }
     private LowerString PairSearchString = LowerString.Empty;
     private LowerString PatternSearchString = LowerString.Empty;
@@ -74,10 +72,19 @@ public class ToyboxPatterns
         ImGui.Separator();
 
         // if the counter is 0, perform an early return. Prevents us from drawing null pattern data.
-        if (_handler.PatternNames.Count == 0)
+        if (_handler.PatternListSize() <= 0)
         {
             UiSharedService.ColorText("No patterns found.", ImGuiColors.DalamudYellow);
             return;
+        }
+
+        // if the selected idx is -1, it has not been initialized, so initialize it
+        if (_handler.SelectedPatternIdx == -1)
+        {
+            if (_handler.PatternListSize() > 0)
+            {
+                _handler.SetSelectedPattern(_handler.FetchPattern(0), 0);
+            }
         }
 
         DrawPatterns();
@@ -94,57 +101,75 @@ public class ToyboxPatterns
             var foundMatch = _handler.GetPatternIdxByName(i);
             if (_handler.IsIndexInBounds(foundMatch))
             {
-                SelectedPatternIdx = foundMatch;
-                SelectedPattern = _handler.FetchPattern(SelectedPatternIdx);
+                _handler.SetSelectedPattern(_handler.FetchPattern(foundMatch), foundMatch);
             }
         }, default);
 
         // draw out the pattern information
-        if(SelectedPatternIdx != -1)
+        if(_handler.PatternListSize() > 0)
         {
-            DrawPatternInfo();
-        }
-        else
-        {
-            ImGui.Text("No pattern selected.");
+            if(_handler.SelectedPatternNull)
+            {
+                ImGui.Text("No pattern selected.");
+                return;
+            }
+            else
+            {
+                DrawPatternInfo();
+            }
         }
     }
 
     private void DrawPatternInfo()
     {
         var region = ImGui.GetContentRegionAvail();
-        if (SelectedPatternIdx == -1)
-        {
-            ImGui.Text("No pattern selected.");
-            return;
-        }
         // display pattern information
-        _uiShared.BigText(SelectedPattern!.Name);
-
-        UiSharedService.ColorText("(By " + SelectedPattern!.Author + ")", ImGuiColors.ParsedGold);
-
-        UiSharedService.TextWrapped(SelectedPattern!.Description);
-
-        ImGui.TextUnformatted("Duration : " + SelectedPattern!.Duration);
-
-        if(_uiShared.IconTextButton(FontAwesomeIcon.Repeat, SelectedPattern!.ShouldLoop ? "Looping" : "Not Looping"))
+        _uiShared.BigText(_handler.SelectedPattern!.Name);
+        // on  the same line
+        ImGui.SameLine();
+        // display a large play button.
+        if (_uiShared.IconTextButton(_handler.SelectedPattern.IsActive ? FontAwesomeIcon.Square : FontAwesomeIcon.Play,
+                                     _handler.SelectedPattern.IsActive ? "Stop" : "Play"))
         {
-            if(SelectedPattern!.ShouldLoop)
+            if(_handler.SelectedPattern.IsActive)
+            {
+                _handler.StopPattern(_handler.SelectedPatternIdx);
+            }
+            else
+            {
+                _handler.PlayPattern(_handler.SelectedPatternIdx);
+            }
+        }
+        ImGui.SameLine();
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete"))
+        {
+            _handler.RemovePattern(_handler.SelectedPatternIdx);
+        }
+
+        UiSharedService.ColorText("(By " + _handler.SelectedPattern!.Author + ")", ImGuiColors.ParsedGold);
+
+        UiSharedService.TextWrapped(_handler.SelectedPattern!.Description);
+
+        ImGui.TextUnformatted("Duration : " + _handler.SelectedPattern!.Duration);
+
+        if(_uiShared.IconTextButton(FontAwesomeIcon.Repeat, _handler.SelectedPattern!.ShouldLoop ? "Looping" : "Not Looping"))
+        {
+            if(_handler.SelectedPattern!.ShouldLoop)
             {
                 // set to not looping
-                _handler.SetPatternLoop(SelectedPatternIdx, false);
+                _handler.SetPatternLoop(_handler.SelectedPatternIdx, false);
             }
             else
             {
                 // set to looping
-                _handler.SetPatternLoop(SelectedPatternIdx, true);
+                _handler.SetPatternLoop(_handler.SelectedPatternIdx, true);
             }
         }
 
         var widthRef = ImGui.GetContentRegionAvail().X;
         var currentWidth = 0f;
         ImGui.Text("Tags: ");
-        foreach (string tag in SelectedPattern!.Tags)
+        foreach (string tag in _handler.SelectedPattern!.Tags)
         {
             currentWidth += _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Tag, tag);
             if (currentWidth < widthRef)
@@ -188,7 +213,7 @@ public class ToyboxPatterns
 
                 ImGui.TableNextColumn();
                 // display nothing if they are not in the list, otherwise display a check
-                var canSeeIcon = _handler.GetUserIsAllowedToView(SelectedPatternIdx, pair.UserData.UID) ? FontAwesomeIcon.Times : FontAwesomeIcon.Check;
+                var canSeeIcon = _handler.GetUserIsAllowedToView(_handler.SelectedPatternIdx, pair.UserData.UID) ? FontAwesomeIcon.Check : FontAwesomeIcon.Times;
                 using (ImRaii.PushColor(ImGuiCol.Button, ImGui.ColorConvertFloat4ToU32(new(0, 0, 0, 0))))
                 {
                     if (ImGuiUtil.DrawDisabledButton(canSeeIcon.ToIconString(), new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()),
@@ -196,11 +221,11 @@ public class ToyboxPatterns
                     {
                         if (canSeeIcon == FontAwesomeIcon.Times)
                         {
-                            _handler.GrantUserAccessToPattern(SelectedPatternIdx, pair.UserData.UID);
+                            _handler.GrantUserAccessToPattern(_handler.SelectedPatternIdx, pair.UserData.UID);
                         }
                         else
                         {
-                            _handler.RevokeUserAccessToPattern(SelectedPatternIdx, pair.UserData.UID);
+                            _handler.RevokeUserAccessToPattern(_handler.SelectedPatternIdx, pair.UserData.UID);
                         }
                     }
                 }
@@ -258,7 +283,7 @@ public class ToyboxPatterns
             if(showPattern)
             {
                 // draw it as a selectable
-                bool isSelected = SelectedPatternIdx.Equals(patternName);
+                bool isSelected = _handler.SelectedPatternIdx.Equals(patternName);
                 if (ImGui.Selectable(patternName, isSelected))
                 {
                     // update the selected PatternData (could be null, so be careful here.
@@ -271,8 +296,7 @@ public class ToyboxPatterns
         // If an item was selected during this ImGui frame, update the selected pattern
         if (itemSelected && newlySelectedPattern != -1)
         {
-            SelectedPatternIdx = newlySelectedPattern;
-            SelectedPattern = _handler.FetchPattern(SelectedPatternIdx);
+            _handler.SetSelectedPattern(_handler.FetchPattern(newlySelectedPattern), newlySelectedPattern);
         }
     }
 

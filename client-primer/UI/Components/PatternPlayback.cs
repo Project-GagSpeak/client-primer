@@ -2,6 +2,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Common.Math;
 using GagSpeak.PlayerData.Handlers;
+using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Debouncer;
 using GagSpeak.Toybox.Services;
 using ImGuiNET;
@@ -13,9 +14,8 @@ namespace GagSpeak.UI.Components;
 /// <summary>
 /// Manages playing back patterns to the client user's connected devices.
 /// </summary>
-public class PatternPlayback : IDisposable
+public class PatternPlayback : DisposableMediatorSubscriberBase
 {
-    private readonly ILogger<PatternPlayback> _logger;
     private readonly DeviceHandler _devices;
     private readonly ToyboxRemoteService _remoteService;
     private readonly PatternHandler _pHandler;
@@ -26,20 +26,31 @@ public class PatternPlayback : IDisposable
     private double[] CurrentPositions = new double[2];
 
     public PatternPlayback(ILogger<PatternPlayback> logger,
-        DeviceHandler deviceHandler, ToyboxRemoteService remoteService,
-        PatternHandler patternHandler)
+        GagspeakMediator mediator, DeviceHandler deviceHandler, 
+        ToyboxRemoteService remoteService, PatternHandler patternHandler)
+        : base(logger, mediator)
     {
-        _logger = logger;
         _devices = deviceHandler;
         _remoteService = remoteService;
         _pHandler = patternHandler;
 
         PlaybackDuration = new Stopwatch();
         PlaybackUpdateTimer = new UpdateTimer(20, ReadVibePosFromBuffer);
+
+        Mediator.Subscribe<PatternActivedMessage>(this, (msg) =>
+        {
+            StartPlayback(msg.PatternIndex);
+        });
+
+        Mediator.Subscribe<PatternDeactivedMessage>(this, (msg) =>
+        {
+            StopPlayback(msg.PatternIndex);
+        });
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
+        base.Dispose(disposing);
         // dispose of the timers
         PlaybackUpdateTimer.Dispose();
         PlaybackDuration.Stop();
@@ -113,14 +124,25 @@ public class PatternPlayback : IDisposable
         }
         catch (Exception e)
         {
-            _logger.LogError($"{e} Error drawing the toybox workshop subtab");
+            Logger.LogError($"{e} Error drawing the toybox workshop subtab");
         }
     }
     #region Helper Fuctions
     // When active, the circle will not fall back to the 0 coordinate on the Y axis of the plot, and remain where it is
-    public void StartPlayback()
+    public void StartPlayback(int PatternIdx)
     {
-        _logger.LogDebug($"Starting playback of pattern {_pHandler.ActivePattern.Name}");
+        // see if a pattern is already active. And it is not our pattern
+        if (_pHandler.IsAnyPatternPlaying())
+        {
+            var activeIdx = _pHandler.GetActivePatternIdx();
+            if (activeIdx != PatternIdx)
+            {
+                // stop the active pattern
+                StopPlayback(activeIdx);
+            }
+        }
+        // start a new one
+        Logger.LogDebug($"Starting playback of pattern {_pHandler.ActivePattern.Name}");
         // set the playback index to the start
         ReadBufferIdx = 0;
         // start our timers
@@ -140,9 +162,9 @@ public class PatternPlayback : IDisposable
     }
     private List<float> volumeLevels = new List<float>();
 
-    public void StopPlayback()
+    public void StopPlayback(int PatternIdx)
     {
-        _logger.LogDebug($"Stopping playback of pattern {_pHandler.ActivePattern.Name}");
+        Logger.LogDebug($"Stopping playback of pattern {_pHandler.PatternNames[PatternIdx]}");
         // clear the local variables
         ReadBufferIdx = 0;
         // reset the timers
@@ -173,7 +195,7 @@ public class PatternPlayback : IDisposable
                 // otherwise, stop.
                 else
                 {
-                    StopPlayback();
+                    _pHandler.StopPattern(_pHandler.GetPatternIdxByName(_pHandler.ActivePattern.Name));
                     return;
                 }
             }
@@ -186,10 +208,6 @@ public class PatternPlayback : IDisposable
             {
 
                 _devices.SendVibeToAllDevices(_pHandler.ActivePattern.PatternByteData[ReadBufferIdx]);
-            }
-            else
-            {
-                _devices.SendVibeToAllDevices(0);
             }
             ReadBufferIdx++;
         }

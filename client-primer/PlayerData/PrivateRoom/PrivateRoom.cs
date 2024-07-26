@@ -49,7 +49,7 @@ public class PrivateRoom
         // if the user is in the room's participant list, apply the last received data to the participant.
         else
         {
-            _logger.LogDebug("User {user} found in participants, applying last received data instead.", newUser.User);
+            _logger.LogDebug("User {user} found in participants, applying last received data instead.", newUser);
             // apply the last received data to the participant.
             _participants[newUser].ParicipantUser = newUser;
         }
@@ -73,10 +73,10 @@ public class PrivateRoom
     public void ReceiveParticipantDeviceData(UserCharaDeviceInfoMessageDto dto)
     {
         // if the user in the Dto is not in our private room's participant list, throw an exception.
-        if (!_participants.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
+        if (!_participants.TryGetValue(dto.User, out var participant)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // publish the event that a user was added to our private room as a new participant.
-        _mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PrivateRoomManager), EventSeverity.Informational, "Received Character IPC Data")));
+        _mediator.Publish(new EventMessage(new Event(participant.ParicipantUser, nameof(PrivateRoomManager), EventSeverity.Informational, "Received Character IPC Data")));
 
         // append the device data to the user's device information list.
         _participants[dto.User].ApplyDeviceData(dto);
@@ -98,31 +98,12 @@ public class PrivateRoom
         // TODO: Inject this logic to update the active devices using the device handler.
     }
 
-    // marks the room in an active state
-    public void MarkActive()
-    {
-
-    }
-
     // marks the room as inactive, clearing any cached data while still
     // keeping reference data as to not dispose it entirely.
     public void MarkInactive()
     {
-        try
-        {
-            // set any created objects via factories to null
-
-            _creationSemaphore.Wait();
-            _onlineUserIdentDto = null;
-            LastReceivedCharacterData = null;
-            var player = CachedPlayer;
-            CachedPlayer = null;
-            player?.Dispose();
-        }
-        finally
-        {
-            _creationSemaphore.Release();
-        }
+        // clear the chat history
+        ChatHistory.Clear();
     }
 
     // helper function to see if a particular userData is a particpant in the room

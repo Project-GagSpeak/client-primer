@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Reflection;
 using GagSpeak.UpdateMonitoring;
-using GagSpeak.PlayerData.PrivateRoom;
+using GagSpeak.PlayerData.PrivateRooms;
 
 namespace GagSpeak.WebAPI;
 
@@ -301,6 +301,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                         $"Your client is outdated and will not be able to connect. Please update Gagspeak to fix.",
                         NotificationType.Error));
                     // stop connection
+                    Logger.LogInformation("_toyboxConnectionDto.ServerVersion != IGagspeakHub.ApiVersion");
                     await StopConnection(ServerState.VersionMisMatch, HubType.ToyboxHub).ConfigureAwait(false);
                     return;
                 }
@@ -471,6 +472,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                             NotificationType.Error));
                     }
                     // stop connection
+                    Logger.LogInformation("_connectionDto.ServerVersion != IGagspeakHub.ApiVersion");
                     await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                     return;
                 }
@@ -484,6 +486,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                             $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}."+
                             $"{_connectionDto.CurrentClientVersion.Revision} Please keep your Gagspeak client up-to-date.", NotificationType.Warning));
                     // stop connection
+                    Logger.LogInformation("_connectionDto.CurrentClientVersion > currentClientVer");
                     await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                     return;
 
@@ -812,6 +815,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // if its not equal to the APIVersion then stop the connection
             if (_connectionDto.ServerVersion != IGagspeakHub.ApiVersion)
             {
+                Logger.LogInformation("_connectionDto.ServerVersion != IGagspeakHub.ApiVersion");
                 await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                 return;
             }
@@ -826,6 +830,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                     NotificationType.Warning));
 
                 // stop connection
+                Logger.LogInformation("_connectionDto.CurrentClientVersion > Assembly.GetExecutingAssembly().GetName().Version!");
                 await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                 return;
 
@@ -893,7 +898,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // if its not equal to the APIVersion then stop the connection
             if (_toyboxConnectionDto.ServerVersion != IGagspeakHub.ApiVersion)
             {
-                await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
+                await StopConnection(ServerState.VersionMisMatch, HubType.ToyboxHub).ConfigureAwait(false);
                 return;
             }
 

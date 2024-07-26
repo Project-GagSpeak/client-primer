@@ -17,27 +17,26 @@ namespace GagSpeak.PlayerData.PrivateRooms;
 public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
 {
     private readonly ILogger<PrivateRoomManager> _logger;
-    private readonly ApiController _apiController;
     private readonly PrivateRoomFactory _roomFactory;
     private readonly ConcurrentDictionary<string, PrivateRoom> _rooms;
     private Lazy<List<PrivateRoom>> _privateRoomsInternal;
     private readonly List<RoomInviteDto> _roomInvites;
 
     public PrivateRoomManager(ILogger<PrivateRoomManager> logger, GagspeakMediator mediator,
-        ApiController apiController, PrivateRoomFactory roomFactory) : base(logger, mediator)
+        PrivateRoomFactory roomFactory) : base(logger, mediator)
     {
         _logger = logger;
-        _apiController = apiController;
         _roomFactory = roomFactory;
         _rooms = new(StringComparer.Ordinal);
         _roomInvites = [];
 
-        _privateRoomsInternal = PrivateRoomsLazy();
+        _privateRoomsInternal = DirectRoomsLazy();
     }
 
     public List<PrivateRoom> PrivateRooms => _privateRoomsInternal.Value;
     public PrivateRoom? LastAddedRoom { get; private set; }
     public RoomInviteDto? LastRoomInvite { get; private set; }
+    public bool ClientInAnyRoom { get; private set; } = false;
 
     public void AddRoom(RoomInfoDto roomInfo)
     {
@@ -84,8 +83,6 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     {
         if (_rooms.TryGetValue(roomName, out var privateRoom))
         {
-            // mark the room as disconnected, and remove it from the list of rooms.
-            privateRoom.MarkRoomInactive();
             // try and remove it from the list of rooms.
             _rooms.TryRemove(roomName, out _);
         }
@@ -103,12 +100,12 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     }
 
     // for whenever we either create a new room, or join an existing one.
-    public void ClientJoinRoom(RoomInfoDto roomInfo)
+    public void ClientJoinRoom(RoomInfoDto roomInfo, bool SetClientInRoom = true)
     {
         // see if the _apiController.PlayerUser (client) is present in any other rooms currently
-        if (IsUserInAnyRoom(_apiController.PlayerUserData))
+        if (ClientInAnyRoom)
         {
-            Logger.LogWarning("You are already present in another room. leave that room first before creating or joining one!");
+            Logger.LogWarning("Client is already in a room, unable to join another.");
             return;
         }
 
@@ -118,7 +115,6 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
             // if the room already exists, repopulate its room participants with everyone and join it
             Logger.LogInformation("Room {room} was already cached. Repopulating host and online users!", roomInfo.NewRoomName);
             // mark the room as Active
-            privateRoom.MarkRoomActive(roomInfo.RoomHost, roomInfo.ConnectedUsers);
         }
         else
         {
@@ -138,7 +134,6 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
             if (privateRoom.IsUserInRoom(dto.User))
             {
                 Logger.LogDebug("User {user} found in participants, marking as active.", dto.User);
-                privateRoom.MarkParticipantActive(dto.User);
                 return;
             }
             // user was not already stored, but room did exist, so add them to the room.
@@ -179,16 +174,8 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         }
     }
 
-
-
     // helper function to see if the user is an active participant in any other rooms.
     public bool IsUserInAnyRoom(UserData user) => _rooms.Values.Any(room => room.IsUserInRoom(user));
-
-    // marks a rooms state as active, restoring any last saved information.
-    public void MarkRoomActive(string RoomName)
-    {
-
-    }
 
     // marks a room as inactive
     public void MarkRoomInactive(string RoomName)
@@ -202,15 +189,31 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         RecreateLazy();
     }
 
+    public void ClientLeaveRoom(string roomName, bool ClientLeavingRoom = true)
+    {
+        if (!_rooms.ContainsKey(roomName))
+        {
+            Logger.LogWarning("Room {room} not found, unable to leave.", roomName);
+        }
+        else
+        {
+            // set ClientInAnyRoom to false.
+            ClientInAnyRoom = false;
+            // remove the client from the list of participants in the room. (TODO)
+
+        }
+    }
+
 
     // when the client leaves a room, should push a UserLeaveRoom message to the server.
-    public void SelfLeaveRoom(string RoomName)
+    public void RoomClosedByHost(string RoomName)
     {
-        // if the room exists, leave it.
+        // the host (either yourself or another host of a room you joined) closed their room, so remove it.
+        if (!_rooms.ContainsKey(RoomName)) throw new InvalidOperationException("No Room found matching" + RoomName);
+
+        // dispose and remove the room from the room list
         if (_rooms.TryGetValue(RoomName, out var privateRoom))
         {
-            // if the room exists, leave it.
-            privateRoom.MarkRoomInactive();
             // try and remove it from the list of rooms.
             _rooms.TryRemove(RoomName, out _);
         }
@@ -252,7 +255,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     {
         base.Dispose(disposing);
 
-        DisposeRooms();
+        ClearAllRooms();
     }
 
 

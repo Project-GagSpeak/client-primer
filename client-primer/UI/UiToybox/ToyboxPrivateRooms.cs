@@ -7,7 +7,7 @@ using GagspeakAPI.Data.Enum;
 using ImGuiNET;
 using System.Globalization;
 using Dalamud.Interface.Utility.Raii;
-using GagSpeak.PlayerData.PrivateRoom;
+using GagSpeak.PlayerData.PrivateRooms;
 using GagspeakAPI.Dto.Toybox;
 using Dalamud.Interface.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
@@ -48,13 +48,6 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
         // display an option 
         DrawHostRoomHeader();
-        DrawJoinRoomHeader();
-
-        if (_apiController.ToyboxServerState == ServerState.Connected)
-        {
-            DrawRoomDetails();
-            DrawRoomInteractions();
-        }
     }
 
     private void DrawHostRoomHeader()
@@ -78,63 +71,11 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             // draw out the icon button
             if (_uiShared.IconButton(FontAwesomeIcon.Plus))
             {
-                // reset the createdAlarm to a new alarm, and set editing alarm to true
-                CreatedAlarm = new Alarm();
-                CreatingAlarm = true;
             }
             // now next to it we need to draw the header text
             ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(startYpos);
             _uiShared.BigText("New Alarm");
-        }
-    }
-
-
-    private void DrawRoomDetails()
-    {
-        var roomInfo = _privateRoomManager.RoomInfo;
-        if (roomInfo == null)
-        {
-            ImGui.Text("No room connected.");
-            return;
-        }
-
-        ImGui.Text($"Room Name: {roomInfo.NewRoomName}");
-        ImGui.Text($"Participants: {roomInfo.ConnectedUsers.Count}");
-
-        foreach (var participant in roomInfo.ConnectedUsers)
-        {
-            ImGui.Text($"- {participant.User.UID}");
-        }
-    }
-
-    private void DrawRoomInteractions()
-    {
-        if (ImGui.Button("Send Message"))
-        {
-            // Example: Send a message to the room
-            var messageDto = new RoomMessageDto
-            {
-                RoomName = _apiController.PrivateRoomManager.RoomName,
-                Message = "Hello, everyone!"
-            };
-            _ = _apiController.UserSendMessageToRoom(messageDto);
-        }
-
-        if (ImGui.Button("Invite User"))
-        {
-            // Example: Invite a user to the room
-            var inviteDto = new RoomInviteDto
-            {
-                RoomName = _apiController.PrivateRoomManager.RoomName,
-                UserName = "UserToInvite"
-            };
-            _ = _apiController.UserRoomInvite(inviteDto);
-        }
-
-        if (ImGui.Button("Leave Room"))
-        {
-            _ = _apiController.UserLeaveRoom();
         }
     }
 

@@ -51,14 +51,14 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     public Task Client_UserJoinedRoom(RoomInfoDto dto)
     {
         Logger.LogDebug("Client_UserJoinedRoom: {dto}", dto);
-        ExecuteSafely(() => _privateRoomManager.JoinNewRoom(dto));
+        ExecuteSafely(() => _privateRoomManager.ClientJoinRoom(dto));
         return Task.CompletedTask;
     }
 
     /// <summary> 
     /// Adds another participant who has joined the room you are in.
     /// </summary>
-    public Task Client_OtherUserJoinedRoom(UserDto dto)
+    public Task Client_OtherUserJoinedRoom(RoomParticipantDto dto)
     {
         Logger.LogDebug("Client_OtherUserJoinedRoom: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.AddParticipantToRoom(dto));
@@ -68,10 +68,10 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     /// <summary>
     /// Removes a participant who has left the room you are in.
     /// </summary>
-    public Task Client_OtherUserLeftRoom(UserDto dto)
+    public Task Client_OtherUserLeftRoom(RoomParticipantDto dto)
     {
         Logger.LogDebug("Client_OtherUserLeftRoom: {dto}", dto);
-        ExecuteSafely(() => _privateRoomManager.RemoveRoomParticipant(dto));
+        ExecuteSafely(() => _privateRoomManager.ParticipantLeftRoom(dto));
         return Task.CompletedTask;
     }
 
@@ -99,7 +99,7 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     public Task Client_ReceiveRoomClosedMessage(string roomName)
     {
         Logger.LogDebug("Client_ReceiveRoomClosedMessage: {roomName}", roomName);
-        ExecuteSafely(() => _privateRoomManager.LeaveRoom(roomName));
+        ExecuteSafely(() => _privateRoomManager.RoomClosedByHost(roomName));
         return Task.CompletedTask;
     }
 
@@ -123,13 +123,13 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
         _toyboxHub!.On(nameof(Client_UserJoinedRoom), act);
     }
 
-    public void OnOtherUserJoinedRoom(Action<UserDto> act)
+    public void OnOtherUserJoinedRoom(Action<RoomParticipantDto> act)
     {
         if (_initialized) return;
         _toyboxHub!.On(nameof(Client_OtherUserJoinedRoom), act);
     }
 
-    public void OnOtherUserLeftRoom(Action<UserDto> act)
+    public void OnOtherUserLeftRoom(Action<RoomParticipantDto> act)
     {
         if (_initialized) return;
         _toyboxHub!.On(nameof(Client_OtherUserLeftRoom), act);

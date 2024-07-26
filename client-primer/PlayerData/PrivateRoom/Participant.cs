@@ -53,6 +53,5 @@ public class Participant
     {
         _logger.LogInformation("Marking participant {UserData} as offline", ParicipantUser);
         ClearDevices();
-        // Additional cleanup if needed
     }
 }

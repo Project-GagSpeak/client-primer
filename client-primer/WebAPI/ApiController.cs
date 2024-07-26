@@ -14,20 +14,22 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Reflection;
 using GagSpeak.UpdateMonitoring;
+using GagSpeak.PlayerData.PrivateRoom;
 
 namespace GagSpeak.WebAPI;
 
 #pragma warning disable MA0040
-public sealed partial class ApiController : DisposableMediatorSubscriberBase, IGagspeakHubClient
+public sealed partial class ApiController : DisposableMediatorSubscriberBase, IGagspeakHubClient, IToyboxHubClient
 {
     public const string MainServer = "GagSpeak Main";
     public const string MainServiceUri = "wss://gagspeak.kinkporium.studio";
 
     private readonly OnFrameworkService _frameworkUtils;            // the on framework service
     private readonly HubFactory _hubFactory;                        // the hub factory
-    private readonly PlayerCharacterManager _playerCharManager;      // the player character manager
+    private readonly PlayerCharacterManager _playerCharManager;     // the player character manager
+    private readonly PrivateRoomManager _privateRoomManager;        // the private room manager
     private readonly PairManager _pairManager;                      // for managing the clients paired users
-    private readonly ServerConfigurationManager _serverConfigManager;// the server configuration manager
+    private readonly ServerConfigurationManager _serverConfigs;     // the server configuration manager
     private readonly TokenProvider _tokenProvider;                  // the token provider for authentications
     private readonly GagspeakConfigService _gagspeakConfigService;  // the Gagspeak configuration service
 
@@ -50,15 +52,17 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     private ServerState _toyboxServerState;                         // the current state of the toybox server
 
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, OnFrameworkService frameworkService,
-        PlayerCharacterManager playerCharManager, PairManager pairManager, ServerConfigurationManager serverManager,
+        PlayerCharacterManager playerCharManager, PrivateRoomManager roomManager, 
+        PairManager pairManager, ServerConfigurationManager serverManager,
         GagspeakMediator gagspeakMediator, TokenProvider tokenProvider,
         GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
     {
         _frameworkUtils = frameworkService;
         _hubFactory = hubFactory;
         _playerCharManager = playerCharManager;
+        _privateRoomManager = roomManager;
         _pairManager = pairManager;
-        _serverConfigManager = serverManager;
+        _serverConfigs = serverManager;
         _tokenProvider = tokenProvider;
         _gagspeakConfigService = gagspeakConfigService;
         _connectionCTS = new CancellationTokenSource();
@@ -78,7 +82,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         // initially set the server state to offline.
         ServerState = ServerState.Offline;
         ToyboxServerState = ServerState.Offline;
-        _serverConfigManager.CurrentServer.ToyboxFullPause = true;
+        _serverConfigs.CurrentServer.ToyboxFullPause = true;
 
         // if we are already logged in, then run the login function
         if (_frameworkUtils.IsLoggedIn) { FrameworkUtilOnLogIn(); }
@@ -222,7 +226,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             return;
         }
         // if we have opted to disconnect from the main server (manual button toggle)
-        if (_serverConfigManager.CurrentServer?.ToyboxFullPause ?? true)
+        if (_serverConfigs.CurrentServer?.ToyboxFullPause ?? true)
         {
             Logger.LogInformation("Stopping connection to toybox server, as user wished to disconnect");
             await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
@@ -342,7 +346,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         Logger.LogInformation("CreateConnections called");
 
         // if we have opted to disconnect from the server for now, then stop the connection and return.
-        if (_serverConfigManager.CurrentServer?.FullPause ?? true)
+        if (_serverConfigs.CurrentServer?.FullPause ?? true)
         {
             Logger.LogInformation("Stopping connection because user has wished to disconnect");
             _connectionDto = null;
@@ -352,7 +356,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         }
 
         // get the currently stored secretkey from the server manager
-        var secretKey = _serverConfigManager.GetSecretKey();
+        var secretKey = _serverConfigs.GetSecretKey();
         // log the secret key
         Logger.LogDebug("Secret Key fetched: {secretKey}", secretKey);
         // if the secret key is null or empty
@@ -376,7 +380,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         // now we can recreate the connection
         Logger.LogInformation("Recreating Connection");
         Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Informational,
-            $"Starting Connection to {_serverConfigManager.CurrentServer.ServerName}")));
+            $"Starting Connection to {_serverConfigs.CurrentServer.ServerName}")));
 
         // dispose of the old connection CTS and create a new one
         _connectionCTS?.Cancel();
@@ -460,8 +464,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                     {
                         // publish a notification message to the client that their client is incompatible
                         Mediator.Publish(new NotificationMessage("Client incompatible",
-                            $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
-                            $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
+                            $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}.{currentClientVer.Revision}), current is: " +
+                            $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}."+
+                            $"{_connectionDto.CurrentClientVersion.Revision}" +
                             $"This client version is incompatible and will not be able to connect. Please update your Gagspeak client.",
                             NotificationType.Error));
                     }
@@ -475,11 +480,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 {
                     // publish a notification message that the client is outdated
                     Mediator.Publish(new NotificationMessage("Client outdated",
-                        $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}), current is: " +
-                        $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
-                        $"Please keep your Gagspeak client up-to-date.",
-                        NotificationType.Warning));
-
+                            $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}.{currentClientVer.Revision}), current is: " +
+                            $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}."+
+                            $"{_connectionDto.CurrentClientVersion.Revision} Please keep your Gagspeak client up-to-date.", NotificationType.Warning));
                     // stop connection
                     await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                     return;
@@ -728,11 +731,18 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // if the hub is null, return
             if (_toyboxHub == null) return;
             // otherwise, log that we are initializing the data, and initialize it.
-            Logger.LogDebug("Initializing data");
+            Logger.LogDebug("Initializing ToyboxHub API Hooks");
 
             // On the left is the function from the gagspeakhubclient.cs in the API, on the right is the function to be called in the API controller.
             OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
-            OnUpdateIntensity(dto => _ = Client_UpdateIntensity(dto));
+            OnUserReceiveRoomInvite(dto => _ = Client_UserReceiveRoomInvite(dto));
+            OnUserJoinedRoom(dto => _ = Client_UserJoinedRoom(dto));
+            OnOtherUserJoinedRoom(dto => _ = Client_OtherUserJoinedRoom(dto));
+            OnOtherUserLeftRoom(dto => _ = Client_OtherUserLeftRoom(dto));
+            OnUserReceiveRoomMessage(dto => _ = Client_UserReceiveRoomMessage(dto));
+            OnUserReceiveDeviceInfo(dto => _ = Client_UserReceiveDeviceInfo(dto));
+            OnUserDeviceUpdate(dto => _ = Client_UserDeviceUpdate(dto));
+            OnReceiveRoomClosedMessage(dto => _ = Client_ReceiveRoomClosedMessage(dto));
 
             // create a new health check token
             _toyboxHealthCTS?.Cancel();
@@ -846,7 +856,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         Logger.LogWarning($"{arg} Connection closed... Reconnecting");
         // publish a event message to the mediator alerting us of the reconnection
         Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Warning,
-            $"Connection interrupted, reconnecting to {_serverConfigManager.CurrentServer.ServerName}")));
+            $"Connection interrupted, reconnecting to {_serverConfigs.CurrentServer.ServerName}")));
     }
 
     /* ================ Toybox Hub SignalR Functions ================ */
@@ -919,7 +929,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// <returns>a boolean that is true if we need to refresh the token, and false if not.</returns>
     private async Task<bool> RefreshToken(CancellationToken ct)
     {
-        Logger.LogTrace("Checking token");
+        // Logger.LogTrace("Checking token");
         // assume we dont require a reconnect
         bool requireReconnect = false;
         try
@@ -968,7 +978,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             {
                 // publish the event message to the mediator that we are stopping the connection
                 Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Informational,
-                    $"Stopping existing connection to Main Hub :: {_serverConfigManager.CurrentServer.ServerName}")));
+                    $"Stopping existing connection to Main Hub :: {_serverConfigs.CurrentServer.ServerName}")));
                 // set initialized to false, cancel the health CTS, and publish a disconnected message to the mediator
                 _initialized = false;
                 _healthCTS?.Cancel();

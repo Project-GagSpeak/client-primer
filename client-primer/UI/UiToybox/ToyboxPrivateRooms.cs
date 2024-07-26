@@ -7,31 +7,135 @@ using GagspeakAPI.Data.Enum;
 using ImGuiNET;
 using System.Globalization;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.PlayerData.PrivateRoom;
+using GagspeakAPI.Dto.Toybox;
+using Dalamud.Interface.Utility;
+using GagSpeak.GagspeakConfiguration.Models;
+using System.Numerics;
 
 namespace GagSpeak.UI.UiToybox;
 
-public class ToyboxVibeServer : DisposableMediatorSubscriberBase
+public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
+    private readonly PrivateRoomManager _privateRoomManager;
     private readonly UiSharedService _uiShared;
     private readonly ServerConfigurationManager _serverConfigs;
 
-    public ToyboxVibeServer(ILogger<ToyboxVibeServer> logger, 
+    public ToyboxPrivateRooms(ILogger<ToyboxPrivateRooms> logger, 
         GagspeakMediator mediator, ApiController apiController,
-        UiSharedService uiShared, ServerConfigurationManager serverConfigs
-        ) : base(logger, mediator)
+        PrivateRoomManager privateRoomManager, UiSharedService uiShared,
+        ServerConfigurationManager serverConfigs) : base(logger, mediator)
     {
         _apiController = apiController;
+        _privateRoomManager = privateRoomManager;
         _uiShared = uiShared;
         _serverConfigs = serverConfigs;
     }
+
+    public bool HostPrivateRoomHovered = false;
+    public bool HostingRoom = false;
 
     public void DrawVibeServerPanel()
     {
         // draw the connection interface
         DrawToyboxServerStatus();
 
-        ImGui.Text("Vibe Server InteractionsUI");
+        // below this, draw our toybox "Host Room" header. This 
+
+        // draw out the header
+        _uiShared.BigText("Private Rooms:");
+
+        // display an option 
+        DrawHostRoomHeader();
+        DrawJoinRoomHeader();
+
+        if (_apiController.ToyboxServerState == ServerState.Connected)
+        {
+            DrawRoomDetails();
+            DrawRoomInteractions();
+        }
+    }
+
+    private void DrawHostRoomHeader()
+    {
+        // use button wrounding
+        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
+        var startYpos = ImGui.GetCursorPosY();
+        var iconSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus);
+        Vector2 textSize;
+        using (_uiShared.UidFont.Push())
+        {
+            textSize = ImGui.CalcTextSize("Host Private Room");
+        }
+        var centerYpos = (textSize.Y - iconSize.Y);
+        var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), HostPrivateRoomHovered);
+        using (ImRaii.Child("HostPrivateRoomHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + (centerYpos - startYpos) * 2)))
+        {
+            // now calculate it so that the cursors Yposition centers the button in the middle height of the text
+            ImGui.SameLine(10 * ImGuiHelpers.GlobalScale);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
+            // draw out the icon button
+            if (_uiShared.IconButton(FontAwesomeIcon.Plus))
+            {
+                // reset the createdAlarm to a new alarm, and set editing alarm to true
+                CreatedAlarm = new Alarm();
+                CreatingAlarm = true;
+            }
+            // now next to it we need to draw the header text
+            ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(startYpos);
+            _uiShared.BigText("New Alarm");
+        }
+    }
+
+
+    private void DrawRoomDetails()
+    {
+        var roomInfo = _privateRoomManager.RoomInfo;
+        if (roomInfo == null)
+        {
+            ImGui.Text("No room connected.");
+            return;
+        }
+
+        ImGui.Text($"Room Name: {roomInfo.NewRoomName}");
+        ImGui.Text($"Participants: {roomInfo.ConnectedUsers.Count}");
+
+        foreach (var participant in roomInfo.ConnectedUsers)
+        {
+            ImGui.Text($"- {participant.User.UID}");
+        }
+    }
+
+    private void DrawRoomInteractions()
+    {
+        if (ImGui.Button("Send Message"))
+        {
+            // Example: Send a message to the room
+            var messageDto = new RoomMessageDto
+            {
+                RoomName = _apiController.PrivateRoomManager.RoomName,
+                Message = "Hello, everyone!"
+            };
+            _ = _apiController.UserSendMessageToRoom(messageDto);
+        }
+
+        if (ImGui.Button("Invite User"))
+        {
+            // Example: Invite a user to the room
+            var inviteDto = new RoomInviteDto
+            {
+                RoomName = _apiController.PrivateRoomManager.RoomName,
+                UserName = "UserToInvite"
+            };
+            _ = _apiController.UserRoomInvite(inviteDto);
+        }
+
+        if (ImGui.Button("Leave Room"))
+        {
+            _ = _apiController.UserLeaveRoom();
+        }
     }
 
     private void DrawToyboxServerStatus()

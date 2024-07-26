@@ -15,7 +15,7 @@ using Glamourer.Api.Enums;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using System.Numerics;
-using GagSpeak.Toybox.Models;
+using GagspeakAPI.Data.VibeServer;
 
 namespace GagSpeak.Services.Mediator;
 

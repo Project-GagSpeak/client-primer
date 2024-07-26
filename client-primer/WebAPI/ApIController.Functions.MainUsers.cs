@@ -9,15 +9,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 namespace GagSpeak.WebAPI;
 
 #pragma warning disable MA0040
-/// <summary> 
-/// 
-/// This partial class contains the user related functions.
-/// 
-/// User related functions are functions that our client calls to the server, sending it information via Dto's.
-/// The server will then take those Dto's and handle the equivalent functions accordingly.
-/// 
-/// </summary>
-public partial class ApiController
+public partial class ApiController // Partial class for MainHub User Functions.
 {
     /// <summary> 
     /// 

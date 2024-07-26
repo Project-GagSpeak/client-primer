@@ -13,7 +13,7 @@ public class ToyboxUI : WindowMediatorSubscriberBase
     private readonly UiSharedService _uiShared;
     private readonly ToyboxTabMenu _tabMenu;
     private readonly ToyboxOverview _toysOverview;
-    private readonly ToyboxVibeServer _vibeServer;
+    private readonly ToyboxPrivateRooms _vibeServer;
     private readonly ToyboxPatterns _patterns;
     private readonly ToyboxTriggerManager _triggerManager;
     private readonly ToyboxAlarmManager _alarmManager;
@@ -22,7 +22,7 @@ public class ToyboxUI : WindowMediatorSubscriberBase
 
     public ToyboxUI(ILogger<ToyboxUI> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService, ToyboxOverview toysOverview,
-        ToyboxVibeServer vibeServer, ToyboxPatterns patterns,
+        ToyboxPrivateRooms vibeServer, ToyboxPatterns patterns,
         ToyboxTriggerManager triggerManager, ToyboxAlarmManager alarmManager,
         ToyboxCosmetics cosmetics, PatternPlayback playback) 
         : base(logger, mediator, "Toybox UI")

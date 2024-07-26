@@ -2,7 +2,7 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Toybox.Models;
+using GagspeakAPI.Data.VibeServer;
 
 namespace GagSpeak.PlayerData.Handlers;
 

@@ -46,6 +46,7 @@ using UI.UiRemote;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.Toybox.Services;
 using GagSpeak.UI.Components;
+using GagSpeak.PlayerData.PrivateRoom;
 
 namespace GagSpeak;
 
@@ -151,7 +152,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<GameObjectHandlerFactory>()
         .AddSingleton<PairFactory>()
         .AddSingleton<PairHandlerFactory>()
+        .AddSingleton<ParticipantFactory>()
         .AddSingleton<PairManager>()
+        .AddSingleton<PrivateRoomManager>()
         // Toybox Services
         .AddSingleton<ConnectedDevice>()
         .AddSingleton<DeviceFactory>()
@@ -202,7 +205,7 @@ public static class GagSpeakServiceExtensions
 
         .AddSingleton<ToyboxOverview>()
         .AddSingleton<ToyboxPatterns>()
-        .AddSingleton<ToyboxVibeServer>()
+        .AddSingleton<ToyboxPrivateRooms>()
         .AddSingleton<ToyboxTriggerManager>()
         .AddSingleton<ToyboxAlarmManager>()
         .AddSingleton<ToyboxCosmetics>()

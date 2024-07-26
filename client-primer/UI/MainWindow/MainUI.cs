@@ -187,8 +187,14 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
                 $"It is highly recommended to keep GagSpeak up to date. Open /xlplugins and update the plugin.", ImGuiColors.DalamudRed);
         }
 
-        // Always draw the server status, regardless of the tab.
-        using (ImRaii.PushId("serverstatus")) DrawServerStatus();
+        if(_apiController.ServerState is ServerState.NoSecretKey || _apiController.ServerState is ServerState.VersionMisMatch)
+        {
+            using (ImRaii.PushId("header")) DrawUIDHeader();
+        }
+        else
+        {
+            using (ImRaii.PushId("serverstatus")) DrawServerStatus();
+        }
         // separate our UI once more.
         ImGui.Separator();
 
@@ -229,6 +235,40 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
             Mediator.Publish(new CompactUiChange(_lastSize, _lastPosition));
         }
     }
+
+    private void DrawUIDHeader()
+    {
+        // fetch the Uid Text of yourself
+        var uidText = GetUidText();
+
+        // push the big boi font for the UID
+        using (_uiSharedService.UidFont.Push())
+        {
+            var uidTextSize = ImGui.CalcTextSize(uidText);
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
+            // display it, it should be green if connected and red when not.
+            ImGui.TextColored(GetUidColor(), uidText);
+        }
+
+        // if we are connected
+        if (_apiController.ServerState is ServerState.Connected)
+        {
+            UiSharedService.CopyableDisplayText(_apiController.DisplayName);
+
+            // if the UID does not equal the display name
+            if (!string.Equals(_apiController.DisplayName, _apiController.UID, StringComparison.Ordinal))
+            {
+                // grab the original text size for the UID in the api controller
+                var origTextSize = ImGui.CalcTextSize(_apiController.UID);
+                // adjust the cursor and redraw the UID (really not sure why this is here but we can trial and error later.
+                ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - origTextSize.X / 2);
+                ImGui.TextColored(GetUidColor(), _apiController.UID);
+                // give it the same functionality.
+                UiSharedService.CopyableDisplayText(_apiController.UID);
+            }
+        }
+    }
+
 
     /// <summary>
     /// Helper function for drawing the current status of the server, including the number of people online.

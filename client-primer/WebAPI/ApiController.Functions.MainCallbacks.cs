@@ -10,13 +10,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 
 namespace GagSpeak.WebAPI;
 
-/// <summary> This partial class contains the callback functions.
-/// <para>
-/// The Callback functions are the function calls that the server sends to us.
-/// Meaning, the server is sending us information, and we need to take that information and handle it accordingly.
-/// </para>
-/// </summary>
-public partial class ApiController
+public partial class ApiController // Partial class for MainHub Callbacks
 {
     /// <summary> Called when the server sends a message to the client. </summary>
     /// <param name="messageSeverity">the severity level of the message</param>
@@ -27,12 +21,12 @@ public partial class ApiController
         {
             case MessageSeverity.Error:
                 Mediator.Publish(new NotificationMessage("Warning from " +
-                    _serverConfigManager.CurrentServer!.ServerName, message, NotificationType.Error, TimeSpan.FromSeconds(7.5)));
+                    _serverConfigs.CurrentServer!.ServerName, message, NotificationType.Error, TimeSpan.FromSeconds(7.5)));
                 break;
 
             case MessageSeverity.Warning:
                 Mediator.Publish(new NotificationMessage("Warning from " +
-                    _serverConfigManager.CurrentServer!.ServerName, message, NotificationType.Warning, TimeSpan.FromSeconds(7.5)));
+                    _serverConfigs.CurrentServer!.ServerName, message, NotificationType.Warning, TimeSpan.FromSeconds(7.5)));
                 break;
 
             case MessageSeverity.Information:
@@ -42,7 +36,7 @@ public partial class ApiController
                     break;
                 }
                 Mediator.Publish(new NotificationMessage("Info from " +
-                    _serverConfigManager.CurrentServer!.ServerName, message, NotificationType.Info, TimeSpan.FromSeconds(7.5)));
+                    _serverConfigs.CurrentServer!.ServerName, message, NotificationType.Info, TimeSpan.FromSeconds(7.5)));
                 break;
         }
         // return it as a completed task.
@@ -55,12 +49,12 @@ public partial class ApiController
         {
             case MessageSeverity.Error:
                 Mediator.Publish(new NotificationMessage("Warning from " +
-                    _serverConfigManager.CurrentServer!.ServerName, message, NotificationType.Error, TimeSpan.FromSeconds(7.5)));
+                    _serverConfigs.CurrentServer!.ServerName, message, NotificationType.Error, TimeSpan.FromSeconds(7.5)));
                 break;
 
             case MessageSeverity.Warning:
                 Mediator.Publish(new NotificationMessage("Warning from " +
-                    _serverConfigManager.CurrentServer!.ServerName, message, NotificationType.Warning, TimeSpan.FromSeconds(7.5)));
+                    _serverConfigs.CurrentServer!.ServerName, message, NotificationType.Warning, TimeSpan.FromSeconds(7.5)));
                 break;
 
             case MessageSeverity.Information:
@@ -70,7 +64,7 @@ public partial class ApiController
                     break;
                 }
                 Mediator.Publish(new NotificationMessage("Info from " +
-                    _serverConfigManager.CurrentServer!.ServerName, message, NotificationType.Info, TimeSpan.FromSeconds(5)));
+                    _serverConfigs.CurrentServer!.ServerName, message, NotificationType.Info, TimeSpan.FromSeconds(5)));
                 break;
         }
         // we need to update the api server state to be stopped if connected
@@ -79,35 +73,6 @@ public partial class ApiController
             _ = Task.Run(async () => await StopConnection(newServerState).ConfigureAwait(false));
         }
         // return completed
-        return Task.CompletedTask;
-    }
-
-
-    /// <summary> Called when the toybox server sends a message to the client. </summary>
-    /// <param name="messageSeverity">the severity level of the message</param>
-    /// <param name="message">the content of the message</param>
-    public Task Client_ReceiveToyboxServerMessage(MessageSeverity messageSeverity, string message)
-    {
-        switch (messageSeverity)
-        {
-            case MessageSeverity.Error:
-                Mediator.Publish(new NotificationMessage("Warning from Toybox Server", message, NotificationType.Error, TimeSpan.FromSeconds(7.5)));
-                break;
-
-            case MessageSeverity.Warning:
-                Mediator.Publish(new NotificationMessage("Warning from Toybox Server", message, NotificationType.Warning, TimeSpan.FromSeconds(7.5)));
-                break;
-
-            case MessageSeverity.Information:
-                if (_doNotNotifyOnNextInfo)
-                {
-                    _doNotNotifyOnNextInfo = false;
-                    break;
-                }
-                Mediator.Publish(new NotificationMessage("Info from Toybox Server", message, NotificationType.Info, TimeSpan.FromSeconds(5)));
-                break;
-        }
-        // return it as a completed task.
         return Task.CompletedTask;
     }
 
@@ -486,16 +451,6 @@ public partial class ApiController
         return Task.CompletedTask;
     }
 
-    /* ------ TOYBOX SERVER CALLBACKS ------ */
-    public Task Client_UpdateIntensity(UpdateIntensityDto dto)
-    {
-        Logger.LogDebug("Client_UpdateIntensity: {dto}", dto);
-        // have this update the device intensity.
-        //ExecuteSafely(() => true);
-        return Task.CompletedTask;
-    }
-
-
     /// <summary> A helper method to ensure the action is executed safely, and if an exception is thrown, it is logged.</summary>
     /// <param name="act">the action to execute</param>
     private void ExecuteSafely(Action act)
@@ -508,19 +463,6 @@ public partial class ApiController
         {
             Logger.LogCritical(ex, "Error on executing safely");
         }
-    }
-
-    /* void methods from the toybox API to call the hooks */
-    public void OnReceiveToyboxServerMessage(Action<MessageSeverity, string> act)
-    {
-        if (_toyboxInitialized) return;
-        _toyboxHub!.On(nameof(Client_ReceiveServerMessage), act);
-    }
-
-    public void OnUpdateIntensity(Action<UpdateIntensityDto> act)
-    {
-        if (_toyboxInitialized) return;
-        _toyboxHub!.On(nameof(Client_UpdateIntensity), act);
     }
 
     /* --------------------------------- void methods from the API to call the hooks --------------------------------- */

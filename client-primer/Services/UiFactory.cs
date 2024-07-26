@@ -23,7 +23,7 @@ public class UiFactory
     private readonly DeviceHandler _deviceHandler;
     private readonly PairManager _pairManager;
     private readonly ToyboxRemoteService _remoteService;
-    private readonly ServerConfigurationManager _serverConfigManager;
+    private readonly ServerConfigurationManager _serverConfigs;
     private readonly GagspeakConfigService _gagspeakConfigService;
     private readonly GagspeakProfileManager _gagspeakProfileManager;
 
@@ -40,7 +40,7 @@ public class UiFactory
         _deviceHandler = handler;
         _pairManager = pairManager;
         _remoteService = remoteService;
-        _serverConfigManager = serverConfigs;
+        _serverConfigs = serverConfigs;
         _gagspeakConfigService = configService;
         _gagspeakProfileManager = profileManager;
     }
@@ -54,6 +54,6 @@ public class UiFactory
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)
     {
         return new StandaloneProfileUi(_loggerFactory.CreateLogger<StandaloneProfileUi>(), _gagspeakMediator,
-            _uiSharedService, _serverConfigManager, _gagspeakProfileManager, _pairManager, pair);
+            _uiSharedService, _serverConfigs, _gagspeakProfileManager, _pairManager, pair);
     }
 }

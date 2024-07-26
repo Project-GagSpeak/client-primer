@@ -14,7 +14,7 @@ namespace GagSpeak.WebAPI;
 public class HubFactory : MediatorSubscriberBase
 {
     private readonly ILoggerProvider _loggingProvider;
-    private readonly ServerConfigurationManager _serverConfigManager;
+    private readonly ServerConfigurationManager _serverConfigs;
     private readonly TokenProvider _tokenProvider;
     private HubConnection? _instance;   // The instance of the hub connection we have with the main server
     private bool _isDisposed = false;   // if the hub factory is disposed of or not.
@@ -26,7 +26,7 @@ public class HubFactory : MediatorSubscriberBase
         ServerConfigurationManager serverConfigManager,
         TokenProvider tokenProvider, ILoggerProvider pluginLog) : base(logger, gagspeakMediator)
     {
-        _serverConfigManager = serverConfigManager;
+        _serverConfigs = serverConfigManager;
         _tokenProvider = tokenProvider;
         _loggingProvider = pluginLog;
     }
@@ -98,7 +98,7 @@ public class HubFactory : MediatorSubscriberBase
     {
         // Log that we are building a new HubConnection
         Logger.LogDebug("Building new HubConnection");
-        var connectionURI = _serverConfigManager.CurrentApiUrl 
+        var connectionURI = _serverConfigs.CurrentApiUrl 
             + (hubType == HubType.MainHub ? IGagspeakHub.Path : IToyboxHub.Path);
 
         Logger.LogDebug($"Attempting to connect to URI: {connectionURI}");

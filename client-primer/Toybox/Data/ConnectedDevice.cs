@@ -2,7 +2,7 @@ using Buttplug.Client;
 using Buttplug.Core.Messages;
 using GagSpeak.Services.Mediator;
 using DebounceThrottle;
-using GagSpeak.Toybox.Models;
+using GagspeakAPI.Data.VibeServer;
 
 namespace GagSpeak.Services.Data;
 

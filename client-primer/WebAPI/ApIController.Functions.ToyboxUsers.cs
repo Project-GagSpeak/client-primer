@@ -34,7 +34,7 @@ public partial class ApiController // Partial class for Toybox User Functions.
     /// <summary>
     /// Join a room by name.
     /// </summary>
-    public async Task UserJoinRoom(string roomName)
+    public async Task UserJoinRoom(RoomParticipantDto roomName)
     {
         if (!IsToyboxConnected) return;
         await _toyboxHub!.SendAsync(nameof(UserJoinRoom), roomName).ConfigureAwait(false);

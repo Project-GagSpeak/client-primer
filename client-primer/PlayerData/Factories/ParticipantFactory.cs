@@ -5,6 +5,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagspeakAPI.Dto.UserPair;
 using GagSpeak.PlayerData.PrivateRooms;
 using GagspeakAPI.Data;
+using GagspeakAPI.Data.VibeServer;
 
 namespace GagSpeak.PlayerData.Factories;
 
@@ -26,7 +27,7 @@ public class ParticipantFactory
 
     /// <summary> Creates a new Participant object from the UserDto</summary>
     /// <returns> A new Participant object </returns>
-    public Participant Create(UserData user)
+    public Participant Create(PrivateRoomUser user)
     {
         return new Participant(_loggerFactory.CreateLogger<Participant>(),
             user, _gagspeakMediator);

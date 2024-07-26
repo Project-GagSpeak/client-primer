@@ -3,6 +3,7 @@ using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Comparer;
+using GagspeakAPI.Data.VibeServer;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.User;
@@ -17,7 +18,7 @@ public class PrivateRoom
     private readonly ILogger<PrivateRoom> _logger;
     private readonly GagspeakMediator _mediator;
     private readonly ParticipantFactory _participantFactory;
-    private readonly ConcurrentDictionary<UserData, Participant> _participants;
+    private readonly ConcurrentDictionary<PrivateRoomUser, Participant> _participants;
     // create a lazy list of the participants in the room.
     private Lazy<List<Participant>> _directParticipantsInternal;
     
@@ -27,7 +28,7 @@ public class PrivateRoom
         _participantFactory = participantFactory;
         _logger = logger;
         _mediator = mediator;
-        _participants = new(UserDataComparer.Instance);
+        _participants = new(PrivateRoomUserComparer.Instance);
         RoomInfo = roomInfo;
     }
 
@@ -36,7 +37,7 @@ public class PrivateRoom
     public string RoomName => RoomInfo?.NewRoomName ?? "No Room Name";
     public List<Participant> Participants => _directParticipantsInternal.Value;
 
-    public void AddParticipantToRoom(UserData newUser, bool addToLastAddedParticipant = true)
+    public void AddParticipantToRoom(PrivateRoomUser newUser, bool addToLastAddedParticipant = true)
     {
         _logger.LogTrace("Scanning all participants to see if added user already exists");
         // if the user is not in the room's participant list, create a new participant for them.
@@ -55,14 +56,14 @@ public class PrivateRoom
         }
     }
 
-    public void RemoveRoomParticipant(UserDto dto)
+    public void RemoveRoomParticipant(PrivateRoomUser dto)
     {
-        if (_participants.TryGetValue(dto.User, out var participant))
+        if (_participants.TryGetValue(dto, out var participant))
         {
             // clear stored information
             participant.MarkOffline();
             // try and remove the participant from the room
-            _participants.TryRemove(dto.User, out _);
+            _participants.TryRemove(dto, out _);
         }
         RecreateLazy();
     }
@@ -75,18 +76,12 @@ public class PrivateRoom
         // if the user in the Dto is not in our private room's participant list, throw an exception.
         if (!_participants.TryGetValue(dto.User, out var participant)) throw new InvalidOperationException("No user found for " + dto.User);
 
-        // publish the event that a user was added to our private room as a new participant.
-        _mediator.Publish(new EventMessage(new Event(participant.ParicipantUser, nameof(PrivateRoomManager), EventSeverity.Informational, "Received Character IPC Data")));
-
         // append the device data to the user's device information list.
         _participants[dto.User].ApplyDeviceData(dto);
     }
 
     public void ApplyDeviceUpdate(UpdateDeviceDto dto)
     {
-        // firstly, see if the User in the update is in our rooms participant list.
-        if (!_participants.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
-
         // next, see if they are the current room host, as only the host is allowed to update your devices.
         // TODO: Inject this logic, currently participant name system is fucked up.
 
@@ -107,7 +102,7 @@ public class PrivateRoom
     }
 
     // helper function to see if a particular userData is a particpant in the room
-    public bool IsUserInRoom(UserData participantUser) => _participants.ContainsKey(participantUser);
+    public bool IsUserInRoom(PrivateRoomUser participantUser) => _participants.ContainsKey(participantUser);
 
     protected void Dispose(bool disposing)
     {

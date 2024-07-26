@@ -35,6 +35,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
     public bool HostPrivateRoomHovered = false;
     public bool HostingRoom = false;
+    public string TempRoomNameIdentifier = string.Empty;
 
     public void DrawVibeServerPanel()
     {
@@ -46,8 +47,19 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         // draw out the header
         _uiShared.BigText("Private Rooms:");
 
-        // display an option 
-        DrawHostRoomHeader();
+        // display an option for an inputtext field
+        var stringRef = TempRoomNameIdentifier;
+        if(ImGui.InputText("##ToyboxRoomName", ref stringRef, 50))
+        {
+            TempRoomNameIdentifier = stringRef;
+        }
+
+        // add button to create new room
+        if(ImGui.Button("Host Private Room"))
+        {
+            HostingRoom = true;
+            _apiController.UserCreateNewRoom(new RoomCreateDto(TempRoomNameIdentifier)).ConfigureAwait(false);
+        }
     }
 
     private void DrawHostRoomHeader()

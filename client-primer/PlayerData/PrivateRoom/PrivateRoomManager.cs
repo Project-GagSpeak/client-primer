@@ -4,6 +4,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Comparer;
+using GagspeakAPI.Data.VibeServer;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.User;
@@ -41,7 +42,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     public void AddRoom(RoomInfoDto roomInfo)
     {
         // dont create if it already exists.
-        if(!_rooms.ContainsKey(roomInfo.RoomHost))
+        if(!_rooms.ContainsKey(roomInfo.NewRoomName))
         {
             // otherwise, create the room.
             _rooms[roomInfo.NewRoomName] = _roomFactory.Create(roomInfo);
@@ -58,7 +59,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     public void AddRoom(RoomInfoDto roomInfo, bool addToLastAddedRoom = true)
     {
         // dont create if it already exists.
-        if (!_rooms.ContainsKey(roomInfo.RoomHost))
+        if (!_rooms.ContainsKey(roomInfo.NewRoomName))
         {
             // otherwise, create the room.
             _rooms[roomInfo.NewRoomName] = _roomFactory.Create(roomInfo);
@@ -152,7 +153,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         if (_rooms.TryGetValue(dto.RoomName, out var privateRoom))
         {
             // if the room exists, remove the participant from the room. (because they were the ones to do it.
-            privateRoom.RemoveRoomParticipant(dto);
+            privateRoom.RemoveRoomParticipant(dto.User);
         }
         else
         {
@@ -175,7 +176,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     }
 
     // helper function to see if the user is an active participant in any other rooms.
-    public bool IsUserInAnyRoom(UserData user) => _rooms.Values.Any(room => room.IsUserInRoom(user));
+    public bool IsUserInAnyRoom(PrivateRoomUser user) => _rooms.Values.Any(room => room.IsUserInRoom(user));
 
     // marks a room as inactive
     public void MarkRoomInactive(string RoomName)
@@ -244,7 +245,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         if (!_rooms.TryGetValue(dto.RoomName, out var privateRoom)) throw new InvalidOperationException("Room being applied to is not your room!");
 
         // if the person applying is not the room host, throw invalid operation
-        if (privateRoom.RoomInfo?.RoomHost != dto.User.AliasOrUID) throw new InvalidOperationException("Only the room host can update devices!");
+        if (privateRoom.RoomInfo?.RoomHost.UserUID != dto.User.AliasOrUID) throw new InvalidOperationException("Only the room host can update devices!");
 
         // Apply Device update
         Logger.LogDebug("Applying Device Update from {user}", dto.User);

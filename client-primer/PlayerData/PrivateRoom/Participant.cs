@@ -1,5 +1,6 @@
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
+using GagspeakAPI.Data.VibeServer;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.User;
 
@@ -12,7 +13,7 @@ public class Participant
 {
     private readonly ILogger<Participant> _logger;
     private readonly GagspeakMediator _mediator;
-    public Participant(ILogger<Participant> logger, UserData user,
+    public Participant(ILogger<Participant> logger, PrivateRoomUser user,
         GagspeakMediator mediator)
     {
 
@@ -21,7 +22,7 @@ public class Participant
         ParicipantUser = user;
     }
 
-    public UserData ParicipantUser { get; set; }
+    public PrivateRoomUser ParicipantUser { get; set; }
     public List<UserCharaDeviceInfoMessageDto> ParticipantDevices { get; set; }
 
     // TODO: Rework method handles later.

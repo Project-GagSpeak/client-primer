@@ -1,14 +1,8 @@
 using GagSpeak.PlayerData.Factories;
-using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
-using GagSpeak.WebAPI;
-using GagspeakAPI.Data;
-using GagspeakAPI.Data.Comparer;
 using GagspeakAPI.Data.VibeServer;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Toybox;
-using GagspeakAPI.Dto.User;
-using Microsoft.VisualBasic.ApplicationServices;
 
 namespace GagSpeak.PlayerData.PrivateRooms;
 
@@ -17,7 +11,6 @@ namespace GagSpeak.PlayerData.PrivateRooms;
 /// </summary>
 public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
 {
-    private readonly ILogger<PrivateRoomManager> _logger;
     private readonly PrivateRoomFactory _roomFactory;
     private readonly ConcurrentDictionary<string, PrivateRoom> _rooms;
     private Lazy<List<PrivateRoom>> _privateRoomsInternal;
@@ -26,37 +19,74 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     public PrivateRoomManager(ILogger<PrivateRoomManager> logger, GagspeakMediator mediator,
         PrivateRoomFactory roomFactory) : base(logger, mediator)
     {
-        _logger = logger;
         _roomFactory = roomFactory;
         _rooms = new(StringComparer.Ordinal);
         _roomInvites = [];
 
         _privateRoomsInternal = DirectRoomsLazy();
+
+        Mediator.Subscribe<ToyboxConnectedMessage>(this, (msg) =>
+        {
+            ClientUserUID = msg.Connection.User.UID;
+            InitRoomsFromConnectionDto(msg.Connection);
+        });
+
+        Mediator.Subscribe<ToyboxDisconnectedMessage>(this, (msg) =>
+        {
+            ClientUserUID = string.Empty;
+        });
     }
 
-    public List<PrivateRoom> PrivateRooms => _privateRoomsInternal.Value;
+    // Don't wanna make fancy workaround to access apicontroller from here so setting duplicate userUID location.
+    public string ClientUserUID { get; private set; } = string.Empty;
+    public List<PrivateRoom> AllPrivateRooms => _privateRoomsInternal.Value;
+    public string ClientHostedRoomName => _rooms.Values.FirstOrDefault(room => room.HostParticipant.User.UserUID == ClientUserUID)?.RoomName ?? string.Empty;
     public PrivateRoom? LastAddedRoom { get; private set; }
     public RoomInviteDto? LastRoomInvite { get; private set; }
-    public bool ClientInAnyRoom { get; private set; } = false;
+    public bool ClientInAnyRoom => _rooms.Values.Any(room => room.IsUserInRoom(ClientUserUID));
+    public bool ClientHostingAnyRoom => _rooms.Values.Any(room => room.HostParticipant.User.UserUID == ClientUserUID);
+    // helper accessor to get the PrivateRoom we are a host of.
 
-    public void AddRoom(RoomInfoDto roomInfo)
+    public void InitRoomsFromConnectionDto(ToyboxConnectionDto dto)
     {
-        // dont create if it already exists.
-        if(!_rooms.ContainsKey(roomInfo.NewRoomName))
+        // if the hosted room is not already in the list of rooms, add it.
+        if (!_rooms.ContainsKey(dto.HostedRoom.NewRoomName) && !string.IsNullOrEmpty(dto.HostedRoom.NewRoomName))
         {
-            // otherwise, create the room.
-            _rooms[roomInfo.NewRoomName] = _roomFactory.Create(roomInfo);
+            _rooms[dto.HostedRoom.NewRoomName] = _roomFactory.Create(dto.HostedRoom);
+            Logger.LogDebug("Creating Hosted Room [{room}] from connection dto", dto.HostedRoom.NewRoomName);
         }
         else
         {
-            Logger.LogWarning("Room {room} already exists, skipping creation", roomInfo.RoomHost);
-            // TODO: maybe apply last stored room data or something?
+            Logger.LogDebug("The Hosted room [{room}] is already cached, skipping creation " +
+                "& Updating existing with details.", dto.HostedRoom.NewRoomName);
+
+            // update the room with the latest details.
+            _rooms[dto.HostedRoom.NewRoomName].UpdateRoomInfo(dto.HostedRoom);
         }
+
+        // for each additional room we are in within the list of connected rooms, add it.
+        foreach (var room in dto.ConnectedRooms.Where(r => r.NewRoomName != dto.HostedRoom.NewRoomName))
+        {
+            if (!_rooms.ContainsKey(room.NewRoomName))
+            {
+                _rooms[room.NewRoomName] = _roomFactory.Create(room);
+                Logger.LogDebug("Adding previously joined Room [{room}] from connection dto", room.NewRoomName);
+            }
+            else
+            {
+                Logger.LogDebug("The previously joined room [{room}] is already cached, skipping creation "+
+                    "& Updating existing with details.", room.NewRoomName);
+
+                // update the room with the latest details.
+                _rooms[room.NewRoomName].UpdateRoomInfo(room);
+            }
+        }
+
         RecreateLazy();
     }
 
-    // generic AddRoom method, called whenever we create a new room or join an existing one.
-    public void AddRoom(RoomInfoDto roomInfo, bool addToLastAddedRoom = true)
+
+    public void AddRoom(RoomInfoDto roomInfo)
     {
         // dont create if it already exists.
         if (!_rooms.ContainsKey(roomInfo.NewRoomName))
@@ -66,16 +96,33 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         }
         else
         {
-            Logger.LogWarning("Room {room} already exists, skipping creation", roomInfo.RoomHost);
+            Logger.LogWarning("Pending Room Addition [{room}] already cached, skipping creation", roomInfo.NewRoomName);
+            // TODO: maybe apply last stored room data or something?
+        }
+        RecreateLazy();
+    }
+
+    // generic AddRoom method, called whenever we create a new room or join an existing one.
+    public void AddRoom(RoomInfoDto roomInfo, bool addToLastAddedRoom = true)
+    {
+        // don't create if it already exists.
+        if (!_rooms.ContainsKey(roomInfo.NewRoomName))
+        {
+            // otherwise, create the room.
+            _rooms[roomInfo.NewRoomName] = _roomFactory.Create(roomInfo);
+        }
+        else
+        {
+            Logger.LogWarning("Pending Room Addition [{room}] already exists, skipping creation", roomInfo.NewRoomName);
             addToLastAddedRoom = false;
         }
 
-        if(addToLastAddedRoom)
+        if (addToLastAddedRoom)
             LastAddedRoom = _rooms[roomInfo.NewRoomName];
-        
-        Logger.LogWarning("Room {room} already exists, skipping creation", roomInfo.RoomHost);
+
+        Logger.LogWarning("Pending Room Addition [{room}] already exists, skipping creation", roomInfo.NewRoomName);
         // TODO: maybe apply last stored room data or something?
-        
+
         RecreateLazy();
     }
 
@@ -114,7 +161,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         if (_rooms.TryGetValue(roomInfo.NewRoomName, out var privateRoom))
         {
             // if the room already exists, repopulate its room participants with everyone and join it
-            Logger.LogInformation("Room {room} was already cached. Repopulating host and online users!", roomInfo.NewRoomName);
+            Logger.LogInformation("Pending Room Join [{room}] already cached. Repopulating host and online users!", roomInfo.NewRoomName);
             // mark the room as Active
         }
         else
@@ -132,7 +179,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         if (_rooms.TryGetValue(dto.RoomName, out var privateRoom))
         {
             // if the participant is already in the room, apply the last received data to the participant.
-            if (privateRoom.IsUserInRoom(dto.User))
+            if (privateRoom.IsUserInRoom(dto.User.UserUID))
             {
                 Logger.LogDebug("User {user} found in participants, marking as active.", dto.User);
                 return;
@@ -146,6 +193,9 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         }
     }
 
+
+
+
     // for when the participant themselves left the room. remove them from it.
     public void ParticipantLeftRoom(RoomParticipantDto dto)
     {
@@ -158,6 +208,20 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         else
         {
             Logger.LogWarning("Room {room} not found, unable to remove participant.", dto.RoomName);
+        }
+    }
+
+    public void ParticipantUpdated(RoomParticipantDto dto)
+    {
+        // locate the room we are updating the participant in
+        if (_rooms.TryGetValue(dto.RoomName, out var privateRoom))
+        {
+            // if the room exists, update the participant in the room.
+            privateRoom.ParticipantUpdate(dto.User);
+        }
+        else
+        {
+            Logger.LogWarning("Room {room} not found, unable to update participant.", dto.RoomName);
         }
     }
 
@@ -176,7 +240,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     }
 
     // helper function to see if the user is an active participant in any other rooms.
-    public bool IsUserInAnyRoom(PrivateRoomUser user) => _rooms.Values.Any(room => room.IsUserInRoom(user));
+    public bool IsUserInAnyRoom(PrivateRoomUser user) => _rooms.Values.Any(room => room.IsUserInRoom(user.UserUID));
 
     // marks a room as inactive
     public void MarkRoomInactive(string RoomName)
@@ -198,8 +262,6 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         }
         else
         {
-            // set ClientInAnyRoom to false.
-            ClientInAnyRoom = false;
             // remove the client from the list of participants in the room. (TODO)
 
         }
@@ -232,7 +294,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         if (!_rooms.TryGetValue(dto.RoomName, out var privateRoom)) throw new InvalidOperationException("Room being applied to is not your room!");
 
         // if the userdata is not an active participant in the room, throw invalid operation
-        if (!privateRoom.IsUserInRoom(dto.User)) throw new InvalidOperationException("User not found in room!");
+        if (!privateRoom.IsUserInRoom(dto.User.UserUID)) throw new InvalidOperationException("User not found in room!");
 
         // otherwise, update their device information.
         privateRoom.ReceiveParticipantDeviceData(dto);
@@ -245,7 +307,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         if (!_rooms.TryGetValue(dto.RoomName, out var privateRoom)) throw new InvalidOperationException("Room being applied to is not your room!");
 
         // if the person applying is not the room host, throw invalid operation
-        if (privateRoom.RoomInfo?.RoomHost.UserUID != dto.User.AliasOrUID) throw new InvalidOperationException("Only the room host can update devices!");
+        if (privateRoom.HostParticipant.User.UserUID != dto.User) throw new InvalidOperationException("Only the room host can update devices!");
 
         // Apply Device update
         Logger.LogDebug("Applying Device Update from {user}", dto.User);
@@ -289,6 +351,5 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     private void RecreateLazy()
     {
         _privateRoomsInternal = DirectRoomsLazy();
-        Mediator.Publish(new RefreshUiMessage());
     }
 }

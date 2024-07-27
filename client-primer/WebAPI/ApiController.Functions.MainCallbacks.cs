@@ -522,7 +522,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
 
     public void OnUserUpdateOtherAllPairPerms(Action<UserPairUpdateAllPermsDto> act)
     {
-        if (!_initialized) return;
+        if (_initialized) return;
         _gagspeakHub!.On(nameof(Client_UserUpdateOtherAllPairPerms), act);
     }
 
@@ -567,12 +567,12 @@ public partial class ApiController // Partial class for MainHub Callbacks
     }
     public void OnUserReceiveCharacterDataAlias(Action<OnlineUserCharaAliasDataDto> act)
     {
-        if (!_initialized) return;
+        if (_initialized) return;
         _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataAlias), act);
     }
     public void OnUserReceiveCharacterDataPattern(Action<OnlineUserCharaPatternDataDto> act)
     {
-        if (!_initialized) return;
+        if (_initialized) return;
         _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataPattern), act);
     }
 

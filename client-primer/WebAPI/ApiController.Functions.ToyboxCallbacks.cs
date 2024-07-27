@@ -48,7 +48,7 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     }
 
     /// <summary> For whenever you join a new room. </summary>
-    public Task Client_UserJoinedRoom(RoomInfoDto dto)
+    public Task Client_PrivateRoomJoined(RoomInfoDto dto)
     {
         Logger.LogDebug("Client_UserJoinedRoom: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.ClientJoinRoom(dto));
@@ -58,7 +58,7 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     /// <summary> 
     /// Adds another participant who has joined the room you are in.
     /// </summary>
-    public Task Client_OtherUserJoinedRoom(RoomParticipantDto dto)
+    public Task Client_PrivateRoomOtherUserJoined(RoomParticipantDto dto)
     {
         Logger.LogDebug("Client_OtherUserJoinedRoom: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.AddParticipantToRoom(dto));
@@ -68,35 +68,42 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     /// <summary>
     /// Removes a participant who has left the room you are in.
     /// </summary>
-    public Task Client_OtherUserLeftRoom(RoomParticipantDto dto)
+    public Task Client_PrivateRoomOtherUserLeft(RoomParticipantDto dto)
     {
         Logger.LogDebug("Client_OtherUserLeftRoom: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.ParticipantLeftRoom(dto));
         return Task.CompletedTask;
     }
 
-    public Task Client_UserReceiveRoomMessage(RoomMessageDto dto)
+    public Task Client_PrivateRoomUpdateUser(RoomParticipantDto dto)
+    {
+        Logger.LogDebug("Client_PrivateRoomUpdateUser: {dto}", dto);
+        ExecuteSafely(() => _privateRoomManager.ParticipantUpdated(dto));
+        return Task.CompletedTask;
+    }
+
+    public Task Client_PrivateRoomMessage(RoomMessageDto dto)
     {
         Logger.LogDebug("Client_UserReceiveRoomMessage: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.AddChatMessage(dto));
         return Task.CompletedTask;
     }
 
-    public Task Client_UserReceiveDeviceInfo(UserCharaDeviceInfoMessageDto dto)
+    public Task Client_PrivateRoomReceiveUserDevice(UserCharaDeviceInfoMessageDto dto)
     {
         Logger.LogDebug("Client_UserReceiveDeviceInfo: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.ReceiveParticipantDeviceData(dto));
         return Task.CompletedTask;
     }
 
-    public Task Client_UserDeviceUpdate(UpdateDeviceDto dto)
+    public Task Client_PrivateRoomDeviceUpdate(UpdateDeviceDto dto)
     {
         Logger.LogDebug("Client_UserDeviceUpdate: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.ApplyDeviceUpdate(dto));
         return Task.CompletedTask;
     }
 
-    public Task Client_ReceiveRoomClosedMessage(string roomName)
+    public Task Client_PrivateRoomClosed(string roomName)
     {
         Logger.LogDebug("Client_ReceiveRoomClosedMessage: {roomName}", roomName);
         ExecuteSafely(() => _privateRoomManager.RoomClosedByHost(roomName));
@@ -107,55 +114,61 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     /* --------------------------------- void methods from the API to call the hooks --------------------------------- */
     public void OnReceiveToyboxServerMessage(Action<MessageSeverity, string> act)
     {
-        if (_initialized) return;
+        if (_toyboxInitialized) return;
         _toyboxHub!.On(nameof(Client_ReceiveToyboxServerMessage), act);
     }
 
     public void OnUserReceiveRoomInvite(Action<RoomInviteDto> act)
     {
-       if (_initialized) return;
+       if (_toyboxInitialized) return;
         _toyboxHub!.On(nameof(Client_UserReceiveRoomInvite), act);
     }
 
-    public void OnUserJoinedRoom(Action<RoomInfoDto> act)
+    public void OnPrivateRoomJoined(Action<RoomInfoDto> act)
     {
-        if (_initialized) return;
-        _toyboxHub!.On(nameof(Client_UserJoinedRoom), act);
+        if (_toyboxInitialized) return;
+        _toyboxHub!.On(nameof(Client_PrivateRoomJoined), act);
     }
 
-    public void OnOtherUserJoinedRoom(Action<RoomParticipantDto> act)
+    public void OnPrivateRoomOtherUserJoined(Action<RoomParticipantDto> act)
     {
-        if (_initialized) return;
-        _toyboxHub!.On(nameof(Client_OtherUserJoinedRoom), act);
+        if (_toyboxInitialized) return;
+        _toyboxHub!.On(nameof(Client_PrivateRoomOtherUserJoined), act);
     }
 
-    public void OnOtherUserLeftRoom(Action<RoomParticipantDto> act)
+    public void OnPrivateRoomOtherUserLeft(Action<RoomParticipantDto> act)
     {
-        if (_initialized) return;
-        _toyboxHub!.On(nameof(Client_OtherUserLeftRoom), act);
+        if (_toyboxInitialized) return;
+        _toyboxHub!.On(nameof(Client_PrivateRoomOtherUserLeft), act);
     }
 
-    public void OnUserReceiveRoomMessage(Action<RoomMessageDto> act)
+    public void OnPrivateRoomUpdateUser(Action<RoomParticipantDto> act)
     {
-        if (_initialized) return;
-        _toyboxHub!.On(nameof(Client_UserReceiveRoomMessage), act);
+        if (_toyboxInitialized) return;
+        _toyboxHub!.On(nameof(Client_PrivateRoomUpdateUser), act);
     }
 
-    public void OnUserReceiveDeviceInfo(Action<UserCharaDeviceInfoMessageDto> act)
+    public void OnPrivateRoomMessage(Action<RoomMessageDto> act)
     {
-        if (_initialized) return;
-        _toyboxHub!.On(nameof(Client_UserReceiveDeviceInfo), act);
+        if (_toyboxInitialized) return;
+        _toyboxHub!.On(nameof(Client_PrivateRoomMessage), act);
     }
 
-    public void OnUserDeviceUpdate(Action<UpdateDeviceDto> act)
+    public void OnPrivateRoomReceiveUserDevice(Action<UserCharaDeviceInfoMessageDto> act)
     {
-        if (_initialized) return;
-        _toyboxHub!.On(nameof(Client_UserDeviceUpdate), act);
+        if (_toyboxInitialized) return;
+        _toyboxHub!.On(nameof(Client_PrivateRoomReceiveUserDevice), act);
     }
 
-    public void OnReceiveRoomClosedMessage(Action<string> act)
+    public void OnPrivateRoomDeviceUpdate(Action<UpdateDeviceDto> act)
     {
-        if (_initialized) return;
-        _toyboxHub!.On(nameof(Client_ReceiveRoomClosedMessage), act);
+        if (_toyboxInitialized) return;
+        _toyboxHub!.On(nameof(Client_PrivateRoomDeviceUpdate), act);
+    }
+
+    public void OnPrivateRoomClosed(Action<string> act)
+    {
+        if (_toyboxInitialized) return;
+        _toyboxHub!.On(nameof(Client_PrivateRoomClosed), act);
     }
 }

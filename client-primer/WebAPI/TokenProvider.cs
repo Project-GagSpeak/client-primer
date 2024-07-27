@@ -304,8 +304,8 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
             var jwt = handler.ReadJwtToken(token);
             if (jwt.ValidTo == DateTime.MinValue || jwt.ValidTo.Subtract(TimeSpan.FromMinutes(5)) > DateTime.UtcNow)
             {
-                // token was valid, so return it
-                _logger.LogTrace("GetOrUpdate: Returning token from cache");
+                // token was valid, so return it LOG NOTE: This is very spammy to the logs if left unchecked.
+                // _logger.LogTrace("GetOrUpdate: Returning token from cache");
                 return token;
             }
 

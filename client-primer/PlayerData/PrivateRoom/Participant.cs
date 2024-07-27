@@ -19,40 +19,41 @@ public class Participant
 
         _logger = logger;
         _mediator = mediator;
-        ParicipantUser = user;
+        User = user;
     }
 
-    public PrivateRoomUser ParicipantUser { get; set; }
-    public List<UserCharaDeviceInfoMessageDto> ParticipantDevices { get; set; }
+    public PrivateRoomUser User { get; set; }
+    public List<UserCharaDeviceInfoMessageDto> UserDevices { get; set; }
+
 
     // TODO: Rework method handles later.
     public void ApplyDeviceData(UserCharaDeviceInfoMessageDto dto)
     {
-        if (ParticipantDevices == null)
+        if (UserDevices == null)
         {
-            ParticipantDevices = new();
+            UserDevices = new();
         }
-        ParticipantDevices.Add(dto);
+        UserDevices.Add(dto);
     }
 
     public void RemoveDevice(UserCharaDeviceInfoMessageDto dto)
     {
-        if (ParticipantDevices == null)
+        if (UserDevices == null)
         {
             return;
         }
-        ParticipantDevices.Remove(dto);
+        UserDevices.Remove(dto);
     }
 
     public void ClearDevices()
     {
-        ParticipantDevices?.Clear();
+        UserDevices?.Clear();
     }
 
 
     public void MarkOffline()
     {
-        _logger.LogInformation("Marking participant {UserData} as offline", ParicipantUser);
+        _logger.LogInformation("Marking participant {UserData} as offline", User);
         ClearDevices();
     }
 }

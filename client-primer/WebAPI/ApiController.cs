@@ -305,6 +305,11 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                     await StopConnection(ServerState.VersionMisMatch, HubType.ToyboxHub).ConfigureAwait(false);
                     return;
                 }
+
+                // initialize the connectionDto information to the privateRoomManager.
+                Logger.LogInformation("Toybox Connection DTO ServerVersion: {ServerVersion}", _toyboxConnectionDto.ServerVersion);
+                Logger.LogInformation("Toybox Connection DTO HostedRoom: {host}", _toyboxConnectionDto.HostedRoom.NewRoomName);
+                Logger.LogInformation("Toybox Connection DTO ConnectedRooms: {rooms}", _toyboxConnectionDto.ConnectedRooms.Count);
             }
             catch (OperationCanceledException) { Logger.LogWarning("Toybox Connection attempt cancelled"); return; }
             catch (HttpRequestException ex)
@@ -739,13 +744,14 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // On the left is the function from the gagspeakhubclient.cs in the API, on the right is the function to be called in the API controller.
             OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
             OnUserReceiveRoomInvite(dto => _ = Client_UserReceiveRoomInvite(dto));
-            OnUserJoinedRoom(dto => _ = Client_UserJoinedRoom(dto));
-            OnOtherUserJoinedRoom(dto => _ = Client_OtherUserJoinedRoom(dto));
-            OnOtherUserLeftRoom(dto => _ = Client_OtherUserLeftRoom(dto));
-            OnUserReceiveRoomMessage(dto => _ = Client_UserReceiveRoomMessage(dto));
-            OnUserReceiveDeviceInfo(dto => _ = Client_UserReceiveDeviceInfo(dto));
-            OnUserDeviceUpdate(dto => _ = Client_UserDeviceUpdate(dto));
-            OnReceiveRoomClosedMessage(dto => _ = Client_ReceiveRoomClosedMessage(dto));
+            OnPrivateRoomJoined(dto => _ = Client_PrivateRoomJoined(dto));
+            OnPrivateRoomOtherUserJoined(dto => _ = Client_PrivateRoomOtherUserJoined(dto));
+            OnPrivateRoomOtherUserLeft(dto => _ = Client_PrivateRoomOtherUserLeft(dto));
+            OnPrivateRoomUpdateUser( dto => _ = Client_PrivateRoomUpdateUser(dto));
+            OnPrivateRoomMessage(dto => _ = Client_PrivateRoomMessage(dto));
+            OnPrivateRoomReceiveUserDevice(dto => _ = Client_PrivateRoomReceiveUserDevice(dto));
+            OnPrivateRoomDeviceUpdate(dto => _ = Client_PrivateRoomDeviceUpdate(dto));
+            OnPrivateRoomClosed(dto => _ = Client_PrivateRoomClosed(dto));
 
             // create a new health check token
             _toyboxHealthCTS?.Cancel();

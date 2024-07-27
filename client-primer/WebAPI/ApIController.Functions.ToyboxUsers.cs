@@ -16,63 +16,81 @@ public partial class ApiController // Partial class for Toybox User Functions.
     /// Take ownership of the PrivateRoomManager by hosting your own room in it. 
     /// Send the new room creation to server.
     /// </summary>
-    public async Task UserCreateNewRoom(RoomCreateDto userDto)
+    public async Task<bool> PrivateRoomCreate(RoomCreateDto userDto)
     {
-        if (!IsToyboxConnected) return;
-        await _toyboxHub!.SendAsync(nameof(UserCreateNewRoom), userDto).ConfigureAwait(false);
+        if (!IsToyboxConnected) return false;
+
+        return await _toyboxHub!.InvokeAsync<bool>(nameof(PrivateRoomCreate), userDto).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Send a room invite to another user.
     /// </summary>
-    public async Task UserRoomInvite(RoomInviteDto dto)
+    public async Task<bool> PrivateRoomInviteUser(RoomInviteDto dto)
     {
-        if (!IsToyboxConnected) return;
-        await _toyboxHub!.SendAsync(nameof(UserRoomInvite), dto).ConfigureAwait(false);
+        if (!IsToyboxConnected) return false;
+        return await _toyboxHub!.InvokeAsync<bool>(nameof(PrivateRoomInviteUser), dto).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Join a room by name.
     /// </summary>
-    public async Task UserJoinRoom(RoomParticipantDto roomName)
+    public async Task PrivateRoomJoin(RoomParticipantDto roomName)
     {
         if (!IsToyboxConnected) return;
-        await _toyboxHub!.SendAsync(nameof(UserJoinRoom), roomName).ConfigureAwait(false);
+        await _toyboxHub!.SendAsync(nameof(PrivateRoomJoin), roomName).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Send a message to the room.
     /// </summary>
-    public async Task UserSendMessageToRoom(RoomMessageDto dto)
+    public async Task PrivateRoomSendMessage(RoomMessageDto dto)
     {
         if (!IsToyboxConnected) return;
-        await _toyboxHub!.SendAsync(nameof(UserSendMessageToRoom), dto).ConfigureAwait(false);
+        await _toyboxHub!.SendAsync(nameof(PrivateRoomSendMessage), dto).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Push the information about a device to another user in the connected private room.
-    public async Task UserPushDeviceInfo(UserCharaDeviceInfoMessageDto dto)
+    public async Task PrivateRoomPushDevice(UserCharaDeviceInfoMessageDto dto)
     {
         if (!IsToyboxConnected) return;
-        await _toyboxHub!.SendAsync(nameof(UserPushDeviceInfo), dto).ConfigureAwait(false);
+        await _toyboxHub!.SendAsync(nameof(PrivateRoomPushDevice), dto).ConfigureAwait(false);
     }
 
-    public async Task UserUpdateDevice(UpdateDeviceDto dto)
+    public async Task PrivateRoomAllowVibes(string roomName)
     {
         if (!IsToyboxConnected) return;
-        await _toyboxHub!.SendAsync(nameof(UserUpdateDevice), dto).ConfigureAwait(false);
+        await _toyboxHub!.SendAsync(nameof(PrivateRoomAllowVibes), roomName).ConfigureAwait(false);
     }
 
-    public async Task UserUpdateGroupDevices(UpdateDeviceDto dto)
+    public async Task PrivateRoomDenyVibes(string roomName)
     {
         if (!IsToyboxConnected) return;
-        await _toyboxHub!.SendAsync(nameof(UserUpdateGroupDevices), dto).ConfigureAwait(false);
+        await _toyboxHub!.SendAsync(nameof(PrivateRoomDenyVibes), roomName).ConfigureAwait(false);
     }
 
-    public async Task UserLeaveRoom()
+    public async Task PrivateRoomUpdateUserDevice(UpdateDeviceDto dto)
     {
         if (!IsToyboxConnected) return;
-        await _toyboxHub!.SendAsync(nameof(UserLeaveRoom)).ConfigureAwait(false);
+        await _toyboxHub!.SendAsync(nameof(PrivateRoomUpdateUserDevice), dto).ConfigureAwait(false);
+    }
+
+    public async Task PrivateRoomUpdateAllUserDevices(UpdateDeviceDto dto)
+    {
+        if (!IsToyboxConnected) return;
+        await _toyboxHub!.SendAsync(nameof(PrivateRoomUpdateAllUserDevices), dto).ConfigureAwait(false);
+    }
+
+    public async Task PrivateRoomLeave(RoomParticipantDto dto)
+    {
+        if (!IsToyboxConnected) return;
+        await _toyboxHub!.SendAsync(nameof(PrivateRoomLeave), dto).ConfigureAwait(false);
+    }
+    public async Task PrivateRoomRemove(string roomName)
+    {
+        if (!IsToyboxConnected) return;
+        await _toyboxHub!.SendAsync(nameof(PrivateRoomRemove), roomName).ConfigureAwait(false);
     }
 }
 

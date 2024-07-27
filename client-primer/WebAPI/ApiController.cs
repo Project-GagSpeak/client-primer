@@ -747,6 +747,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             OnPrivateRoomJoined(dto => _ = Client_PrivateRoomJoined(dto));
             OnPrivateRoomOtherUserJoined(dto => _ = Client_PrivateRoomOtherUserJoined(dto));
             OnPrivateRoomOtherUserLeft(dto => _ = Client_PrivateRoomOtherUserLeft(dto));
+            OnPrivateRoomRemovedUser(dto => _ = Client_PrivateRoomRemovedUser(dto));
             OnPrivateRoomUpdateUser( dto => _ = Client_PrivateRoomUpdateUser(dto));
             OnPrivateRoomMessage(dto => _ = Client_PrivateRoomMessage(dto));
             OnPrivateRoomReceiveUserDevice(dto => _ = Client_PrivateRoomReceiveUserDevice(dto));

@@ -60,6 +60,34 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             DrawCreateHostRoomHeader();
             ImGui.Separator();
             DrawPrivateRoomMenu();
+
+
+            // draw out all details about the current hosted room.
+            if (_roomManager.ClientHostingAnyRoom)
+            {
+                ImGui.Text("Hosted Room Details:");
+                ImGui.Text("Room Name: " + _roomManager.ClientHostedRoomName);
+                // draw out the participants
+                var privateRoom = _roomManager.AllPrivateRooms.First(r => r.RoomName == _roomManager.ClientHostedRoomName);
+                // draw out details about this room.
+                ImGui.Text("Host UID: " + privateRoom.HostParticipant.User.UserUID);
+                ImGui.Text("Host Alias: " + privateRoom.HostParticipant.User.ChatAlias);
+                ImGui.Text("InRoom: " + privateRoom.HostParticipant.User.ActiveInRoom);
+                ImGui.Text("Allow Vibes: " + privateRoom.HostParticipant.User.VibeAccess);
+                // draw out the participants
+                ImGui.Indent();
+                foreach (var participant in privateRoom.Participants)
+                {
+                    ImGui.Text("User UID: " + participant.User.UserUID);
+                    ImGui.Text("User Alias: " + participant.User.ChatAlias);
+                    ImGui.Text("InRoom: " + participant.User.ActiveInRoom);
+                    ImGui.Text("Allow Vibes: " + participant.User.VibeAccess);
+                    ImGui.Separator();
+                }
+                ImGui.Unindent();
+
+            }
+
         }
     }
 
@@ -419,31 +447,5 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
         // draw out the vertical slider.
         ImGui.Separator();
-
-        // draw out all details about the current hosted room.
-        if(_roomManager.ClientHostingAnyRoom)
-        {
-            ImGui.Text("Hosted Room Details:");
-            ImGui.Text("Room Name: " + _roomManager.ClientHostedRoomName);
-            // draw out the participants
-            var privateRoom = _roomManager.AllPrivateRooms.First(r => r.RoomName == _roomManager.ClientHostedRoomName);
-            // draw out details about this room.
-            ImGui.Text("Host UID: " + privateRoom.HostParticipant.User.UserUID);
-            ImGui.Text("Host Alias: " + privateRoom.HostParticipant.User.ChatAlias);
-            ImGui.Text("InRoom: " + privateRoom.HostParticipant.User.ActiveInRoom);
-            ImGui.Text("Allow Vibes: " + privateRoom.HostParticipant.User.vibeAccess);
-            // draw out the participants
-            ImGui.Indent();
-            foreach (var participant in privateRoom.Participants)
-            {
-                ImGui.Text("User UID: " + participant.User.UserUID);
-                ImGui.Text("User Alias: " + participant.User.ChatAlias);
-                ImGui.Text("InRoom: " + participant.User.ActiveInRoom);
-                ImGui.Text("Allow Vibes: " + participant.User.vibeAccess);
-                ImGui.Separator();
-            }
-            ImGui.Unindent();
-
-        }
     }
 }

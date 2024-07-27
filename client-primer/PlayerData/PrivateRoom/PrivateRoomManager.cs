@@ -145,6 +145,8 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         _roomInvites.Add(latestRoomInvite);
         // set the last room invite to the latest invite.
         LastRoomInvite = latestRoomInvite;
+
+        RecreateLazy();
     }
 
     // for whenever we either create a new room, or join an existing one.
@@ -170,6 +172,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
             AddRoom(roomInfo);
             Logger.LogInformation("Creating new {room}", roomInfo.NewRoomName);
         }
+        RecreateLazy();
     }
 
     // for adding a participant to a room, or marking them as active if they are already in the room.
@@ -191,13 +194,30 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         {
             Logger.LogWarning("Room {room} not found, unable to add participant.", dto.RoomName);
         }
+        RecreateLazy();
     }
 
 
 
 
-    // for when the participant themselves left the room. remove them from it.
+    // for when the participant simply leaves room, but doesn't remove themselves from it.
     public void ParticipantLeftRoom(RoomParticipantDto dto)
+    {
+        // locate the room the participant should be removed from if it exists, and remove them.
+        if (_rooms.TryGetValue(dto.RoomName, out var privateRoom))
+        {
+            // if the room exists, remove the participant from the room. (because they were the ones to do it.
+            privateRoom.MarkInactive(dto.User);
+        }
+        else
+        {
+            Logger.LogWarning("Room {room} not found, unable to remove participant.", dto.RoomName);
+        }
+        RecreateLazy();
+    }
+
+    // for full removal. (kicked, left, etc.)
+    public void ParticipantRemovedFromRoom(RoomParticipantDto dto)
     {
         // locate the room the participant should be removed from if it exists, and remove them.
         if (_rooms.TryGetValue(dto.RoomName, out var privateRoom))
@@ -209,6 +229,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         {
             Logger.LogWarning("Room {room} not found, unable to remove participant.", dto.RoomName);
         }
+        RecreateLazy();
     }
 
     public void ParticipantUpdated(RoomParticipantDto dto)
@@ -223,6 +244,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         {
             Logger.LogWarning("Room {room} not found, unable to update participant.", dto.RoomName);
         }
+        RecreateLazy();
     }
 
     public void AddChatMessage(RoomMessageDto message)
@@ -237,35 +259,11 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         {
             Logger.LogWarning("Room {room} not found, unable to add message.", message.RoomName);
         }
+        RecreateLazy();
     }
 
     // helper function to see if the user is an active participant in any other rooms.
     public bool IsUserInAnyRoom(PrivateRoomUser user) => _rooms.Values.Any(room => room.IsUserInRoom(user.UserUID));
-
-    // marks a room as inactive
-    public void MarkRoomInactive(string RoomName)
-    {
-        if (!_rooms.ContainsKey(RoomName)) throw new InvalidOperationException("No Room found matching" + RoomName);
-        if (_rooms.TryGetValue(RoomName, out var privateRoom))
-        {
-            privateRoom.MarkInactive();
-        }
-
-        RecreateLazy();
-    }
-
-    public void ClientLeaveRoom(string roomName, bool ClientLeavingRoom = true)
-    {
-        if (!_rooms.ContainsKey(roomName))
-        {
-            Logger.LogWarning("Room {room} not found, unable to leave.", roomName);
-        }
-        else
-        {
-            // remove the client from the list of participants in the room. (TODO)
-
-        }
-    }
 
 
     // when the client leaves a room, should push a UserLeaveRoom message to the server.
@@ -298,6 +296,8 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
 
         // otherwise, update their device information.
         privateRoom.ReceiveParticipantDeviceData(dto);
+
+        RecreateLazy();
     }
 
     /// <summary> Applies a device update to your active devices. </summary>
@@ -337,7 +337,8 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         // mark all rooms as inactive
         Parallel.ForEach(_rooms, item =>
         {
-            item.Value.MarkInactive();
+            // im doing this wrong im sure.
+            item.Value.ChatHistory.Clear();
         });
 
         RecreateLazy();

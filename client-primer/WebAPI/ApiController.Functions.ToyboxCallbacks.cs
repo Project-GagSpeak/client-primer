@@ -50,7 +50,7 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     /// <summary> For whenever you join a new room. </summary>
     public Task Client_PrivateRoomJoined(RoomInfoDto dto)
     {
-        Logger.LogDebug("Client_UserJoinedRoom: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomJoined: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.ClientJoinRoom(dto));
         return Task.CompletedTask;
     }
@@ -60,7 +60,7 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     /// </summary>
     public Task Client_PrivateRoomOtherUserJoined(RoomParticipantDto dto)
     {
-        Logger.LogDebug("Client_OtherUserJoinedRoom: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomOtherUserJoined: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.AddParticipantToRoom(dto));
         return Task.CompletedTask;
     }
@@ -70,8 +70,15 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     /// </summary>
     public Task Client_PrivateRoomOtherUserLeft(RoomParticipantDto dto)
     {
-        Logger.LogDebug("Client_OtherUserLeftRoom: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomOtherUserLeft: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.ParticipantLeftRoom(dto));
+        return Task.CompletedTask;
+    }
+
+    public Task Client_PrivateRoomRemovedUser(RoomParticipantDto dto)
+    {
+        Logger.LogDebug("Client_PrivateRoomRemovedUser: {dto}", dto);
+        ExecuteSafely(() => _privateRoomManager.ParticipantRemovedFromRoom(dto));
         return Task.CompletedTask;
     }
 
@@ -84,28 +91,28 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
 
     public Task Client_PrivateRoomMessage(RoomMessageDto dto)
     {
-        Logger.LogDebug("Client_UserReceiveRoomMessage: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomMessage: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.AddChatMessage(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_PrivateRoomReceiveUserDevice(UserCharaDeviceInfoMessageDto dto)
     {
-        Logger.LogDebug("Client_UserReceiveDeviceInfo: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomReceiveUserDevice: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.ReceiveParticipantDeviceData(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_PrivateRoomDeviceUpdate(UpdateDeviceDto dto)
     {
-        Logger.LogDebug("Client_UserDeviceUpdate: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomDeviceUpdate: {dto}", dto);
         ExecuteSafely(() => _privateRoomManager.ApplyDeviceUpdate(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_PrivateRoomClosed(string roomName)
     {
-        Logger.LogDebug("Client_ReceiveRoomClosedMessage: {roomName}", roomName);
+        Logger.LogDebug("Client_PrivateRoomClosed: {roomName}", roomName);
         ExecuteSafely(() => _privateRoomManager.RoomClosedByHost(roomName));
         return Task.CompletedTask;
     }
@@ -140,6 +147,12 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     {
         if (_toyboxInitialized) return;
         _toyboxHub!.On(nameof(Client_PrivateRoomOtherUserLeft), act);
+    }
+
+    public void OnPrivateRoomRemovedUser(Action<RoomParticipantDto> act)
+    {
+        if (_toyboxInitialized) return;
+        _toyboxHub!.On(nameof(Client_PrivateRoomRemovedUser), act);
     }
 
     public void OnPrivateRoomUpdateUser(Action<RoomParticipantDto> act)

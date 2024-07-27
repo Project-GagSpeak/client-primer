@@ -43,10 +43,12 @@ public class PrivateRoom
 
     /// <summary>
     /// contains all information related to the room. Heaviest to call Data-wise.
+    /// 
+    /// NEVER TRUST THIS ROOMS PARTICIPANTS LIST, ALWAYS USE THE PARTICIPANTS PROPERTY. (real list updates lots)
     /// </summary>
-    public RoomInfoDto LastReceivedRoomInfo;
+    public RoomInfoDto? LastReceivedRoomInfo { get; private set; }
 
-    public Participant HostParticipant => _participants[LastReceivedRoomInfo.RoomHost.UserUID];
+    public Participant HostParticipant => Participants.First(p => p.User.UserUID == LastReceivedRoomInfo?.RoomHost.UserUID);
 
     public List<RoomMessageDto> ChatHistory { get; private set; }
     public string RoomName => LastReceivedRoomInfo?.NewRoomName ?? "No Room Name";
@@ -71,6 +73,22 @@ public class PrivateRoom
         }
     }
 
+    // marks the room as inactive, clearing any cached data while still
+    // keeping reference data as to not dispose it entirely.
+    public void MarkInactive(PrivateRoomUser userToMark)
+    {
+        if (_participants.TryGetValue(userToMark.UserUID, out var participant))
+        {
+            // mark them as offline, after modifying their data.
+            // (maybe include the below two lines inside the participant class?)
+            _participants[userToMark.UserUID].User.ActiveInRoom = false;
+            _participants[participant.User.UserUID].User.VibeAccess = userToMark.VibeAccess;
+            participant.MarkOffline();
+        }
+        RecreateLazy();
+    }
+
+    // completely removes the user from the room's participant list. and RoomInfo.
     public void RemoveRoomParticipant(PrivateRoomUser dto)
     {
         if (_participants.TryGetValue(dto.UserUID, out var participant))
@@ -80,6 +98,17 @@ public class PrivateRoom
             // try and remove the participant from the room
             _participants.TryRemove(dto.UserUID, out _);
         }
+        RecreateLazy();
+    }
+
+    public void ParticipantUpdate(PrivateRoomUser dto)
+    {
+        // if the user in the Dto is not in our private room's participant list, throw an exception.
+        if (!_participants.TryGetValue(dto.UserUID, out var participant)) throw new InvalidOperationException("No user found for " + dto.ChatAlias);
+
+        // apply the update to the participant
+        _participants[dto.UserUID].User = dto;
+
         RecreateLazy();
     }
 
@@ -104,17 +133,6 @@ public class PrivateRoom
                 storedParticipant.User = participant;
             }
         }
-
-        RecreateLazy();
-    }
-
-    public void ParticipantUpdate(PrivateRoomUser dto)
-    {
-        // if the user in the Dto is not in our private room's participant list, throw an exception.
-        if (!_participants.TryGetValue(dto.UserUID, out var participant)) throw new InvalidOperationException("No user found for " + dto.ChatAlias);
-
-        // apply the update to the participant
-        _participants[dto.UserUID].User = dto;
 
         RecreateLazy();
     }
@@ -154,14 +172,6 @@ public class PrivateRoom
         // If reached here, apply the update to your connected devices.
         _logger.LogDebug("Applying Device Update from {user}", dto.User);
         // TODO: Inject this logic to update the active devices using the device handler.
-    }
-
-    // marks the room as inactive, clearing any cached data while still
-    // keeping reference data as to not dispose it entirely.
-    public void MarkInactive()
-    {
-        // clear the chat history
-        ChatHistory.Clear();
     }
 
     // helper function to see if a particular userData is a particpant in the room

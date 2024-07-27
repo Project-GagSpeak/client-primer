@@ -43,7 +43,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     public string ClientHostedRoomName => _rooms.Values.FirstOrDefault(room => room.HostParticipant.User.UserUID == ClientUserUID)?.RoomName ?? string.Empty;
     public PrivateRoom? LastAddedRoom { get; private set; }
     public RoomInviteDto? LastRoomInvite { get; private set; }
-    public bool ClientInAnyRoom => _rooms.Values.Any(room => room.IsUserInRoom(ClientUserUID));
+    public bool ClientInAnyRoom => _rooms.Values.Any(room => room.IsUserActiveInRoom(ClientUserUID));
     public bool ClientHostingAnyRoom => _rooms.Values.Any(room => room.HostParticipant.User.UserUID == ClientUserUID);
     // helper accessor to get the PrivateRoom we are a host of.
 
@@ -164,7 +164,8 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         {
             // if the room already exists, repopulate its room participants with everyone and join it
             Logger.LogInformation("Pending Room Join [{room}] already cached. Repopulating host and online users!", roomInfo.NewRoomName);
-            // mark the room as Active
+            // mark the room as Active, but update the users so we can keep the chat and connected devices from the last session.
+            _rooms[roomInfo.NewRoomName].UpdateRoomInfo(roomInfo);
         }
         else
         {
@@ -184,7 +185,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
             // if the participant is already in the room, apply the last received data to the participant.
             if (privateRoom.IsUserInRoom(dto.User.UserUID))
             {
-                Logger.LogDebug("User {user} found in participants, marking as active.", dto.User);
+                Logger.LogDebug("User {user} found in participants, marking as active (unfinished).", dto.User);
                 return;
             }
             // user was not already stored, but room did exist, so add them to the room.
@@ -263,7 +264,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     }
 
     // helper function to see if the user is an active participant in any other rooms.
-    public bool IsUserInAnyRoom(PrivateRoomUser user) => _rooms.Values.Any(room => room.IsUserInRoom(user.UserUID));
+    public bool IsUserInAnyRoom(PrivateRoomUser user) => _rooms.Values.Any(room => room.IsUserActiveInRoom(user.UserUID));
 
 
     // when the client leaves a room, should push a UserLeaveRoom message to the server.
@@ -338,7 +339,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         Parallel.ForEach(_rooms, item =>
         {
             // im doing this wrong im sure.
-            item.Value.ChatHistory.Clear();
+            /*item.Value.ChatHistory.Clear();*/
         });
 
         RecreateLazy();

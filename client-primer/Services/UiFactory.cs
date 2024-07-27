@@ -11,6 +11,7 @@ using GagSpeak.UI.Profile;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Toybox.Services;
+using GagSpeak.PlayerData.PrivateRooms;
 
 namespace GagSpeak.Services;
 
@@ -45,10 +46,10 @@ public class UiFactory
         _gagspeakProfileManager = profileManager;
     }
 
-    public RemoteController CreateControllerRemote(string vibeRoomGroupName)
+    public RemoteController CreateControllerRemote(PrivateRoom privateRoom)
     {
         return new RemoteController(_loggerFactory.CreateLogger<RemoteController>(), _gagspeakMediator,
-            _uiSharedService, _remoteService, _deviceHandler, vibeRoomGroupName);
+            _uiSharedService, _remoteService, _deviceHandler, privateRoom);
     }
 
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)

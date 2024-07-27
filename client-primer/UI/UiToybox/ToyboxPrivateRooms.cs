@@ -65,6 +65,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             // draw out all details about the current hosted room.
             if (_roomManager.ClientHostingAnyRoom)
             {
+                ImGui.Text("Am I in any rooms?: " + _roomManager.ClientInAnyRoom);
                 ImGui.Text("Hosted Room Details:");
                 ImGui.Text("Room Name: " + _roomManager.ClientHostedRoomName);
                 // draw out the participants
@@ -115,7 +116,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             // Draw the icon button. If room is created, this will turn into a trash bin for deletion.
             if (_roomManager.ClientHostingAnyRoom)
             {
-                using (var disabled = ImRaii.Disabled(UiSharedService.ShiftPressed()))
+                using (var disabled = ImRaii.Disabled(!UiSharedService.ShiftPressed()))
                 {
                     if (_uiShared.IconButton(FontAwesomeIcon.Trash))
                     {
@@ -285,7 +286,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
         // draw startposition in Y
         var startYpos = ImGui.GetCursorPosY();
-        var joinedState = _uiShared.GetIconButtonSize(privateRoomRef.IsParticipantInRoom(_roomManager.ClientUserUID)
+        var joinedState = _uiShared.GetIconButtonSize(privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID)
             ? FontAwesomeIcon.DoorOpen : FontAwesomeIcon.DoorClosed);
         var roomTypeTextSize = ImGui.CalcTextSize(roomType);
         var roomNameTextSize = ImGui.CalcTextSize(roomName);
@@ -326,13 +327,13 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (ImGui.GetFrameHeight() / 2));
             // draw out the icon button
-            if (_uiShared.IconButton(privateRoomRef.IsParticipantInRoom(_roomManager.ClientUserUID) 
+            if (_uiShared.IconButton(privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID) 
                 ? FontAwesomeIcon.DoorOpen : FontAwesomeIcon.DoorClosed))
             {
                 try
                 {
                     // set the enabled state of the alarm based on its current state so that we toggle it
-                    if (privateRoomRef.IsParticipantInRoom(_roomManager.ClientUserUID))
+                    if (privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID))
                     {
                         // leave the room
                         _apiController.PrivateRoomLeave(new RoomParticipantDto
@@ -353,7 +354,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                     _errorTime = DateTime.Now;
                 }
             }
-            UiSharedService.AttachToolTip(privateRoomRef.IsParticipantInRoom(_roomManager.ClientUserUID)
+            UiSharedService.AttachToolTip(privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID)
                 ? "Leave Room" : "Join Room");
 
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetStyle().ItemSpacing.Y);
@@ -370,8 +371,17 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         // action on clicky.
         if (ImGui.IsItemClicked())
         {
-            // toggle the additional options display.
-            Logger.LogInformation("Room clicked");
+            // if we are currently joined in the private room, we can open the instanced remote.
+            if (privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID))
+            {
+                // please for the love of god work....
+                Mediator.Publish(new OpenPrivateRoomRemote(privateRoomRef));
+            }
+            else
+            {
+                // toggle the additional options display.
+                Logger.LogInformation("You must be joined into the room to open the interface.");
+            }
         }
         ImGui.Separator();
     }

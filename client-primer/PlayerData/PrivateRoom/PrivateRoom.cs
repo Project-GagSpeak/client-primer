@@ -116,22 +116,37 @@ public class PrivateRoom
     {
         // update the last received room info
         LastReceivedRoomInfo = dto;
-
-        // update the participants in the room
-        foreach (var participant in dto.ConnectedUsers)
+        _logger.LogTrace("Updating Room Info for {room}", dto);
+        try
         {
-            // if the participant is not equal to the stored participant with the same UID, update it.
-            if (!_participants.TryGetValue(participant.UserUID, out var storedParticipant) 
-             || !storedParticipant.User.Equals(participant))
+            // update the host
+            _participants[dto.RoomHost.UserUID].User.ChatAlias = dto.RoomHost.ChatAlias;
+            _participants[dto.RoomHost.UserUID].User.ActiveInRoom = dto.RoomHost.ActiveInRoom;
+            _participants[dto.RoomHost.UserUID].User.VibeAccess = dto.RoomHost.VibeAccess;
+
+            // update the participants in the room besides the host.
+            foreach (var participant in dto.ConnectedUsers)
             {
-                // this means the participant is not in the room, so add them.
-                AddParticipantToRoom(participant);
+                // if the participant is not equal to the stored participant with the same UID, update it.
+                if (!_participants.TryGetValue(participant.UserUID, out var storedParticipant))
+                {
+                    _logger.LogTrace("User {user} not found in participants, adding them to the room", participant);
+                    // this means the participant is not in the room, so add them.
+                    AddParticipantToRoom(participant);
+                }
+                else
+                {
+                    _logger.LogTrace("User {user} found in participants, updating their data", participant);
+                    // the participant is already in the room, so update their data with the latest
+                    storedParticipant.User.ChatAlias = participant.ChatAlias;
+                    storedParticipant.User.ActiveInRoom = participant.ActiveInRoom;
+                    storedParticipant.User.VibeAccess = participant.VibeAccess;
+                }
             }
-            else
-            {
-                // the participant is already in the room, so update their data with the latest
-                storedParticipant.User = participant;
-            }
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error updating room info for {room}", dto);
         }
 
         RecreateLazy();
@@ -147,7 +162,7 @@ public class PrivateRoom
     public int GetActiveParticipants() => _participants.Count(p => p.Value.User.ActiveInRoom);
 
     // see if a particular Participant at the given UserUID key exists in the room with InRoom as true.
-    public bool IsParticipantInRoom(string userUID) => _participants.TryGetValue(userUID, out var participant) && participant.User.ActiveInRoom;
+    public bool IsParticipantActiveInRoom(string userUID) => _participants.TryGetValue(userUID, out var participant) && participant.User.ActiveInRoom;
 
     public void AddChatMessage(RoomMessageDto message) => ChatHistory.Add(message);
 
@@ -174,8 +189,12 @@ public class PrivateRoom
         // TODO: Inject this logic to update the active devices using the device handler.
     }
 
-    // helper function to see if a particular userData is a particpant in the room
+    // helper function to see if a particular userData is a participant in the room
     public bool IsUserInRoom(string userUID) => _participants.ContainsKey(userUID);
+
+    public bool IsUserActiveInRoom(string userUID) => 
+        _participants.TryGetValue(userUID, out var participant) &&  participant.User.ActiveInRoom;
+
 
     protected void Dispose(bool disposing)
     {
@@ -201,6 +220,6 @@ public class PrivateRoom
     private void RecreateLazy()
     {
         _directParticipantsInternal = DirectParticipantsLazy();
-        _mediator.Publish(new RefreshUiMessage());
+/*        _mediator.Publish(new RefreshUiMessage());*/
     }
 }

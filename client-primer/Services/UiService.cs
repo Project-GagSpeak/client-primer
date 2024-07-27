@@ -5,6 +5,7 @@ using GagSpeak.UI;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.UI.MainWindow;
 using Dalamud.Interface.ImGuiFileDialog;
+using GagSpeak.UI.UiRemote;
 
 namespace GagSpeak.Services;
 
@@ -67,6 +68,29 @@ public sealed class UiService : DisposableMediatorSubscriberBase
                 _createdWindows.Add(window);
                 _windowSystem.AddWindow(window);
             }*/
+        });
+
+        Mediator.Subscribe<OpenPrivateRoomRemote>(this, (msg) =>
+        {
+            // Check if the window already exists and matches the room name
+            var existingWindow = _createdWindows.FirstOrDefault(p => p is RemoteController remoteUi
+                && string.Equals(remoteUi.PrivateRoomData.RoomName, msg.PrivateRoom.RoomName, StringComparison.Ordinal));
+
+            if (existingWindow == null)
+            {
+                _logger.LogDebug("Creating remote controller for room {room}", msg.PrivateRoom.RoomName);
+                // Create a new remote instance for the private room
+                var window = _uiFactory.CreateControllerRemote(msg.PrivateRoom);
+                // Add it to the created windows
+                _createdWindows.Add(window);
+                // Add it to the window system
+                _windowSystem.AddWindow(window);
+            }
+            else
+            {
+                _logger.LogTrace("Toggling remote controller for room {room}", msg.PrivateRoom.RoomName);
+                existingWindow.Toggle();
+            }
         });
     }
 

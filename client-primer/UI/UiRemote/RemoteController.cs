@@ -2,6 +2,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Handlers;
+using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Debouncer;
@@ -23,19 +24,23 @@ public class RemoteController : RemoteBase
     private readonly UiSharedService _uiShared;
     private readonly DeviceHandler _intifaceHandler; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
-    private readonly string _windowName;
 
     public RemoteController(ILogger<RemoteController> logger,
         GagspeakMediator mediator, UiSharedService uiShared,
         ToyboxRemoteService remoteService, DeviceHandler deviceHandler,
-        string windowName) : base(logger, mediator, uiShared, remoteService, deviceHandler, windowName)
+        PrivateRoom privateRoom) : base(logger, mediator, uiShared, remoteService, deviceHandler, privateRoom.RoomName)
     {
         // grab the shared services
         _uiShared = uiShared;
         _intifaceHandler = deviceHandler;
         _remoteService = remoteService;
-        _windowName = windowName;
+        // initialize our private room data with the private room passed in on startup so we can properly interact with the correct data.
+        PrivateRoomData = privateRoom;
+        IsOpen = true;
     }
+
+    public PrivateRoom PrivateRoomData { get; set; } = null!; // this is a shared service, so it should be fine.
+
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
@@ -173,7 +178,7 @@ public class RemoteController : RemoteBase
     {
         // THIS IS NOT GOING TO US!!! It's going off to OTHER CLIENTS.
 
-        // manage that somewhere else, potentially the remoteservice or something idk!
+        // manage that somewhere else, potentially the remote service or something idk!
 
         // if any devices are currently connected, and our intiface client is connected,
         /*if (_intifaceHandler.AnyDeviceConnected && _intifaceHandler.ConnectedToIntiface)

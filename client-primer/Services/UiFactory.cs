@@ -1,17 +1,14 @@
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services.Mediator;
+using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Services;
 using GagSpeak.UI;
-using GagSpeak.UI.Components.Popup;
-using GagSpeak;
-using Microsoft.Extensions.Logging;
-using GagSpeak.GagspeakConfiguration;
-using GagSpeak.WebAPI;
+using GagSpeak.UI.Permissions;
 using GagSpeak.UI.Profile;
 using GagSpeak.UI.UiRemote;
-using GagSpeak.PlayerData.Handlers;
-using GagSpeak.Toybox.Services;
-using GagSpeak.PlayerData.PrivateRooms;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.Services;
 
@@ -25,13 +22,12 @@ public class UiFactory
     private readonly PairManager _pairManager;
     private readonly ToyboxRemoteService _remoteService;
     private readonly ServerConfigurationManager _serverConfigs;
-    private readonly GagspeakConfigService _gagspeakConfigService;
     private readonly GagspeakProfileManager _gagspeakProfileManager;
 
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator,
-        ApiController apiController, UiSharedService uiSharedService, DeviceHandler handler,
-        PairManager pairManager, ToyboxRemoteService remoteService, 
-        GagspeakConfigService configService, ServerConfigurationManager serverConfigs, 
+        ApiController apiController, UiSharedService uiSharedService, 
+        DeviceHandler handler, PairManager pairManager,
+        ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
         GagspeakProfileManager profileManager)
     {
         _loggerFactory = loggerFactory;
@@ -42,14 +38,13 @@ public class UiFactory
         _pairManager = pairManager;
         _remoteService = remoteService;
         _serverConfigs = serverConfigs;
-        _gagspeakConfigService = configService;
         _gagspeakProfileManager = profileManager;
     }
 
     public RemoteController CreateControllerRemote(PrivateRoom privateRoom)
     {
         return new RemoteController(_loggerFactory.CreateLogger<RemoteController>(), _gagspeakMediator,
-            _uiSharedService, _remoteService, _deviceHandler, privateRoom);
+            _uiSharedService, _deviceHandler, _remoteService, _apiController, privateRoom);
     }
 
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)

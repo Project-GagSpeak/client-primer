@@ -754,6 +754,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             OnPrivateRoomDeviceUpdate(dto => _ = Client_PrivateRoomDeviceUpdate(dto));
             OnPrivateRoomClosed(dto => _ = Client_PrivateRoomClosed(dto));
 
+            OnToyboxUserSendOnline(dto => _ = Client_ToyboxUserSendOnline(dto));
+            OnToyboxUserSendOffline(dto => _ = Client_ToyboxUserSendOffline(dto));
+
             // create a new health check token
             _toyboxHealthCTS?.Cancel();
             _toyboxHealthCTS?.Dispose();

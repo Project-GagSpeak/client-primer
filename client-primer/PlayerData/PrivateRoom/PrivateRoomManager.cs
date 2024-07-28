@@ -49,19 +49,26 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
 
     public void InitRoomsFromConnectionDto(ToyboxConnectionDto dto)
     {
-        // if the hosted room is not already in the list of rooms, add it.
-        if (!_rooms.ContainsKey(dto.HostedRoom.NewRoomName) && !string.IsNullOrEmpty(dto.HostedRoom.NewRoomName))
+        // Check if the hosted room name is not empty
+        if (!string.IsNullOrEmpty(dto.HostedRoom.NewRoomName))
         {
-            _rooms[dto.HostedRoom.NewRoomName] = _roomFactory.Create(dto.HostedRoom);
-            Logger.LogDebug("Creating Hosted Room [{room}] from connection dto", dto.HostedRoom.NewRoomName);
+            // If the hosted room is not already in the list of rooms, add it
+            if (!_rooms.ContainsKey(dto.HostedRoom.NewRoomName))
+            {
+                _rooms[dto.HostedRoom.NewRoomName] = _roomFactory.Create(dto.HostedRoom);
+                Logger.LogDebug("Creating Hosted Room [{room}] from connection dto", dto.HostedRoom.NewRoomName);
+            }
+            else
+            {
+                Logger.LogDebug("The Hosted room [{room}] is already cached, skipping creation & Updating existing with details.", dto.HostedRoom.NewRoomName);
+
+                // Update the room with the latest details
+                _rooms[dto.HostedRoom.NewRoomName].UpdateRoomInfo(dto.HostedRoom);
+            }
         }
         else
         {
-            Logger.LogDebug("The Hosted room [{room}] is already cached, skipping creation " +
-                "& Updating existing with details.", dto.HostedRoom.NewRoomName);
-
-            // update the room with the latest details.
-            _rooms[dto.HostedRoom.NewRoomName].UpdateRoomInfo(dto.HostedRoom);
+            Logger.LogInformation("Hosted room name is empty, skipping creation.");
         }
 
         // for each additional room we are in within the list of connected rooms, add it.
@@ -166,6 +173,8 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
             Logger.LogInformation("Pending Room Join [{room}] already cached. Repopulating host and online users!", roomInfo.NewRoomName);
             // mark the room as Active, but update the users so we can keep the chat and connected devices from the last session.
             _rooms[roomInfo.NewRoomName].UpdateRoomInfo(roomInfo);
+            // publish to mediator to open the respective remote controller UI.
+            Mediator.Publish(new OpenPrivateRoomRemote(privateRoom));
         }
         else
         {
@@ -209,6 +218,12 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         {
             // if the room exists, remove the participant from the room. (because they were the ones to do it.
             privateRoom.MarkInactive(dto.User);
+            // if the user that left is our client user
+            if (dto.User.UserUID == ClientUserUID)
+            {
+                // inform our mediator that we left the room so we close the UI.
+                Mediator.Publish(new ToyboxPrivateRoomLeft(dto.RoomName));
+            }
         }
         else
         {

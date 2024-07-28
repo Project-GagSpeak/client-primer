@@ -40,6 +40,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
     private DateTime _errorTime;
 
     public bool CreatingNewHostRoom { get; private set; } = false;
+    public bool RoomCreatedSuccessful { get; private set; } = false;
     public bool HostPrivateRoomHovered { get; private set; } = false;
     private List<bool> JoinRoomItemsHovered = new List<bool>();
 
@@ -160,7 +161,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         Vector2 textSize;
         using (_uiShared.UidFont.Push())
         {
-            textSize = ImGui.CalcTextSize("Setup Private Room");
+            textSize = ImGui.CalcTextSize("Setup Room");
         }
         var centerYpos = (textSize.Y - iconSize.Y);
         using (ImRaii.Child("PrivateRoomSetupHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + ((startYpos + centerYpos) - startYpos) * 2)))
@@ -181,7 +182,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             // Draw the header text
             ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(startYpos);
-            _uiShared.BigText("Setup Private Room");
+            _uiShared.BigText("Setup Room");
 
             // Draw the "See Invites" button on the right
             ImGui.SameLine((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X)
@@ -216,19 +217,45 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
         ImGui.Separator();
         var refString1 = NewHostNameRef;
-        ImGui.InputTextWithHint("Private Room Name (ID)##HostRoomName", "Private Room Name...", ref refString1, 50);
+        ImGui.InputTextWithHint("Room Name (ID)##HostRoomName", "Private Room Name...", ref refString1, 50);
         if(ImGui.IsItemDeactivatedAfterEdit())
         {
             NewHostNameRef = refString1;
         }
 
         var refString2 = HostChatAlias;
-        ImGui.InputTextWithHint("Your Chat Alias##HostChatAlias", "Chat Alias...", ref refString2, 50);
+        ImGui.InputTextWithHint("Your Chat Alias##HostChatAlias", "Chat Alias...", ref refString2, 30);
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
             HostChatAlias = refString2;
         }
 
+        // the button to create the room.
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Create Private Room"))
+        {
+            // create the room
+            try
+            {
+                // also log the success of the creation.
+                RoomCreatedSuccessful = _apiController.PrivateRoomCreate(new RoomCreateDto(NewHostNameRef, HostChatAlias)).Result;
+            }
+            catch (Exception ex)
+            {
+                _errorMessage = ex.Message;
+                _errorTime = DateTime.Now;
+            }
+        }
+        // if there is an error message, display it
+        if (!string.IsNullOrEmpty(_errorMessage) && (DateTime.Now - _errorTime).TotalSeconds < 3)
+        {
+            ImGui.TextColored(ImGuiColors.DalamudRed, _errorMessage);
+        }
+        // if the room creation was successful, set the room creation to false.
+        if (RoomCreatedSuccessful)
+        {
+            CreatingNewHostRoom = false;
+            RoomCreatedSuccessful = false;
+        }
     }
 
     private void DrawPrivateRoomMenu()
@@ -337,13 +364,14 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                     {
                         // leave the room
                         _apiController.PrivateRoomLeave(new RoomParticipantDto
-                            (privateRoomRef.GetParticipant(_roomManager.ClientUserUID), roomName)).ConfigureAwait(false);
+                            (privateRoomRef.GetParticipant(_roomManager.ClientUserUID).User, roomName)).ConfigureAwait(false);
+                    
                     }
                     else
                     {
                         // join the room
                         _apiController.PrivateRoomJoin(new RoomParticipantDto
-                            (privateRoomRef.GetParticipant(_roomManager.ClientUserUID), roomName)).ConfigureAwait(false);
+                            (privateRoomRef.GetParticipant(_roomManager.ClientUserUID).User, roomName)).ConfigureAwait(false);
                     }
                     // toggle the state & early return so we don't access the child clicked button
                     return;
@@ -374,7 +402,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             // if we are currently joined in the private room, we can open the instanced remote.
             if (privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID))
             {
-                // please for the love of god work....
+                // open the respective rooms remote.
                 Mediator.Publish(new OpenPrivateRoomRemote(privateRoomRef));
             }
             else

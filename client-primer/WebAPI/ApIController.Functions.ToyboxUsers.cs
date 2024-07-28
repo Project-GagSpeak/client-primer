@@ -23,6 +23,11 @@ public partial class ApiController // Partial class for Toybox User Functions.
         return await _toyboxHub!.InvokeAsync<bool>(nameof(PrivateRoomCreate), userDto).ConfigureAwait(false);
     }
 
+    public async Task<List<UserData>> ToyboxUserGetOnlinePairs(List<string> uids)
+    {
+        return await _toyboxHub!.InvokeAsync<List<UserData>>(nameof(ToyboxUserGetOnlinePairs)).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Send a room invite to another user.
     /// </summary>

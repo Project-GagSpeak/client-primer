@@ -44,7 +44,6 @@ public partial class UserPairPermsSticky : DisposableMediatorSubscriberBase
     /// we have to compensate for this special case.
     /// </para>
     /// </summary>
-    /// <param name="userPairToDrawPermsFor">The user pair to draw the permissions for</param>
     public void DrawSticky()
     {
         // Set the window flags

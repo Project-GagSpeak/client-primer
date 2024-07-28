@@ -451,6 +451,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
+
     /// <summary> A helper method to ensure the action is executed safely, and if an exception is thrown, it is logged.</summary>
     /// <param name="act">the action to execute</param>
     private void ExecuteSafely(Action act)

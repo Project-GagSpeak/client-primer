@@ -2,8 +2,6 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using System.Reflection.Metadata;
-using static PInvoke.User32;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -30,7 +28,7 @@ public class PatternHandler : MediatorSubscriberBase
             PlaybackRunning = false;
         });
 
-        Mediator.Subscribe<PatternRemovedMessage>(this, (msg) => 
+        Mediator.Subscribe<PatternRemovedMessage>(this, (msg) =>
         {
             // update thje selected patterns to the new first index if the count is > 0
             if (PatternListSize() > 0)
@@ -107,7 +105,7 @@ public class PatternHandler : MediatorSubscriberBase
     public int PatternListSize() => _clientConfigs.GetPatternCount();
 
     /// <summary>
-    /// Get the pattern located at the spesified index
+    /// Get the pattern located at the specified index
     /// </summary>
     /// <param name="index"> The index of the pattern to get </param>
     /// <returns> The pattern located at the index </returns>

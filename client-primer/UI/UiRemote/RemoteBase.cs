@@ -42,8 +42,8 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
         // define initial size of window and to not respect the close hotkey.
         SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(300, 430),
-            MaximumSize = new Vector2(300, 430)
+            MinimumSize = new Vector2(WindowWidthMin, 430),
+            MaximumSize = new Vector2(WindowWidthMin, 430)
         };
         RespectCloseHotkey = false;
 
@@ -61,6 +61,10 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
     }
 
     private string WindowBaseName;
+    protected static float WindowWidthMin = 300f;
+    protected static float WindowWidthMax = 550f;
+    public bool IsExpanded { get; private set; } = false;
+
 
     // Stores the duration of the recording. Must be distinct for all (base class)
     protected Stopwatch DurationStopwatch;
@@ -104,7 +108,23 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
     public const float YAxisLimitUpper = 100;
     public double[] Positions = { 0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100 }; 
     public string[] Labels = { "0%", "", "", "", "", "", "", "", "", "", "100%" };
-    
+
+    // Toggles the size constraints.
+    protected void UpdateSizeConstraints(bool shouldExpand)
+    {
+        // set the should expand
+        IsExpanded = shouldExpand;
+        // set the new width
+        float width = IsExpanded ? WindowWidthMax : WindowWidthMin;
+        SizeConstraints = new WindowSizeConstraints
+        {
+            MinimumSize = new Vector2(width, 430),
+            MaximumSize = new Vector2(width, 430)
+        };
+        // set the new size
+        ImGui.SetWindowSize(new Vector2(width, 430));
+    }
+
     // the disposal for the base class
     protected override void Dispose(bool disposing)
     {
@@ -125,7 +145,6 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
         {
             ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
             ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(0, 0));
-            ImGui.PushStyleColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 0.930f));
             ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0, 0.56f, 0.09f, 0.51f));
 
             ThemePushed = true;
@@ -137,12 +156,13 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
         if (ThemePushed)
         {
             ImGui.PopStyleVar(2);
-            ImGui.PopStyleColor(2);
+            ImGui.PopStyleColor();
             ThemePushed = false;
         }
     }
     protected override void DrawInternal()
     {
+        //_logger.LogInformation(ImGui.GetWindowSize().ToString());
         var isFocused = ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows);
         using (var child = ImRaii.Child($"##RemoteUIChild{WindowBaseName}", new Vector2(ImGui.GetContentRegionAvail().X, -1), true, ImGuiWindowFlags.NoDecoration))
         {
@@ -152,40 +172,60 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
             // get the xpos so we can draw it back a bit to span the whole width of the window.
             float xPos = ImGui.GetCursorPosX();
             float yPos = ImGui.GetCursorPosY();
-            ImGui.SetCursorPos(new Vector2(xPos - ImGuiHelpers.GlobalScale * 10, yPos - ImGuiHelpers.GlobalScale * 10));
-            float width = ImGui.GetContentRegionAvail().X + ImGuiHelpers.GlobalScale * 10;
 
-            // draw the playback display
-            DrawRecordedDisplay(ref xPos, ref yPos, ref width);
-
-            // draw the center bar for recording information and things
-            DrawCenterBar(ref xPos, ref yPos, ref width);
-
-            // draw the core of the vibe remote
-            DrawVibrationRecorder(ref xPos, ref yPos, ref width);
-
-            if(ImGui.IsMouseClicked(ImGuiMouseButton.Right) && isFocused)
+            // Create a table with one or two columns based on the Expanded property
+            int columnCount = IsExpanded ? 2 : 1;
+            using (var table = ImRaii.Table("##RemoteUITable", columnCount, ImGuiTableFlags.NoPadInnerX | ImGuiTableFlags.NoPadOuterX | ImGuiTableFlags.BordersV))
             {
-                ProcessLoopToggle();
-            }
-            if(ImGui.IsMouseClicked(ImGuiMouseButton.Middle) && isFocused)
-            {
-                ProcessFloatToggle();
+                ImGui.TableSetupColumn("##RemoteUIContent", ImGuiTableColumnFlags.WidthFixed, WindowWidthMin);
+                if (IsExpanded)
+                {
+                    ImGui.TableSetupColumn("##RemoteUIExtraContent", ImGuiTableColumnFlags.WidthStretch);
+                }
+
+                ImGui.TableNextColumn();
+
+                using (var childBg = ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.1f, 0.1f, 0.1f, 0.930f)))
+                {
+                    // draw the playback display, this particular playback display should have its width increased by 20, and moved up 10f and left 10f
+                    ImGui.SetCursorPos(new Vector2(xPos - ImGuiHelpers.GlobalScale * 10f, yPos - ImGuiHelpers.GlobalScale * 10f));
+                    float width = WindowWidthMin + ImGuiHelpers.GlobalScale * 20f;
+                    DrawRecordedDisplay(ref xPos, ref yPos, ref width);
+
+                    // draw the center bar for recording information and things
+                    DrawCenterBar(ref xPos, ref yPos, ref width);
+
+                    // grab the remaining height left
+                    yPos = ImGui.GetCursorPosY();
+                    ImGui.SetCursorPosY(yPos - ImGuiHelpers.GlobalScale * 5f);
+                    // draw the core of the vibe remote
+                    DrawVibrationRecorder(ref xPos, ref yPos, ref width);
+                }
+
+                // Draw any extra tab details if any, Draws nothing by default.
+                if (IsExpanded)
+                {
+                    ImGui.TableNextColumn();
+                    DrawExtraDetails();
+                }
+
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Right) && isFocused)
+                {
+                    ProcessLoopToggle();
+                }
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Middle) && isFocused)
+                {
+                    ProcessFloatToggle();
+                }
+
+                // move to the next column if we should.
+
             }
         }
     }
 
-    public void ProcessLoopToggle()
-    {
-        IsLooping = !IsLooping;
-/*        if (IsFloating) { IsFloating = false; }*/
-    }
-
-    public void ProcessFloatToggle()
-    {
-        IsFloating = !IsFloating;
-/*        if (IsLooping) { IsLooping = false; }*/
-    }
+    public void ProcessLoopToggle() => IsLooping = !IsLooping;
+    public void ProcessFloatToggle() => IsFloating = !IsFloating;
 
     public void DrawRecordedDisplay(ref float xPos, ref float yPos, ref float width)
     {
@@ -196,7 +236,7 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
             float[] ys = RecordedPositions.Select(pos => (float)pos).ToArray();  // y-values
             float latestX = xs.Length > 0 ? xs[xs.Length - 1] : 0; // The latest x-value
 
-            // Transform the x-values so that the latest position appears at x=0 (ensure it doesnt start smack dab in the middle)
+            // Transform the x-values so that the latest position appears at x=0 (ensure it doesn't start smack dab in the middle)
             for (int i = 0; i < xs.Length; i++)
                 xs[i] -= latestX;
 
@@ -209,9 +249,10 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
 
             if (ImPlot.BeginPlot("##Waveform", new Vector2(width, 125), ImPlotFlags.NoBoxSelect | ImPlotFlags.NoMenus | ImPlotFlags.NoLegend | ImPlotFlags.NoFrame))
             {
+                //_logger.LogInformation(ImPlot.GetPlotSize().ToString());
                 ImPlot.SetupAxes("X Label", "Y Label",
                     ImPlotAxisFlags.NoGridLines | ImPlotAxisFlags.NoLabel | ImPlotAxisFlags.NoTickLabels | ImPlotAxisFlags.NoTickMarks | ImPlotAxisFlags.NoHighlight,
-                    ImPlotAxisFlags.NoGridLines | ImPlotAxisFlags.NoLabel | ImPlotAxisFlags.NoTickLabels | ImPlotAxisFlags.NoTickMarks);
+                    ImPlotAxisFlags.NoGridLines | ImPlotAxisFlags.NoLabel | ImPlotAxisFlags.NoTickLabels | ImPlotAxisFlags.NoTickMarks | ImPlotAxisFlags.NoHighlight);
                 // Draw the recorded positions line.
                 if (xs.Length > 0 || ys.Length > 0)
                 {
@@ -224,7 +265,6 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
             ImPlot.PopStyleColor(2);
 
             // shift up again
-            xPos = ImGui.GetCursorPosX();
             yPos = ImGui.GetCursorPosY();
             ImGui.SetCursorPosY(yPos - ImGuiHelpers.GlobalScale * 13);
 
@@ -246,14 +286,14 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
     /// <para> Pattern will display </para>
     /// </summary>
     public abstract void DrawCenterBar(ref float xPos, ref float yPos, ref float width);
-    
 
     public void DrawVibrationRecorder(ref float xPos, ref float yPos, ref float width)
     {
 
         // grab the content region
         var region = ImGui.GetContentRegionAvail();
-        using (var table2 = ImRaii.Table("ThePatternCreationTable", 2, ImGuiTableFlags.NoPadInnerX | ImGuiTableFlags.NoPadOuterX | ImGuiTableFlags.BordersV))
+        using (var table2 = ImRaii.Table("ThePatternCreationTable", 2, ImGuiTableFlags.NoPadInnerX
+            | ImGuiTableFlags.NoPadOuterX | ImGuiTableFlags.BordersInnerV, region))
         {
             if (!table2) { return; } // make sure our table was made
             ImGui.TableSetupColumn("InteractivePatternDrawer", ImGuiTableColumnFlags.WidthStretch);
@@ -272,13 +312,19 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
         // end of table here.
     }
 
+    /// <summary>
+    /// A virtual void method to allow for optional additional draw details.
+    /// By Default, this draws nothing.
+    /// </summary>
+    public virtual void DrawExtraDetails() { }
+
     private void DrawCircleButtonGraph(ref float width, ref float yPos)
     {
         using var disabled = ImRaii.Disabled(!RemoteOnline);
         using var color = ImRaii.PushColor(ImPlotCol.PlotBg, _remoteService.LovenseDragButtonBG);
         // Draw a thin line with a timer to show the current position of the circle
         width = ImGui.GetContentRegionAvail().X;
-        var height = ImGui.GetContentRegionAvail().Y + ImGui.GetTextLineHeight() + ImGuiHelpers.GlobalScale * 5;
+        var height = ImGui.GetContentRegionAvail().Y + ImGui.GetTextLineHeight();
 
         // go to the next line and draw the grid we can move out thing in
         yPos = ImGui.GetCursorPosY();

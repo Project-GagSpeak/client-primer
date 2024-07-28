@@ -156,6 +156,24 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         RecreateLazy();
     }
 
+    public void MarkPairToyboxOffline(UserData user)
+    {
+        if (_allClientPairs.TryGetValue(user, out var pair))
+        {
+            pair.MarkToyboxOffline();
+        }
+        RecreateLazy();
+    }
+
+    public void MarkPairToyboxOnline(UserData user)
+    {
+        if (_allClientPairs.TryGetValue(user, out var pair))
+        {
+            pair.MarkToyboxOnline();
+        }
+        RecreateLazy();
+    }
+
     /// <summary> 
     /// 
     /// Function called upon by the ApiController.Callbacks, which listens to function calls from the connected server.

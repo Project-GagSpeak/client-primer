@@ -117,6 +117,20 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
         return Task.CompletedTask;
     }
 
+    public Task Client_ToyboxUserSendOffline(UserDto dto)
+    {
+        Logger.LogDebug("Client_ToyboxUserSendOffline: {dto}", dto);
+        ExecuteSafely(() => _pairManager.MarkPairToyboxOffline(dto.User));
+        return Task.CompletedTask;
+    }
+
+    public Task Client_ToyboxUserSendOnline(UserDto dto)
+    {
+        Logger.LogDebug("Client_ToyboxUserSendOnline: {dto}", dto);
+        ExecuteSafely(() => _pairManager.MarkPairToyboxOnline(dto.User));
+        return Task.CompletedTask;
+    }
+
 
     /* --------------------------------- void methods from the API to call the hooks --------------------------------- */
     public void OnReceiveToyboxServerMessage(Action<MessageSeverity, string> act)
@@ -124,6 +138,19 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
         if (_toyboxInitialized) return;
         _toyboxHub!.On(nameof(Client_ReceiveToyboxServerMessage), act);
     }
+
+    public void OnToyboxUserSendOnline(Action<UserDto> act)
+    {
+        if (_toyboxInitialized) return;
+        _toyboxHub!.On(nameof(Client_ToyboxUserSendOnline), act);
+    }
+
+    public void OnToyboxUserSendOffline(Action<UserDto> act)
+    {
+        if (_toyboxInitialized) return;
+        _toyboxHub!.On(nameof(Client_ToyboxUserSendOffline), act);
+    }
+
 
     public void OnUserReceiveRoomInvite(Action<RoomInviteDto> act)
     {

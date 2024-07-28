@@ -1,6 +1,7 @@
 using GagSpeak.PlayerData.Factories;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI.UiRemote;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Comparer;
 using GagspeakAPI.Data.VibeServer;
@@ -13,21 +14,17 @@ namespace GagSpeak.PlayerData.PrivateRooms;
 /// <summary>
 /// Manages the activity of the currently joined Private Room.
 /// </summary>
-public class PrivateRoom
+public class PrivateRoom : DisposableMediatorSubscriberBase
 {
-    private readonly ILogger<PrivateRoom> _logger;
-    private readonly GagspeakMediator _mediator;
     private readonly ParticipantFactory _participantFactory;
     private readonly ConcurrentDictionary<string, Participant> _participants; // UserUID, Participant
     // create a lazy list of the participants in the room.
     private Lazy<List<Participant>> _directParticipantsInternal;
     
     public PrivateRoom(ILogger<PrivateRoom> logger, GagspeakMediator mediator,
-        ParticipantFactory participantFactory, RoomInfoDto roomInfo)
+        ParticipantFactory participantFactory, RoomInfoDto roomInfo) : base(logger, mediator)
     {
         _participantFactory = participantFactory;
-        _logger = logger;
-        _mediator = mediator;
         _participants = new(StringComparer.Ordinal);
         LastReceivedRoomInfo = roomInfo;
 
@@ -36,9 +33,24 @@ public class PrivateRoom
         {
             _participants[participant.UserUID] = _participantFactory.Create(participant);
         }
+
+        // set the chat log up.
+        PrivateRoomChatlog = new ChatLog();
+
+        // add a dummy message to it.
+        ChatLog.AddMessage("System", "Welcome to the room!");
         
         // initialize the lazy list of participants.
         _directParticipantsInternal = DirectParticipantsLazy();
+
+        // subscribe to the room left event to cleanup chatlog history
+        Mediator.Subscribe<ToyboxPrivateRoomLeft>(this, (msg) =>
+        {
+            if (msg.RoomName == RoomName)
+                ChatLog.ClearMessages();
+
+            ChatLog.AddMessage("System", "Welcome to the room!");
+        });
     }
 
     /// <summary>
@@ -48,26 +60,26 @@ public class PrivateRoom
     /// </summary>
     public RoomInfoDto? LastReceivedRoomInfo { get; private set; }
 
+    // the chatlog buffer for the room
+    public ChatLog PrivateRoomChatlog { get; private set; }
     public Participant HostParticipant => Participants.First(p => p.User.UserUID == LastReceivedRoomInfo?.RoomHost.UserUID);
-
-    public List<RoomMessageDto> ChatHistory { get; private set; }
     public string RoomName => LastReceivedRoomInfo?.NewRoomName ?? "No Room Name";
     public List<Participant> Participants => _directParticipantsInternal.Value;
 
     public void AddParticipantToRoom(PrivateRoomUser newUser, bool addToLastAddedParticipant = true)
     {
-        _logger.LogTrace("Scanning all participants to see if added user already exists");
+        Logger.LogTrace("Scanning all participants to see if added user already exists");
         // if the user is not in the room's participant list, create a new participant for them.
         if (!_participants.ContainsKey(newUser.UserUID))
         {
-            _logger.LogDebug("User {user} not found in participants, creating new participant", newUser);
+            Logger.LogDebug("User {user} not found in participants, creating new participant", newUser);
             // create a new participant object for the user through the participant factory
             _participants[newUser.UserUID] = _participantFactory.Create(newUser);
         }
         // if the user is in the room's participant list, apply the last received data to the participant.
         else
         {
-            _logger.LogDebug("User {user} found in participants, applying last received data instead.", newUser);
+            Logger.LogDebug("User {user} found in participants, applying last received data instead.", newUser);
             // apply the last received data to the participant.
             _participants[newUser.UserUID].User = newUser;
         }
@@ -116,7 +128,7 @@ public class PrivateRoom
     {
         // update the last received room info
         LastReceivedRoomInfo = dto;
-        _logger.LogTrace("Updating Room Info for {room}", dto);
+        Logger.LogTrace("Updating Room Info for {room}", dto);
         try
         {
             // update the host
@@ -130,13 +142,13 @@ public class PrivateRoom
                 // if the participant is not equal to the stored participant with the same UID, update it.
                 if (!_participants.TryGetValue(participant.UserUID, out var storedParticipant))
                 {
-                    _logger.LogTrace("User {user} not found in participants, adding them to the room", participant);
+                    Logger.LogTrace("User {user} not found in participants, adding them to the room", participant);
                     // this means the participant is not in the room, so add them.
                     AddParticipantToRoom(participant);
                 }
                 else
                 {
-                    _logger.LogTrace("User {user} found in participants, updating their data", participant);
+                    Logger.LogTrace("User {user} found in participants, updating their data", participant);
                     // the participant is already in the room, so update their data with the latest
                     storedParticipant.User.ChatAlias = participant.ChatAlias;
                     storedParticipant.User.ActiveInRoom = participant.ActiveInRoom;
@@ -146,14 +158,14 @@ public class PrivateRoom
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Error updating room info for {room}", dto);
+            Logger.LogError(e, "Error updating room info for {room}", dto);
         }
 
         RecreateLazy();
     }
 
     // fetch a PrivateRoomUser in the participant of the provided userUID.
-    public PrivateRoomUser GetParticipant(string userUID) => _participants[userUID].User;
+    public Participant GetParticipant(string userUID) => _participants[userUID];
 
     // create a concatinating string of all participants chat aliases, seperated by a common,
     public string GetParticipantList() => string.Join(", ", Participants.Select(p => p.User.ChatAlias));
@@ -164,7 +176,10 @@ public class PrivateRoom
     // see if a particular Participant at the given UserUID key exists in the room with InRoom as true.
     public bool IsParticipantActiveInRoom(string userUID) => _participants.TryGetValue(userUID, out var participant) && participant.User.ActiveInRoom;
 
-    public void AddChatMessage(RoomMessageDto message) => ChatHistory.Add(message);
+    public void AddChatMessage(RoomMessageDto message)
+    {
+        ChatLog.AddMessage(message.SenderName.ChatAlias, message.Message);
+    }
 
     /// <summary> Retrieves a participant's device information push data. </summary>
     public void ReceiveParticipantDeviceData(UserCharaDeviceInfoMessageDto dto)
@@ -185,7 +200,7 @@ public class PrivateRoom
         if (dto.RoomName != RoomName) throw new InvalidOperationException("Room being applied to is not your room!");
         
         // If reached here, apply the update to your connected devices.
-        _logger.LogDebug("Applying Device Update from {user}", dto.User);
+        Logger.LogDebug("Applying Device Update from {user}", dto.User);
         // TODO: Inject this logic to update the active devices using the device handler.
     }
 
@@ -209,7 +224,7 @@ public class PrivateRoom
     private void DisposeParticipants()
     {
         // log the action about to occur
-        _logger.LogDebug("Disposing all Participants of the Private Room");
+        Logger.LogDebug("Disposing all Participants of the Private Room");
         Parallel.ForEach(_participants, item =>
         {
             item.Value.MarkOffline();
@@ -220,6 +235,6 @@ public class PrivateRoom
     private void RecreateLazy()
     {
         _directParticipantsInternal = DirectParticipantsLazy();
-/*        _mediator.Publish(new RefreshUiMessage());*/
+/*        Mediator.Publish(new RefreshUiMessage());*/
     }
 }

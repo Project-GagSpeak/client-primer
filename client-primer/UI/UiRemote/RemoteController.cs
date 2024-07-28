@@ -1,3 +1,4 @@
+using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
@@ -7,8 +8,9 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Debouncer;
 using GagSpeak.Toybox.Services;
+using GagSpeak.WebAPI;
 using ImGuiNET;
-using ImPlotNET;
+using GagspeakAPI.Dto.Toybox;
 using OtterGui;
 using System.Numerics;
 using System.Timers;
@@ -16,7 +18,7 @@ using System.Timers;
 namespace GagSpeak.UI.UiRemote;
 
 /// <summary>
-/// I Blame ImPlot for its messiness as a result for this abyssmal display of code here.
+/// I Blame ImPlot for its messiness as a result for this abysmal display of code here.
 /// </summary>
 public class RemoteController : RemoteBase
 {
@@ -24,19 +26,77 @@ public class RemoteController : RemoteBase
     private readonly UiSharedService _uiShared;
     private readonly DeviceHandler _intifaceHandler; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
+    private readonly ApiController _apiController;
+    private bool _isExpanded = false;
 
     public RemoteController(ILogger<RemoteController> logger,
         GagspeakMediator mediator, UiSharedService uiShared,
-        ToyboxRemoteService remoteService, DeviceHandler deviceHandler,
-        PrivateRoom privateRoom) : base(logger, mediator, uiShared, remoteService, deviceHandler, privateRoom.RoomName)
+        DeviceHandler deviceHandler, ToyboxRemoteService remoteService,
+        ApiController apiController, PrivateRoom privateRoom) 
+        : base(logger, mediator, uiShared, remoteService, deviceHandler, privateRoom.RoomName)
     {
         // grab the shared services
         _uiShared = uiShared;
         _intifaceHandler = deviceHandler;
         _remoteService = remoteService;
+        _apiController = apiController;
         // initialize our private room data with the private room passed in on startup so we can properly interact with the correct data.
         PrivateRoomData = privateRoom;
         IsOpen = true;
+        // disable dumb dalamud UI forced buttons
+        AllowPinning = false;
+        AllowClickthrough = false;
+
+        // create the buttons for opening side windows.
+        TitleBarButtons = new()
+        {
+            new TitleBarButton()
+            {
+                Icon = FontAwesomeIcon.Users,
+                Click = (msg) =>
+                {
+                    _logger.LogInformation("Opening User List");
+                    UpdateSizeConstraints(!IsExpanded);
+                },
+                IconOffset = new(2,1),
+                ShowTooltip = () =>
+                {
+                    ImGui.BeginTooltip();
+                    ImGui.Text("Invite Online Users");
+                    ImGui.EndTooltip();
+                }
+            },
+            new TitleBarButton()
+            {
+                Icon = FontAwesomeIcon.CommentDots,
+                Click = (msg) =>
+                {
+                    _logger.LogInformation("Opening Chat Window");
+                    UpdateSizeConstraints(!IsExpanded);
+                },
+                IconOffset = new(2,1),
+                ShowTooltip = () =>
+                {
+                    ImGui.BeginTooltip();
+                    ImGui.Text("Open Chat Window");
+                    ImGui.EndTooltip();
+                }
+            }
+        };
+
+
+        // close the window when our user leaves this room.
+        Mediator.Subscribe<ToyboxPrivateRoomLeft>(this, (msg) =>
+        {
+            // if the name of the room being closed matches the name of the private room data, close the window.
+            if (msg.RoomName == PrivateRoomData.RoomName)
+            {
+                IsOpen = false;
+            }
+        });
+
+        // close window on disconnect message.
+        Mediator.Subscribe<ToyboxDisconnectedMessage>(this, (_) => IsOpen = false);
     }
 
     public PrivateRoom PrivateRoomData { get; set; } = null!; // this is a shared service, so it should be fine.
@@ -46,7 +106,6 @@ public class RemoteController : RemoteBase
         base.Dispose(disposing);
         // anything else we should add here we can add here.
     }
-
 
     /// <summary>
     /// Will display personal devices, their motors and additional options. </para>
@@ -59,16 +118,59 @@ public class RemoteController : RemoteBase
         using (var color = ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.2f, 0.2f, 0.2f, 0.930f)))
         {
             // create a child for the center bar
-            using (var canterBar = ImRaii.Child($"###CenterBarDrawPersonal", new Vector2(CurrentRegion.X, 40f), false))
+            using (var canterBar = ImRaii.Child($"###CenterBarDrawPersonal", new Vector2(CurrentRegion.X, 45f), false))
             {
                 UiSharedService.ColorText("CenterBar dummy placement", ImGuiColors.ParsedGreen);
             }
         }
     }
 
+    private string NextChatMessage = string.Empty;
+    public override void DrawExtraDetails()
+    {
+        // grab the content region of the current section
+        var CurrentRegion = ImGui.GetContentRegionAvail();
+
+        // create a child for the center bar
+        using (var extraDetailsSideTab = ImRaii.Child($"###ExtraDetailsDraw", CurrentRegion, false))
+        {
+            ImGuiUtil.Center("Private Room Chat");
+            ImGui.Separator();
+
+            // Calculate the height for the chat log, leaving space for the input text field
+            float inputTextHeight = ImGui.GetFrameHeightWithSpacing();
+            float chatLogHeight = CurrentRegion.Y - inputTextHeight;
+
+            // Create a child for the chat log
+            using (var chatlogChild = ImRaii.Child($"###ChatlogChild", new Vector2(CurrentRegion.X, chatLogHeight - inputTextHeight), false))
+            {
+                PrivateRoomData.PrivateRoomChatlog.PrintImgui();
+            }
+
+            // Now draw out the input text field
+            var nextMessageRef = NextChatMessage;
+            ImGui.SetNextItemWidth(CurrentRegion.X);
+            if (ImGui.InputTextWithHint("##ChatInputBox", "chat message here...", ref nextMessageRef, 300))
+            {
+                // Update the stored message
+                NextChatMessage = nextMessageRef;
+            }
+
+            // Check if the input text field is focused and the Enter key is pressed
+            if (ImGui.IsItemFocused() && ImGui.IsKeyPressed(ImGuiKey.Enter))
+            {
+                // Send the message to the server
+                _logger.LogInformation($"Sending Message: {NextChatMessage}");
+                _apiController.PrivateRoomSendMessage(new RoomMessageDto
+                    (PrivateRoomData.GetParticipant(_apiController.UID).User, PrivateRoomData.RoomName, NextChatMessage)).ConfigureAwait(false);
+                NextChatMessage = string.Empty;
+            }
+        }
+    }
+
 
     /// <summary>
-    /// This method is also an overrided function, as depending on the use.
+    /// This method is also an override function, as depending on the use.
     /// We may also implement unique buttons here on the side that execute different functionalities.
     /// </summary>
     /// <param name="region"> The region of the side button section of the UI </param>

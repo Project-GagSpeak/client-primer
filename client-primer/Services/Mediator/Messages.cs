@@ -47,7 +47,8 @@ public record ToyboxHubReconnectingMessage(Exception? Exception) : SameThreadMes
 public record ToyboxHubReconnectedMessage(string? Arg) : SameThreadMessage;
 public record ToyboxHubClosedMessage(Exception? Exception) : SameThreadMessage;
 public record ToyboxConnectedMessage(ToyboxConnectionDto Connection) : MessageBase;
-
+public record ToyboxPrivateRoomJoined(string RoomName) : MessageBase; // when our player joins a private room.
+public record ToyboxPrivateRoomLeft(string RoomName) : MessageBase; // when our player leaves a private room.
 
 /* ------------- DALAMUD FRAMEWORK UPDATE RECORDS ------------- */
 public record DalamudLoginMessage : MessageBase; // record indicating the moment the client logs into the game instance.

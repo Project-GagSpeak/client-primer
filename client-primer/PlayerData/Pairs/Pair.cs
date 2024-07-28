@@ -66,6 +66,7 @@ public class Pair
     /// </summary>
     public UserPairDto UserPair { get; set; }
     public UserData UserData => UserPair.User;                                      // the UserData associated with the pair.
+    public bool OnlineToyboxUser { get; private set; } = false;                     // if the user is online.
     public UserPairPermissions UserPairOwnUniquePairPerms => UserPair.OwnPairPerms;    // the pair permissions of the pair.
     public UserEditAccessPermissions UserPairOwnEditAccess => UserPair.OwnEditAccessPerms; // the edit permissions of the pair.
     public UserGlobalPermissions UserPairGlobalPerms => UserPair.OtherGlobalPerms;  // the global permissions of the pair.
@@ -299,4 +300,8 @@ public class Pair
             _creationSemaphore.Release();
         }
     }
+
+    public void MarkToyboxOffline() => OnlineToyboxUser = false;
+
+    public void MarkToyboxOnline() => OnlineToyboxUser = true;
 }

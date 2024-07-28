@@ -63,7 +63,6 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
         _pi = pi;
         _uiSharedService = uiShared;
 
-
         // the bottomTabMenu
         _tabMenu = new MainTabMenu(Mediator, _apiController, _pairManager, _uiSharedService);
 

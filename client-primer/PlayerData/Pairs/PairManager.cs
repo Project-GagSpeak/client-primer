@@ -141,6 +141,9 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     /// <summary> Fetches the list of userData UIDS for the pairs that are currently visible to the client.</summary>
     public List<UserData> GetVisibleUsers() => _allClientPairs.Where(p => p.Value.IsVisible).Select(p => p.Key).ToList();
 
+    // fetch the list of all online userpairs via their UID's
+    public List<string> GetOnlineUserUids() => _allClientPairs.Select(p => p.Key.UID).ToList();
+
     /// <summary> Marks a user pair as offline.</summary>
     public void MarkPairOffline(UserData user)
     {

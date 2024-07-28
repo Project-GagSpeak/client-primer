@@ -306,6 +306,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                     return;
                 }
 
+                // load in the online pairs for our client
+                await LoadToyboxOnlinePairs().ConfigureAwait(false);
+
                 // initialize the connectionDto information to the privateRoomManager.
                 Logger.LogInformation("Toybox Connection DTO ServerVersion: {ServerVersion}", _toyboxConnectionDto.ServerVersion);
                 Logger.LogInformation("Toybox Connection DTO HostedRoom: {host}", _toyboxConnectionDto.HostedRoom.NewRoomName);
@@ -790,6 +793,19 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             _pairManager.MarkPairOnline(entry, sendNotif: false);
         }
         Mediator.Publish(new OnlinePairsLoadedMessage());
+    }
+
+    /// <summary> Load the online pairs linked with the client </summary>
+    private async Task LoadToyboxOnlinePairs()
+    {
+        var UidList = _pairManager.GetOnlineUserUids();
+        // for each online user pair in the online user pairs list
+        foreach (var entry in await ToyboxUserGetOnlinePairs(UidList).ConfigureAwait(false))
+        {
+            // debug the pair, then mark it as online in the pair manager.
+            Logger.LogDebug("Pair online: {pair}", entry);
+            _pairManager.MarkPairToyboxOnline(entry);
+        }
     }
 
     /* ================ Main Hub SignalR Functions ================ */

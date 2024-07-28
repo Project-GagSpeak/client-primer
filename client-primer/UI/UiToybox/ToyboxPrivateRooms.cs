@@ -349,8 +349,28 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             }
 
             // this is cancer, but they deprecated the ContentRegionWidth, so what can ya do lol.
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() 
-                - joinedState.X - ImGui.GetStyle().ItemSpacing.X);
+            if(isHostedRoom)
+            {
+                ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() 
+                    - joinedState.X*2 - ImGui.GetStyle().ItemSpacing.X*2);
+
+                /*
+                 * Draw a icon text button here to invite other users,
+                 * when you click this, a popup will expand. This should then display a list similar to how the wardrobe editor
+                 * displays its users via a filter of online users, except instead create an additional folder listing for pairs
+                 * that have ToyboxOnline set to true. You should be able to make use of its display online or nick to filter the
+                 * name display to not be like normal drawUserPair listings, so we can create our own custom listing.
+                 * 
+                 * Once this is done, accepted invites can go into the invites button. This buttons popups should display a mini 
+                 * window allowing people to accept certain invites!
+                 * 
+                 */
+            }
+            else
+            {
+                ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() 
+                    - joinedState.X - ImGui.GetStyle().ItemSpacing.X);
+            }
 
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (ImGui.GetFrameHeight() / 2));
             // draw out the icon button

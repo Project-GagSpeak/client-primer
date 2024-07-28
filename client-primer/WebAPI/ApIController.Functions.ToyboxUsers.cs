@@ -25,7 +25,7 @@ public partial class ApiController // Partial class for Toybox User Functions.
 
     public async Task<List<UserData>> ToyboxUserGetOnlinePairs(List<string> uids)
     {
-        return await _toyboxHub!.InvokeAsync<List<UserData>>(nameof(ToyboxUserGetOnlinePairs)).ConfigureAwait(false);
+        return await _toyboxHub!.InvokeAsync<List<UserData>>(nameof(ToyboxUserGetOnlinePairs), uids).ConfigureAwait(false);
     }
 
     /// <summary>

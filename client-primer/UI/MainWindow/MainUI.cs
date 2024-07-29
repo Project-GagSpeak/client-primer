@@ -23,6 +23,7 @@ using GagSpeak.UI;
 using GagSpeak.WebAPI;
 using Lumina.Excel.GeneratedSheets;
 using Dalamud.Plugin;
+using GagSpeak.GagspeakConfiguration.Configurations;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -328,6 +329,14 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
                 // then display it
                 if (_uiSharedService.IconButton(connectedIcon))
                 {
+                    // disconnect from the toybox server first, as they should never be allowed to be connected while disconnected
+                    if(!_serverManager.CurrentServer.FullPause && !_serverManager.CurrentServer.ToyboxFullPause)
+                    {
+                        _logger.LogTrace("Disconnecting from Toybox Server because both connections were active.");
+                        _serverManager.CurrentServer.ToyboxFullPause = !_serverManager.CurrentServer.ToyboxFullPause;
+                        _serverManager.Save();
+                        _ = _apiController.CreateToyboxConnection();
+                    }
                     // and toggle the full pause for the current server, save the config, and recreate the connections,
                     // placing it into a disconnected state due to the full pause being active. (maybe change this later)
                     _serverManager.CurrentServer.FullPause = !_serverManager.CurrentServer.FullPause;

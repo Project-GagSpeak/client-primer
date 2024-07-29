@@ -897,7 +897,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         // cancel the health token
         _toyboxHealthCTS?.Cancel();
         // publish a disconnected message to the mediator, and set the server state to offline. Then log the result
-        Mediator.Publish(new DisconnectedMessage(HubType.ToyboxHub));
+        Mediator.Publish(new ToyboxDisconnectedMessage());
         // dont publish disconnected message, because we dont want to stop anything (yet), but set state to offline
         ToyboxServerState = ServerState.Offline;
         if (arg != null)
@@ -1013,7 +1013,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 // set initialized to false, cancel the health CTS, and publish a disconnected message to the mediator
                 _initialized = false;
                 _healthCTS?.Cancel();
-                Mediator.Publish(new DisconnectedMessage(HubType.MainHub));
+                Mediator.Publish(new DisconnectedMessage());
                 // set the connectionDto and hub to null.
                 _gagspeakHub = null;
                 _connectionDto = null;
@@ -1037,7 +1037,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 // set initialized to false, cancel the health CTS, and publish a disconnected message to the mediator
                 _toyboxInitialized = false;
                 _toyboxHealthCTS?.Cancel();
-                Mediator.Publish(new DisconnectedMessage(HubType.ToyboxHub));
+                Mediator.Publish(new ToyboxDisconnectedMessage());
                 // set the connectionDto and hub to null.
                 _toyboxHub = null;
                 _toyboxConnectionDto = null;

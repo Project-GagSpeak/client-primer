@@ -2,6 +2,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Utility;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.Services.ConfigurationServices;
@@ -137,7 +138,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                         _apiController.PrivateRoomRemove(_roomManager.ClientHostedRoomName).ConfigureAwait(false);
                     }
                 }
-                UiSharedService.AttachToolTip("Delete Hosted Room");
+                UiSharedService.AttachToolTip("Delete Hosted Room (Must hold shift)");
             }
             else
             {
@@ -278,7 +279,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
     private void DrawPrivateRoomMenu()
     {
         // see if the manager has any rooms at all to display
-        if (_roomManager.AllPrivateRooms.Count == 0)
+        if (_roomManager.AllPrivateRooms.Count == 0 || _roomManager.ClientUserUID.IsNullOrEmpty())
         {
             ImGui.Text("No private rooms available.");
             return;
@@ -301,9 +302,9 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             ImGui.TextColored(ImGuiColors.DalamudRed, _errorMessage);
         }
 
-        var hostedRoom = _roomManager.AllPrivateRooms.First(r => r.RoomName == _roomManager.ClientHostedRoomName);
+        var hostedRoom = _roomManager.AllPrivateRooms.FirstOrDefault(r => r.RoomName == _roomManager.ClientHostedRoomName);
         // If currently hosting a room, draw the hosted room first
-        if (_roomManager.ClientHostingAnyRoom)
+        if (_roomManager.ClientHostingAnyRoom && hostedRoom != null)
         {
             // grab the PrivateRoom of the AllPrivateRooms list where the room name == ClientHostedRoomName
             DrawPrivateRoomSelectable(hostedRoom, true);
@@ -337,6 +338,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         var totalParticipantsTextSize = ImGui.CalcTextSize(participantsCountText);
         var participantAliasListSize = ImGui.CalcTextSize(privateRoomRef.GetParticipantList());
 
+        // DEBUG Logger.LogTrace("IDX {idx} - RoomName {roomName} - RoomType {roomType} - ClientUID {uid}", idx, roomName, roomType, _roomManager.ClientUserUID);
         using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), (isHostedRoom ? HostPrivateRoomHovered : JoinRoomItemsHovered[idx]));
         using (ImRaii.Child($"##PreviewPrivateRoom{roomName}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetStyle().ItemSpacing.Y * 2 + ImGui.GetFrameHeight() * 2)))
         {

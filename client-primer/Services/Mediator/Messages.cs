@@ -33,7 +33,7 @@ public record EventMessage(Event Event) : MessageBase; // an event message for l
 
 
 /* ------------------ MAIN HUB RECORDS ------------------ */
-public record DisconnectedMessage(HubType hubType = HubType.MainHub) : SameThreadMessage; // indicating a disconnection message from the server.
+public record DisconnectedMessage : SameThreadMessage; // indicating a disconnection message from the server.
 public record HubReconnectingMessage(Exception? Exception) : SameThreadMessage; // indicating the moment the hub is reconnecting.
 public record HubReconnectedMessage(string? Arg) : SameThreadMessage; // indicating the moment the hub has reconnected.
 public record HubClosedMessage(Exception? Exception) : SameThreadMessage; // indicating the moment the hub has closed.
@@ -42,7 +42,7 @@ public record OnlinePairsLoadedMessage : MessageBase; // message published compl
 
 
 /* ------------------ TOYBOX HUB RECORDS ------------------ */
-public record ToyboxDisconnectedMessage(HubType hubType = HubType.MainHub) : SameThreadMessage; // indicating a disconnection message from the server.
+public record ToyboxDisconnectedMessage : SameThreadMessage; // indicating a disconnection message from the server.
 public record ToyboxHubReconnectingMessage(Exception? Exception) : SameThreadMessage;
 public record ToyboxHubReconnectedMessage(string? Arg) : SameThreadMessage;
 public record ToyboxHubClosedMessage(Exception? Exception) : SameThreadMessage;

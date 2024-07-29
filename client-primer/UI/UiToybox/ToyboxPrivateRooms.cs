@@ -623,7 +623,6 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
             // draw out the list of online toybox users.
             var PairList = _pairManager.GetOnlineToyboxUsers()
-                .Where(pair => (pair.GetNickname() != null))
                 .OrderBy(p => p.GetNickname() ?? p.UserData.AliasOrUID, StringComparer.OrdinalIgnoreCase);
 
             foreach (Pair pair in PairList)

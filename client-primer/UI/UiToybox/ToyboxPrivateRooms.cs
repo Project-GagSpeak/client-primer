@@ -338,7 +338,8 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         var totalParticipantsTextSize = ImGui.CalcTextSize(participantsCountText);
         var participantAliasListSize = ImGui.CalcTextSize(privateRoomRef.GetParticipantList());
 
-        // DEBUG Logger.LogTrace("IDX {idx} - RoomName {roomName} - RoomType {roomType} - ClientUID {uid}", idx, roomName, roomType, _roomManager.ClientUserUID);
+        Logger.LogTrace("IDX {idx} - RoomName {roomName} - RoomType {roomType} - ClientUID {uid}", idx, roomName, roomType, _roomManager.ClientUserUID);
+        Logger.LogTrace("JoinRoomItemsHovered Size {size} - Non-HostedRooms Size {nonHostedSize}", JoinRoomItemsHovered.Count, _roomManager.AllPrivateRooms.Count);
         using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), (isHostedRoom ? HostPrivateRoomHovered : JoinRoomItemsHovered[idx]));
         using (ImRaii.Child($"##PreviewPrivateRoom{roomName}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetStyle().ItemSpacing.Y * 2 + ImGui.GetFrameHeight() * 2)))
         {
@@ -490,7 +491,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                 // then display it
                 if (_uiShared.IconButton(connectedIcon))
                 {
-                    // and toggle the fullpause for the current server, save the config, and recreate the connections,
+                    // and toggle the full pause for the current server, save the config, and recreate the connections,
                     // placing it into a disconnected state due to the full pause being active. (maybe change this later)
                     _serverConfigs.CurrentServer.ToyboxFullPause = !_serverConfigs.CurrentServer.ToyboxFullPause;
                     _serverConfigs.Save();

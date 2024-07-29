@@ -158,8 +158,14 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     public void RejectInvite(RoomInviteDto roomInvite)
     {
         // remove the invite from the list of room invites.
-        _roomInvites.Remove(roomInvite);
-
+        try
+        {
+            _roomInvites.Remove(roomInvite);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error removing invite from list of invites.");
+        }
         RecreateLazy();
     }
 

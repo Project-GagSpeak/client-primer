@@ -12,6 +12,7 @@ using GagspeakAPI.Data.VibeServer;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Toybox;
 using ImGuiNET;
+using OtterGui;
 using OtterGui.Text;
 using System.Globalization;
 using System.Numerics;
@@ -157,7 +158,9 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
 
             var pos = ImGui.GetCursorScreenPos();
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Envelope, "Invites "))
+            // get disabled bool
+            bool isDisabled = !_roomManager.ClientHostingAnyRoom;
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Envelope, "Invites ", null, false, isDisabled))
             {
                 ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
                 ImGui.OpenPopup("InviteUsersToRoomPopup");
@@ -218,7 +221,20 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                 }
                 catch (Exception ex)
                 {
+                    Logger.LogError(ex, "Error creating private room.");
                     _errorMessage = ex.Message;
+                    _errorTime = DateTime.Now;
+                }
+                // if the room creation was successful, set the room creation to false.
+                if (RoomCreatedSuccessful)
+                {
+                    CreatingNewHostRoom = false;
+                    RoomCreatedSuccessful = false;
+                }
+                else
+                {
+                    // if the room creation was not successful, display the error message.
+                    _errorMessage = "Error creating private room.";
                     _errorTime = DateTime.Now;
                 }
             }
@@ -241,7 +257,6 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         {
             HostChatAlias = refString2;
         }
-        ImGui.Separator();
         using (_uiShared.UidFont.Push())
         {
             UiSharedService.ColorText("Hosted Rooms Info:", ImGuiColors.ParsedPink);
@@ -257,12 +272,6 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         if (!string.IsNullOrEmpty(_errorMessage) && (DateTime.Now - _errorTime).TotalSeconds < 3)
         {
             ImGui.TextColored(ImGuiColors.DalamudRed, _errorMessage);
-        }
-        // if the room creation was successful, set the room creation to false.
-        if (RoomCreatedSuccessful)
-        {
-            CreatingNewHostRoom = false;
-            RoomCreatedSuccessful = false;
         }
     }
 
@@ -583,12 +592,15 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             ImGui.Text("No users online to invite.");
             return;
         }
+
+        ImGuiUtil.Center("Invite Users To Room");
+        ImGui.Separator();
         // input text field for preferred chat alias
         var size = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.UserPlus, "Invite To Room");
 
         if (ImGui.BeginTable("InviteUsersToRoom", 2)) // 3 columns for hours, minutes, seconds
         {
-            ImGui.TableSetupColumn("Online User", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Private Room Namemmmmm").X);
+            ImGui.TableSetupColumn("Online User", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("MMMMMMMMMMMMMM").X);
             ImGui.TableSetupColumn("Send Invite", ImGuiTableColumnFlags.WidthFixed, size);
 
             ImGui.TableNextRow();
@@ -601,7 +613,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
             foreach (Pair pair in PairList)
             {
-                ImGui.Text(pair.GetNickname() ?? pair.UserData.AliasOrUID);
+                ImGui.TextUnformatted(pair.GetNickname() ?? pair.UserData.AliasOrUID);
                 ImGui.TableNextColumn();
                 if (_uiShared.IconTextButton(FontAwesomeIcon.UserPlus, "Invite To Room"))
                 {

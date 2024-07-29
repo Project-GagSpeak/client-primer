@@ -681,41 +681,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return ImGui.InputTextMultiline(id, ref text, maxLength, new(width ?? ImGui.GetContentRegionAvail().X, ImGui.CalcTextSize("A").Y * Math.Clamp(text.Split("\n").Length + 1, minLines, maxLines)));
     }
 
-
-    /// <summary> Fancy function that lets you edit a normally non-editable text field via a right click pop up text edit. </summary>
-    /// <param name="popupId"> the ID for the popup we'll be making </param>
-    /// <param name="text"> the text we are editing </param>
-    /// <param name="maxLength"> the max length of the text </param>
-    /// <param name="helpText"> the help text for the popup </param>
-
-    public static void EditableTextFieldWithPopup(string popupId, ref string text, uint maxLength, string helpText)
-    {
-        ImGui.TextWrapped(text);
-        if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
-            ImGui.OpenPopup(popupId); // Open the context menu
-        // open the popup if we satisfy that criteria
-        if (ImGui.BeginPopup(popupId))
-        {
-            // store our text from when we open it
-            string currentText = text;
-            var oldText = currentText;
-            // set keyboard focus to the text box
-            if (ImGui.IsWindowAppearing()) { ImGui.SetKeyboardFocusHere(0); }
-            // pompt the user to enter a new name
-            ImGui.TextUnformatted(helpText);
-            if (ImGui.InputText("##Rename", ref currentText, maxLength, ImGuiInputTextFlags.EnterReturnsTrue))
-            {
-                // if our text is updated, send the updated text to the output result as an action string
-                if (currentText != oldText)
-                    text = currentText;
-                // close the popup
-                ImGui.CloseCurrentPopup();
-            }
-            ImGui.EndPopup();
-        }
-    }
-
-
     public static Vector4 UploadColor((long, long) data) => data.Item1 == 0 ? ImGuiColors.DalamudGrey :
         data.Item1 == data.Item2 ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudYellow;
 

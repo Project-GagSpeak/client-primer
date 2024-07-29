@@ -15,7 +15,6 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     private readonly ConcurrentDictionary<string, PrivateRoom> _rooms;
     private Lazy<List<PrivateRoom>> _privateRoomsInternal;
     private readonly List<RoomInviteDto> _roomInvites;
-
     public PrivateRoomManager(ILogger<PrivateRoomManager> logger, GagspeakMediator mediator,
         PrivateRoomFactory roomFactory) : base(logger, mediator)
     {
@@ -40,6 +39,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     // Don't wanna make fancy workaround to access apicontroller from here so setting duplicate userUID location.
     public string ClientUserUID { get; private set; } = string.Empty;
     public List<PrivateRoom> AllPrivateRooms => _privateRoomsInternal.Value;
+    public List<RoomInviteDto> RoomInvites => _roomInvites;
     public string ClientHostedRoomName => _rooms.Values.FirstOrDefault(room => room.HostParticipant.User.UserUID == ClientUserUID)?.RoomName ?? string.Empty;
     public PrivateRoom? LastAddedRoom { get; private set; }
     public RoomInviteDto? LastRoomInvite { get; private set; }
@@ -91,7 +91,6 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
 
         RecreateLazy();
     }
-
 
     public void AddRoom(RoomInfoDto roomInfo)
     {
@@ -152,6 +151,14 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         _roomInvites.Add(latestRoomInvite);
         // set the last room invite to the latest invite.
         LastRoomInvite = latestRoomInvite;
+
+        RecreateLazy();
+    }
+
+    public void RejectInvite(RoomInviteDto roomInvite)
+    {
+        // remove the invite from the list of room invites.
+        _roomInvites.Remove(roomInvite);
 
         RecreateLazy();
     }

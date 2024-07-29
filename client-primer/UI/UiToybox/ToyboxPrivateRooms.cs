@@ -1,20 +1,20 @@
-using Dalamud.Interface.Colors;
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
+using GagSpeak.PlayerData.Pairs;
+using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Enum;
-using ImGuiNET;
-using System.Globalization;
-using Dalamud.Interface.Utility.Raii;
-using GagSpeak.PlayerData.PrivateRooms;
-using GagspeakAPI.Dto.Toybox;
-using Dalamud.Interface.Utility;
-using GagSpeak.GagspeakConfiguration.Models;
-using System.Numerics;
+using GagspeakAPI.Data.VibeServer;
 using GagspeakAPI.Dto.Connection;
-using System.Reflection.Metadata;
+using GagspeakAPI.Dto.Toybox;
+using ImGuiNET;
 using OtterGui.Text;
+using System.Globalization;
+using System.Numerics;
 
 namespace GagSpeak.UI.UiToybox;
 
@@ -23,19 +23,25 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
     private readonly ApiController _apiController;
     private readonly PrivateRoomManager _roomManager;
     private readonly UiSharedService _uiShared;
+    private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverConfigs;
 
-    public ToyboxPrivateRooms(ILogger<ToyboxPrivateRooms> logger, 
+    public ToyboxPrivateRooms(ILogger<ToyboxPrivateRooms> logger,
         GagspeakMediator mediator, ApiController apiController,
         PrivateRoomManager privateRoomManager, UiSharedService uiShared,
-        ServerConfigurationManager serverConfigs) : base(logger, mediator)
+        PairManager pairManager, ServerConfigurationManager serverConfigs)
+        : base(logger, mediator)
     {
         _apiController = apiController;
         _roomManager = privateRoomManager;
         _uiShared = uiShared;
+        _pairManager = pairManager;
         _serverConfigs = serverConfigs;
     }
 
+    // local accessors for the private room creation
+    private string NewHostNameRef = string.Empty;
+    private string HostChatAlias = string.Empty;
     private string _errorMessage = string.Empty;
     private DateTime _errorTime;
 
@@ -49,47 +55,53 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         // draw the connection interface
         DrawToyboxServerStatus();
 
-        // Draw the header for creating a host room
-        if(CreatingNewHostRoom)
+
+        if (_apiController.ToyboxServerState is not ServerState.Connected)
         {
-            DrawCreatingHostRoomHeader();
-            ImGui.Separator();
-            DrawNewHostRoomDisplay();
+            UiSharedService.ColorText("Must be connected to view private rooms.", ImGuiColors.DalamudRed);
         }
         else
         {
-            DrawCreateHostRoomHeader();
-            ImGui.Separator();
-            DrawPrivateRoomMenu();
-
-
-            // draw out all details about the current hosted room.
-            if (_roomManager.ClientHostingAnyRoom)
+            // Draw the header for creating a host room
+            if (CreatingNewHostRoom)
             {
-                ImGui.Text("Am I in any rooms?: " + _roomManager.ClientInAnyRoom);
-                ImGui.Text("Hosted Room Details:");
-                ImGui.Text("Room Name: " + _roomManager.ClientHostedRoomName);
-                // draw out the participants
-                var privateRoom = _roomManager.AllPrivateRooms.First(r => r.RoomName == _roomManager.ClientHostedRoomName);
-                // draw out details about this room.
-                ImGui.Text("Host UID: " + privateRoom.HostParticipant.User.UserUID);
-                ImGui.Text("Host Alias: " + privateRoom.HostParticipant.User.ChatAlias);
-                ImGui.Text("InRoom: " + privateRoom.HostParticipant.User.ActiveInRoom);
-                ImGui.Text("Allow Vibes: " + privateRoom.HostParticipant.User.VibeAccess);
-                // draw out the participants
-                ImGui.Indent();
-                foreach (var participant in privateRoom.Participants)
-                {
-                    ImGui.Text("User UID: " + participant.User.UserUID);
-                    ImGui.Text("User Alias: " + participant.User.ChatAlias);
-                    ImGui.Text("InRoom: " + participant.User.ActiveInRoom);
-                    ImGui.Text("Allow Vibes: " + participant.User.VibeAccess);
-                    ImGui.Separator();
-                }
-                ImGui.Unindent();
-
+                DrawCreatingHostRoomHeader();
+                ImGui.Separator();
+                DrawNewHostRoomDisplay();
             }
+            else
+            {
+                DrawCreateHostRoomHeader();
+                ImGui.Separator();
+                DrawPrivateRoomMenu();
 
+                // DEBUGGING
+                // draw out all details about the current hosted room.
+                if (_roomManager.ClientHostingAnyRoom)
+                {
+                    ImGui.Text("Am I in any rooms?: " + _roomManager.ClientInAnyRoom);
+                    ImGui.Text("Hosted Room Details:");
+                    ImGui.Text("Room Name: " + _roomManager.ClientHostedRoomName);
+                    // draw out the participants
+                    var privateRoom = _roomManager.AllPrivateRooms.First(r => r.RoomName == _roomManager.ClientHostedRoomName);
+                    // draw out details about this room.
+                    ImGui.Text("Host UID: " + privateRoom.HostParticipant.User.UserUID);
+                    ImGui.Text("Host Alias: " + privateRoom.HostParticipant.User.ChatAlias);
+                    ImGui.Text("InRoom: " + privateRoom.HostParticipant.User.ActiveInRoom);
+                    ImGui.Text("Allow Vibes: " + privateRoom.HostParticipant.User.VibeAccess);
+                    // draw out the participants
+                    ImGui.Indent();
+                    foreach (var participant in privateRoom.Participants)
+                    {
+                        ImGui.Text("User UID: " + participant.User.UserUID);
+                        ImGui.Text("User Alias: " + participant.User.ChatAlias);
+                        ImGui.Text("InRoom: " + participant.User.ActiveInRoom);
+                        ImGui.Text("Allow Vibes: " + participant.User.VibeAccess);
+                        ImGui.Separator();
+                    }
+                    ImGui.Unindent();
+                }
+            }
         }
     }
 
@@ -106,7 +118,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             textSize = ImGui.CalcTextSize("Host Room");
         }
         var centerYpos = (textSize.Y - iconSize.Y);
-        using (ImRaii.Child("CreateHostRoomHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + ((startYpos+centerYpos) - startYpos) * 2)))
+        using (ImRaii.Child("CreateHostRoomHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + ((startYpos + centerYpos) - startYpos) * 2)))
         {
             // set startYpos to 0
             startYpos = ImGui.GetCursorPosY();
@@ -140,14 +152,21 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             _uiShared.BigText("Host Room");
 
             // Draw the "See Invites" button on the right
-            ImGui.SameLine((ImGui.GetWindowContentRegionMax().X-ImGui.GetWindowContentRegionMin().X) 
+            ImGui.SameLine((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X)
                 - invitesSize - 10 * ImGuiHelpers.GlobalScale);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
 
+            var pos = ImGui.GetCursorScreenPos();
             if (_uiShared.IconTextButton(FontAwesomeIcon.Envelope, "Invites "))
             {
-                // Handle button click
-                Logger.LogInformation("See Invites button clicked");
+                ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
+                ImGui.OpenPopup("InviteUsersToRoomPopup");
+            }
+            // Popup
+            if (ImGui.BeginPopup("InviteUsersToRoomPopup"))
+            {
+                DrawInviteUserPopup();
+                ImGui.EndPopup();
             }
         }
     }
@@ -178,7 +197,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                 CreatingNewHostRoom = false;
             }
             UiSharedService.AttachToolTip("Exit Private Room Setup");
-            
+
             // Draw the header text
             ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(startYpos);
@@ -191,19 +210,38 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
             if (_uiShared.IconButton(FontAwesomeIcon.PowerOff))
             {
-                // Handle button click
-                Logger.LogInformation("See Invites button clicked");
+                // create the room
+                try
+                {
+                    // also log the success of the creation.
+                    RoomCreatedSuccessful = _apiController.PrivateRoomCreate(new RoomCreateDto(NewHostNameRef, HostChatAlias)).Result;
+                }
+                catch (Exception ex)
+                {
+                    _errorMessage = ex.Message;
+                    _errorTime = DateTime.Now;
+                }
             }
             UiSharedService.AttachToolTip("Startup your Private Room with the defined settings below");
         }
     }
 
-    // local accessors for the private room creation
-    public string NewHostNameRef = string.Empty;
-    public string HostChatAlias = string.Empty;
-
     private void DrawNewHostRoomDisplay()
     {
+        var refString1 = NewHostNameRef;
+        ImGui.InputTextWithHint("Room Name (ID)##HostRoomName", "Private Room Name...", ref refString1, 50);
+        if (ImGui.IsItemDeactivatedAfterEdit())
+        {
+            NewHostNameRef = refString1;
+        }
+
+        var refString2 = HostChatAlias;
+        ImGui.InputTextWithHint("Your Chat Alias##HostChatAlias", "Chat Alias...", ref refString2, 30);
+        if (ImGui.IsItemDeactivatedAfterEdit())
+        {
+            HostChatAlias = refString2;
+        }
+        ImGui.Separator();
         using (_uiShared.UidFont.Push())
         {
             UiSharedService.ColorText("Hosted Rooms Info:", ImGuiColors.ParsedPink);
@@ -215,36 +253,6 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             + Environment.NewLine + " - ONLY the host of the room can control other users vibrators."
             + Environment.NewLine + " - You can create another hosted room directly after removing the current one.");
 
-        ImGui.Separator();
-        var refString1 = NewHostNameRef;
-        ImGui.InputTextWithHint("Room Name (ID)##HostRoomName", "Private Room Name...", ref refString1, 50);
-        if(ImGui.IsItemDeactivatedAfterEdit())
-        {
-            NewHostNameRef = refString1;
-        }
-
-        var refString2 = HostChatAlias;
-        ImGui.InputTextWithHint("Your Chat Alias##HostChatAlias", "Chat Alias...", ref refString2, 30);
-        if (ImGui.IsItemDeactivatedAfterEdit())
-        {
-            HostChatAlias = refString2;
-        }
-
-        // the button to create the room.
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Create Private Room"))
-        {
-            // create the room
-            try
-            {
-                // also log the success of the creation.
-                RoomCreatedSuccessful = _apiController.PrivateRoomCreate(new RoomCreateDto(NewHostNameRef, HostChatAlias)).Result;
-            }
-            catch (Exception ex)
-            {
-                _errorMessage = ex.Message;
-                _errorTime = DateTime.Now;
-            }
-        }
         // if there is an error message, display it
         if (!string.IsNullOrEmpty(_errorMessage) && (DateTime.Now - _errorTime).TotalSeconds < 3)
         {
@@ -268,7 +276,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         }
 
         // if the size of the list is different than the size of the rooms in the room manager, recreate list
-        if(JoinRoomItemsHovered.Count != _roomManager.AllPrivateRooms.Count-1)
+        if (JoinRoomItemsHovered.Count != _roomManager.AllPrivateRooms.Count - 1)
         {
             JoinRoomItemsHovered = new List<bool>(_roomManager.AllPrivateRooms.Count);
             for (int i = 0; i < _roomManager.AllPrivateRooms.Count; i++)
@@ -321,7 +329,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         var participantAliasListSize = ImGui.CalcTextSize(privateRoomRef.GetParticipantList());
 
         using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), (isHostedRoom ? HostPrivateRoomHovered : JoinRoomItemsHovered[idx]));
-        using (ImRaii.Child($"##PreviewPrivateRoom{roomName}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetStyle().ItemSpacing.Y*2 + ImGui.GetFrameHeight()*2)))
+        using (ImRaii.Child($"##PreviewPrivateRoom{roomName}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetStyle().ItemSpacing.Y * 2 + ImGui.GetFrameHeight() * 2)))
         {
             // create a group for the bounding area
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetStyle().ItemSpacing.Y);
@@ -348,33 +356,12 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
             }
 
-            // this is cancer, but they deprecated the ContentRegionWidth, so what can ya do lol.
-            if(isHostedRoom)
-            {
-                ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() 
-                    - joinedState.X*2 - ImGui.GetStyle().ItemSpacing.X*2);
-
-                /*
-                 * Draw a icon text button here to invite other users,
-                 * when you click this, a popup will expand. This should then display a list similar to how the wardrobe editor
-                 * displays its users via a filter of online users, except instead create an additional folder listing for pairs
-                 * that have ToyboxOnline set to true. You should be able to make use of its display online or nick to filter the
-                 * name display to not be like normal drawUserPair listings, so we can create our own custom listing.
-                 * 
-                 * Once this is done, accepted invites can go into the invites button. This buttons popups should display a mini 
-                 * window allowing people to accept certain invites!
-                 * 
-                 */
-            }
-            else
-            {
-                ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() 
-                    - joinedState.X - ImGui.GetStyle().ItemSpacing.X);
-            }
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()
+                - joinedState.X - ImGui.GetStyle().ItemSpacing.X);
 
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (ImGui.GetFrameHeight() / 2));
             // draw out the icon button
-            if (_uiShared.IconButton(privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID) 
+            if (_uiShared.IconButton(privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID)
                 ? FontAwesomeIcon.DoorOpen : FontAwesomeIcon.DoorClosed))
             {
                 try
@@ -385,7 +372,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                         // leave the room
                         _apiController.PrivateRoomLeave(new RoomParticipantDto
                             (privateRoomRef.GetParticipant(_roomManager.ClientUserUID).User, roomName)).ConfigureAwait(false);
-                    
+
                     }
                     else
                     {
@@ -437,15 +424,16 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
     /* ---------------- Server Status Header Shit --------------------- */
     private void DrawToyboxServerStatus()
     {
+        var windowPadding = ImGui.GetStyle().WindowPadding;
         var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
         var userCount = _apiController.ToyboxOnlineUsers.ToString(CultureInfo.InvariantCulture);
         var userSize = ImGui.CalcTextSize(userCount);
         var textSize = ImGui.CalcTextSize("Toybox Users Online");
 
-        string shardConnection = $"GagSpeak Toybox Server";
+        string toyboxConnection = $"GagSpeak Toybox Server";
 
-        var shardTextSize = ImGui.CalcTextSize(shardConnection);
-        var printShard = shardConnection != string.Empty;
+        var serverTextSize = ImGui.CalcTextSize(toyboxConnection);
+        var printServer = toyboxConnection != string.Empty;
 
         // if the server is connected, then we should display the server info
         if (_apiController.ToyboxServerState is ServerState.Connected)
@@ -467,8 +455,8 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         }
 
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y);
-        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - shardTextSize.X / 2);
-        ImGui.TextUnformatted(shardConnection);
+        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - serverTextSize.X / 2);
+        ImGui.TextUnformatted(toyboxConnection);
         ImGui.SameLine();
 
         // now we need to display the connection link button beside it.
@@ -476,10 +464,10 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         var connectedIcon = !_serverConfigs.CurrentServer.ToyboxFullPause ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
 
         ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
-        if (printShard)
+        if (printServer)
         {
             // unsure what this is doing but we can find out lol
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + shardTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + serverTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
         }
 
         // if the server is reconnecting or disconnecting
@@ -503,7 +491,125 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                 ? "Disconnect from Toybox Server" : "Connect to ToyboxServer");
         }
 
+        // go back to the far left, at the same height, and draw another button.
+        var invitesOpenIcon = FontAwesomeIcon.Envelope;
+        var invitesIconSize = _uiShared.GetIconButtonSize(invitesOpenIcon);
+
+        ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + windowPadding.X);
+        if (printServer)
+        {
+            // unsure what this is doing but we can find out lol
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + serverTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
+        }
+
+        var pos = ImGui.GetCursorScreenPos();
+        if (_uiShared.IconButton(invitesOpenIcon, ImGui.GetFrameHeight()))
+        {
+            ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
+            ImGui.OpenPopup("InviteViewPopup");
+        }
+        // Popup
+        if (ImGui.BeginPopup("InviteViewPopup"))
+        {
+            DrawViewInvitesPopup();
+            ImGui.EndPopup();
+        }
+
+
         // draw out the vertical slider.
         ImGui.Separator();
+    }
+
+    private string PreferredChatAlias = string.Empty;
+    private void DrawViewInvitesPopup()
+    {
+        // if we have no invites, simply display that we have no invites.
+        if (_roomManager.RoomInvites.Count == 0)
+        {
+            ImGui.Text("No invites available.");
+            return;
+        }
+
+        var aliasRef = PreferredChatAlias;
+        if (ImGui.InputTextWithHint("##PreferredChatAlias", "Preferred Chat Alias on Join...", ref aliasRef, 24))
+        {
+            PreferredChatAlias = aliasRef;
+        }
+        ImGui.Separator();
+
+        // input text field for preferred chat alias
+        var size = _uiShared.GetIconButtonSize(FontAwesomeIcon.Check);
+
+        if (ImGui.BeginTable("InvitationsList", 3))
+        {
+            ImGui.TableSetupColumn("Private Room Name", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Private Room Namemmmmm").X);
+            ImGui.TableSetupColumn("Invited By", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Invited Bymmmmm").X);
+            ImGui.TableSetupColumn("Join?", ImGuiTableColumnFlags.WidthFixed, size.X * 2);
+
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
+
+            // draw out the invites
+            foreach (var roomInvite in _roomManager.RoomInvites)
+            {
+                ImGui.Text(roomInvite.RoomName);
+                ImGui.TableNextColumn();
+                ImGui.Text(roomInvite.UserInvited.AliasOrUID);
+                ImGui.TableNextColumn();
+                if (_uiShared.IconButton(FontAwesomeIcon.Check))
+                {
+                    // compile the new private room user.
+                    var newUser = new PrivateRoomUser { UserUID = _roomManager.ClientUserUID, ChatAlias = PreferredChatAlias };
+                    // join the room
+                    _apiController.PrivateRoomJoin(new RoomParticipantDto(newUser, roomInvite.RoomName)).ConfigureAwait(false);
+                }
+                // draw another iconbutton X that will remove the invite listing from the list
+                ImGui.SameLine();
+                if (_uiShared.IconButton(FontAwesomeIcon.Times))
+                {
+                    _roomManager.RejectInvite(roomInvite);
+                }
+            }
+            ImGui.EndTable();
+        }
+
+    }
+
+    private void DrawInviteUserPopup()
+    {
+        // if no users are online to invite, display none
+        if (_pairManager.GetOnlineToyboxUsers().Count == 0)
+        {
+            ImGui.Text("No users online to invite.");
+            return;
+        }
+        // input text field for preferred chat alias
+        var size = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.UserPlus, "Invite To Room");
+
+        if (ImGui.BeginTable("InviteUsersToRoom", 2)) // 3 columns for hours, minutes, seconds
+        {
+            ImGui.TableSetupColumn("Online User", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Private Room Namemmmmm").X);
+            ImGui.TableSetupColumn("Send Invite", ImGuiTableColumnFlags.WidthFixed, size);
+
+            ImGui.TableNextRow();
+            ImGui.TableNextColumn();
+
+            // draw out the list of online toybox users.
+            var PairList = _pairManager.GetOnlineToyboxUsers()
+                .Where(pair => (pair.GetNickname() != null))
+                .OrderBy(p => p.GetNickname() ?? p.UserData.AliasOrUID, StringComparer.OrdinalIgnoreCase);
+
+            foreach (Pair pair in PairList)
+            {
+                ImGui.Text(pair.GetNickname() ?? pair.UserData.AliasOrUID);
+                ImGui.TableNextColumn();
+                if (_uiShared.IconTextButton(FontAwesomeIcon.UserPlus, "Invite To Room"))
+                {
+                    // invite the user to the room
+                    _apiController.PrivateRoomInviteUser(new RoomInviteDto(pair.UserData, _roomManager.ClientHostedRoomName)).ConfigureAwait(false);
+                }
+            }
+            ImGui.EndTable();
+        }
     }
 }

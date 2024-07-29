@@ -321,12 +321,6 @@ public class ToyboxAlarmManager
                     hour = (hour - (int)ImGui.GetIO().MouseWheel + 24) % 24;
                     var newLocalTime = new DateTime(localTime.Year, localTime.Month, localTime.Day, hour, localTime.Minute, 0);
                     alarmToCreate.SetTimeUTC = new DateTimeOffset(newLocalTime, TimeZoneInfo.Local.GetUtcOffset(newLocalTime)).ToUniversalTime();
-
-                    /*hour -= (int)ImGui.GetIO().MouseWheel;
-                    hour = (hour + 24) % 24;  // hour = Math.Clamp(hour, 0, 23); <-- If we need to clamp.
-                    alarmToCreate.SetTimeUTC = new DateTimeOffset(
-                        alarmToCreate.SetTimeUTC.Year, alarmToCreate.SetTimeUTC.Month, alarmToCreate.SetTimeUTC.Day,
-                        hour, alarmToCreate.SetTimeUTC.Minute, 0, alarmToCreate.SetTimeUTC.Offset);*/
                 }
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (hourTextSize.X - ImGui.CalcTextSize(prevHour).X) / 2);
@@ -354,12 +348,6 @@ public class ToyboxAlarmManager
                     minute = (minute - (int)ImGui.GetIO().MouseWheel + 60) % 60;
                     var newLocalTime = new DateTime(localTime.Year, localTime.Month, localTime.Day, localTime.Hour, minute, 0);
                     alarmToCreate.SetTimeUTC = new DateTimeOffset(newLocalTime, TimeZoneInfo.Local.GetUtcOffset(newLocalTime)).ToUniversalTime();
-
-                    /*minute -= (int)ImGui.GetIO().MouseWheel;
-                    minute = (minute + 60) % 60; // minute = Math.Clamp(minute, 0, 59); <-- If we need to clamp.
-                    alarmToCreate.SetTimeUTC = new DateTimeOffset(
-                        alarmToCreate.SetTimeUTC.Year, alarmToCreate.SetTimeUTC.Month, alarmToCreate.SetTimeUTC.Day,
-                        alarmToCreate.SetTimeUTC.Hour, minute, 0, alarmToCreate.SetTimeUTC.Offset);*/
                 }
 
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (minuteTextSize.X - ImGui.CalcTextSize(nextMinute).X) / 2);

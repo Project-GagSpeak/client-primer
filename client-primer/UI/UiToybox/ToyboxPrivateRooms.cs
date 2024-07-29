@@ -3,6 +3,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.Services.ConfigurationServices;
@@ -75,7 +76,21 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             {
                 DrawCreateHostRoomHeader();
                 ImGui.Separator();
-                DrawPrivateRoomMenu();
+
+                // see if the manager has any rooms at all to display
+                if (_roomManager.AllPrivateRooms.Count == 0 || _roomManager.ClientUserUID.IsNullOrEmpty())
+                {
+                    ImGui.Text("No private rooms available.");
+                    return;
+                }
+                else
+                {
+                    // before we draw out the private room listings, we will need to update attribute states.
+                    UpdateAttributeStates();
+
+                    // Draw the private room menu
+                    DrawPrivateRoomMenu();
+                }
 
                 // DEBUGGING
                 // draw out all details about the current hosted room.
@@ -106,6 +121,21 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             }
         }
     }
+
+    private void UpdateAttributeStates()
+    {
+        // see if we are currently hosting a room
+        bool hostingRoom = _roomManager.ClientHostingAnyRoom;
+        // get the size that our hovered items should be
+        int SizeHoveredItemsShouldBe = hostingRoom ? _roomManager.AllPrivateRooms.Count : _roomManager.AllPrivateRooms.Count - 1;
+        
+        // if the size is not the size that it should be, we need to rescale the items hovered list to the new size.
+        if (JoinRoomItemsHovered.Count != SizeHoveredItemsShouldBe)
+        {
+            JoinRoomItemsHovered = new List<bool>(Enumerable.Repeat(false, SizeHoveredItemsShouldBe));
+        }
+    }
+
 
     private void DrawCreateHostRoomHeader()
     {
@@ -278,30 +308,11 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
     private void DrawPrivateRoomMenu()
     {
-        // see if the manager has any rooms at all to display
-        if (_roomManager.AllPrivateRooms.Count == 0 || _roomManager.ClientUserUID.IsNullOrEmpty())
-        {
-            ImGui.Text("No private rooms available.");
-            return;
-        }
-
-        // if the size of the list is different than the size of the rooms in the room manager, recreate list
-        if (JoinRoomItemsHovered.Count != _roomManager.AllPrivateRooms.Count - 1)
-        {
-            JoinRoomItemsHovered = new List<bool>(_roomManager.AllPrivateRooms.Count);
-            for (int i = 0; i < _roomManager.AllPrivateRooms.Count; i++)
-            {
-                JoinRoomItemsHovered.Clear();
-                JoinRoomItemsHovered.AddRange(Enumerable.Repeat(false, _roomManager.AllPrivateRooms.Count));
-            }
-        }
-
         // Display error message if it has been less than 3 seconds since the error occurred
         if (!string.IsNullOrEmpty(_errorMessage) && (DateTime.Now - _errorTime).TotalSeconds < 3)
-        {
             ImGui.TextColored(ImGuiColors.DalamudRed, _errorMessage);
-        }
 
+        // try and grab the hosted room.
         var hostedRoom = _roomManager.AllPrivateRooms.FirstOrDefault(r => r.RoomName == _roomManager.ClientHostedRoomName);
         // If currently hosting a room, draw the hosted room first
         if (_roomManager.ClientHostingAnyRoom && hostedRoom != null)

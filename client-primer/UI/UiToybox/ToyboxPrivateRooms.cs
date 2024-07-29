@@ -500,25 +500,26 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             // attach the tooltip for the connection / disconnection button)
             UiSharedService.AttachToolTip(!_serverConfigs.CurrentServer.ToyboxFullPause
                 ? "Disconnect from Toybox Server" : "Connect to ToyboxServer");
+
+            // go back to the far left, at the same height, and draw another button.
+            var invitesOpenIcon = FontAwesomeIcon.Envelope;
+            var invitesIconSize = _uiShared.GetIconButtonSize(invitesOpenIcon);
+
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + windowPadding.X);
+            if (printServer)
+            {
+                // unsure what this is doing but we can find out lol
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + serverTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
+            }
+
+            var pos = ImGui.GetCursorScreenPos();
+            if (_uiShared.IconButton(invitesOpenIcon, ImGui.GetFrameHeight()))
+            {
+                ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
+                ImGui.OpenPopup("InviteViewPopup");
+            }
         }
 
-        // go back to the far left, at the same height, and draw another button.
-        var invitesOpenIcon = FontAwesomeIcon.Envelope;
-        var invitesIconSize = _uiShared.GetIconButtonSize(invitesOpenIcon);
-
-        ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + windowPadding.X);
-        if (printServer)
-        {
-            // unsure what this is doing but we can find out lol
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + serverTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
-        }
-
-        var pos = ImGui.GetCursorScreenPos();
-        if (_uiShared.IconButton(invitesOpenIcon, ImGui.GetFrameHeight()))
-        {
-            ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
-            ImGui.OpenPopup("InviteViewPopup");
-        }
         // Popup
         if (ImGui.BeginPopup("InviteViewPopup"))
         {

@@ -83,6 +83,7 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
             // apply the last received data to the participant.
             _participants[newUser.UserUID].User = newUser;
         }
+        RecreateLazy();
     }
 
     // marks the room as inactive, clearing any cached data while still

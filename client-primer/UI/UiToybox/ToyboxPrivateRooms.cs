@@ -127,13 +127,16 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         // see if we are currently hosting a room
         bool hostingRoom = _roomManager.ClientHostingAnyRoom;
         // get the size that our hovered items should be
-        int SizeHoveredItemsShouldBe = hostingRoom ? _roomManager.AllPrivateRooms.Count : _roomManager.AllPrivateRooms.Count - 1;
+        int SizeHoveredItemsShouldBe = hostingRoom ? _roomManager.AllPrivateRooms.Count - 1 : _roomManager.AllPrivateRooms.Count;
         
         // if the size is not the size that it should be, we need to rescale the items hovered list to the new size.
         if (JoinRoomItemsHovered.Count != SizeHoveredItemsShouldBe)
         {
             JoinRoomItemsHovered = new List<bool>(Enumerable.Repeat(false, SizeHoveredItemsShouldBe));
         }
+
+        // log the sizes
+        // DEBUG Logger.LogTrace("JoinRoomItemsHovered Size {size} - Non-HostedRooms Size {nonHostedSize}", JoinRoomItemsHovered.Count, _roomManager.AllPrivateRooms.Count);
     }
 
 
@@ -332,116 +335,124 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 
     private void DrawPrivateRoomSelectable(PrivateRoom privateRoomRef, bool isHostedRoom, int idx = -1)
     {
-        // define our sizes
-        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
-
-        // grab the room name.
-        string roomType = isHostedRoom ? "[Hosted]" : "[Joined]";
-        string roomName = privateRoomRef.RoomName;
-        string participantsCountText = "[" + privateRoomRef.GetActiveParticipants() + "/" + privateRoomRef.Participants.Count + " Active]";
-
-        // draw startposition in Y
-        var startYpos = ImGui.GetCursorPosY();
-        var joinedState = _uiShared.GetIconButtonSize(privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID)
-            ? FontAwesomeIcon.DoorOpen : FontAwesomeIcon.DoorClosed);
-        var roomTypeTextSize = ImGui.CalcTextSize(roomType);
-        var roomNameTextSize = ImGui.CalcTextSize(roomName);
-        var totalParticipantsTextSize = ImGui.CalcTextSize(participantsCountText);
-        var participantAliasListSize = ImGui.CalcTextSize(privateRoomRef.GetParticipantList());
-
-        Logger.LogTrace("IDX {idx} - RoomName {roomName} - RoomType {roomType} - ClientUID {uid}", idx, roomName, roomType, _roomManager.ClientUserUID);
-        Logger.LogTrace("JoinRoomItemsHovered Size {size} - Non-HostedRooms Size {nonHostedSize}", JoinRoomItemsHovered.Count, _roomManager.AllPrivateRooms.Count);
-        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), (isHostedRoom ? HostPrivateRoomHovered : JoinRoomItemsHovered[idx]));
-        using (ImRaii.Child($"##PreviewPrivateRoom{roomName}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetStyle().ItemSpacing.Y * 2 + ImGui.GetFrameHeight() * 2)))
+        try
         {
-            // create a group for the bounding area
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetStyle().ItemSpacing.Y);
-            using (var group = ImRaii.Group())
+            // define our sizes
+            using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
+
+            // grab the room name.
+            string roomType = isHostedRoom ? "[Hosted]" : "[Joined]";
+            string roomName = privateRoomRef.RoomName;
+            string participantsCountText = "[" + privateRoomRef.GetActiveParticipants() + "/" + privateRoomRef.Participants.Count + " Active]";
+
+            // draw startposition in Y
+            var startYpos = ImGui.GetCursorPosY();
+            var joinedState = _uiShared.GetIconButtonSize(privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID)
+                ? FontAwesomeIcon.DoorOpen : FontAwesomeIcon.DoorClosed);
+            var roomTypeTextSize = ImGui.CalcTextSize(roomType);
+            var roomNameTextSize = ImGui.CalcTextSize(roomName);
+            var totalParticipantsTextSize = ImGui.CalcTextSize(participantsCountText);
+            var participantAliasListSize = ImGui.CalcTextSize(privateRoomRef.GetParticipantList());
+
+            // DEBUG Logger.LogTrace("IDX {idx} - RoomName {roomName} - RoomType {roomType} - ClientUID {uid}", idx, roomName, roomType, _roomManager.ClientUserUID);
+            // DEBUG Logger.LogTrace("JoinRoomItemsHovered Size {size} - Non-HostedRooms Size {nonHostedSize}", JoinRoomItemsHovered.Count, _roomManager.AllPrivateRooms.Count);
+            using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), (isHostedRoom ? HostPrivateRoomHovered : JoinRoomItemsHovered[idx]));
+            using (ImRaii.Child($"##PreviewPrivateRoom{roomName}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetStyle().ItemSpacing.Y * 2 + ImGui.GetFrameHeight() * 2)))
             {
-                // scooch over a bit like 5f
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
-                // display the type.
-                UiSharedService.ColorText(roomType, ImGuiColors.DalamudYellow);
-                ImUtf8.SameLineInner();
-                // display the room name
-                ImGui.Text(roomName);
-            }
-
-            // now draw the lower section out.
-            using (var group = ImRaii.Group())
-            {
-                // scooch over a bit like 5f
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
-                // display the participants count
-                UiSharedService.ColorText(participantsCountText, ImGuiColors.DalamudGrey2);
-                ImUtf8.SameLineInner();
-                UiSharedService.ColorText(privateRoomRef.GetParticipantList(), ImGuiColors.DalamudGrey3);
-
-            }
-
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()
-                - joinedState.X - ImGui.GetStyle().ItemSpacing.X);
-
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (ImGui.GetFrameHeight() / 2));
-            // draw out the icon button
-            if (_uiShared.IconButton(privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID)
-                ? FontAwesomeIcon.DoorOpen : FontAwesomeIcon.DoorClosed))
-            {
-                try
+                // create a group for the bounding area
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetStyle().ItemSpacing.Y);
+                using (var group = ImRaii.Group())
                 {
-                    // set the enabled state of the alarm based on its current state so that we toggle it
-                    if (privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID))
-                    {
-                        // leave the room
-                        _apiController.PrivateRoomLeave(new RoomParticipantDto
-                            (privateRoomRef.GetParticipant(_roomManager.ClientUserUID).User, roomName)).ConfigureAwait(false);
-
-                    }
-                    else
-                    {
-                        // join the room
-                        _apiController.PrivateRoomJoin(new RoomParticipantDto
-                            (privateRoomRef.GetParticipant(_roomManager.ClientUserUID).User, roomName)).ConfigureAwait(false);
-                    }
-                    // toggle the state & early return so we don't access the child clicked button
-                    return;
+                    // scooch over a bit like 5f
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
+                    // display the type.
+                    UiSharedService.ColorText(roomType, ImGuiColors.DalamudYellow);
+                    ImUtf8.SameLineInner();
+                    // display the room name
+                    ImGui.Text(roomName);
                 }
-                catch (Exception ex)
+
+                // now draw the lower section out.
+                using (var group = ImRaii.Group())
                 {
-                    _errorMessage = ex.Message;
-                    _errorTime = DateTime.Now;
-                }
-            }
-            UiSharedService.AttachToolTip(privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID)
-                ? "Leave Room" : "Join Room");
+                    // scooch over a bit like 5f
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
+                    // display the participants count
+                    UiSharedService.ColorText(participantsCountText, ImGuiColors.DalamudGrey2);
+                    ImUtf8.SameLineInner();
+                    UiSharedService.ColorText(privateRoomRef.GetParticipantList(), ImGuiColors.DalamudGrey3);
 
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetStyle().ItemSpacing.Y);
-        }
-        // Check if the item is hovered and assign the hover state correctly
-        if (isHostedRoom)
-        {
-            HostPrivateRoomHovered = ImGui.IsItemHovered();
-        }
-        else
-        {
-            JoinRoomItemsHovered[idx] = ImGui.IsItemHovered();
-        }
-        // action on clicky.
-        if (ImGui.IsItemClicked())
-        {
-            // if we are currently joined in the private room, we can open the instanced remote.
-            if (privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID))
+                }
+
+                ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()
+                    - joinedState.X - ImGui.GetStyle().ItemSpacing.X);
+
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (ImGui.GetFrameHeight() / 2));
+                // draw out the icon button
+                if (_uiShared.IconButton(privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID)
+                    ? FontAwesomeIcon.DoorOpen : FontAwesomeIcon.DoorClosed))
+                {
+                    try
+                    {
+                        // set the enabled state of the alarm based on its current state so that we toggle it
+                        if (privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID))
+                        {
+                            // leave the room
+                            _apiController.PrivateRoomLeave(new RoomParticipantDto
+                                (privateRoomRef.GetParticipant(_roomManager.ClientUserUID).User, roomName)).ConfigureAwait(false);
+
+                        }
+                        else
+                        {
+                            // join the room
+                            _apiController.PrivateRoomJoin(new RoomParticipantDto
+                                (privateRoomRef.GetParticipant(_roomManager.ClientUserUID).User, roomName)).ConfigureAwait(false);
+                        }
+                        // toggle the state & early return so we don't access the child clicked button
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        _errorMessage = ex.Message;
+                        _errorTime = DateTime.Now;
+                    }
+                }
+                UiSharedService.AttachToolTip(privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID)
+                    ? "Leave Room" : "Join Room");
+
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetStyle().ItemSpacing.Y);
+            }
+            // Check if the item is hovered and assign the hover state correctly
+            if (isHostedRoom)
             {
-                // open the respective rooms remote.
-                Mediator.Publish(new OpenPrivateRoomRemote(privateRoomRef));
+                HostPrivateRoomHovered = ImGui.IsItemHovered();
             }
             else
             {
-                // toggle the additional options display.
-                Logger.LogInformation("You must be joined into the room to open the interface.");
+                JoinRoomItemsHovered[idx] = ImGui.IsItemHovered();
             }
+            // action on clicky.
+            if (ImGui.IsItemClicked())
+            {
+                // if we are currently joined in the private room, we can open the instanced remote.
+                if (privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID))
+                {
+                    // open the respective rooms remote.
+                    Mediator.Publish(new OpenPrivateRoomRemote(privateRoomRef));
+                }
+                else
+                {
+                    // toggle the additional options display.
+                    Logger.LogInformation("You must be joined into the room to open the interface.");
+                }
+            }
+            ImGui.Separator();
         }
-        ImGui.Separator();
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error drawing private room.");
+        }
+        
     }
 
     /* ---------------- Server Status Header Shit --------------------- */

@@ -125,8 +125,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public uint WorldId => _frameworkUtil.GetHomeWorldId(); // the homeworld ID of the current player
     public bool UseTheme => _useTheme;
     public string SearchFilter { get; set; } = ""; // the search filter used in whitelist. Stored here to ensure the tab menu can clear it upon switching tabs.
-
-
+    public Vector2 LastMainUIWindowPosition { get; set; } = Vector2.Zero;
+    public Vector2 LastMainUIWindowSize { get; set; } = Vector2.Zero;
 
     /// <summary> 
     /// A helper function to attach a tooltip to a section in the UI currently hovered. 
@@ -722,7 +722,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         FontText(text, UidFont, color);
     }
 
-    public void BooleanToColoredIcon(bool value, bool inline = true)
+    public void BooleanToColoredIcon(bool value, bool inline = true, 
+        FontAwesomeIcon trueIcon = FontAwesomeIcon.Check, FontAwesomeIcon falseIcon = FontAwesomeIcon.Times)
     {
         using var colorgreen = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.HealerGreen, value);
         using var colorred = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed, !value);
@@ -731,11 +732,11 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         if (value)
         {
-            IconText(FontAwesomeIcon.Check);
+            IconText(trueIcon);
         }
         else
         {
-            IconText(FontAwesomeIcon.Times);
+            IconText(falseIcon);
         }
     }
 

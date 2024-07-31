@@ -721,7 +721,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             OnUserReceiveCharacterDataAppearance(dto => _ = Client_UserReceiveCharacterDataAppearance(dto));
             OnUserReceiveCharacterDataWardrobe(dto => _ = Client_UserReceiveCharacterDataWardrobe(dto));
             OnUserReceiveCharacterDataAlias(dto => _ = Client_UserReceiveCharacterDataAlias(dto));
-            OnUserReceiveCharacterDataPattern(dto => _ = Client_UserReceiveCharacterDataPattern(dto));
+            OnUserReceiveCharacterDataPattern(dto => _ = Client_UserReceiveCharacterDataToybox(dto));
 
             OnUserSendOffline(dto => _ = Client_UserSendOffline(dto));
             OnUserSendOnline(dto => _ = Client_UserSendOnline(dto));

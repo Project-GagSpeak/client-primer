@@ -2,91 +2,73 @@ using Dalamud.Interface.Utility;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI.Handlers;
 using GagSpeak.WebAPI;
 using ImGuiNET;
 using System.Numerics;
 
 namespace GagSpeak.UI.Permissions;
-/// <summary>
-/// Normally, to update window positions, we would use event handling, but we make an exception here.
-/// <para>
-/// The exception is when we call the event too frequently, while it will follow, it will "lag behind" 
-/// like a slow mouse on an old computer. To fix this, we will inject the window directly into ImGui.Begin
-/// </para>
-/// </summary>
-public partial class UserPairPermsSticky : DisposableMediatorSubscriberBase
-{
-    public Pair UserPairForPerms; // the user pair we are drawing the sticky permissions for.
 
-    private readonly PlayerCharacterManager _playerCharacterManager;
-    private readonly UiSharedService _uiSharedService;
+public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
+{
+    private readonly PlayerCharacterManager _playerManager;
+    protected readonly IdDisplayHandler _displayHandler;
+    private readonly UiSharedService _uiShared;
     private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
-    private readonly ILogger<UserPairPermsSticky> _logger;
 
-    public StickyWindowType DrawType = StickyWindowType.None; // determines if we draw the pair permissions, or the clients perms for the pair.
+    public enum PermissionType { Global, UniquePairPerm, UniquePairPermEditAccess };
 
-    public UserPairPermsSticky(ILogger<UserPairPermsSticky> logger, PlayerCharacterManager pcManager,
-        GagspeakMediator mediator, UiSharedService uiSharedService, ApiController apiController,
-        PairManager configService) : base(logger, mediator)
+    public UserPairPermsSticky(ILogger<UserPairPermsSticky> logger,
+        GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
+        PlayerCharacterManager pcManager, IdDisplayHandler displayHandler,
+        UiSharedService uiSharedService, ApiController apiController, 
+        PairManager configService) : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
     {
-        _playerCharacterManager = pcManager; // define our services
-        _uiSharedService = uiSharedService; // define our services
+        _playerManager = pcManager; // define our services
+        _uiShared = uiSharedService; // define our services
         _apiController = apiController;
         _pairManager = configService;
-        _logger = logger;
+
+        UserPairForPerms = pairToDrawFor; // set the pair we're drawing for
+        DrawType = drawType; // set the type of window we're drawing
+
+        Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar
+        | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar;
+
+        IsOpen = true; // open the window
+
     }
 
-    /// <summary>
-    /// This call insures that we are drawing this additional window inside the context of the current parent window (the user pair for now)
-    /// <para>
-    /// Subscribing to compact UI change is a good idea, but the mediator will not update the window as fast as if we did it manually, so
-    /// we have to compensate for this special case.
-    /// </para>
-    /// </summary>
-    public void DrawSticky()
-    {
-        // Set the window flags
-        var flags = ImGuiWindowFlags.NoCollapse
-            | ImGuiWindowFlags.NoTitleBar
-            | ImGuiWindowFlags.NoResize
-            | ImGuiWindowFlags.NoScrollbar;
+    public override void OnClose() => Mediator.Publish(new RemoveWindowMessage(this)); // remove window on close.
 
-        // Set position to the right of the main window when attached
-        // The downwards offset is implicit through child position.
-        if (true)
-        {
-            var position = ImGui.GetWindowPos();
-            position.X += ImGui.GetWindowSize().X;
-            position.Y += ImGui.GetFrameHeightWithSpacing();
-            ImGui.SetNextWindowPos(position);
-            flags |= ImGuiWindowFlags.NoMove;
-        }
+    public Pair UserPairForPerms { get; init; } // pair we're drawing the sticky permissions for.
+    public StickyWindowType DrawType = StickyWindowType.None; // type of window drawn.
+    public float WindowMenuWidth { get; private set; } = -1; // width of the window menu.
+    public float IconButtonTextWidth => WindowMenuWidth - ImGui.GetFrameHeightWithSpacing();
+    public string PairNickOrAliasOrUID => UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID;
+    public bool InteractionSuccessful { get; private set; } = true;// set to true every time an interaction is successfully made.
+                                                                   // Will display a banner at the top for 3 seconds for user feedback.
+
+    protected override void PreDrawInternal()
+    {
+        var position = _uiShared.LastMainUIWindowPosition;
+        position.X += _uiShared.LastMainUIWindowSize.X;
+        position.Y += ImGui.GetFrameHeightWithSpacing();
+        ImGui.SetNextWindowPos(position);
+
+        Flags |= ImGuiWindowFlags.NoMove;
 
         var size = new Vector2(7 * ImGui.GetFrameHeight() + 3 * ImGui.GetStyle().ItemInnerSpacing.X + 100 * ImGuiHelpers.GlobalScale,
-            ImGui.GetWindowSize().Y - ImGui.GetFrameHeightWithSpacing() * 2);
-        ImGui.SetNextWindowSize(size);
+            _uiShared.LastMainUIWindowSize.Y - ImGui.GetFrameHeightWithSpacing() * 2);
 
-        bool isFocused = false;
-        var window = ImGui.Begin("###PairPermissionStickyUI" + (UserPairForPerms.UserPair.User.AliasOrUID), flags);
-        try
-        {
-            if (window)
-            {
-                isFocused = ImGui.IsWindowFocused();
-                DrawContent(UserPairForPerms);
-            }
-        }
-        finally
-        {
-            ImGui.End();
-        }
+        ImGui.SetNextWindowSize(size);
     }
 
-    private void DrawContent(Pair userPairToDrawPermsFor)
+    protected override void DrawInternal()
     {
-        var style = ImGui.GetStyle();
-        var indentSize = ImGui.GetFrameHeight() + style.ItemSpacing.X;
+        // fetch the width
+        WindowMenuWidth = ImGui.GetContentRegionAvail().X;
 
         ImGuiHelpers.ScaledDummy(1f);
 
@@ -101,9 +83,16 @@ public partial class UserPairPermsSticky : DisposableMediatorSubscriberBase
             // draw clients permission edit access page
             DrawClientPermsForPair();
         }
-        else
+        else if (DrawType == StickyWindowType.PairActionFunctions)
+        {
+            // draw the pair action functions
+            DrawPairActionFunctions();
+        }
+        else if (DrawType == StickyWindowType.None)
         {
             // Occurs when draw type is set to None
         }
     }
+
+    protected override void PostDrawInternal() { }
 }

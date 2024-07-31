@@ -177,6 +177,11 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         return _clientConfigs.GetRestraintSet(index);
     }
 
+    public int GetRestraintSetIndexByName(string setName)
+    {
+        return _clientConfigs.GetRestraintSetIdxByName(setName);
+    }
+
     // update set
     public void UpdateRestraintSet(int index, RestraintSet set)
     {

@@ -28,19 +28,17 @@ using GagSpeak.GagspeakConfiguration.Configurations;
 namespace GagSpeak.UI.MainWindow;
 
 // this can easily become the "contact list" tab of the "main UI" window.
-public partial class MainWindowUI : WindowMediatorSubscriberBase
+public class MainWindowUI : WindowMediatorSubscriberBase
 {
-    private readonly UiSharedService _uiSharedService;
+    private readonly UiSharedService _uiShared;
     private readonly ApiController _apiController;
     private readonly GagspeakConfigService _configService;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverManager;
     private readonly MainTabMenu _tabMenu;
-    private readonly UserPairPermsSticky _userPairPermissionsSticky;
-    private readonly UserPairListHandler _userPairListHandler;
+    private readonly MainUiHomepage _homepage;
+    private readonly MainUiWhitelist _whitelist;
     private readonly IDalamudPluginInterface _pi;
-    private Vector2 _lastPosition = Vector2.One;
-    private Vector2 _lastSize = Vector2.One;
     private int _secretKeyIdx = -1;
     private float _tabBarHeight;
     private bool _wasOpen;
@@ -52,20 +50,21 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
     public MainWindowUI(ILogger<MainWindowUI> logger, GagspeakMediator mediator,
         UiSharedService uiShared, ApiController apiController, GagspeakConfigService configService, 
         PairManager pairManager, ServerConfigurationManager serverManager,
-        DrawEntityFactory drawEntityFactory, UserPairPermsSticky userpermssticky, 
-        UserPairListHandler userPairListHandler, IDalamudPluginInterface pi) : base(logger, mediator, "###GagSpeakMainUI")
+        MainUiHomepage homepage, MainUiWhitelist whitelist,
+        DrawEntityFactory drawEntityFactory, IDalamudPluginInterface pi) 
+        : base(logger, mediator, "###GagSpeakMainUI")
     {
         _apiController = apiController;
         _configService = configService;
         _pairManager = pairManager;
         _serverManager = serverManager;
-        _userPairPermissionsSticky = userpermssticky;
-        _userPairListHandler = userPairListHandler;
+        _homepage = homepage;
+        _whitelist = whitelist;
         _pi = pi;
-        _uiSharedService = uiShared;
+        _uiShared = uiShared;
 
         // the bottomTabMenu
-        _tabMenu = new MainTabMenu(Mediator, _apiController, _pairManager, _uiSharedService);
+        _tabMenu = new MainTabMenu(Mediator, _apiController, _pairManager, _uiShared);
 
         AllowPinning = false;
         AllowClickthrough = false;
@@ -103,9 +102,6 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
             }
         };
 
-        // updates the draw folders by recollecting them, and updates the drawPair list of distinct draw pairs
-        _userPairListHandler.UpdateDrawFoldersAndUserPairDraws();
-
         // display info about the folders
         var dev = "Dev Build";
         var ver = Assembly.GetExecutingAssembly().GetName().Version!;
@@ -115,24 +111,6 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
 
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (_) => IsOpen = true);
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = false);
-        // Mediator.Subscribe<CutsceneEndMessage>(this, (_) => UiSharedService_GposeEnd());
-        Mediator.Subscribe<RefreshUiMessage>(this, (msg) =>
-        {
-            // update drawfolders
-            _userPairListHandler.UpdateDrawFoldersAndUserPairDraws();
-            // update the cog statuses
-            UpdateShouldOpenStatus();
-        });
-
-        Mediator.Subscribe<OpenUserPairPermissions>(this, (msg) =>
-        {
-            logger.LogInformation("OpenUserPairPermission called for {0}", msg.Pair.UserData.AliasOrUID);
-
-            // locate the DrawUserPair in the list where the pair matches the pair in it, and set that bool to true;
-            UpdateShouldOpenStatus(msg.Pair, msg.PermsWindowType);
-
-        });
-
 
         Flags |= ImGuiWindowFlags.NoDocking;
 
@@ -175,7 +153,7 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
             var ver = _apiController.CurrentClientVersion;
             var unsupported = "UNSUPPORTED VERSION";
             // push the notice that we are unsupported
-            using (_uiSharedService.UidFont.Push())
+            using (_uiShared.UidFont.Push())
             {
                 var uidTextSize = ImGui.CalcTextSize(unsupported);
                 ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X + ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
@@ -212,10 +190,10 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
             switch (_tabMenu.TabSelection)
             {
                 case MainTabMenu.SelectedTab.Homepage:
-                    using (ImRaii.PushId("homepageComponent")) DrawHomepageSection(_pi);
+                    using (ImRaii.PushId("homepageComponent")) _homepage.DrawHomepageSection(_pi);
                     break;
                 case MainTabMenu.SelectedTab.Whitelist:
-                    using (ImRaii.PushId("whitelistComponent")) DrawWhitelistSection();
+                    using (ImRaii.PushId("whitelistComponent")) _whitelist.DrawWhitelistSection();
                     break;
                 case MainTabMenu.SelectedTab.Discover:
                     // using (ImRaii.PushId("discoverComponent")) DrawDiscoverSection();
@@ -228,11 +206,11 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
 
         var pos = ImGui.GetWindowPos();
         var size = ImGui.GetWindowSize();
-        if (_lastSize != size || _lastPosition != pos)
+        if (_uiShared.LastMainUIWindowSize != size || _uiShared.LastMainUIWindowPosition != pos)
         {
-            _lastSize = size;
-            _lastPosition = pos;
-            Mediator.Publish(new CompactUiChange(_lastSize, _lastPosition));
+            _uiShared.LastMainUIWindowSize = size;
+            _uiShared.LastMainUIWindowPosition = pos;
+            Mediator.Publish(new CompactUiChange(size, pos));
         }
     }
 
@@ -242,7 +220,7 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
         var uidText = GetUidText();
 
         // push the big boi font for the UID
-        using (_uiSharedService.UidFont.Push())
+        using (_uiShared.UidFont.Push())
         {
             var uidTextSize = ImGui.CalcTextSize(uidText);
             ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
@@ -275,7 +253,7 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
     /// </summary>
     private void DrawServerStatus()
     {
-        var buttonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Link);
+        var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
         var userCount = _apiController.OnlineUsers.ToString(CultureInfo.InvariantCulture);
         var userSize = ImGui.CalcTextSize(userCount);
         var textSize = ImGui.CalcTextSize("Users Online");
@@ -327,7 +305,7 @@ public partial class MainWindowUI : WindowMediatorSubscriberBase
             using (ImRaii.PushColor(ImGuiCol.Text, color))
             {
                 // then display it
-                if (_uiSharedService.IconButton(connectedIcon))
+                if (_uiShared.IconButton(connectedIcon))
                 {
                     // disconnect from the toybox server first, as they should never be allowed to be connected while disconnected
                     if(!_serverManager.CurrentServer.FullPause && !_serverManager.CurrentServer.ToyboxFullPause)

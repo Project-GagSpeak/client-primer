@@ -15,16 +15,15 @@ public class DrawEntityFactory
     private readonly ApiController _apiController;
     private readonly GagspeakMediator _mediator;
     private readonly SelectPairForTagUi _selectPairForTagUi;
-    private readonly UserPairPermsSticky _stickyPairPerms;
     private readonly UiSharedService _uiSharedService;
     private readonly SelectTagForPairUi _selectTagForPairUi;
     private readonly TagHandler _tagHandler;
     private readonly IdDisplayHandler _uidDisplayHandler;
 
     public DrawEntityFactory(ILogger<DrawEntityFactory> logger, ApiController apiController,
-        IdDisplayHandler uidDisplayHandler, SelectTagForPairUi selectTagForPairUi, GagspeakMediator mediator,
-        ILoggerFactory loggerfactory, TagHandler tagHandler, SelectPairForTagUi selectPairForTagUi,
-        UserPairPermsSticky stickyPairPerms, UiSharedService uiSharedService)
+        IdDisplayHandler uidDisplayHandler, SelectTagForPairUi selectTagForPairUi, 
+        GagspeakMediator mediator, ILoggerFactory loggerfactory, TagHandler tagHandler, 
+        SelectPairForTagUi selectPairForTagUi, UiSharedService uiSharedService)
     {
         _loggerfactory = loggerfactory;
         _logger = logger;
@@ -34,7 +33,6 @@ public class DrawEntityFactory
         _mediator = mediator;
         _tagHandler = tagHandler;
         _selectPairForTagUi = selectPairForTagUi;
-        _stickyPairPerms = stickyPairPerms;
         _uiSharedService = uiSharedService;
     }
 

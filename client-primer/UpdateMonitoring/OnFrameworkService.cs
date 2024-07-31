@@ -319,13 +319,15 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         }
 
 
+        // This takes a heavy toll on framework runtime. Try and mitigate it if possible. Especially considering it plays
+        // little roll in gagspeak itself. Since we dont rely too heavily on visible players.
 
         // we need to update our stored playercharacters to know if they are still valid, and to update our pair handlers
         // Begin by adding the range of existing player character keys
         _notUpdatedCharas.AddRange(_playerCharas.Keys);
 
         // for each object in the renderable object table
-        for (var i = 0; i < _objectTable.Length; i++)
+        for (var i = 0; i < 200; i++)
         {
             var chara = _objectTable[i];
             // if the character is null or the object kind is not a player, then continue to next object.

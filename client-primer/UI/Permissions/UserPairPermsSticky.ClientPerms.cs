@@ -1,11 +1,10 @@
 using Dalamud.Interface;
-using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
-using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services.Mediator;
-using GagspeakAPI.Data.Enum;
+using Dalamud.Utility;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
+using Lumina.Excel.GeneratedSheets2;
+using System.Security;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -14,383 +13,481 @@ namespace GagSpeak.UI.Permissions;
 /// </summary>
 public partial class UserPairPermsSticky
 {
+    // This is where we both view our current settings for the pair,
+    // and the levels of access we have granted them control over.
+    //
+    // For each row, to the left will be an icon. Displaying the status relative to the state.
+    //
+    // beside it will be the current UserPairForPerms.UserPair.OwnPairPerms we have set for them.
+    // 
+    // to the far right will be a interactable checkbox, this will display if we allow
+    // this pair to have control over this option or not.
     public void DrawClientPermsForPair()
     {
-        var _menuWidth = ImGui.GetContentRegionAvail().X - ImGui.GetFrameHeight();
-
         /* ----------- GLOBAL SETTINGS ----------- */
         ImGui.TextUnformatted("Global Settings");
 
-        DrawSetting("Live Chat Garbler Access", "LiveChatGarblerActiveAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.LiveChatGarblerActiveAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("LiveChatGarblerActive", "LiveChatGarblerActiveAllowed", // permission name and permission access name
+            _playerManager.GlobalPerms.LiveChatGarblerActive ? "Live Chat Garbler Active" : "Live Chat Garbler Inactive", // label
+            _playerManager.GlobalPerms.LiveChatGarblerActive ? FontAwesomeIcon.MicrophoneSlash : FontAwesomeIcon.Microphone, // icon
+            _playerManager.GlobalPerms.LiveChatGarblerActive ? "Disable the Live Chat Garbler. [Global]" : "Enable the Live Chat Garbler. [Global]", // tooltip
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore || _playerManager.GlobalPerms.LiveChatGarblerLocked, // Disable condition
+            PermissionType.Global, PermissionValueType.YesNo); // permission type and value type
 
-        DrawSetting("Live Chat Garbler Lock Access", "LiveChatGarblerLockedAllowed", 
-            UserPairForPerms.UserPair.OwnEditAccessPerms.LiveChatGarblerLockedAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("LiveChatGarblerLocked", "LiveChatGarblerLockedAllowed",
+            _playerManager.GlobalPerms.LiveChatGarblerLocked ? "Chat Garbler Locked" : "Chat Garbler Unlocked",
+            _playerManager.GlobalPerms.LiveChatGarblerLocked ? FontAwesomeIcon.Key : FontAwesomeIcon.UnlockAlt,
+            _playerManager.GlobalPerms.LiveChatGarblerLocked ? "Chat Garbler has been locked! [Global]" : "Chat Garbler is not currently locked. [Global]",
+            true,
+            PermissionType.Global, PermissionValueType.YesNo);
 
-        DrawSetting("Lock Toybox UI Access", "LockToyboxUIAllowed", 
-            UserPairForPerms.UserPair.OwnEditAccessPerms.LockToyboxUIAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("LockToyboxUI", "LockToyboxUIAllowed",
+            _playerManager.GlobalPerms.LockToyboxUI ? "Toybox Interactions Locked" : "Toybox Interactions Available",
+            _playerManager.GlobalPerms.LockToyboxUI ? FontAwesomeIcon.Box : FontAwesomeIcon.BoxOpen,
+            _playerManager.GlobalPerms.LockToyboxUI ? "Remove active Toybox feature restrictions [Global]" : "Restrict your toybox features. [Global]",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.Global, PermissionValueType.YesNo);
 
         ImGui.Separator();
         /* ----------- GAG PERMISSIONS ----------- */
         ImGui.TextUnformatted("Gag Permissions");
 
-        DrawSetting("Gag Item Auto-Equip", "ItemAutoEquipAllowed", 
-            UserPairForPerms.UserPair.OwnEditAccessPerms.ItemAutoEquipAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("ItemAutoEquip", "ItemAutoEquipAllowed",
+            _playerManager.GlobalPerms.ItemAutoEquip ? "Auto-Equip Gag Glamour's" : "No Gag Glamour Auto-Equip",
+            _playerManager.GlobalPerms.ItemAutoEquip ? FontAwesomeIcon.Surprise : FontAwesomeIcon.MehBlank,
+            _playerManager.GlobalPerms.ItemAutoEquip ? "Disable Auto-Equip for Gag Glamour's. [Global]" : "Enable Auto-Equip for Gag Glamour's. [Global]",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.Global, PermissionValueType.YesNo);
 
-        DrawSetting("Can Set Max Gag Lock Time", "MaxLockTimeAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.MaxLockTimeAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("MaxLockTime", "MaxLockTimeAllowed",
+            string.Empty,
+            FontAwesomeIcon.HourglassHalf,
+            $"Max time {PairNickOrAliasOrUID} can lock your gags for.",
+            false,
+            PermissionType.UniquePairPerm, PermissionValueType.TimeSpan);
 
-        DrawSetting("Max Gag Lock Time", "MaxLockTime", 
-            UserPairForPerms.UserPair.OwnPairPerms.MaxLockTime,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, false, PermType.TimeSpan);
-
-        DrawSetting("Extended Lock Times Access", "ExtendedLockTimesAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.ExtendedLockTimesAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("ExtendedLockTimes", "ExtendedLockTimesAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.ExtendedLockTimes ? "Allowing Extended Lock Times" : "Preventing Extended Lock Times",
+            UserPairForPerms.UserPairOwnUniquePairPerms.ExtendedLockTimes ? FontAwesomeIcon.Stopwatch : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.ExtendedLockTimes ? 
+                $"Prevent {PairNickOrAliasOrUID} from setting locks longer than 1 hour." : $"Allow {PairNickOrAliasOrUID} to set locks longer than 1 hour.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         ImGui.Separator();
         /* ----------- RESTRAINT SET PERMISSIONS ----------- */
         ImGui.TextUnformatted("Restraint Set Permissions");
 
-        DrawSetting("Restraint Set Applying", "ApplyRestraintSetsAllowed", 
-            UserPairForPerms.UserPair.OwnEditAccessPerms.ApplyRestraintSetsAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("RestraintSetAutoEquip", "WardrobeEnabledAllowed",
+            _playerManager.GlobalPerms.RestraintSetAutoEquip ? "Restraint Set Glamour's active" : "Restraint Set Glamour's inactive",
+            _playerManager.GlobalPerms.RestraintSetAutoEquip ? FontAwesomeIcon.Tshirt : FontAwesomeIcon.Ban,
+            _playerManager.GlobalPerms.RestraintSetAutoEquip ? "Disable Restraint Set Glamour's. [Global]" : "Enable Restraint Set Glamour's. [Global]",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.Global, PermissionValueType.YesNo);
 
-        DrawSetting("Restraint Set Locking", "LockRestraintSetsAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.LockRestraintSetsAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("ApplyRestraintSets", "ApplyRestraintSetsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.ApplyRestraintSets ? "Apply Restraint Sets Allowed" : "Preventing Restraint Set Application",
+            UserPairForPerms.UserPairOwnUniquePairPerms.ApplyRestraintSets ? FontAwesomeIcon.Female : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.ApplyRestraintSets ? $"Prevent {PairNickOrAliasOrUID} from applying restraint sets." : $"Allow {PairNickOrAliasOrUID} to apply your restraint sets.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Can Set Max Lock Time", "MaxAllowedRestraintTimeAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.MaxAllowedRestraintTimeAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("LockRestraintSets", "LockRestraintSetsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.LockRestraintSets ? "Allowing Restraint Set Locking" : "Preventing Restraint Set Locking",
+            UserPairForPerms.UserPairOwnUniquePairPerms.LockRestraintSets ? FontAwesomeIcon.ShopLock : FontAwesomeIcon.ShopSlash,
+            UserPairForPerms.UserPairOwnUniquePairPerms.LockRestraintSets ? $"Prevent {PairNickOrAliasOrUID} from locking your restraint sets." : $"Allow {PairNickOrAliasOrUID} to lock your restraint sets.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Max Restraint Set Lock Time", "MaxAllowedRestraintTime",
-            UserPairForPerms.UserPair.OwnPairPerms.MaxAllowedRestraintTime,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, false, PermType.TimeSpan);
+        DrawOwnSetting("MaxAllowedRestraintTime", "MaxAllowedRestraintTimeAllowed",
+            string.Empty,
+            FontAwesomeIcon.HourglassHalf,
+            $"Max time {PairNickOrAliasOrUID} can lock your restraint sets for.",
+            false,
+            PermissionType.UniquePairPerm, PermissionValueType.TimeSpan);
 
-        DrawSetting("Restraint Set Removing", "RemoveRestraintSetsAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.RemoveRestraintSetsAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("RemoveRestraintSets", "RemoveRestraintSetsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.RemoveRestraintSets ? "Allowing Restraint Set Removal" : "Preventing Restraint Set Removal",
+            UserPairForPerms.UserPairOwnUniquePairPerms.RemoveRestraintSets ? FontAwesomeIcon.Key : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.RemoveRestraintSets ? $"Prevent {PairNickOrAliasOrUID} from removing your restraint sets." : $"Allow {PairNickOrAliasOrUID} to remove your restraint sets.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         ImGui.Separator();
+
         /* ----------- PUPPETEER PERMISSIONS ----------- */
         ImGui.TextUnformatted("Puppeteer Permissions");
 
-        DrawSetting("Trigger Phrase", "TriggerPhrase", 
-            UserPairForPerms.UserPair.OwnPairPerms.TriggerPhrase,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, false, PermType.String);
+        DrawOwnSetting("AllowSitRequests", "AllowSitRequestsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSitRequests? "Allowing Sit Requests" : "Preventing Sit Requests",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSitRequests ? FontAwesomeIcon.Chair : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSitRequests ? $"Prevent {PairNickOrAliasOrUID} from forcing "+
+                "you to /sit (different from hardcore)" : $"Let {PairNickOrAliasOrUID} forcing you to /sit or /groundsit.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Start Bracket Character", "StartChar",
-            UserPairForPerms.UserPair.OwnPairPerms.StartChar,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, false, PermType.Char);
+        DrawOwnSetting("AllowMotionRequests", "AllowMotionRequestsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowMotionRequests ? "Allowing Motion Requests" : "Preventing Motion Requests",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowMotionRequests ? FontAwesomeIcon.Walking : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowMotionRequests ? $"Prevent {PairNickOrAliasOrUID} from forcing you to do expressions "+
+                "and emotes." : $"Let {PairNickOrAliasOrUID} force you to do expressions and emotes.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("End Bracket Character", "EndChar",
-            UserPairForPerms.UserPair.OwnPairPerms.EndChar,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, false, PermType.Char);
-
-        DrawSetting("Allow Sit Commands", "AllowSitRequestsAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.AllowSitRequestsAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
-
-        DrawSetting("Allow Motion Commands", "AllowMotionRequestsAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.AllowMotionRequestsAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
-
-        DrawSetting("Allow All Commands", "AllowAllRequestsAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.AllowAllRequestsAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("AllowAllRequests", "AllowAllRequestsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowAllRequests ? "Allowing All Requests" : "Preventing All Requests",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowAllRequests ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock,
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowAllRequests ? $"Prevent {PairNickOrAliasOrUID} from forcing you to do anything." : $"Let {PairNickOrAliasOrUID} force you to do anything.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         ImGui.Separator();
         /* ----------- MOODLES PERMISSIONS ----------- */
         ImGui.TextUnformatted("Moodles Permissions");
 
-        DrawSetting("Positive Status Types Allowed", "AllowPositiveStatusTypesAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.AllowPositiveStatusTypesAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+         DrawOwnSetting("AllowPositiveStatusTypes", "AllowPositiveStatusTypesAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowPositiveStatusTypes ? "Allow Applying Positive Moodles" : "Positive Moodles Disallowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowPositiveStatusTypes ? FontAwesomeIcon.SmileBeam : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowPositiveStatusTypes ? $"Prevent {PairNickOrAliasOrUID} from applying moodles with a positive "+
+                "status." : $"Allow {PairNickOrAliasOrUID} to apply moodles with a positive status.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Negative Status Types Allowed", "AllowNegativeStatusTypesAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.AllowNegativeStatusTypesAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("AllowNegativeStatusTypes", "AllowNegativeStatusTypesAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowNegativeStatusTypes ? "Allow Applying Negative Moodles" : "Negative Moodles Disallowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowNegativeStatusTypes ? FontAwesomeIcon.FrownOpen : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowNegativeStatusTypes ? $"Prevent {PairNickOrAliasOrUID} from applying moodles with a negative "+
+                "status." : $"Allow {PairNickOrAliasOrUID} to apply moodles with a negative status.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Special Status Types Allowed", "AllowSpecialStatusTypesAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.AllowSpecialStatusTypesAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("AllowSpecialStatusTypes", "AllowSpecialStatusTypesAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSpecialStatusTypes ? "Allow Applying Special Moodles" : "Special Moodles Disallowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSpecialStatusTypes ? FontAwesomeIcon.WandMagicSparkles : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSpecialStatusTypes ? $"Prevent {PairNickOrAliasOrUID} from applying moodles with a special "+
+                "status." : $"Allow {PairNickOrAliasOrUID} to apply moodles with a special status.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Pair can Apply Your Moodles", "PairCanApplyOwnMoodlesToYouAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.PairCanApplyOwnMoodlesToYouAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("PairCanApplyOwnMoodlesToYou", "PairCanApplyOwnMoodlesToYouAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.PairCanApplyOwnMoodlesToYou ? $"Allow Application of Pair's Moodles." : $"Prevent Application of Pair's Moodles.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.PairCanApplyOwnMoodlesToYou ? FontAwesomeIcon.PersonArrowUpFromLine : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.PairCanApplyOwnMoodlesToYou ? $"Allow {PairNickOrAliasOrUID} to apply their own Moodles onto " +
+                "you." : $"Prevent {PairNickOrAliasOrUID} from applying their own Moodles onto you.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Pair can Apply Their Moodles", "PairCanApplyYourMoodlesToYouAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.PairCanApplyYourMoodlesToYouAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("PairCanApplyYourMoodlesToYou", "PairCanApplyYourMoodlesToYouAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.PairCanApplyYourMoodlesToYou ? $"Allow Application of Your Moodles." : $"Prevent Application of Your Moodles.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.PairCanApplyYourMoodlesToYou ? FontAwesomeIcon.PersonArrowDownToLine : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.PairCanApplyYourMoodlesToYou ? $"Allow {PairNickOrAliasOrUID} to apply your Moodles onto " +
+                "you." : $"Prevent {PairNickOrAliasOrUID} from applying your Moodles onto you.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Max Moodle Time Access", "MaxMoodleTimeAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.MaxMoodleTimeAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("MaxMoodleTime", "MaxMoodleTimeAllowed",
+            string.Empty,
+            FontAwesomeIcon.HourglassHalf,
+            $"Max time {PairNickOrAliasOrUID} can apply moodles to you for.",
+            false,
+            PermissionType.UniquePairPerm, PermissionValueType.TimeSpan);
 
-        DrawSetting("Max Moodle Time", "MaxMoodleTime",
-            UserPairForPerms.UserPair.OwnPairPerms.MaxMoodleTime,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, false, PermType.TimeSpan);
+        DrawOwnSetting("AllowPermanentMoodles", "AllowPermanentMoodlesAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowPermanentMoodles ? "Allow Permanent Moodles" : "Prevent Permanent Moodles",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowPermanentMoodles ? FontAwesomeIcon.Infinity : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowPermanentMoodles ? $"Prevent {PairNickOrAliasOrUID} from applying permanent moodles to you." : $"Allow {PairNickOrAliasOrUID} to apply permanent moodles to you.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Permanent Moodles Allowed", "AllowPermanentMoodlesAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.AllowPermanentMoodlesAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("AllowRemovingMoodles", "AllowRemovingMoodlesAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowRemovingMoodles ? "Allow Removing Moodles" : "Prevent Removing Moodles",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowRemovingMoodles ? FontAwesomeIcon.Eraser : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowRemovingMoodles ? $"Prevent {PairNickOrAliasOrUID} from removing your moodles." : $"Allow {PairNickOrAliasOrUID} to remove your moodles.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         ImGui.Separator();
         /* ----------- TOYBOX PERMISSIONS ----------- */
         ImGui.TextUnformatted("Toybox Permissions");
 
-        DrawSetting("Toy State Changing", "ChangeToyStateAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.ChangeToyStateAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("ChangeToyState", "ChangeToyStateAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.ChangeToyState ? "Allow Toggling Vibes" : "Preventing Toggling Vibes",
+            UserPairForPerms.UserPairOwnUniquePairPerms.ChangeToyState ? FontAwesomeIcon.PowerOff : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.ChangeToyState ? $"Prevent {PairNickOrAliasOrUID} from toggling your toys." : $"Allow {PairNickOrAliasOrUID} to toggle your toys.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Intensity Control", "CanControlIntensityAllowed",
+        // skip intensity control for now
+/*
+        DrawOwnSetting("Intensity Control", "CanControlIntensityAllowed",
             UserPairForPerms.UserPair.OwnEditAccessPerms.CanControlIntensityAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermissionValueType.YesNo);*/
 
-        DrawSetting("Can Set Vibrator Alarms", "VibratorAlarmsAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.VibratorAlarmsAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        // this kinda conflicts with the whole visible users permission but maybe rework later idk.
+        DrawOwnSetting("VibratorAlarms", "VibratorAlarmsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarms ? "Allow Viewing Alarms" : "Prevent Viewing Alarms ",
+            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarms ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash,
+            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarms ? $"Prevent {PairNickOrAliasOrUID} from viewing your alarms." : $"Allow {PairNickOrAliasOrUID} to view your alarms.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Realtime Vibe Remote Access", "CanUseRealtimeVibeRemoteAllowed",
+        DrawOwnSetting("VibratorAlarmsToggle", "VibratorAlarmsToggleAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarmsToggle ? "Allow Toggling Alarms" : "Prevent Toggling Alarms",
+            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarmsToggle ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock,
+            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarmsToggle ? $"Prevent {PairNickOrAliasOrUID} from toggling your alarms." : $"Allow {PairNickOrAliasOrUID} to toggle your alarms.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
+        // this is not really necessary due to the vibe server module but might make button automate opening of a remote for it idk.
+/*        DrawOwnSetting("Realtime Vibe Remote Access", "CanUseRealtimeVibeRemoteAllowed",
             UserPairForPerms.UserPair.OwnEditAccessPerms.CanUseRealtimeVibeRemoteAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermissionValueType.YesNo);*/
 
-        DrawSetting("Can Execute Patterns", "CanExecutePatternsAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.CanExecutePatternsAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("CanExecutePatterns", "CanExecutePatternsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecutePatterns ? "Allow Pattern Execution" : "Prevent Pattern Execution",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecutePatterns ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock,
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecutePatterns ? $"Prevent {PairNickOrAliasOrUID} from executing patterns." : $"Allow {PairNickOrAliasOrUID} to execute patterns.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Can Execute Triggers", "CanExecuteTriggersAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.CanExecuteTriggersAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("CanExecuteTriggers", "CanExecuteTriggersAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecuteTriggers ? "Allow Toggling Triggers" : "Prevent Toggling Triggers",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecuteTriggers ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock,
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecuteTriggers ? $"Prevent {PairNickOrAliasOrUID} from toggling your triggers." : $"Allow {PairNickOrAliasOrUID} to toggle your triggers.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Can Create Triggers", "CanToyboxTriggerCreatorsAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.CanCreateTriggersAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
-
-        DrawSetting("Can Send Triggers", "CanSendTriggersAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.CanSendTriggersAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermType.YesNo);
+        DrawOwnSetting("CanSendTriggers", "CanSendTriggersAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanSendTriggers ? "Allow Sending Triggers" : "Prevent Sending Triggers",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanSendTriggers ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock,
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanSendTriggers ? $"Prevent {PairNickOrAliasOrUID} from sending triggers." : $"Allow {PairNickOrAliasOrUID} to send triggers.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         ImGui.Separator();
         /* ----------- HARDCORE PERMISSIONS ----------- */
         ImGui.TextUnformatted("Hardcore Permissions");
 
-        DrawSetting($"Hardcore With {UserPairForPerms.UserData.AliasOrUID}", "InHardcore",
-            UserPairForPerms.UserPair.OwnPairPerms.InHardcore,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, false, PermType.YesNo);
+        DrawOwnSetting("InHardcore", string.Empty,
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore ? $"In Hardcore Mode for {PairNickOrAliasOrUID}" : $"Not in Hardcore Mode.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock,
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore ? $"Disable Hardcore Mode for {PairNickOrAliasOrUID}." : $"Enable Hardcore Mode for {PairNickOrAliasOrUID}.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Allow Hardcore Follow", "AllowForcedFollow",
-            UserPairForPerms.UserPair.OwnPairPerms.AllowForcedFollow,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, false, PermType.YesNo);
+        DrawOwnSetting("IsForcedToFollow", "AllowForcedFollow",
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToFollow ? "Currently Forced to Follow" : "Not Forced to Follow",
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToFollow ? FontAwesomeIcon.Walking : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToFollow ? $"You are currently being forced to follow {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently forcing you to follow them.",
+            true, // do not allow user to change this permission.
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Allow Hardcore Sit", "AllowForcedSit",
-            UserPairForPerms.UserPair.OwnPairPerms.AllowForcedSit,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, false, PermType.YesNo);
+        DrawOwnSetting("IsForcedToSit", "AllowForcedSit",
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToSit ? "Currently Forced to Sit" : "Not Forced to Sit",
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToSit ? FontAwesomeIcon.Chair : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToSit ? $"You are currently being forced to sit by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently forcing you to sit.",
+            true, // do not allow user to change this permission.
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Allow Hardcore Stay", "AllowForcedToStay",
-            UserPairForPerms.UserPair.OwnPairPerms.AllowForcedToStay,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, false, PermType.YesNo);
+        DrawOwnSetting("IsForcedToStay", "AllowForcedToStay",
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToStay ? "Currently Forced to Stay" : "Not Forced to Stay",
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToStay ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock,
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToStay ? $"You are currently being forced to stay by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently forcing you to stay.",
+            true, // do not allow user to change this permission.
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawSetting("Allow Blindfold", "AllowBlindfold",
-            UserPairForPerms.UserPair.OwnPairPerms.AllowBlindfold,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, false, PermType.YesNo);
+        DrawOwnSetting("IsBlindfolded", "AllowBlindfold",
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsBlindfolded ? "Currently Blindfolded" : "Not Blindfolded",
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsBlindfolded ? FontAwesomeIcon.Blind : FontAwesomeIcon.EyeSlash,
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsBlindfolded ? $"You are currently blindfolded by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently blindfolding you.",
+            true, // do not allow user to change this permission.
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
     }
 
     /// <summary>
     /// The primary call for displaying a setting for the client permissions.
     /// </summary>
-    /// <param name="label"> the label to display for the permission object </param>
-    /// <param name="permissionKey"> the permission attribute we are displaying </param>
-    /// <param name="currentState"> the current state of the permission attribute </param>
-    /// <param name="iconOn"> icon to be displayed when permission is enabled </param>
-    /// <param name="iconOff"> icon to be displayed when permission is disabled </param
-    /// <param name="isEditAccessPerm"> Let's us know if we are using the edit access object or pair permission object </param>
-    /// <param name="type"> what permission type it is (string, char, timespan, boolean) </param>
-    private void DrawSetting(string label, string permissionKey, object currentState,
-        FontAwesomeIcon iconOn, FontAwesomeIcon iconOff, bool isEditAccessPerm, PermType type)
+    /// <param name="permissionName"> The name of the unique pair perm in string format. </param>
+    /// <param name="permissionAccessName"> The name of the pair perm edit access in string format </param>
+    /// <param name="textLabel"> The text to display beside the icon </param>
+    /// <param name="icon"> The icon to display to the left of the text. </param>
+    /// <param name="canChange"> If the permission (not edit access) can be changed. </param>
+    /// <param name="tooltipStr"> the tooltip to display when hovered. </param>
+    /// <param name="permissionType"> If the permission is a global perm, unique pair perm, or access permission. </param>
+    /// <param name="permissionValueType"> what permission type it is (string, char, timespan, boolean) </param>
+    /// <param name="pairPermAccessCurState"> The current state of the unique pair perms respective edit access. </param>
+    private void DrawOwnSetting(string permissionName, string permissionAccessName, string textLabel, FontAwesomeIcon icon,
+        string tooltipStr, bool canChange, PermissionType permissionType, PermissionValueType permissionValueType)
     {
-        string labelWithState = label;
-        FontAwesomeIcon icon = iconOff;
-        string tooltip = string.Empty;
-
-        switch (type)
-        {
-            case PermType.YesNo:
-                bool boolState = (bool)currentState;
-                icon = boolState ? iconOn : iconOff;
-                tooltip = $"Changes {_uiSharedService.ApiController.PlayerUserData.AliasOrUID}'s {label} State to " + (boolState ? "Disabled" : "Enabled");
-                break;
-            case PermType.TimeSpan:
-                TimeSpan timeSpanState = (TimeSpan)currentState;
-                labelWithState = label + ": " + _uiSharedService.TimeSpanToString(timeSpanState);
-                tooltip = $"Current {label} is {_uiSharedService.TimeSpanToString(timeSpanState)}. Click to edit.";
-                icon = iconOn;
-                break;
-            case PermType.String:
-                string stringState = (string)currentState ?? "EMPTY_FIELD";
-                labelWithState = label + ": " + stringState;
-                tooltip = $"Current {label} is {stringState}. Click to edit.";
-                icon = iconOn;
-                break;
-            case PermType.Char:
-                char charState = (char)currentState;
-                labelWithState = label + ": " + charState;
-                tooltip = $"Current {label} is {charState}. Click to edit.";
-                icon = iconOn;
-                break;
-        }
-
         try
         {
-            DrawPermissionButton(labelWithState, icon, tooltip, permissionKey, isEditAccessPerm, type);
+            switch(permissionType)
+            {
+                case PermissionType.Global:
+                    DrawOwnPermission(permissionType, _playerManager.GlobalPerms, textLabel, icon, tooltipStr, canChange,
+                        permissionName, permissionValueType, permissionAccessName);
+                    break;
+                case PermissionType.UniquePairPerm:
+                    DrawOwnPermission(permissionType, UserPairForPerms.UserPairOwnUniquePairPerms, textLabel, icon, tooltipStr, canChange,
+                        permissionName, permissionValueType, permissionAccessName);
+                    break;
+                // this case should technically never be called for this particular instance.
+                case PermissionType.UniquePairPermEditAccess:
+                    DrawOwnPermission(permissionType, UserPairForPerms.UserPairOwnEditAccess, textLabel, icon, tooltipStr, canChange,
+                        permissionName, permissionValueType, permissionAccessName);
+                    break;
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to update permissions for {_uiSharedService.ApiController.PlayerUserData.AliasOrUID} :: {ex}");
-        }
-    }
-
-    /// <summary>
-    /// The function responsible for identifying the permission item based on the permission type. 
-    /// It will call DrawPermission inside this, drawing the item.
-    /// </summary>
-    /// <param name="label"> the label to display for the permission object </param>
-    /// <param name="icon"> the icon to display to the left-hand side </param>
-    /// <param name="tooltip"> the tooltip to display when the item is hovered over. </param>
-    /// <param name="permissionKey"> the permission attribute we are displaying </param>
-    /// <param name="type"> what permission type it is (string, char, timespan, boolean) </param>
-    /// <param name="isEditAccessPerm"> if it is a global perm. if false, it means it is a pair permission. </param>
-    private void DrawPermissionButton(string label, FontAwesomeIcon icon,
-        string tooltip, string permissionKey, bool isEditAccessPerm, PermType type)
-    {
-        var _menuWidth = ImGui.GetContentRegionAvail().X;
-
-        if (isEditAccessPerm)
-        {
-            var permissions = UserPairForPerms.UserPair.OwnEditAccessPerms;
-            DrawPermission(permissions, label, icon, tooltip, permissionKey, type, _menuWidth, isEditAccessPerm);
-        }
-        else
-        {
-            var permissions = UserPairForPerms.UserPair.OwnPairPerms;
-            DrawPermission(permissions, label, icon, tooltip, permissionKey, type, _menuWidth, isEditAccessPerm);
+            _logger.LogError($"Failed to update permissions for {_uiShared.ApiController.PlayerUserData.AliasOrUID} :: {ex}");
         }
     }
 
     /// <summary>
     /// Responsible for calling the correct display item based on the permission type and permission object
     /// </summary>
-    /// <param name="permissions"> the permissions object that is either a globalpermission object or pair permission object </param>
-    /// <param name="label"> the label to display for the permission object </param>
-    /// <param name="icon"> the icon to display to the left-hand side </param>
-    /// <param name="tooltip"> the tooltip to display when the item is hovered over. </param>
-    /// <param name="permissionKey"> the permission attribute we are displaying </param>
-    /// <param name="type"> what permission type it is (string, char, timespan, boolean) </param>
-    /// <param name="_menuWidth"> the width of the item to display </param>
-    /// <param name="isGlobalPerm"> if it is a global perm. if false, it means it is a pair permission. </param>
-    private void DrawPermission(object permissions, string label, FontAwesomeIcon icon,
-        string tooltip, string permissionKey, PermType type, float _menuWidth, bool isEditAccessPerm)
+    /// <param name="permissionType"> the type of permission we are displaying </param>
+    /// <param name="permissionSet"> the permission object we are displaying </param>
+    /// <param name="label"> the text label to display beside the icon </param>
+    /// <param name="icon"> the icon to display beside the text </param>
+    /// <param name="tooltip"> the tooltip to display when hovered </param>
+    /// <param name="permissionName"> the name of the permission we are displaying </param>
+    /// <param name="type"> the type of permission value we are displaying </param>
+    /// <param name="permissionAccessName"> the name of the permission access we are displaying </param>
+    private void DrawOwnPermission(PermissionType permissionType, object permissionSet, string label,
+        FontAwesomeIcon icon, string tooltip, bool isLocked, string permissionName, PermissionValueType type,
+        string permissionAccessName)
     {
-        bool _wasHovered = false;
-        // if type is boolean
-        if (type == PermType.YesNo)
-        {
-            bool newValueState = (bool)permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions);
-            if (_uiSharedService.IconTextButton(icon, label, _menuWidth, true, false))
-            {
-                SetPermission(permissions, permissionKey, !newValueState, isEditAccessPerm);
-            }
-            UiSharedService.AttachToolTip(tooltip);
-        }
-        else if (type == PermType.TimeSpan)
-        {
-            string timeSpanString = _uiSharedService.TimeSpanToString((TimeSpan)permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions)!) ?? "0d0h0m0s";
 
-            if (_uiSharedService.IconInputText(icon, label, "format 0d0h0m0s...", ref timeSpanString, 32, _menuWidth, true, false)) { /* Consume */ }
-            // if deactivated set perm
-            if (ImGui.IsItemDeactivatedAfterEdit() 
-                && timeSpanString != _uiSharedService.TimeSpanToString((TimeSpan)permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions)!))
+        // firstly, if the permission value type is a boolean, then process handling the change as a true/false.
+        if (type == PermissionValueType.YesNo)
+        {
+            // localize the object as a boolean value from its property name.
+            bool currValState = (bool)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!;
+            // draw the iconTextButton and checkbox beside it. Because we are in control, unless in hardcore, this should never be disabled.
+            using (var group = ImRaii.Group())
             {
-                if (_uiSharedService.TryParseTimeSpan(timeSpanString, out TimeSpan result))
+                // have a special case, where we mark the button as disabled if _playerManager.GlobalPerms.LiveChatGarblerLocked is true
+                if (_uiShared.IconTextButton(icon, label, IconButtonTextWidth, true, isLocked))
                 {
-                    SetPermission(permissions, permissionKey, result, isEditAccessPerm);
+                    SetOwnPermission(permissionType, permissionName, !currValState);
                 }
-                else
+                UiSharedService.AttachToolTip(tooltip);
+                if (!permissionAccessName.IsNullOrEmpty()) // only display checkbox if we should.
                 {
-                    Logger.LogWarning("You tried to set an invalid timespan format. Please use the format 0d0h0m0s");
-                    timeSpanString = "0d0h0m0s";
-                }
-            }
-            // add tooltip
-            UiSharedService.AttachToolTip(tooltip);
-        }
-        else if (type == PermType.String)
-        {
-            string inputStr = permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions)?.ToString() ?? "EMPTY_FIELD";
-
-            if (_uiSharedService.IconInputText(icon, label, "input here...", ref inputStr, 32, _menuWidth, true, false)) { /* Consume */ }
-            // if deactivated set perm
-            if (ImGui.IsItemDeactivatedAfterEdit() && inputStr != (string)permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions)!)
-            {
-                SetPermission(permissions, permissionKey, inputStr, isEditAccessPerm);
-            }
-            // add tooltip
-            UiSharedService.AttachToolTip(tooltip);
-        }
-        else if (type == PermType.Char)
-        {
-            string inputChar = permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions)?.ToString() ?? ".";
-
-            if (_uiSharedService.IconInputText(icon, label, ".", ref inputChar, 1, _menuWidth, true, false)) { /* Consume */ }
-            // if deactivated set perm
-            if (ImGui.IsItemDeactivatedAfterEdit())
-            {
-                // get the original value as a string (it is originally char)
-                string originalValue = permissions.GetType().GetProperty(permissionKey)?.GetValue(permissions)?.ToString() ?? ".";
-
-                // see if it is different from the existing one
-                if (!inputChar.Equals(originalValue))
-                {
-                    // ensure new value is char before passing in
-                    char newValue = inputChar.Length > 0 ? inputChar[0] : '.';
-                    SetPermission(permissions, permissionKey, newValue, isEditAccessPerm);
+                    ImGui.SameLine(IconButtonTextWidth);
+                    if (permissionAccessName != "AllowForcedFollow" && permissionAccessName != "AllowForcedSit" && permissionAccessName != "AllowForcedToStay" && permissionAccessName != "AllowBlindfold")
+                    {
+                        bool refState = (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!;
+                        if (ImGui.Checkbox("##" + permissionAccessName, ref refState))
+                        {
+                            // if the new state is not the same as the current state, then we should update the permission access.
+                            if (refState != (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!)
+                                SetOwnPermission(PermissionType.UniquePairPermEditAccess, permissionAccessName, refState);
+                        }
+                        UiSharedService.AttachToolTip(refState
+                            ? ("Revoke" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
+                            : ("Grant" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + "control over this permission, allowing them to change " +
+                               "what you've set for them at will.");
+                    }
+                    else
+                    {
+                        bool refState = (bool)UserPairForPerms.UserPairOwnUniquePairPerms.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnUniquePairPerms)!;
+                        if (ImGui.Checkbox("##" + permissionAccessName, ref refState))
+                        {
+                            // if the new state is not the same as the current state, then we should update the permission access.
+                            if (refState != (bool)UserPairForPerms.UserPairOwnUniquePairPerms.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnUniquePairPerms)!)
+                                SetOwnPermission(PermissionType.UniquePairPerm, permissionAccessName, refState);
+                        }
+                        UiSharedService.AttachToolTip(refState
+                            ? ("Revoke" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
+                            : ("Grant" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + "control over this permission, allowing them to change " +
+                               "what you've set for them at will.");
+                    }
                 }
             }
-            // add tooltip
-            UiSharedService.AttachToolTip(tooltip);
+        }
+        // next, handle it if it is a timespan value.
+        if (type == PermissionValueType.TimeSpan)
+        {
+            // attempt to parse the timespan value to a string.
+            string timeSpanString = _uiShared.TimeSpanToString((TimeSpan)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!) ?? "0d0h0m0s";
+
+            using (var group = ImRaii.Group())
+            {
+                // draw the iconTextButton and checkbox beside it. Because we are in control, unless in hardcore, this should never be disabled.
+                if (_uiShared.IconInputText(icon, label, "format 0d0h0m0s...", ref timeSpanString, 32, IconButtonTextWidth * .7f, true, isLocked)) { }
+                // Set the permission once deactivated. If invalid, set to default.
+                if (ImGui.IsItemDeactivatedAfterEdit()
+                    && timeSpanString != _uiShared.TimeSpanToString((TimeSpan)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!))
+                {
+                    // attempt to parse the string back into a valid timespan.
+                    if (_uiShared.TryParseTimeSpan(timeSpanString, out TimeSpan result))
+                    {
+                        SetOwnPermission(permissionType, permissionName, result);
+                    }
+                    else
+                    {
+                        // find some way to print this to the chat or something.
+                        _logger.LogWarning("You tried to set an invalid timespan format. Please use the format 0d0h0m0s");
+                        InteractionSuccessful = false;
+                        timeSpanString = "0d0h0m0s";
+                    }
+                }
+                UiSharedService.AttachToolTip(tooltip);
+                if (!permissionAccessName.IsNullOrEmpty()) // only display checkbox if we should.
+                {
+                    ImGui.SameLine(IconButtonTextWidth);
+                    bool refState = (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!;
+                    if (ImGui.Checkbox("##" + permissionAccessName, ref refState))
+                    {
+                        // if the new state is not the same as the current state, then we should update the permission access.
+                        if (refState != (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!)
+                            SetOwnPermission(PermissionType.UniquePairPermEditAccess, permissionAccessName, refState);
+                    }
+                    UiSharedService.AttachToolTip(refState
+                        ? ("Revoke" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
+                        : ("Grant" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + "control over this permission, allowing them to change " +
+                           "what you've set for them at will.");
+                }
+            }
         }
     }
 
     /// <summary>
-    /// Sets the permission that we modified for ourselves or another player.
+    /// Send the updated permission we made for ourselves to the server.
     /// </summary>
-    /// <param name="permissions"> the global permissions or pair permissions object </param>
-    /// <param name="permissionKey"> the attribute of the object we are changing</param>
-    /// <param name="newValue"> the new value it is being changed to </param>
-    /// <param name="isGlobalPerm"> if it is a global permission object or a pair permission object. </param>
-    private void SetPermission(object permissions, string permissionKey, object newValue, bool isEditAccessPerm)
+    /// <param name="permissionType"> If Global, UniquePairPerm, or EditAccessPerm. </param>
+    /// <param name="permissionName"> the attribute of the object we are changing</param>
+    /// <param name="newValue"> New value to set. </param>
+    private void SetOwnPermission(PermissionType permissionType, string permissionName, object newValue)
     {
-        // DO NOT UPDATE THIS HERE, WE WILL GET A CALLBACK FROM THE SERVER INFORMING US OF THE SUCCSS
-        // permissions.GetType().GetProperty(permissionKey)?.SetValue(permissions, newValue);
-
-        // update the value on the server end
-        if (isEditAccessPerm)
+        // Call the update to the server.
+        switch (permissionType)
         {
-            _logger.LogTrace($"Updated own edit access permission: {permissionKey} to {newValue}");
-            _ = _apiController.UserUpdateOwnPairPermAccess(new UserPairAccessChangeDto(UserPairForPerms.UserData,
-                new KeyValuePair<string, object>(permissionKey, newValue)));
-        }
-        else
-        {
-            _logger.LogTrace($"Updated own pair permission: {permissionKey} to {newValue}");
-            _ = _apiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
-                new KeyValuePair<string, object>(permissionKey, newValue)));
+            case PermissionType.Global:
+                {
+                    _logger.LogTrace($"Updated own global permission: {permissionName} to {newValue}");
+                    _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                        new KeyValuePair<string, object>(permissionName, newValue)));
+                }
+                break;
+            case PermissionType.UniquePairPerm:
+                {
+                    _logger.LogTrace($"Updated own pair permission: {permissionName} to {newValue}");
+                    _ = _apiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
+                        new KeyValuePair<string, object>(permissionName, newValue)));
+                }
+                break;
+            // this case should technically never be called for this particular instance.
+            case PermissionType.UniquePairPermEditAccess:
+                {
+                    _logger.LogTrace($"Updated own edit access permission: {permissionName} to {newValue}");
+                    _ = _apiController.UserUpdateOwnPairPermAccess(new UserPairAccessChangeDto(UserPairForPerms.UserData,
+                        new KeyValuePair<string, object>(permissionName, newValue)));
+                }
+                break;
         }
     }
 }

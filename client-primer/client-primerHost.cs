@@ -219,7 +219,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<SelectPairForTagUi>()
         .AddSingleton<TagHandler>()
         .AddSingleton<UserPairListHandler>()
-        .AddSingleton<UserPairPermsSticky>()
+        // UI Extras services
+        .AddSingleton<MainUiHomepage>()
+        .AddSingleton<MainUiWhitelist>()
         // WebAPI Services
         .AddSingleton<ApiController>()
         .AddSingleton<HubFactory>()
@@ -297,8 +299,8 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
             s.GetRequiredService<ApiController>(), s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<PairManager>(), s.GetRequiredService<ServerConfigurationManager>(),
-            s.GetRequiredService<DrawEntityFactory>(), s.GetRequiredService<UserPairPermsSticky>(),
-            s.GetRequiredService<UserPairListHandler>(), pi))
+            s.GetRequiredService<MainUiHomepage>(), s.GetRequiredService<MainUiWhitelist>(),
+            s.GetRequiredService<DrawEntityFactory>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
         .AddScoped<WindowMediatorSubscriberBase, RemotePersonal>()

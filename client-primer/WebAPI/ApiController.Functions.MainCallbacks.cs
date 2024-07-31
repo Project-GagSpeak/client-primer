@@ -397,9 +397,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// (In theory, this should also be able to send back updated information about our own character.)
     /// 
     /// </summary>
-    public Task Client_UserReceiveCharacterDataPattern(OnlineUserCharaPatternDataDto dataDto)
+    public Task Client_UserReceiveCharacterDataToybox(OnlineUserCharaPatternDataDto dataDto)
     {
-        Logger.LogTrace("Client_UserReceiveCharacterDataPattern: {user}", dataDto.User);
+        Logger.LogTrace("Client_UserReceiveCharacterDataToybox: {user}", dataDto.User);
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogTrace("Callback matched player character, updating own pattern data");
@@ -574,7 +574,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public void OnUserReceiveCharacterDataPattern(Action<OnlineUserCharaPatternDataDto> act)
     {
         if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataPattern), act);
+        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataToybox), act);
     }
 
     public void OnUserSendOffline(Action<UserDto> act)

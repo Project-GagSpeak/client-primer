@@ -6,6 +6,7 @@ using GagSpeak.GagspeakConfiguration;
 using GagSpeak.UI.MainWindow;
 using Dalamud.Interface.ImGuiFileDialog;
 using GagSpeak.UI.UiRemote;
+using GagSpeak.UI.Permissions;
 
 namespace GagSpeak.Services;
 
@@ -68,6 +69,44 @@ public sealed class UiService : DisposableMediatorSubscriberBase
                 _createdWindows.Add(window);
                 _windowSystem.AddWindow(window);
             }*/
+        });
+
+
+        Mediator.Subscribe<OpenUserPairPermissions>(this, (msg) =>
+        {
+            // Find existing UserPairPermsSticky windows with the same window type and pair UID
+            var existingWindow = _createdWindows
+                .FirstOrDefault(p => p is UserPairPermsSticky stickyWindow &&
+                                     stickyWindow.UserPairForPerms.UserData.AliasOrUID == msg.Pair.UserData.AliasOrUID &&
+                                     stickyWindow.DrawType == msg.PermsWindowType);
+
+            if (existingWindow != null)
+            {
+                // If a matching window is found, toggle it
+                _logger.LogTrace("Toggling existing sticky window for pair {pair}", msg.Pair.UserData.AliasOrUID);
+                existingWindow.Toggle();
+            }
+            else
+            {
+                // Close and dispose of any other UserPairPermsSticky windows
+                var otherWindows = _createdWindows
+                    .Where(p => p is UserPairPermsSticky)
+                    .ToList();
+
+                foreach (var window in otherWindows)
+                {
+                    _logger.LogTrace("Disposing existing sticky window for pair {pair}", ((UserPairPermsSticky)window).UserPairForPerms.UserData.AliasOrUID);
+                    _windowSystem.RemoveWindow(window);
+                    _createdWindows.Remove(window);
+                    window.Dispose();
+                }
+
+                // Create a new sticky pair perms window for the pair
+                _logger.LogTrace("Creating new sticky window for pair {pair}", msg.Pair.UserData.AliasOrUID);
+                var newWindow = _uiFactory.CreateStickyPairPerms(msg.Pair, msg.PermsWindowType);
+                _createdWindows.Add(newWindow);
+                _windowSystem.AddWindow(newWindow);
+            }
         });
 
         Mediator.Subscribe<OpenPrivateRoomRemote>(this, (msg) =>

@@ -143,7 +143,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"WardrobeEnabled: {clientPair.UserPairGlobalPerms.WardrobeEnabled}");
                         ImGui.Text($"ItemAutoEquip: {clientPair.UserPairGlobalPerms.ItemAutoEquip}");
                         ImGui.Text($"RestraintSetAutoEquip: {clientPair.UserPairGlobalPerms.RestraintSetAutoEquip}");
-                        ImGui.Text($"LockGagStorageOnGagLock: {clientPair.UserPairGlobalPerms.LockGagStorageOnGagLock}");
                         ImGui.Separator();
                         ImGui.Text($"PuppeteerEnabled: {clientPair.UserPairGlobalPerms.PuppeteerEnabled}");
                         ImGui.Text($"GlobalTriggerPhrase: {clientPair.UserPairGlobalPerms.GlobalTriggerPhrase}");
@@ -192,10 +191,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"ChangeToyState: {clientPair.UserPairUniquePairPerms.ChangeToyState}");
                         ImGui.Text($"CanControlIntensity: {clientPair.UserPairUniquePairPerms.CanControlIntensity}");
                         ImGui.Text($"VibratorAlarms: {clientPair.UserPairUniquePairPerms.VibratorAlarms}");
+                        ImGui.Text($"VibratorAlarmsToggle: {clientPair.UserPairUniquePairPerms.VibratorAlarmsToggle}");
                         ImGui.Text($"CanUseRealtimeVibeRemote: {clientPair.UserPairUniquePairPerms.CanUseRealtimeVibeRemote}");
                         ImGui.Text($"CanExecutePatterns: {clientPair.UserPairUniquePairPerms.CanExecutePatterns}");
                         ImGui.Text($"CanExecuteTriggers: {clientPair.UserPairUniquePairPerms.CanExecuteTriggers}");
-                        ImGui.Text($"CanToyboxTriggerCreators: {clientPair.UserPairUniquePairPerms.CanCreateTriggers}");
                         ImGui.Text($"CanSendTriggers: {clientPair.UserPairUniquePairPerms.CanSendTriggers}");
                         ImGui.Separator();
                         ImGui.Text($"AllowForcedFollow: {clientPair.UserPairUniquePairPerms.AllowForcedFollow}");
@@ -213,7 +212,48 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Edit Access || {_serverConfigurationManager.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
-                        ImGui.Text("Coming soon!");
+                        ImGui.Text("Commands From Friends Allowed: " + clientPair.UserPairEditAccess.CommandsFromFriendsAllowed);
+                        ImGui.Text("Commands From Party Allowed: " + clientPair.UserPairEditAccess.CommandsFromPartyAllowed);
+                        ImGui.Text("Live Chat Garbler Active Allowed: " + clientPair.UserPairEditAccess.LiveChatGarblerActiveAllowed);
+                        ImGui.Text("Live Chat Garbler Locked Allowed: " + clientPair.UserPairEditAccess.LiveChatGarblerLockedAllowed);
+                        ImGui.Text("Extended Lock Times Allowed: " + clientPair.UserPairEditAccess.ExtendedLockTimesAllowed);
+                        ImGui.Text("Max Lock Time Allowed: " + clientPair.UserPairEditAccess.MaxLockTimeAllowed);
+                        ImGui.Separator();
+                        ImGui.Text("Wardrobe Enabled Allowed: " + clientPair.UserPairEditAccess.WardrobeEnabledAllowed);
+                        ImGui.Text("Item Auto Equip Allowed: " + clientPair.UserPairEditAccess.ItemAutoEquipAllowed);
+                        ImGui.Text("Restraint Set Auto Equip Allowed: " + clientPair.UserPairEditAccess.RestraintSetAutoEquipAllowed);                        ImGui.Text("Apply Restraint Sets Allowed: " + clientPair.UserPairEditAccess.ApplyRestraintSetsAllowed);
+                        ImGui.Text("Lock Restraint Sets Allowed: " + clientPair.UserPairEditAccess.LockRestraintSetsAllowed);
+                        ImGui.Text("Max Allowed Restraint Time Allowed: " + clientPair.UserPairEditAccess.MaxAllowedRestraintTimeAllowed);
+                        ImGui.Text("Remove Restraint Sets Allowed: " + clientPair.UserPairEditAccess.RemoveRestraintSetsAllowed);
+                        ImGui.Separator();
+                        ImGui.Text("Puppeteer Enabled Allowed: " + clientPair.UserPairEditAccess.PuppeteerEnabledAllowed);
+                        ImGui.Text("Allow Sit Requests Allowed: " + clientPair.UserPairEditAccess.AllowSitRequestsAllowed);
+                        ImGui.Text("Allow Motion Requests Allowed: " + clientPair.UserPairEditAccess.AllowMotionRequestsAllowed);
+                        ImGui.Text("Allow All Requests Allowed: " + clientPair.UserPairEditAccess.AllowAllRequestsAllowed);
+                        ImGui.Separator();
+                        ImGui.Text("Moodles Enabled Allowed: " + clientPair.UserPairEditAccess.MoodlesEnabledAllowed);
+                        ImGui.Text("Allow Positive Status Types Allowed: " + clientPair.UserPairEditAccess.AllowPositiveStatusTypesAllowed);
+                        ImGui.Text("Allow Negative Status Types Allowed: " + clientPair.UserPairEditAccess.AllowNegativeStatusTypesAllowed);
+                        ImGui.Text("Allow Special Status Types Allowed: " + clientPair.UserPairEditAccess.AllowSpecialStatusTypesAllowed);
+                        ImGui.Text("Pair Can Apply Own Moodles To You Allowed: " + clientPair.UserPairEditAccess.PairCanApplyOwnMoodlesToYouAllowed);
+                        ImGui.Text("Pair Can Apply Your Moodles To You Allowed: " + clientPair.UserPairEditAccess.PairCanApplyYourMoodlesToYouAllowed);
+                        ImGui.Text("Max Moodle Time Allowed: " + clientPair.UserPairEditAccess.MaxMoodleTimeAllowed);
+                        ImGui.Text("Allow Permanent Moodles Allowed: " + clientPair.UserPairEditAccess.AllowPermanentMoodlesAllowed);
+                        ImGui.Text("Allow Removing Moodles Allowed: " + clientPair.UserPairEditAccess.AllowRemovingMoodlesAllowed);
+                        ImGui.Separator();
+                        ImGui.Text("Toybox Enabled Allowed: " + clientPair.UserPairEditAccess.ToyboxEnabledAllowed);
+                        ImGui.Text("Lock Toybox UI Allowed: " + clientPair.UserPairEditAccess.LockToyboxUIAllowed);
+                        ImGui.Text("Toy Is Active Allowed: " + clientPair.UserPairEditAccess.ToyIsActiveAllowed);
+                        ImGui.Text("Spatial Vibrator Audio Allowed: " + clientPair.UserPairEditAccess.SpatialVibratorAudioAllowed);
+                        ImGui.Separator();
+                        ImGui.Text("Change Toy State Allowed: " + clientPair.UserPairEditAccess.ChangeToyStateAllowed);
+                        ImGui.Text("Can Control Intensity Allowed: " + clientPair.UserPairEditAccess.CanControlIntensityAllowed);
+                        ImGui.Text("Vibrator Alarms Allowed: " + clientPair.UserPairEditAccess.VibratorAlarmsAllowed);
+                        ImGui.Text("Can Toggle Alarms: " + clientPair.UserPairEditAccess.VibratorAlarmsToggleAllowed);
+                        ImGui.Text("Can Use Realtime Vibe Remote Allowed: " + clientPair.UserPairEditAccess.CanUseRealtimeVibeRemoteAllowed);
+                        ImGui.Text("Can Execute Patterns Allowed: " + clientPair.UserPairEditAccess.CanExecutePatternsAllowed);
+                        ImGui.Text("Can Execute Triggers Allowed: " + clientPair.UserPairEditAccess.CanExecuteTriggersAllowed);
+                        ImGui.Text("Can Send Triggers Allowed: " + clientPair.UserPairEditAccess.CanSendTriggersAllowed);
                     }
                 }
                 if (clientPair.UserPairAppearanceData != null)
@@ -798,7 +838,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.Text($"WardrobeEnabled: {globalPerms.WardrobeEnabled}");
         ImGui.Text($"ItemAutoEquip: {globalPerms.ItemAutoEquip}");
         ImGui.Text($"RestraintSetAutoEquip: {globalPerms.RestraintSetAutoEquip}");
-        ImGui.Text($"LockGagStorageOnGagLock: {globalPerms.LockGagStorageOnGagLock}");
         ImGui.Separator();
         ImGui.Text($"PuppeteerEnabled: {globalPerms.PuppeteerEnabled}");
         ImGui.Text($"GlobalTriggerPhrase: {globalPerms.GlobalTriggerPhrase}");

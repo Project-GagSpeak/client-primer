@@ -203,12 +203,12 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// Pushes the toybox pattern & trigger information of the client to other recipients.
     /// 
     /// </summary>
-    public async Task UserPushDataPattern(UserCharaPatternDataMessageDto dto)
+    public async Task UserPushDataToybox(UserCharaPatternDataMessageDto dto)
     {
         // try and push the character data dto to the server
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushDataPattern), dto).ConfigureAwait(false);
+            await _gagspeakHub!.InvokeAsync(nameof(UserPushDataToybox), dto).ConfigureAwait(false);
         }
         // if it failed, log it
         catch (Exception ex)
@@ -216,6 +216,19 @@ public partial class ApiController // Partial class for MainHub User Functions.
             Logger.LogWarning(ex, "Failed to Push character data");
         }
     }
+
+    public async Task UserPushAllPerms(UserPairUpdateAllPermsDto userPermissions)
+    {
+        try
+        {
+            await _gagspeakHub!.InvokeAsync(nameof(UserPushAllPerms), userPermissions).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to set own global permission");
+        }
+    }
+
 
     /// <summary> Pushes to server a request to modify a global permissions of the client. </summary>
     public async Task UserUpdateOwnGlobalPerm(UserGlobalPermChangeDto userPermissions)
@@ -369,18 +382,18 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
 
     /// <summary>
-    /// Pushes another characters (or self)'s updated alias list data to the list of online recipients.
+    /// Pushes another characters (or self)'s updated alias list data to the respective recipient.
     /// </summary>
     /// <param name="data"> the data to be sent to the list of users </param>
-    /// <param name="onlineCharacters"> the online characters the data will be sent to </param>
-    public async Task PushCharacterAliasListData(CharacterAliasData data, List<UserData> onlineCharacters)
+    /// <param name="onlineCharacter"> the online pair the data will be sent to </param>
+    public async Task PushCharacterAliasListData(CharacterAliasData data, UserData onlineCharacter)
     {
         if (!IsConnected) return;
 
         try // if connected, try to push the data to the server
         {
-            Logger.LogDebug("Pushing Character Alias data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            await UserPushDataAlias(new(onlineCharacters, data)).ConfigureAwait(false);
+            Logger.LogDebug("Pushing Character Alias data to {visible}", string.Join(", ", onlineCharacter.AliasOrUID));
+            await UserPushDataAlias(new(onlineCharacter, data)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Alias List data"); }
@@ -398,7 +411,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character PatternInfo to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            await UserPushDataPattern(new(onlineCharacters, data)).ConfigureAwait(false);
+            await UserPushDataToybox(new(onlineCharacters, data)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Pattern Information"); }

@@ -135,6 +135,9 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     /// <summary> Fetches the filtered list of user pair objects where only users that are currently online are returned.</summary>
     public List<Pair> GetOnlineUserPairs() => _allClientPairs.Where(p => !string.IsNullOrEmpty(p.Value.GetPlayerNameHash())).Select(p => p.Value).ToList();
 
+    /// <summary> Fetches all online userPairs, but returns the key instead of value like above.</summary>
+    public List<UserData> GetOnlineUserDatas() => _allClientPairs.Where(p => !string.IsNullOrEmpty(p.Value.GetPlayerNameHash())).Select(p => p.Key).ToList();
+
     /// <summary> fetches the total number of online users that are also visible to the client.</summary>
     public int GetVisibleUserCount() => _allClientPairs.Count(p => p.Value.IsVisible);
 
@@ -276,13 +279,13 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     /// <summary> Method similar to compositeData, but this will only update the appearance data of the user pair. </summary>
     public void ReceiveCharaAppearanceData(OnlineUserCharaAppearanceDataDto dto)
     {
-        // if the user in the Dto is not in our client's pair list, throw an exception.
+        // locate the pair that should be updated with the appearance data.
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
-        // if they are found, publish an event message that we have received character data from our paired User
+        // publish event if found.
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Appearance Data")));
 
-        // apply the appearance data to the pair.
+        // Apply the update.
         _allClientPairs[dto.User].ApplyAppearanceData(dto);
     }
 

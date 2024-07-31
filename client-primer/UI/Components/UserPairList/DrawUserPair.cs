@@ -6,9 +6,13 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Handlers;
 using GagSpeak.UI.Permissions;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
 using ImGuiNET;
+using OtterGui;
+using System.Numerics;
+using static GagSpeak.UI.Components.MainTabMenu;
 
 namespace GagSpeak.UI.Components.UserPairList;
 
@@ -67,7 +71,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
     {
         using var id = ImRaii.PushId(GetType() + _id);
         var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), _wasHovered);
-        using (ImRaii.Child(GetType() + _id, new System.Numerics.Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
+        using (ImRaii.Child(GetType() + _id, new Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
         {
             DrawLeftSide();
             ImGui.SameLine();
@@ -95,9 +99,9 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         if (!_pair.IsOnline)
         {
             using var _ = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed);
-            _uiSharedService.IconText(_pair.IndividualPairStatus == GagspeakAPI.Data.Enum.IndividualPairStatus.OneSided
+            _uiSharedService.IconText(_pair.IndividualPairStatus == IndividualPairStatus.OneSided
                 ? FontAwesomeIcon.ArrowsLeftRight
-                : _pair.IndividualPairStatus == GagspeakAPI.Data.Enum.IndividualPairStatus.Bidirectional
+                : _pair.IndividualPairStatus == IndividualPairStatus.Bidirectional
                     ? FontAwesomeIcon.User : FontAwesomeIcon.Users);
             userPairText = _pair.UserData.AliasOrUID + " is offline";
         }
@@ -113,12 +117,12 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         else
         {
             using var _ = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.HealerGreen);
-            _uiSharedService.IconText(_pair.IndividualPairStatus == GagspeakAPI.Data.Enum.IndividualPairStatus.Bidirectional
+            _uiSharedService.IconText(_pair.IndividualPairStatus == IndividualPairStatus.Bidirectional
                 ? FontAwesomeIcon.User : FontAwesomeIcon.Users);
             userPairText = _pair.UserData.AliasOrUID + " is online";
         }
 
-        if (_pair.IndividualPairStatus == GagspeakAPI.Data.Enum.IndividualPairStatus.OneSided)
+        if (_pair.IndividualPairStatus == IndividualPairStatus.OneSided)
         {
             userPairText += UiSharedService.TooltipSeparator + "User has not added you back";
         }
@@ -149,7 +153,9 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         ImGui.AlignTextToFramePadding();
         if (_uiSharedService.IconButton(FontAwesomeIcon.EllipsisV))
         {
-            ImGui.OpenPopup("User Flyout Menu");
+            // open the permission setting window
+            _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairActionFunctions));
+            //ImGui.OpenPopup("User Flyout Menu");
         }
 
         currentRightSide -= permissionsButtonSize.X + spacingX;
@@ -167,6 +173,10 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         ImGui.SameLine(currentRightSide);
         if (_uiSharedService.IconButton(FontAwesomeIcon.Wrench))
         {
+            if(Pair == null)
+            {
+                Logger.LogWarning("Pair is null");
+            }
             // if we press the cog, we should modify its appearance, and set that we are drawing for this pair to true
             _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.ClientPermsForPair));
         }
@@ -174,15 +184,14 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
             ? "Change your permission access for " + _pair.UserData.AliasOrUID
             : "Close your permissions access window");
 
-
         if (ImGui.BeginPopup("User Flyout Menu"))
         {
             using (ImRaii.PushId($"buttons-{_pair.UserData.UID}"))
             {
                 ImGui.TextUnformatted("Common Pair Functions");
                 DrawCommonClientMenu();
-                ImGui.Separator();
                 DrawPairedClientMenu();
+
                 if (_menuWidth <= 0)
                 {
                     _menuWidth = ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
@@ -195,15 +204,11 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         return currentRightSide - spacingX;
     }
 
+    private Vector2 listSize = new Vector2(175, 175);
     private void DrawPairedClientMenu()
     {
-        if (ImGui.BeginMenu("Gag Interactions"))
-        {
-            DrawGagInteractionsMenu("Undermost Layer");
-            DrawGagInteractionsMenu("Middle Layer");
-            DrawGagInteractionsMenu("Outermost Layer");
-            ImGui.EndMenu();
-        }
+        ImGui.TextUnformatted("Gag Interactions");
+
         ImGui.Separator();
 
         if (ImGui.BeginMenu("Wardrobe Interactions"))
@@ -280,37 +285,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
             }
             ImGui.EndMenu();
         }
-
-
-        DrawIndividualMenu();
     }
-
-    private void DrawGagInteractionsMenu(string layerID)
-    {
-        if (ImGui.BeginMenu(layerID))
-        {
-            if (ImGui.MenuItem("Apply Gag"))
-            {
-                // Code to display list of gags
-            }
-            if (ImGui.BeginMenu("Lock Gag"))
-            {
-                // Code to list lock types
-                ImGui.EndMenu();
-            }
-            if (ImGui.BeginMenu("Unlock Gag"))
-            {
-                // Code to list lock types and possibly show a password insertion field
-                ImGui.EndMenu();
-            }
-            if (ImGui.MenuItem("Remove Gag"))
-            {
-                // Action to remove gag on this layer
-            }
-            ImGui.EndMenu();
-        }
-    }
-
 
     private void DrawCommonClientMenu()
     {

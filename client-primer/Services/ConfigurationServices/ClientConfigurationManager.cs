@@ -163,6 +163,7 @@ public class ClientConfigurationManager
     internal int GetActiveSetIdx() => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Enabled);
     internal RestraintSet GetActiveSet() => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.Enabled)!; // this can be null.
     internal RestraintSet GetRestraintSet(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
+    internal int GetRestraintSetIdxByName(string name) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Name == name);
 
     internal void AddNewRestraintSet(RestraintSet newSet)
     {
@@ -217,6 +218,8 @@ public class ClientConfigurationManager
         }
         else
         {
+            // be sure to set the other existing active set, if any, to false first.
+
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Enabled = true;
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = UIDofPair;
             _wardrobeConfig.Save();

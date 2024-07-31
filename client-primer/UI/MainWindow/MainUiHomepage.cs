@@ -1,16 +1,14 @@
 using Dalamud.Interface;
 using Dalamud.Plugin;
 using GagSpeak.Services.Mediator;
-using System.Diagnostics;
-using ImGuiNET;
-using System.Numerics;
 using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UI.UiOrders;
-using GagSpeak.UI.UiToybox;
 using GagSpeak.UI.UiPuppeteer;
-using GagSpeak.UI.UiWardrobe;
-using UI.UiRemote;
 using GagSpeak.UI.UiRemote;
+using GagSpeak.UI.UiToybox;
+using GagSpeak.UI.UiWardrobe;
+using ImGuiNET;
+using System.Numerics;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -18,15 +16,21 @@ namespace GagSpeak.UI.MainWindow;
 /// Partial class responsible for drawing the homepage element of the main UI.
 /// The homepage will provide the player with links to open up other windows in the plugin via components.
 /// </summary>
-public partial class MainWindowUI
+public class MainUiHomepage : DisposableMediatorSubscriberBase
 {
-    /// <summary>
-    /// Main Draw function for the Whitelist/Contacts tab of the main UI
-    /// </summary>
-    private float DrawHomepageSection(IDalamudPluginInterface pi)
+    private readonly UiSharedService _uiShared;
+
+    public MainUiHomepage(ILogger<MainUiHomepage> logger,
+        GagspeakMediator mediator, UiSharedService uiSharedService)
+        : base(logger, mediator)
+    {
+        _uiShared = uiSharedService;
+    }
+
+    public float DrawHomepageSection(IDalamudPluginInterface pi)
     {
         // get the width of the window content region we set earlier
-        _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
+        var _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
         float pairlistEnd = 0;
 
         var availableWidth = ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
@@ -60,7 +64,7 @@ public partial class MainWindowUI
         var buttonX = (availableWidth - spacingX) / 2f;
 
         // My Remote
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.WaveSquare, "Lovense Remote Interface", buttonX))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.WaveSquare, "Lovense Remote Interface", buttonX))
         {
             // possibly use a factory to generate pair-unique remotes, or, if you want to incorporate multiple use functionality,
             // you can configure users in the remote menu.
@@ -69,35 +73,35 @@ public partial class MainWindowUI
         UiSharedService.AttachToolTip("Use your personal Lovense Remote to send vibrations to yourself or other pairs ");
 
         // Opens the Orders Module UI
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.ClipboardList, "Orders Interface", buttonX))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.ClipboardList, "Orders Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(OrdersUI)));
         }
         UiSharedService.AttachToolTip("View your active Orders or setup orders for others");
 
         // Opens the Gags Status Interface UI
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.CommentSlash, "Gags Interface", buttonX))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.CommentSlash, "Gags Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(GagSetupUI)));
         }
         UiSharedService.AttachToolTip("View and analyze your generated character data");
 
         // Opens the Wardrobe Module UI
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.ToiletPortable, "Wardrobe Interface", buttonX))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.ToiletPortable, "Wardrobe Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(WardrobeUI)));
         }
         UiSharedService.AttachToolTip("View and analyze your generated character data");
 
         // Opens the Puppeteer Module UI
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.PersonHarassing, "Puppeteer Interface", buttonX))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.PersonHarassing, "Puppeteer Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(PuppeteerUI)));
         }
         UiSharedService.AttachToolTip("View and analyze your generated character data");
 
         // Opens the Toybox Module UI
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.BoxOpen, "Toybox Interface", buttonX))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.BoxOpen, "Toybox Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
         }
@@ -113,7 +117,7 @@ public partial class MainWindowUI
             }
             catch (Exception e)
             {
-                _logger.LogError($"[ConfigFileOpen] Failed to open the config directory. {e.Message}");
+                Logger.LogError($"[ConfigFileOpen] Failed to open the config directory. {e.Message}");
             }
         }
 

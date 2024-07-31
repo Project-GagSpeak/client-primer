@@ -1,9 +1,7 @@
 
 namespace GagSpeak.UI.Permissions;
-public enum PermType
+public enum PermissionValueType
 {
     YesNo,
     TimeSpan,
-    String,
-    Char,
 }

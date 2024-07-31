@@ -31,7 +31,7 @@ public class MainTabMenu
 
     private string _pairToAdd = string.Empty;
 
-    private SelectedTab _selectedTab = SelectedTab.Homepage;
+    private SelectedTab _selectedTab = SelectedTab.Whitelist;
 
     public MainTabMenu(GagspeakMediator mediator, ApiController apiController, 
         PairManager pairManager, UiSharedService uiSharedService)

@@ -4,6 +4,7 @@ using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
+using GagSpeak.PlayerData.Data;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -17,9 +18,13 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
     private readonly HashSet<PairHandler> _newVisiblePlayers = [];
     private readonly PairManager _pairManager;
     private CharacterCompositeData? _lastSentData;
+    // store our PlayerCharacterManager instance.
+    private PlayerCharacterManager _playerManager;
 
-    public OnlinePlayerManager(ILogger<OnlinePlayerManager> logger, ApiController apiController, OnFrameworkService dalamudUtil,
-        PairManager pairManager, GagspeakMediator mediator) : base(logger, mediator)
+    public OnlinePlayerManager(ILogger<OnlinePlayerManager> logger,
+        ApiController apiController, OnFrameworkService dalamudUtil, 
+        PairManager pairManager, GagspeakMediator mediator) 
+        : base(logger, mediator)
     {
         _apiController = apiController;
         _frameworkUtil = dalamudUtil;
@@ -122,9 +127,9 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
     }
 
     /// <summary> Pushes the character alias list data to the server for the visible players (should ideally only need to do this for one recipient) </summary>
-    private void PushCharacterAliasListData(List<UserData> onlinePlayers)
+    private void PushCharacterAliasListData(UserData onlinePlayers)
     {
-        if (onlinePlayers.Any() && _lastSentData?.AliasData != null)
+        if (_lastSentData?.AliasData != null)
         {
             _ = Task.Run(async () =>
             {

@@ -69,9 +69,9 @@ public class Pair
     public bool OnlineToyboxUser { get; private set; } = false;                     // if the user is online.
     public UserPairPermissions UserPairOwnUniquePairPerms => UserPair.OwnPairPerms;    // the pair permissions of the pair.
     public UserEditAccessPermissions UserPairOwnEditAccess => UserPair.OwnEditAccessPerms; // the edit permissions of the pair.
-    public UserGlobalPermissions UserPairGlobalPerms => UserPair.OtherGlobalPerms;  // the global permissions of the pair.
     public UserPairPermissions UserPairUniquePairPerms => UserPair.OtherPairPerms;  // the pair permissions of the pair.
     public UserEditAccessPermissions UserPairEditAccess => UserPair.OtherEditAccessPerms; // the edit permissions of the pair.
+    public UserGlobalPermissions UserPairGlobalPerms => UserPair.OtherGlobalPerms;  // the global permissions of the pair.
     public CharacterAppearanceData UserPairAppearanceData { get; set; }             // the gag data associated with the user pair.
     public CharacterWardrobeData UserPairWardrobeData { get; set; }                 // the wardrobe data associated with the user pair.
     public CharacterAliasData UserPairAliasData { get; set; }                       // the alias data associated with the user pair.

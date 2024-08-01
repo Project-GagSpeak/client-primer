@@ -325,7 +325,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary>
-    /// Pushes another characters (or self)'s updated IPC data to the list of visible recipients.
+    /// Pushes Client's updated IPC data to the list of visible recipients.
     /// </summary>
     /// <param name="data"> the data to be sent to the list of users </param>
     /// <param name="visibleCharacters"> the currently visible characters who will recieve the updated IPC data </param>
@@ -344,7 +344,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
 
     /// <summary>
-    /// Pushes another characters (or self)'s updated appearance data to the list of online recipients.
+    /// Pushes Client's updated appearance data to the list of online recipients.
     /// </summary>
     /// <param name="data"></param>
     /// <param name="onlineCharacters"></param>
@@ -363,7 +363,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
 
     /// <summary>
-    /// Pushes another characters (or self)'s updated wardrobe data to the list of online recipients.
+    /// Pushes Client's updated wardrobe data to the list of online recipients.
     /// </summary>
     /// <param name="data"> the data to be sent to the list of users </param>
     /// <param name="onlineCharacters"> the online characters the data will be sent to </param>
@@ -382,7 +382,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
 
     /// <summary>
-    /// Pushes another characters (or self)'s updated alias list data to the respective recipient.
+    /// Pushes Client's updated alias list data to the respective recipient.
     /// </summary>
     /// <param name="data"> the data to be sent to the list of users </param>
     /// <param name="onlineCharacter"> the online pair the data will be sent to </param>
@@ -400,7 +400,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary>
-    /// Pushes another characters (or self)'s updated pattern information to the list of online recipients.
+    /// Pushes Client's updated pattern information to the list of online recipients.
     /// </summary>
     /// <param name="data"> the data to be sent to the list of users </param>
     /// <param name="onlineCharacters"> the online characters the data will be sent to </param>
@@ -416,5 +416,70 @@ public partial class ApiController // Partial class for MainHub User Functions.
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Pattern Information"); }
     }
+
+    /// <summary>
+    /// Updates another pairs IPC data with the new changes you've made to them.
+    /// </summary>
+    public async Task UserPushPairDataIpcUpdate(OnlineUserCharaIpcDataDto dto)
+    {
+        try
+        {
+            await _gagspeakHub!.InvokeAsync(nameof(UserPushPairDataIpcUpdate), dto).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, $"Failed to Push an update to {dto.User.UID}'s IPC data");
+        }
+    }
+
+    /// <summary>
+    /// Updates another pairs appearance data with the new changes you've made to them.
+    /// </summary>
+    public async Task UserPushPairDataAppearanceUpdate(OnlineUserCharaAppearanceDataDto dto)
+    {
+        try
+        {
+            await _gagspeakHub!.InvokeAsync(nameof(UserPushPairDataAppearanceUpdate), dto).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, $"Failed to Push an update to {dto.User.UID}'s Appearance data");
+        }
+    }
+
+    /// <summary>
+    /// Updates another pairs wardrobe data with the new changes you've made to them.
+    /// </summary>
+    public async Task UserPushPairDataWardrobeUpdate(OnlineUserCharaWardrobeDataDto dto)
+    {
+        try
+        {
+            await _gagspeakHub!.InvokeAsync(nameof(UserPushPairDataWardrobeUpdate), dto).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, $"Failed to Push an update to {dto.User.UID}'s Wardrobe data");
+        }
+    }
+
+    /// <summary>
+    /// Updates another pairs toybox info data with the new changes you've made to them.
+    /// </summary>
+    public async Task UserPushPairDataToyboxUpdate(OnlineUserCharaPatternDataDto dto)
+    {
+        try
+        {
+            await _gagspeakHub!.InvokeAsync(nameof(UserPushPairDataToyboxUpdate), dto).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, $"Failed to Push an update to {dto.User.UID}'s Toybox data");
+        }
+    }
+
+
+
+
+
 }
 #pragma warning restore MA0040

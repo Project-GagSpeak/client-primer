@@ -1,6 +1,7 @@
 using GagSpeak.MufflerCore.Handler;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
 
 namespace GagSpeak.PlayerData.Data;
@@ -19,24 +20,35 @@ public class GagManager : DisposableMediatorSubscriberBase
         _characterManager = characterManager;
         _gagDataHandler = gagDataHandler;
         _IPAParser = IPAParser;
-        // Call initial update for our gags.
+
+        UpdateActiveGags();
 
         // Subscribe to the GagTypeChanged event through the mediator
         Mediator.Subscribe<GagTypeChanged>(this, (msg) => OnGagTypeChanged(msg));
     }
 
-    /// <summary> Updates the list of active gag objects.
+    public bool AnyGagActive => _activeGags.Any(gag => gag.Name != "None");
+
     /// <summary>
     /// Updates the list of active gags based on the character's appearance data.
     /// </summary>
     private void UpdateActiveGags()
     {
-        _activeGags = new List<GagData>
+        Logger.LogTrace("GagTypeOne: {0}, GagTypeTwo: {1}, GagTypeThree: {2}",
+            _characterManager.AppearanceData.SlotOneGagType,
+            _characterManager.AppearanceData.SlotTwoGagType,
+            _characterManager.AppearanceData.SlotThreeGagType);
+
+        // compile the strings into a list of strings, then locate the names in the handler storage that match it.
+        _activeGags = new List<string>
         {
-            _gagDataHandler.GetGagByName(_characterManager.AppearanceData.SlotOneGagType),
-            _gagDataHandler.GetGagByName(_characterManager.AppearanceData.SlotTwoGagType),
-            _gagDataHandler.GetGagByName(_characterManager.AppearanceData.SlotThreeGagType)
-        }.Where(gag => gag != null).ToList();
+            _characterManager.AppearanceData.SlotOneGagType,
+            _characterManager.AppearanceData.SlotTwoGagType,
+            _characterManager.AppearanceData.SlotThreeGagType
+        }
+        .Where(gagType => _gagDataHandler._gagTypes.Any(gag => gag.Name == gagType))
+        .Select(gagType => _gagDataHandler._gagTypes.First(gag => gag.Name == gagType))
+        .ToList();
     }
 
     /// <summary>
@@ -76,11 +88,11 @@ public class GagManager : DisposableMediatorSubscriberBase
         try
         {
             outputStr = ConvertToGagSpeak(inputMessage);
-            Logger.LogError($"Converted message to GagSpeak: {outputStr}");
+            Logger.LogTrace($"Converted message to GagSpeak: {outputStr}");
         }
         catch (Exception e)
         {
-            Logger.LogError($"Error processing message: {e.Message}");
+            Logger.LogError($"Error processing message: {e}");
         }
         return outputStr;
     }
@@ -89,8 +101,13 @@ public class GagManager : DisposableMediatorSubscriberBase
     /// Internal convert for gagspeak
     public string ConvertToGagSpeak(string inputMessage)
     {
+
+
         // If all gags are None, return the input message as is
-        if (_activeGags.All(gag => gag.Name == "None")) return inputMessage;
+        if (_activeGags.All(gag => gag.Name == "None"))
+        {
+            return inputMessage;
+        }
 
         // Initialize the algorithm scoped variables 
         Logger.LogDebug($"Converting message to GagSpeak, at least one gag is not None.");

@@ -52,7 +52,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
         Logger.LogTrace("Fresh update >> Paused: {paused}", pair.UserPair.OtherPairPerms.IsPaused);
 
-        RecreateLazy();
+        RecreateLazy(true);
     }
 
     /// <summary>
@@ -94,7 +94,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 Logger.LogError($"Property '{ChangedPermission}' not found or cannot be updated.");
             }
         }
-        RecreateLazy();
+        RecreateLazy(false);
     }
 
     /// <summary>
@@ -141,7 +141,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 Logger.LogError($"Property '{ChangedPermission}' not found or cannot be updated.");
             }
         }
-        RecreateLazy();
+        RecreateLazy(false);
     }
 
     /// <summary>
@@ -179,7 +179,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 Logger.LogError($"Property '{ChangedPermission}' not found or cannot be updated.");
             }
         }
-        RecreateLazy();
+        RecreateLazy(false);
     }
 
 
@@ -224,7 +224,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 Logger.LogError($"Property '{ChangedPermission}' not found or cannot be updated.");
             }
         }
-        RecreateLazy();
+        RecreateLazy(false);
     }
 
     /// <summary>
@@ -258,6 +258,6 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 Logger.LogError($"Property '{ChangedPermission}' not found or cannot be updated.");
             }
         }
-        RecreateLazy();
+        RecreateLazy(false);
     }
 }

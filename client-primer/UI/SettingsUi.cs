@@ -3,6 +3,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
@@ -13,14 +14,17 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
+using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 using System.Globalization;
 using System.Numerics;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
 
 namespace GagSpeak.UI;
 
 public class SettingsUi : WindowMediatorSubscriberBase
 {
+    private readonly ApiController _apiController;
     private readonly PlayerCharacterManager _playerCharacterManager;
     private readonly IpcManager _ipcManager;
     private readonly OnFrameworkService _frameworkUtil;
@@ -40,11 +44,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private CancellationTokenSource? _validationCts;
 
     public SettingsUi(ILogger<SettingsUi> logger, UiSharedService uiShared,
-        GagspeakConfigService configService, PairManager pairManager,
-        PlayerCharacterManager playerCharacterManager,
+        ApiController apiController, GagspeakConfigService configService, 
+        PairManager pairManager, PlayerCharacterManager playerCharacterManager,
         ServerConfigurationManager serverConfigurationManager, GagspeakMediator mediator,
         IpcManager ipcManager, OnFrameworkService frameworkUtil) : base(logger, mediator, "GagSpeak Settings")
     {
+        _apiController = apiController;
         _playerCharacterManager = playerCharacterManager;
         _configService = configService;
         _pairManager = pairManager;
@@ -54,6 +59,17 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared = uiShared;
         AllowClickthrough = false;
         AllowPinning = false;
+
+        // load the dropdown info
+        LanguagesDialects = new Dictionary<string, string[]> {
+            { "English", new string[] { "US", "UK" } },
+            { "Spanish", new string[] { "Spain", "Mexico" } },
+            { "French", new string[] { "France", "Quebec" } },
+            { "Japanese", new string[] { "Japan" } }
+        };
+        _currentDialects = LanguagesDialects[_configService.Current.Language];
+        _activeDialect = GetDialectFromConfigDialect();
+
 
         SizeConstraints = new WindowSizeConstraints()
         {
@@ -67,6 +83,45 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     private ApiController ApiController => _uiShared.ApiController;
     private UserGlobalPermissions PlayerGlobalPerms => _playerCharacterManager.GlobalPerms;
+    
+    // Everything below here is temporary until I figure out something better.
+    public Dictionary<string, string[]> LanguagesDialects { get; init; } // Languages and Dialects for Chat Garbler.
+    private string[] _currentDialects; // Array of Dialects for each Language
+    private string _activeDialect; // Selected Dialect for Language
+
+    private string GetDialectFromConfigDialect()
+    {
+        switch (_configService.Current.LanguageDialect)
+        {
+            case "IPA_US": return "US";
+            case "IPA_UK": return "UK";
+            case "IPA_FRENCH": return "France";
+            case "IPA_QUEBEC": return "Quebec";
+            case "IPA_JAPAN": return "Japan";
+            case "IPA_SPAIN": return "Spain";
+            case "IPA_MEXICO": return "Mexico";
+            default: return "US";
+        }
+    }
+
+    private void SetConfigDialectFromDialect(string dialect)
+    {
+        switch (dialect)
+        {
+            case "US": _configService.Current.LanguageDialect = "IPA_US"; _configService.Save(); break;
+            case "UK": _configService.Current.LanguageDialect = "IPA_UK"; _configService.Save(); break;
+            case "France": _configService.Current.LanguageDialect = "IPA_FRENCH"; _configService.Save(); break;
+            case "Quebec": _configService.Current.LanguageDialect = "IPA_QUEBEC"; _configService.Save(); break;
+            case "Japan": _configService.Current.LanguageDialect = "IPA_JAPAN"; _configService.Save(); break;
+            case "Spain": _configService.Current.LanguageDialect = "IPA_SPAIN"; _configService.Save(); break;
+            case "Mexico": _configService.Current.LanguageDialect = "IPA_MEXICO"; _configService.Save(); break;
+            default: _configService.Current.LanguageDialect = "IPA_US"; _configService.Save(); break;
+        }
+    }
+    // Everything above here is temporary until I figure out something better.
+
+
+
 
     protected override void PreDrawInternal() { }
     protected override void PostDrawInternal() { }
@@ -373,13 +428,16 @@ public class SettingsUi : WindowMediatorSubscriberBase
         bool toyIsActive = PlayerGlobalPerms.ToyIsActive;
         bool spatialVibratorAudio = PlayerGlobalPerms.SpatialVibratorAudio;
 
-
+        // NOTE / TODO : The checkboxes flicker due to the server transfer time. However, we may be able to
+        // directly assign before doing the call because we are going to receive the update which will set it again
+        // anyways after if anything goes wrong. So we can just do it here if we want later to prevent flickering.
         _uiShared.BigText("Global Settings");
 
         if (ImGui.Checkbox("Allow GagSpeak Commands from In-Game Friend list", ref cmdsFromFriends))
         {
-            PlayerGlobalPerms.CommandsFromFriends = cmdsFromFriends;
-            // TODO: Perform a mediator call that we have updated a permission.
+            // Perform a mediator call that we have updated a permission.
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                new KeyValuePair<string, object>("CommandsFromFriends", cmdsFromFriends)));
 
         }
         _uiShared.DrawHelpText("If enabled, GagSpeak commands can be sent from friends in your friend list In-Game. Even if they are not paired.");
@@ -387,7 +445,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (ImGui.Checkbox("Allow GagSpeak Commands from In-Game Party list", ref cmdsFromParty))
         {
             PlayerGlobalPerms.CommandsFromParty = cmdsFromParty;
-            // TODO: Perform a mediator call that we have updated a permission.
+            // Perform a mediator call that we have updated a permission.
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                new KeyValuePair<string, object>("CommandsFromParty", cmdsFromParty)));
 
         }
         _uiShared.DrawHelpText("If enabled, GagSpeak commands can be sent from party members in your party list In-Game. Even if they are not paired.");
@@ -396,11 +456,125 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             if (ImGui.Checkbox("Enable Live Chat Garbler", ref liveChatGarblerActive))
             {
-                PlayerGlobalPerms.LiveChatGarblerActive = liveChatGarblerActive;
-                // TODO: Perform a mediator call that we have updated a permission.
+                // Perform a mediator call that we have updated a permission.
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                    new KeyValuePair<string, object>("LiveChatGarblerActive", liveChatGarblerActive)));
 
             }
             _uiShared.DrawHelpText("If enabled, the Live Chat Garbler will garble your chat messages in-game. (This is done server-side, others will see it too)");
+        }
+
+
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("GagSpeak Channels:");
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Every selected channel from here becomes a channel that your direct chat garbler works in.");
+        }
+        ImGui.SameLine();
+        // Create the language dropdown
+        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 65);
+        string prevLang = _configService.Current.Language; // to only execute code to update data once it is changed
+        if (ImGui.BeginCombo("##Language", _configService.Current.Language, ImGuiComboFlags.NoArrowButton))
+        {
+            foreach (var language in LanguagesDialects.Keys.ToArray())
+            {
+                bool isSelected = (_configService.Current.Language == language);
+                if (ImGui.Selectable(language, isSelected))
+                {
+                    _configService.Current.Language = language;
+                    _configService.Save();
+                }
+                if (isSelected)
+                {
+                    ImGui.SetItemDefaultFocus();
+                }
+            }
+            ImGui.EndCombo();
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Select the language you want to use for GagSpeak.");
+        }
+        //update if changed 
+        if (prevLang != _configService.Current.Language)
+        { // set the language to the newly selected language once it is changed
+            _currentDialects = LanguagesDialects[_configService.Current.Language]; // update the dialects for the new language
+            _activeDialect = _currentDialects[0]; // set the active dialect to the first dialect of the new language
+            SetConfigDialectFromDialect(_activeDialect);
+            _configService.Save();
+        }
+        ImGui.SameLine();
+        // Create the dialect dropdown
+        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 55);
+        string[] dialects = LanguagesDialects[_configService.Current.Language];
+        string prevDialect = _activeDialect; // to only execute code to update data once it is changed
+        if (ImGui.BeginCombo("##Dialect", _activeDialect, ImGuiComboFlags.NoArrowButton))
+        {
+            foreach (var dialect in dialects)
+            {
+                bool isSelected = (_activeDialect == dialect);
+                if (ImGui.Selectable(dialect, isSelected))
+                {
+                    _activeDialect = dialect;
+                }
+                if (isSelected)
+                {
+                    ImGui.SetItemDefaultFocus();
+                }
+            }
+            ImGui.EndCombo();
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Select the Dialect you want to use for GagSpeak.");
+        }
+        //update if changed
+        if (prevDialect != _activeDialect)
+        { // set the dialect to the newly selected dialect once it is changed
+            SetConfigDialectFromDialect(_activeDialect);
+            _configService.Save();
+        }
+
+        // display the channels
+        var i = 0;
+        foreach (var e in ChatChannel.GetOrderedChannels())
+        {
+            // See if it is already enabled by default
+            var enabled = _configService.Current.ChannelsGagSpeak.Contains(e);
+            // Create a new line after every 4 columns
+            if (i != 0 && (i == 4 || i == 7 || i == 11 || i == 15 || i == 19))
+            {
+                ImGui.NewLine();
+                //i = 0;
+            }
+            // Move to the next row if it is LS1 or CWLS1
+            if (e is ChatChannel.ChatChannels.LS1 or ChatChannel.ChatChannels.CWL1)
+                ImGui.Separator();
+
+            if (ImGui.Checkbox($"{e}", ref enabled))
+            {
+                // See If the UIHelpers.Checkbox is clicked, If not, add to the list of enabled channels, otherwise, remove it.
+                if (enabled)
+                {
+                    // ensure that it is not already in the list first
+                    if (!_configService.Current.ChannelsGagSpeak.Contains(e))
+                    {
+                        // if it doesn't exist, add it.
+                        _configService.Current.ChannelsGagSpeak.Add(e);
+                    }
+                }
+                else
+                {
+                    // try and remove the channel from the list.
+                    _configService.Current.ChannelsGagSpeak.Remove(e);
+                }
+                // save config.
+                _configService.Save();
+            }
+
+            ImGui.SameLine();
+            i++;
         }
 
 
@@ -411,7 +585,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (ImGui.Checkbox("Enable Wardrobe", ref wardrobeEnabled))
         {
             PlayerGlobalPerms.WardrobeEnabled = wardrobeEnabled;
-            // TODO: Perform a mediator call that we have updated a permission.
+            // if this creates a race condition down the line remove the above line.
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+            new KeyValuePair<string, object>("WardrobeEnabled", wardrobeEnabled)));
 
         }
         _uiShared.DrawHelpText("If enabled, the all glamourer / penumbra / visual display information will become functional.");
@@ -422,19 +598,23 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             if (ImGui.Checkbox("Allow Items to be Auto-Equipped", ref itemAutoEquip))
             {
-                PlayerGlobalPerms.ItemAutoEquip = itemAutoEquip;
-                // TODO: Perform a mediator call that we have updated a permission.
+                PlayerGlobalPerms.ItemAutoEquip = itemAutoEquip; // will be overridden by whatever is returned by the api call so dont worry.
+                // if this creates a race condition down the line remove the above line.
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                new KeyValuePair<string, object>("ItemAutoEquip", itemAutoEquip)));
 
             }
-            _uiShared.DrawHelpText("Allows Glamourer to bind glamours to your character while gagged. These glamour's are defined by the Gag Storage.");
+            _uiShared.DrawHelpText("Allows Glamourer to bind glamours to your character while gagged.\nThese glamour's are defined by the Gag Storage.");
 
             if (ImGui.Checkbox("Allow Restraint Sets to be Auto-Equipped", ref restraintSetAutoEquip))
             {
                 PlayerGlobalPerms.RestraintSetAutoEquip = restraintSetAutoEquip;
-                // TODO: Perform a mediator call that we have updated a permission.
+                // if this creates a race condition down the line remove the above line.
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                new KeyValuePair<string, object>("RestraintSetAutoEquip", restraintSetAutoEquip)));
 
             }
-            _uiShared.DrawHelpText("Allows Glamourer to bind restraint sets to your character. Restraint sets can be created in the Wardrobe Interface.");
+            _uiShared.DrawHelpText("Allows Glamourer to bind restraint sets to your character.\nRestraint sets can be created in the Wardrobe Interface.");
         }
 
 
@@ -445,7 +625,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (ImGui.Checkbox("Enable Puppeteer", ref puppeteerEnabled))
         {
             PlayerGlobalPerms.PuppeteerEnabled = puppeteerEnabled;
-            // TODO: Perform a mediator call that we have updated a permission.
+            // if this creates a race condition down the line remove the above line.
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+            new KeyValuePair<string, object>("PuppeteerEnabled", puppeteerEnabled)));
 
         }
         _uiShared.DrawHelpText("If enabled, the Puppeteer component will become functional.");
@@ -458,7 +640,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
             if (ImGui.InputText("Global Trigger Phrase", ref globalTriggerPhrase, 100, ImGuiInputTextFlags.EnterReturnsTrue))
             {
                 PlayerGlobalPerms.GlobalTriggerPhrase = globalTriggerPhrase;
-                // TODO: Perform a mediator call that we have updated a permission.
+                // if this creates a race condition down the line remove the above line.
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                new KeyValuePair<string, object>("GlobalTriggerPhrase", globalTriggerPhrase)));
 
             }
             _uiShared.DrawHelpText("The global trigger phrase that will be used to trigger puppeteer commands.\n" +
@@ -467,7 +651,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
             if (ImGui.Checkbox("Globally Allow Sit Requests", ref globalAllowSitRequests))
             {
                 PlayerGlobalPerms.GlobalAllowSitRequests = globalAllowSitRequests;
-                // TODO: Perform a mediator call that we have updated a permission.
+                // if this creates a race condition down the line remove the above line.
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                new KeyValuePair<string, object>("GlobalAllowSitRequests", globalAllowSitRequests)));
 
             }
             _uiShared.DrawHelpText("If enabled, the user will allow sit requests to be sent to them.");
@@ -475,7 +661,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
             if (ImGui.Checkbox("Globally Allow Motion Requests", ref globalAllowMotionRequests))
             {
                 PlayerGlobalPerms.GlobalAllowMotionRequests = globalAllowMotionRequests;
-                // TODO: Perform a mediator call that we have updated a permission.
+                // if this creates a race condition down the line remove the above line.
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                new KeyValuePair<string, object>("GlobalAllowMotionRequests", globalAllowMotionRequests)));
 
             }
             _uiShared.DrawHelpText("If enabled, the user will allow motion requests to be sent to them.");
@@ -483,7 +671,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
             if (ImGui.Checkbox("Globally Allow All Requests", ref globalAllowAllRequests))
             {
                 PlayerGlobalPerms.GlobalAllowAllRequests = globalAllowAllRequests;
-                // TODO: Perform a mediator call that we have updated a permission.
+                // if this creates a race condition down the line remove the above line.
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                new KeyValuePair<string, object>("GlobalAllowAllRequests", globalAllowAllRequests)));
 
             }
             _uiShared.DrawHelpText("If enabled, the user will allow all requests to be sent to them.");
@@ -496,7 +686,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (ImGui.Checkbox("Enable Moodles", ref moodlesEnabled))
         {
             PlayerGlobalPerms.MoodlesEnabled = moodlesEnabled;
-            // TODO: Perform a mediator call that we have updated a permission.
+            // if this creates a race condition down the line remove the above line.
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+            new KeyValuePair<string, object>("MoodlesEnabled", moodlesEnabled)));
 
         }
         _uiShared.DrawHelpText("If enabled, the moodles component will become functional.");
@@ -509,7 +701,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (ImGui.Checkbox("Enable Toybox", ref toyboxEnabled))
         {
             PlayerGlobalPerms.ToyboxEnabled = toyboxEnabled;
-            // TODO: Perform a mediator call that we have updated a permission.
+            // if this creates a race condition down the line remove the above line.
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+            new KeyValuePair<string, object>("ToyboxEnabled", toyboxEnabled)));
 
         }
         _uiShared.DrawHelpText("If enabled, the toybox component will become functional.");
@@ -529,7 +723,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Current.OpenPopupOnAdd = openPopupOnAddition;
             _configService.Save();
         }
-        _uiShared.DrawHelpText("When enabled, a popup will automatically display after adding another user," +
+        _uiShared.DrawHelpText("When enabled, a popup will automatically display\nafter adding another user," +
             "allowing you to enter a nickname for them.");
 
         // form a separator for the UI

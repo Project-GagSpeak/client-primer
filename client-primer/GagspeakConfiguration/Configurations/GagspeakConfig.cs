@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.UI;
 using GagSpeak.Hardcore.Movement;
+using GagSpeak.ChatMessages;
 
 namespace GagSpeak.GagspeakConfiguration.Configurations;
 
@@ -31,12 +32,17 @@ public class GagspeakConfig : IGagspeakConfiguration
     public NotificationLocation InfoNotification { get; set; } = NotificationLocation.Both;
     public NotificationLocation WarningNotification { get; set; } = NotificationLocation.Both;
     public NotificationLocation ErrorNotification { get; set; } = NotificationLocation.Both;
+    public List<ChatChannel.ChatChannels> ChannelsGagSpeak { get; set; } // Which channels are GagSpeak translations happening in?
+        = new List<ChatChannel.ChatChannels>() { ChatChannel.ChatChannels.Say };
+    public List<ChatChannel.ChatChannels> ChannelsPuppeteer { get; set; } // which channels should puppeteer messages be scanning? 
+        = new List<ChatChannel.ChatChannels>() { ChatChannel.ChatChannels.Say };
 
     // migrated from gagspeak information for client user. (stuff unessisary to be in the DB)
     public bool LiveGarblerZoneChangeWarn { get; set; }                 // if user wants to be warned about the live chat garbler on zone change
     public BlindfoldType BlindfoldStyle { get; set; }                   // the blindfold style the user is using
     public RevertStyle RevertStyle { get; set; }                        // how the user wants to revert their settings (can store locally?)
     public bool UsingSimulatedVibrator { get; set; }                    // if the user is using a simulated vibrator
+    public string Language { get; set; } = "English";                   // the language the user is using for MufflerCore
     public string LanguageDialect { get; set; } = "IPA_US";             // the language dialect the user is using for MufflerCore
     public bool UsingLegacyControls { get; set; } = GameConfig.UiControl.GetBool("MoveMode"); // grabs our movement mode for the game.
     public string IntifaceConnectionSocket { get; set; } = "ws://localhost:12345"; // connection link from plugin to intiface

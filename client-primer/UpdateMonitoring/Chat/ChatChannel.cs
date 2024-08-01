@@ -1,10 +1,9 @@
-using Dalamud.Game.Text;                                      // this is used for the lists
-using FFXIVClientStructs.FFXIV.Client.System.Framework; // this is the framework that the game uses to handle all of its UI
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;         // this is the agent that handles the chatlog
+using Dalamud.Game.Text;
+using FFXIVClientStructs.FFXIV.Client.System.Framework;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 
 namespace GagSpeak.ChatMessages;
 
-/// <summary> This class is used to handle the chat channels for the GagSpeak plugin. It makes use of chatlog agent pointers, and is fairly complex, so would recommend not using yourself until you know why it points to what it does. </summary>
 public static class ChatChannel
 {
     // this is the agent that handles the chatlog

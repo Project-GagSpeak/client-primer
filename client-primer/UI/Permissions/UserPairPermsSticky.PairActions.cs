@@ -1,6 +1,15 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Utility.Raii;
+using GagSpeak.WebAPI.Utils;
+using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
+using OtterGui.Classes;
+using OtterGui.Text;
+using System.Numerics;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkCounterNode.Delegates;
+using static GagspeakAPI.Data.Enum.GagList;
+using static Lumina.Data.Parsing.Layer.LayerCommon;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -77,9 +86,60 @@ public partial class UserPairPermsSticky
         ImGui.Separator();
     }
 
+    private bool ShowGagList = false;
+    private string GagSearchString = string.Empty;
+    public int SelectedLayer = 0;
+    public GagList.GagType SelectedGag = GagType.None;
     private void DrawGagActions()
     {
         // button for applying a gag (will display the dropdown of the gag list to apply when pressed.
+        if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, ("Apply a Gag to " + PairAliasOrUID), 
+            WindowMenuWidth, true))
+        {
+            ShowGagList = !ShowGagList;
+        }
+        // if we should show the gag list, 
+        if(ShowGagList)
+        {
+            using (var framedGagApplyChild = ImRaii.Child("GagApplyChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()*2 + ImGui.GetStyle().ItemSpacing.Y), false))
+            {
+                if (!framedGagApplyChild) return;
+
+                float comboWidth = WindowMenuWidth - ImGui.CalcTextSize("Apply Gag").X - ImGui.GetStyle().ItemSpacing.X * 2;
+
+                using (var gagApplyGroup = ImRaii.Group())
+                {
+                    // first display dropdown for layer selection
+                    ImGui.SetNextItemWidth(comboWidth);
+                    ImGui.Combo("##GagApplyLayer", ref SelectedLayer, new string[] { "Layer 1", "Layer 2", "Layer 3" }, 3);
+                    UiSharedService.AttachToolTip("Select the layer to apply the gag to.");
+                    // now display the dropdown for the gag selection
+                    _uiShared.DrawComboSearchable($"Gag Type for Pair", comboWidth, ref GagSearchString,
+                        Enum.GetValues<GagList.GagType>(), (gag) => gag.GetGagAlias(), false,
+                        (i) =>
+                        {
+                            // locate the GagData that matches the alias of i
+                            SelectedGag = GagList.AliasToGagTypeMap[i.GetGagAlias()];
+                        }, SelectedGag);
+                    UiSharedService.AttachToolTip("Select the gag to apply to the pair.");
+                }
+                ImUtf8.SameLineInner();
+                if (ImGui.Button("Apply Gag", ImGui.GetContentRegionAvail()))
+                {
+                    // apply the selected gag. (POSSIBLY TODO: Rework the PushApperance Data to only push a single property to avoid conflicts.)
+                    _logger.LogInformation("Pushing updated Appearance Data pair and recipients");
+                    // construct the modified appearance data.
+                    var newAppearance = UserPairForPerms.UserPairAppearanceData.DeepClone();
+                    if (SelectedLayer == 0) { newAppearance.SlotOneGagType = SelectedGag.GetGagAlias(); }
+                    else if (SelectedLayer == 1) { newAppearance.SlotTwoGagType = SelectedGag.GetGagAlias(); }
+                    else if (SelectedLayer == 2) { newAppearance.SlotThreeGagType = SelectedGag.GetGagAlias(); }
+
+                    // push the new appearance data to all online pairs.
+                    // _ = _apiController.PushCharacterAppearanceData(newAppearance, _pairManager.GetOnlineUserDatas());
+                }
+                UiSharedService.AttachToolTip("Apply the selected gag to " + PairAliasOrUID + " on gag layer" + (SelectedLayer+1) + ".\nTHIS DOES NOT WORK YET.");
+            }
+        }
 
         // button to lock the current layers gag. (references the gag applied, only interactable when layer is gagged.)
 

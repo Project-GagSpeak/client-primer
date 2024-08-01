@@ -17,12 +17,12 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
     private readonly ClientConfigurationManager _clientConfigManager;
-    private CharacterIPCData _playerCharIpcData { get; set; } // the IPC data for our player character
-    private CharacterAppearanceData _playerCharAppearanceData { get; set; } // the appearance data for our player character
-    private CharacterWardrobeData _playerCharWardrobeData { get; set; } // the wardrobe data for our player character
-    private Dictionary<string, CharacterAliasData> _playerCharAliasData { get; set; } // the alias data for our player character
-    private CharacterPatternInfo _playerCharPatternData { get; set; } // the pattern data for our player character
-    private UserGlobalPermissions _playerCharGlobalPerms { get; set; } // the global permissions for our player character
+    private CharacterIPCData _playerCharIpcData { get; set; } 
+    private CharacterAppearanceData _playerCharAppearanceData { get; set; } = new CharacterAppearanceData();
+    private CharacterWardrobeData _playerCharWardrobeData { get; set; }
+    private Dictionary<string, CharacterAliasData> _playerCharAliasData { get; set; }
+    private CharacterPatternInfo _playerCharPatternData { get; set; }
+    private UserGlobalPermissions _playerCharGlobalPerms { get; set; } = new UserGlobalPermissions();
 
     // we need to store our Customize+ tuple list here, but we do not need to be sending it to other people, so stay out of IPC
     IList<CustomizePlusProfileData> ClientCustomizeProfileList { get; set; } // the list of client customize profiles
@@ -38,7 +38,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         _playerCharIpcData = new CharacterIPCData(); // Initialize the IPC data
         _playerCharWardrobeData = new CharacterWardrobeData(); // Initialize the wardrobe data
         _playerCharPatternData = new CharacterPatternInfo(); // Initialize the pattern data
-
         _playerCharAliasData = new Dictionary<string, CharacterAliasData>(); // Initialize the dictionary
 
         // Subscribe to the connected message update so we know when to update our global permissions

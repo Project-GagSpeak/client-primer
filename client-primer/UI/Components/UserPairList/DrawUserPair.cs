@@ -155,136 +155,31 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         {
             // open the permission setting window
             _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairActionFunctions));
-            //ImGui.OpenPopup("User Flyout Menu");
         }
 
         currentRightSide -= permissionsButtonSize.X + spacingX;
         ImGui.SameLine(currentRightSide);
-        if (_uiSharedService.IconButton(FontAwesomeIcon.Cog))
+        if (_uiSharedService.IconButton(FontAwesomeIcon.Lock))
         {
-            // if we press the cog, we should modify its apperance, and set that we are drawing for this pair to true
-            _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairPerms));
-        }
-        UiSharedService.AttachToolTip(!_pair.IsOnline
-            ? "Change " + _pair.UserData.AliasOrUID + "'s permissions"
-            : "Close " + _pair.UserData.AliasOrUID + "'s permissions window");
-
-        currentRightSide -= permissionsButtonSize.X + spacingX;
-        ImGui.SameLine(currentRightSide);
-        if (_uiSharedService.IconButton(FontAwesomeIcon.Wrench))
-        {
-            if(Pair == null)
+            if (Pair == null)
             {
                 Logger.LogWarning("Pair is null");
             }
             // if we press the cog, we should modify its appearance, and set that we are drawing for this pair to true
             _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.ClientPermsForPair));
         }
-        UiSharedService.AttachToolTip(!_pair.IsOnline
-            ? "Change your permission access for " + _pair.UserData.AliasOrUID
-            : "Close your permissions access window");
+        UiSharedService.AttachToolTip("Set your Permissions for " + _pair.UserData.AliasOrUID);
 
-        if (ImGui.BeginPopup("User Flyout Menu"))
+        currentRightSide -= permissionsButtonSize.X + spacingX;
+        ImGui.SameLine(currentRightSide);
+        if (_uiSharedService.IconButton(FontAwesomeIcon.Cog))
         {
-            using (ImRaii.PushId($"buttons-{_pair.UserData.UID}"))
-            {
-                ImGui.TextUnformatted("Common Pair Functions");
-                DrawCommonClientMenu();
-                DrawPairedClientMenu();
-
-                if (_menuWidth <= 0)
-                {
-                    _menuWidth = ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
-                }
-            }
-
-            ImGui.EndPopup();
+            // if we press the cog, we should modify its appearance, and set that we are drawing for this pair to true
+            _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairPerms));
         }
+        UiSharedService.AttachToolTip("Inspect " + _pair.UserData.AliasOrUID + "'s permissions");
 
-        return currentRightSide - spacingX;
-    }
-
-    private Vector2 listSize = new Vector2(175, 175);
-    private void DrawPairedClientMenu()
-    {
-        ImGui.TextUnformatted("Gag Interactions");
-
-        ImGui.Separator();
-
-        if (ImGui.BeginMenu("Wardrobe Interactions"))
-        {
-            if (ImGui.BeginMenu("Enable Restraint Set"))
-            {
-                // Code to display list of pair's restraint sets
-                ImGui.EndMenu();
-            }
-            if (ImGui.MenuItem("Lock Active Set"))
-            {
-                // locks the restraint set, if given permission
-            }
-            if (ImGui.MenuItem("Unlock Active Set"))
-            {
-                // unlocks the restraint set, if given permission
-            }
-            if (ImGui.MenuItem("Disable Restraint Set"))
-            {
-                // removes the restraint set, if given permission
-            }
-            ImGui.EndMenu();
-        }
-        ImGui.Separator();
-
-        if (ImGui.BeginMenu("Puppeteer Interactions"))
-        {
-            if (ImGui.MenuItem("TriggerPhrase"))
-            {
-                // display trigger phrase
-            }
-            if (ImGui.MenuItem("Start Character"))
-            {
-                // show start char
-            }
-            if (ImGui.MenuItem("End Character"))
-            {
-                // show end char
-            }
-            if (ImGui.BeginMenu("Alias List"))
-            {
-                // display the list of alias's, with tooltips of what they do
-            }
-            ImGui.EndMenu();
-        }
-        ImGui.Separator();
-
-        if (ImGui.BeginMenu("Toybox Interactions"))
-        {
-            if (ImGui.MenuItem("Vibrator Remote"))
-            {
-                // open vibrator remote preset to request control to this pair.
-            }
-            if (ImGui.BeginMenu("Patterns"))
-            {
-                // display list of patterns
-                // for each pattern:
-                if (ImGui.MenuItem("Execute"))
-                {
-                    // execute the pattern
-                }
-            }
-            if (ImGui.MenuItem("Stop Pattern"))
-            {
-
-            }
-            if (ImGui.MenuItem("Lock Toybox"))
-            {
-                // lock the toybox
-            }
-            if (ImGui.MenuItem("Unlock Toybox"))
-            {
-                // unlock the toybox
-            }
-            ImGui.EndMenu();
-        }
+        return currentRightSide;
     }
 
     private void DrawCommonClientMenu()

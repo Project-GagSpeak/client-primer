@@ -7,6 +7,8 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
+using GagSpeak.UpdateMonitoring.Chat;
+using GagSpeak.UpdateMonitoring.Chat.ChatMonitors;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Reflection;
@@ -137,7 +139,6 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             // startup services that have no other services that call on them, yet are essential.
             _runtimeServiceScope.ServiceProvider.GetRequiredService<UiService>();
             // _runtimeServiceScope.ServiceProvider.GetRequiredService<CommandManagerService>();
-            _runtimeServiceScope.ServiceProvider.GetRequiredService<GagManager>();
 
             _clientConfigurationManager.GagspeakConfig.ButtonUsed = false;
 
@@ -155,6 +156,10 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<GlamourChangedService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<OnlinePlayerManager>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<NotificationService>();
+            // boot up our chatGarbler services.
+
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatSender>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatInputDetour>();
         }
         catch (Exception ex)
         {

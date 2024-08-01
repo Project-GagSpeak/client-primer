@@ -1,97 +1,79 @@
-/*using System;
-using System.Runtime.InteropServices;
-using System.Collections.Generic;
-using System.Text;
-using System.Linq;
-using System.Text.RegularExpressions;
 using Dalamud.Game;
+using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using GagSpeak.Utils;
-using GagSpeak.Gagsandlocks;
-using GagSpeak.CharacterData;
-using GagSpeak.ChatMessages.MessageTransfer;
-using System.Threading.Channels;
+using Dalamud.Utility.Signatures;
+using GagSpeak.ChatMessages;
+using GagSpeak.GagspeakConfiguration;
+using GagSpeak.PlayerData.Data;
+using System.Runtime.InteropServices;
+
 // I swear to god, if any contributors even attempt to tinker with this file, I will swat you over the head. DO NOT DO IT.
+namespace GagSpeak.UpdateMonitoring.Chat.ChatMonitors;
 
-// Signatures located and adopted from sourcecode:
-// https://github.com/Caraxi/SimpleTweaksPlugin/blob/6a9e32489d75b63d1915d90720f45f5d75366a87/Tweaks/CommandAlias.cs
-// Check for any potential sig changes or changes to code each update and altar accordingly
-namespace GagSpeak.ChatMessages.ChatControl;
+/// <summary> 
+/// This class is used to handle the chat input detouring for the GagSpeak plugin
+/// It is very dangerous to tinker with. 
+/// If you ever decide to use this for a plugin of your own, take extreme caution..
+/// </summary>
+public unsafe class ChatInputDetour : IDisposable
+{
+    private readonly ILogger<ChatInputDetour> _logger;
+    private readonly GagspeakConfigService _config;
+    private readonly PlayerCharacterManager _playerManager;
+    private readonly GagManager _gagManager;
 
-/// <summary> This class is used to handle the chat input detouring for the GagSpeak plugin and is very dangerous to tinker with. Do not do it please. </summary>
-public unsafe class ChatInputProcessor : IDisposable {
-    private readonly    GagSpeakConfig                          _config;                            // for config options
-    private readonly    GagGarbleManager                        _gagManager;                        // for gag manager
-    private readonly    CharacterHandler                        _characterHandler;                  // for character handler
-    private readonly    MessageDictionary                       _messageDictionary;                 // for message dictionary
-    public virtual      bool                                    Ready { get; protected set; }       // see if ready
-    public virtual      bool                                    Enabled { get; protected set; }     // set if enabled
-    private             nint                                    processChatInputAddress;            // address of the chat input
-    private             HookWrapper<ProcessChatInputDelegate>   processChatInputHook = null!;       // should be storing the chat message
-    public static       List<IHookWrapper>                      HookList = new();                   // list of hooks
-    private unsafe delegate byte ProcessChatInputDelegate(nint uiModule, byte** message, nint a3);  // delegate for the chat input
-    private readonly List<string> _configChannelsCommandsList;
+    private readonly List<string> AllowedCommandChannels;
 
-    /// <summary> Initializes a new instance of the <see cref="ChatInputProcessor"/> class. </summary>
-    internal ChatInputProcessor(ISigScanner scanner, IGameInteropProvider interop, GagSpeakConfig config, 
-    CharacterHandler characterHandler, GagGarbleManager GagGarbleManager, MessageDictionary messageDictionary) {
-        // initialize interopfromattributes
+
+    // define our delegates.
+    private unsafe delegate byte ProcessChatInputDelegate(IntPtr uiModule, byte** message, IntPtr a3);
+    [Signature("E8 ?? ?? ?? ?? FE 86 ?? ?? ?? ?? C7 86 ?? ?? ?? ?? ?? ?? ?? ??", DetourName = nameof(ProcessChatInputDetour), Fallibility = Fallibility.Auto)]
+    private Hook<ProcessChatInputDelegate> ProcessChatInputHook { get; set; } = null!;
+
+    internal ChatInputDetour(ISigScanner scanner, IGameInteropProvider interop,
+        ILogger<ChatInputDetour> logger, GagspeakConfigService config, 
+        PlayerCharacterManager playerManager, GagManager gagManager)
+    {
+        // initialize the classes
+        _logger = logger;
         _config = config;
-        _characterHandler = characterHandler;
-        _gagManager = GagGarbleManager;
-        _messageDictionary = messageDictionary;
-        _configChannelsCommandsList = _config.ChannelsGagSpeak.GetChatChannelsListAliases();
-        interop.InitializeFromAttributes(this);
-        // try to get the chatinput address
-        try {
-            // try to get the chatinput address
-            processChatInputAddress = scanner.ScanText("E8 ?? ?? ?? ?? FE 86 ?? ?? ?? ?? C7 86 ?? ?? ?? ?? ?? ?? ?? ??");
-            Ready = true;
-            _logger.LogDebug($"[Chat Processor]: Input Address Found: {processChatInputAddress:X} || 7FF7E2D8A910 expected for patch 6.5");
-        } catch {
-            _logger.LogError($"[Chat Processor]: Failed to find input address!");
-        }
+        _playerManager = playerManager;
+        _gagManager = gagManager;
 
-        // if we get here, it means we can enable our scanner, because we found the address
-        // but just as a failsafe, if we aren't ready, abort and return.
-        if (!Ready) {
-            _logger.LogError($"[Chat Processor]: You really REALLY shouldnt be seeing this!!!!");
-            return;
+        AllowedCommandChannels = _config.Current.ChannelsGagSpeak.GetChatChannelsListAliases();
+
+        // try to get the chat-input-interceptor delegate
+        try
+        {
+            // initialize the interop.
+            interop.InitializeFromAttributes(this);
+
+            // attempt to enable the hook.
+            ProcessChatInputHook.Enable();
         }
-        //set up our hooks
-        // first setup a temp storage to yoink from
-        try {
-            _logger.LogDebug("[Chat Processor]: Setting up hooks");
-            var h = interop.HookFromAddress(processChatInputAddress, new ProcessChatInputDelegate(ProcessChatInputDetour));
-            _logger.LogDebug("[Chat Processor]: Setting up hook wrapper");
-            var wh = new HookWrapper<ProcessChatInputDelegate>(h); // make it a hook wrapper
-            HookList.Add(wh); // add it to the hook list
-            processChatInputHook = wh; // set the hook to the hook wrapper
-            processChatInputHook?.Enable(); // enable the hook
-            _logger.LogDebug("[Chat Processor]: Hook setup complete");
-            Enabled = true; // set enabled to true
-        }
-        catch {
-            _logger.LogError("[Chat Processor]: Failed to setup hooks");
+        catch
+        {
+            // prevent the rest of the constructor from initializing.
+            throw new Exception("ChatInputInterceptor Failed to find the correct Address / Signature!");
         }
     }
 
     /// <summary>
-    /// Process the chatbox every time a new message is sent.
-    /// <list type="bullet">
-    /// <item><c>uiModule</c><param name="uiModule"> - The ui module.</param></item>
-    /// <item><c>message</c><param name="message"> - The message.</param></item>
-    /// <item><c>a3</c><param name="a3"> - The a3.</param></item>
-    /// </list> </summary>
-    /// <returns> The <see cref="byte"/>. </returns>
-    /// <exception cref="Exception"> Thrown when an exception error condition of any kind occurs. </exception>
-    private unsafe byte ProcessChatInputDetour(nint uiModule, byte** message, nint a3) {
-        // try the following
-        try {
-            var bc = 0; // start the bit counter
-            int matchSequence = 0; //in ourcase 4 means that message contains autocomplete marker so we ignore message completely
-            for (var i=0; i <=500; i++) { // making sure command / message is within 500 characters
+    /// Process each new input into the chat, intercepting it prior to it reaching the server.
+    /// </summary>
+    private unsafe byte ProcessChatInputDetour(IntPtr uiModule, byte** message, IntPtr a3)
+    {
+        // Put all this shit in a try-catch loop so we can catch any possible thrown exception.
+        try
+        {
+            // begin the chat-input bit counter.
+            var bc = 0;
+            int matchSequence = 0; // (TODO: Consider Removing this) 4 means that message contains autocomplete marker so we ignore message completely
+
+            // Check each bit in the length of the message (cannot exceed 500 bits) for an invalid send.
+            for (var i = 0; i <= 500; i++)
+            {
                 // match autocomplete byte pattern 02 2e ... f2 ... 03
                 if (i + 5 < 500 && (*message)[i] == 0x02 && (*message)[i + 1] == 0x2e) matchSequence += 2;
                 if ((*message)[i] == 0xf2 && matchSequence == 2) matchSequence++;
@@ -103,31 +85,47 @@ public unsafe class ChatInputProcessor : IDisposable {
                 bc = i; // increment bc
                 break;
             }
-            if(bc < 2 || bc > 500 || matchSequence == 4) {
-                // if we satsify this condition it means our message is an invalid message so disregard it
-                return processChatInputHook.Original(uiModule, message, a3); // just send the message as invalid or whatever
+            if (bc < 2 || bc > 500 || matchSequence == 4)
+            {
+                // If message is invalid, so send original untranslated text.
+                return ProcessChatInputHook.Original(uiModule, message, a3);
             }
-            
+
+            // if our chat garbler is disabled or we dont have any active gags, dont worry about anything past this point and return original.
+            if(!_playerManager.GlobalPerms.LiveChatGarblerActive || !_gagManager.AnyGagActive)
+            { 
+                return ProcessChatInputHook.Original(uiModule, message, a3);
+            }
+
+
+            /* -------------------------- MUFFLERCORE / GAGSPEAK CHAT GARBLER TRANSLATION LOGIC -------------------------- */
             var inputString = Encoding.UTF8.GetString(*message, bc);
             var matchedCommand = "";
             var matchedChannelType = "";
-            ////////////////////////////////////////////// _logger.LogInformation($"[Chat Processor]: Detouring Message: {inputString}"); // see our message
-            // first let's make sure its not a command
-            if (inputString.StartsWith("/")) {
-                // Check if command is not one of configured channels commands
-                matchedCommand = _configChannelsCommandsList.FirstOrDefault(prefix => inputString.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
-                
-                //_logger.LogDebug($"[Chat Processor]: matchedChannelType: {matchedChannelType}");
-                if (matchedCommand.IsNullOrEmpty()) {
-                    // if it is isn't a command, we can just return the original message
-                    _logger.LogInformation("[Chat Processor]: Ignoring Message as it is a command");
-                    return processChatInputHook.Original(uiModule, message, a3);
-                }
-                // if we reach here, we know it is a channel of some kind
-                matchedChannelType = matchedCommand; // set the matched channel type to the matched command
+            // DEBUG MESSAGE: (remove when not debugging)
+            _logger.LogTrace($"Detouring Message: {inputString}");
 
+            // if the message is a command, see if the command is a channel command. If so, still use for translation, otherwise, return original.
+            // TODO: Implement configured allowed channels for this later.
+            if (inputString.StartsWith("/"))
+            {
+                // Match Command if Command being used is in our list of allowed Channels to translate in.
+                matchedCommand = AllowedCommandChannels.FirstOrDefault(prefix => inputString.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+
+                // If MatchedCommand is empty, it means it is not a channel command, or that it wasn't a channel we allowed, so send original untranslated text.
+                if (matchedCommand.IsNullOrEmpty())
+                {
+                    // DEBUG MESSAGE: (remove when not debugging)
+                    _logger.LogTrace("Ignoring Message as it is a command");
+                    return ProcessChatInputHook.Original(uiModule, message, a3);
+                }
+
+                // Set the matched command to the matched channel type. 
+                matchedChannelType = matchedCommand;
+
+                // TODO: See if this is even nessisary now at all, because I dont think it is.
                 // if tell command is matched, need extra step to protect target name
-                if (matchedCommand.StartsWith("/tell") || matchedCommand.StartsWith("/t"))
+                /*if (matchedCommand.StartsWith("/tell") || matchedCommand.StartsWith("/t"))
                 {
                     _logger.LogDebug($"[Chat Processor]: Matched Command is a tell command");
                     /// Using /gag command on yourself sends /tell which should be caught by this
@@ -137,49 +135,50 @@ public unsafe class ChatInputProcessor : IDisposable {
                     if (!Regex.Match(inputString, selfTellRegex).Value.IsNullOrEmpty())
                     {
                         _logger.LogDebug("[Chat Processor]: Ignoring Message as it is a self /gag command");
-                        return processChatInputHook.Original(uiModule, message, a3);
+                        return ProcessChatInputHook.Original(uiModule, message, a3);
                     }
                     // Match any other outgoing tell to preserve target name
                     var tellRegex = @"(?<=^|\s)/t(?:ell)?\s{1}(?:\S+\s{1}\S+@\S+|\<r\>)\s?(?=\S|\s|$)";
                     matchedCommand = Regex.Match(inputString, tellRegex).Value;
-                }
-                _logger.LogDebug($"[Chat Processor]: Matched Command: {matchedCommand} for matchedChannelType: [{matchedChannelType}]");
-            }
-            // if our current channel is in our list of enabled channels AND we have enabled direct chat translation...
-            if ((_config.ChannelsGagSpeak.Contains(ChatChannel.GetChatChannel()) || _config.ChannelsGagSpeak.IsAliasForAnyActiveChannel(matchedChannelType.Trim()))
-                && _characterHandler.playerChar._directChatGarblerActive)
-            {
-                // if we satisfy this condition, it means we can try to attempt modifying the message.
-                //////////////////////////////////////////////  _logger.LogDebug($"[Chat Processor]: Input -> {inputString}, MatchedCommand -> {matchedCommand}");
-                // we can try to attempt modifying the message.
-                try {
-                    //////////////////////// MAIN SECTION WHERE THE MESSAGE IS ACTUALLY TRANSLATED ////////////////////////
-                    // create the output translated text, cutting the command matched before to prevent it getting garbled
-                    var stringToProcess = inputString.Substring(matchedCommand.Length);
-                    // see if this is an outgoing tell, if it is, we must make sure it isnt garbled for encoded messages
-                    if(ChatChannel.GetChatChannel() == ChatChannel.ChatChannels.Tell || matchedChannelType.Contains("/t") || matchedChannelType.Contains("/tell")) {
-                        // it is a tell, we need to make sure it is not garbled if it is an encoded message
-                        _logger.LogDebug($"[Chat Processor]: Message is a tell message, skipping garbling");
-                        if(_messageDictionary.LookupMsgDictionary(stringToProcess)) {
-                            // if it is an encoded message, we need to make sure it is not garbled
-                            _logger.LogDebug($"[Chat Processor]: Message is an encoded message, skipping garbling");
-                            return processChatInputHook.Original(uiModule, message, a3);
-                        }
-                    }
-                    // otherwise, we can process the message
-                    var output = _gagManager.ProcessMessage(stringToProcess);
-                    // adding command back to front
-                    output = matchedCommand + output;
-                    ////////////////////////////////////////////// _logger.LogDebug($"[Chat Processor]: Output -> {output}");
+                }*/
 
-                    // create the new string
-                    var newStr = output;
-                    // if our new string is less than or equal to 500 characters, we can alias it
-                    if (newStr.Length <= 500) {
-                        // log the sucessful alias
-                       //////////////////////////////////////////////  _logger.LogDebug($"[Chat Processor]: New Packet Message: {newStr}");
+                _logger.LogTrace($"Matched Command [{matchedCommand}] for matchedChannelType: [{matchedChannelType}]");
+            }
+
+            // If current channel message is being sent to is in list of enabled channels, translate it.
+            if (_config.Current.ChannelsGagSpeak.Contains(ChatChannel.GetChatChannel()) || _config.Current.ChannelsGagSpeak.IsAliasForAnyActiveChannel(matchedChannelType.Trim()))
+            {
+                // DEBUG MESSAGE: (Remove when not debugging)
+                _logger.LogTrace($"MatchedCommand ->{matchedCommand} || Input ->{inputString}");
+
+                try
+                {
+                    // create the output string that will be processed.
+                    var stringToProcess = inputString.Substring(matchedCommand.Length);
+
+                    // see if this is an outgoing tell, if it is, we must make sure it isn't garbled for encoded messages
+                    if (ChatChannel.GetChatChannel() == ChatChannel.ChatChannels.Tell || matchedChannelType.Contains("/t") || matchedChannelType.Contains("/tell"))
+                    {
+                        // it is a tell, we need to make sure it is not garbled if it is an encoded message
+                        _logger.LogTrace($"Message is a tell message, skipping garbling");
+                    }
+
+                    // Translate the original message into Garbled Speech.
+                    var output = _gagManager.ProcessMessage(stringToProcess);
+                    
+                    // Append the matched command to the front if one was included. If none was, it will be simply the message.
+                    output = matchedCommand + output;
+
+                    // DEBUG MESSAGE: (Remove when not debugging)
+                    _logger.LogTrace(output);
+
+                    // If Garbled Variant of string if less than 500 bytes in size, we can process it for sending.
+                    if (output.Length <= 500)
+                    {
+                        // DEBUG MESSAGE: (Remove when not debugging)
+                        _logger.LogTrace($"New Packet Message: {output}");
                         // encode the new string
-                        var bytes = Encoding.UTF8.GetBytes(newStr);
+                        var bytes = Encoding.UTF8.GetBytes(output);
                         // allocate the memory
                         var mem1 = Marshal.AllocHGlobal(400);
                         var mem2 = Marshal.AllocHGlobal(bytes.Length + 30);
@@ -191,7 +190,7 @@ public unsafe class ChatInputProcessor : IDisposable {
                         Marshal.WriteInt64(mem1 + 8 + 8, bytes.Length + 1);
                         Marshal.WriteInt64(mem1 + 8 + 8 + 8, 0);
                         // properly send off the new message by setting it to r at the right pointer
-                        var r = processChatInputHook.Original(uiModule, (byte**) mem1.ToPointer(), a3);
+                        var r = ProcessChatInputHook.Original(uiModule, (byte**)mem1.ToPointer(), a3);
                         // free up the memory we used for assigning
                         Marshal.FreeHGlobal(mem1);
                         Marshal.FreeHGlobal(mem2);
@@ -199,40 +198,35 @@ public unsafe class ChatInputProcessor : IDisposable {
                         return r;
                     }
                     // if we reached this point, it means our message was longer than 500 character, inform the user!
-                    _logger.LogError("[Chat Processor]: Message after was applied is too long!");
+                    _logger.LogError("Chat Garbler Variant of Message was longer than max message length!");
                     return 0; // fucking ABORT!
                 }
-                catch (Exception e) { // if at any point we fail here, throw an exception.
-                    _logger.LogError($"[Chat Processor]: Error sending message to chatbox: {e.Message}");
+                catch (Exception e)
+                {   
+                    // if at any point we fail here, throw an exception.
+                    _logger.LogError($"Error sending message to chat box: {e.Message}");
                 }
             }
-        } 
-        catch (Exception e) { // cant ever have enough safety!
-            _logger.LogError($"[Chat Processor]: Error sending message to chatbox (secondary): {e.Message}");
+        }
+        catch (Exception e)
+        { // cant ever have enough safety!
+            _logger.LogError($"Error sending message to chat box (secondary): {e.Message}");
         }
         // return the original message untranslated
-        return processChatInputHook.Original(uiModule, message, a3);
+        return ProcessChatInputHook.Original(uiModule, message, a3);
     }
 
     // method to disable the hook
-    protected void Disable() {
-        processChatInputHook?.Disable();
-        Enabled = false;
+    protected void Disable()
+    {
+        ProcessChatInputHook?.Disable();
     }
-    // method to dispose of the hook, self explanitory
-    public void Dispose() {
-        if (!Ready) return;
 
-        foreach (var hook in HookList) {
-            hook?.Disable();
-            hook?.Dispose();
-        }
-        HookList.Clear();
-
-        processChatInputHook?.Disable();
-        processChatInputHook?.Dispose();
-        Ready = false;
-        Enabled = false;
+    // method to dispose of the hook, self Explanatory
+    public void Dispose()
+    {
+        ProcessChatInputHook?.Disable();
+        ProcessChatInputHook?.Dispose();
     }
 }
-*/
+

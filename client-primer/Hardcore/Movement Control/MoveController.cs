@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using MButtonHoldState = FFXIVClientStructs.FFXIV.Client.Game.Control.InputManager.MouseButtonHoldState;
 
 namespace GagSpeak.Hardcore.Movement;
+
 // by far the most brainfuckery i've ever dealt with in my life, if you dont understand any of this i dont blame you one bit.
 public class MoveController : IDisposable
 {

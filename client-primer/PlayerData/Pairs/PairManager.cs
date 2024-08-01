@@ -405,11 +405,14 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     }
 
     /// <summary> Recreates the lazy list of direct pairs.</summary>
-    private void RecreateLazy()
+    private void RecreateLazy(bool PushUiRefresh = true)
     {
         // recreate the direct pairs lazy list
         _directPairsInternal = DirectPairsLazy();
         // publish a message to refresh the UI
-        Mediator.Publish(new RefreshUiMessage());
+        if (PushUiRefresh)
+        {
+            Mediator.Publish(new RefreshUiMessage());
+        }
     }
 }

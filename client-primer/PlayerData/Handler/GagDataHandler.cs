@@ -51,16 +51,6 @@ public class GagDataHandler : DisposableMediatorSubscriberBase
         });
     }
 
-    /// <summary>
-    /// Retrieves a GagData object by its name.
-    /// </summary>
-    /// <param name="name">The name of the gag to retrieve.</param>
-    /// <returns>The GagData object with the matching name, or null if not found.</returns>
-    public GagData GetGagByName(string name)
-    {
-        return _gagTypes.FirstOrDefault(gag => gag.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-    }
-
     private void CreateGags()
     {
         List<string> masterList;

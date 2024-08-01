@@ -3,117 +3,143 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text;
 using Dalamud.Game;
+using FFXIVClientStructs.FFXIV.Client.System.Memory;
+using FFXIVClientStructs.FFXIV.Client.System.String;
+using static FFXIVClientStructs.FFXIV.Client.System.String.Utf8String.Delegates;
 using Framework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
-// practicing modular design
-namespace UpdateMonitoring.Chat;
+
+
+namespace GagSpeak.UpdateMonitoring.Chat;
+
 /// <summary>
-/// <para> Creating/Modifying a packet BEFORE it gets sent to the server,
-/// allowing us to send a message to the server, not just to dalamud chat.</para>
-/// <para>This is NOT sending chat messages to the client, and as such should be used VERY CAREFULLY and with CAUTION.</para>
-/// <para><b>If you plan on ever using this code anywhere else, make damn sure you know how it is working. </b></para>
+/// Danger Class that uses signature hooks to construct, intercept from, and send off messages to the ChatBox.
+/// 
+/// Hooks and signatures pulled from 
+/// https://github.com/NightmareXIV/ECommons/blob/9e90d0032f0efd4c9e65d9c5a8e8bd0e99557d68/ECommons/Automation/Chat.cs#L83
+/// Which was also pulled from ChatTwo, all rights reserved.
+/// 
+/// Slightly modified to adapt to our dependency injection system.
 /// </summary>
-public class RealChatInteraction
+public class ChatSender
 {
 
-    /// <summary> This is the signature for the chatbox, it is used to find the chatbox in memory. </summary>
     private static class Signatures
     {
-        internal const string SendChat = "48 89 5C 24 ?? 57 48 83 EC 20 48 8B FA 48 8B D9 45 84 C9"; // The Signatures for sending a message to the server
+        internal const string SendChat = "48 89 5C 24 ?? 57 48 83 EC 20 48 8B FA 48 8B D9 45 84 C9"; // Sends a constructed chat message to the server.
+        internal const string SanitizeString = "E8 ?? ?? ?? ?? EB 0A 48 8D 4C 24 ?? E8 ?? ?? ?? ?? 48 8D AE"; // Sanitizes string for chat.
     }
 
-    // Next we need to process the chatbox delgate, meaning we need to get the pointer for the uimodule, message, unused information and byte data
-    private delegate void ProcessChatBoxDelegate(nint uiModule, nint message, nint unused, byte a4);
+    // define our delegates.
+    private delegate void ProcessChatBoxDelegate(IntPtr uiModule, IntPtr message, IntPtr unused, byte a4);
+    private ProcessChatBoxDelegate ProcessChatBox { get; }
+    private readonly unsafe delegate* unmanaged<Utf8String*, int, IntPtr, void> _sanitizeString = null!;
 
-    // Now we need to get the pointer for the uimodule, message, unused information and byte data from above
-    private ProcessChatBoxDelegate? ProcessChatBox { get; }
-
-    /// <summary> By being an internal constructor, it means that this class can only be accessed by the same assembly. </summary>
-    internal RealChatInteraction(ISigScanner scanner)
+    internal ChatSender(ISigScanner scanner)
     {
-        // Now we need to scan for the signature of the chatbox, to see if it is valid
+        // Attempt to get the ProcessChatBox delegate from the signature
         if (scanner.TryScanText(Signatures.SendChat, out var processChatBoxPtr))
         {
-            // If it is valid, we need to get the delegate for the chatbox as a function pointer.
             ProcessChatBox = Marshal.GetDelegateForFunctionPointer<ProcessChatBoxDelegate>(processChatBoxPtr);
+        }
+
+        // attempt to get the string sanitizer delegate from the signature
+        unsafe
+        {
+            if (scanner.TryScanText(Signatures.SanitizeString, out var sanitizeStringPtr))
+            {
+                _sanitizeString = (delegate* unmanaged<Utf8String*, int, IntPtr, void>)sanitizeStringPtr;
+            }
         }
     }
 
-    /// <summary>
-    /// <para>Send a given message to the chat box. <b>This can send chat to the server.</b></para>
+    /// <b> This method does not throw any exceptions, and should be handled with fucking caution </b>
     /// <para>
-    /// This method will throw exceptions when a chat message is longer than it should be or when it is empty,
-    /// and it will also filter out any symbols that normally should not be sent. Somewhat "Sanatizing" the message.
-    /// However, it can still make mistakes, so use with caution.
+    /// it is primarily used to initialize the actual sending of chat to the server, hence the
+    /// unsafe method, and can not be merged with the sendMessage function.
     /// </para>
     /// </summary>
-    /// <param name="message"></param>
-    /// <exception cref="ArgumentException">If <paramref name="message"/> is empty or longer than 500 bytes in UTF-8.</exception>
-    /// <exception cref="InvalidOperationException">If the signature for this function could not be found</exception>
+    [Obsolete("Use safe message sending")]
+    public unsafe void SendMessageUnsafe(byte[] message)
+    {
+        // Ensure our Signature is Valid.
+        if (ProcessChatBox == null)
+        {
+            throw new InvalidOperationException("Could not find signature for chat sending");
+        }
+
+        // Fetch the UIModule to interact with the ChatBox.
+        var uiModule = (IntPtr)Framework.Instance()->GetUIModule();
+
+        // Create a new ChatPayload Message to construct our string.
+        using var payload = new ChatPayload(message);
+
+        // Marshal the payload to a pointer in memory
+        var mem1 = Marshal.AllocHGlobal(400);
+
+        // StructureToPtr - Marshals data from a managed object to an unmanaged block of memory.
+        Marshal.StructureToPtr(payload, mem1, false);
+
+        // Process the structured message to the UIModule ChatBox
+        ProcessChatBox(uiModule, mem1, nint.Zero, 0);
+
+        // Free back up our memory to avoid Memory leaks!
+        Marshal.FreeHGlobal(mem1);
+    }
+
+    /// <summary>
+    /// <para> Send a given message to the chat box. <b>USE THIS METHOD OVER THE UNSAFE ONE.</b></para>
+    /// </summary>
     public void SendMessage(string message)
     {
         // Get the number of bytes our message contains.
         var bytes = Encoding.UTF8.GetBytes(message);
 
-        // First, let us be sure that our message is not empty
+        // Throw Exception if Message is empty
         if (bytes.Length == 0)
-        { // If it is, don't send the message and throw a message empty exception instead.
+        {
             throw new ArgumentException("message is empty", nameof(message));
         }
 
-        // Next, let us be sure that our message is not larger than the ammount of bytes a message should be allowed to send
+        // Throw exception if message is too long
         if (bytes.Length > 500)
-        { // If it is, dont send the message and throw a message too long exception instead.
+        {
             throw new ArgumentException($"message is longer than 500 bytes, and is {bytes.Length}", nameof(message));
         }
 
-        // Finally, we want to be sure that our processchatbox sucessfully got the delegate for our function pointer.
-        if (ProcessChatBox == null)
+        // if the message length is not equal to the sanitised message length, throw an exception.
+        if (message.Length != SanitizeText(message).Length)
         {
-            throw new InvalidOperationException("Could not find signature for chat sending");
+            throw new ArgumentException("message contained invalid characters", nameof(message));
         }
-        //GagSpeak._logger.LogDebug($"[RealChatInteraction]: Sending message of byte length: {bytes.Length}");
-        // Assuming it meets the correct conditions, we can begin to obtain the UI module pointer for the chatbox within the framework instance
+
+        #pragma warning disable CS0618 // Type or member is obsolete
         SendMessageUnsafe(bytes);
+        #pragma warning restore CS0618 // Type or member is obsolete
     }
 
     /// <summary>
-    /// <para>Send a given message to the chat box. <b>This can send chat to the server.</b></para>
-    /// <para>
-    /// This method does not throw any exceptions, and should be handled with fucking caution,
-    /// it is primarily used to initialize the actual sending of chat to the server, hince the
-    /// unsafe method, and can not be merged with the sendMessage function.
-    /// </para>
+    /// Sanitize the text into a format SeStrings will accept for sending.
     /// </summary>
-    public unsafe void SendMessageUnsafe(byte[] message)
+    public unsafe string SanitizeText(string text)
     {
-        // To be extra safe, double check our processchatbox has its delegate correctly.
-        if (ProcessChatBox == null)
+        if (_sanitizeString == null)
         {
-            throw new InvalidOperationException("Could not find signature for chat sending");
+            throw new InvalidOperationException("Could not find signature for chat sanitization");
         }
-        // Assuming it meets the correct conditions, we can begin to obtain the UI module pointer for the chatbox within the framework instance
-        var uiModule = (nint)Framework.Instance()->GetUIModule();
 
-        // create a payload for our chat message
-        using var payload = new ChatPayload(message);
-        /// MARSHAL -provides a collection of methods for allocating unmanaged memory, copying unmanaged memory blocks, 
-        ///   and converting managed to unmanaged types & miscellaneous methods used when interacting with unmanaged code.
-        /// AllocHGlobal - Allocates memory from the unmanaged memory of the process by using the specified number of bytes.
-        /// Returns: A pointer to the newly allocated memory. This memory must be released using the Marshal.FreeHGlobal(nint) method.
-        // Marshal the payload to a pointer in memory
-        var mem1 = Marshal.AllocHGlobal(400);
-        // StructureToPtr - Marshals data from a managed object to an unmanaged block of memory.
-        Marshal.StructureToPtr(payload, mem1, false);
-        // Finally, we can send our message to the chatbox
-        ProcessChatBox(uiModule, mem1, nint.Zero, 0);
-        // and dont forget to free back up our memory
-        Marshal.FreeHGlobal(mem1);
+        var uText = Utf8String.FromString(text);
+        _sanitizeString(uText, 0x27F, IntPtr.Zero);
+        var sanitized = uText->ToString();
+        uText->Dtor();
+        IMemorySpace.Free(uText);
+
+        return sanitized;
     }
+
 
     [StructLayout(LayoutKind.Explicit)] // Lets us control the physical layout of the data fields of a class or structure in memory.
     [SuppressMessage("ReSharper", "PrivateFieldCanBeConvertedToLocalVariable")] // We need to keep the pointer alive
-
-    // the chatpayload struct format, includes the text pointer, text length, and two unknowns, we must set these to the appropriate field offsets to ensure the correct data is sent
+    // Struct format for the ChatMessagePayload.
     private readonly struct ChatPayload : IDisposable
     {
         [FieldOffset(0)]

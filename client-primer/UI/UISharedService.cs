@@ -447,7 +447,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         float frameHeight = ImGui.GetFrameHeight();
         ImGui.SetCursorPosX(vector.X + ImGui.GetStyle().FramePadding.X * 2f + num2);
         ImGui.SetNextItemWidth(x - vector.X - num2);
-        bool result = ImGui.InputTextWithHint(String.Empty, hint, ref inputStr, maxLength);
+        bool result = ImGui.InputTextWithHint(label, hint, ref inputStr, maxLength);
 
         Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
         using (IconFont.Push())

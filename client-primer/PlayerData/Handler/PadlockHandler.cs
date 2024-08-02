@@ -39,7 +39,7 @@ public class PadlockHandler
                 ImGui.SameLine(0, 3);
                 Timers[slot] = DisplayInputField("##Timer_Input", "Ex: 0h2m7s", Timers[slot], 12, .325f);
                 return true;
-            case Padlocks.MistressTimerPadlock:
+            case Padlocks.OwnerTimerPadlock:
                 Timers[slot] = DisplayInputField("##Timer_Input", "Ex: 0h2m7s", Timers[slot], 12);
                 return true;
             default:

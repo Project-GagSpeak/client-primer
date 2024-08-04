@@ -273,7 +273,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserReceiveCharacterDataComposite(OnlineUserCompositeDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveCharacterDataComposite: {dataDto}", dataDto);
+        Logger.LogTrace("Client_UserReceiveCharacterDataComposite: {dataDto}", dataDto);
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogWarning("Why are you trying to receive your own composite data? There is no need for this???");
@@ -282,8 +282,8 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogTrace("Callback matched to a paired user, updating their composite data.");
-            ExecuteSafely(() => _pairManager.ReceiveCharaCompositeData(dataDto));
+            Logger.LogDebug("User {0} has went online and updated you with their composite data!", dataDto.User.UID);
+            ExecuteSafely(() => _pairManager.ReceiveCharaCompositeData(dataDto, UID));
             return Task.CompletedTask;
         }
     }

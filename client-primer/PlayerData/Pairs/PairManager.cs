@@ -13,6 +13,7 @@ using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
 using System.Reflection;
 using Penumbra.GameData;
+using GagspeakAPI.Data.Character;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -244,7 +245,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     /// Method is called upon by the ApiController.Callbacks, which listens to function calls from the connected server.
     /// It then returns the composite DTO, which is split into its core components and updates the correct user pair.
     /// </summary>
-    public void ReceiveCharaCompositeData(OnlineUserCompositeDataDto dto)
+    public void ReceiveCharaCompositeData(OnlineUserCompositeDataDto dto, string clientUID)
     {
         // if the user in the Dto is not in our client's pair list, throw an exception.
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
@@ -261,8 +262,18 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // apply the wardrobe data to the pair.
         _allClientPairs[dto.User].ApplyWardrobeData(new OnlineUserCharaWardrobeDataDto(dto.User, dto.CompositeData.WardrobeData, dto.UpdateKind));
 
-        // apply the alias data to the pair.
-        _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, dto.CompositeData.AliasData[dto.User.UID]));
+        // apply the alias data (FOR OUR CLIENTPAIR ONLY) to the aliasData object.
+
+        // first see if our clientUID exists as a key in dto.CompositeData.AliasData. If it does not, define it as an empty data.
+        if (!dto.CompositeData.AliasData.ContainsKey(clientUID))
+        {
+            _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, dto.CompositeData.AliasData[clientUID]));
+        }
+        else
+        {
+            // REVIEW: This might cause issues with any potential desync. If it does look into
+            _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, new CharacterAliasData()));
+        }
 
         // apply the pattern data to the pair.
         _allClientPairs[dto.User].ApplyPatternData(new OnlineUserCharaToyboxDataDto(dto.User, dto.CompositeData.ToyboxData, dto.UpdateKind));

@@ -47,7 +47,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private CharacterAppearanceData _playerCharAppearance { get; set; }
 
     // TODO: expand this to store more than just the Moodles string, but IPC information
-    private CharacterIPCData _playerCharIpc { get; set; }
+    private CharacterIPCData _playerCharIpc { get; set; } = new CharacterIPCData();
 
 
     // TEMP STORAGE: Make this part of the IPC transfer object later! (Once C+ works again)
@@ -72,9 +72,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             _playerCharAppearance = msg.Connection.CharacterAppearanceData;
         });
 
-        // init the IPC
-        _playerCharIpc = new CharacterIPCData();
-
         // These are called whenever we update our own data.
         // (Server callbacks handled separately to avoid looping calls to and from server infinitely)
         Mediator.Subscribe<PlayerCharIpcChanged>(this, (msg) => PushIpcDataToAPI(msg));
@@ -94,6 +91,9 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     public bool IsPlayerGagged() => AppearanceData.SlotOneGagType != "None"
                                  || AppearanceData.SlotTwoGagType != "None"
                                  || AppearanceData.SlotThreeGagType != "None";
+
+
+    public void UpdateIpcData(CharacterIPCData ipcData) => _playerCharIpc = ipcData;
 
 
     #region Compile & Push Data for Server Transfer

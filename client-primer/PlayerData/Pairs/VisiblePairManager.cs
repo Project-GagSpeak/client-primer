@@ -21,7 +21,9 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
     private readonly PairManager _pairManager;
 
     // Store the most recently sent component of our API formats from our player character
-    private CharacterIPCData? _lastIpcData; // IGNORE THIS UNTIL WE CAN GET IT WORKING.
+    // TODO: The variable below should be reflecting the players latest IpcData. This is initially stored in the playerManager, 
+    // But we dont know when that is set. For now we will set it to a new object at the start.
+    private CharacterIPCData LastIpcData => _playerManager.IpcData;
 
     // stores the set of newly visible players to update with our latest IPC data.
     private readonly HashSet<PairHandler> _newVisiblePlayers = [];
@@ -46,10 +48,10 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
             var newData = msg.CharacterIPCData;
             // Send if attached data is different from last sent data.
             // this check also helps us ensure that we are not receiving the same data as pairHandlerVisible
-            if (_lastIpcData == null || !Equals(newData, _lastIpcData))
+            if (LastIpcData == null || !Equals(newData, LastIpcData))
             {
                 Logger.LogDebug("Pushing new IPC data to all visible players");
-                _lastIpcData = newData;
+                _playerManager.UpdateIpcData(newData);
                 PushCharacterIpcData(_pairManager.GetVisibleUsers(), msg.UpdateKind);
             }
             else
@@ -89,7 +91,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
         {
             _ = Task.Run(async () =>
             {
-                await _apiController.PushCharacterIpcData(_lastIpcData, onlinePlayers, updateKind).ConfigureAwait(false);
+                await _apiController.PushCharacterIpcData(LastIpcData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }
         else

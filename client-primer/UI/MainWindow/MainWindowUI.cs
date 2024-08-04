@@ -38,10 +38,9 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private readonly MainTabMenu _tabMenu;
     private readonly MainUiHomepage _homepage;
     private readonly MainUiWhitelist _whitelist;
+    private readonly MainUiAccount _account;
     private readonly IDalamudPluginInterface _pi;
     private int _secretKeyIdx = -1;
-    private float _tabBarHeight;
-    private bool _wasOpen;
     private float _windowContentWidth;
 
     // for theme management
@@ -50,7 +49,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     public MainWindowUI(ILogger<MainWindowUI> logger, GagspeakMediator mediator,
         UiSharedService uiShared, ApiController apiController, GagspeakConfigService configService, 
         PairManager pairManager, ServerConfigurationManager serverManager,
-        MainUiHomepage homepage, MainUiWhitelist whitelist,
+        MainUiHomepage homepage, MainUiWhitelist whitelist, MainUiAccount account,
         DrawEntityFactory drawEntityFactory, IDalamudPluginInterface pi) 
         : base(logger, mediator, "###GagSpeakMainUI")
     {
@@ -60,6 +59,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         _serverManager = serverManager;
         _homepage = homepage;
         _whitelist = whitelist;
+        _account = account;
         _pi = pi;
         _uiShared = uiShared;
 
@@ -199,7 +199,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                     // using (ImRaii.PushId("discoverComponent")) DrawDiscoverSection();
                     break;
                 case MainTabMenu.SelectedTab.MySettings:
-                    // using (ImRaii.PushId("accountSettingsComponent")) DrawAccountSettingsSection();
+                    using (ImRaii.PushId("accountSettingsComponent")) _account.DrawAccountSection();
                     break;
             }
         }
@@ -217,7 +217,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private void DrawUIDHeader()
     {
         // fetch the Uid Text of yourself
-        var uidText = GetUidText();
+        var uidText = _uiShared.GetUidText();
 
         // push the big boi font for the UID
         using (_uiShared.UidFont.Push())
@@ -225,7 +225,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             var uidTextSize = ImGui.CalcTextSize(uidText);
             ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
             // display it, it should be green if connected and red when not.
-            ImGui.TextColored(GetUidColor(), uidText);
+            ImGui.TextColored(_uiShared.GetUidColor(), uidText);
         }
 
         // if we are connected
@@ -240,7 +240,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 var origTextSize = ImGui.CalcTextSize(_apiController.UID);
                 // adjust the cursor and redraw the UID (really not sure why this is here but we can trial and error later.
                 ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - origTextSize.X / 2);
-                ImGui.TextColored(GetUidColor(), _apiController.UID);
+                ImGui.TextColored(_uiShared.GetUidColor(), _apiController.UID);
                 // give it the same functionality.
                 UiSharedService.CopyableDisplayText(_apiController.UID);
             }
@@ -346,45 +346,4 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             _ => string.Empty
         };
     }
-
-    /// <summary> Retrieves the various UID text color based on the current server state.</summary>
-    /// <returns> The color of the UID text in Vector4 format .</returns>
-    private Vector4 GetUidColor()
-    {
-        return _apiController.ServerState switch
-        {
-            ServerState.Connecting => ImGuiColors.DalamudYellow,
-            ServerState.Reconnecting => ImGuiColors.DalamudRed,
-            ServerState.Connected => ImGuiColors.ParsedGreen,
-            ServerState.Disconnected => ImGuiColors.DalamudYellow,
-            ServerState.Disconnecting => ImGuiColors.DalamudYellow,
-            ServerState.Unauthorized => ImGuiColors.DalamudRed,
-            ServerState.VersionMisMatch => ImGuiColors.DalamudRed,
-            ServerState.Offline => ImGuiColors.DalamudRed,
-            ServerState.NoSecretKey => ImGuiColors.DalamudYellow,
-            _ => ImGuiColors.DalamudRed
-        };
-    }
-
-    /// <summary> Retrieves the various UID text based on the current server state.</summary>
-    /// <returns> The text of the UID.</returns>
-    private string GetUidText()
-    {
-        return _apiController.ServerState switch
-        {
-            ServerState.Reconnecting => "Reconnecting",
-            ServerState.Connecting => "Connecting",
-            ServerState.Disconnected => "Disconnected",
-            ServerState.Disconnecting => "Disconnecting",
-            ServerState.Unauthorized => "Unauthorized",
-            ServerState.VersionMisMatch => "Version mismatch",
-            ServerState.Offline => "Unavailable",
-            ServerState.NoSecretKey => "No Secret Key",
-            ServerState.Connected => _apiController.DisplayName, // displays when connected, your UID
-            _ => string.Empty
-        };
-    }
-
-
-    // Would be nice to have a "DrawTabHeader" function here to automate the drawing of left and right buttons and titles per tab, since this is a partial class.
 }

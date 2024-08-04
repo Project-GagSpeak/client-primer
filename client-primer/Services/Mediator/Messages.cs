@@ -71,18 +71,18 @@ public record UpdateDisplayWithPair(Pair Pair) : MessageBase; // called when we 
 public record CyclePauseMessage(UserData UserData) : MessageBase; // for cycling the paused state of self
 public record GameObjectHandlerCreatedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase; // whenever a gameobjecthandler for a pair is made
 public record GameObjectHandlerDestroyedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase; // whenever a gameobjecthandler for a pair is destroyed
-public record CharacterDataCreatedMessage(CharacterCompositeData CharacterData) : SameThreadMessage; // indicates the creation of character data. (part of cache creation so may dump)
 public record CreateCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase; // called whene we create a new gameobject for the cache creation service.
 public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase; // called when we should clear a gameobject from cache creation service.
 public record MufflerLanguageChanged : MessageBase; // called whenever the client language changes to a new language.
 
 /* ------------- PLAYER DATA MODULE INTERACTIONS --------- */
+public record UpdateActiveGags : MessageBase;
 public record GagTypeChanged(GagList.GagType NewGagType, GagLayer Layer) : MessageBase; // called whenever the client changes their gag type.
-public record ActiveGagTypesUpdated : MessageBase; // unsure if i'll ever need this.
 public record GagLockToggle(PadlockData PadlockInfo, bool Unlocking) : MessageBase; // called whenever the client changes their padlock.
-public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase; // for penumbra tooltip application to restraint set
-public record AliasListUpdated(string UserUID) : MessageBase; // called whenever the client changes their alias list.
-/* ----------------- PLAYERDATA WARDROBE HANDLER RECORDS ----------------- */
+public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase; // TODO: ADD implementation for this.
+
+
+#region PLAYERDATA WARDROBE HANDLER RECORDS
 public record RestraintSetToggledMessage(UpdatedNewState State, int RestraintSetIndex, string AssignerUID) : MessageBase; // whenever the restraint set is toggled.
 public record RestraintSetPropertyChanged(string UidPropertiesChangedFor) : MessageBase; // fired when property is changed for a particular user
 public record RestraintSetAddedMessage(RestraintSet RestraintSetToAdd) : MessageBase; // A newly added restraint set
@@ -98,8 +98,9 @@ public record BeginForcedToStayMessage(Pair Pair) : MessageBase; // pair issuing
 public record EndForcedToStayMessage(Pair Pair) : MessageBase;
 public record BeginForcedBlindfoldMessage(Pair Pair) : MessageBase; // when a pair forces another to follow
 public record EndForcedBlindfoldMessage(Pair Pair) : MessageBase;
+#endregion PLAYERDATA WARDROBE HANDLER RECORDS
 
-/* ------------------ PLAYERDATA TOYBOX HANDLER RECORDS ------------------ */
+#region PLAYERDATA TOYBOX HANDLER RECORDS
 public record ToyScanStarted : MessageBase; // for when the toybox scan is started.
 public record ToyScanFinished : MessageBase; // for when the toybox scan is finished.
 public record VibratorModeToggled(VibratorMode VibratorMode) : MessageBase; // for when the vibrator mode is toggled.
@@ -113,12 +114,7 @@ public record PatternRemovedMessage(PatternData pattern) : MessageBase; // for w
 public record PatternActivedMessage(int PatternIndex) : MessageBase; // for when a pattern is activated.
 public record PatternDeactivedMessage(int PatternIndex) : MessageBase; // for when a pattern is deactivated.
 public record PatternDataChanged(int PatternIndex) : MessageBase; // for when a pattern is changed.
-public record AlarmAddedMessage(Alarm Alarm) : MessageBase; // When Alarm is added.
-public record AlarmRemovedMessage : MessageBase; // for when an alarm is removed, force a recollection of pattern list.
-public record AlarmActivated(int AlarmIndex) : MessageBase; // for when an alarm is activated.
-public record AlarmDeactivated(int AlarmIndex) : MessageBase; // for when an alarm is deactivated.
-public record AlarmDataChanged(int AlarmIndex) : MessageBase; // for when an alarm is changed.
-
+#endregion PLAYERDATA TOYBOX HANDLER RECORDS
 
 /* ------------------ PLAYERDATA CLIENTSIDE PERMISSION HANDLING ------------------- */
 public record ClientGlobalPermissionChanged(string Permission, object Value) : MessageBase; // for when a client global permission is changed.
@@ -128,7 +124,6 @@ public record ClientOtherPairPermissionChanged(Pair Pair, string Permission, obj
 public record ClientOtherPairPermissionAccessChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed
 
 /* ------------------ IPC HANDLER RECORDS------------------ */
-public record MoodlesMessage(IntPtr Address) : MessageBase; // indicated a moodles message was published.
 public record PenumbraInitializedMessage : MessageBase;
 public record PenumbraDisposedMessage : MessageBase;
 public record UpdateGlamourMessage(GlamourUpdateType GenericUpdateType) : MessageBase; // for full refreshes on states.
@@ -137,11 +132,20 @@ public record UpdateGlamourRestraintsMessage(UpdatedNewState NewState) : Message
 public record UpdateGlamourBlindfoldMessage(UpdatedNewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
 public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
 
-public record PlayerCharIpcChanged(CharacterIPCData IPCData) : MessageBase; // for when the player character IPC data changes
-public record PlayerCharAppearanceChanged(CharacterAppearanceData AppearanceData) : MessageBase; // called whenever a gag is changed on the player character
-public record PlayerCharWardrobeChanged(CharacterWardrobeData WardrobeData) : MessageBase;  // called whenever client's wardrobe is changed.
-public record PlayerCharAliasChanged(CharacterAliasData AliasData, string playerUID) : MessageBase;  // called whenever the player changes their alias list for another player
-public record PlayerCharPatternChanged(CharacterPatternInfo PatternData) : MessageBase; // called whenever the player changes their pattern list for their vibrators
+// Whenever we update our own data (callbacks from server are updated separately to avoid loops)
+public record MoodlesMessage(IntPtr Address) : MessageBase; // indicated a moodles message was published.
+public record PlayerCharIpcChanged(DataUpdateKind UpdateKind) : MessageBase;
+public record PlayerCharAppearanceChanged(DataUpdateKind UpdateKind) : MessageBase;
+public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase;
+public record PlayerCharAliasChanged(string UpdatedPairUID) : MessageBase;
+public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
+
+public record CharacterIpcDataCreatedMessage(CharacterIPCData CharacterIPCData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterAppearanceDataCreatedMessage(CharacterAppearanceData CharacterAppearanceData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterWardrobeDataCreatedMessage(CharacterWardrobeData CharacterWardrobeData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterAliasDataCreatedMessage(CharacterAliasData CharacterAliasData, UserData userData) : SameThreadMessage;
+public record CharacterToyboxDataCreatedMessage(CharacterToyboxData CharacterToyboxData, DataUpdateKind UpdateKind) : SameThreadMessage;
+
 
 /* ------------------ USER INTERFACE (UI) RECORDS------------------ */
 public record RefreshUiMessage : MessageBase; // a message indicating the need to refresh the UI.

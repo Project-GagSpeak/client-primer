@@ -20,7 +20,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
     private readonly FileDialogManager _fileDialogManager;
-    private readonly GagspeakProfileManager _gagspeakProfileManager;
+    private readonly ProfileService _gagspeakProfileManager;
     private readonly ITextureProvider _textureProvider;
     private readonly UiSharedService _uiSharedService;
     private bool _adjustedForScollBarsLocalProfile = false;
@@ -34,7 +34,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
     public EditProfileUi(ILogger<EditProfileUi> logger, GagspeakMediator mediator,
         ApiController apiController, ITextureProvider textureProvider, UiSharedService uiSharedService,
-        FileDialogManager fileDialogManager, GagspeakProfileManager gagspeakProfileManager)
+        FileDialogManager fileDialogManager, ProfileService gagspeakProfileManager)
         : base(logger, mediator, "GagSpeak Edit Profile###GagSpeakEditProfileUI")
     {
         IsOpen = false;
@@ -75,7 +75,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 
         var profile = _gagspeakProfileManager.GetGagspeakProfile(new UserData(_apiController.UID));
 
-        if (profile.IsFlagged)
+        if (profile.Flagged)
         {
             UiSharedService.ColorTextWrapped(profile.Description, ImGuiColors.DalamudRed);
             return;

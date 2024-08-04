@@ -76,7 +76,8 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                 using (var leftChild = ImRaii.Child($"###GagSetupLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
                     // get the gag setup logo image
-                    var iconTexture = _uiSharedService.GetImageFromDirectoryFile("icon.png");
+                    //var iconTexture = _uiSharedService.GetImageFromDirectoryFile("icon.png");
+                    var iconTexture = _uiSharedService.GetGagspeakLogoSmall();
                     if (!(iconTexture is { } wrap))
                     {
                         _logger.LogWarning("Failed to render image!");

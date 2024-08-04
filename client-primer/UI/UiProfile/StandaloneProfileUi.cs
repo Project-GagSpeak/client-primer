@@ -12,19 +12,17 @@ namespace GagSpeak.UI.Profile;
 
 public class StandaloneProfileUi : WindowMediatorSubscriberBase
 {
-    private readonly GagspeakProfileManager _gagspeakProfileManager;
+    private readonly ProfileService _gagspeakProfileManager;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverManager;
     private readonly UiSharedService _uiSharedService;
     private bool _adjustedForScrollBars = false;
     private byte[] _lastProfilePicture = [];
-    private byte[] _lastSupporterPicture = [];
-    private IDalamudTextureWrap? _supporterTextureWrap;
     private IDalamudTextureWrap? _textureWrap;
 
     public StandaloneProfileUi(ILogger<StandaloneProfileUi> logger, GagspeakMediator mediator,
         UiSharedService uiBuilder, ServerConfigurationManager serverManager,
-        GagspeakProfileManager gagspeakProfileManager, PairManager pairManager,
+        ProfileService gagspeakProfileManager, PairManager pairManager,
         Pair pair) : base(logger, mediator, "Gagspeak Profile of " + pair.UserData.AliasOrUID + "##GagspeakStandaloneProfileUI" + pair.UserData.AliasOrUID)
     {
         _uiSharedService = uiBuilder;
@@ -55,10 +53,10 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
 
             var gagspeakProfile = _gagspeakProfileManager.GetGagspeakProfile(Pair.UserData);
 
-            if (_textureWrap == null || !gagspeakProfile.ProfilePicData.Value.SequenceEqual(_lastProfilePicture))
+            if (_textureWrap == null || !gagspeakProfile.ImageData.Value.SequenceEqual(_lastProfilePicture))
             {
                 _textureWrap?.Dispose();
-                _lastProfilePicture = gagspeakProfile.ProfilePicData.Value;
+                _lastProfilePicture = gagspeakProfile.ImageData.Value;
                 _textureWrap = _uiSharedService.LoadImage(_lastProfilePicture);
             }
 
@@ -139,13 +137,6 @@ public class StandaloneProfileUi : WindowMediatorSubscriberBase
             var remainingHeight = (256f * ImGuiHelpers.GlobalScale - newHeight) / 2f;
             drawList.AddImage(_textureWrap.ImGuiHandle, new Vector2(rectMin.X + padding + remainingWidth, rectMin.Y + spacing.Y + pos.Y + remainingHeight),
                 new Vector2(rectMin.X + padding + remainingWidth + newWidth, rectMin.Y + spacing.Y + pos.Y + remainingHeight + newHeight));
-            if (_supporterTextureWrap != null)
-            {
-                const float iconSize = 38;
-                drawList.AddImage(_supporterTextureWrap.ImGuiHandle,
-                    new Vector2(rectMax.X - iconSize - spacing.X, rectMin.Y + (textPos / 2) - (iconSize / 2)),
-                    new Vector2(rectMax.X - spacing.X, rectMin.Y + iconSize + (textPos / 2) - (iconSize / 2)));
-            }
         }
         catch (Exception ex)
         {

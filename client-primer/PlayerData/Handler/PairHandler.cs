@@ -51,7 +51,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         // other methods were subscribed here, but for now they are being left out until i can understand this more.
     }
 
-    // determines if a paired user is visible. (if they are in renderable range) [ can keep for maybe some featurecreep fun]
+    // determines if a paired user is visible. (if they are in render range)
     public bool IsVisible
     {
         get => _isVisible;

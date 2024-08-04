@@ -55,7 +55,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     private readonly IDalamudPluginInterface _pi;       // the primary interface for our plugin
     private readonly ITextureProvider _textureProvider; // the texture provider for our plugin
-    private ISharedImmediateTexture _sharedTextures;    // represents a shared texture cache for plugin images.
+    private ISharedImmediateTexture _sharedTextures;    // represents a shared texture cache for plugin images. (REMAKE THIS INTO A DICTIONARY)
 
     private readonly Dictionary<string, object> _selectedComboItems;    // the selected combo items
     private bool _glamourerExists = false;                              // if glamourer currently exists on the client
@@ -66,6 +66,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     // default image paths
     private const string GagspeakLogoPath = "iconUI.png";
     private const string GagspeakLogoPathSmall = "icon.png";
+    private const string GagspeakLogoNoRadial = "iconNoRadial.png";
     private const string SupporterTierOnePath = "Tier1Supporter.png";
     private const string SupporterTierTwoPath = "Tier2Supporter.png";
     private const string SupporterTierThreePath = "Tier3Supporter.png";
@@ -483,6 +484,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     // helpers to get the static images
     public IDalamudTextureWrap GetGagspeakLogo() => GetImageFromDirectoryFile(GagspeakLogoPath);
     public IDalamudTextureWrap GetGagspeakLogoSmall() => GetImageFromDirectoryFile(GagspeakLogoPathSmall);
+    public IDalamudTextureWrap GetGagspeakLogoNoRadial() => GetImageFromDirectoryFile("iconCute.png");
     public IDalamudTextureWrap GetSupporterTierOne() => GetImageFromDirectoryFile(SupporterTierOnePath);
     public IDalamudTextureWrap GetSupporterTierTwo() => GetImageFromDirectoryFile(SupporterTierTwoPath);
     public IDalamudTextureWrap GetSupporterTierThree() => GetImageFromDirectoryFile(SupporterTierThreePath);
@@ -491,6 +493,29 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     {
         return _textureProvider.CreateFromImageAsync(imageData).Result;
     }
+
+    public void DrawCircularImage(IDalamudTextureWrap texture, Vector2 center, float radius)
+    {
+        ImDrawListPtr drawList = ImGui.GetWindowDrawList();
+        Vector2 uv0 = new Vector2(0, 0);
+        Vector2 uv1 = new Vector2(1, 1);
+        var color = Color(1, 1, 1,1);
+
+        drawList.AddImageRounded(texture.ImGuiHandle,
+                                    new Vector2(center.X - radius, center.Y - radius),
+                                    new Vector2(center.X + radius, center.Y + radius),
+                                    uv0, uv1, color, radius);
+        // Define the circular region
+        drawList.PushClipRect(center - new Vector2(radius, radius), center + new Vector2(radius, radius), true);
+        drawList.AddCircleFilled(center, radius, ImGui.GetColorU32(new Vector4(1, 1, 1, 1)), 100);
+
+        // Draw the image within the circular region
+        drawList.AddImage(texture.ImGuiHandle, center - new Vector2(radius, radius), center + new Vector2(radius, radius), uv0, uv1);
+
+        // Pop the clipping rectangle
+        drawList.PopClipRect();
+    }
+
 
     public Padlocks GetPadlock(string padlockType)
     {
@@ -1065,6 +1090,44 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         using var pushedFont = font.Push();
         using var pushedColor = ImRaii.PushColor(ImGuiCol.Text, color);
         ImGui.TextUnformatted(text);
+    }
+
+    /// <summary> Retrieves the various UID text color based on the current server state.</summary>
+    /// <returns> The color of the UID text in Vector4 format .</returns>
+    public Vector4 GetUidColor()
+    {
+        return _apiController.ServerState switch
+        {
+            ServerState.Connecting => ImGuiColors.DalamudYellow,
+            ServerState.Reconnecting => ImGuiColors.DalamudRed,
+            ServerState.Connected => ImGuiColors.ParsedGreen,
+            ServerState.Disconnected => ImGuiColors.DalamudYellow,
+            ServerState.Disconnecting => ImGuiColors.DalamudYellow,
+            ServerState.Unauthorized => ImGuiColors.DalamudRed,
+            ServerState.VersionMisMatch => ImGuiColors.DalamudRed,
+            ServerState.Offline => ImGuiColors.DalamudRed,
+            ServerState.NoSecretKey => ImGuiColors.DalamudYellow,
+            _ => ImGuiColors.DalamudRed
+        };
+    }
+
+    /// <summary> Retrieves the various UID text based on the current server state.</summary>
+    /// <returns> The text of the UID.</returns>
+    public string GetUidText()
+    {
+        return _apiController.ServerState switch
+        {
+            ServerState.Reconnecting => "Reconnecting",
+            ServerState.Connecting => "Connecting",
+            ServerState.Disconnected => "Disconnected",
+            ServerState.Disconnecting => "Disconnecting",
+            ServerState.Unauthorized => "Unauthorized",
+            ServerState.VersionMisMatch => "Version mismatch",
+            ServerState.Offline => "Unavailable",
+            ServerState.NoSecretKey => "No Secret Key",
+            ServerState.Connected => _apiController.DisplayName, // displays when connected, your UID
+            _ => string.Empty
+        };
     }
 
     public sealed record IconScaleData(Vector2 IconSize, Vector2 NormalizedIconScale, float OffsetX, float IconScaling);

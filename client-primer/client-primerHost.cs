@@ -232,6 +232,7 @@ public static class GagSpeakServiceExtensions
         // UI Extras services
         .AddSingleton<MainUiHomepage>()
         .AddSingleton<MainUiWhitelist>()
+        .AddSingleton<MainUiAccount>()
         // WebAPI Services
         .AddSingleton<ApiController>()
         .AddSingleton<HubFactory>()
@@ -242,9 +243,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()
         .AddSingleton<GagspeakMediator>()
-        .AddSingleton((s) => new GagspeakProfileManager(s.GetRequiredService<ILogger<GagspeakProfileManager>>(),
-            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<GagspeakMediator>(),
-            s.GetRequiredService<ApiController>(), pi, tp))
+        .AddSingleton((s) => new ProfileService(s.GetRequiredService<ILogger<ProfileService>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
+            s.GetRequiredService<ProfileFactory>()))
         .AddSingleton((s) => new OnFrameworkService(s.GetRequiredService<ILogger<OnFrameworkService>>(),
             cs, con, dm, fw, gg, tm, ot,
             s.GetRequiredService<GagspeakMediator>()));
@@ -292,6 +293,7 @@ public static class GagSpeakServiceExtensions
         ITextureProvider tp, INotificationManager nm, IChatGui cg, IDataManager dm)
     => services
         // Service Services
+        .AddScoped<ProfileFactory>()
         .AddScoped<DrawEntityFactory>()
         .AddScoped<UiFactory>()
         .AddScoped<SelectTagForPairUi>()
@@ -302,7 +304,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ApiController>(), s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<PairManager>(), s.GetRequiredService<ServerConfigurationManager>(),
             s.GetRequiredService<MainUiHomepage>(), s.GetRequiredService<MainUiWhitelist>(),
-            s.GetRequiredService<DrawEntityFactory>(), pi))
+            s.GetRequiredService<MainUiAccount>(), s.GetRequiredService<DrawEntityFactory>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
         .AddScoped<WindowMediatorSubscriberBase, RemotePersonal>()
@@ -318,13 +320,15 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<UiSharedService>(), tp))
         .AddScoped<WindowMediatorSubscriberBase, EditProfileUi>((s) => new EditProfileUi(s.GetRequiredService<ILogger<EditProfileUi>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(), tp, s.GetRequiredService<UiSharedService>(),
-            s.GetRequiredService<FileDialogManager>(), s.GetRequiredService<GagspeakProfileManager>()))
+            s.GetRequiredService<FileDialogManager>(), s.GetRequiredService<ProfileService>()))
         .AddScoped<WindowMediatorSubscriberBase, PopupHandler>()
         .AddScoped<IPopupHandler, VerificationPopupHandler>()
         .AddScoped<IPopupHandler, SavePatternPopupHandler>()
         .AddScoped<CacheCreationService>()
+        .AddScoped((s) => new CosmeticTexturesService(tp, pi))
         .AddScoped<TextureService>()
-        .AddScoped<OnlinePlayerManager>()
+        .AddScoped<OnlinePairManager>()
+        .AddScoped<VisiblePairManager>()
         .AddScoped((s) => new TextureService(pi.UiBuilder, dm, tp))
         .AddScoped((s) => new UiService(s.GetRequiredService<ILogger<UiService>>(), pi.UiBuilder, s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(),

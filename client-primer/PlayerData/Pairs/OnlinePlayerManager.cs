@@ -1,4 +1,4 @@
-using GagSpeak.PlayerData.Handlers;
+/*using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
@@ -133,7 +133,7 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
         {
             _ = Task.Run(async () =>
             {
-                await _apiController.PushCharacterAliasListData(_lastSentData.AliasData, onlinePlayers).ConfigureAwait(false);
+                await _apiController.PushCharacterAliasListData(_lastSentData.AliasData[onlinePlayers.UID], onlinePlayers).ConfigureAwait(false);
             });
         }
     }
@@ -141,12 +141,13 @@ public class OnlinePlayerManager : DisposableMediatorSubscriberBase
     /// <summary> Pushes the character pattern data to the server for the visible players </summary>
     private void PushCharacterPatternData(List<UserData> onlinePlayers)
     {
-        if (onlinePlayers.Any() && _lastSentData?.PatternData != null)
+        if (onlinePlayers.Any() && _lastSentData?.ToyboxData != null)
         {
             _ = Task.Run(async () =>
             {
-                await _apiController.PushCharacterPatternInfoData(_lastSentData.PatternData, onlinePlayers).ConfigureAwait(false);
+                await _apiController.PushCharacterToyboxInfoData(_lastSentData.ToyboxData, onlinePlayers).ConfigureAwait(false);
             });
         }
     }
 }
+*/

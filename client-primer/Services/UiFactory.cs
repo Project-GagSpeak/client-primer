@@ -26,14 +26,14 @@ public class UiFactory
     private readonly PlayerCharacterManager _playerManager;
     private readonly ToyboxRemoteService _remoteService;
     private readonly ServerConfigurationManager _serverConfigs;
-    private readonly GagspeakProfileManager _gagspeakProfileManager;
+    private readonly ProfileService _gagspeakProfileManager;
 
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator,
         ApiController apiController, UiSharedService uiSharedService, 
         DeviceHandler handler, IdDisplayHandler displayHandler, 
         PairManager pairManager, PlayerCharacterManager playerManager,
         ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
-        GagspeakProfileManager profileManager)
+        ProfileService profileManager)
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;

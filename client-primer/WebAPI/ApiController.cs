@@ -717,11 +717,15 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             OnUserUpdateOtherPairPermAccess(dto => _ = Client_UserUpdateOtherPairPermAccess(dto));
 
             OnUserReceiveCharacterDataComposite(dto => _ = Client_UserReceiveCharacterDataComposite(dto));
-            OnUserReceiveCharacterDataIpc(dto => _ = Client_UserReceiveCharacterDataIpc(dto));
-            OnUserReceiveCharacterDataAppearance(dto => _ = Client_UserReceiveCharacterDataAppearance(dto));
-            OnUserReceiveCharacterDataWardrobe(dto => _ = Client_UserReceiveCharacterDataWardrobe(dto));
-            OnUserReceiveCharacterDataAlias(dto => _ = Client_UserReceiveCharacterDataAlias(dto));
-            OnUserReceiveCharacterDataPattern(dto => _ = Client_UserReceiveCharacterDataToybox(dto));
+            OnUserReceiveOwnDataIpc(dto => _ = Client_UserReceiveOwnDataIpc(dto));
+            OnUserReceiveOtherDataIpc(dto => _ = Client_UserReceiveOtherDataIpc(dto));
+            OnUserReceiveOwnDataAppearance(dto => _ = Client_UserReceiveOwnDataAppearance(dto));
+            OnUserReceiveOtherDataAppearance(dto => _ = Client_UserReceiveOtherDataAppearance(dto));
+            OnUserReceiveOwnDataWardrobe(dto => _ = Client_UserReceiveOwnDataWardrobe(dto));
+            OnUserReceiveOtherDataWardrobe(dto => _ = Client_UserReceiveOtherDataWardrobe(dto));
+            OnUserReceiveOtherDataAlias(dto => _ = Client_UserReceiveOtherDataAlias(dto));
+            OnUserReceiveOwnDataToybox(dto => _ = Client_UserReceiveOwnDataToybox(dto));
+            OnUserReceiveOtherDataToybox(dto => _ = Client_UserReceiveOtherDataToybox(dto));
 
             OnUserSendOffline(dto => _ = Client_UserSendOffline(dto));
             OnUserSendOnline(dto => _ = Client_UserSendOnline(dto));

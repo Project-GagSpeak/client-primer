@@ -140,6 +140,7 @@ public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase
 public record PlayerCharAliasChanged(string UpdatedPairUID) : MessageBase;
 public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
 
+public record CharacterDataCreatedMessage(CharacterCompositeData CharacterData) : MessageBase;
 public record CharacterIpcDataCreatedMessage(CharacterIPCData CharacterIPCData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterAppearanceDataCreatedMessage(CharacterAppearanceData CharacterAppearanceData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterWardrobeDataCreatedMessage(CharacterWardrobeData CharacterWardrobeData, DataUpdateKind UpdateKind) : SameThreadMessage;

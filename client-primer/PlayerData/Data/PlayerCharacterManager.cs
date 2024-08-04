@@ -21,7 +21,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private CharacterAppearanceData _playerCharAppearanceData { get; set; } = new CharacterAppearanceData();
     private CharacterWardrobeData _playerCharWardrobeData { get; set; }
     private Dictionary<string, CharacterAliasData> _playerCharAliasData { get; set; }
-    private CharacterPatternInfo _playerCharPatternData { get; set; }
+    private CharacterToyboxData _playerCharPatternData { get; set; }
     private UserGlobalPermissions _playerCharGlobalPerms { get; set; } = new UserGlobalPermissions();
 
     // we need to store our Customize+ tuple list here, but we do not need to be sending it to other people, so stay out of IPC
@@ -37,7 +37,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         // temp initializers since we are not migrating from the saved files yet.
         _playerCharIpcData = new CharacterIPCData(); // Initialize the IPC data
         _playerCharWardrobeData = new CharacterWardrobeData(); // Initialize the wardrobe data
-        _playerCharPatternData = new CharacterPatternInfo(); // Initialize the pattern data
+        _playerCharPatternData = new CharacterToyboxData(); // Initialize the pattern data
         _playerCharAliasData = new Dictionary<string, CharacterAliasData>(); // Initialize the dictionary
 
         // Subscribe to the connected message update so we know when to update our global permissions
@@ -54,32 +54,27 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         // At most we should subscribe to IPC updates so we can keep our IPC at the latest.
         Mediator.Subscribe<PlayerCharIpcChanged>(this, (msg) =>
         {
-            _playerCharIpcData = msg.IPCData;
+            //_playerCharIpcData = msg.IPCData;
         });
 
         Mediator.Subscribe<PlayerCharAppearanceChanged>(this, (msg) =>
         {
-            _playerCharAppearanceData = msg.AppearanceData;
+            //_playerCharAppearanceData = msg.AppearanceData;
         });
 
         Mediator.Subscribe<PlayerCharWardrobeChanged>(this, (msg) =>
         {
-            _playerCharWardrobeData = msg.WardrobeData;
+            //_playerCharWardrobeData = msg.WardrobeData;
         });
 
         Mediator.Subscribe<PlayerCharAliasChanged>(this, (msg) =>
         {
-            _playerCharAliasData[msg.playerUID] = msg.AliasData;
+            //_playerCharAliasData[msg.playerUID] = msg.AliasData;
         });
 
-        Mediator.Subscribe<PlayerCharPatternChanged>(this, (msg) =>
+        Mediator.Subscribe<PlayerCharToyboxChanged>(this, (msg) =>
         {
-            _playerCharPatternData = msg.PatternData;
-        });
-
-        Mediator.Subscribe<ActiveGagTypesUpdated>(this, (msg) =>
-        {
-            Logger.LogTrace("ACTIVEGAGTYPES UPDATED RECIEVED, SENDING INFO OUT TO PLAYERS");
+            //_playerCharPatternData = msg.PatternData;
         });
 
         Mediator.Subscribe<GagLockToggle>(this, (msg) =>
@@ -142,7 +137,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     public CharacterIPCData IpcData => _playerCharIpcData; // public var to access IPC data
     public CharacterAppearanceData AppearanceData => _playerCharAppearanceData; // public var to access appearance data
     public CharacterWardrobeData WardrobeData => _playerCharWardrobeData; // public var to access wardrobe data
-    public CharacterPatternInfo PatternData => _playerCharPatternData; // public var to access pattern data
+    public CharacterToyboxData PatternData => _playerCharPatternData; // public var to access pattern data
     public UserGlobalPermissions GlobalPerms => _playerCharGlobalPerms; // public var to access global permissions
     public IEnumerable<string> GetAllAliasListKeys() => _playerCharAliasData.Keys; // public method to get all alias list keys
     public CharacterAliasData GetAliasData(string userUID)
@@ -166,14 +161,14 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
 
     // helper method to decompile a received composite data message
-    public void UpdateCharWithCompositeData(OnlineUserCharaCompositeDataDto compositeData)
+    public void UpdateCharWithCompositeData(OnlineUserCompositeDataDto compositeData)
     {
         // decompose the composite data into its parts and update them
         _playerCharIpcData = compositeData.CompositeData.IPCData;
         _playerCharAppearanceData = compositeData.CompositeData.AppearanceData;
         _playerCharWardrobeData = compositeData.CompositeData.WardrobeData;
-        _playerCharAliasData[compositeData.User.UID] = compositeData.CompositeData.AliasData;
-        _playerCharPatternData = compositeData.CompositeData.PatternData;
+        _playerCharAliasData[compositeData.User.UID] = compositeData.CompositeData.AliasData[compositeData.User.UID];
+        _playerCharPatternData = compositeData.CompositeData.ToyboxData;
     }
 
     /* helper method to update player characters relevant player data. Called upon by API Controller (and also mediator (but maybe make that separate idk)) */
@@ -197,10 +192,10 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         _playerCharAliasData[aliasData.User.UID] = aliasData.AliasData;
     }
 
-    public void UpdateCharPatternData(OnlineUserCharaPatternDataDto patternData)
+    public void UpdateCharPatternData(OnlineUserCharaToyboxDataDto patternData)
     {
         // going to need to go a lot more in-depth on the logic for this later but we will figure it all out.
-        _playerCharPatternData = patternData.PatternInfo;
+        _playerCharPatternData = patternData.ToyboxInfo;
     }
 
 

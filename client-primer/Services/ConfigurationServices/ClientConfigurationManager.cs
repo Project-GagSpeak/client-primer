@@ -309,7 +309,7 @@ public class ClientConfigurationManager
         // Add alias logic
         _aliasConfig.Current.AliasStorage[userId].AliasList.Add(alias);
         _aliasConfig.Save();
-        _mediator.Publish(new AliasListUpdated(userId));
+        _mediator.Publish(new PlayerCharAliasChanged(userId));
     }
 
     public void RemoveAlias(string userId, AliasTrigger alias)
@@ -317,7 +317,7 @@ public class ClientConfigurationManager
         // Remove alias logic
         _aliasConfig.Current.AliasStorage[userId].AliasList.Remove(alias);
         _aliasConfig.Save();
-        _mediator.Publish(new AliasListUpdated(userId));
+        _mediator.Publish(new PlayerCharAliasChanged(userId));
     }
 
     public void UpdateAliasInput(string userId, int aliasIndex, string input)
@@ -325,7 +325,7 @@ public class ClientConfigurationManager
         // Update alias input logic
         _aliasConfig.Current.AliasStorage[userId].AliasList[aliasIndex].InputCommand = input;
         _aliasConfig.Save();
-        _mediator.Publish(new AliasListUpdated(userId));
+        _mediator.Publish(new PlayerCharAliasChanged(userId));
     }
 
     public void UpdateAliasOutput(string userId, int aliasIndex, string output)
@@ -333,7 +333,7 @@ public class ClientConfigurationManager
         // Update alias output logic
         _aliasConfig.Current.AliasStorage[userId].AliasList[aliasIndex].OutputCommand = output;
         _aliasConfig.Save();
-        _mediator.Publish(new AliasListUpdated(userId));
+        _mediator.Publish(new PlayerCharAliasChanged(userId));
     }
 
     #endregion Alias Config Methods
@@ -474,7 +474,7 @@ public class ClientConfigurationManager
                 alarm.PatternToPlay = "";
                 alarm.PatternDuration = "00:00";
                 _alarmConfig.Save();
-                _mediator.Publish(new AlarmDataChanged(i));
+                _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
             }
         }
     }
@@ -491,31 +491,28 @@ public class ClientConfigurationManager
         alarm.Name = newName;
         _alarmConfig.Current.AlarmStorage.Alarms.Add(alarm);
         _alarmConfig.Save();
-        _mediator.Publish(new AlarmAddedMessage(alarm));
+        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
     }
 
     public void RemoveAlarm(int indexToRemove)
     {
         _alarmConfig.Current.AlarmStorage.Alarms.RemoveAt(indexToRemove);
         _alarmConfig.Save();
-        _mediator.Publish(new AlarmRemovedMessage());
+        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
     }
 
     public void SetAlarmState(int idx, bool newState)
     {
         _alarmConfig.Current.AlarmStorage.Alarms[idx].Enabled = newState;
         _alarmConfig.Save();
-        _mediator.Publish(new AlarmDataChanged(idx));
-        // publish the alarm added/removed based on state
-        if (newState) _mediator.Publish(new AlarmActivated(idx));
-        else _mediator.Publish(new AlarmDeactivated(idx));
+        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
     }
 
     public void UpdateAlarm(Alarm alarm, int idx)
     {
         _alarmConfig.Current.AlarmStorage.Alarms[idx] = alarm;
         _alarmConfig.Save();
-        _mediator.Publish(new AlarmDataChanged(idx));
+        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
     }
 
     #endregion Alarm Config Methods

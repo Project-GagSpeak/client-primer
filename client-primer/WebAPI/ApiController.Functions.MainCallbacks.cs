@@ -269,19 +269,15 @@ public partial class ApiController // Partial class for MainHub Callbacks
 
 
     /// <summary> 
-    /// 
-    /// Sent to client from server, providing client with all updated character data of a user pair.
-    /// 
-    /// (In theory, this should also be able to send back updated information about our own character.)
-    /// 
+    /// Should only ever get the other pairs. If getting self, something is up.
     /// </summary>
-    public Task Client_UserReceiveCharacterDataComposite(OnlineUserCharaCompositeDataDto dataDto)
+    public Task Client_UserReceiveCharacterDataComposite(OnlineUserCompositeDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveCharacterDataComposite: {dataDto}", dataDto);
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
-            Logger.LogTrace("Callback matched player character, updating own composite data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharWithCompositeData(dataDto));
+            Logger.LogWarning("Why are you trying to receive your own composite data? There is no need for this???");
+            /*            ExecuteSafely(() => _playerCharManager.UpdateCharWithCompositeData(dataDto));*/
             return Task.CompletedTask;
         }
         else
@@ -292,126 +288,79 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
     }
 
-    /// <summary> 
-    /// 
-    /// Sent to client from server, providing client with the updated  IPC character data of a user pair.
-    /// 
-    /// (In theory, this should also be able to send back updated information about our own character.)
-    /// 
-    /// </summary>
-    public Task Client_UserReceiveCharacterDataIpc(OnlineUserCharaIpcDataDto dataDto)
+
+    /// <summary> Update Own Appearance Data </summary>
+    public Task Client_UserReceiveOwnDataIpc(OnlineUserCharaIpcDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveCharacterDataIpc: {dataDto}", dataDto);
-        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
-        {
-            Logger.LogTrace("Callback matched player character, updating own IPC data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharIpcData(dataDto));
-            return Task.CompletedTask;
-        }
-        else
-        {
-            Logger.LogTrace("Callback matched to a paired user, updating their IPC data.");
-            ExecuteSafely(() => _pairManager.ReceiveCharaIpcData(dataDto));
-            return Task.CompletedTask;
-        }
+        Logger.LogDebug("Client_UserReceiveOwnDataIpc: {dataDto}", dataDto);
+        /*ExecuteSafely(() => _playerCharManager.UpdateIpcFromCallback(dataDto));*/ // TODO: Do this last.
+        return Task.CompletedTask;
     }
 
-    /// <summary> 
-    /// 
-    /// Sent to client from server, providing client with the updated Appearance character data of a user pair.
-    /// 
-    /// (In theory, this should also be able to send back updated information about our own character.)
-    /// 
-    /// </summary>
-    public Task Client_UserReceiveCharacterDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
+    /// <summary> Update Other UserPair Ipc Data </summary>
+    public Task Client_UserReceiveOtherDataIpc(OnlineUserCharaIpcDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveCharacterDataAppearance: {dataDto}", dataDto);
-        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
-        {
-            Logger.LogTrace("Callback matched player character, updating own appearance data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharAppearanceData(dataDto));
-            return Task.CompletedTask;
-        }
-        else
-        {
-            Logger.LogTrace("Callback matched to a paired user, updating their appearance data.");
-            ExecuteSafely(() => _pairManager.ReceiveCharaAppearanceData(dataDto));
-            return Task.CompletedTask;
-        }
+        Logger.LogDebug("Client_UserReceiveOtherDataIpc: {dataDto}", dataDto);
+        ExecuteSafely(() => _pairManager.ReceiveCharaIpcData(dataDto));
+        return Task.CompletedTask;
     }
 
-    /// <summary> 
-    /// 
-    /// Sent to client from server, providing client with the updated Wardrobe character data of a user pair.
-    /// 
-    /// (In theory, this should also be able to send back updated information about our own character.)
-    /// 
-    /// </summary>
-    public Task Client_UserReceiveCharacterDataWardrobe(OnlineUserCharaWardrobeDataDto dataDto)
+
+    /// <summary> Update Own Appearance Data </summary>
+    public Task Client_UserReceiveOwnDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveCharacterDataWardrobe: {dataDto}", dataDto);
-        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
-        {
-            Logger.LogTrace("Callback matched player character, updating own wardrobe data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharWardrobeData(dataDto));
-            return Task.CompletedTask;
-        }
-        else
-        {
-            Logger.LogTrace("Callback matched to a paired user, updating their wardrobe data.");
-            ExecuteSafely(() => _pairManager.ReceiveCharaWardrobeData(dataDto));
-            return Task.CompletedTask;
-        }
+        Logger.LogDebug("Client_UserReceiveOwnDataAppearance: {dataDto}", dataDto);
+        //ExecuteSafely(() => _playerCharManager.UpdateAppearanceFromCallback(dataDto));
+        return Task.CompletedTask;
     }
 
-    /// <summary> 
-    /// 
-    /// Sent to client from server, providing client with the updated Alias character data of a user pair.
-    /// 
-    /// (In theory, this should also be able to send back updated information about our own character.)
-    /// 
-    /// </summary>
-    public Task Client_UserReceiveCharacterDataAlias(OnlineUserCharaAliasDataDto dataDto)
+    /// <summary> Update Other UserPair Appearance Data </summary>
+    public Task Client_UserReceiveOtherDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveCharacterDataAlias: {dataDto}", dataDto);
-        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
-        {
-            // successful parse for updating own alias data.
-            Logger.LogTrace("Callback matched player character, updating own alias data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharAliasData(dataDto));
-            return Task.CompletedTask;
-        }
-        else
-        {
-            // successfull parse for updating user pair's alias data.
-            Logger.LogTrace("Callback matched to a paired user, updating their alias data.");
-            ExecuteSafely(() => _pairManager.ReceiveCharaAliasData(dataDto));
-            return Task.CompletedTask;
-        }
+        Logger.LogDebug("Client_UserReceiveOtherDataAppearance: {dataDto}", dataDto);
+        ExecuteSafely(() => _pairManager.ReceiveCharaAppearanceData(dataDto));
+        return Task.CompletedTask;
     }
 
-    /// <summary> 
-    /// 
-    /// Sent to client from server, providing client with the updated PatternInfo character data of a user pair.
-    /// 
-    /// (In theory, this should also be able to send back updated information about our own character.)
-    /// 
-    /// </summary>
-    public Task Client_UserReceiveCharacterDataToybox(OnlineUserCharaPatternDataDto dataDto)
+    /// <summary> Update Own Wardrobe Data </summary>
+    public Task Client_UserReceiveOwnDataWardrobe(OnlineUserCharaWardrobeDataDto dataDto)
     {
-        Logger.LogTrace("Client_UserReceiveCharacterDataToybox: {user}", dataDto.User);
-        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
-        {
-            Logger.LogTrace("Callback matched player character, updating own pattern data");
-            ExecuteSafely(() => _playerCharManager.UpdateCharPatternData(dataDto));
-            return Task.CompletedTask;
-        }
-        else
-        {
-            Logger.LogTrace("Callback matched to a paired user, updating their pattern data.");
-            ExecuteSafely(() => _pairManager.ReceiveCharaPatternData(dataDto));
-            return Task.CompletedTask;
-        }
+        Logger.LogDebug("Client_UserReceiveOwnDataWardrobe: {dataDto}", dataDto);
+        //ExecuteSafely(() => _playerCharManager.UpdateWardrobeFromCallback(dataDto));
+        return Task.CompletedTask;
+
+    }
+
+    /// <summary> Update Other UserPair Wardrobe Data </summary>
+    public Task Client_UserReceiveOtherDataWardrobe(OnlineUserCharaWardrobeDataDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveOtherDataWardrobe: {dataDto}", dataDto);
+        ExecuteSafely(() => _pairManager.ReceiveCharaWardrobeData(dataDto));
+        return Task.CompletedTask;
+    }
+
+    /// <summary> Update Other UserPair Alias Data </summary>
+    public Task Client_UserReceiveOtherDataAlias(OnlineUserCharaAliasDataDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveOtherDataAlias: {dataDto}", dataDto);
+        ExecuteSafely(() => _pairManager.ReceiveCharaAliasData(dataDto));
+        return Task.CompletedTask;
+    }
+
+    /// <summary> Update Own UserPair Toybox Data </summary>
+    public Task Client_UserReceiveOwnDataToybox(OnlineUserCharaToyboxDataDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveOwnDataToybox: {dataDto}", dataDto);
+        //ExecuteSafely(() => _playerCharManager.UpdateToyboxFromCallback(dataDto));
+        return Task.CompletedTask;
+    }
+
+    /// <summary> Update Other UserPair Toybox Data </summary>
+    public Task Client_UserReceiveOtherDataToybox(OnlineUserCharaToyboxDataDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveOtherDataToybox: {dataDto}", dataDto);
+        ExecuteSafely(() => _pairManager.ReceiveCharaPatternData(dataDto));
+        return Task.CompletedTask;
     }
 
     /// <summary> Server has sent us a UserDto has just went offline, and is notifying all connected pairs about it.
@@ -544,37 +493,64 @@ public partial class ApiController // Partial class for MainHub Callbacks
         _gagspeakHub!.On(nameof(Client_UserUpdateOtherPairPermAccess), act);
     }
 
-    public void OnUserReceiveCharacterDataComposite(Action<OnlineUserCharaCompositeDataDto> act)
+    public void OnUserReceiveCharacterDataComposite(Action<OnlineUserCompositeDataDto> act)
     {
         if (_initialized) return;
         _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataComposite), act);
     }
 
-    public void OnUserReceiveCharacterDataIpc(Action<OnlineUserCharaIpcDataDto> act)
+    public void OnUserReceiveOwnDataIpc(Action<OnlineUserCharaIpcDataDto> act)
     {
         if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataIpc), act);
-    }
-    public void OnUserReceiveCharacterDataAppearance(Action<OnlineUserCharaAppearanceDataDto> act)
-    {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataAppearance), act);
+        _gagspeakHub!.On(nameof(Client_UserReceiveOwnDataIpc), act);
     }
 
-    public void OnUserReceiveCharacterDataWardrobe(Action<OnlineUserCharaWardrobeDataDto> act)
+    public void OnUserReceiveOtherDataIpc(Action<OnlineUserCharaIpcDataDto> act)
     {
         if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataWardrobe), act);
+        _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataIpc), act);
     }
-    public void OnUserReceiveCharacterDataAlias(Action<OnlineUserCharaAliasDataDto> act)
+
+    public void OnUserReceiveOwnDataAppearance(Action<OnlineUserCharaAppearanceDataDto> act)
     {
         if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataAlias), act);
+        _gagspeakHub!.On(nameof(Client_UserReceiveOwnDataAppearance), act);
     }
-    public void OnUserReceiveCharacterDataPattern(Action<OnlineUserCharaPatternDataDto> act)
+
+    public void OnUserReceiveOtherDataAppearance(Action<OnlineUserCharaAppearanceDataDto> act)
     {
         if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataToybox), act);
+        _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataAppearance), act);
+    }
+
+    public void OnUserReceiveOwnDataWardrobe(Action<OnlineUserCharaWardrobeDataDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveOwnDataWardrobe), act);
+    }
+
+    public void OnUserReceiveOtherDataWardrobe(Action<OnlineUserCharaWardrobeDataDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataWardrobe), act);
+    }
+
+    public void OnUserReceiveOtherDataAlias(Action<OnlineUserCharaAliasDataDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataAlias), act);
+    }
+
+    public void OnUserReceiveOwnDataToybox(Action<OnlineUserCharaToyboxDataDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveOwnDataToybox), act);
+    }
+
+    public void OnUserReceiveOtherDataToybox(Action<OnlineUserCharaToyboxDataDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataToybox), act);
     }
 
     public void OnUserSendOffline(Action<UserDto> act)

@@ -75,7 +75,7 @@ public class GagManager : DisposableMediatorSubscriberBase
         UpdateActiveGags();
 
         // Optionally, publish a message to notify other parts of the system about the update
-        Mediator.Publish(new ActiveGagTypesUpdated());
+        Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.FullDataUpdate));
     }
 
 

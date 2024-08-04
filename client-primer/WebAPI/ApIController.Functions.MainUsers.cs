@@ -4,6 +4,7 @@ using GagspeakAPI.Data.Character;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
+using GagspeakAPI.Data.Enum;
 using Microsoft.AspNetCore.SignalR.Client;
 
 namespace GagSpeak.WebAPI;
@@ -88,6 +89,14 @@ public partial class ApiController // Partial class for MainHub User Functions.
         if (!IsConnected) return new UserProfileDto(dto.User, Disabled: false, ProfilePictureBase64: null, Description: null);
         // otherwise, if we are connected, invoke the UserGetProfile function on the server with the user data transfer object
         return await _gagspeakHub!.InvokeAsync<UserProfileDto>(nameof(UserGetProfile), dto).ConfigureAwait(false);
+    }
+
+    public async Task UserReportProfile(UserProfileReportDto userProfileDto)
+    {
+        // if we are not connected, return
+        if (!IsConnected) return;
+        // if we are connected, send the report to the server
+        await _gagspeakHub!.InvokeAsync(nameof(UserReportProfile), userProfileDto).ConfigureAwait(false);
     }
 
     /// <summary> 
@@ -203,7 +212,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// Pushes the toybox pattern & trigger information of the client to other recipients.
     /// 
     /// </summary>
-    public async Task UserPushDataToybox(UserCharaPatternDataMessageDto dto)
+    public async Task UserPushDataToybox(UserCharaToyboxDataMessageDto dto)
     {
         // try and push the character data dto to the server
         try
@@ -318,7 +327,8 @@ public partial class ApiController // Partial class for MainHub User Functions.
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character Composite data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            await UserPushData(new(onlineCharacters, data)).ConfigureAwait(false);
+            await UserPushData(new(onlineCharacters, data, GagspeakAPI.Data.Enum.DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
+
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of composite data"); }
@@ -336,7 +346,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character IPC data to {visible}", string.Join(", ", visibleCharacters.Select(v => v.AliasOrUID)));
-            await UserPushDataIpc(new(visibleCharacters, data)).ConfigureAwait(false);
+            await UserPushDataIpc(new(visibleCharacters, data, DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of IPC data"); }
@@ -355,7 +365,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character Appearance data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            await UserPushDataAppearance(new(onlineCharacters, data)).ConfigureAwait(false);
+            await UserPushDataAppearance(new(onlineCharacters, data, DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Appearance data"); }
@@ -374,7 +384,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character Wardrobe data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            await UserPushDataWardrobe(new(onlineCharacters, data)).ConfigureAwait(false);
+            await UserPushDataWardrobe(new(onlineCharacters, data, DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Wardrobe data"); }
@@ -393,7 +403,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character Alias data to {visible}", string.Join(", ", onlineCharacter.AliasOrUID));
-            await UserPushDataAlias(new(onlineCharacter, data)).ConfigureAwait(false);
+            await UserPushDataAlias(new(onlineCharacter, data, DataUpdateKind.PuppeteerAliasListUpdated)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Alias List data"); }
@@ -404,14 +414,14 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// </summary>
     /// <param name="data"> the data to be sent to the list of users </param>
     /// <param name="onlineCharacters"> the online characters the data will be sent to </param>
-    public async Task PushCharacterPatternInfoData(CharacterPatternInfo data, List<UserData> onlineCharacters)
+    public async Task PushCharacterToyboxInfoData(CharacterToyboxData data, List<UserData> onlineCharacters)
     {
         if (!IsConnected) return;
 
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character PatternInfo to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            await UserPushDataToybox(new(onlineCharacters, data)).ConfigureAwait(false);
+            await UserPushDataToybox(new(onlineCharacters, data, DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Pattern Information"); }
@@ -465,7 +475,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// <summary>
     /// Updates another pairs toybox info data with the new changes you've made to them.
     /// </summary>
-    public async Task UserPushPairDataToyboxUpdate(OnlineUserCharaPatternDataDto dto)
+    public async Task UserPushPairDataToyboxUpdate(OnlineUserCharaToyboxDataDto dto)
     {
         try
         {

@@ -154,7 +154,8 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             // get the required service for the online player manager (and notification service if we add it)
             _runtimeServiceScope.ServiceProvider.GetRequiredService<CacheCreationService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<GlamourChangedService>();
-            _runtimeServiceScope.ServiceProvider.GetRequiredService<OnlinePlayerManager>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<OnlinePairManager>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<VisiblePairManager>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<NotificationService>();
             // boot up our chatGarbler services.
 

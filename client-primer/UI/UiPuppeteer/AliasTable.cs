@@ -26,9 +26,10 @@ public class AliasTable : DisposableMediatorSubscriberBase
         _playerManager = playerManager;
         _clientConfigs = clientConfigs;
 
-        Mediator.Subscribe<AliasListUpdated>(this, (msg) =>
+        Mediator.Subscribe<PlayerCharAliasChanged>(this, (msg) =>
+
         {
-            AliasTriggerList = _clientConfigs.FetchListForPair(msg.UserUID);
+            AliasTriggerList = _clientConfigs.FetchListForPair(msg.UpdatedPairUID);
         });
     }
 

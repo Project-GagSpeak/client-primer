@@ -25,22 +25,6 @@ public class AlarmHandler : MediatorSubscriberBase
         _IntifaceHandler = handler;
         _patternHandler = patternHandler;
 
-        Mediator.Subscribe<AlarmAddedMessage>(this, (msg) =>
-        {
-            Logger.LogInformation("Alarm Added: {0}", msg.Alarm);
-        });
-
-        Mediator.Subscribe<AlarmRemovedMessage>(this, (msg) =>
-        {
-            Logger.LogInformation("Alarm Removed!");
-        });
-
-        // probably dont need this because c# magic?
-        Mediator.Subscribe<AlarmDataChanged>(this, (msg) =>
-        {
-            Logger.LogInformation($"Alarm Data Changed! {msg.AlarmIndex}");
-        });
-
         // subscribe to the pattern removed, so we can clear the configured patterns of any alarms they were associated with
         Mediator.Subscribe<PatternRemovedMessage>(this, (msg) =>
         {

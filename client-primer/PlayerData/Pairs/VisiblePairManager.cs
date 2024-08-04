@@ -6,6 +6,7 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
+using GagspeakAPI.Data.Enum;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -23,12 +24,10 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
     private CharacterIPCData? _lastIpcData;
 
     public VisiblePairManager(ILogger<VisiblePairManager> logger,
-        GagspeakMediator mediator, ApiController apiController, 
+        GagspeakMediator mediator, ApiController apiController,
         OnFrameworkService dalamudUtil, PairManager pairManager)
         : base(logger, mediator)
     {
-        logger.LogWarning("Visible Pair Manager Initializing");
-
         _apiController = apiController;
         _frameworkUtil = dalamudUtil;
         _pairManager = pairManager;
@@ -46,7 +45,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
             {
                 Logger.LogDebug("Pushing new IPC data to all visible players");
                 _lastIpcData = newData;
-                PushCharacterIpcData(_pairManager.GetVisibleUsers());
+                PushCharacterIpcData(_pairManager.GetVisibleUsers(), msg.UpdateKind);
             }
             else
             {
@@ -56,8 +55,6 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
 
         // Add pair to list when they become visible.
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, (msg) => _newVisiblePlayers.Add(msg.Player));
-
-        logger.LogWarning("Online Pair Manager Initialized");
     }
 
     private void FrameworkOnUpdate()
@@ -74,20 +71,20 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
 
         // Push our IPC data to those players, applying our moodles data & sending customize+ info.
         Logger.LogTrace("Has new visible players, pushing character data");
-        PushCharacterIpcData(newVisiblePlayers.Select(c => c.OnlineUser.User).ToList());
+        PushCharacterIpcData(newVisiblePlayers.Select(c => c.OnlineUser.User).ToList(), DataUpdateKind.IpcUpdateVisible);
     }
 
     /// <summary>
     /// Pushes the character IPC data to the server for the visible players.
     /// </summary>
-    private void PushCharacterIpcData(List<UserData> onlinePlayers)
+    private void PushCharacterIpcData(List<UserData> onlinePlayers, DataUpdateKind updateKind)
     {
         // If the list contains any contents and we have new data, asynchronously push it to the server.
         if (onlinePlayers.Any() && _lastIpcData != null)
         {
             _ = Task.Run(async () =>
             {
-                await _apiController.PushCharacterIpcData(_lastIpcData, onlinePlayers).ConfigureAwait(false);
+                await _apiController.PushCharacterIpcData(_lastIpcData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }
         else

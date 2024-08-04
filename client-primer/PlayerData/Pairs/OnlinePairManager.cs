@@ -6,6 +6,7 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
+using GagspeakAPI.Data.Enum;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -31,7 +32,6 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         PairManager pairManager, GagspeakMediator mediator)
         : base(logger, mediator)
     {
-        logger.LogWarning("Online Pair Manager Initializing");
         _apiController = apiController;
         _frameworkUtil = dalamudUtil;
         _playerManager = playerCharacterManager;
@@ -47,7 +47,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             if (_lastAppearanceData == null || !Equals(newAppearanceData, _lastAppearanceData))
             {
                 _lastAppearanceData = newAppearanceData;
-                PushCharacterAppearanceData(_pairManager.GetOnlineUserDatas());
+                PushCharacterAppearanceData(_pairManager.GetOnlineUserDatas(), msg.UpdateKind);
             }
             else
             {
@@ -62,7 +62,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             if (_lastWardrobeData == null || !Equals(newWardrobeData, _lastWardrobeData))
             {
                 _lastWardrobeData = newWardrobeData;
-                PushCharacterWardrobeData(_pairManager.GetOnlineUserDatas());
+                PushCharacterWardrobeData(_pairManager.GetOnlineUserDatas(), msg.UpdateKind);
             }
             else
             {
@@ -92,15 +92,13 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             if (_lastToyboxData == null || !Equals(newToyboxData, _lastToyboxData))
             {
                 _lastToyboxData = newToyboxData;
-                PushCharacterToyboxData(_pairManager.GetOnlineUserDatas());
+                PushCharacterToyboxData(_pairManager.GetOnlineUserDatas(), msg.UpdateKind);
             }
             else
             {
                 Logger.LogDebug("Data was no different. Not sending data");
             }
         });
-
-        logger.LogWarning("Online Pair Manager Initialized");
     }
 
     /// <summary> Pushes all our Player Data to all online pairs once connected. </summary>
@@ -122,27 +120,34 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
 
 
     /// <summary> Pushes the character wardrobe data to the server for the visible players </summary>
-    private void PushCharacterAppearanceData(List<UserData> onlinePlayers)
+    private void PushCharacterAppearanceData(List<UserData> onlinePlayers, DataUpdateKind updateKind)
     {
         if (onlinePlayers.Any() && _lastAppearanceData != null)
         {
             _ = Task.Run(async () =>
             {
                 Logger.LogTrace("Pushing new Appearance data to all visible players"); // RECOMMENDATION: Toggle off when not debugging
-                await _apiController.PushCharacterAppearanceData(_lastAppearanceData, onlinePlayers).ConfigureAwait(false);
+                await _apiController.PushCharacterAppearanceData(_lastAppearanceData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
+        }
+        else
+        {
+            if (!onlinePlayers.Any())
+                Logger.LogWarning("No online players to push Appearance data to");
+            else
+                Logger.LogWarning("No Appearance data to push to online players");
         }
     }
 
     /// <summary> Pushes the character wardrobe data to the server for the visible players </summary>
-    private void PushCharacterWardrobeData(List<UserData> onlinePlayers)
+    private void PushCharacterWardrobeData(List<UserData> onlinePlayers, DataUpdateKind updateKind)
     {
         if (onlinePlayers.Any() && _lastWardrobeData != null)
         {
             _ = Task.Run(async () =>
             {
                 Logger.LogTrace("Pushing new Wardrobe data to all visible players"); // RECOMMENDATION: Toggle off when not debugging
-                await _apiController.PushCharacterWardrobeData(_lastWardrobeData, onlinePlayers).ConfigureAwait(false);
+                await _apiController.PushCharacterWardrobeData(_lastWardrobeData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }
     }
@@ -155,20 +160,20 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             _ = Task.Run(async () =>
             {
                 Logger.LogTrace("Pushing new Alias data to visible player"); // RECOMMENDATION: Toggle off when not debugging
-                await _apiController.PushCharacterAliasListData(_lastAliasData, onlinePairToPushTo).ConfigureAwait(false);
+                await _apiController.PushCharacterAliasListData(_lastAliasData, onlinePairToPushTo, DataUpdateKind.PuppeteerAliasListUpdated).ConfigureAwait(false);
             });
         }
     }
 
     /// <summary> Pushes the character toybox data to the server for the visible players </summary>
-    private void PushCharacterToyboxData(List<UserData> onlinePlayers)
+    private void PushCharacterToyboxData(List<UserData> onlinePlayers, DataUpdateKind updateKind)
     {
         if (onlinePlayers.Any() && _lastToyboxData != null)
         {
             _ = Task.Run(async () =>
             {
                 Logger.LogTrace("Pushing new Toybox data to all visible players"); // RECOMMENDATION: Toggle off when not debugging
-                await _apiController.PushCharacterToyboxInfoData(_lastToyboxData, onlinePlayers).ConfigureAwait(false);
+                await _apiController.PushCharacterToyboxDataData(_lastToyboxData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }
     }

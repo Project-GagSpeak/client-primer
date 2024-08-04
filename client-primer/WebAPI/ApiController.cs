@@ -723,6 +723,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             OnUserReceiveOtherDataAppearance(dto => _ = Client_UserReceiveOtherDataAppearance(dto));
             OnUserReceiveOwnDataWardrobe(dto => _ = Client_UserReceiveOwnDataWardrobe(dto));
             OnUserReceiveOtherDataWardrobe(dto => _ = Client_UserReceiveOtherDataWardrobe(dto));
+            OnUserReceiveOwnDataAlias(dto => _ = Client_UserReceiveOwnDataAlias(dto));
             OnUserReceiveOtherDataAlias(dto => _ = Client_UserReceiveOtherDataAlias(dto));
             OnUserReceiveOwnDataToybox(dto => _ = Client_UserReceiveOwnDataToybox(dto));
             OnUserReceiveOtherDataToybox(dto => _ = Client_UserReceiveOtherDataToybox(dto));
@@ -748,7 +749,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // otherwise, log that we are initializing the data, and initialize it.
             Logger.LogDebug("Initializing ToyboxHub API Hooks");
 
-            // On the left is the function from the gagspeakhubclient.cs in the API, on the right is the function to be called in the API controller.
+            // On the left is the function from the GagspeakHubClient.cs in the API, on the right is the function to be called in the API controller.
             OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
             OnUserReceiveRoomInvite(dto => _ = Client_UserReceiveRoomInvite(dto));
             OnPrivateRoomJoined(dto => _ = Client_PrivateRoomJoined(dto));

@@ -1,16 +1,9 @@
 using Buttplug.Client;
 using Buttplug.Client.Connectors.WebsocketConnector;
-using Dalamud.Interface;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Data;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
-using ImGuiNET;
-using NAudio.Gui;
-using OtterGui;
-using System.Numerics;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -21,7 +14,6 @@ public class DeviceHandler : DisposableMediatorSubscriberBase
 {
     // likely will include API controller and other things later. Otherwise they will be in ToyboxHandler.
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly UiSharedService _uiShared;
     private readonly DeviceFactory _deviceFactory;
 
     private ButtplugClient ButtplugClient;
@@ -34,11 +26,10 @@ public class DeviceHandler : DisposableMediatorSubscriberBase
     // maybe store triggers here in the future, or in the trigger handler, but not now.
 
     public DeviceHandler(ILogger<DeviceHandler> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, UiSharedService uiShared,
-        DeviceFactory deviceFactory) : base(logger, mediator)
+        ClientConfigurationManager clientConfiguration, DeviceFactory deviceFactory)
+        : base(logger, mediator)
     {
         _clientConfigs = clientConfiguration;
-        _uiShared = uiShared;
         _deviceFactory = deviceFactory;
 
         // create the websocket connector
@@ -90,48 +81,6 @@ public class DeviceHandler : DisposableMediatorSubscriberBase
         // cancel the battery check token
         BatteryCheckCTS?.Cancel();
     }
-
-    public void DrawDevicesTable()
-    {
-        using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, 4));
-        using var table = ImRaii.Table("ConnectedDevices", 7, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY);
-        if (!table) { return; }
-
-        var refX = ImGui.GetCursorPos();
-        ImGui.TableSetupColumn("Device Name", ImGuiTableColumnFlags.WidthFixed, ImGuiHelpers.GlobalScale * 125f);
-        ImGui.TableSetupColumn("Display Name", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("Vibrates", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Vibrates.").X);
-        ImGui.TableSetupColumn("Rotates", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Rotates.").X);
-        ImGui.TableSetupColumn("Linear", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Linear.").X);
-        ImGui.TableSetupColumn("Oscillates", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Oscillates.").X);
-        ImGui.TableSetupColumn("%##BatteryPercent", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("100%").X);
-        ImGui.TableHeadersRow();        
-
-        foreach (var device in Devices)
-        {
-            ImGui.TableNextColumn();
-            ImGui.Text(device.DeviceName);
-            ImGui.TableNextColumn();
-            var displayName = device.DisplayName;
-            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-            if(ImGui.InputTextWithHint($"##DisplayName{device.DeviceName}", "Public Name..", 
-                ref displayName, 48, ImGuiInputTextFlags.EnterReturnsTrue))
-            {
-                device.DisplayName = displayName;
-            }
-            ImGui.TableNextColumn();
-            _uiShared.BooleanToColoredIcon(device.CanVibrate, false);
-            ImGui.TableNextColumn();
-            _uiShared.BooleanToColoredIcon(device.CanRotate, false);
-            ImGui.TableNextColumn();
-            _uiShared.BooleanToColoredIcon(device.CanLinear, false);
-            ImGui.TableNextColumn();
-            _uiShared.BooleanToColoredIcon(device.CanOscillate, false);
-            ImGui.TableNextColumn();
-            ImGui.Text($"{device.BatteryPercentString()}");
-        }
-    }
-
 
     private ButtplugWebsocketConnector NewWebsocketConnection()
     {
@@ -316,7 +265,7 @@ public class DeviceHandler : DisposableMediatorSubscriberBase
     }
 
     #endregion ConnectionHandle
-    
+
     /// <summary> 
     /// Asyncronous method that continuously checks the battery health of the client 
     /// until canceled at a set interval
@@ -418,16 +367,16 @@ public class DeviceHandler : DisposableMediatorSubscriberBase
         // send the vibration to all devices on all motors
         foreach (ConnectedDevice device in Devices)
         {
-            if(device.CanVibrate)
+            if (device.CanVibrate)
                 device.SendVibration(intensity);
 
-            if(device.CanRotate)
+            if (device.CanRotate)
                 device.SendRotate(intensity);
 
-            if(device.CanLinear)
+            if (device.CanLinear)
                 device.SendLinear(intensity);
 
-            if(device.CanOscillate)
+            if (device.CanOscillate)
                 device.SendOscillate(intensity);
         }
     }

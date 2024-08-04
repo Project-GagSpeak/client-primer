@@ -8,16 +8,13 @@ namespace GagSpeak.PlayerData.Handlers;
 public class PatternHandler : MediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
     private readonly DeviceHandler _IntifaceHandler;
 
     public PatternHandler(ILogger<PatternHandler> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        PlayerCharacterManager playerManager, DeviceHandler handler)
-        : base(logger, mediator)
+        DeviceHandler handler) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
-        _playerManager = playerManager;
         _IntifaceHandler = handler;
 
         Mediator.Subscribe<PatternActivedMessage>(this, (msg) => PlaybackRunning = true);
@@ -93,9 +90,23 @@ public class PatternHandler : MediatorSubscriberBase
         _clientConfigs.SetPatternState(idx, true);
     }
 
+    public void CallbackActivatePattern(string patternName)
+    {
+        var idx = _clientConfigs.GetPatternIdxByName(patternName);
+
+        ActivePattern = _clientConfigs.FetchPattern(idx);
+        _clientConfigs.SetPatternState(idx, true, false);
+    }
+
     public void StopPattern(int idx)
     {
         _clientConfigs.SetPatternState(idx, false);
+    }
+
+    public void CallbackDeactivatePattern(string patternName)
+    {
+        var idx = _clientConfigs.GetPatternIdxByName(patternName);
+        _clientConfigs.SetPatternState(idx, false, false);
     }
 
     /// <summary>

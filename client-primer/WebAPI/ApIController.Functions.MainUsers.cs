@@ -4,8 +4,8 @@ using GagspeakAPI.Data.Character;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
-using GagspeakAPI.Data.Enum;
 using Microsoft.AspNetCore.SignalR.Client;
+using GagspeakAPI.Data.Enum;
 
 namespace GagSpeak.WebAPI;
 
@@ -13,11 +13,8 @@ namespace GagSpeak.WebAPI;
 public partial class ApiController // Partial class for MainHub User Functions.
 {
     /// <summary> 
-    /// 
     /// Sends request to the server, asking to add the defined UserDto to the clients UserPair list.
-    /// 
     /// </summary>
-    /// <param name="user">the data transfer object of the User the client desires to add as a pair.</param>
     public async Task UserAddPair(UserDto user)
     {
         // if we are not connected, return
@@ -28,9 +25,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary> 
-    /// 
     /// Send a request to the server, asking it to remove the declared UserDto from the clients userPair list.
-    /// 
     /// </summary>
     public async Task UserRemovePair(UserDto userDto)
     {
@@ -41,9 +36,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary> 
-    /// 
-    /// Sends a request to the server, asking for the connected clients account to be deleted.
-    /// 
+    /// Sends a request to the server, asking for the connected clients account to be deleted. 
     /// </summary>
     public async Task UserDelete()
     {
@@ -56,9 +49,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary> 
-    /// 
     /// Send a request to the server, asking it to return a list of all currently online users that you are paired with.
-    /// 
     /// </summary>
     /// <returns>Returns a list of OnlineUserIdent Data Transfer Objects</returns>
     public async Task<List<OnlineUserIdentDto>> UserGetOnlinePairs()
@@ -67,9 +58,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary> 
-    /// 
     /// Send a request to the server, asking it to return a list of your paired clients.
-    /// 
     /// </summary>
     /// <returns>Returns a list of UserPair data transfer objects</returns>
     public async Task<List<UserPairDto>> UserGetPairedClients()
@@ -78,9 +67,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary> 
-    /// 
     /// Send a request to the server asking it to provide the profile of the user defined in the UserDto.
-    /// 
     /// </summary>
     /// <returns>The user profile Dto belonging to the UserDto we sent</returns>
     public async Task<UserProfileDto> UserGetProfile(UserDto dto)
@@ -99,10 +86,9 @@ public partial class ApiController // Partial class for MainHub User Functions.
         await _gagspeakHub!.InvokeAsync(nameof(UserReportProfile), userProfileDto).ConfigureAwait(false);
     }
 
+
     /// <summary> 
-    /// 
     /// Sets the profile of the client user, updating it to the clients paired users and the DB.
-    /// 
     /// </summary>
     public async Task UserSetProfile(UserProfileDto userDescription)
     {
@@ -111,11 +97,8 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary>
-    /// 
     /// Pushes the composite user data of a a character to other recipients.
-    /// 
     /// (This is called upon by PushCharacterDataInternal, see bottom)
-    /// 
     /// </summary>
     public async Task UserPushData(UserCharaCompositeDataMessageDto dto)
     {
@@ -132,9 +115,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary>
-    /// 
     /// Pushes the IPC data from the client character to other recipients.
-    /// 
     /// </summary>
     public async Task UserPushDataIpc(UserCharaIpcDataMessageDto dto)
     {
@@ -151,9 +132,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary>
-    /// 
     /// Pushes the composite user data of a a character to other recipients.
-    /// 
     /// </summary>
     public async Task UserPushDataAppearance(UserCharaAppearanceDataMessageDto dto)
     {
@@ -170,9 +149,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary>
-    /// 
     /// Pushes the wardrobe data of the client to other recipients.
-    /// 
     /// </summary>
     public async Task UserPushDataWardrobe(UserCharaWardrobeDataMessageDto dto)
     {
@@ -189,9 +166,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary>
-    /// 
     /// Pushes the puppeteer alias lists of the client to other recipients.
-    /// 
     /// </summary>
     public async Task UserPushDataAlias(UserCharaAliasDataMessageDto dto)
     {
@@ -208,9 +183,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary>
-    /// 
     /// Pushes the toybox pattern & trigger information of the client to other recipients.
-    /// 
     /// </summary>
     public async Task UserPushDataToybox(UserCharaToyboxDataMessageDto dto)
     {
@@ -327,8 +300,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character Composite data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            await UserPushData(new(onlineCharacters, data, GagspeakAPI.Data.Enum.DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
-
+            await UserPushData(new(onlineCharacters, data, DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of composite data"); }
@@ -339,14 +311,14 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// </summary>
     /// <param name="data"> the data to be sent to the list of users </param>
     /// <param name="visibleCharacters"> the currently visible characters who will recieve the updated IPC data </param>
-    public async Task PushCharacterIpcData(CharacterIPCData data, List<UserData> visibleCharacters)
+    public async Task PushCharacterIpcData(CharacterIPCData data, List<UserData> visibleCharacters, DataUpdateKind updateKind)
     {
         if (!IsConnected) return;
 
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character IPC data to {visible}", string.Join(", ", visibleCharacters.Select(v => v.AliasOrUID)));
-            await UserPushDataIpc(new(visibleCharacters, data, DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
+            await UserPushDataIpc(new(visibleCharacters, data, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of IPC data"); }
@@ -358,14 +330,14 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// </summary>
     /// <param name="data"></param>
     /// <param name="onlineCharacters"></param>
-    public async Task PushCharacterAppearanceData(CharacterAppearanceData data, List<UserData> onlineCharacters)
+    public async Task PushCharacterAppearanceData(CharacterAppearanceData data, List<UserData> onlineCharacters, DataUpdateKind updateKind)
     {
         if (!IsConnected) return;
 
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character Appearance data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            await UserPushDataAppearance(new(onlineCharacters, data, DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
+            await UserPushDataAppearance(new(onlineCharacters, data, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Appearance data"); }
@@ -377,14 +349,14 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// </summary>
     /// <param name="data"> the data to be sent to the list of users </param>
     /// <param name="onlineCharacters"> the online characters the data will be sent to </param>
-    public async Task PushCharacterWardrobeData(CharacterWardrobeData data, List<UserData> onlineCharacters)
+    public async Task PushCharacterWardrobeData(CharacterWardrobeData data, List<UserData> onlineCharacters, DataUpdateKind updateKind)
     {
         if (!IsConnected) return;
 
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character Wardrobe data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            await UserPushDataWardrobe(new(onlineCharacters, data, DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
+            await UserPushDataWardrobe(new(onlineCharacters, data, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Wardrobe data"); }
@@ -396,14 +368,14 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// </summary>
     /// <param name="data"> the data to be sent to the list of users </param>
     /// <param name="onlineCharacter"> the online pair the data will be sent to </param>
-    public async Task PushCharacterAliasListData(CharacterAliasData data, UserData onlineCharacter)
+    public async Task PushCharacterAliasListData(CharacterAliasData data, UserData onlineCharacter, DataUpdateKind updateKind)
     {
         if (!IsConnected) return;
 
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character Alias data to {visible}", string.Join(", ", onlineCharacter.AliasOrUID));
-            await UserPushDataAlias(new(onlineCharacter, data, DataUpdateKind.PuppeteerAliasListUpdated)).ConfigureAwait(false);
+            await UserPushDataAlias(new(onlineCharacter, data, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Alias List data"); }
@@ -414,14 +386,14 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// </summary>
     /// <param name="data"> the data to be sent to the list of users </param>
     /// <param name="onlineCharacters"> the online characters the data will be sent to </param>
-    public async Task PushCharacterToyboxInfoData(CharacterToyboxData data, List<UserData> onlineCharacters)
+    public async Task PushCharacterToyboxDataData(CharacterToyboxData data, List<UserData> onlineCharacters, DataUpdateKind updateKind)
     {
         if (!IsConnected) return;
 
         try // if connected, try to push the data to the server
         {
             Logger.LogDebug("Pushing Character PatternInfo to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            await UserPushDataToybox(new(onlineCharacters, data, DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
+            await UserPushDataToybox(new(onlineCharacters, data, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Pattern Information"); }
@@ -486,10 +458,5 @@ public partial class ApiController // Partial class for MainHub User Functions.
             Logger.LogWarning(ex, $"Failed to Push an update to {dto.User.UID}'s Toybox data");
         }
     }
-
-
-
-
-
 }
 #pragma warning restore MA0040

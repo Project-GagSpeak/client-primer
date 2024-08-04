@@ -26,8 +26,8 @@ public class RestraintSetsOverview
     private readonly TextureService _textures;
     private readonly DictStain _stainDictionary;
 
-    public RestraintSetsOverview(ILogger<RestraintSetsOverview> logger, 
-        GagspeakMediator mediator, UiSharedService uiSharedService, 
+    public RestraintSetsOverview(ILogger<RestraintSetsOverview> logger,
+        GagspeakMediator mediator, UiSharedService uiSharedService,
         WardrobeHandler handler, TextureService textureService,
         DictStain stainDictionary)
     {
@@ -45,6 +45,7 @@ public class RestraintSetsOverview
     private Vector2 GameIconSize;
     private string RefSearchString = string.Empty;
     private readonly StainColorCombo StainColorCombos;
+    private string InputTime = string.Empty;
 
     public void DrawSetsOverview()
     {
@@ -99,7 +100,7 @@ public class RestraintSetsOverview
         {
             var idxToDelete = _handler.SelectedSetIdx;
             // publish update to reset back to 0 index,
-            _mediator.Publish(new RestraintSetRemovedMessage(idxToDelete));
+            _mediator.Publish(new RestraintSetRemovedMessage(idxToDelete)); // REVIEW : Likely uneeded
             // remove the set at the index.
             _handler.RemoveRestraintSet(idxToDelete);
         }
@@ -117,29 +118,64 @@ public class RestraintSetsOverview
             _uiShared.BigText(_handler.SelectedSet.Name); // display name
             ImGui.TextWrapped(_handler.SelectedSet.Description); // display description
 
+            // provide an input text box to update the timer string.
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X * 0.7f);
+            using (var disableTimeInput = ImRaii.Disabled(_handler.SelectedSet.Locked))
+            {
+                ImGui.InputTextWithHint($"##{_handler.SelectedSet.Name}TimerLockField", "self-lock duration: XdXhXmXs format..", ref InputTime, 24);
+            }
+            // in the same line draw a button to toggle the lock.
+            ImGui.SameLine();
+
+            var iconLock = _handler.SelectedSet.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff;
+            var textLock = _handler.SelectedSet.Enabled ? "Locked" : "Unlocked";
+            if (_uiShared.IconTextButton(iconLock, textLock, null, false, !_handler.SelectedSet.Enabled))
+            {
+                // when we try to unlock, ONLY allow unlock if you are the one who locked it.
+                if (_handler.SelectedSet.Locked && _handler.SelectedSet.LockedBy == "SelfApplied")
+                {
+                    _handler.UnlockRestraintSet(_handler.SelectedSetIdx, "SelfApplied");
+                }
+                // if trying to lock it, allow this to happen.
+                else
+                {
+                    // if the time we input is valid, do not clear it.
+                    if (_uiShared.TryParseTimeSpan(InputTime, out var timeSpan))
+                    {
+                        // parse the timespan to the new offset and lock the set.
+                        var endTimeUTC = DateTimeOffset.UtcNow.Add(timeSpan);
+                        _handler.LockRestraintSet(_handler.SelectedSetIdx, "SelfApplied", endTimeUTC);
+                    }
+                    else
+                    {
+                        InputTime = "Invalid Format use (XdXhXmXs)";
+                    }
+                }
+            }
+
             // display attached hardcore attributes if we have any
             _uiShared.BigText("Hardcore Attributes:");
             // create a list of strings from the hardcore set properties dictionary keyset
             string UIDtoView = _handler.SelectedSet.SetProperties.Keys.FirstOrDefault() ?? "No User Selected";
-            if(!_handler.SelectedSet.SetProperties.Keys.Any())
+            if (!_handler.SelectedSet.SetProperties.Keys.Any())
             {
-               ImGui.Text("No Hardcore Attributes Attached");
+                ImGui.Text("No Hardcore Attributes Attached");
             }
             else
             {
-                _uiShared.DrawCombo("View Properties for Pair", 150f, _handler.SelectedSet.SetProperties.Keys.ToList(),
-                                (i) => i,
-                            (i) =>
-                            {
-                                // set the viewing UID to the index selected
-                                UIDtoView = i;
-                            }, UIDtoView);
+                _uiShared.DrawCombo("View Properties for Pair", 150f, _handler.SelectedSet.SetProperties.Keys.ToList(), (i) => i,
+                (i) =>
+                {
+                    // set the viewing UID to the index selected
+                    UIDtoView = i;
+                }, UIDtoView);
+
                 if (UIDtoView != "No User Selected")
                 {
                     // display the properties
-                    ImGui.Text("Legs Restrainted");
+                    ImGui.Text("Legs Restrained");
                     _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].LegsRestrained);
-                    ImGui.Text("Arms Restrainted");
+                    ImGui.Text("Arms Restrained");
                     _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].ArmsRestrained);
                     ImGui.Text("Gagged");
                     _uiShared.BooleanToColoredIcon(_handler.SelectedSet.SetProperties[UIDtoView].Gagged);
@@ -172,12 +208,12 @@ public class RestraintSetsOverview
                 {
                     ImGui.Text(mod.Mod.Name);
                     ImGui.SameLine(0, 4);
-                    if(mod.DisableWhenInactive)
+                    if (mod.DisableWhenInactive)
                     {
-                       ImGui.TextColored(ImGuiColors.ParsedGreen, "Toggles Mod");
+                        ImGui.TextColored(ImGuiColors.ParsedGreen, "Toggles Mod");
                     }
                     ImGui.SameLine(0, 4);
-                    if(mod.RedrawAfterToggle)
+                    if (mod.RedrawAfterToggle)
                     {
                         ImGui.TextColored(ImGuiColors.ParsedGreen, "Forces Redraw");
                     }

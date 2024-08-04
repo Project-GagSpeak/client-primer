@@ -75,7 +75,7 @@ public class Pair
     public CharacterAppearanceData UserPairAppearanceData { get; set; }             // the gag data associated with the user pair.
     public CharacterWardrobeData UserPairWardrobeData { get; set; }                 // the wardrobe data associated with the user pair.
     public CharacterAliasData UserPairAliasData { get; set; }                       // the alias data associated with the user pair.
-    public CharacterToyboxData UserPairPatternData { get; set; }                   // the pattern data associated with the user pair.
+    public CharacterToyboxData UserPairToyboxData { get; set; }                   // the pattern data associated with the user pair.
     public CharacterIPCData LastReceivedIpcData { get; set; }                       // reference to last IPC data applied to visible user.
 
     // Most of these attributes should be self explanatory, but they are public methods you can fetch from the pair manager.
@@ -186,7 +186,7 @@ public class Pair
     public void ApplyPatternData(OnlineUserCharaToyboxDataDto data)
     {
         _logger.LogDebug("Applying updated pattern data for {uid}", data.User.UID);
-        UserPairPatternData = data.ToyboxInfo;
+        UserPairToyboxData = data.ToyboxInfo;
     }
 
 

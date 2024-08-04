@@ -293,7 +293,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveOwnDataIpc(OnlineUserCharaIpcDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataIpc: {dataDto}", dataDto);
-        /*ExecuteSafely(() => _playerCharManager.UpdateIpcFromCallback(dataDto));*/ // TODO: Do this last.
+        // ExecuteSafely(() => _playerCharManager.UpdateIpcFromCallback(dataDto)); // TODO: Do this last.
         return Task.CompletedTask;
     }
 
@@ -310,7 +310,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveOwnDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataAppearance: {dataDto}", dataDto);
-        //ExecuteSafely(() => _playerCharManager.UpdateAppearanceFromCallback(dataDto));
+        ExecuteSafely(() => _playerCharManager.UpdateAppearanceFromCallback(dataDto));
         return Task.CompletedTask;
     }
 
@@ -326,7 +326,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveOwnDataWardrobe(OnlineUserCharaWardrobeDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataWardrobe: {dataDto}", dataDto);
-        //ExecuteSafely(() => _playerCharManager.UpdateWardrobeFromCallback(dataDto));
+        ExecuteSafely(() => _playerCharManager.UpdateWardrobeFromCallback(dataDto));
         return Task.CompletedTask;
 
     }
@@ -336,6 +336,14 @@ public partial class ApiController // Partial class for MainHub Callbacks
     {
         Logger.LogDebug("Client_UserReceiveOtherDataWardrobe: {dataDto}", dataDto);
         ExecuteSafely(() => _pairManager.ReceiveCharaWardrobeData(dataDto));
+        return Task.CompletedTask;
+    }
+
+    /// <summary> Update Own UserPair Alias Data </summary>
+    public Task Client_UserReceiveOwnDataAlias(OnlineUserCharaAliasDataDto dataDto)
+    {
+        Logger.LogDebug("(Never intended to happen, look into later) Client_UserReceiveOwnDataAlias: {dataDto}", dataDto);
+        //ExecuteSafely(() => _playerCharManager.UpdateAliasFromCallback(dataDto));
         return Task.CompletedTask;
     }
 
@@ -351,7 +359,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveOwnDataToybox(OnlineUserCharaToyboxDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataToybox: {dataDto}", dataDto);
-        //ExecuteSafely(() => _playerCharManager.UpdateToyboxFromCallback(dataDto));
+        ExecuteSafely(() => _playerCharManager.UpdateToyboxFromCallback(dataDto));
         return Task.CompletedTask;
     }
 
@@ -533,6 +541,12 @@ public partial class ApiController // Partial class for MainHub Callbacks
     {
         if (_initialized) return;
         _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataWardrobe), act);
+    }
+
+    public void OnUserReceiveOwnDataAlias(Action<OnlineUserCharaAliasDataDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveOwnDataAlias), act);
     }
 
     public void OnUserReceiveOtherDataAlias(Action<OnlineUserCharaAliasDataDto> act)

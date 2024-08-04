@@ -1,17 +1,26 @@
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
+using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
+using ImGuiNET;
+using JetBrains.Annotations;
 using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
+using ProjectGagspeakAPI.Data.VibeServer;
+using System.Security.Claims;
 using static GagspeakAPI.Data.Enum.GagList;
+using static PInvoke.User32;
 
 namespace GagSpeak.Services.ConfigurationServices;
 
@@ -196,6 +205,7 @@ public class ClientConfigurationManager
 
     internal bool PropertiesEnabledForSet(int setIndexToCheck, string UIDtoCheckPropertiesFor)
     {
+        // do not allow hardcore properties for self.
         if (UIDtoCheckPropertiesFor == "SelfApplied") return false;
 
         HardcoreSetProperties setProperties = WardrobeConfig.WardrobeStorage.RestraintSets[setIndexToCheck].SetProperties[UIDtoCheckPropertiesFor];
@@ -206,7 +216,7 @@ public class ClientConfigurationManager
             || setProperties.Weighty || setProperties.LightStimulation || setProperties.MildStimulation || setProperties.HeavyStimulation;
     }
 
-    internal void SetRestraintSetState(UpdatedNewState newState, int setIndex, string UIDofPair)
+    internal void SetRestraintSetState(UpdatedNewState newState, int setIndex, string UIDofPair, bool shouldPublishToMediator = true)
     {
         if (newState == UpdatedNewState.Disabled)
         {
@@ -214,20 +224,62 @@ public class ClientConfigurationManager
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = string.Empty;
             _wardrobeConfig.Save();
             // publish toggle to mediator
-            _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair));
+            if (shouldPublishToMediator)
+                _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair));
         }
         else
         {
-            // be sure to set the other existing active set, if any, to false first.
+            // disable all other restraint sets first
+            WardrobeConfig.WardrobeStorage.RestraintSets
+                .Where(set => set.Enabled)
+                .ToList()
+                .ForEach(set =>
+                {
+                    set.Enabled = false;
+                    set.EnabledBy = string.Empty;
+                });
 
+            // then enable our set.
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Enabled = true;
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = UIDofPair;
             _wardrobeConfig.Save();
             // publish toggle to mediator
-            _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair));
+            if (shouldPublishToMediator)
+                _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair)); ;
         }
-        // publish to the mediator the toggle message for updates TODO
     }
+
+    internal void LockRestraintSet(int setIndex, string UIDofPair, DateTimeOffset endLockTimeUTC, bool shouldPublishToMediator = true)
+    {
+        // Ensure we are doing this to ourselves. (Possibly change later to remove entirely once we handle callbacks)
+        if (UIDofPair != "SelfApplied") return;
+
+        // set the locked and locked-by status.
+        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Locked = true;
+        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = UIDofPair;
+        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = endLockTimeUTC;
+        _wardrobeConfig.Save();
+
+        if (shouldPublishToMediator)
+            _mediator.Publish(new RestraintSetToggledMessage(UpdatedNewState.Locked, setIndex, UIDofPair));
+    }
+
+    internal void UnlockRestraintSet(int setIndex, string UIDofPair, bool shouldPublishToMediator = true)
+    {
+        // Ensure we are doing this to ourselves. (Possibly change later to remove entirely once we handle callbacks)
+        if (UIDofPair != "SelfApplied") return;
+
+        // Clear all locked states. (making the assumption this is only called when the UIDofPair matches the LockedBy)
+        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Locked = false;
+        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = string.Empty;
+        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = DateTimeOffset.MinValue;
+        _wardrobeConfig.Save();
+
+        if (shouldPublishToMediator)
+            _mediator.Publish(new RestraintSetToggledMessage(UpdatedNewState.Unlocked, setIndex, UIDofPair));
+    }
+
+
 
     internal int GetRestraintSetCount() => WardrobeConfig.WardrobeStorage.RestraintSets.Count;
     internal List<AssociatedMod> GetAssociatedMods(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods;
@@ -358,12 +410,24 @@ public class ClientConfigurationManager
         return timespanDuration;
     }
 
-    public void SetPatternState(int idx, bool newState)
+    // TODO: Make patterns mimic the similar edit and save state as the Alarms. Current implementation will spam API too much.
+    public void SetPatternState(int idx, bool newState, bool shouldPublishToMediator = true)
     {
         _patternConfig.Current.PatternStorage.Patterns[idx].IsActive = newState;
         _patternConfig.Save();
-        if(newState) _mediator.Publish(new PatternActivedMessage(idx));
-        else _mediator.Publish(new PatternDeactivedMessage(idx));
+        if (newState)
+        {
+            _mediator.Publish(new PatternActivedMessage(idx));
+        }
+        else
+        {
+            _mediator.Publish(new PatternDeactivedMessage(idx));
+        }
+        // Push update if we should publish
+        if (shouldPublishToMediator)
+        {
+            _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
+        }
     }
 
     public void SetNameForPattern(int idx, string newName)
@@ -378,7 +442,6 @@ public class ClientConfigurationManager
     {
         _patternConfig.Current.PatternStorage.Patterns[index].Description = newDescription;
         _patternConfig.Save();
-        // publish to mediator one was modified
         _mediator.Publish(new PatternDataChanged(index));
     }
 
@@ -444,7 +507,7 @@ public class ClientConfigurationManager
         _patternConfig.Current.PatternStorage.Patterns.Add(newPattern);
         _patternConfig.Save();
         // publish to mediator one was added
-        _mediator.Publish(new PatternAddedMessage(newPattern));
+        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
     public void RemovePattern(int indexToRemove)
@@ -455,6 +518,9 @@ public class ClientConfigurationManager
         _patternConfig.Save();
         // publish to mediator one was removed
         _mediator.Publish(new PatternRemovedMessage(patternToRemove));
+
+        // TODO: This will chain call 2 update pushes. Make sure that we either seperate them or handle accordingly.
+        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
     #endregion Pattern Config Methods
@@ -491,22 +557,55 @@ public class ClientConfigurationManager
         alarm.Name = newName;
         _alarmConfig.Current.AlarmStorage.Alarms.Add(alarm);
         _alarmConfig.Save();
+
+        _logger.LogInformation("Alarm Added: {0}", alarm.Name);
         _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
     }
 
     public void RemoveAlarm(int indexToRemove)
     {
+        _logger.LogInformation("Alarm Removed: {0}", _alarmConfig.Current.AlarmStorage.Alarms[indexToRemove].Name);
         _alarmConfig.Current.AlarmStorage.Alarms.RemoveAt(indexToRemove);
         _alarmConfig.Save();
+
         _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
     }
 
-    public void SetAlarmState(int idx, bool newState)
+    public void SetAlarmState(int idx, bool newState, bool shouldPublishToMediator = true)
     {
         _alarmConfig.Current.AlarmStorage.Alarms[idx].Enabled = newState;
         _alarmConfig.Save();
-        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
+
+        // publish the alarm added/removed based on state
+        if (shouldPublishToMediator)
+        {
+            _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmToggled));
+        }
     }
+
+    public void UpdateAlarmStatesFromCallback(List<AlarmInfo> callbackAlarmList)
+    {
+        // iterate over each alarmInfo in the alarmInfo list. If any of the AlarmStorages alarms have a different enabled state than the alarm info's, change it.
+        foreach (AlarmInfo alarmInfo in callbackAlarmList)
+        {
+            // if the alarm is found in the list,
+            if (_alarmConfig.Current.AlarmStorage.Alarms.Any(x => x.Name == alarmInfo.Name))
+            {
+                // grab the alarm reference
+                var alarmRef = _alarmConfig.Current.AlarmStorage.Alarms.FirstOrDefault(x => x.Name == alarmInfo.Name);
+                // update the enabled state if the values are different.
+                if (alarmRef != null && alarmRef.Enabled != alarmInfo.Enabled)
+                {
+                    alarmRef.Enabled = alarmInfo.Enabled;
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Failed to match an Alarm in your list with an alarm in the callbacks list. This shouldnt be possible?");
+            }
+        }
+    }
+
 
     public void UpdateAlarm(Alarm alarm, int idx)
     {
@@ -524,4 +623,133 @@ public class ClientConfigurationManager
 
     #endregion Trigger Config Methods
 
+    #region API Compilation
+    public CharacterToyboxData CompileToyboxToAPI()
+    {
+        // Map PatternConfig to PatternInfo
+        var patternList = new List<PatternInfo>();
+        foreach (var pattern in PatternConfig.PatternStorage.Patterns)
+        {
+            patternList.Add(new PatternInfo
+            {
+                Name = pattern.Name,
+                Description = pattern.Description,
+                Duration = pattern.Duration,
+                IsActive = pattern.IsActive,
+                ShouldLoop = pattern.ShouldLoop
+            });
+        }
+
+        // Map TriggerConfig to TriggerInfo
+        var triggerList = new List<TriggerInfo>();
+        foreach (var trigger in TriggerConfig.TriggerStorage.Triggers)
+        {
+            triggerList.Add(new TriggerInfo
+            {
+                Enabled = trigger.Enabled,
+                Name = trigger.Name,
+                Description = trigger.Description,
+                Type = trigger.Type,
+                CanViewAndToggleTrigger = trigger.CanTrigger,
+            });
+        }
+
+        // Map AlarmConfig to AlarmInfo
+        var alarmList = new List<AlarmInfo>();
+        foreach (var alarm in AlarmConfig.AlarmStorage.Alarms)
+        {
+            alarmList.Add(new AlarmInfo
+            {
+                Enabled = alarm.Enabled,
+                Name = alarm.Name,
+                SetTimeUTC = alarm.SetTimeUTC,
+                PatternToPlay = alarm.PatternToPlay,
+                PatternDuration = alarm.PatternDuration,
+                RepeatFrequency = alarm.RepeatFrequency
+            });
+        }
+
+        // Create and return CharacterToyboxData
+        return new CharacterToyboxData
+        {
+            PatternList = patternList,
+            AlarmList = alarmList,
+            TriggerList = triggerList
+        };
+    }
+    #endregion API Compilation
+
+    #region UI Prints
+    public void DrawWardrobeInfo()
+    {
+        ImGui.Text("Wardrobe Outfits:");
+        ImGui.Indent();
+        foreach (var item in WardrobeConfig.WardrobeStorage.RestraintSets)
+        {
+            ImGui.Text(item.Name);
+        }
+        ImGui.Unindent();
+        var ActiveSet = WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.Enabled);
+        if (ActiveSet != null)
+        {
+            ImGui.Text("Active Set Info: ");
+            ImGui.Indent();
+            ImGui.Text($"Name: {ActiveSet.Name}");
+            ImGui.Text($"Description: {ActiveSet.Description}");
+            ImGui.Text($"Enabled By: {ActiveSet.EnabledBy}");
+            ImGui.Text($"Is Locked: {ActiveSet.Locked}");
+            ImGui.Text($"Locked By: {ActiveSet.LockedBy}");
+            ImGui.Text($"Locked Until: {ActiveSet.LockedUntil}");
+            ImGui.Unindent();
+        }
+    }
+
+
+    public void DrawAliasLists()
+    {
+        foreach (var alias in AliasConfig.AliasStorage)
+        {
+            if (ImGui.CollapsingHeader($"Alias Data for {alias.Key}"))
+            {
+                ImGui.Text("List of Alias's For this User:");
+                // begin a table.
+                using var table = ImRaii.Table($"##table-for-{alias.Key}", 2);
+                if (!table) { return; }
+
+                using var spacing = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGui.GetStyle().ItemInnerSpacing);
+                ImGui.TableSetupColumn("If You Say:", ImGuiTableColumnFlags.WidthFixed, ImGuiHelpers.GlobalScale * 100);
+                ImGui.TableSetupColumn("They will Execute:", ImGuiTableColumnFlags.WidthStretch);
+
+                foreach (var aliasTrigger in alias.Value.AliasList)
+                {
+                    ImGui.Separator();
+                    ImGui.Text("[INPUT TRIGGER]: ");
+                    ImGui.SameLine();
+                    ImGui.Text(aliasTrigger.InputCommand);
+                    ImGui.NewLine();
+                    ImGui.Text("[OUTPUT RESPONSE]: ");
+                    ImGui.SameLine();
+                    ImGui.Text(aliasTrigger.OutputCommand);
+                }
+            }
+        }
+    }
+
+    public void DrawPatternsInfo()
+    {
+        foreach (var item in PatternConfig.PatternStorage.Patterns)
+        {
+            ImGui.Text($"Info for Pattern: {item.Name}");
+            ImGui.Indent();
+            ImGui.Text($"Description: {item.Description}");
+            ImGui.Text($"Duration: {item.Duration}");
+            ImGui.Text($"Is Active: {item.IsActive}");
+            ImGui.Text($"Should Loop: {item.ShouldLoop}");
+            ImGui.Unindent();
+        }
+    }
+
+
+
+    #endregion UI Prints
 }

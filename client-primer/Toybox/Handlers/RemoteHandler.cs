@@ -14,12 +14,10 @@ namespace UI.UiRemote;
 public class RemoteHandler
 {
     private readonly ILogger<RemoteHandler> _logger;
-    private readonly UiSharedService _uiSharedService;
 
-    public RemoteHandler(ILogger<RemoteHandler> logger,
-        UiSharedService uiSharedService)
+
+    public RemoteHandler(ILogger<RemoteHandler> logger)
     {
-        _uiSharedService = uiSharedService;
     }
 
 }

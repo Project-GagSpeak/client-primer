@@ -30,7 +30,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly OnFrameworkService _frameworkUtil;
     private readonly GagspeakConfigService _configService;
     private readonly PairManager _pairManager;
-    private readonly ServerConfigurationManager _serverConfigurationManager;
+    private readonly ClientConfigurationManager _clientConfigs;
+    private readonly ServerConfigurationManager _serverConfigs;
     private readonly UiSharedService _uiShared;
     private bool _deleteAccountPopupModalShown = false;
     private bool _deleteFilesPopupModalShown = false;
@@ -44,16 +45,18 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private CancellationTokenSource? _validationCts;
 
     public SettingsUi(ILogger<SettingsUi> logger, UiSharedService uiShared,
-        ApiController apiController, GagspeakConfigService configService, 
+        ApiController apiController, GagspeakConfigService configService,
         PairManager pairManager, PlayerCharacterManager playerCharacterManager,
-        ServerConfigurationManager serverConfigurationManager, GagspeakMediator mediator,
+        ClientConfigurationManager clientConfigs,
+        ServerConfigurationManager serverConfigs, GagspeakMediator mediator,
         IpcManager ipcManager, OnFrameworkService frameworkUtil) : base(logger, mediator, "GagSpeak Settings")
     {
         _apiController = apiController;
         _playerCharacterManager = playerCharacterManager;
         _configService = configService;
         _pairManager = pairManager;
-        _serverConfigurationManager = serverConfigurationManager;
+        _clientConfigs = clientConfigs;
+        _serverConfigs = serverConfigs;
         _ipcManager = ipcManager;
         _frameworkUtil = frameworkUtil;
         _uiShared = uiShared;
@@ -83,7 +86,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     private ApiController ApiController => _uiShared.ApiController;
     private UserGlobalPermissions PlayerGlobalPerms => _playerCharacterManager.GlobalPerms;
-    
+
     // Everything below here is temporary until I figure out something better.
     public Dictionary<string, string[]> LanguagesDialects { get; init; } // Languages and Dialects for Chat Garbler.
     private string[] _currentDialects; // Array of Dialects for each Language
@@ -171,7 +174,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         // Iterate through all client pairs in the PairManager
         foreach (var clientPair in _pairManager.DirectPairs)
         {
-            if (ImGui.CollapsingHeader($"Pair: {clientPair.UserData.UID} || {_serverConfigurationManager.GetNicknameForUid(clientPair.UserData.UID)}"))
+            if (ImGui.CollapsingHeader($"Pair: {clientPair.UserData.UID} || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
             {
                 ImGui.Text($"UserData UID: {clientPair.UserData.UID}");
                 ImGui.Indent();
@@ -186,7 +189,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
                 if (clientPair.UserPairGlobalPerms != null)
                 {
-                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Global permissions || {_serverConfigurationManager.GetNicknameForUid(clientPair.UserData.UID)}"))
+                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Global permissions || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
                         ImGui.Text($"Safeword: {clientPair.UserPairGlobalPerms.Safeword}");
                         ImGui.Text($"SafewordUsed: {clientPair.UserPairGlobalPerms.SafewordUsed}");
@@ -216,7 +219,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 }
                 if (clientPair.UserPairUniquePairPerms != null)
                 {
-                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Pair permissions || {_serverConfigurationManager.GetNicknameForUid(clientPair.UserData.UID)}"))
+                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Pair permissions || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
                         ImGui.Text($"IsPaused: {clientPair.UserPairUniquePairPerms.IsPaused}");
                         ImGui.Text($"ExtendedLockTimes: {clientPair.UserPairUniquePairPerms.ExtendedLockTimes}");
@@ -265,7 +268,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 }
                 if (clientPair.UserPairEditAccess != null)
                 {
-                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Edit Access || {_serverConfigurationManager.GetNicknameForUid(clientPair.UserData.UID)}"))
+                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Edit Access || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
                         ImGui.Text("Commands From Friends Allowed: " + clientPair.UserPairEditAccess.CommandsFromFriendsAllowed);
                         ImGui.Text("Commands From Party Allowed: " + clientPair.UserPairEditAccess.CommandsFromPartyAllowed);
@@ -276,7 +279,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Separator();
                         ImGui.Text("Wardrobe Enabled Allowed: " + clientPair.UserPairEditAccess.WardrobeEnabledAllowed);
                         ImGui.Text("Item Auto Equip Allowed: " + clientPair.UserPairEditAccess.ItemAutoEquipAllowed);
-                        ImGui.Text("Restraint Set Auto Equip Allowed: " + clientPair.UserPairEditAccess.RestraintSetAutoEquipAllowed);                        ImGui.Text("Apply Restraint Sets Allowed: " + clientPair.UserPairEditAccess.ApplyRestraintSetsAllowed);
+                        ImGui.Text("Restraint Set Auto Equip Allowed: " + clientPair.UserPairEditAccess.RestraintSetAutoEquipAllowed); ImGui.Text("Apply Restraint Sets Allowed: " + clientPair.UserPairEditAccess.ApplyRestraintSetsAllowed);
                         ImGui.Text("Lock Restraint Sets Allowed: " + clientPair.UserPairEditAccess.LockRestraintSetsAllowed);
                         ImGui.Text("Max Allowed Restraint Time Allowed: " + clientPair.UserPairEditAccess.MaxAllowedRestraintTimeAllowed);
                         ImGui.Text("Remove Restraint Sets Allowed: " + clientPair.UserPairEditAccess.RemoveRestraintSetsAllowed);
@@ -313,7 +316,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 }
                 if (clientPair.UserPairAppearanceData != null)
                 {
-                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Appearance Data || {_serverConfigurationManager.GetNicknameForUid(clientPair.UserData.UID)}"))
+                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Appearance Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
                         ImGui.Text($"SlotOneGagType: {clientPair.UserPairAppearanceData.SlotOneGagType}");
                         ImGui.Text($"SlotOneGagPadlock: {clientPair.UserPairAppearanceData.SlotOneGagPadlock}");
@@ -336,7 +339,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 }
                 if (clientPair.UserPairWardrobeData != null)
                 {
-                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Wardrobe Data || {_serverConfigurationManager.GetNicknameForUid(clientPair.UserData.UID)}"))
+                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Wardrobe Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
                         ImGui.Text($"OutfitList:");
                         ImGui.Indent();
@@ -355,21 +358,23 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 }
                 if (clientPair.UserPairAliasData != null)
                 {
-                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Alias Data || {_serverConfigurationManager.GetNicknameForUid(clientPair.UserData.UID)}"))
+                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Alias Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
+                        ImGui.Indent();
                         foreach (var alias in clientPair.UserPairAliasData.AliasList)
                         {
                             var tmptext = alias.Enabled ? "Enabled" : "Disabled";
                             ImGui.Text($"{tmptext} :: INPUT -> {alias.InputCommand}");
                             ImGui.Text($"OUTPUT -> {alias.OutputCommand}");
                         }
+                        ImGui.Unindent();
                     }
                 }
-                if (clientPair.UserPairPatternData != null)
+                if (clientPair.UserPairToyboxData != null)
                 {
-                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Pattern Data || {_serverConfigurationManager.GetNicknameForUid(clientPair.UserData.UID)}"))
+                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Pattern Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
-                        foreach (var pattern in clientPair.UserPairPatternData.PatternList)
+                        foreach (var pattern in clientPair.UserPairToyboxData.PatternList)
                         {
                             ImGui.Text($"Pattern Name: {pattern.Name}");
                             ImGui.Text($"Pattern Description: {pattern.Description}");
@@ -908,13 +913,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
 
         // display the list of characters our keys are bound to, their UID's and the place to insert the key for them
-        if (_serverConfigurationManager.CurrentServer.SecretKeys.Any())
+        if (_serverConfigs.CurrentServer.SecretKeys.Any())
         {
             UiSharedService.ColorTextWrapped("Characters listed here will automatically connect to the selected Gagspeak service with the settings as provided below." +
                 " Make sure to enter the character names correctly or use the 'Add current character' button at the bottom.", ImGuiColors.DalamudYellow);
             int i = 0;
             // for each character in the authentications
-            foreach (var item in _serverConfigurationManager.CurrentServer.Authentications.ToList())
+            foreach (var item in _serverConfigs.CurrentServer.Authentications.ToList())
             {
                 // push the ID for the tree node.
                 using var charaId = ImRaii.PushId("selectedCharaprofile" + i);
@@ -941,12 +946,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 ImGui.SameLine();
                 // draw a button to remove the character
                 if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Remove Profile from Account") && UiSharedService.CtrlPressed())
-                    _serverConfigurationManager.RemoveCharacterFromServer(i, item);
+                    _serverConfigs.RemoveCharacterFromServer(i, item);
                 UiSharedService.AttachToolTip("Hold CTRL to delete this entry.");
 
                 // fetch the secret key
                 var secretKeyIdx = item.SecretKeyIdx;
-                var keys = _serverConfigurationManager.CurrentServer.SecretKeys;
+                var keys = _serverConfigs.CurrentServer.SecretKeys;
                 if (!keys.TryGetValue(secretKeyIdx, out var secretKey))
                 {
                     secretKey = new();
@@ -957,7 +962,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 if (ImGui.InputText("Secret Key", ref key, 64))
                 {
                     keys[secretKeyIdx].Key = key;
-                    _serverConfigurationManager.Save();
+                    _serverConfigs.Save();
                 }
 
                 i++;
@@ -965,7 +970,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             ImGui.Separator();
             // if authentication does not currently exist for the character logged in right now, display a button to add it.
-            if (!_serverConfigurationManager.CurrentServer.Authentications.Exists(c => string.Equals(c.CharacterName, _uiShared.PlayerName, StringComparison.Ordinal)
+            if (!_serverConfigs.CurrentServer.Authentications.Exists(c => string.Equals(c.CharacterName, _uiShared.PlayerName, StringComparison.Ordinal)
                 && c.WorldId == _uiShared.WorldId))
             {
                 // display the button if the conditions are met.
@@ -973,7 +978,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 {
                     // only keep this true if we set the secret key right above this in a confirmation popup asking for the secret key to add for the appended user.
                     // we will also do a check in the database so see if both the key already exists, and if the primaryUID of that person is the account owners UID.
-                    _serverConfigurationManager.AddCurrentCharacterToServer(true);
+                    _serverConfigs.AddCurrentCharacterToServer(true);
                 }
             }
 
@@ -982,40 +987,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
             ImGui.Text("PlayerCharacter Debug Information:");
             if (ImGui.CollapsingHeader("Global Data")) { DrawGlobalInfo(); }
             if (ImGui.CollapsingHeader("Appearance Data")) { DrawAppearanceInfo(); }
-            if (ImGui.CollapsingHeader("Wardrobe Data")) { DrawWardrobeInfo(); }
-
-            if (ImGui.CollapsingHeader("AliasData"))
-            {
-                foreach (var alias in _playerCharacterManager.GetAllAliasListKeys())
-                {
-                    var aliasData = _playerCharacterManager.GetAliasData(alias);
-                    if (ImGui.CollapsingHeader($"Alias Data for {alias}"))
-                    {
-                        ImGui.Text("List of Alias's For this User:");
-                        // begin a table.
-                        using var table = ImRaii.Table($"##table-for-{alias}", 2);
-                        if (!table) { return; }
-
-                        using var spacing = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, ImGui.GetStyle().ItemInnerSpacing);
-                        ImGui.TableSetupColumn("If You Say:", ImGuiTableColumnFlags.WidthFixed, ImGuiHelpers.GlobalScale * 100);
-                        ImGui.TableSetupColumn("They will Execute:", ImGuiTableColumnFlags.WidthStretch);
-
-                        foreach (var aliasTrigger in aliasData.AliasList)
-                        {
-                            ImGui.Separator();
-                            ImGui.Text("[INPUT TRIGGER]: ");
-                            ImGui.SameLine();
-                            ImGui.Text(aliasTrigger.InputCommand);
-                            ImGui.NewLine();
-                            ImGui.Text("[OUTPUT RESPONSE]: ");
-                            ImGui.SameLine();
-                            ImGui.Text(aliasTrigger.OutputCommand);
-                        }
-                    }
-                }
-            }
-
-            if (ImGui.CollapsingHeader("Patterns Data")) { DrawPatternsInfo(); }
+            if (ImGui.CollapsingHeader("Wardrobe Data")) { _clientConfigs.DrawWardrobeInfo(); }
+            if (ImGui.CollapsingHeader("AliasData")) { _clientConfigs.DrawAliasLists(); }
+            if (ImGui.CollapsingHeader("Patterns Data")) { _clientConfigs.DrawPatternsInfo(); }
         }
     }
 
@@ -1079,45 +1053,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.Unindent();
     }
 
-    private void DrawWardrobeInfo()
-    {
-        var wardrobeData = _playerCharacterManager.WardrobeData;
-        ImGui.Text("Wardrobe Outfits:");
-        ImGui.Indent();
-        foreach (var item in wardrobeData.OutfitNames)
-        {
-            ImGui.Text(item);
-        }
-        ImGui.Unindent();
-        if (wardrobeData.ActiveSetName != string.Empty)
-        {
-            ImGui.Text("Active Set Info: ");
-            ImGui.Indent();
-            ImGui.Text($"Name: {wardrobeData.ActiveSetName}");
-            ImGui.Text($"Description: {wardrobeData.ActiveSetDescription}");
-            ImGui.Text($"Enabled By: {wardrobeData.ActiveSetEnabledBy}");
-            ImGui.Text($"Is Locked: {wardrobeData.ActiveSetIsLocked}");
-            ImGui.Text($"Locked By: {wardrobeData.ActiveSetLockedBy}");
-            ImGui.Text($"Locked Until: {wardrobeData.ActiveSetLockTime}");
-            ImGui.Unindent();
-        }
-    }
-
-    private void DrawPatternsInfo()
-    {
-        var patternData = _playerCharacterManager.PatternData;
-        foreach (var item in patternData.PatternList)
-        {
-            ImGui.Text($"Info for Pattern: {item.Name}");
-            ImGui.Indent();
-            ImGui.Text($"Description: {item.Description}");
-            ImGui.Text($"Duration: {item.Duration}");
-            ImGui.Text($"Is Active: {item.IsActive}");
-            ImGui.Text($"Should Loop: {item.ShouldLoop}");
-            ImGui.Unindent();
-        }
-    }
-
     /// <summary>
     /// The actual function that draws the content of the settings window.
     /// </summary>
@@ -1127,7 +1062,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (ApiController.ServerState is ServerState.Connected)
         {
             // display the Server name, that it is available, and the number of users online.
-            ImGui.TextUnformatted("Server is " + _serverConfigurationManager.CurrentServer!.ServerName + ":");
+            ImGui.TextUnformatted("Server is " + _serverConfigs.CurrentServer!.ServerName + ":");
             ImGui.SameLine();
             ImGui.TextColored(ImGuiColors.ParsedGreen, "Available");
             ImGui.SameLine();

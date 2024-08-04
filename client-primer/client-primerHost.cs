@@ -172,6 +172,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<DeviceHandler>()
         .AddSingleton<PatternPlayback>()
         .AddSingleton<AlarmHandler>()
+        .AddSingleton<TriggerHandler>()
 
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()

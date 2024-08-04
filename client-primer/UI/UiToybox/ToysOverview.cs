@@ -115,8 +115,50 @@ public class ToyboxOverview
         // draw out the list of devices
         ImGui.Separator();
         _uiShared.BigText("Connected Devices");
-        _IntifaceHandler.DrawDevicesTable();
+        DrawDevicesTable();
     }
+
+    public void DrawDevicesTable()
+    {
+        /*        using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, 4));
+                using var table = ImRaii.Table("ConnectedDevices", 7, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY);
+                if (!table) { return; }
+
+                var refX = ImGui.GetCursorPos();
+                ImGui.TableSetupColumn("Device Name", ImGuiTableColumnFlags.WidthFixed, ImGuiHelpers.GlobalScale * 125f);
+                ImGui.TableSetupColumn("Display Name", ImGuiTableColumnFlags.WidthStretch);
+                ImGui.TableSetupColumn("Vibrates", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Vibrates.").X);
+                ImGui.TableSetupColumn("Rotates", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Rotates.").X);
+                ImGui.TableSetupColumn("Linear", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Linear.").X);
+                ImGui.TableSetupColumn("Oscillates", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Oscillates.").X);
+                ImGui.TableSetupColumn("%##BatteryPercent", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("100%").X);
+                ImGui.TableHeadersRow();        
+
+                foreach (var device in Devices)
+                {
+                    ImGui.TableNextColumn();
+                    ImGui.Text(device.DeviceName);
+                    ImGui.TableNextColumn();
+                    var displayName = device.DisplayName;
+                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                    if(ImGui.InputTextWithHint($"##DisplayName{device.DeviceName}", "Public Name..", 
+                        ref displayName, 48, ImGuiInputTextFlags.EnterReturnsTrue))
+                    {
+                        device.DisplayName = displayName;
+                    }
+                    ImGui.TableNextColumn();
+                    _uiShared.BooleanToColoredIcon(device.CanVibrate, false);
+                    ImGui.TableNextColumn();
+                    _uiShared.BooleanToColoredIcon(device.CanRotate, false);
+                    ImGui.TableNextColumn();
+                    _uiShared.BooleanToColoredIcon(device.CanLinear, false);
+                    ImGui.TableNextColumn();
+                    _uiShared.BooleanToColoredIcon(device.CanOscillate, false);
+                    ImGui.TableNextColumn();
+                    ImGui.Text($"{device.BatteryPercentString()}");
+                }*/
+    }
+
 
     private void DrawIntifaceConnectionStatus()
     {

@@ -150,6 +150,10 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     // fetch the list of all online user pairs via their UID's
     public List<string> GetOnlineUserUids() => _allClientPairs.Select(p => p.Key.UID).ToList();
 
+    // Fetch a user's UserData off of their UID
+    public UserData? GetUserDataFromUID(string uid) => _allClientPairs.Keys.FirstOrDefault(p => p.UID == uid);
+
+
     /// <summary> Marks a user pair as offline.</summary>
     public void MarkPairOffline(UserData user)
     {

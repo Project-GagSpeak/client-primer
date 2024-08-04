@@ -3,12 +3,14 @@ using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Data.Enum;
+using ProjectGagspeakAPI.Data.VibeServer;
 
 namespace GagSpeak.PlayerData.Handlers;
 
 /// <summary>
 /// This handler should keep up to date with all of the currently set alarms. The alarms should
-/// go off at their spesified times, and play their spesified patterns
+/// go off at their specified times, and play their specified patterns
 /// </summary>
 public class AlarmHandler : MediatorSubscriberBase
 {
@@ -74,17 +76,26 @@ public class AlarmHandler : MediatorSubscriberBase
     }
 
 
-    public void AddNewAlarm(Alarm newAlarm) => _clientConfigs.AddNewAlarm(newAlarm);
+    public void AddNewAlarm(Alarm newAlarm)
+        => _clientConfigs.AddNewAlarm(newAlarm);
 
-    public void RemoveAlarm(int idxToRemove) => _clientConfigs.RemoveAlarm(idxToRemove);
+    public void RemoveAlarm(int idxToRemove)
+        => _clientConfigs.RemoveAlarm(idxToRemove);
 
-    public int AlarmListSize() => _clientConfigs.FetchAlarmCount();
+    public int AlarmListSize()
+        => _clientConfigs.FetchAlarmCount();
 
-    public Alarm GetAlarm(int idx) => _clientConfigs.FetchAlarm(idx);
+    public Alarm GetAlarm(int idx)
+        => _clientConfigs.FetchAlarm(idx);
 
-    public void EnableAlarm(int idx) => _clientConfigs.SetAlarmState(idx, true);
+    public void EnableAlarm(int idx)
+        => _clientConfigs.SetAlarmState(idx, true);
 
-    public void DisableAlarm(int idx) => _clientConfigs.SetAlarmState(idx, false);
+    public void DisableAlarm(int idx)
+        => _clientConfigs.SetAlarmState(idx, false);
+
+    public void UpdateAlarmStatesFromCallback(List<AlarmInfo> AlarmInfoList)
+        => _clientConfigs.UpdateAlarmStatesFromCallback(AlarmInfoList);
 
     public string GetAlarmFrequencyString(List<DayOfWeek> FrequencyOptions)
     {
@@ -155,4 +166,3 @@ public class AlarmHandler : MediatorSubscriberBase
         }
     }
 }
-

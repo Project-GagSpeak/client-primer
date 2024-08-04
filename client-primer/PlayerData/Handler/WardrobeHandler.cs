@@ -1,15 +1,9 @@
-using Dalamud.Plugin;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Hardcore;
-using GagSpeak.Hardcore.Movement;
 using GagSpeak.Interop.Ipc;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI;
 using GagspeakAPI.Data.Enum;
-using System.Numerics;
 
 namespace GagSpeak.PlayerData.Handlers;
 /// <summary>
@@ -20,15 +14,13 @@ namespace GagSpeak.PlayerData.Handlers;
 public class WardrobeHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
     private readonly PairManager _pairManager;
-    
+
     public WardrobeHandler(ILogger<GagDataHandler> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, PlayerCharacterManager playerManager,
-        PairManager pairManager) : base(logger, mediator)
+        ClientConfigurationManager clientConfiguration, PairManager pairManager)
+        : base(logger, mediator)
     {
         _clientConfigs = clientConfiguration;
-        _playerManager = playerManager;
         _pairManager = pairManager;
 
         // set the selected set to the first set in the list, if we have any sets in our storage
@@ -61,6 +53,9 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
                 SelectedSet = _clientConfigs.GetRestraintSet(0);
                 SelectedSetIdx = 0;
             }
+
+            // We've just added a new set, so we want to push an update for other players.
+            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
         });
 
         Mediator.Subscribe<RestraintSetRemovedMessage>(this, (msg) =>
@@ -72,6 +67,9 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
                 SelectedSet = null!;
                 SelectedSetIdx = -1;
             }
+
+            // We've just removed a set, so we want to push an update for other players.
+            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
         });
 
         Mediator.Subscribe<RestraintSetModified>(this, (msg) =>
@@ -84,54 +82,71 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
         {
-            if(msg.State == UpdatedNewState.Disabled)
+            switch (msg.State)
             {
-                // grab the restraint set that was just disabled
-                var disabledSet = _clientConfigs.GetRestraintSet(msg.RestraintSetIndex);
-                // see if we had any hardcore properties set for the user pair who had enabled the set,
-                if(_clientConfigs.PropertiesEnabledForSet(msg.RestraintSetIndex, msg.AssignerUID))
-                {
-                    // we will want to publish a call to stop monitoring hardcore actions.
-                    Mediator.Publish(new HardcoreRestraintSetDisabledMessage());
-                }
-                // call to the config to toggle the set off properly.
-                _clientConfigs.SetRestraintSetState(msg.State, msg.RestraintSetIndex, msg.AssignerUID);
-                // remove the active restraint set
-                ActiveSet = null;
-                // remove the pair who enabled the set
-                PairWhoEnabledSet = null;
+                case UpdatedNewState.Enabled:
+                    {
+                        // Restraint set was activated, so, lets set the active set after applying the changes
+                        _clientConfigs.SetRestraintSetState(msg.State, msg.RestraintSetIndex, msg.AssignerUID);
+                        Logger.LogInformation("ActiveSet Enabled at index {0}", msg.RestraintSetIndex);
+
+                        // Call the active set
+                        ActiveSet = _clientConfigs.GetActiveSet();
+
+                        // Set the pair to who enabled the set
+                        PairWhoEnabledSet = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == msg.AssignerUID);
+
+                        // See if it has any hardcore properties attached for the UID enabling it
+                        if (_clientConfigs.PropertiesEnabledForSet(msg.RestraintSetIndex, msg.AssignerUID))
+                        {
+                            // We will want to publish a call to start monitoring hardcore actions.
+                            Mediator.Publish(new HardcoreRestraintSetEnabledMessage());
+                        }
+
+                        // Notify pairs that our active set was just enabled.
+                        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied));
+                    }
+                    break;
+                case UpdatedNewState.Disabled:
+                    {
+                        var disabledSet = _clientConfigs.GetRestraintSet(msg.RestraintSetIndex);
+
+                        // If set had hardcore properties, disable monitoring.
+                        if (_clientConfigs.PropertiesEnabledForSet(msg.RestraintSetIndex, msg.AssignerUID))
+                            Mediator.Publish(new HardcoreRestraintSetDisabledMessage());
+
+                        // REVIEW: Why the fuck is this here?
+                        /*_clientConfigs.SetRestraintSetState(msg.State, msg.RestraintSetIndex, msg.AssignerUID);*/
+
+                        // Remove Active Set & Pair that Enabled it.
+                        ActiveSet = null!;
+                        PairWhoEnabledSet = null!;
+
+                        // Notify pairs that our active set was just disabled.
+                        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintRemoved));
+                    }
+                    break;
+                case UpdatedNewState.Locked:
+                    Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked));
+                    break;
+                case UpdatedNewState.Unlocked:
+                    Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked));
+                    break;
             }
-            else
-            {
-                // restraint set was activated, so, lets set the active set after applying the changes
-                _clientConfigs.SetRestraintSetState(msg.State, msg.RestraintSetIndex, msg.AssignerUID);
-                // call the active set
-                ActiveSet = _clientConfigs.GetActiveSet();
-                Logger.LogInformation("ActiveSet Enabled at index {0}", msg.RestraintSetIndex);
-                // set the pair to who enabled the set
-                PairWhoEnabledSet = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == msg.AssignerUID);
-                // see if it has any hardcore properties attached for the UID enabling it
-                if(_clientConfigs.PropertiesEnabledForSet(msg.RestraintSetIndex, msg.AssignerUID))
-                {
-                    // we will want to publish a call to start monitoring hardcore actions.
-                    Mediator.Publish(new HardcoreRestraintSetEnabledMessage());
-                }
-            }
+
         });
 
-        Mediator.Subscribe<RestraintSetPropertyChanged>(this, (msg) =>
-        {
-            Logger.LogTrace("We detected a change in your hardcore restraint set");
-        });
+        Mediator.Subscribe<RestraintSetPropertyChanged>(this, (msg) => Logger.LogTrace("Set Hardcore Property changed!"));
 
         Mediator.Subscribe<BeginForcedToFollowMessage>(this, (msg) => ForcedToFollowPair = msg.Pair);
 
         Mediator.Subscribe<BeginForcedToSitMessage>(this, (msg) => ForcedToSitPair = msg.Pair);
-        
+
         Mediator.Subscribe<BeginForcedToStayMessage>(this, (msg) => ForcedToStayPair = msg.Pair);
-        
+
         Mediator.Subscribe<BeginForcedBlindfoldMessage>(this, (msg) => BlindfoldedByPair = msg.Pair);
     }
+
 
     // keep in mind, for everything below, only one can be active at a time. That is the beauty of this.
     // Additionally, we will only ever care about the restraint set properties of the active set.
@@ -140,7 +155,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
     /// <summary> Stores the pair who activated the set. </summary>
     public Pair PairWhoEnabledSet { get; private set; }
-    
+
     /// <summary> The current Pair in our pair list who has forced us to follow them. Null if none. </summary>
     public Pair? ForcedToFollowPair { get; private set; }
 
@@ -153,115 +168,164 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     /// <summary> The current Pair in our pair list who has blindfolded us. Null if none. </summary>
     public Pair? BlindfoldedByPair { get; private set; }
 
-    /// <summary> The currently selected set from our restraint set list. </summary>
+
+    // Public Accessors.
     public int SelectedSetIdx { get; set; }
     public RestraintSet SelectedSet { get; private set; }
+    public int GetActiveSetIndex() => _clientConfigs.GetActiveSetIdx();
+    public List<string> GetRestraintSetsByName() => _clientConfigs.GetRestraintSetNames();
+    public RestraintSet GetRestraintSet(int index) => _clientConfigs.GetRestraintSet(index);
 
 
-    /// <summary> Fetches the active restraint set index </summary>
-    public int GetActiveSetIndex()
-    {
-        return _clientConfigs.GetActiveSetIdx();
-    }
-
-    // TODO: much of this logic interacts with configs, while some can interact with pair permissions, which it should be.
-    // Care for this please.
-    /// <summary> Fetches the list of restraint set names. </summary>
-    public List<string> GetRestraintSetsByName()
-    {
-        return _clientConfigs.GetRestraintSetNames();
-    }
-
-    public RestraintSet GetRestraintSet(int index)
-    {
-        return _clientConfigs.GetRestraintSet(index);
-    }
 
     public int GetRestraintSetIndexByName(string setName)
-    {
-        return _clientConfigs.GetRestraintSetIdxByName(setName);
-    }
+        => _clientConfigs.GetRestraintSetIdxByName(setName);
 
-    // update set
     public void UpdateRestraintSet(int index, RestraintSet set)
-    {
-        _clientConfigs.UpdateRestraintSet(index, set);
-    }
+        => _clientConfigs.UpdateRestraintSet(index, set);
 
+    // Player related restraint set updates
     public void EnableRestraintSet(int index, string assignerUID)
-    {
-        _clientConfigs.SetRestraintSetState(UpdatedNewState.Enabled, index, assignerUID);
-    }
+        => _clientConfigs.SetRestraintSetState(UpdatedNewState.Enabled, index, assignerUID);
+
+    public void LockRestraintSet(int index, string assignerUID, DateTimeOffset endLockTimeUTC)
+        => _clientConfigs.LockRestraintSet(index, assignerUID, endLockTimeUTC);
+
+    public void UnlockRestraintSet(int index, string assignerUID)
+        => _clientConfigs.UnlockRestraintSet(index, assignerUID);
 
     public void DisableRestraintSet(int index, string assignerUID)
+        => _clientConfigs.SetRestraintSetState(UpdatedNewState.Disabled, index, assignerUID);
+
+    // Callback related forced restraint set updates.
+    public void CallbackForceEnableRestraintSet(string setNameToEnable, string setEnablerUID)
     {
-        _clientConfigs.SetRestraintSetState(UpdatedNewState.Disabled, index, assignerUID);
+        // Update the reference for the pair who enabled it.
+        var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == setEnablerUID);
+        if (matchedPair == null)
+        {
+            Logger.LogWarning("Pair who enabled the set was not found in the pair list.");
+            return;
+        }
+
+        Logger.LogInformation($"A paired user has forced you to enable your [{setNameToEnable}] restraint set!");
+        // fetch the set idx from the name
+        int idx = GetRestraintSetIndexByName(setNameToEnable);
+        // enable the set
+        _clientConfigs.SetRestraintSetState(UpdatedNewState.Enabled, idx, setEnablerUID, false);
+
+        // Update the ActiveSet, reference in the handler.
+        ActiveSet = _clientConfigs.GetActiveSet();
+
+        // Update the reference for the pair who enabled it.
+        PairWhoEnabledSet = matchedPair;
+
+        // Update the properties for the set relative to the person who enabled it.
+        if (_clientConfigs.PropertiesEnabledForSet(idx, setEnablerUID))
+        {
+            // Publish a call to start monitoring hardcore actions.
+            Mediator.Publish(new HardcoreRestraintSetEnabledMessage());
+        }
+    }
+
+    public void CallbackForceLockRestraintSet(string setNameToLock, string setLockerUID, DateTimeOffset endLockTimeUTC)
+    {
+        // Update the reference for the pair who enabled it.
+        var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == setLockerUID);
+        if (matchedPair == null)
+        {
+            Logger.LogWarning("Pair who enabled the set was not found in the pair list.");
+            return;
+        }
+
+        Logger.LogInformation($"A paired user has forced you to lock your [{setNameToLock}] restraint set!");
+        // fetch the set idx from the name
+        int idx = GetRestraintSetIndexByName(setNameToLock);
+        // lock the set
+        _clientConfigs.LockRestraintSet(idx, setLockerUID, endLockTimeUTC, false);
+    }
+
+    public void CallbackForceUnlockRestraintSet(string setNameToUnlock, string setUnlockerUID)
+    {
+        // Update the reference for the pair who enabled it.
+        var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == setUnlockerUID);
+        if (matchedPair == null)
+        {
+            Logger.LogWarning("Pair who enabled the set was not found in the pair list.");
+            return;
+        }
+
+        Logger.LogInformation($"A paired user has forced you to unlock your [{setNameToUnlock}] restraint set!");
+        // fetch the set idx from the name
+        int idx = GetRestraintSetIndexByName(setNameToUnlock);
+        // unlock the set
+        _clientConfigs.UnlockRestraintSet(idx, setUnlockerUID, false);
+    }
+
+    public void CallbackForceDisableRestraintSet(string setNameToDisable, string setDisablerUID)
+    {
+        // Update the reference for the pair who enabled it.
+        var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == setDisablerUID);
+        if (matchedPair == null)
+        {
+            Logger.LogWarning("Pair who enabled the set was not found in the pair list.");
+            return;
+        }
+
+        Logger.LogInformation($"A paired user has forced you to disable your [{setNameToDisable}] restraint set!");
+        // fetch the set idx from the name
+        int idx = GetRestraintSetIndexByName(setNameToDisable);
+        // disable the set
+        _clientConfigs.SetRestraintSetState(UpdatedNewState.Disabled, idx, setDisablerUID, false);
+
+        if (_clientConfigs.PropertiesEnabledForSet(idx, setDisablerUID))
+        {
+            // Publish a call to stop monitoring hardcore actions.
+            Mediator.Publish(new HardcoreRestraintSetDisabledMessage());
+        }
+
+        // set active set references to null.
+        ActiveSet = null!;
+        PairWhoEnabledSet = null!;
     }
 
     public int RestraintSetCount()
-    {
-        return _clientConfigs.GetRestraintSetCount();
-    }
+        => _clientConfigs.GetRestraintSetCount();
 
     public void AddRestraintSet(RestraintSet set)
-    {
-        _clientConfigs.AddNewRestraintSet(set);
-    }
+        => _clientConfigs.AddNewRestraintSet(set);
 
     public void RemoveRestraintSet(int index)
-    {
-        _clientConfigs.RemoveRestraintSet(index);
-    }
+        => _clientConfigs.RemoveRestraintSet(index);
 
     public bool HardcorePropertiesEnabledForSet(int index, string UidToExamine)
-    {
-        return _clientConfigs.PropertiesEnabledForSet(index, UidToExamine);
-    }
+        => _clientConfigs.PropertiesEnabledForSet(index, UidToExamine);
 
     public List<AssociatedMod> GetAssociatedMods(int setIndex)
-    {
-        return _clientConfigs.GetAssociatedMods(setIndex);
-    }
+        => _clientConfigs.GetAssociatedMods(setIndex);
 
     public void RemoveAssociatedMod(int setIndex, Mod mod)
-    {
-        _clientConfigs.RemoveAssociatedMod(setIndex, mod);
-    }
+        => _clientConfigs.RemoveAssociatedMod(setIndex, mod);
 
     public void UpdateAssociatedMod(int setIndex, AssociatedMod mod)
-    {
-        _clientConfigs.UpdateAssociatedMod(setIndex, mod);
-    }
+        => _clientConfigs.UpdateAssociatedMod(setIndex, mod);
 
     public void AddAssociatedMod(int setIndex, AssociatedMod mod)
-    {
-        _clientConfigs.AddAssociatedMod(setIndex, mod);
-    }
+        => _clientConfigs.AddAssociatedMod(setIndex, mod);
 
     public bool IsBlindfoldActive()
-    {
-        return _clientConfigs.IsBlindfoldActive();
-    }
+        => _clientConfigs.IsBlindfoldActive();
 
     public void EnableBlindfold(string ApplierUID)
-    {
-        _clientConfigs.SetBlindfoldState(true, ApplierUID);
-    }
+        => _clientConfigs.SetBlindfoldState(true, ApplierUID);
 
     public void DisableBlindfold(string ApplierUID)
-    {
-        _clientConfigs.SetBlindfoldState(false, "");
-    }
+        => _clientConfigs.SetBlindfoldState(false, "");
 
     public EquipDrawData GetBlindfoldDrawData()
-    {
-        return _clientConfigs.GetBlindfoldItem();
-    }
+        => _clientConfigs.GetBlindfoldItem();
 
     public void SetBlindfoldDrawData(EquipDrawData drawData)
-    {
-        _clientConfigs.SetBlindfoldItem(drawData);
-    }
-
+        => _clientConfigs.SetBlindfoldItem(drawData);
 
 }

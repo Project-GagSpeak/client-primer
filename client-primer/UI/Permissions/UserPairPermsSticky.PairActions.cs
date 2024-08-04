@@ -129,7 +129,7 @@ public partial class UserPairPermsSticky
                     // apply the selected gag. (POSSIBLY TODO: Rework the PushApperance Data to only push a single property to avoid conflicts.)
                     _logger.LogInformation("Pushing updated Appearance Data pair and recipients");
                     // construct the modified appearance data.
-                    var newAppearance = UserPairForPerms.UserPairAppearanceData.DeepClone();
+                    var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
                     if (SelectedLayer == 0) { newAppearance.SlotOneGagType = SelectedGag.GetGagAlias(); }
                     else if (SelectedLayer == 1) { newAppearance.SlotTwoGagType = SelectedGag.GetGagAlias(); }
                     else if (SelectedLayer == 2) { newAppearance.SlotThreeGagType = SelectedGag.GetGagAlias(); }
@@ -158,7 +158,7 @@ public partial class UserPairPermsSticky
         {
             // do not display if the restraint set count is empty. (temporarily removed for visibility purposes.
             if (_uiShared.IconTextButton(FontAwesomeIcon.PersonCircleCheck, "Apply Restraint Set", WindowMenuWidth,
-                true))//, UserPairForPerms.UserPairWardrobeData.OutfitNames.Count == 0))
+                true))//, UserPairForPerms.LastReceivedWardrobeData.OutfitNames.Count == 0))
             {
                 ShowSetList = !ShowSetList;
             }
@@ -168,10 +168,10 @@ public partial class UserPairPermsSticky
             if (ShowSetList)
             {
                 if (ImGui.ListBox($"##RestraintSelection{UserPairForPerms.UserData.AliasOrUID}", ref RestraintSetSelction,
-                    UserPairForPerms.UserPairWardrobeData.OutfitNames.ToArray(), UserPairForPerms.UserPairWardrobeData.OutfitNames.Count))
+                    UserPairForPerms.LastReceivedWardrobeData.OutfitNames.ToArray(), UserPairForPerms.LastReceivedWardrobeData.OutfitNames.Count))
                 {
                     // apply the selected restraint set.
-                    _logger.LogInformation("Applying restraint set {0} to {1}", UserPairForPerms.UserPairWardrobeData.OutfitNames[RestraintSetSelction], UserPairForPerms.UserData.AliasOrUID);
+                    _logger.LogInformation("Applying restraint set {0} to {1}", UserPairForPerms.LastReceivedWardrobeData.OutfitNames[RestraintSetSelction], UserPairForPerms.UserData.AliasOrUID);
                 }
             }
         }

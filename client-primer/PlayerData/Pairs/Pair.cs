@@ -72,11 +72,14 @@ public class Pair
     public UserPairPermissions UserPairUniquePairPerms => UserPair.OtherPairPerms;  // the pair permissions of the pair.
     public UserEditAccessPermissions UserPairEditAccess => UserPair.OtherEditAccessPerms; // the edit permissions of the pair.
     public UserGlobalPermissions UserPairGlobalPerms => UserPair.OtherGlobalPerms;  // the global permissions of the pair.
-    public CharacterAppearanceData UserPairAppearanceData { get; set; }             // the gag data associated with the user pair.
-    public CharacterWardrobeData UserPairWardrobeData { get; set; }                 // the wardrobe data associated with the user pair.
-    public CharacterAliasData UserPairAliasData { get; set; }                       // the alias data associated with the user pair.
-    public CharacterToyboxData UserPairToyboxData { get; set; }                   // the pattern data associated with the user pair.
-    public CharacterIPCData LastReceivedIpcData { get; set; }                       // reference to last IPC data applied to visible user.
+    
+    // Latest cached data for this pair.
+    public CharacterIPCData? LastReceivedIpcData { get; set; }
+    public CharacterAppearanceData? LastReceivedAppearanceData { get; set; }
+    public CharacterWardrobeData? LastReceivedWardrobeData { get; set; }
+    public CharacterAliasData? LastReceivedAliasData { get; set; }
+    public CharacterToyboxData? LastReceivedToyboxData { get; set; }
+
 
     // Most of these attributes should be self explanatory, but they are public methods you can fetch from the pair manager.
     public bool HasCachedPlayer => CachedPlayer != null && !string.IsNullOrEmpty(CachedPlayer.PlayerName) && _onlineUserIdentDto != null;
@@ -150,7 +153,7 @@ public class Pair
     public void ApplyAppearanceData(OnlineUserCharaAppearanceDataDto data)
     {
         _logger.LogDebug("Applying updated appearance data for {uid}", data.User.UID);
-        UserPairAppearanceData = data.AppearanceData;
+        LastReceivedAppearanceData = data.AppearanceData;
     }
 
     /// <summary>
@@ -162,7 +165,7 @@ public class Pair
     public void ApplyWardrobeData(OnlineUserCharaWardrobeDataDto data)
     {
         _logger.LogDebug("Applying updated wardrobe data for {uid}", data.User.UID);
-        UserPairWardrobeData = data.WardrobeData;
+        LastReceivedWardrobeData = data.WardrobeData;
     }
 
     /// <summary>
@@ -174,7 +177,7 @@ public class Pair
     public void ApplyAliasData(OnlineUserCharaAliasDataDto data)
     {
         _logger.LogDebug("Applying updated alias data for {uid}", data.User.UID);
-        UserPairAliasData = data.AliasData;
+        LastReceivedAliasData = data.AliasData;
     }
 
     /// <summary>
@@ -186,7 +189,7 @@ public class Pair
     public void ApplyPatternData(OnlineUserCharaToyboxDataDto data)
     {
         _logger.LogDebug("Applying updated pattern data for {uid}", data.User.UID);
-        UserPairToyboxData = data.ToyboxInfo;
+        LastReceivedToyboxData = data.ToyboxInfo;
     }
 
 

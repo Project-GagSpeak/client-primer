@@ -47,7 +47,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private CharacterAppearanceData _playerCharAppearance { get; set; }
 
     // TODO: expand this to store more than just the Moodles string, but IPC information
-    private CharacterIPCData _playerCharIpc;
+    private CharacterIPCData _playerCharIpc { get; set; }
 
 
     // TEMP STORAGE: Make this part of the IPC transfer object later! (Once C+ works again)
@@ -71,6 +71,9 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             _playerCharGlobalPerms = msg.Connection.UserGlobalPermissions;
             _playerCharAppearance = msg.Connection.CharacterAppearanceData;
         });
+
+        // init the IPC
+        _playerCharIpc = new CharacterIPCData();
 
         // These are called whenever we update our own data.
         // (Server callbacks handled separately to avoid looping calls to and from server infinitely)
@@ -165,14 +168,21 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             OutfitNames = _wardrobeHandler.GetRestraintSetsByName()
         };
 
-        RestraintSet activeSet = _wardrobeHandler.GetRestraintSet(_wardrobeHandler.GetActiveSetIndex());
+        // attempt to locate the active restraint set
+        var activeSetIdx = _wardrobeHandler.GetActiveSetIndex();
 
-        dataToPush.ActiveSetName = activeSet.Name;
-        dataToPush.ActiveSetDescription = activeSet.Description;
-        dataToPush.ActiveSetEnabledBy = activeSet.EnabledBy;
-        dataToPush.ActiveSetIsLocked = activeSet.Locked;
-        dataToPush.ActiveSetLockedBy = activeSet.LockedBy;
-        dataToPush.ActiveSetLockTime = activeSet.LockedUntil;
+        // make sure the value is not -1, or greater than the outfitNames count. If it is in bounds, assign variables. Otherwise, use the defaults.
+        if (activeSetIdx != -1 && activeSetIdx <= dataToPush.OutfitNames.Count)
+        {
+            // grab the set and set the variables.
+            RestraintSet activeSet = _wardrobeHandler.GetRestraintSet(activeSetIdx);
+            dataToPush.ActiveSetName = activeSet.Name;
+            dataToPush.ActiveSetDescription = activeSet.Description;
+            dataToPush.ActiveSetEnabledBy = activeSet.EnabledBy;
+            dataToPush.ActiveSetIsLocked = activeSet.Locked;
+            dataToPush.ActiveSetLockedBy = activeSet.LockedBy;
+            dataToPush.ActiveSetLockTime = activeSet.LockedUntil;
+        }
 
         return dataToPush;
     }

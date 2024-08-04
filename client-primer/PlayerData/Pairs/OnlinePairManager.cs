@@ -20,6 +20,9 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
     private readonly PlayerCharacterManager _playerManager;
     private readonly PairManager _pairManager;
 
+    // NewOnlinePairs
+    private readonly HashSet<UserData> _newOnlinePairs = [];
+
     // Store the most recently sent component of our API formats from our player character
     private CharacterAppearanceData? _lastAppearanceData;
     private CharacterWardrobeData? _lastWardrobeData;
@@ -37,8 +40,13 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         _playerManager = playerCharacterManager;
         _pairManager = pairManager;
 
+
+        Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => FrameworkOnUpdate());
+
         // Push Composite data to all online players when connected.
         Mediator.Subscribe<ConnectedMessage>(this, (_) => PushCharacterCompositeData(_pairManager.GetOnlineUserDatas()));
+        // Push Composite data to any new pairs that go online.
+        Mediator.Subscribe<PairWentOnlineMessage>(this, (msg) => _newOnlinePairs.Add(msg.UserData));
 
         // Fired whenever our Appearance data updates. We then send this data to all online pairs.
         Mediator.Subscribe<CharacterAppearanceDataCreatedMessage>(this, (msg) =>
@@ -101,19 +109,30 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         });
     }
 
-    /// <summary> Pushes all our Player Data to all online pairs once connected. </summary>
-    private void PushCharacterCompositeData(List<UserData> onlinePlayers)
+    private void FrameworkOnUpdate()
     {
-        if (onlinePlayers.Any())
+        // quit out if not connected or the new online pairs list is empty.
+        if (!_apiController.IsConnected || !_newOnlinePairs.Any()) return;
+
+        // Otherwise, copy the list, then clear it, and push our composite data to the users in that list.
+        var newOnlinePairs = _newOnlinePairs.ToList();
+        _newOnlinePairs.Clear();
+        PushCharacterCompositeData(newOnlinePairs);
+    }
+
+
+    /// <summary> Pushes all our Player Data to all online pairs once connected. </summary>
+    private void PushCharacterCompositeData(List<UserData> newOnlinePairs)
+    {
+        if (newOnlinePairs.Any())
         {
-            // TODO: Compile the composite data from the PlayerManager here!
-            CharacterCompositeData compiledDataToSend = new CharacterCompositeData();
+            CharacterCompositeData compiledDataToSend = _playerManager.CompileCompositeDataToSend();
 
             // Send the data to all online players.
             _ = Task.Run(async () =>
             {
-                Logger.LogInformation("Online pairs loaded, pushing Composite data to all online users");
-                await _apiController.PushCharacterCompositeData(compiledDataToSend, onlinePlayers).ConfigureAwait(false);
+                Logger.LogDebug("new Online Pairs Identified, pushing latest Composite data");
+                await _apiController.PushCharacterCompositeData(compiledDataToSend, newOnlinePairs).ConfigureAwait(false);
             });
         }
     }

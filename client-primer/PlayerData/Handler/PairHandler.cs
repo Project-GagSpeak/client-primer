@@ -8,7 +8,6 @@ using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Dto.Connection;
 using Microsoft.Extensions.Hosting;
-using GagSpeak.UpdateMonitoring;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -20,21 +19,21 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// <summary> Record which helps with allowing us to recieve updates for moodles or customize+ updates while in performance mode or combat </summary>
     private sealed record CombatData(Guid ApplicationId, CharacterCompositeData CharacterData, bool Forced);
 
-    private readonly OnFrameworkService _frameworkUtil;                             // frameworkUtil for actions to be done on dalamud framework thread
-    private readonly GameObjectHandlerFactory _gameObjectHandlerFactory;            // the game object handler factory
-    private readonly IpcManager _ipcManager;                                        // the IPC manager for the pair handler
-    private readonly IHostApplicationLifetime _lifetime;                            // the lifetime of the host 
-    private Guid _applicationId;                                                    // the unique application id
-    private Task? _applicationTask;                                                 // the application task
+    private readonly OnFrameworkService _frameworkUtil;
+    private readonly GameObjectHandlerFactory _gameObjectHandlerFactory;
+    private readonly IpcManager _ipcManager;
+    private readonly IHostApplicationLifetime _lifetime;
+    private Guid _applicationId;
+    private Task? _applicationTask;
     private CancellationTokenSource? _applicationCTS = new();
 
     // the cached data for the paired player. This is where it is stored. Right here. Yup. Not the pair class, here.
-    private CharacterIPCData? _cachedData = null;
+    private CharacterIPCData? _cachedIpcData = null;
 
     // will only need a very basic level of this for now storing minimum data and minimum interactions
     // primarily used for initialization and address checking for visibility
     private GameObjectHandler? _charaHandler;
-    private bool _isVisible;                                                        // if the pair is visible
+    private bool _isVisible;
 
     public PairHandler(ILogger<PairHandler> logger, OnlineUserIdentDto onlineUser,
         GameObjectHandlerFactory gameObjectHandlerFactory, IpcManager ipcManager,
@@ -116,7 +115,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         {
             // ensure the player name is null and cachedData gets set to null
             PlayerName = null;
-            _cachedData = null;
+            _cachedIpcData = null;
             Logger.LogDebug("Disposing {name} complete", name);
         }
     }
@@ -138,9 +137,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             "Applying Character Data")));
 
         // check update data to see what character data we will need to update.
-        // We pass in _cachedData?.DeepClone() to send what the past data was,
+        // We pass in _cachedIpcData?.DeepClone() to send what the past data was,
         // so we can compare it against the new data to know if its different.
-        var charaDataChangesToUpdate = characterData.CheckUpdatedData(applicationBase, _cachedData?.DeepClone() ?? new(), Logger, this);
+        var charaDataChangesToUpdate = characterData.CheckUpdatedData(applicationBase, _cachedIpcData?.DeepClone() ?? new(), Logger, this);
 
         Logger.LogDebug("[BASE-{appbase}] Downloading and applying character for {name}", applicationBase, this);
 
@@ -179,7 +178,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             token.ThrowIfCancellationRequested();
 
             // update the cachedData 
-            _cachedData = charaData;
+            _cachedIpcData = charaData;
 
             Logger.LogDebug("[{applicationId}] Application finished", _applicationId);
         }, token);
@@ -271,13 +270,13 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             // publish the pairHandlerVisible message to the mediator, passing in this pair handler object
             Mediator.Publish(new PairHandlerVisibleMessage(this));
             // if the pairs cachedData is not null
-            if (_cachedData != null)
+            if (_cachedIpcData != null)
             {
                 Logger.LogTrace("[BASE-{appBase}] {this} visibility changed, now: {visi}, cached IPC data exists", appData, this, IsVisible);
                 // then we should apply it to the character data
                 _ = Task.Run(() =>
                 {
-                    ApplyCharacterData(appData, _cachedData!);
+                    ApplyCharacterData(appData, _cachedIpcData!);
                 });
             }
             else

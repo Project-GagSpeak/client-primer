@@ -26,12 +26,9 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         Name = string.Empty;
 
         // cutscene mediators would help with halting processing.
-
         Mediator.Subscribe<ZoneSwitchEndMessage>(this, (_) => ZoneSwitchEnd());
         Mediator.Subscribe<ZoneSwitchStartMessage>(this, (_) => ZoneSwitchStart());
 
-        // this might require a bit of expansion into the cache creation service, but only if what we have now isnt enough.
-        Mediator.Publish(new GameObjectHandlerCreatedMessage(this, _isOwnedObject));
         // run the object checks on framework thread.
         _frameworkUtil.RunOnFrameworkThread(CheckAndUpdateObject).GetAwaiter().GetResult();
 
@@ -49,8 +46,6 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-
-        Mediator.Publish(new GameObjectHandlerDestroyedMessage(this, _isOwnedObject));
     }
 
     private void FrameworkUpdate()

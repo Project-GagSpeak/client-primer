@@ -233,15 +233,16 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // create a cached player for the pair using the Dto
         pair.CreateCachedPlayer(dto);
 
+        // push our composite data to them.
+        Mediator.Publish(new PairWentOnlineMessage(dto.User));
+
         // recreate the lazy list of direct pairs.
         RecreateLazy();
     }
 
     /// <summary> 
-    /// 
     /// Method is called upon by the ApiController.Callbacks, which listens to function calls from the connected server.
     /// It then returns the composite DTO, which is split into its core components and updates the correct user pair.
-    /// 
     /// </summary>
     public void ReceiveCharaCompositeData(OnlineUserCompositeDataDto dto)
     {

@@ -17,19 +17,24 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
     private readonly OnFrameworkService _frameworkUtil;
-    private readonly HashSet<PairHandler> _newVisiblePlayers = [];
+    private readonly PlayerCharacterManager _playerManager;
     private readonly PairManager _pairManager;
 
     // Store the most recently sent component of our API formats from our player character
-    private CharacterIPCData? _lastIpcData;
+    private CharacterIPCData? _lastIpcData; // IGNORE THIS UNTIL WE CAN GET IT WORKING.
+
+    // stores the set of newly visible players to update with our latest IPC data.
+    private readonly HashSet<PairHandler> _newVisiblePlayers = [];
+
 
     public VisiblePairManager(ILogger<VisiblePairManager> logger,
         GagspeakMediator mediator, ApiController apiController,
-        OnFrameworkService dalamudUtil, PairManager pairManager)
-        : base(logger, mediator)
+        OnFrameworkService dalamudUtil, PlayerCharacterManager playerManager,
+        PairManager pairManager) : base(logger, mediator)
     {
         _apiController = apiController;
         _frameworkUtil = dalamudUtil;
+        _playerManager = playerManager;
         _pairManager = pairManager;
 
         // Cyclic check for any new visible players to push IPC Data to.
@@ -80,7 +85,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
     private void PushCharacterIpcData(List<UserData> onlinePlayers, DataUpdateKind updateKind)
     {
         // If the list contains any contents and we have new data, asynchronously push it to the server.
-        if (onlinePlayers.Any() && _lastIpcData != null)
+        if (onlinePlayers.Any()/* && _lastIpcData != null*/)
         {
             _ = Task.Run(async () =>
             {

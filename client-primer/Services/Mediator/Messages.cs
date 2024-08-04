@@ -64,14 +64,13 @@ public record ResumeScanMessage(string Source) : MessageBase; // know when we sh
 
 
 /* ------------------ PLAYER DATA RELATED RECORDS------------------ */
+public record PairWentOnlineMessage(UserData UserData) : MessageBase; // a message indicating a pair has gone online.
 public record PairHandlerVisibleMessage(PairHandler Player) : MessageBase; // a message indicating the visibility of a pair handler.
 public record OpenUserPairPermissions(Pair? Pair, StickyWindowType PermsWindowType) : MessageBase; // fired upon request to open the permissions window for a pair
 public record TargetPairMessage(Pair Pair) : MessageBase; // called when publishing a targeted pair connection (see UI)
 public record UpdateDisplayWithPair(Pair Pair) : MessageBase; // called when we need to update the display with a pair.
 public record CyclePauseMessage(UserData UserData) : MessageBase; // for cycling the paused state of self
-public record GameObjectHandlerCreatedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase; // whenever a gameobjecthandler for a pair is made
-public record GameObjectHandlerDestroyedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase; // whenever a gameobjecthandler for a pair is destroyed
-public record CreateCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase; // called whene we create a new gameobject for the cache creation service.
+public record CreateCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase;
 public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase; // called when we should clear a gameobject from cache creation service.
 public record MufflerLanguageChanged : MessageBase; // called whenever the client language changes to a new language.
 

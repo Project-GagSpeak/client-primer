@@ -314,54 +314,54 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text("Can Send Triggers Allowed: " + clientPair.UserPairEditAccess.CanSendTriggersAllowed);
                     }
                 }
-                if (clientPair.UserPairAppearanceData != null)
+                if (clientPair.LastReceivedAppearanceData != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Appearance Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
-                        ImGui.Text($"SlotOneGagType: {clientPair.UserPairAppearanceData.SlotOneGagType}");
-                        ImGui.Text($"SlotOneGagPadlock: {clientPair.UserPairAppearanceData.SlotOneGagPadlock}");
-                        ImGui.Text($"SlotOneGagPassword: {clientPair.UserPairAppearanceData.SlotOneGagPassword}");
-                        ImGui.Text($"SlotOneGagTimer: {clientPair.UserPairAppearanceData.SlotOneGagTimer}");
-                        ImGui.Text($"SlotOneGagAssigner: {clientPair.UserPairAppearanceData.SlotOneGagAssigner}");
+                        ImGui.Text($"SlotOneGagType: {clientPair.LastReceivedAppearanceData.SlotOneGagType}");
+                        ImGui.Text($"SlotOneGagPadlock: {clientPair.LastReceivedAppearanceData.SlotOneGagPadlock}");
+                        ImGui.Text($"SlotOneGagPassword: {clientPair.LastReceivedAppearanceData.SlotOneGagPassword}");
+                        ImGui.Text($"SlotOneGagTimer: {clientPair.LastReceivedAppearanceData.SlotOneGagTimer}");
+                        ImGui.Text($"SlotOneGagAssigner: {clientPair.LastReceivedAppearanceData.SlotOneGagAssigner}");
                         ImGui.Separator();
-                        ImGui.Text($"SlotTwoGagType: {clientPair.UserPairAppearanceData.SlotTwoGagType}");
-                        ImGui.Text($"SlotTwoGagPadlock: {clientPair.UserPairAppearanceData.SlotTwoGagPadlock}");
-                        ImGui.Text($"SlotTwoGagPassword: {clientPair.UserPairAppearanceData.SlotTwoGagPassword}");
-                        ImGui.Text($"SlotTwoGagTimer: {clientPair.UserPairAppearanceData.SlotTwoGagTimer}");
-                        ImGui.Text($"SlotTwoGagAssigner: {clientPair.UserPairAppearanceData.SlotTwoGagAssigner}");
+                        ImGui.Text($"SlotTwoGagType: {clientPair.LastReceivedAppearanceData.SlotTwoGagType}");
+                        ImGui.Text($"SlotTwoGagPadlock: {clientPair.LastReceivedAppearanceData.SlotTwoGagPadlock}");
+                        ImGui.Text($"SlotTwoGagPassword: {clientPair.LastReceivedAppearanceData.SlotTwoGagPassword}");
+                        ImGui.Text($"SlotTwoGagTimer: {clientPair.LastReceivedAppearanceData.SlotTwoGagTimer}");
+                        ImGui.Text($"SlotTwoGagAssigner: {clientPair.LastReceivedAppearanceData.SlotTwoGagAssigner}");
                         ImGui.Separator();
-                        ImGui.Text($"SlotThreeGagType: {clientPair.UserPairAppearanceData.SlotThreeGagType}");
-                        ImGui.Text($"SlotThreeGagPadlock: {clientPair.UserPairAppearanceData.SlotThreeGagPadlock}");
-                        ImGui.Text($"SlotThreeGagPassword: {clientPair.UserPairAppearanceData.SlotThreeGagPassword}");
-                        ImGui.Text($"SlotThreeGagTimer: {clientPair.UserPairAppearanceData.SlotThreeGagTimer}");
-                        ImGui.Text($"SlotThreeGagAssigner: {clientPair.UserPairAppearanceData.SlotThreeGagAssigner}");
+                        ImGui.Text($"SlotThreeGagType: {clientPair.LastReceivedAppearanceData.SlotThreeGagType}");
+                        ImGui.Text($"SlotThreeGagPadlock: {clientPair.LastReceivedAppearanceData.SlotThreeGagPadlock}");
+                        ImGui.Text($"SlotThreeGagPassword: {clientPair.LastReceivedAppearanceData.SlotThreeGagPassword}");
+                        ImGui.Text($"SlotThreeGagTimer: {clientPair.LastReceivedAppearanceData.SlotThreeGagTimer}");
+                        ImGui.Text($"SlotThreeGagAssigner: {clientPair.LastReceivedAppearanceData.SlotThreeGagAssigner}");
                     }
                 }
-                if (clientPair.UserPairWardrobeData != null)
+                if (clientPair.LastReceivedWardrobeData != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Wardrobe Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
                         ImGui.Text($"OutfitList:");
                         ImGui.Indent();
-                        foreach (var outfit in clientPair.UserPairWardrobeData.OutfitNames)
+                        foreach (var outfit in clientPair.LastReceivedWardrobeData.OutfitNames)
                         {
                             ImGui.Text($"{outfit}");
                         }
                         ImGui.Unindent();
-                        ImGui.Text($"ActiveSetName: {clientPair.UserPairWardrobeData.ActiveSetName}");
-                        ImGui.Text($"ActiveSetDescription: {clientPair.UserPairWardrobeData.ActiveSetDescription}");
-                        ImGui.Text($"ActiveSetEnabledBy: {clientPair.UserPairWardrobeData.ActiveSetEnabledBy}");
-                        ImGui.Text($"ActiveSetIsLocked: {clientPair.UserPairWardrobeData.ActiveSetIsLocked}");
-                        ImGui.Text($"ActiveSetLockedBy: {clientPair.UserPairWardrobeData.ActiveSetLockedBy}");
-                        ImGui.Text($"ActiveSetLockTime: {clientPair.UserPairWardrobeData.ActiveSetLockTime}");
+                        ImGui.Text($"ActiveSetName: {clientPair.LastReceivedWardrobeData.ActiveSetName}");
+                        ImGui.Text($"ActiveSetDescription: {clientPair.LastReceivedWardrobeData.ActiveSetDescription}");
+                        ImGui.Text($"ActiveSetEnabledBy: {clientPair.LastReceivedWardrobeData.ActiveSetEnabledBy}");
+                        ImGui.Text($"ActiveSetIsLocked: {clientPair.LastReceivedWardrobeData.ActiveSetIsLocked}");
+                        ImGui.Text($"ActiveSetLockedBy: {clientPair.LastReceivedWardrobeData.ActiveSetLockedBy}");
+                        ImGui.Text($"ActiveSetLockTime: {clientPair.LastReceivedWardrobeData.ActiveSetLockTime}");
                     }
                 }
-                if (clientPair.UserPairAliasData != null)
+                if (clientPair.LastReceivedAliasData != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Alias Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
                         ImGui.Indent();
-                        foreach (var alias in clientPair.UserPairAliasData.AliasList)
+                        foreach (var alias in clientPair.LastReceivedAliasData.AliasList)
                         {
                             var tmptext = alias.Enabled ? "Enabled" : "Disabled";
                             ImGui.Text($"{tmptext} :: INPUT -> {alias.InputCommand}");
@@ -370,11 +370,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Unindent();
                     }
                 }
-                if (clientPair.UserPairToyboxData != null)
+                if (clientPair.LastReceivedToyboxData != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Pattern Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
-                        foreach (var pattern in clientPair.UserPairToyboxData.PatternList)
+                        foreach (var pattern in clientPair.LastReceivedToyboxData.PatternList)
                         {
                             ImGui.Text($"Pattern Name: {pattern.Name}");
                             ImGui.Text($"Pattern Description: {pattern.Description}");

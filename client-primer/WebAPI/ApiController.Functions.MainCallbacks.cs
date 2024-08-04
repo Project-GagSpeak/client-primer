@@ -277,7 +277,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogWarning("Why are you trying to receive your own composite data? There is no need for this???");
-            /*            ExecuteSafely(() => _playerCharManager.UpdateCharWithCompositeData(dataDto));*/
+            //ExecuteSafely(() => _playerCharManager.UpdateCharWithCompositeData(dataDto));
             return Task.CompletedTask;
         }
         else

@@ -19,7 +19,6 @@ public class PadlockHandler
         _playerCharacterManager = playerCharacterManager;
     }
 
-    public string[] Filters = new string[3] { "", "", "" }; // for when we need to search something.
     public List<Padlocks> PadlockPrevs = new List<Padlocks>() { Padlocks.None, Padlocks.None, Padlocks.None }; // to store prior to hitting LOCK
     public string[] Passwords = new string[3] { "", "", "" }; // when they enter password prior to locking. 
     public string[] Timers = new string[3] { "", "", "" }; // when they enter a timer prior to locking.

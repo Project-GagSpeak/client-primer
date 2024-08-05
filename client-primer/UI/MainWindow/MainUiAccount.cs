@@ -58,6 +58,9 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
     /// <summary> Main Draw function for this tab </summary>
     public void DrawAccountSection()
     {
+        // get the width of the window content region we set earlier
+        var _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
+        var _spacingX = ImGui.GetStyle().ItemSpacing.X;
         /*
         - Profile Image display
         - UID Display (centered, under profile image)

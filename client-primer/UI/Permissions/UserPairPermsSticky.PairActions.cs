@@ -26,22 +26,25 @@ public partial class UserPairPermsSticky
 
         // draw the common client functions
         DrawCommonClientMenu();
+        
+        if(UserPairForPerms != null && UserPairForPerms.IsOnline)
+        {
+            // Online Pair Actions
+            ImGui.TextUnformatted("Gag Actions");
+            DrawGagActions();
 
-        // Online Pair Actions
-        ImGui.TextUnformatted("Gag Actions");
-        DrawGagActions();
+            ImGui.TextUnformatted("Wardrobe Actions");
+            DrawWardrobeActions();
 
-        ImGui.TextUnformatted("Wardrobe Actions");
-        DrawWardrobeActions();
+            ImGui.TextUnformatted("Puppeteer Actions");
+            DrawPuppeteerActions();
 
-        ImGui.TextUnformatted("Puppeteer Actions");
-        DrawPuppeteerActions();
+            ImGui.TextUnformatted("Moodles Actions");
+            DrawMoodlesActions();
 
-        ImGui.TextUnformatted("Moodles Actions");
-        DrawMoodlesActions();
-
-        ImGui.TextUnformatted("Toybox Actions");
-        DrawToyboxActions();
+            ImGui.TextUnformatted("Toybox Actions");
+            DrawToyboxActions();
+        }
 
         // individual Menu
         ImGui.TextUnformatted("Individual Pair Functions");
@@ -91,16 +94,28 @@ public partial class UserPairPermsSticky
     private string GagSearchString = string.Empty;
     public int SelectedLayer = 0;
     public GagList.GagType SelectedGag = GagType.None;
+
+    private void InitGagVariables()
+    {
+        // to update selections based on current data and previously stored.
+        SelectedLayer = 0;
+        var lastSelectedGag = _uiShared._selectedComboItems.TryGetValue("Gag Type for Pair", out var lastGag);
+        if (lastSelectedGag && lastGag != null)
+        {
+            if(Enum.TryParse(lastGag.ToString(), out GagList.GagType gagType)) { SelectedGag = gagType; }
+        }
+    }
+
     private void DrawGagActions()
     {
         // TODO: Forbid interaction when GagFeaturesAllowed is false.
         var disableCondition = SelectedLayer switch
         {
-            0 => UserPairForPerms.LastReceivedAppearanceData.SlotOneGagType != GagType.None.GetGagAlias(),
-            1 => UserPairForPerms.LastReceivedAppearanceData.SlotTwoGagType != GagType.None.GetGagAlias(),
-            2 => UserPairForPerms.LastReceivedAppearanceData.SlotThreeGagType != GagType.None.GetGagAlias(),
+            0 => UserPairForPerms.LastReceivedAppearanceData!.SlotOneGagType != GagType.None.GetGagAlias(),
+            1 => UserPairForPerms.LastReceivedAppearanceData!.SlotTwoGagType != GagType.None.GetGagAlias(),
+            2 => UserPairForPerms.LastReceivedAppearanceData!.SlotThreeGagType != GagType.None.GetGagAlias(),
             _ => true // Default to true if an invalid layer is selected
-        };
+        } || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures;
 
         // button for applying a gag (will display the dropdown of the gag list to apply when pressed.
         if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, ("Apply a Gag to " + PairAliasOrUID), 
@@ -142,10 +157,13 @@ public partial class UserPairPermsSticky
                     var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
                     if(newAppearance == null) throw new Exception("Appearance data is null, not sending");
                     // construct a dto object for sending.
+                    OnlineUserCharaAppearanceDataDto? dto;
                     switch (SelectedLayer)
                     {
                         case 0:
                             newAppearance.SlotOneGagType = SelectedGag.GetGagAlias();
+                            _logger.LogDebug("Applying the GagType [{0}] to {1} on layer 1", SelectedGag, PairAliasOrUID);
+                            _logger.LogDebug(newAppearance.ToString());
                             _ = _apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto(UserPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagAppliedLayerOne));
                             _logger.LogTrace("Applied the GagType [{0}] to {1} on layer 1", SelectedGag, PairAliasOrUID);
                             break;

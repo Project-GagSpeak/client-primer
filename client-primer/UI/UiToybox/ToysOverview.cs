@@ -11,6 +11,7 @@ using ImGuiNET;
 using OtterGui.Text;
 using PInvoke;
 using System.Runtime.InteropServices;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkUnitBase.Delegates;
 
 namespace GagSpeak.UI.UiToybox;
 
@@ -201,7 +202,12 @@ public class ToyboxOverview
         var connectedIcon = !_IntifaceHandler.ConnectedToIntiface ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
 
         ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
-        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (addrSize.Y / 2 + addrTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
+        if (printAddr)
+        {
+            // unsure what this is doing but we can find out lol
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((addrSize.Y + addrTextSize.Y) / 2 + addrTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
+        }
+
 
         // we need to turn the button from the connected link to the disconnected link.
         using (ImRaii.PushColor(ImGuiCol.Text, color))
@@ -228,9 +234,11 @@ public class ToyboxOverview
         var intifaceIconSize = _uiShared.GetIconButtonSize(intifaceOpenIcon);
 
         ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + windowPadding.X);
-        ImGui.SetCursorPosY(ImGui.GetCursorPosY()
-            - (addrSize.Y / 2 + addrTextSize.Y) / 2
-            - ImGui.GetStyle().ItemSpacing.Y + intifaceIconSize.Y / 2);
+        if (printAddr)
+        {
+            // unsure what this is doing but we can find out lol
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((addrSize.Y + addrTextSize.Y) / 2 + addrTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
+        }
 
         if (_uiShared.IconButton(intifaceOpenIcon))
         {

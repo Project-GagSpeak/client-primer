@@ -17,18 +17,16 @@ public class GagSetupUI : WindowMediatorSubscriberBase
     private readonly GagSetupTabMenu _tabMenu;
     private readonly ActiveGagsPanel _activeGags;
     private readonly GagStoragePanel _gagStorage;
-    private readonly PadlockHandler _lockHandler;
     private readonly PlayerCharacterManager _playerManager; // for grabbing lock data
     // gag images
 
     public GagSetupUI(ILogger<GagSetupUI> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService, ActiveGagsPanel activeGags,
-        GagStoragePanel gagStorage, PadlockHandler padlockHandler,
-        PlayerCharacterManager playerManager) : base(logger, mediator, "Gag Setup UI")
+        GagStoragePanel gagStorage, PlayerCharacterManager playerManager) 
+        : base(logger, mediator, "Gag Setup UI")
     {
         _uiSharedService = uiSharedService;
         _playerManager = playerManager;
-        _lockHandler = padlockHandler;
         _activeGags = activeGags;
         _gagStorage = gagStorage;
 

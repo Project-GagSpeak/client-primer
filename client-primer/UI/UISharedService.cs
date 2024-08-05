@@ -57,7 +57,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private readonly ITextureProvider _textureProvider; // the texture provider for our plugin
     private ISharedImmediateTexture _sharedTextures;    // represents a shared texture cache for plugin images. (REMAKE THIS INTO A DICTIONARY)
 
-    private readonly Dictionary<string, object> _selectedComboItems;    // the selected combo items
+    public Dictionary<string, object> _selectedComboItems;    // the selected combo items
     private bool _glamourerExists = false;                              // if glamourer currently exists on the client
     private bool _moodlesExists = false;                                // if moodles currently exists on the client
     private bool _penumbraExists = false;                               // if penumbra currently exists on the client

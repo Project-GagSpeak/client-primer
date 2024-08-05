@@ -43,7 +43,6 @@ public class MainUiWhitelist : DisposableMediatorSubscriberBase
         // updates the draw folders by recollecting them, and updates the drawPair list of distinct draw pairs
         _userPairListHandler.UpdateDrawFoldersAndUserPairDraws();
 
-        // Mediator.Subscribe<CutsceneEndMessage>(this, (_) => UiSharedService_GposeEnd());
         Mediator.Subscribe<RefreshUiMessage>(this, (msg) =>
         {
             // update draw folders
@@ -52,7 +51,6 @@ public class MainUiWhitelist : DisposableMediatorSubscriberBase
             // UpdateShouldOpenStatus();
         });
     }
-
 
     // Attributes related to the drawing of the whitelist / contacts / pair list
     private Pair? _lastAddedUser;
@@ -71,26 +69,24 @@ public class MainUiWhitelist : DisposableMediatorSubscriberBase
     {
         // get the width of the window content region we set earlier
         var _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
+        var _spacingX = ImGui.GetStyle().ItemSpacing.X;
         float pairlistEnd = 0;
 
-        // if we are connected to the server
-        if (_apiController.ServerState is ServerState.Connected)
+        try
         {
-            try
-            {
-                // show the search filter just above the contacts list to form a nice separation.
-                _userPairListHandler.DrawSearchFilter(_windowContentWidth, ImGui.GetStyle().ItemSpacing.X);
-                ImGui.Separator();
-                // then display our pairing list
-                _userPairListHandler.DrawPairs(_windowContentWidth);
-                ImGui.Separator();
-                // fetch the cursor position where the footer is
-                pairlistEnd = ImGui.GetCursorPosY();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error drawing whitelist section");
-            }
+            // show the search filter just above the contacts list to form a nice separation.
+            _userPairListHandler.DrawSearchFilter(_windowContentWidth, ImGui.GetStyle().ItemSpacing.X);
+            ImGui.Separator();
+
+            // then display our pairing list
+            _userPairListHandler.DrawPairs(_windowContentWidth);
+            ImGui.Separator();
+            // fetch the cursor position where the footer is
+            pairlistEnd = ImGui.GetCursorPosY();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error drawing whitelist section");
         }
 
         // if we have configured to let the UI display a popup to set a nickname for the added UID upon adding them, then do so.

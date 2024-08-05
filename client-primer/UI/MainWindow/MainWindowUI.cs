@@ -42,7 +42,8 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private readonly IDalamudPluginInterface _pi;
     private int _secretKeyIdx = -1;
     private float _windowContentWidth;
-
+    private bool _addingNewUser = false;
+    public string _pairToAdd = string.Empty; // the pair to add
     // for theme management
     public bool ThemePushed = false;
 
@@ -183,6 +184,10 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         // if we are connected to the server
         if (_apiController.ServerState is ServerState.Connected)
         {
+            if(_addingNewUser)
+            {
+                using (ImRaii.PushId("AddPair")) DrawAddPair(_windowContentWidth, ImGui.GetStyle().ItemSpacing.X);
+            }
             // draw the bottom tab bar
             using (ImRaii.PushId("MainMenuTabBar")) _tabMenu.Draw();
 
@@ -212,6 +217,26 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             _uiShared.LastMainUIWindowPosition = pos;
             Mediator.Publish(new CompactUiChange(size, pos));
         }
+    }
+
+    public void DrawAddPair(float availableXWidth, float spacingX)
+    {
+        var buttonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
+        ImGui.SetNextItemWidth(availableXWidth - buttonSize - spacingX);
+        ImGui.InputTextWithHint("##otheruid", "Other players UID/Alias", ref _pairToAdd, 20);
+        ImGui.SameLine();
+        using (ImRaii.Disabled(_pairToAdd.IsNullOrEmpty()))
+        {
+            if (_uiShared.IconTextButton(FontAwesomeIcon.UserPlus, "Add", buttonSize, false, _pairToAdd.IsNullOrEmpty()))
+            {
+                // call the UserAddPair function on the server with the user data transfer object
+                _ = _apiController.UserAddPair(new(new(_pairToAdd)));
+                _pairToAdd = string.Empty;
+                _addingNewUser = false;
+            }
+        }
+        UiSharedService.AttachToolTip("Pair with " + (_pairToAdd.IsNullOrEmpty() ? "other user" : _pairToAdd));
+        ImGui.Separator();
     }
 
     private void DrawUIDHeader()
@@ -253,6 +278,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     /// </summary>
     private void DrawServerStatus()
     {
+        var windowPadding = ImGui.GetStyle().WindowPadding;
         var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
         var userCount = _apiController.OnlineUsers.ToString(CultureInfo.InvariantCulture);
         var userSize = ImGui.CalcTextSize(userCount);
@@ -308,7 +334,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 if (_uiShared.IconButton(connectedIcon))
                 {
                     // disconnect from the toybox server first, as they should never be allowed to be connected while disconnected
-                    if(!_serverManager.CurrentServer.FullPause && !_serverManager.CurrentServer.ToyboxFullPause)
+                    if (!_serverManager.CurrentServer.FullPause && !_serverManager.CurrentServer.ToyboxFullPause)
                     {
                         _logger.LogTrace("Disconnecting from Toybox Server because both connections were active.");
                         _serverManager.CurrentServer.ToyboxFullPause = !_serverManager.CurrentServer.ToyboxFullPause;
@@ -323,8 +349,25 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 }
             }
             // attach the tooltip for the connection / disconnection button)
-            UiSharedService.AttachToolTip(!_serverManager.CurrentServer.FullPause ? "Disconnect from " + _serverManager.CurrentServer.ServerName
-                                                                                  : "Connect to " + _serverManager.CurrentServer.ServerName);
+            UiSharedService.AttachToolTip(!_serverManager.CurrentServer.FullPause ?
+                "Disconnect from " + _serverManager.CurrentServer.ServerName : "Connect to " + _serverManager.CurrentServer.ServerName);
+
+            // go back to the far left, at the same height, and draw another button.
+            var addUserIcon = FontAwesomeIcon.UserPlus;
+            var addUserIconSize = _uiShared.GetIconButtonSize(addUserIcon);
+
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X);
+            if (printShard)
+            {
+                // unsure what this is doing but we can find out lol
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + shardTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
+            }
+
+            if (_uiShared.IconButton(addUserIcon))
+            {
+                _addingNewUser = !_addingNewUser;
+            }
+            UiSharedService.AttachToolTip("Add New User to Whitelist");
         }
     }
 

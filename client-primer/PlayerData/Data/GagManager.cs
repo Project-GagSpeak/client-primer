@@ -11,19 +11,25 @@ public class GagManager : DisposableMediatorSubscriberBase
 {
     private readonly PlayerCharacterManager _characterManager;
     private readonly GagDataHandler _gagDataHandler;
+    private readonly PadlockHandler _padlockHandler;
     private readonly Ipa_EN_FR_JP_SP_Handler _IPAParser;
     public List<GagData> _activeGags;
 
     public GagManager(ILogger<GagManager> logger, GagspeakMediator mediator,
         PlayerCharacterManager characterManager, GagDataHandler gagDataHandler,
-        Ipa_EN_FR_JP_SP_Handler IPAParser) : base(logger, mediator)
+        PadlockHandler padlockHandler, Ipa_EN_FR_JP_SP_Handler IPAParser) 
+        : base(logger, mediator)
     {
         _characterManager = characterManager;
         _gagDataHandler = gagDataHandler;
+        _padlockHandler = padlockHandler;
         _IPAParser = IPAParser;
 
         // Called by callback forced update, meant to not trigger endless feedback loop.
-        Mediator.Subscribe<UpdateActiveGags>(this, (msg) => UpdateActiveGags());
+        Mediator.Subscribe<UpdateActiveGags>(this, (msg) =>
+        {
+            UpdateActiveGags();
+        });
 
         // Triggered whenever the client updated the gagType from the dropdown menus in the UI
         Mediator.Subscribe<GagTypeChanged>(this, (msg) => OnGagTypeChanged(msg));
@@ -33,6 +39,13 @@ public class GagManager : DisposableMediatorSubscriberBase
     }
 
     public bool AnyGagActive => _activeGags.Any(gag => gag.Name != "None");
+    public List<Padlocks> PadlockPrevs => _padlockHandler.PadlockPrevs;
+    public string[] Passwords => _padlockHandler.Passwords;
+    public string[] Timers => _padlockHandler.Timers;
+
+    public bool ValidatePassword(int gagLayer, bool currentlyLocked) => _padlockHandler.PasswordValidated(gagLayer, currentlyLocked);
+
+    public bool DisplayPasswordField(int slot) => _padlockHandler.DisplayPasswordField(slot);
 
     /// <summary>
     /// Updates the list of active gags based on the character's appearance data.
@@ -54,6 +67,8 @@ public class GagManager : DisposableMediatorSubscriberBase
         .Where(gagType => _gagDataHandler._gagTypes.Any(gag => gag.Name == gagType))
         .Select(gagType => _gagDataHandler._gagTypes.First(gag => gag.Name == gagType))
         .ToList();
+
+        Mediator.Publish(new ActiveGagsUpdated());
     }
 
     /// <summary>

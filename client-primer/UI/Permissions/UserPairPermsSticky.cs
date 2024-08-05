@@ -36,6 +36,8 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         UserPairForPerms = pairToDrawFor; // set the pair we're drawing for
         DrawType = drawType; // set the type of window we're drawing
 
+        InitGagVariables();
+
         Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar
         | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar;
 

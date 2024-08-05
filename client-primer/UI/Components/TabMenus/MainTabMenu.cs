@@ -29,8 +29,6 @@ public class MainTabMenu
     private readonly UiSharedService _uiSharedService;
     private string _filter = string.Empty;
 
-    private string _pairToAdd = string.Empty;
-
     private SelectedTab _selectedTab = SelectedTab.Whitelist;
 
     public MainTabMenu(GagspeakMediator mediator, ApiController apiController, 
@@ -188,24 +186,4 @@ public class MainTabMenu
         if (TabSelection != SelectedTab.None) ImGuiHelpers.ScaledDummy(3f);
         ImGui.Separator();
     }
-/*
-    private void DrawAddPair(float availableXWidth, float spacingX)
-    {
-        var buttonSize = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.UserPlus, "Add");
-        ImGui.SetNextItemWidth(availableXWidth - buttonSize - spacingX);
-        ImGui.InputTextWithHint("##otheruid", "Other players UID/Alias", ref _pairToAdd, 20);
-        ImGui.SameLine();
-        var alreadyExisting = _pairManager.DirectPairs.Exists(p => string.Equals(p.UserData.UID, _pairToAdd, StringComparison.Ordinal) || string.Equals(p.UserData.Alias, _pairToAdd, StringComparison.Ordinal));
-        using (ImRaii.Disabled(alreadyExisting || string.IsNullOrEmpty(_pairToAdd)))
-        {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.UserPlus, "Add"))
-            {
-                // call the UserAddPair function on the server with the user data transfer object
-                _ = _apiController.UserAddPair(new(new(_pairToAdd)));
-                _pairToAdd = string.Empty;
-            }
-        }
-        UiSharedService.AttachToolTip("Pair with " + (_pairToAdd.IsNullOrEmpty() ? "other user" : _pairToAdd));
-    }
-*/
 }

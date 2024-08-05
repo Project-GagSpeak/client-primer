@@ -1,6 +1,7 @@
 using Dalamud.Interface;
 using Dalamud.Plugin;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI.Handlers;
 using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UI.UiOrders;
 using GagSpeak.UI.UiPuppeteer;
@@ -61,6 +62,9 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
     /// </summary>
     private void DrawHomepageModules(float availableWidth, float spacingX, IDalamudPluginInterface pi)
     {
+        // get the width of the window content region we set earlier
+        var _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
+        var _spacingX = ImGui.GetStyle().ItemSpacing.X;
         var buttonX = (availableWidth - spacingX) / 2f;
 
         // My Remote

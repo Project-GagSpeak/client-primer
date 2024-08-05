@@ -46,6 +46,14 @@ public partial class UserPairPermsSticky
         /* ----------- GAG PERMISSIONS ----------- */
         ImGui.TextUnformatted("Gag Permissions");
 
+
+        DrawOtherPairSetting("GagFeatures", "GagFeaturesAllowed",
+            UserPairForPerms.UserPairUniquePairPerms.GagFeatures ? (PairAliasOrUID + " enabled Gag Interactions") : (PairAliasOrUID + " disabled Gag Interactions"),
+            UserPairForPerms.UserPairUniquePairPerms.GagFeatures ? FontAwesomeIcon.CheckCircle : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairEditAccess.GagFeaturesAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
+            UserPairForPerms.UserPairEditAccess.GagFeaturesAllowed,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
         DrawOtherPairSetting("ItemAutoEquip", "ItemAutoEquipAllowed",
             UserPairForPerms.UserPairGlobalPerms.ItemAutoEquip ? (PairAliasOrUID + " has Gag Glamours Enabled") : (PairAliasOrUID + " has Gag Glamours Disabled"),
             UserPairForPerms.UserPairGlobalPerms.ItemAutoEquip ? FontAwesomeIcon.Surprise : FontAwesomeIcon.MehBlank,
@@ -65,6 +73,13 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPairUniquePairPerms.ExtendedLockTimes ? FontAwesomeIcon.Stopwatch : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.ExtendedLockTimesAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.ExtendedLockTimesAllowed,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
+        DrawOtherPairSetting("OwnerLocks", "OwnerLocksAllowed",
+            UserPairForPerms.UserPairUniquePairPerms.OwnerLocks ? (PairAliasOrUID + " allows Owner Locks") : (PairAliasOrUID + " prevents Owner Locks"),
+            UserPairForPerms.UserPairUniquePairPerms.OwnerLocks ? FontAwesomeIcon.Lock : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairEditAccess.OwnerLocksAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
+            UserPairForPerms.UserPairEditAccess.OwnerLocksAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
 

@@ -52,9 +52,17 @@ public partial class UserPairPermsSticky
         /* ----------- GAG PERMISSIONS ----------- */
         ImGui.TextUnformatted("Gag Permissions");
 
+        DrawOwnSetting("GagFeatures", "GagFeaturesAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.GagFeatures ? "Allowing Gag Interactions" : "Preventing Gag Interactions",
+            UserPairForPerms.UserPairOwnUniquePairPerms.GagFeatures ? FontAwesomeIcon.CheckCircle : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.GagFeatures ? 
+                $"Prevent {PairNickOrAliasOrUID} from Applying, Locking, and Removing Gags" : $"Allow {PairNickOrAliasOrUID} to Apply, Lock, and Remove Gags.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
         DrawOwnSetting("ItemAutoEquip", "ItemAutoEquipAllowed",
             _playerManager.GlobalPerms.ItemAutoEquip ? "Auto-Equip Gag Glamour's" : "No Gag Glamour Auto-Equip",
-            _playerManager.GlobalPerms.ItemAutoEquip ? FontAwesomeIcon.Surprise : FontAwesomeIcon.MehBlank,
+            _playerManager.GlobalPerms.ItemAutoEquip ? FontAwesomeIcon.Surprise : FontAwesomeIcon.Ban,
             _playerManager.GlobalPerms.ItemAutoEquip ? "Disable Auto-Equip for Gag Glamour's. [Global]" : "Enable Auto-Equip for Gag Glamour's. [Global]",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.Global, PermissionValueType.YesNo);
@@ -71,6 +79,13 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPairOwnUniquePairPerms.ExtendedLockTimes ? FontAwesomeIcon.Stopwatch : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairOwnUniquePairPerms.ExtendedLockTimes ? 
                 $"Prevent {PairNickOrAliasOrUID} from setting locks longer than 1 hour." : $"Allow {PairNickOrAliasOrUID} to set locks longer than 1 hour.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
+        DrawOwnSetting("OwnerLocks", "OwnerLocksAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.OwnerLocks ? "Allowing Owner Padlocks" : "Preventing Owner Padlocks",
+            UserPairForPerms.UserPairOwnUniquePairPerms.OwnerLocks ? FontAwesomeIcon.CheckCircle : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.OwnerLocks ? $"Prevent {PairNickOrAliasOrUID} from using Owner Padlocks." : $"Allow {PairNickOrAliasOrUID} to use Owner Padlocks.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 

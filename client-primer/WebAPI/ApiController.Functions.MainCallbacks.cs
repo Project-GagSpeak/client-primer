@@ -143,7 +143,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogError("Callback matched to a paired user, but was called by update self. This shouldn't be possible!");
+            Logger.LogInformation("Callback matched to a paired user, but was called by update self. This shouldn't be possible!");
             return Task.CompletedTask;
         }
     }
@@ -191,7 +191,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogError("Callback matched to a paired user. Updating all permissions for them.");
+            Logger.LogInformation("Callback matched to a paired user. Updating all permissions for them.");
             ExecuteSafely(() => _pairManager.UpdateOtherPairAllPermissions(dto));
             return Task.CompletedTask;
         }
@@ -212,7 +212,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogError("Callback matched to a paired user. Updating global permissions for them.");
+            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.");
             ExecuteSafely(() => _pairManager.UpdateOtherPairGlobalPermission(dto));
             return Task.CompletedTask;
         }
@@ -233,7 +233,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogError("Callback matched to a paired user. Updating permissions for them.");
+            Logger.LogInformation("Callback matched to a paired user. Updating permissions for them.");
             ExecuteSafely(() => _pairManager.UpdateOtherPairPermission(dto));
             return Task.CompletedTask;
         }
@@ -261,7 +261,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogError("Callback matched to a paired user. Updating permissions for them.");
+            Logger.LogInformation("Callback matched to a paired user. Updating permissions for them.");
             ExecuteSafely(() => _pairManager.UpdateOtherPairAccessPermission(dto));
             return Task.CompletedTask;
         }

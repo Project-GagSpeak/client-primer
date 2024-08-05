@@ -2,6 +2,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 using OtterGui.Classes;
@@ -92,9 +93,18 @@ public partial class UserPairPermsSticky
     public GagList.GagType SelectedGag = GagType.None;
     private void DrawGagActions()
     {
+        // TODO: Forbid interaction when GagFeaturesAllowed is false.
+        var disableCondition = SelectedLayer switch
+        {
+            0 => UserPairForPerms.LastReceivedAppearanceData.SlotOneGagType != GagType.None.GetGagAlias(),
+            1 => UserPairForPerms.LastReceivedAppearanceData.SlotTwoGagType != GagType.None.GetGagAlias(),
+            2 => UserPairForPerms.LastReceivedAppearanceData.SlotThreeGagType != GagType.None.GetGagAlias(),
+            _ => true // Default to true if an invalid layer is selected
+        };
+
         // button for applying a gag (will display the dropdown of the gag list to apply when pressed.
         if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, ("Apply a Gag to " + PairAliasOrUID), 
-            WindowMenuWidth, true))
+            WindowMenuWidth, true, disableCondition))
         {
             ShowGagList = !ShowGagList;
         }
@@ -130,12 +140,30 @@ public partial class UserPairPermsSticky
                     _logger.LogInformation("Pushing updated Appearance Data pair and recipients");
                     // construct the modified appearance data.
                     var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
-                    if (SelectedLayer == 0) { newAppearance.SlotOneGagType = SelectedGag.GetGagAlias(); }
-                    else if (SelectedLayer == 1) { newAppearance.SlotTwoGagType = SelectedGag.GetGagAlias(); }
-                    else if (SelectedLayer == 2) { newAppearance.SlotThreeGagType = SelectedGag.GetGagAlias(); }
+                    if(newAppearance == null) throw new Exception("Appearance data is null, not sending");
+                    // construct a dto object for sending.
+                    switch (SelectedLayer)
+                    {
+                        case 0:
+                            newAppearance.SlotOneGagType = SelectedGag.GetGagAlias();
+                            _ = _apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto(UserPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagAppliedLayerOne));
+                            _logger.LogTrace("Applied the GagType [{0}] to {1} on layer 1", SelectedGag, PairAliasOrUID);
+                            break;
+                        case 1:
+                            newAppearance.SlotTwoGagType = SelectedGag.GetGagAlias();
+                            _ = _apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto(UserPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagAppliedLayerTwo));
+                            _logger.LogTrace("Applied the GagType [{0}] to {1} on layer 2", SelectedGag, PairAliasOrUID);
+                            break;
+                        case 2:
+                            newAppearance.SlotThreeGagType = SelectedGag.GetGagAlias();
+                            _ = _apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto(UserPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagAppliedLayerThree));
+                            _logger.LogTrace("Applied the GagType [{0}] to {1} on layer 3", SelectedGag, PairAliasOrUID);
+                            break;
+                        default:
+                            _logger.LogWarning("Invalid layer selected: {SelectedLayer}", SelectedLayer);
+                            break;
+                    }
 
-                    // push the new appearance data to all online pairs.
-                    // _ = _apiController.PushCharacterAppearanceData(newAppearance, _pairManager.GetOnlineUserDatas());
                 }
                 UiSharedService.AttachToolTip("Apply the selected gag to " + PairAliasOrUID + " on gag layer" + (SelectedLayer+1) + ".\nTHIS DOES NOT WORK YET.");
             }

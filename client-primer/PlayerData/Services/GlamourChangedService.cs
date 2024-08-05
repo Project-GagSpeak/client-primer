@@ -74,6 +74,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         if (!_playerManager.GlobalPerms.WardrobeEnabled)
         {
             Logger.LogDebug("Wardrobe is disabled, so not processing Generic Update");
+            OnFrameworkService.GlamourChangeFinishedDrawing = true;
             return;
         }
 
@@ -133,6 +134,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         if (!_playerManager.GlobalPerms.WardrobeEnabled)
         {
             Logger.LogDebug("Wardrobe is disabled, so not processing Gag Update");
+            OnFrameworkService.GlamourChangeFinishedDrawing = true;
             return;
         }
 
@@ -194,6 +196,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         if (!_playerManager.GlobalPerms.WardrobeEnabled)
         {
             Logger.LogDebug("Wardrobe is disabled, so not processing Restraint Set Update");
+            OnFrameworkService.GlamourChangeFinishedDrawing = true;
             return;
         }
 
@@ -271,6 +274,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         if (!_playerManager.GlobalPerms.WardrobeEnabled)
         {
             Logger.LogDebug("Wardrobe is disabled, so not processing Blindfold Update");
+            OnFrameworkService.GlamourChangeFinishedDrawing = true;
             return;
         }
 

@@ -11,6 +11,7 @@ using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Dto.Connection;
 using ImGuiNET;
 using JetBrains.Annotations;
 using Microsoft.Extensions.FileSystemGlobbing.Internal;
@@ -110,6 +111,29 @@ public class ClientConfigurationManager
         _logger.LogDebug("{caller} Calling config save", caller);
         _configService.Save();
     }
+
+    #region ConnectionDto Update Methods
+    public void SyncDataWithConnectionDto(ConnectionDto dto)
+    {
+        string assigner = (dto.WardrobeActiveSetAssigner == string.Empty) ? "SelfApplied" : dto.WardrobeActiveSetAssigner;
+        // if the active set is not string.Empty, we should update our active sets.
+        if (dto.WardrobeActiveSetName != string.Empty)
+        {
+            SetRestraintSetState(UpdatedNewState.Enabled, GetRestraintSetIdxByName(dto.WardrobeActiveSetName), assigner, false);
+        }
+
+        // if the set was locked, we should lock it with the appropriate time.
+        if(dto.WardrobeActiveSetLocked)
+        {
+            LockRestraintSet(GetRestraintSetIdxByName(dto.WardrobeActiveSetName), assigner, dto.WardrobeActiveSetLockTime, false);
+        }
+
+        // if active pattern was playing, resume it at the stopped time. TODO: Implement this logic.
+
+    }
+
+
+    #endregion ConnectionDto Update Methods
 
     /* --------------------- Gag Storage Config Methods --------------------- */
     #region Gag Storage Methods

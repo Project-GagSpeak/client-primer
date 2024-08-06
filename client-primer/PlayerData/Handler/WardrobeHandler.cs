@@ -215,19 +215,6 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         int idx = GetRestraintSetIndexByName(setNameToEnable);
         // enable the set
         _clientConfigs.SetRestraintSetState(UpdatedNewState.Enabled, idx, setEnablerUID, false);
-
-        // Update the ActiveSet, reference in the handler.
-        ActiveSet = _clientConfigs.GetActiveSet();
-
-        // Update the reference for the pair who enabled it.
-        PairWhoEnabledSet = matchedPair;
-
-        // Update the properties for the set relative to the person who enabled it.
-        if (_clientConfigs.PropertiesEnabledForSet(idx, setEnablerUID))
-        {
-            // Publish a call to start monitoring hardcore actions.
-            Mediator.Publish(new HardcoreRestraintSetEnabledMessage());
-        }
     }
 
     public void CallbackForceLockRestraintSet(string setNameToLock, string setLockerUID, DateTimeOffset endLockTimeUTC)
@@ -279,16 +266,6 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         int idx = GetRestraintSetIndexByName(setNameToDisable);
         // disable the set
         _clientConfigs.SetRestraintSetState(UpdatedNewState.Disabled, idx, setDisablerUID, false);
-
-        if (_clientConfigs.PropertiesEnabledForSet(idx, setDisablerUID))
-        {
-            // Publish a call to stop monitoring hardcore actions.
-            Mediator.Publish(new HardcoreRestraintSetDisabledMessage());
-        }
-
-        // set active set references to null.
-        ActiveSet = null!;
-        PairWhoEnabledSet = null!;
     }
 
     public int RestraintSetCount()

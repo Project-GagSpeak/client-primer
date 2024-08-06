@@ -77,13 +77,14 @@ public record MufflerLanguageChanged : MessageBase; // called whenever the clien
 /* ------------- PLAYER DATA MODULE INTERACTIONS --------- */
 public record UpdateActiveGags : MessageBase;
 public record ActiveGagsUpdated : MessageBase;
+public record ActiveLocksUpdated : MessageBase;
 public record GagTypeChanged(GagList.GagType NewGagType, GagLayer Layer) : MessageBase; // called whenever the client changes their gag type.
 public record GagLockToggle(PadlockData PadlockInfo, bool Unlocking) : MessageBase; // called whenever the client changes their padlock.
 public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase; // TODO: ADD implementation for this.
 
 
 #region PLAYERDATA WARDROBE HANDLER RECORDS
-public record RestraintSetToggledMessage(UpdatedNewState State, int RestraintSetIndex, string AssignerUID) : MessageBase; // whenever the restraint set is toggled.
+public record RestraintSetToggledMessage(UpdatedNewState State, int RestraintSetIndex, string AssignerUID, bool shouldPushChange) : MessageBase; // whenever the restraint set is toggled.
 public record RestraintSetPropertyChanged(string UidPropertiesChangedFor) : MessageBase; // fired when property is changed for a particular user
 public record RestraintSetAddedMessage(RestraintSet RestraintSetToAdd) : MessageBase; // A newly added restraint set
 public record RestraintSetModified(int RestraintSetIndex) : MessageBase; // fired when a restraint set is modified.
@@ -154,6 +155,7 @@ public record UiToggleMessage(Type UiType) : MessageBase; // For toggling the UI
 public record SwitchToIntroUiMessage : MessageBase; // indicates that we are in the introduction UI.
 public record SwitchToMainUiMessage : MessageBase; // indicates we are in the main UI.
 public record OpenSettingsUiMessage : MessageBase; // indicates we are in the settings UI.
+public record ClosedMainUiMessage : MessageBase; // indicates the main UI has been closed.
 public record RemoveWindowMessage(WindowMediatorSubscriberBase Window) : MessageBase; // fired upon request to remove a window from the UI service.
 public record CompactUiChange(Vector2 Size, Vector2 Position) : MessageBase; // fired whenever we change the window size or position
 

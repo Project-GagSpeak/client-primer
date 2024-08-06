@@ -32,6 +32,13 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             _uiSharedService._selectedComboItems["Gag Type 1"] = _playerManager.AppearanceData.SlotTwoGagType.GetGagFromAlias();
             _uiSharedService._selectedComboItems["Gag Type 2"] = _playerManager.AppearanceData.SlotThreeGagType.GetGagFromAlias();
         });
+
+        Mediator.Subscribe<ActiveLocksUpdated>(this, (_) =>
+        {
+            _uiSharedService._selectedComboItems["Lock Type 0"] = _playerManager.AppearanceData.SlotOneGagPadlock;
+            _uiSharedService._selectedComboItems["Lock Type 1"] = _playerManager.AppearanceData.SlotTwoGagPadlock;
+            _uiSharedService._selectedComboItems["Lock Type 2"] = _playerManager.AppearanceData.SlotThreeGagPadlock;
+        });
     }
 
     private string GagTypeOnePath => $"ItemMouth\\{_playerManager.AppearanceData.SlotOneGagType}.png" ?? $"ItemMouth\\None.png";
@@ -121,12 +128,12 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                 // draw the padlock dropdown
                 using (ImRaii.Disabled(gagType == GagList.GagType.None || currentlyLocked))
                 {
-                    _uiSharedService.DrawCombo($"##Lock Type {slotNumber}", (248 - _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Lock).X),
+                    _uiSharedService.DrawCombo($"Lock Type {slotNumber}", (248 - _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Lock).X),
                     Enum.GetValues<Padlocks>(), (padlock) => padlock.ToString(),
                     (i) =>
                     {
                         _gagManager.PadlockPrevs[slotNumber] = i;
-                    }, padlockType);
+                    }, padlockType, false);
                 }
                 ImGui.SameLine(0, 2);
 
@@ -141,7 +148,9 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                                 (GagLayer)slotNumber,
                                 _gagManager.PadlockPrevs[slotNumber],
                                 _gagManager.Passwords[slotNumber],
-                                UiSharedService.GetEndTime(_gagManager.Timers[slotNumber]), "SelfApplied"), currentlyLocked));
+                                UiSharedService.GetEndTimeUTC(_gagManager.Timers[slotNumber]), 
+                                "SelfApplied"), 
+                                currentlyLocked));
                         }
                         // reset the password and timer
                         _gagManager.Passwords[slotNumber] = string.Empty;

@@ -577,7 +577,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return $"{timeSpan.Days}d{timeSpan.Hours}h{timeSpan.Minutes}m{timeSpan.Seconds}s";
     }
 
-    public static DateTimeOffset GetEndTime(string input)
+    public static DateTimeOffset GetEndTimeUTC(string input)
     {
         // Match days, hours, minutes, and seconds in the input string
         var match = Regex.Match(input, @"^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$");
@@ -592,11 +592,11 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             // Create a TimeSpan from the parsed values
             TimeSpan duration = new TimeSpan(days, hours, minutes, seconds);
             // Add the duration to the current DateTime to get a DateTimeOffset
-            return DateTimeOffset.Now.Add(duration);
+            return DateTimeOffset.UtcNow.Add(duration);
         }
 
-        // If the input string is not in the correct format, throw an exception
-        throw new FormatException($"Invalid duration format: {input}");
+        // "Invalid duration format: {input}, returning datetimeUTCNow");
+        return DateTimeOffset.UtcNow;
     }
 
     /// <summary>
@@ -766,7 +766,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public T? DrawCombo<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName,
-        Action<T?>? onSelected = null, T? initialSelectedItem = default)
+        Action<T?>? onSelected = null, T? initialSelectedItem = default, bool shouldShowLabel = true)
     {
         if (!comboItems.Any()) return default;
 
@@ -787,7 +787,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
 
         ImGui.SetNextItemWidth(width);
-        if (ImGui.BeginCombo(comboName, toName((T)selectedItem!)))
+        string comboLabel = shouldShowLabel ? $"{comboName}##{comboName}" : $"##{comboName}";
+        if (ImGui.BeginCombo(comboLabel, toName((T)selectedItem!)))
         {
             foreach (var item in comboItems)
             {

@@ -93,7 +93,7 @@ public partial class UserPairPermsSticky
         /* ----------- RESTRAINT SET PERMISSIONS ----------- */
         ImGui.TextUnformatted("Restraint Set Permissions");
 
-        DrawOwnSetting("RestraintSetAutoEquip", "WardrobeEnabledAllowed",
+        DrawOwnSetting("RestraintSetAutoEquip", "RestraintSetAutoEquipAllowed",
             _playerManager.GlobalPerms.RestraintSetAutoEquip ? "Restraint Set Glamour's active" : "Restraint Set Glamour's inactive",
             _playerManager.GlobalPerms.RestraintSetAutoEquip ? FontAwesomeIcon.Tshirt : FontAwesomeIcon.Ban,
             _playerManager.GlobalPerms.RestraintSetAutoEquip ? "Disable Restraint Set Glamour's. [Global]" : "Enable Restraint Set Glamour's. [Global]",
@@ -232,12 +232,6 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        // skip intensity control for now
-/*
-        DrawOwnSetting("Intensity Control", "CanControlIntensityAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.CanControlIntensityAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermissionValueType.YesNo);*/
-
         // this kinda conflicts with the whole visible users permission but maybe rework later idk.
         DrawOwnSetting("VibratorAlarms", "VibratorAlarmsAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarms ? "Allow Viewing Alarms" : "Prevent Viewing Alarms ",
@@ -252,11 +246,6 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarmsToggle ? $"Prevent {PairNickOrAliasOrUID} from toggling your alarms." : $"Allow {PairNickOrAliasOrUID} to toggle your alarms.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
-
-        // this is not really necessary due to the vibe server module but might make button automate opening of a remote for it idk.
-/*        DrawOwnSetting("Realtime Vibe Remote Access", "CanUseRealtimeVibeRemoteAllowed",
-            UserPairForPerms.UserPair.OwnEditAccessPerms.CanUseRealtimeVibeRemoteAllowed,
-            FontAwesomeIcon.Lock, FontAwesomeIcon.Unlock, true, PermissionValueType.YesNo);*/
 
         DrawOwnSetting("CanExecutePatterns", "CanExecutePatternsAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.CanExecutePatterns ? "Allow Pattern Execution" : "Prevent Pattern Execution",
@@ -402,8 +391,8 @@ public partial class UserPairPermsSticky
                                 SetOwnPermission(PermissionType.UniquePairPermEditAccess, permissionAccessName, refState);
                         }
                         UiSharedService.AttachToolTip(refState
-                            ? ("Revoke" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
-                            : ("Grant" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + "control over this permission, allowing them to change " +
+                            ? ("Revoke " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
+                            : ("Grant " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + " control over this permission, allowing them to change " +
                                "what you've set for them at will.");
                     }
                     else
@@ -416,8 +405,8 @@ public partial class UserPairPermsSticky
                                 SetOwnPermission(PermissionType.UniquePairPerm, permissionAccessName, refState);
                         }
                         UiSharedService.AttachToolTip(refState
-                            ? ("Revoke" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
-                            : ("Grant" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + "control over this permission, allowing them to change " +
+                            ? ("Revoke " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
+                            : ("Grant " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + " control over this permission, allowing them to change " +
                                "what you've set for them at will.");
                     }
                 }
@@ -462,8 +451,8 @@ public partial class UserPairPermsSticky
                             SetOwnPermission(PermissionType.UniquePairPermEditAccess, permissionAccessName, refState);
                     }
                     UiSharedService.AttachToolTip(refState
-                        ? ("Revoke" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
-                        : ("Grant" + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + "control over this permission, allowing them to change " +
+                        ? ("Revoke " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
+                        : ("Grant " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + " control over this permission, allowing them to change " +
                            "what you've set for them at will.");
                 }
             }

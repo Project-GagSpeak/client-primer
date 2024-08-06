@@ -224,8 +224,7 @@ public class ClientConfigurationManager
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = string.Empty;
             _wardrobeConfig.Save();
             // publish toggle to mediator
-            if (shouldPublishToMediator)
-                _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair));
+            _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair, shouldPublishToMediator));
         }
         else
         {
@@ -244,8 +243,7 @@ public class ClientConfigurationManager
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = UIDofPair;
             _wardrobeConfig.Save();
             // publish toggle to mediator
-            if (shouldPublishToMediator)
-                _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair)); ;
+            _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair, shouldPublishToMediator));
         }
     }
 
@@ -259,9 +257,8 @@ public class ClientConfigurationManager
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = UIDofPair;
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = endLockTimeUTC;
         _wardrobeConfig.Save();
-
-        if (shouldPublishToMediator)
-            _mediator.Publish(new RestraintSetToggledMessage(UpdatedNewState.Locked, setIndex, UIDofPair));
+        
+        _mediator.Publish(new RestraintSetToggledMessage(UpdatedNewState.Locked, setIndex, UIDofPair, shouldPublishToMediator));
     }
 
     internal void UnlockRestraintSet(int setIndex, string UIDofPair, bool shouldPublishToMediator = true)
@@ -274,9 +271,8 @@ public class ClientConfigurationManager
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = string.Empty;
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = DateTimeOffset.MinValue;
         _wardrobeConfig.Save();
-
-        if (shouldPublishToMediator)
-            _mediator.Publish(new RestraintSetToggledMessage(UpdatedNewState.Unlocked, setIndex, UIDofPair));
+        
+        _mediator.Publish(new RestraintSetToggledMessage(UpdatedNewState.Unlocked, setIndex, UIDofPair, shouldPublishToMediator));
     }
 
 

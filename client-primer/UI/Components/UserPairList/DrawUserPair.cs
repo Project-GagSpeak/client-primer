@@ -159,7 +159,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
 
         currentRightSide -= permissionsButtonSize.X + spacingX;
         ImGui.SameLine(currentRightSide);
-        if (_uiSharedService.IconButton(FontAwesomeIcon.Lock))
+        if (_uiSharedService.IconButton(FontAwesomeIcon.Cog))
         {
             if (Pair == null)
             {
@@ -172,7 +172,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
 
         currentRightSide -= permissionsButtonSize.X + spacingX;
         ImGui.SameLine(currentRightSide);
-        if (_uiSharedService.IconButton(FontAwesomeIcon.Cog))
+        if (_uiSharedService.IconButton(FontAwesomeIcon.Search))
         {
             // if we press the cog, we should modify its appearance, and set that we are drawing for this pair to true
             _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairPerms));

@@ -70,6 +70,8 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             logger.LogTrace("Connected message received. Updating global permissions.");
             _playerCharGlobalPerms = msg.Connection.UserGlobalPermissions;
             _playerCharAppearance = msg.Connection.CharacterAppearanceData;
+            // Update the active Gags in the Gag Manager
+            Mediator.Publish(new UpdateActiveGags());
         });
 
         // These are called whenever we update our own data.
@@ -308,6 +310,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                 _playerCharAppearance.SlotOneGagPassword = callbackDto.AppearanceData.SlotOneGagPassword;
                 _playerCharAppearance.SlotOneGagTimer = callbackDto.AppearanceData.SlotOneGagTimer;
                 _playerCharAppearance.SlotOneGagAssigner = callbackDto.AppearanceData.SlotOneGagAssigner;
+                Mediator.Publish(new ActiveLocksUpdated());
                 break;
             case DataUpdateKind.AppearanceGagLockedLayerTwo:
                 _playerCharAppearance.SlotTwoGagPadlock = callbackDto.AppearanceData.SlotTwoGagPadlock;

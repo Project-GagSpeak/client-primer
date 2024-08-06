@@ -66,7 +66,7 @@ public class PadlockHandler
                 return false;
             case Padlocks.MetalPadlock:
             case Padlocks.FiveMinutesPadlock:
-                return true;
+                return true; 
             case Padlocks.CombinationPadlock:
                 {
                     if (currentlyLocked)

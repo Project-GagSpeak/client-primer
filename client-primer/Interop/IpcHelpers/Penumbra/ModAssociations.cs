@@ -1,14 +1,12 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Utility;
-using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data.Enum;
 using ImGuiNET;
-using ImGuizmoNET;
 using OtterGui;
 using OtterGui.Raii;
 using System.Numerics;

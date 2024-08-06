@@ -50,6 +50,21 @@ public sealed class UiService : DisposableMediatorSubscriberBase
             _windowSystem.AddWindow(window);
         }
 
+        Mediator.Subscribe<DisconnectedMessage>(this, (msg) =>
+        {
+            var pairPermissionWindows = _createdWindows
+                .Where(p => p is UserPairPermsSticky)
+                .ToList();
+
+            foreach (var window in pairPermissionWindows)
+            {
+                _logger.LogTrace("Closing pair permission window for pair {pair}", ((UserPairPermsSticky)window).UserPairForPerms.UserData.AliasOrUID);
+                _windowSystem.RemoveWindow(window);
+                _createdWindows.Remove(window);
+                window.Dispose();
+            }
+        });
+
         // subscribe to the event message for removing a window
         Mediator.Subscribe<RemoveWindowMessage>(this, (msg) =>
         {
@@ -129,6 +144,21 @@ public sealed class UiService : DisposableMediatorSubscriberBase
             {
                 _logger.LogTrace("Toggling remote controller for room {room}", msg.PrivateRoom.RoomName);
                 existingWindow.Toggle();
+            }
+        });
+
+        Mediator.Subscribe<ClosedMainUiMessage>(this, (msg) =>
+        {
+            var pairPermissionWindows = _createdWindows
+                .Where(p => p is UserPairPermsSticky)
+                .ToList();
+
+            foreach (var window in pairPermissionWindows)
+            {
+                _logger.LogTrace("Closing pair permission window for pair {pair}", ((UserPairPermsSticky)window).UserPairForPerms.UserData.AliasOrUID);
+                _windowSystem.RemoveWindow(window);
+                _createdWindows.Remove(window);
+                window.Dispose();
             }
         });
     }

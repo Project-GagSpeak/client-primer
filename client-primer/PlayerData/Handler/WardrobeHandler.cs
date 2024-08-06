@@ -82,56 +82,58 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
         {
+            // handle changes
+            if (msg.State == UpdatedNewState.Enabled)
+            {
+                // Restraint set was activated, so, lets set the active set after applying the changes
+                _clientConfigs.SetRestraintSetState(msg.State, msg.RestraintSetIndex, msg.AssignerUID);
+                Logger.LogInformation("ActiveSet Enabled at index {0}", msg.RestraintSetIndex);
+
+                // Call the active set
+                ActiveSet = _clientConfigs.GetActiveSet();
+
+                // Set the pair to who enabled the set
+                PairWhoEnabledSet = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == msg.AssignerUID)!;
+
+                // See if it has any hardcore properties attached for the UID enabling it
+                if (_clientConfigs.PropertiesEnabledForSet(msg.RestraintSetIndex, msg.AssignerUID))
+                {
+                    // We will want to publish a call to start monitoring hardcore actions.
+                    Mediator.Publish(new HardcoreRestraintSetEnabledMessage());
+                }
+
+                // push the glamourer change
+                Mediator.Publish(new UpdateGlamourRestraintsMessage(UpdatedNewState.Enabled));
+            }
+
+            if (msg.State == UpdatedNewState.Disabled)
+            {
+                var disabledSet = _clientConfigs.GetRestraintSet(msg.RestraintSetIndex);
+
+                // If set had hardcore properties, disable monitoring.
+                if (_clientConfigs.PropertiesEnabledForSet(msg.RestraintSetIndex, msg.AssignerUID))
+                {
+                    Mediator.Publish(new HardcoreRestraintSetDisabledMessage());
+                }
+
+                // push the glamourer change 
+                Mediator.Publish(new UpdateGlamourRestraintsMessage(UpdatedNewState.Disabled));
+
+                // Remove Active Set & Pair that Enabled it.
+                ActiveSet = null!;
+                PairWhoEnabledSet = null!;
+            }
+
+            // handle the updates if we should
+            if (!msg.shouldPushChange) return;
+
+            // push the wardrobe change
             switch (msg.State)
             {
-                case UpdatedNewState.Enabled:
-                    {
-                        // Restraint set was activated, so, lets set the active set after applying the changes
-                        _clientConfigs.SetRestraintSetState(msg.State, msg.RestraintSetIndex, msg.AssignerUID);
-                        Logger.LogInformation("ActiveSet Enabled at index {0}", msg.RestraintSetIndex);
-
-                        // Call the active set
-                        ActiveSet = _clientConfigs.GetActiveSet();
-
-                        // Set the pair to who enabled the set
-                        PairWhoEnabledSet = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == msg.AssignerUID);
-
-                        // See if it has any hardcore properties attached for the UID enabling it
-                        if (_clientConfigs.PropertiesEnabledForSet(msg.RestraintSetIndex, msg.AssignerUID))
-                        {
-                            // We will want to publish a call to start monitoring hardcore actions.
-                            Mediator.Publish(new HardcoreRestraintSetEnabledMessage());
-                        }
-
-                        // Notify pairs that our active set was just enabled.
-                        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied));
-                    }
-                    break;
-                case UpdatedNewState.Disabled:
-                    {
-                        var disabledSet = _clientConfigs.GetRestraintSet(msg.RestraintSetIndex);
-
-                        // If set had hardcore properties, disable monitoring.
-                        if (_clientConfigs.PropertiesEnabledForSet(msg.RestraintSetIndex, msg.AssignerUID))
-                            Mediator.Publish(new HardcoreRestraintSetDisabledMessage());
-
-                        // REVIEW: Why the fuck is this here?
-                        /*_clientConfigs.SetRestraintSetState(msg.State, msg.RestraintSetIndex, msg.AssignerUID);*/
-
-                        // Remove Active Set & Pair that Enabled it.
-                        ActiveSet = null!;
-                        PairWhoEnabledSet = null!;
-
-                        // Notify pairs that our active set was just disabled.
-                        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintRemoved));
-                    }
-                    break;
-                case UpdatedNewState.Locked:
-                    Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked));
-                    break;
-                case UpdatedNewState.Unlocked:
-                    Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked));
-                    break;
+                case UpdatedNewState.Enabled: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied)); break;
+                case UpdatedNewState.Disabled: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintRemoved)); break;
+                case UpdatedNewState.Locked: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked)); break;
+                case UpdatedNewState.Unlocked: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked)); break;
             }
 
         });

@@ -1,16 +1,11 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
-using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data.Enum;
-using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
-using OtterGui.Classes;
-using OtterGui.Text;
 using System.Numerics;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkCounterNode.Delegates;
+using GagSpeak.Utils.PermissionHelpers;
 using static GagspeakAPI.Data.Enum.GagList;
-using static Lumina.Data.Parsing.Layer.LayerCommon;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -26,24 +21,39 @@ public partial class UserPairPermsSticky
 
         // draw the common client functions
         DrawCommonClientMenu();
-        
-        if(UserPairForPerms != null && UserPairForPerms.IsOnline)
+
+        if (UserPairForPerms != null && UserPairForPerms.IsOnline)
         {
             // Online Pair Actions
-            ImGui.TextUnformatted("Gag Actions");
-            DrawGagActions();
+            if(UserPairForPerms.LastReceivedAppearanceData != null)
+            {
+                ImGui.TextUnformatted("Gag Actions");
+                DrawGagActions();
+            }
 
-            ImGui.TextUnformatted("Wardrobe Actions");
-            DrawWardrobeActions();
+            if(UserPairForPerms.LastReceivedWardrobeData != null)
+            {
+                ImGui.TextUnformatted("Wardrobe Actions");
+                DrawWardrobeActions();
+            }
 
-            ImGui.TextUnformatted("Puppeteer Actions");
-            DrawPuppeteerActions();
+            if(UserPairForPerms.LastReceivedAliasData != null)
+            {
+                ImGui.TextUnformatted("Puppeteer Actions");
+                DrawPuppeteerActions();
+            }
 
-            ImGui.TextUnformatted("Moodles Actions");
-            DrawMoodlesActions();
+            if(UserPairForPerms.LastReceivedIpcData != null)
+            {
+                ImGui.TextUnformatted("Moodles Actions");
+                DrawMoodlesActions();
+            }
 
-            ImGui.TextUnformatted("Toybox Actions");
-            DrawToyboxActions();
+            if(UserPairForPerms.LastReceivedToyboxData != null)
+            {
+                ImGui.TextUnformatted("Toybox Actions");
+                DrawToyboxActions();
+            }
         }
 
         // individual Menu
@@ -90,146 +100,251 @@ public partial class UserPairPermsSticky
         ImGui.Separator();
     }
 
+    #region GagActions
     private bool ShowGagList = false;
-    private string GagSearchString = string.Empty;
-    public int SelectedLayer = 0;
-    public GagList.GagType SelectedGag = GagType.None;
-
-    private void InitGagVariables()
-    {
-        // to update selections based on current data and previously stored.
-        SelectedLayer = 0;
-        var lastSelectedGag = _uiShared._selectedComboItems.TryGetValue("Gag Type for Pair", out var lastGag);
-        if (lastSelectedGag && lastGag != null)
-        {
-            if(Enum.TryParse(lastGag.ToString(), out GagList.GagType gagType)) { SelectedGag = gagType; }
-        }
-    }
-
+    private bool ShowGagLock = false;
+    private bool ShowGagUnlock = false;
+    private bool ShowGagRemove = false;
     private void DrawGagActions()
     {
-        // TODO: Forbid interaction when GagFeaturesAllowed is false.
-        var disableCondition = SelectedLayer switch
+        // draw the layer
+        GagAndLockPairkHelpers.DrawGagLayerSelection(ImGui.GetContentRegionAvail().X, UserPairForPerms.UserData.UID);
+
+        // fetch it for ref
+        var layerSelected = GagAndLockPairkHelpers.GetSelectedLayer(UserPairForPerms.UserData.UID);
+
+        var disableCondition = layerSelected switch
         {
             0 => UserPairForPerms.LastReceivedAppearanceData!.SlotOneGagType != GagType.None.GetGagAlias(),
             1 => UserPairForPerms.LastReceivedAppearanceData!.SlotTwoGagType != GagType.None.GetGagAlias(),
             2 => UserPairForPerms.LastReceivedAppearanceData!.SlotThreeGagType != GagType.None.GetGagAlias(),
             _ => true // Default to true if an invalid layer is selected
-        } || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures;
+        };
+
+        var lockDisableCondition = layerSelected switch
+        {
+            0 => UserPairForPerms.LastReceivedAppearanceData!.SlotOneGagPadlock == Padlocks.None.ToString(),
+            1 => UserPairForPerms.LastReceivedAppearanceData!.SlotTwoGagPadlock == Padlocks.None.ToString(),
+            2 => UserPairForPerms.LastReceivedAppearanceData!.SlotThreeGagPadlock == Padlocks.None.ToString(),
+            _ => true // Default to true if an invalid layer is selected
+        };
+
 
         // button for applying a gag (will display the dropdown of the gag list to apply when pressed.
-        if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, ("Apply a Gag to " + PairAliasOrUID), 
-            WindowMenuWidth, true, disableCondition))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, ("Apply a Gag to " + PairAliasOrUID),
+            WindowMenuWidth, true, disableCondition || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures))
         {
             ShowGagList = !ShowGagList;
         }
-        // if we should show the gag list, 
-        if(ShowGagList)
+        UiSharedService.AttachToolTip("Apply a Gag to " + PairAliasOrUID + ". Click to view options.");
+
+        if (ShowGagList)
         {
-            using (var framedGagApplyChild = ImRaii.Child("GagApplyChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()*2 + ImGui.GetStyle().ItemSpacing.Y), false))
+            using (var framedGagApplyChild = ImRaii.Child("GagApplyChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
                 if (!framedGagApplyChild) return;
 
                 float comboWidth = WindowMenuWidth - ImGui.CalcTextSize("Apply Gag").X - ImGui.GetStyle().ItemSpacing.X * 2;
 
-                using (var gagApplyGroup = ImRaii.Group())
-                {
-                    // first display dropdown for layer selection
-                    ImGui.SetNextItemWidth(comboWidth);
-                    ImGui.Combo("##GagApplyLayer", ref SelectedLayer, new string[] { "Layer 1", "Layer 2", "Layer 3" }, 3);
-                    UiSharedService.AttachToolTip("Select the layer to apply the gag to.");
-                    // now display the dropdown for the gag selection
-                    _uiShared.DrawComboSearchable($"Gag Type for Pair", comboWidth, ref GagSearchString,
-                        Enum.GetValues<GagList.GagType>(), (gag) => gag.GetGagAlias(), false,
-                        (i) =>
-                        {
-                            // locate the GagData that matches the alias of i
-                            SelectedGag = GagList.AliasToGagTypeMap[i.GetGagAlias()];
-                        }, SelectedGag);
-                    UiSharedService.AttachToolTip("Select the gag to apply to the pair.");
-                }
-                ImUtf8.SameLineInner();
-                if (ImGui.Button("Apply Gag", ImGui.GetContentRegionAvail()))
-                {
-                    // apply the selected gag. (POSSIBLY TODO: Rework the PushApperance Data to only push a single property to avoid conflicts.)
-                    _logger.LogInformation("Pushing updated Appearance Data pair and recipients");
-                    // construct the modified appearance data.
-                    var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
-                    if(newAppearance == null) throw new Exception("Appearance data is null, not sending");
-                    // construct a dto object for sending.
-                    OnlineUserCharaAppearanceDataDto? dto;
-                    switch (SelectedLayer)
-                    {
-                        case 0:
-                            newAppearance.SlotOneGagType = SelectedGag.GetGagAlias();
-                            _logger.LogDebug("Applying the GagType [{0}] to {1} on layer 1", SelectedGag, PairAliasOrUID);
-                            _logger.LogDebug(newAppearance.ToString());
-                            _ = _apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto(UserPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagAppliedLayerOne));
-                            _logger.LogTrace("Applied the GagType [{0}] to {1} on layer 1", SelectedGag, PairAliasOrUID);
-                            break;
-                        case 1:
-                            newAppearance.SlotTwoGagType = SelectedGag.GetGagAlias();
-                            _ = _apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto(UserPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagAppliedLayerTwo));
-                            _logger.LogTrace("Applied the GagType [{0}] to {1} on layer 2", SelectedGag, PairAliasOrUID);
-                            break;
-                        case 2:
-                            newAppearance.SlotThreeGagType = SelectedGag.GetGagAlias();
-                            _ = _apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto(UserPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagAppliedLayerThree));
-                            _logger.LogTrace("Applied the GagType [{0}] to {1} on layer 3", SelectedGag, PairAliasOrUID);
-                            break;
-                        default:
-                            _logger.LogWarning("Invalid layer selected: {SelectedLayer}", SelectedLayer);
-                            break;
-                    }
+                GagAndLockPairkHelpers.DrawGagApplyWindow(UserPairForPerms, comboWidth, UserPairForPerms.UserData.UID,
+                    _logger, _uiShared, _apiController, out bool success);
 
-                }
-                UiSharedService.AttachToolTip("Apply the selected gag to " + PairAliasOrUID + " on gag layer" + (SelectedLayer+1) + ".\nTHIS DOES NOT WORK YET.");
+                if (success) ShowGagList = false;
             }
+            ImGui.Separator();
         }
 
+
         // button to lock the current layers gag. (references the gag applied, only interactable when layer is gagged.)
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, ("Lock " + PairAliasOrUID + "'s Gag"),
+            WindowMenuWidth, true, (!lockDisableCondition || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures) || !disableCondition))
+        {
+            ShowGagLock = !ShowGagLock;
+        }
+        UiSharedService.AttachToolTip("Lock " + PairAliasOrUID + "'s Gag. Click to view options.");
+
+        if (ShowGagLock)
+        {
+            // grab if we should expand window height or not prior to drawing it
+            bool expandHeight = GagAndLockPairkHelpers.ShouldExpandPasswordWindow(UserPairForPerms.UserData.UID);
+            using (var framedGagLockChild = ImRaii.Child("GagLockChild", new Vector2(WindowMenuWidth, 
+                ImGui.GetFrameHeight() * (expandHeight ? 2 + ImGui.GetStyle().ItemSpacing.Y : 1)), false))
+            {
+                if (!framedGagLockChild) return;
+
+                float comboWidth = WindowMenuWidth - ImGui.CalcTextSize("Lock Gag").X - ImGui.GetStyle().ItemSpacing.X * 2;
+
+                GagAndLockPairkHelpers.DrawGagLockWindow(UserPairForPerms, comboWidth, UserPairForPerms.UserData.UID,
+                    _logger, _uiShared, _apiController, out bool success);
+
+                if(success) ShowGagLock = false;
+            }
+            ImGui.Separator();
+        }
+
 
         // button to unlock the current layers gag. (references appearance data of pair. only visible while locked.)
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, ("Unlock " + PairAliasOrUID + "'s Gag"),
+            WindowMenuWidth, true, lockDisableCondition || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures))
+        {
+            ShowGagUnlock = !ShowGagUnlock;
+        }
+        UiSharedService.AttachToolTip("Unlock " + PairAliasOrUID + "'s Gag. Click to view options.");
 
-        // button to remove the current layers gag. (references appearance data of pair. only visible while unlocked & gagged).
+        if (ShowGagUnlock)
+        {
+            bool expandHeight = GagAndLockPairkHelpers.ShouldExpandPasswordWindow(UserPairForPerms.UserData.UID);
+            using (var framedGagUnlockChild = ImRaii.Child("GagUnlockChild", new Vector2(WindowMenuWidth,
+                ImGui.GetFrameHeight() * (expandHeight ? 2 + ImGui.GetStyle().ItemSpacing.Y : 1)), false))
+            {
+                if (!framedGagUnlockChild) return;
+
+                float comboWidth = WindowMenuWidth - ImGui.CalcTextSize("Unlock Gag").X - ImGui.GetStyle().ItemSpacing.X * 2;
+
+                GagAndLockPairkHelpers.DrawGagUnlockWindow(UserPairForPerms, comboWidth, UserPairForPerms.UserData.UID,
+                    _logger, _uiShared, _apiController, out bool success);
+
+                if(success) ShowGagUnlock = false;
+            }
+            ImGui.Separator();
+        }
+
+
+        // button to remove the current layers gag. (references appearance data of pair. only visible while gagged.)
+        if (_uiShared.IconTextButton(FontAwesomeIcon.TimesCircle, ("Remove " + PairAliasOrUID + "'s Gag"),
+            WindowMenuWidth, true, (!disableCondition || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures) && lockDisableCondition))
+        {
+            ShowGagRemove = !ShowGagRemove;
+        }
+        UiSharedService.AttachToolTip("Remove " + PairAliasOrUID + "'s Gag. Click to view options.");
+
+        if (ShowGagRemove)
+        {
+            using (var framedGagRemoveChild = ImRaii.Child("GagRemoveChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
+            {
+                if (!framedGagRemoveChild) return;
+
+                float comboWidth = WindowMenuWidth - ImGui.CalcTextSize("Remove Gag").X - ImGui.GetStyle().ItemSpacing.X * 2;
+
+                GagAndLockPairkHelpers.DrawGagRemoveWindow(UserPairForPerms, comboWidth, UserPairForPerms.UserData.UID,
+                    _logger, _uiShared, _apiController, out bool success);
+
+                if(success) ShowGagRemove = false;
+            }
+        }
         ImGui.Separator();
     }
+    #endregion GagActions
 
-    private bool ShowSetList = false;
-    private int RestraintSetSelction = 0;
+    #region WardrobeActions
+
+    private bool ShowSetApply = false;
+    private bool ShowSetLock = false;
+    private bool ShowSetUnlock = false;
+    private bool ShowSetRemove = false;
     private void DrawWardrobeActions()
     {
         // draw the apply-restraint-set button.
-        if (UserPairForPerms.IsOnline && UserPairForPerms.UserPairUniquePairPerms.ApplyRestraintSets)
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Handcuffs, "Apply Restraint Set", WindowMenuWidth,
+            true, UserPairForPerms.LastReceivedWardrobeData!.OutfitNames.Count <= 0))
         {
-            // do not display if the restraint set count is empty. (temporarily removed for visibility purposes.
-            if (_uiShared.IconTextButton(FontAwesomeIcon.PersonCircleCheck, "Apply Restraint Set", WindowMenuWidth,
-                true))//, UserPairForPerms.LastReceivedWardrobeData.OutfitNames.Count == 0))
-            {
-                ShowSetList = !ShowSetList;
-            }
-            UiSharedService.AttachToolTip("Applies a Restraint Set to " + UserPairForPerms.UserData.AliasOrUID + ". Click to view options.");
+            ShowSetApply = !ShowSetApply;
+        }
+        UiSharedService.AttachToolTip("Applies a Restraint Set to " + UserPairForPerms.UserData.AliasOrUID + ". Click to select set.");
 
-            // show the restraint set list if the button is clicked.
-            if (ShowSetList)
+        // show the restraint set list if the button is clicked.
+        if (ShowSetApply)
+        {
+            using (var frameSetApplyChild = ImRaii.Child("SetApplyChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeightWithSpacing()), false))
             {
-                if (ImGui.ListBox($"##RestraintSelection{UserPairForPerms.UserData.AliasOrUID}", ref RestraintSetSelction,
-                    UserPairForPerms.LastReceivedWardrobeData.OutfitNames.ToArray(), UserPairForPerms.LastReceivedWardrobeData.OutfitNames.Count))
-                {
-                    // apply the selected restraint set.
-                    _logger.LogInformation("Applying restraint set {0} to {1}", UserPairForPerms.LastReceivedWardrobeData.OutfitNames[RestraintSetSelction], UserPairForPerms.UserData.AliasOrUID);
-                }
+                if (!frameSetApplyChild) return;
+
+                float buttonWidth = WindowMenuWidth - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Female, "Apply Set") - ImGui.GetStyle().ItemSpacing.X;
+
+                WardrobeHelpers.DrawRestraintSetSelection(UserPairForPerms, buttonWidth, UserPairForPerms.UserData.UID, _uiShared);
+                ImGui.SameLine(0, 2);
+                WardrobeHelpers.DrawApplySet(UserPairForPerms, UserPairForPerms.UserData.UID, _logger, _uiShared, _apiController, out bool success);
+
+                if (success) ShowSetApply = false;
             }
+            ImGui.Separator();
         }
 
         // draw the lock restraint set button.
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, "Lock Restraint Set", WindowMenuWidth, 
+            true, UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty))
+        {
+            ShowSetLock = !ShowSetLock;
+        }
+        UiSharedService.AttachToolTip("Locks the Restraint Set applied to " + UserPairForPerms.UserData.AliasOrUID + ". Click to view options.");
+
+        if (ShowSetLock)
+        {
+            using (var frameSetLockChild = ImRaii.Child("SetLockChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight() * 2 + ImGui.GetStyle().ItemSpacing.Y), false))
+            {
+                if (!frameSetLockChild) return;
+
+                float buttonWidth = WindowMenuWidth - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Lock, "Lock Restraint Set");
+
+                using (var restraintSetLockGroup = ImRaii.Group())
+                {
+                    WardrobeHelpers.DrawRestraintSetSelection(UserPairForPerms, ImGui.GetContentRegionAvail().X, UserPairForPerms.UserData.UID, _uiShared);
+                    WardrobeHelpers.DrawLockRestraintSet(UserPairForPerms, buttonWidth,
+                        UserPairForPerms.UserData.UID, _logger, _uiShared, _apiController, out bool success);
+
+                    if (success) ShowSetLock = false;
+                }
+            }
+            ImGui.Separator();
+        }
 
         // draw the unlock restraint set button.
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock Restraint Set", WindowMenuWidth, 
+            true, !UserPairForPerms.LastReceivedWardrobeData!.ActiveSetIsLocked))
+        {
+            ShowSetUnlock = !ShowSetUnlock;
+        }
+        UiSharedService.AttachToolTip("Unlocks the Restraint Set applied to " + UserPairForPerms.UserData.AliasOrUID + ". Click to view options.");
+
+        if (ShowSetUnlock)
+        {
+            using (var frameSetUnlockChild = ImRaii.Child("SetUnlockChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeightWithSpacing()), false))
+            {
+                if (!frameSetUnlockChild) return;
+
+                WardrobeHelpers.DrawUnlockSet(UserPairForPerms, UserPairForPerms.UserData.UID, _logger, _uiShared, _apiController, out bool success);
+
+                if (success) ShowSetUnlock = false;
+            }
+            ImGui.Separator();
+        }
 
         // draw the remove restraint set button.
+        if (_uiShared.IconTextButton(FontAwesomeIcon.TimesCircle, "Remove Restraint Set", WindowMenuWidth, 
+            true, UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty))
+        {
+            ShowSetRemove = !ShowSetRemove;
+        }
+        UiSharedService.AttachToolTip("Removes the Restraint Set applied to " + UserPairForPerms.UserData.AliasOrUID + ". Click to view options.");
+
+        if (ShowSetRemove)
+        {
+            using (var frameSetRemoveChild = ImRaii.Child("SetRemoveChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeightWithSpacing()), false))
+            {
+                if (!frameSetRemoveChild) return;
+
+                WardrobeHelpers.DrawRemoveSet(UserPairForPerms, UserPairForPerms.UserData.UID, _logger, _uiShared, _apiController, out bool success);
+
+                if (success) ShowSetRemove = false;
+            }
+        }
 
         ImGui.Separator();
     }
+
+    #endregion WardrobeActions
+
+    #region PuppeteerActions
 
     private void DrawPuppeteerActions()
     {
@@ -238,6 +353,10 @@ public partial class UserPairPermsSticky
 
         ImGui.Separator();
     }
+
+    #endregion PuppeteerActions
+
+    #region MoodlesActions
 
     // All of these actions will only display relative to the various filters that the Moodle has applied.
     // initially test these buttons on self.
@@ -264,6 +383,10 @@ public partial class UserPairPermsSticky
         ImGui.Separator();
     }
 
+    #endregion MoodlesActions
+
+    #region ToyboxActions
+
     private void DrawToyboxActions()
     {
         // button for turning on or off the pairs connected toys. (Requires ChangeToyState)
@@ -281,6 +404,8 @@ public partial class UserPairPermsSticky
 
         ImGui.Separator();
     }
+
+    #endregion ToyboxActions
 
     private void DrawIndividualMenu()
     {

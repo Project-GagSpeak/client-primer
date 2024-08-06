@@ -208,7 +208,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                 // apply restraint set data to character.
                 await ApplyRestrainSetToCachedCharacterData();
 
-                // if they allow item auto equip and have any gags equipped, apply them.
+                // if they allow item auto equip and have any gags equipped, apply them after
                 if (_playerManager.GlobalPerms.ItemAutoEquip && _playerManager.IsPlayerGagged())
                 {
                     // apply the gag items overtop.

@@ -68,7 +68,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
             float[] xs;  // x-values
             float[] ys;  // y-values
                          // if we are playing back
-            if (_pHandler.PlaybackRunning)
+            if (_pHandler.PlaybackRunning && _pHandler.ActivePattern != null)
             {
                 int start = Math.Max(0, ReadBufferIdx - 150);
                 int count = Math.Min(150, ReadBufferIdx - start + 1);
@@ -180,7 +180,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
     private void ReadVibePosFromBuffer(object? sender, ElapsedEventArgs e)
     {
         // If we're playing back the stored positions
-        if (_pHandler.PlaybackRunning)
+        if (_pHandler.PlaybackRunning && _pHandler.ActivePattern != null)
         {
             // If we've reached the end of the stored positions, stop playback
             if (ReadBufferIdx >= _pHandler.ActivePattern.PatternByteData.Count)

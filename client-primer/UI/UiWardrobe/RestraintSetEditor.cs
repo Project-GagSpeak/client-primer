@@ -19,6 +19,8 @@ using Dalamud.Interface.Utility.Raii;
 using Penumbra.GameData.Data;
 using System.Numerics;
 using GagSpeak.WebAPI.Utils;
+using System.Windows.Forms.VisualStyles;
+using Dalamud.Interface.Colors;
 
 namespace GagSpeak.UI.UiWardrobe;
 
@@ -64,16 +66,6 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
         BonusItemCombos = BonusExtensions.AllFlags
             .Select(f => new BonusItemCombo(_gameData, f, _bonusItemsDictionary, logger))
             .ToArray();
-
-        // subscribe to mediator
-        Mediator.Subscribe<RestraintSetModified>(this, (msg) =>
-        {
-            // update the restraint set we are editing if the same restraint set that just got updated is the one we are modifying
-            if(msg.RestraintSetIndex == _handler.SelectedSetIdx)
-            {
-                EditingRestraintSet = _handler.GetRestraintSet(msg.RestraintSetIndex).DeepClone();
-            }
-        });
     }
 
     private readonly GameItemCombo[] ItemCombos;
@@ -83,109 +75,72 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
     private Vector2 GameIconSize;
     private const float ComboWidth = 200f;
     private float ItemComboLength;
-    private string RefName = string.Empty;
-    private string RefDescription = string.Empty;
-    private RestraintSet EditingRestraintSet = null!;
-    public void DrawRestraintSetEditor(Vector2 paddingHeight)
+
+    // Can pass in the set to create, or the set to edit. Either will result in appropriate action.
+    public void DrawRestraintSetEditor(RestraintSet refRestraint, Vector2 cellPadding)
     {
-        // if there are currently no created sets, then display in beg text that they must first create a set to edit one, and then return.
-        if (_handler.GetRestraintSetsByName().Count == 0)
-        {
-            _uiShared.BigText("No Restraint Sets Created!\n\nPlease Create a Set First.");
-            return;
-        }
-        // check if the set is null, meaning it has not been set. If this is the case, update it to the selected set.
-        if (EditingRestraintSet == null)
-        {
-            EditingRestraintSet = _handler.GetRestraintSet(_handler.SelectedSetIdx).DeepClone();
-        }
-
-        using (_ = ImRaii.Group())
-        {
-            // offer dropdown to select restraint set list.
-            List<string> nameList = _handler.GetRestraintSetsByName();
-            string defaultSelection = nameList.FirstOrDefault() ?? "No Restraint Sets Created!";
-
-            // Draw the combo box with the default selected item and the action
-            _uiShared.DrawComboSearchable("Select Restraint Set", 225f, ref RefSearchString,
-                nameList, (i) => i, true,
-            (i) =>
-            {
-                // Set the selected index to the selected item's index
-                Logger.LogInformation($"Selected Set: {i}");
-                int index = nameList.IndexOf(i);
-                _handler.SelectedSetIdx = index;
-                // update our edited restraint set to be the newly selected set
-                EditingRestraintSet = _handler.GetRestraintSet(index).DeepClone();
-            }, defaultSelection);
-
-
-            string refName = EditingRestraintSet.Name;
-            ImGui.SetNextItemWidth(225f);
-
-            if (ImGui.InputTextWithHint($"Rename Set##RenameSetName", "Restraint Set Name...", ref refName, 48, ImGuiInputTextFlags.EnterReturnsTrue))
-            {
-                EditingRestraintSet.Name = refName;
-            }
-            UiSharedService.AttachToolTip($"modify restraint set name here!");
-        }
-
-        var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
-        var currentRightSide = windowEndX - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Save, "Revert Changes");
-        ImGui.SameLine(currentRightSide);
-        using (_ = ImRaii.Group())
-        {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Save, "Update Outfit", _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Save, "Revert Changes")))
-            {
-                // add the new set to the config.
-                _handler.UpdateRestraintSet(_handler.SelectedSetIdx, EditingRestraintSet);
-            }
-
-            // draw revert button at the same locatoin but right below that button
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Undo, "Revert Changes"))
-            {
-                // revert the changes to the selected set.
-                EditingRestraintSet = _handler.GetRestraintSet(_handler.SelectedSetIdx).DeepClone();
-            }
-        }
-        ImGui.Separator();
-
         // create a tab bar for the display
-        using var tabBar = ImRaii.TabBar("Outfit_Creator");
+        using var tabBar = ImRaii.TabBar("Outfit_Editor");
 
         if (tabBar)
         {
+            var infoTab = ImRaii.TabItem("Info");
+            if (infoTab)
+            {
+                string refName = refRestraint.Name;
+                var width = ImGui.GetContentRegionAvail().X * 0.7f;
+
+                ImGui.Text("Restraint Set Name:");
+                ImGui.SetNextItemWidth(width);
+                if (ImGui.InputTextWithHint($"##NameText", "Restraint Set Name...", ref refName, 48, ImGuiInputTextFlags.EnterReturnsTrue))
+                {
+                    refRestraint.Name = refName;
+                }
+                UiSharedService.AttachToolTip($"Gives the Restraint Set a name!");
+
+                ImGui.Text("Restraint Set Description:");
+                string descriptiontext = refRestraint.Description;
+                using (var descColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey2))
+                {
+                    if (ImGui.InputTextMultiline("##InputSetDesc", ref descriptiontext, 150, ImGuiHelpers.ScaledVector2(width, GameIconSize.Y)))
+                    {
+                        refRestraint.Description = descriptiontext;
+                    }
+                }
+            }
+            infoTab.Dispose();
+
             // create glamour tab (applying the visuals)
-            var glamourTab = ImRaii.TabItem("Appearance / Glamour");
+            var glamourTab = ImRaii.TabItem("Appearance");
             if (glamourTab)
             {
-                DrawAppearance();
+                DrawAppearance(ref refRestraint);
             }
             glamourTab.Dispose();
 
-            var associatedMods = ImRaii.TabItem("Associated Mods");
+            var associatedMods = ImRaii.TabItem("Mods / Moodles / C+");
             if (associatedMods)
             {
-                _relatedMods.DrawUnstoredSetTable(ref EditingRestraintSet, paddingHeight.Y);
+                _relatedMods.DrawUnstoredSetTable(ref refRestraint, cellPadding.Y);
             }
             associatedMods.Dispose();
 
             // store the current style for cell padding
             var cellPaddingCurrent = ImGui.GetStyle().CellPadding;
             // push Y cell padding.
-            using (ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiShared.GetFontScalerFloat(), paddingHeight.Y)))
+            using (ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiShared.GetFontScalerFloat(), cellPadding.Y)))
             {
-                var visibilityAccess = ImRaii.TabItem("Pair Visibility & Hardcore Properties");
+                var visibilityAccess = ImRaii.TabItem("Pair Visibility & Hardcore");
                 if (visibilityAccess)
                 {
-                    DrawVisibilityAndProperties();
+                    DrawVisibilityAndProperties(ref refRestraint);
                 }
                 visibilityAccess.Dispose();
             }
         }
     }
 
-    private void DrawAppearance()
+    private void DrawAppearance(ref RestraintSet refRestraintSet)
     {
         ItemComboLength = ComboWidth * ImGuiHelpers.GlobalScale;
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
@@ -204,16 +159,16 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
             int i = 0;
             foreach (var slot in EquipSlotExtensions.EquipmentSlots)
             {
-                EditingRestraintSet.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                refRestraintSet.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
                 // if we right click the icon, clear it
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
-                    EditingRestraintSet.DrawData[slot].GameItem = ItemIdVars.NothingItem(EditingRestraintSet.DrawData[slot].Slot);
+                    refRestraintSet.DrawData[slot].GameItem = ItemIdVars.NothingItem(refRestraintSet.DrawData[slot].Slot);
                 }
                 ImGui.SameLine(0, 6);
                 using (var groupDraw = ImRaii.Group())
                 {
-                    DrawEquip(EditingRestraintSet.DrawData[slot].Slot, ItemComboLength);
+                    DrawEquip(ref refRestraintSet, refRestraintSet.DrawData[slot].Slot, ItemComboLength);
                 }
             }
             // i am dumb and dont know how to place adjustable divider lengths
@@ -223,18 +178,18 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
             {
                 using (var groupIcon = ImRaii.Group())
                 {
-                    EditingRestraintSet.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                    refRestraintSet.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
                     // if we right click the icon, clear it
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
-                        EditingRestraintSet.DrawData[slot].GameItem = ItemIdVars.NothingItem(EditingRestraintSet.DrawData[slot].Slot);
+                        refRestraintSet.DrawData[slot].GameItem = ItemIdVars.NothingItem(refRestraintSet.DrawData[slot].Slot);
                     }
                 }
 
                 ImGui.SameLine(0, 6);
                 using (var groupDraw = ImRaii.Group())
                 {
-                    DrawEquip(EditingRestraintSet.DrawData[slot].Slot, ItemComboLength);
+                    DrawEquip(ref refRestraintSet, refRestraintSet.DrawData[slot].Slot, ItemComboLength);
                 }
             }
         }
@@ -252,35 +207,25 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
             // end of table, now draw the bonus items
             foreach (var slot in BonusExtensions.AllFlags)
             {
-                EditingRestraintSet.BonusDrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                refRestraintSet.BonusDrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
                 ImGui.SameLine(0, 6);
-                DrawBonusItem(EditingRestraintSet.BonusDrawData[slot].Slot, newWidth);
+                DrawBonusItem(ref refRestraintSet, refRestraintSet.BonusDrawData[slot].Slot, newWidth);
                 ImUtf8.SameLineInner();
-                FontAwesomeIcon icon = EditingRestraintSet.BonusDrawData[slot].IsEnabled ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
+                FontAwesomeIcon icon = refRestraintSet.BonusDrawData[slot].IsEnabled ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
                 if (_uiShared.IconButton(icon))
                 {
-                    EditingRestraintSet.BonusDrawData[slot].IsEnabled = !EditingRestraintSet.BonusDrawData[slot].IsEnabled;
+                    refRestraintSet.BonusDrawData[slot].IsEnabled = !refRestraintSet.BonusDrawData[slot].IsEnabled;
                 }
                 UiSharedService.AttachToolTip("Toggles Apply Style of Item." +
                     Environment.NewLine + "EYE Icon (Apply Mode) applies regardless of selected item. (nothing slots make the slot nothing)" +
                     Environment.NewLine + "EYE SLASH Icon (Overlay Mode) means that it only will apply the item if it is NOT an nothing slot.");
-            }
-
-            ImGui.TableNextColumn();
-
-            string descriptiontext = EditingRestraintSet.Description;
-            if (ImGui.InputTextMultiline("##description", ref descriptiontext, 500,
-                ImGuiHelpers.ScaledVector2(width, GameIconSize.Y)))
-            {
-                // update the description
-                EditingRestraintSet.Description = descriptiontext;
             }
         }
     }
 
     public enum StimulationDegree { No, Light, Mild, Heavy }
 
-    private void DrawVisibilityAndProperties()
+    private void DrawVisibilityAndProperties(ref RestraintSet refRestraintSet)
     {
         using var table = ImRaii.Table("userListForVisibility", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY);
         if (table)
@@ -304,7 +249,7 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
 
                 ImGui.TableNextColumn();
                 // display nothing if they are not in the list, otherwise display a check
-                var canSeeIcon = EditingRestraintSet.ViewAccess.IndexOf(pair.UserData.UID) == -1 ? FontAwesomeIcon.Times : FontAwesomeIcon.Check;
+                var canSeeIcon = refRestraintSet.ViewAccess.IndexOf(pair.UserData.UID) == -1 ? FontAwesomeIcon.Times : FontAwesomeIcon.Check;
                 using (ImRaii.PushColor(ImGuiCol.Button, ImGui.ColorConvertFloat4ToU32(new(0, 0, 0, 0))))
                 {
                     if (ImGuiUtil.DrawDisabledButton(canSeeIcon.ToIconString(), new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()),
@@ -313,32 +258,32 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
                         if (canSeeIcon == FontAwesomeIcon.Times)
                         {
                             // add them
-                            EditingRestraintSet.ViewAccess.Add(pair.UserData.UID);
-                            EditingRestraintSet.SetProperties[pair.UserData.UID] = new HardcoreSetProperties();
+                            refRestraintSet.ViewAccess.Add(pair.UserData.UID);
+                            refRestraintSet.SetProperties[pair.UserData.UID] = new HardcoreSetProperties();
                         }
                         else
                         {
-                            EditingRestraintSet.ViewAccess.Remove(pair.UserData.UID);
-                            EditingRestraintSet.SetProperties.Remove(pair.UserData.UID);
+                            refRestraintSet.ViewAccess.Remove(pair.UserData.UID);
+                            refRestraintSet.SetProperties.Remove(pair.UserData.UID);
                         }
                     }
                 }
                 ImGui.TableNextColumn();
 
                 // draw the properties, but dont allow access if not in hardcore for them or if they are not in the list.
-                if (!EditingRestraintSet.ViewAccess.Contains(pair.UserData.UID))
+                if (!refRestraintSet.ViewAccess.Contains(pair.UserData.UID))
                 {
                     ImGui.Text("Must Grant User View Access to Set Properties");
                 }
-                else if (EditingRestraintSet.ViewAccess.Contains(pair.UserData.UID) && !EditingRestraintSet.SetProperties.ContainsKey(pair.UserData.UID))
+                else if (refRestraintSet.ViewAccess.Contains(pair.UserData.UID) && !refRestraintSet.SetProperties.ContainsKey(pair.UserData.UID))
                 {
                     // we have hit a case where we are editing a restraint with no saved hardcore properties, yet they have view access, so create one.
-                    EditingRestraintSet.SetProperties[pair.UserData.UID] = new HardcoreSetProperties();
+                    refRestraintSet.SetProperties[pair.UserData.UID] = new HardcoreSetProperties();
                 }
                 else
                 {
                     // grab a quick reference variable
-                    var properties = EditingRestraintSet.SetProperties[pair.UserData.UID];
+                    var properties = refRestraintSet.SetProperties[pair.UserData.UID];
 
                     using (ImRaii.Disabled(!pair.UserPairOwnUniquePairPerms.InHardcore))
                     {
@@ -491,9 +436,9 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
     }
 
     // space for helper functions below
-    public void DrawEquip(EquipSlot slot, float _comboLength)
+    public void DrawEquip(ref RestraintSet refRestraintSet, EquipSlot slot, float _comboLength)
     {
-        using var id = ImRaii.PushId((int)EditingRestraintSet.DrawData[slot].Slot);
+        using var id = ImRaii.PushId((int)refRestraintSet.DrawData[slot].Slot);
         var spacing = ImGui.GetStyle().ItemInnerSpacing with { Y = ImGui.GetStyle().ItemSpacing.Y };
         using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, spacing);
 
@@ -503,23 +448,23 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
         var ItemWidth = _comboLength - _uiShared.GetIconButtonSize(FontAwesomeIcon.EyeSlash).X - ImUtf8.ItemInnerSpacing.X;
 
         using var group = ImRaii.Group();
-        DrawItem(out var label, right, left, slot, ItemWidth);
+        DrawItem(ref refRestraintSet, out var label, right, left, slot, ItemWidth);
         ImUtf8.SameLineInner();
-        FontAwesomeIcon icon = EditingRestraintSet.DrawData[slot].IsEnabled ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
+        FontAwesomeIcon icon = refRestraintSet.DrawData[slot].IsEnabled ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash;
         if (_uiShared.IconButton(icon))
         {
-            EditingRestraintSet.DrawData[slot].IsEnabled = !EditingRestraintSet.DrawData[slot].IsEnabled;
+            refRestraintSet.DrawData[slot].IsEnabled = !refRestraintSet.DrawData[slot].IsEnabled;
         }
         UiSharedService.AttachToolTip("Toggles Apply Style of Item." +
             Environment.NewLine + "EYE Icon (Apply Mode) applies regardless of selected item. (nothing slots make the slot nothing)" +
             Environment.NewLine + "EYE SLASH Icon (Overlay Mode) means that it only will apply the item if it is NOT an nothing slot.");
-        DrawStain(slot, _comboLength);
+        DrawStain(ref refRestraintSet, slot, _comboLength);
     }
 
-    private void DrawItem(out string label, bool clear, bool open, EquipSlot slot, float width)
+    private void DrawItem(ref RestraintSet refRestraintSet, out string label, bool clear, bool open, EquipSlot slot, float width)
     {
         // draw the item combo.
-        var combo = ItemCombos[EditingRestraintSet.DrawData[slot].Slot.ToIndex()];
+        var combo = ItemCombos[refRestraintSet.DrawData[slot].Slot.ToIndex()];
         label = combo.Label;
         if (open)
         {
@@ -527,34 +472,34 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
             Logger.LogTrace($"{combo.Label} Toggled");
         }
         // draw the combo
-        var change = combo.Draw(EditingRestraintSet.DrawData[slot].GameItem.Name,
-            EditingRestraintSet.DrawData[slot].GameItem.ItemId, width, ComboWidth * 1.3f);
+        var change = combo.Draw(refRestraintSet.DrawData[slot].GameItem.Name,
+            refRestraintSet.DrawData[slot].GameItem.ItemId, width, ComboWidth * 1.3f);
 
         // if we changed something
-        if (change && !EditingRestraintSet.DrawData[slot].GameItem.Equals(combo.CurrentSelection))
+        if (change && !refRestraintSet.DrawData[slot].GameItem.Equals(combo.CurrentSelection))
         {
             // log full details.
             Logger.LogTrace($"Item changed from {combo.CurrentSelection} [{combo.CurrentSelection.ItemId}] " +
-                $"to {EditingRestraintSet.DrawData[slot].GameItem} [{EditingRestraintSet.DrawData[slot].GameItem.ItemId}]");
+                $"to {refRestraintSet.DrawData[slot].GameItem} [{refRestraintSet.DrawData[slot].GameItem.ItemId}]");
             // update the item to the new selection.
-            EditingRestraintSet.DrawData[slot].GameItem = combo.CurrentSelection;
+            refRestraintSet.DrawData[slot].GameItem = combo.CurrentSelection;
         }
 
         // if we right clicked
         if (clear || ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             // if we right click the item, clear it.
-            Logger.LogTrace($"Item changed to {ItemIdVars.NothingItem(EditingRestraintSet.DrawData[slot].Slot)} " +
-                $"[{ItemIdVars.NothingItem(EditingRestraintSet.DrawData[slot].Slot).ItemId}] " +
-                $"from {EditingRestraintSet.DrawData[slot].GameItem} [{EditingRestraintSet.DrawData[slot].GameItem.ItemId}]");
+            Logger.LogTrace($"Item changed to {ItemIdVars.NothingItem(refRestraintSet.DrawData[slot].Slot)} " +
+                $"[{ItemIdVars.NothingItem(refRestraintSet.DrawData[slot].Slot).ItemId}] " +
+                $"from {refRestraintSet.DrawData[slot].GameItem} [{refRestraintSet.DrawData[slot].GameItem.ItemId}]");
             // clear the item.
-            EditingRestraintSet.DrawData[slot].GameItem = ItemIdVars.NothingItem(EditingRestraintSet.DrawData[slot].Slot);
+            refRestraintSet.DrawData[slot].GameItem = ItemIdVars.NothingItem(refRestraintSet.DrawData[slot].Slot);
         }
     }
 
-    private void DrawBonusItem(BonusItemFlag flag, float width)
+    private void DrawBonusItem(ref RestraintSet refRestraintSet, BonusItemFlag flag, float width)
     {
-        using var id = ImRaii.PushId((int)EditingRestraintSet.BonusDrawData[flag].Slot);
+        using var id = ImRaii.PushId((int)refRestraintSet.BonusDrawData[flag].Slot);
         var spacing = ImGui.GetStyle().ItemInnerSpacing with { Y = ImGui.GetStyle().ItemSpacing.Y };
         using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, spacing);
 
@@ -562,22 +507,22 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
         bool open = ImGui.IsItemClicked(ImGuiMouseButton.Left);
 
         // Assuming _bonusItemCombo is similar to ItemCombos but for bonus items
-        var combo = BonusItemCombos[EditingRestraintSet.BonusDrawData[flag].Slot.ToIndex()];
+        var combo = BonusItemCombos[refRestraintSet.BonusDrawData[flag].Slot.ToIndex()];
 
         if (open)
             ImGui.OpenPopup($"##{combo.Label}");
 
-        var change = combo.Draw(EditingRestraintSet.BonusDrawData[flag].GameItem.Name,
-            EditingRestraintSet.BonusDrawData[flag].GameItem.Id,
+        var change = combo.Draw(refRestraintSet.BonusDrawData[flag].GameItem.Name,
+            refRestraintSet.BonusDrawData[flag].GameItem.Id,
             width, ComboWidth * 1.3f);
 
-        if (change && !EditingRestraintSet.BonusDrawData[flag].GameItem.Equals(combo.CurrentSelection))
+        if (change && !refRestraintSet.BonusDrawData[flag].GameItem.Equals(combo.CurrentSelection))
         {
             // log full details.
             Logger.LogTrace($"Item changed from {combo.CurrentSelection} [{combo.CurrentSelection.ModelId}] " +
-                $"to {EditingRestraintSet.BonusDrawData[flag].GameItem} [{EditingRestraintSet.BonusDrawData[flag].GameItem.ModelId}]");
+                $"to {refRestraintSet.BonusDrawData[flag].GameItem} [{refRestraintSet.BonusDrawData[flag].GameItem.ModelId}]");
             // change
-            EditingRestraintSet.BonusDrawData[flag].GameItem = combo.CurrentSelection;
+            refRestraintSet.BonusDrawData[flag].GameItem = combo.CurrentSelection;
         }
 
         if (clear || ImGui.IsItemClicked(ImGuiMouseButton.Right))
@@ -585,24 +530,24 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
             // Assuming a method to handle item reset or clear, similar to your DrawItem method
             Logger.LogTrace($"Item reset to default for slot {flag}");
             // reset it
-            EditingRestraintSet.BonusDrawData[flag].GameItem = BonusItem.Empty(flag);
+            refRestraintSet.BonusDrawData[flag].GameItem = BonusItem.Empty(flag);
         }
     }
 
-    private void DrawStain(EquipSlot slot, float width)
+    private void DrawStain(ref RestraintSet refRestraintSet, EquipSlot slot, float width)
     {
         // fetch the correct stain from the stain data
         var widthStains = (width - ImUtf8.ItemInnerSpacing.X *
-            (EditingRestraintSet.DrawData[slot].GameStain.Count - 1)) / EditingRestraintSet.DrawData[slot].GameStain.Count;
+            (refRestraintSet.DrawData[slot].GameStain.Count - 1)) / refRestraintSet.DrawData[slot].GameStain.Count;
 
         // draw the stain combo for each of the 2 dyes (or just one)
-        foreach (var (stainId, index) in EditingRestraintSet.DrawData[slot].GameStain.WithIndex())
+        foreach (var (stainId, index) in refRestraintSet.DrawData[slot].GameStain.WithIndex())
         {
             using var id = ImUtf8.PushId(index);
             var found = _stainDictionary.TryGetValue(stainId, out var stain);
             // draw the stain combo.
-            var change = StainColorCombos.Draw($"##stain{EditingRestraintSet.DrawData[slot].Slot}", stain.RgbaColor, stain.Name, found, stain.Gloss, widthStains);
-            if (index < EditingRestraintSet.DrawData[slot].GameStain.Count - 1)
+            var change = StainColorCombos.Draw($"##stain{refRestraintSet.DrawData[slot].Slot}", stain.RgbaColor, stain.Name, found, stain.Gloss, widthStains);
+            if (index < refRestraintSet.DrawData[slot].GameStain.Count - 1)
                 ImUtf8.SameLineInner(); // instantly go to draw the next one if there are two stains
 
             // if we had a change made, update the stain data.
@@ -611,18 +556,18 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
                 if (_stainDictionary.TryGetValue(StainColorCombos.CurrentSelection.Key, out stain))
                 {
                     // if changed, change it.
-                    EditingRestraintSet.DrawData[slot].GameStain = EditingRestraintSet.DrawData[slot].GameStain.With(index, stain.RowIndex);
+                    refRestraintSet.DrawData[slot].GameStain = refRestraintSet.DrawData[slot].GameStain.With(index, stain.RowIndex);
                 }
                 else if (StainColorCombos.CurrentSelection.Key == Stain.None.RowIndex)
                 {
                     // if set to none, reset it to default
-                    EditingRestraintSet.DrawData[slot].GameStain = EditingRestraintSet.DrawData[slot].GameStain.With(index, Stain.None.RowIndex);
+                    refRestraintSet.DrawData[slot].GameStain = refRestraintSet.DrawData[slot].GameStain.With(index, Stain.None.RowIndex);
                 }
             }
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
                 // reset the stain to default
-                EditingRestraintSet.DrawData[slot].GameStain = EditingRestraintSet.DrawData[slot].GameStain.With(index, Stain.None.RowIndex);
+                refRestraintSet.DrawData[slot].GameStain = refRestraintSet.DrawData[slot].GameStain.With(index, Stain.None.RowIndex);
             }
         }
     }

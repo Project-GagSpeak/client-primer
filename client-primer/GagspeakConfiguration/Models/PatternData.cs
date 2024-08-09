@@ -13,13 +13,19 @@ public record PatternData
     public string Description { get; set; } = string.Empty;
 
     /// <summary> The author of the pattern (Anonymous by default) </summary>
-    public string Author { get; set; } = "Anonymous Kinkster";
+    public string Author { get; set; } = "Anon Kinkster";
 
     /// <summary> Tags for the pattern. 5 tags at most. </summary>
     public List<string> Tags { get; set; } = new();
 
     /// <summary> The duration of the pattern </summary>
-    public string Duration { get; set; } = string.Empty;
+    public string Duration { get; set; } = "00:00";
+
+    /// <summary> The start point of the pattern to play </summary>
+    public string StartPoint { get; set; } = "00:00";
+
+    /// <summary> The duration of the pattern to play (if 00:00, play full) </summary>
+    public string PlaybackDuration { get; set; } = "00:00";
 
     /// <summary> If the pattern is active </summary>
     public bool IsActive { get; set; } = false;

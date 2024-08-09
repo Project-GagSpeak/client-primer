@@ -19,13 +19,6 @@ public partial class ApiController // Partial class for MainHub User Functions.
     {
         // if we are not connected, return
         if (!IsConnected) return;
-
-        // do not allow if pair already exists.
-        if (_pairManager.DirectPairs.Exists(p => string.Equals(p.UserData.UID, user.User.UID, StringComparison.Ordinal) || string.Equals(p.UserData.Alias, user.User.Alias, StringComparison.Ordinal)))
-        {
-            Logger.LogError("Can not add existing pair already in list!"); return;
-        }
-
         Logger.LogDebug("Adding pair {user} to client. Sending call to server.", user);
         // otherwise, call the UserAddPair function on the server with the user data transfer object via signalR
         await _gagspeakHub!.SendAsync(nameof(UserAddPair), user).ConfigureAwait(false); // wait for request to send.

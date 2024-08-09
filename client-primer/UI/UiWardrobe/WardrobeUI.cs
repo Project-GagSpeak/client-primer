@@ -15,23 +15,23 @@ public class WardrobeUI : WindowMediatorSubscriberBase
     private readonly WardrobeTabMenu _tabMenu;
     private readonly WardrobeHandler _handler;
     private readonly ActiveRestraintSet _activePanel;
-    private readonly RestraintSetsOverview _overviewPanel;
-    private readonly RestraintSetCreator _creatorPanel;
-    private readonly RestraintSetEditor _editorPanel;
+    private readonly RestraintSetManager _overviewPanel;
+    private readonly RestraintStruggleSim _struggleSimPanel;
+    private readonly MoodlesManager _moodlesPanel;
     private readonly RestraintCosmetics _cosmeticsPanel;
     public WardrobeUI(ILogger<WardrobeUI> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         WardrobeHandler handler, ActiveRestraintSet activeSet, 
-        RestraintSetsOverview restraintOverview, RestraintSetCreator restraintSetCreate,
-        RestraintSetEditor restraintSetEdit, RestraintCosmetics restraintCosmetics) 
+        RestraintSetManager restraintOverview, RestraintStruggleSim struggleSim,
+        MoodlesManager moodlesManager, RestraintCosmetics restraintCosmetics) 
         : base(logger, mediator, "Wardrobe UI")
     {
         _uiSharedService = uiSharedService;
         _handler = handler;
         _activePanel = activeSet;
         _overviewPanel = restraintOverview;
-        _creatorPanel = restraintSetCreate;
-        _editorPanel = restraintSetEdit;
+        _struggleSimPanel = struggleSim;
+        _moodlesPanel = moodlesManager;
         _cosmeticsPanel = restraintCosmetics;
 
         _tabMenu = new WardrobeTabMenu(_handler);
@@ -39,8 +39,8 @@ public class WardrobeUI : WindowMediatorSubscriberBase
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints
         {
-            MinimumSize = new Vector2(760, 439),
-            MaximumSize = new Vector2(760*1.5f, 439*1.5f)
+            MinimumSize = new Vector2(760, 445),
+            MaximumSize = new Vector2(760*1.5f, 445*1.5f)
         };
         RespectCloseHotkey = false;
     }
@@ -119,14 +119,14 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                         case WardrobeTabs.Tabs.ActiveSet:
                             _activePanel.DrawActiveSet();
                             break;
-                        case WardrobeTabs.Tabs.SetsOverview:
-                            _overviewPanel.DrawSetsOverview();
+                        case WardrobeTabs.Tabs.ManageSets:
+                            _overviewPanel.DrawManageSets(cellPadding);
                             break;
-                        case WardrobeTabs.Tabs.CreateNewSet:
-                            _creatorPanel.DrawRestraintSetCreator(cellPadding);
+                        case WardrobeTabs.Tabs.StruggleSim:
+                            _struggleSimPanel.DrawStruggleSim();
                             break;
-                        case WardrobeTabs.Tabs.ModifySet:
-                            _editorPanel.DrawRestraintSetEditor(cellPadding);
+                        case WardrobeTabs.Tabs.ManageMoodles:
+                            _moodlesPanel.DrawMoodlesManager();
                             break;
                         case WardrobeTabs.Tabs.Cosmetics:
                             _cosmeticsPanel.DrawCosmetics();

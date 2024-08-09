@@ -29,6 +29,8 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool ShowOnlineNotificationsOnlyForIndividualPairs { get; set; } = false; // only do it for the people you have paired
     public bool ShowOnlineNotificationsOnlyForNamedPairs { get; set; } = false; // only do it for the people you have paired and nicknamed
     public LogLevel LogLevel { get; set; } = LogLevel.Trace;            // the log level we want to see in /xllog
+    public bool LogResourceManagement { get; set; } = false;            // if we should log the management of vibration audio on players
+    public bool LogServerConnectionHealth { get; set; } = false;        // if we should log the health of the server connection
     public NotificationLocation InfoNotification { get; set; } = NotificationLocation.Both;
     public NotificationLocation WarningNotification { get; set; } = NotificationLocation.Both;
     public NotificationLocation ErrorNotification { get; set; } = NotificationLocation.Both;

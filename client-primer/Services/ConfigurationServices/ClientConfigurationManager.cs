@@ -119,7 +119,7 @@ public class ClientConfigurationManager
         // if the active set is not string.Empty, we should update our active sets.
         if (dto.WardrobeActiveSetName != string.Empty)
         {
-            SetRestraintSetState(UpdatedNewState.Enabled, GetRestraintSetIdxByName(dto.WardrobeActiveSetName), assigner, false);
+            SetRestraintSetState(GetRestraintSetIdxByName(dto.WardrobeActiveSetName), assigner, UpdatedNewState.Enabled, false);
         }
 
         // if the set was locked, we should lock it with the appropriate time.
@@ -209,7 +209,7 @@ public class ClientConfigurationManager
         _wardrobeConfig.Save();
         _logger.LogInformation("Restraint Set added to wardrobe");
         // publish to mediator
-        _mediator.Publish(new RestraintSetAddedMessage(newSet));
+        _mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
     }
 
     // remove a restraint set
@@ -217,14 +217,15 @@ public class ClientConfigurationManager
     {
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.RemoveAt(setIndex);
         _wardrobeConfig.Save();
-        _mediator.Publish(new RestraintSetRemovedMessage(setIndex));
+        _mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
     }
 
+    // Called whenever set is saved.
     internal void UpdateRestraintSet(int setIndex, RestraintSet updatedSet)
     {
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets[setIndex] = updatedSet;
         _wardrobeConfig.Save();
-        _mediator.Publish(new RestraintSetModified(setIndex));
+        _mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
     }
 
     internal bool PropertiesEnabledForSet(int setIndexToCheck, string UIDtoCheckPropertiesFor)
@@ -240,15 +241,23 @@ public class ClientConfigurationManager
             || setProperties.Weighty || setProperties.LightStimulation || setProperties.MildStimulation || setProperties.HeavyStimulation;
     }
 
-    internal void SetRestraintSetState(UpdatedNewState newState, int setIndex, string UIDofPair, bool shouldPublishToMediator = true)
+    internal void SetRestraintSetState(int setIndex, string UIDofPair, UpdatedNewState newState, bool pushToServer = true)
     {
         if (newState == UpdatedNewState.Disabled)
         {
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Enabled = false;
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = string.Empty;
             _wardrobeConfig.Save();
-            // publish toggle to mediator
-            _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair, shouldPublishToMediator));
+
+            // see if the properties are enabled for this set for this user
+            if (PropertiesEnabledForSet(setIndex, UIDofPair))
+            {
+                _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, true, pushToServer));
+            }
+            else
+            {
+                _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, false, pushToServer));
+            }
         }
         else
         {
@@ -266,12 +275,19 @@ public class ClientConfigurationManager
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Enabled = true;
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = UIDofPair;
             _wardrobeConfig.Save();
-            // publish toggle to mediator
-            _mediator.Publish(new RestraintSetToggledMessage(newState, setIndex, UIDofPair, shouldPublishToMediator));
+            // see if the properties are enabled for this set for this user
+            if (PropertiesEnabledForSet(setIndex, UIDofPair))
+            {
+                _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, true, pushToServer));
+            }
+            else
+            {
+                _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, false, pushToServer));
+            }
         }
     }
 
-    internal void LockRestraintSet(int setIndex, string UIDofPair, DateTimeOffset endLockTimeUTC, bool shouldPublishToMediator = true)
+    internal void LockRestraintSet(int setIndex, string UIDofPair, DateTimeOffset endLockTimeUTC, bool pushToServer = true)
     {
         // Ensure we are doing this to ourselves. (Possibly change later to remove entirely once we handle callbacks)
         if (UIDofPair != "SelfApplied") return;
@@ -282,10 +298,10 @@ public class ClientConfigurationManager
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = endLockTimeUTC;
         _wardrobeConfig.Save();
         
-        _mediator.Publish(new RestraintSetToggledMessage(UpdatedNewState.Locked, setIndex, UIDofPair, shouldPublishToMediator));
+        _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, UpdatedNewState.Locked, false, pushToServer));
     }
 
-    internal void UnlockRestraintSet(int setIndex, string UIDofPair, bool shouldPublishToMediator = true)
+    internal void UnlockRestraintSet(int setIndex, string UIDofPair, bool pushToServer = true)
     {
         // Ensure we are doing this to ourselves. (Possibly change later to remove entirely once we handle callbacks)
         if (UIDofPair != "SelfApplied") return;
@@ -296,46 +312,13 @@ public class ClientConfigurationManager
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = DateTimeOffset.MinValue;
         _wardrobeConfig.Save();
         
-        _mediator.Publish(new RestraintSetToggledMessage(UpdatedNewState.Unlocked, setIndex, UIDofPair, shouldPublishToMediator));
+        _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, UpdatedNewState.Unlocked, false, pushToServer));
     }
 
 
 
     internal int GetRestraintSetCount() => WardrobeConfig.WardrobeStorage.RestraintSets.Count;
     internal List<AssociatedMod> GetAssociatedMods(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods;
-
-    internal void AddAssociatedMod(int setIndex, AssociatedMod mod)
-    {
-        // make sure the associated mods list is not already in the list, and if not, add & save.
-        if (!WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods.Contains(mod))
-            WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods.Add(mod);
-
-        _wardrobeConfig.Save();
-        _mediator.Publish(new RestraintSetModified(setIndex));
-    }
-
-    internal void RemoveAssociatedMod(int setIndex, Mod mod)
-    {
-        // make sure the associated mods list is not already in the list, and if not, add & save.
-        var ModToRemove = WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods.FirstOrDefault(x => x.Mod == mod);
-        if (ModToRemove == null) return;
-
-        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods.Remove(ModToRemove);
-        _wardrobeConfig.Save();
-        _mediator.Publish(new RestraintSetModified(setIndex));
-    }
-
-    internal void UpdateAssociatedMod(int setIndex, AssociatedMod mod)
-    {
-        // make sure the associated mods list is not already in the list, and if not, add & save.
-        int associatedModIdx = WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods.FindIndex(x => x == mod);
-        if (associatedModIdx == -1) return;
-
-        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods[associatedModIdx] = mod;
-        _wardrobeConfig.Save();
-        _mediator.Publish(new RestraintSetModified(setIndex));
-    }
-
     internal bool IsBlindfoldActive() => WardrobeConfig.WardrobeStorage.BlindfoldInfo.IsActive;
 
     internal void SetBlindfoldState(bool newState, string applierUID)
@@ -411,6 +394,10 @@ public class ClientConfigurationManager
     #endregion Alias Config Methods
     /* --------------------- Toybox Pattern Configs --------------------- */
     #region Pattern Config Methods
+
+    /// <summary> Fetches the currently Active Alarm to have as a reference accessor. Can be null. </summary>
+    public PatternData? GetActiveRunningPattern() => _patternConfig.Current.PatternStorage.Patterns.FirstOrDefault(p => p.IsActive);
+
     public PatternData FetchPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx];
     public int GetPatternIdxByName(string name) => _patternConfig.Current.PatternStorage.Patterns.FindIndex(p => p.Name == name);
     public List<string> GetPatternNames() => _patternConfig.Current.PatternStorage.Patterns.Select(set => set.Name).ToList();
@@ -423,21 +410,43 @@ public class ClientConfigurationManager
     {
         var pattern = _patternConfig.Current.PatternStorage.Patterns[idx].Duration;
 
-        if (string.IsNullOrWhiteSpace(pattern) || !TimeSpan.TryParseExact(pattern, "mm\\:ss", null, out var timespanDuration))
+        if (string.IsNullOrWhiteSpace(pattern) || !TimeSpan.TryParseExact(pattern, "hh\\:mm\\:ss", null, out var timespanDuration))
         {
             timespanDuration = TimeSpan.Zero; // Default to 0 minutes and 0 seconds
         }
         return timespanDuration;
     }
 
-    // TODO: Make patterns mimic the similar edit and save state as the Alarms. Current implementation will spam API too much.
-    public void SetPatternState(int idx, bool newState, bool shouldPublishToMediator = true)
+    public void AddNewPattern(PatternData newPattern)
+    {
+        _patternConfig.Current.PatternStorage.Patterns.Add(newPattern);
+        _patternConfig.Save();
+        // publish to mediator one was added
+        _logger.LogInformation("Pattern Added: {0}", newPattern.Name);
+        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
+    }
+
+    public void RemovePattern(int indexToRemove)
+    {
+        // grab the patternData of the pattern we are removing.
+        var patternToRemove = _patternConfig.Current.PatternStorage.Patterns[indexToRemove];
+        _patternConfig.Current.PatternStorage.Patterns.RemoveAt(indexToRemove);
+        _patternConfig.Save();
+        // publish to mediator one was removed
+        _mediator.Publish(new PatternRemovedMessage(patternToRemove));
+        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
+    }
+
+    public void SetPatternState(int idx, bool newState, string startPoint = "", string playbackDuration = "", bool shouldPublishToMediator = true)
     {
         _patternConfig.Current.PatternStorage.Patterns[idx].IsActive = newState;
         _patternConfig.Save();
         if (newState)
         {
-            _mediator.Publish(new PatternActivedMessage(idx));
+            // if we are activating, make sure we pass in the startpoint and playback duration. if the passed in is string.Empty, use the vars from the pattern[idx].
+            _mediator.Publish(new PatternActivedMessage(idx,
+                string.IsNullOrWhiteSpace(startPoint) ? _patternConfig.Current.PatternStorage.Patterns[idx].StartPoint : startPoint,
+                string.IsNullOrWhiteSpace(playbackDuration) ? _patternConfig.Current.PatternStorage.Patterns[idx].Duration : playbackDuration));
         }
         else
         {
@@ -450,65 +459,34 @@ public class ClientConfigurationManager
         }
     }
 
-    public void SetNameForPattern(int idx, string newName)
+    public void UpdatePatternStatesFromCallback(List<PatternInfo> callbackPatternList)
     {
-        var newNameFinalized = EnsureUniqueName(newName);
-        _patternConfig.Current.PatternStorage.Patterns[idx].Name = newNameFinalized;
-        _patternConfig.Save();
-        _mediator.Publish(new PatternDataChanged(idx));
+        // iterate over each alarmInfo in the alarmInfo list. If any of the AlarmStorages alarms have a different enabled state than the alarm info's, change it.
+/*        foreach (AlarmInfo alarmInfo in callbackAlarmList)
+        {
+            // if the alarm is found in the list,
+            if (_alarmConfig.Current.AlarmStorage.Alarms.Any(x => x.Name == alarmInfo.Name))
+            {
+                // grab the alarm reference
+                var alarmRef = _alarmConfig.Current.AlarmStorage.Alarms.FirstOrDefault(x => x.Name == alarmInfo.Name);
+                // update the enabled state if the values are different.
+                if (alarmRef != null && alarmRef.Enabled != alarmInfo.Enabled)
+                {
+                    alarmRef.Enabled = alarmInfo.Enabled;
+                }
+            }
+            else
+            {
+                _logger.LogWarning("Failed to match an Alarm in your list with an alarm in the callbacks list. This shouldnt be possible?");
+            }
+        } DO NOTHING FOR NOW */
     }
 
-    public void ModifyDescription(int index, string newDescription)
+    public void UpdatePattern(PatternData pattern, int idx)
     {
-        _patternConfig.Current.PatternStorage.Patterns[index].Description = newDescription;
+        _patternConfig.Current.PatternStorage.Patterns[idx] = pattern;
         _patternConfig.Save();
-        _mediator.Publish(new PatternDataChanged(index));
-    }
-
-    public void SetAuthorForPattern(int idx, string newAuthor)
-    {
-        _patternConfig.Current.PatternStorage.Patterns[idx].Author = newAuthor;
-        _patternConfig.Save();
-        _mediator.Publish(new PatternDataChanged(idx));
-    }
-
-    public void AddTagToPattern(int idx, string newTag)
-    {
-        _patternConfig.Current.PatternStorage.Patterns[idx].Tags.Add(newTag);
-        _patternConfig.Save();
-        _mediator.Publish(new PatternDataChanged(idx));
-    }
-
-    public void RemoveTagFromPattern(int idx, string tagToRemove)
-    {
-        _patternConfig.Current.PatternStorage.Patterns[idx].Tags.Remove(tagToRemove);
-        _patternConfig.Save();
-        _mediator.Publish(new PatternDataChanged(idx));
-    }
-
-    public void SetPatternLoops(int idx, bool loops)
-    {
-        _patternConfig.Current.PatternStorage.Patterns[idx].ShouldLoop = loops;
-        _patternConfig.Save();
-        _mediator.Publish(new PatternDataChanged(idx));
-    }
-
-    public bool GetUserIsAllowedToView(int idx, string userId) =>
-        _patternConfig.Current.PatternStorage.Patterns[idx].AllowedUsers.Contains(userId);
-
-
-    public void AddTrustedUserToPattern(int idx, string userId)
-    {
-        _patternConfig.Current.PatternStorage.Patterns[idx].AllowedUsers.Add(userId);
-        _patternConfig.Save();
-        _mediator.Publish(new PatternDataChanged(idx));
-    }
-
-    public void RemoveTrustedUserFromPattern(int idx, string userId)
-    {
-        _patternConfig.Current.PatternStorage.Patterns[idx].AllowedUsers.Remove(userId);
-        _patternConfig.Save();
-        _mediator.Publish(new PatternDataChanged(idx));
+        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
     public string EnsureUniqueName(string baseName)
@@ -522,34 +500,12 @@ public class ClientConfigurationManager
         return newName;
     }
 
-    public void AddNewPattern(PatternData newPattern)
-    {
-        _patternConfig.Current.PatternStorage.Patterns.Add(newPattern);
-        _patternConfig.Save();
-        // publish to mediator one was added
-        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
-    }
-
-    public void RemovePattern(int indexToRemove)
-    {
-        // grab the patternData of the pattern we are removing.
-        var patternToRemove = _patternConfig.Current.PatternStorage.Patterns[indexToRemove];
-        _patternConfig.Current.PatternStorage.Patterns.RemoveAt(indexToRemove);
-        _patternConfig.Save();
-        // publish to mediator one was removed
-        _mediator.Publish(new PatternRemovedMessage(patternToRemove));
-
-        // TODO: This will chain call 2 update pushes. Make sure that we either seperate them or handle accordingly.
-        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
-    }
-
     #endregion Pattern Config Methods
     /* --------------------- Toybox Alarm Configs --------------------- */
     #region Alarm Config Methods
     public List<Alarm> AlarmsRef => _alarmConfig.Current.AlarmStorage.Alarms; // readonly accessor
     public Alarm FetchAlarm(int idx) => _alarmConfig.Current.AlarmStorage.Alarms[idx];
     public int FetchAlarmCount() => _alarmConfig.Current.AlarmStorage.Alarms.Count;
-
     public void RemovePatternNameFromAlarms(string patternName)
     {
         for (int i = 0; i < _alarmConfig.Current.AlarmStorage.Alarms.Count; i++)

@@ -24,6 +24,7 @@ using GagSpeak.WebAPI;
 using Lumina.Excel.GeneratedSheets;
 using Dalamud.Plugin;
 using GagSpeak.GagspeakConfiguration.Configurations;
+using Microsoft.VisualBasic.ApplicationServices;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -225,7 +226,8 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         ImGui.SetNextItemWidth(availableXWidth - buttonSize - spacingX);
         ImGui.InputTextWithHint("##otheruid", "Other players UID/Alias", ref _pairToAdd, 20);
         ImGui.SameLine();
-        using (ImRaii.Disabled(_pairToAdd.IsNullOrEmpty()))
+        bool existingUser = _pairManager.DirectPairs.Exists(p => string.Equals(p.UserData.UID, _pairToAdd, StringComparison.Ordinal) || string.Equals(p.UserData.Alias, _pairToAdd, StringComparison.Ordinal));
+        using (ImRaii.Disabled(existingUser || string.IsNullOrEmpty(_pairToAdd)))
         {
             if (_uiShared.IconTextButton(FontAwesomeIcon.UserPlus, "Add", buttonSize, false, _pairToAdd.IsNullOrEmpty()))
             {

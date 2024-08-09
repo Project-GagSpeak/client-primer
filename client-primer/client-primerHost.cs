@@ -7,31 +7,41 @@ using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
+using GagSpeak.Interop.IpcHelpers.Penumbra;
 using GagSpeak.MufflerCore.Handler;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Factories;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.PlayerData.Services;
+using GagSpeak.ResourceManager;
+using GagSpeak.ResourceManager.Loaders;
+using GagSpeak.ResourceManager.ResourceSpawn;
 using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Data;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
+using GagSpeak.Toybox.Services;
 using GagSpeak.UI;
+using GagSpeak.UI.Components;
 using GagSpeak.UI.Components.Popup;
 using GagSpeak.UI.Components.UserPairList;
 using GagSpeak.UI.Handlers;
 using GagSpeak.UI.MainWindow;
-using GagSpeak.UI.Permissions;
 using GagSpeak.UI.Profile;
 using GagSpeak.UI.Tabs.WardrobeTab;
 using GagSpeak.UI.UiGagSetup;
-using GagSpeak.UI.UiWardrobe;
-using GagSpeak.UI.UiPuppeteer;
-using GagSpeak.UI.UiToybox;
 using GagSpeak.UI.UiOrders;
+using GagSpeak.UI.UiPuppeteer;
+using GagSpeak.UI.UiRemote;
+using GagSpeak.UI.UiToybox;
+using GagSpeak.UI.UiWardrobe;
 using GagSpeak.UpdateMonitoring;
+using GagSpeak.UpdateMonitoring.Chat;
+using GagSpeak.UpdateMonitoring.Chat.ChatMonitors;
 using GagSpeak.WebAPI;
 using Interop.Ipc;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,16 +49,7 @@ using Microsoft.Extensions.Hosting;
 using OtterGui.Log;
 using Penumbra.GameData.Data;
 using Penumbra.GameData.DataContainers;
-using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
-using GagSpeak.Interop.IpcHelpers.Penumbra;
-using GagSpeak.Services.Data;
 using UI.UiRemote;
-using GagSpeak.UI.UiRemote;
-using GagSpeak.Toybox.Services;
-using GagSpeak.UI.Components;
-using GagSpeak.PlayerData.PrivateRooms;
-using GagSpeak.UpdateMonitoring.Chat;
-using GagSpeak.UpdateMonitoring.Chat.ChatMonitors;
 
 namespace GagSpeak;
 
@@ -63,7 +64,7 @@ public sealed class GagSpeak : IDalamudPlugin
     {
         // create the host builder for the plugin
         _host = ConstructHostBuilder(pi, pluginLog, commandManager, dataManager, framework, objectTable,
-            clientState, condition, chatGui, gameGui, gameInteropProvider, dtrBar, sigScanner, targetManager, 
+            clientState, condition, chatGui, gameGui, gameInteropProvider, dtrBar, sigScanner, targetManager,
             notificationManager, textureProvider);
         // start up the host
         _ = _host.StartAsync();
@@ -72,7 +73,7 @@ public sealed class GagSpeak : IDalamudPlugin
     // Method that creates the host builder for the GagSpeak plugin
     public IHost ConstructHostBuilder(IDalamudPluginInterface pi, IPluginLog pl, ICommandManager cm,
         IDataManager dm, IFramework fw, IObjectTable ot, IClientState cs, ICondition con, IChatGui cg,
-        IGameGui gg, IGameInteropProvider gip, IDtrBar bar, ISigScanner ss, ITargetManager tm, 
+        IGameGui gg, IGameInteropProvider gip, IDtrBar bar, ISigScanner ss, ITargetManager tm,
         INotificationManager nm, ITextureProvider tp)
     {
         // create a new host builder for the plugin
@@ -102,7 +103,7 @@ public sealed class GagSpeak : IDalamudPlugin
 
     /// <summary> Gets the plugin services for the GagSpeak plugin. </summary>
     private IServiceCollection GetPluginServices(IServiceCollection collection, IDalamudPluginInterface pi,
-        IPluginLog pl, ICommandManager cm, IDataManager dm, IFramework fw, IObjectTable ot, IClientState cs, ICondition con, 
+        IPluginLog pl, ICommandManager cm, IDataManager dm, IFramework fw, IObjectTable ot, IClientState cs, ICondition con,
         IChatGui cg, IGameGui gg, IGameInteropProvider gip, IDtrBar bar, ISigScanner ss, ITargetManager tm, INotificationManager nm, ITextureProvider tp)
     {
         return collection
@@ -151,7 +152,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new ChatInputDetour(ss, gip, s.GetRequiredService<ILogger<ChatInputDetour>>(),
             s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterManager>(),
             s.GetRequiredService<GagManager>()))
-        
+
         // PlayerData Services
         .AddSingleton<GagManager>()
         .AddSingleton<PadlockHandler>()
@@ -174,6 +175,14 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<AlarmHandler>()
         .AddSingleton<TriggerHandler>()
 
+        // ResourceManager Services
+        .AddSingleton((s) => new ResourceLoader(s.GetRequiredService<ILogger<ResourceLoader>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(), 
+            s.GetRequiredService<AvfxManager>(), s.GetRequiredService<ScdManager>(), dm, ss, gip))
+        .AddSingleton((s) => new AvfxManager(s.GetRequiredService<ILogger<AvfxManager>>(), dm, pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new ScdManager(s.GetRequiredService<ILogger<ScdManager>>(), dm, pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new VfxSpawns(s.GetRequiredService<ILogger<VfxSpawns>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ResourceLoader>(), cs, tm))
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
         .AddSingleton<GagSpeakHost>()
@@ -194,15 +203,11 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<UiSharedService>(), s.GetRequiredService<DictStain>(),
             s.GetRequiredService<ItemData>(), s.GetRequiredService<TextureService>(), dm))
-        
+
         .AddSingleton<ActiveRestraintSet>()
-        .AddSingleton<RestraintSetsOverview>()
-        .AddSingleton((s) => new RestraintSetCreator(s.GetRequiredService<ILogger<RestraintSetCreator>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
-            s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<DictStain>(), 
-            s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(),
-            s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(),
-            s.GetRequiredService<PairManager>(), dm))
+        .AddSingleton<RestraintSetManager>()
+        .AddSingleton<RestraintStruggleSim>()
+        .AddSingleton<MoodlesManager>()
         .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
             s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<DictStain>(),

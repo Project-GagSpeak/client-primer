@@ -76,8 +76,8 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         // initialize
         UpdateJobList();
         // see if we should enable the sets incase we load this prior to the restraint set manager loading.
-        if (_wardrobeHandler.ActiveSet != null &&
-            _clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), _wardrobeHandler.PairWhoEnabledSet.UserData.UID))
+        if (_wardrobeHandler.ActiveSet != null && _wardrobeHandler.ActiveSet.EnabledBy != "SelfAssigned" &&
+            _clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), _wardrobeHandler.ActiveSet.EnabledBy))
         {
             Logger.LogDebug($"Hardcore RestraintSet is now active");
             // apply stimulation modifier, if any (TODO)
@@ -89,31 +89,37 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         {
             Logger.LogDebug($" No restraint sets are active");
         }
+
         // subscribe to events.
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
 
-        Mediator.Subscribe<HardcoreRestraintSetEnabledMessage>(this, (msg) =>
+        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
         {
-            // apply stimulation modifier, if any (TODO)
-            _hardcoreHandler.ApplyMultiplier();
-            // activate hotbar lock, if we have any properties enabled (we always will since this subscriber is only called if there is)
-            _hotbarLocker.SetHotbarLockState(true);
-            // begin allowing monitoring of properties
-            MonitorHardcoreRestraintSetProperties = true;
+            if(msg.isHardcoreSet && msg.AssignerUID != "SelfAssigned" && msg.State == UpdatedNewState.Enabled)
+            {
+                // apply stimulation modifier, if any (TODO)
+                _hardcoreHandler.ApplyMultiplier();
+                // activate hotbar lock, if we have any properties enabled (we always will since this subscriber is only called if there is)
+                _hotbarLocker.SetHotbarLockState(true);
+                // begin allowing monitoring of properties
+                MonitorHardcoreRestraintSetProperties = true;
+            }
         });
 
-        Mediator.Subscribe<HardcoreRestraintSetDisabledMessage>(this, (msg) =>
+        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
         {
-            // reset multiplier
-            _hardcoreHandler.StimulationMultiplier = 1.0;
-            // we should also restore hotbar slots
-            RestoreSavedSlots();
-            // we should also unlock hotbar lock
-            _hotbarLocker.SetHotbarLockState(false);
-            // halt monitoring of properties
-            MonitorHardcoreRestraintSetProperties = false;
+            if( msg.isHardcoreSet && msg.AssignerUID != "SelfAssigned" && msg.State == UpdatedNewState.Disabled)
+            {
+                // reset multiplier
+                _hardcoreHandler.StimulationMultiplier = 1.0;
+                // we should also restore hotbar slots
+                RestoreSavedSlots();
+                // we should also unlock hotbar lock
+                _hotbarLocker.SetHotbarLockState(false);
+                // halt monitoring of properties
+                MonitorHardcoreRestraintSetProperties = false;
+            }
         });
-        /*Mediator.Subscribe<RestraintSetPropertyChanged>(this, (msg) => OnRestraintSetPropertyChanged(msg));*/
     }
 
     public bool MonitorHardcoreRestraintSetProperties = false;
@@ -314,7 +320,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
             // TODO: Fix this logic
             if (_clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), _wardrobeHandler.ActiveSet.EnabledBy))
             {
-                UpdateSlots(_wardrobeHandler.ActiveSet.SetProperties[_wardrobeHandler.PairWhoEnabledSet.UserData.UID]);
+                UpdateSlots(_wardrobeHandler.ActiveSet.SetProperties[_wardrobeHandler.ActiveSet.EnabledBy]);
             }
         }
     }

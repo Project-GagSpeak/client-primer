@@ -77,8 +77,8 @@ public static class WardrobeHelpers
             if (newWardrobe == null) throw new Exception("Wardrobe data is null, not sending");
             logger.LogInformation("Pushing updated Wardrobe Data pair and recipients");
 
+            // update the details of the new Dto that should be used.
             newWardrobe.ActiveSetName = state.SelectedSetName;
-            // TODO: Figure out how to implement descriptions into set profiles?
             newWardrobe.ActiveSetEnabledBy = apiController.UID;
 
             try

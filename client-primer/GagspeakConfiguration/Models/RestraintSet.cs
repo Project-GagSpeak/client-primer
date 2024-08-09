@@ -16,7 +16,7 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 public record RestraintSet
 {
     /// <summary> The name of the pattern </summary>
-    public string Name { get; set; } = string.Empty;
+    public string Name { get; set; } = "New Restraint Set";
 
     /// <summary> The description of the pattern </summary>
     public string Description { get; set; } = "Enter Description Here...";

@@ -36,13 +36,13 @@ public class ModAssociations : DisposableMediatorSubscriberBase
         if (msg.State == UpdatedNewState.Enabled)
         {
             // enable the mods.
-            foreach (var associatedMod in _handler.GetAssociatedMods(msg.RestraintSetIndex))
+            foreach (var associatedMod in _handler.GetAssociatedMods(msg.SetIdx))
                 _penumbra.SetMod(associatedMod, true);
         }
         // otherwise, new set state is false, so toggle off the mods
         else
         {
-            foreach (var associatedMod in _handler.GetAssociatedMods(msg.RestraintSetIndex))
+            foreach (var associatedMod in _handler.GetAssociatedMods(msg.SetIdx))
                 _penumbra.SetMod(associatedMod, false);
         }
     }
@@ -108,7 +108,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
     // draw the table for constructing the associated mods.
     private void DrawTable()
     {
-        using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, ImGui.GetStyle().CellPadding.Y));
+/*        using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, ImGui.GetStyle().CellPadding.Y));
         using var table = ImRaii.Table("Mods", 5, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY);
         if (!table) { return; }
 
@@ -149,7 +149,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
         if (updatedMod != null && updatedMod.IsChanged)
         {
             _handler.UpdateAssociatedMod(_handler.SelectedSetIdx, updatedMod.UpdatedMod);
-        }
+        }*/
     }
 
     private void DrawAssociatedModRow(AssociatedMod currentMod, int idx, out Mod? removedMod, out ModUpdateResult? updatedMod)
@@ -238,13 +238,13 @@ public class ModAssociations : DisposableMediatorSubscriberBase
         }
     }
 
-    private void DrawNewModRow()
+    private void DrawNewModRow(ref RestraintSet refSet)
     {
         var currentName = _modCombo.CurrentSelection.Mod.Name;
         ImGui.TableNextColumn();
         var tt = currentName.IsNullOrEmpty()
             ? "Please select a mod first."
-            : _handler.GetAssociatedMods(_handler.SelectedSetIdx).Any(x => x.Mod == _modCombo.CurrentSelection.Mod)
+            : refSet.AssociatedMods.Any(x => x.Mod == _modCombo.CurrentSelection.Mod)
                 ? "The design already contains an association with the selected mod."
                 : string.Empty;
 
@@ -259,7 +259,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
                 DisableWhenInactive = false,
                 RedrawAfterToggle = false
             };
-            _handler.AddAssociatedMod(_handler.SelectedSetIdx, associatedMod);
+            refSet.AssociatedMods.Add(associatedMod);
         }
 
         ImGui.TableNextColumn();
@@ -267,13 +267,13 @@ public class ModAssociations : DisposableMediatorSubscriberBase
             ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeight());
     }
 
-    private void DrawUnstoredSetNewModRow(ref RestraintSet unstoredSet)
+    private void DrawUnstoredSetNewModRow(ref RestraintSet refSet)
     {
         var currentName = _modCombo.CurrentSelection.Mod.Name;
         ImGui.TableNextColumn();
         var tt = currentName.IsNullOrEmpty()
             ? "Please select a mod first."
-            : unstoredSet.AssociatedMods.Any(x => x.Mod == _modCombo.CurrentSelection.Mod)
+            : refSet.AssociatedMods.Any(x => x.Mod == _modCombo.CurrentSelection.Mod)
                 ? "The design already contains an association with the selected mod."
                 : string.Empty;
 
@@ -288,7 +288,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
                 DisableWhenInactive = false,
                 RedrawAfterToggle = false
             };
-            unstoredSet.AssociatedMods.Add(associatedMod);
+            refSet.AssociatedMods.Add(associatedMod);
         }
 
         ImGui.TableNextColumn();

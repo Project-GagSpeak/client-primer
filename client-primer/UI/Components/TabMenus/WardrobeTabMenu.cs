@@ -41,9 +41,9 @@ public static class WardrobeTabs
     public enum Tabs
     {
         ActiveSet, // lets you see info about the active set
-        SetsOverview, // view the list of your sets and see combined overview.
-        CreateNewSet, // interface for creating a new restraint set.
-        ModifySet, // interface for editing an existing restraint set. (can heavily rip from add set)
+        ManageSets, // view the list of your sets and see combined overview.
+        StruggleSim, // for trying to struggle out of your restraints.
+        ManageMoodles, // Manage the permissions for your Moodles.
         Cosmetics, // lets you add custom effects to restraint set display in profile.
     }
 
@@ -52,9 +52,9 @@ public static class WardrobeTabs
         return tab switch
         {
             Tabs.ActiveSet => "Active Set",
-            Tabs.SetsOverview => "My Outfits",
-            Tabs.CreateNewSet => "Create Outfit",
-            Tabs.ModifySet => "Edit Outfit",
+            Tabs.ManageSets => "Restraint Sets",
+            Tabs.StruggleSim => "Struggle Sim",
+            Tabs.ManageMoodles => "Moodles",
             Tabs.Cosmetics  => "Outfit Cosmetics",
             _ => "None",
         };

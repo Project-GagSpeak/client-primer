@@ -89,18 +89,27 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         });
 
         // subscribe to the mediator events
-        Mediator.Subscribe<HardcoreRestraintSetDisabledMessage>(this, (msg) =>
+        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
         {
-            // might need to add back in another variable to pass through that references if it had weighty or not?
-            Logger.LogDebug($"[Action Manager]: Letting you run again");
-            Task.Delay(200);
-            unsafe // temp fix to larger issue, if experiencing problems, refer to old code.
+            if(msg.isHardcoreSet
+            && msg.State == UpdatedNewState.Disabled
+            && msg.AssignerUID != "SelfAssigned")
             {
-                Marshal.WriteByte((nint)gameControl, 23163, 0x0);
+                // might need to add back in another variable to pass through that references if it had weighty or not?
+                Logger.LogDebug($"[Action Manager]: Letting you run again");
+                Task.Delay(200);
+                unsafe // temp fix to larger issue, if experiencing problems, refer to old code.
+                {
+                    Marshal.WriteByte((nint)gameControl, 23163, 0x0);
+                }
             }
         });
-        Mediator.Subscribe<EndForcedToFollowMessage>(this, (msg) =>
+
+        Mediator.Subscribe<HardcoreForcedToFollowMessage>(this, (msg) =>
         {
+            if (msg.State != UpdatedNewState.Disabled) return;
+
+            // if we are no longer forced to follow, see if we are also no longer forced to sit.
             if (!msg.Pair.UserPair.OwnPairPerms.IsForcedToSit)
             {
                 // double check.
@@ -112,8 +121,10 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             }
         });
 
-        Mediator.Subscribe<EndForcedToSitMessage>(this, (msg) =>
+        Mediator.Subscribe<HardcoreForcedToSitMessage>(this, (msg) =>
         {
+            if (msg.State != UpdatedNewState.Disabled) return;
+
             // if we are no longer forced to sit.
             if (!msg.Pair.UserPair.OwnPairPerms.IsForcedToSit)
             {

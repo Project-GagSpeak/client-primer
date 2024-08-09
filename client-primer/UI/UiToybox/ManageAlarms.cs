@@ -20,8 +20,6 @@ public class ToyboxAlarmManager
     private readonly AlarmHandler _handler;
     private readonly PatternHandler _patternHandler;
 
-    private bool HeaderHovered = false;
-
     public ToyboxAlarmManager(ILogger<ToyboxAlarmManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         AlarmHandler handler, PatternHandler patternHandler)
@@ -82,7 +80,6 @@ public class ToyboxAlarmManager
             textSize = ImGui.CalcTextSize("New Alarm");
         }
         var centerYpos = (textSize.Y - iconSize.Y);
-        var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), HeaderHovered);
         using (ImRaii.Child("CreateAlarmHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + (centerYpos - startYpos) * 2)))
         {
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
@@ -114,7 +111,6 @@ public class ToyboxAlarmManager
             textSize = ImGui.CalcTextSize($"Creating Alarm: {CreatedAlarm.Name}");
         }
         var centerYpos = (textSize.Y - iconSize.Y);
-        var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), HeaderHovered);
         using (ImRaii.Child("EditAlarmHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + (centerYpos - startYpos) * 2)))
         {
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
@@ -139,7 +135,6 @@ public class ToyboxAlarmManager
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
             ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X - ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
-
             // the "fuck go back" button.
             if (_uiShared.IconButton(FontAwesomeIcon.Save))
             {
@@ -164,7 +159,6 @@ public class ToyboxAlarmManager
             textSize = ImGui.CalcTextSize($"{_handler.AlarmBeingEdited.Name}");
         }
         var centerYpos = (textSize.Y - iconSize.Y);
-        var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), HeaderHovered);
         using (ImRaii.Child("EditAlarmHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + (centerYpos - startYpos) * 2)))
         {
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
@@ -189,12 +183,25 @@ public class ToyboxAlarmManager
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
             ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X - ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
-
-            // the "fuck go back" button.
+            var currentYpos = ImGui.GetCursorPosY();
+            // for saving contents
             if (_uiShared.IconButton(FontAwesomeIcon.Save))
             {
                 // reset the createdAlarm to a new alarm, and set editing alarm to true
                 _handler.UpdateEditedAlarm();
+            }
+            UiSharedService.AttachToolTip("Save changes to Pattern & Return to Pattern List");
+
+            // right beside it to the right, we need to draw the delete button
+            using (var disableDelete = ImRaii.Disabled(UiSharedService.CtrlPressed()))
+            {
+                ImGui.SameLine();
+                ImGui.SetCursorPosY(currentYpos);
+                if (_uiShared.IconButton(FontAwesomeIcon.Trash))
+                {
+                    // reset the createdPattern to a new pattern, and set editing pattern to true
+                    _handler.RemoveAlarm(_handler.EditingAlarmIndex);
+                }
             }
         }
     }

@@ -355,8 +355,6 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         _notUpdatedCharas.Clear();
 
 
-
-
         // check if we are in the middle of a delayed framework update
         var isNormalFrameworkUpdate = DateTime.Now < _delayedFrameworkUpdateCheck.AddSeconds(1);
 

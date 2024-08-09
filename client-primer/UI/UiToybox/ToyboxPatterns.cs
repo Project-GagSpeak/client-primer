@@ -7,11 +7,8 @@ using GagSpeak.Interop.IpcHelpers.GameData;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI.Components;
 using GagSpeak.UI.UiRemote;
 using ImGuiNET;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
-using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using OtterGui;
 using OtterGui.Classes;
@@ -27,8 +24,8 @@ public class ToyboxPatterns
     private readonly PatternHandler _handler;
     private readonly PairManager _pairManager;
 
-    public ToyboxPatterns(ILogger<ToyboxPatterns> logger, 
-        GagspeakMediator mediator, UiSharedService uiSharedService, 
+    public ToyboxPatterns(ILogger<ToyboxPatterns> logger,
+        GagspeakMediator mediator, UiSharedService uiSharedService,
         PatternHandler patternHandler, PairManager pairManager)
     {
         _logger = logger;
@@ -38,155 +35,332 @@ public class ToyboxPatterns
         _pairManager = pairManager;
     }
 
-    private Vector2 DefaultItemSpacing { get; set; }
-    private LowerString PairSearchString = LowerString.Empty;
+    private Vector2 DefaultItemSpacing { get; set; } // TODO: remove
+
+    // Private accessor vars for list management.
+    private List<bool> ListItemHovered = new List<bool>();
     private LowerString PatternSearchString = LowerString.Empty;
+    private LowerString PairSearchString = LowerString.Empty;
 
     public void DrawPatternManagerPanel()
     {
-        // if the pattern list is empty, fetch it
-        if(_handler.PatternNames == null) return;
-
-        _uiShared.BigText("Patterns");
-
-        var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
-        var currentRightSide = windowEndX - (_uiShared.GetIconTextButtonSize(FontAwesomeIcon.Save, "Import") + 
-            ImGui.GetStyle().ItemSpacing.X*2 + _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Plus, "Create"));
-        ImGui.SameLine(currentRightSide);
-        using (_ = ImRaii.Group())
+        // if we are simply viewing the main page, display list of patterns  
+        if (_handler.EditingPatternNull)
         {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Create"))
+            DrawCreateOrImportPatternHeader();
+            ImGui.Separator();
+            if (_handler.PatternListSize() > 0)
+                DrawPatternSelectableMenu();
+
+            return; // perform early returns so we dont access other methods
+        }
+
+        // if we are editing an pattern
+        if (!_handler.EditingPatternNull)
+        {
+            DrawPatternEditorHeader();
+            ImGui.Separator();
+            if (_handler.PatternListSize() > 0 && _handler.EditingPatternIndex >= 0)
+                DrawPatternEditor(_handler.PatternBeingEdited);
+        }
+    }
+
+    private void DrawCreateOrImportPatternHeader()
+    {
+        // use button wrounding
+        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
+        var startYpos = ImGui.GetCursorPosY();
+        var iconSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus);
+        var importSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.FileImport, "Import");
+        Vector2 textSize;
+        using (_uiShared.UidFont.Push())
+        {
+            textSize = ImGui.CalcTextSize("New Pattern");
+        }
+        var centerYpos = (textSize.Y - iconSize.Y);
+        using (ImRaii.Child("CreatePatternHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + (centerYpos - startYpos) * 2)))
+        {
+            // now calculate it so that the cursors Y position centers the button in the middle height of the text
+            ImGui.SameLine(10 * ImGuiHelpers.GlobalScale);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
+            // draw out the icon button
+            if (_uiShared.IconButton(FontAwesomeIcon.Plus))
             {
                 // Open the lovense remote in PATTERN mode
                 _mediator.Publish(new UiToggleMessage(typeof(RemotePatternMaker)));
             }
-            ImGui.SameLine(0, 4);
-            // draw revert button at the same locatoin but right below that button
+            UiSharedService.AttachToolTip("Click me begin creating a new Pattern!");
+            // now next to it we need to draw the header text
+            ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(startYpos);
+            _uiShared.BigText("New Pattern");
+
+            // now calculate it so that the cursors Y position centers the button in the middle height of the text
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - importSize - ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
+
+            // draw revert button at the same location but right below that button
             if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import"))
             {
                 // Paste in the pattern data from the clipboard if valid.
                 SetFromClipboard();
             }
+            UiSharedService.AttachToolTip("Click me paste in a new pattern currently copied to your clipboard!");
         }
-
-        ImGui.Separator();
-
-        // if the counter is 0, perform an early return. Prevents us from drawing null pattern data.
-        if (_handler.PatternListSize() <= 0)
-        {
-            UiSharedService.ColorText("No patterns found.", ImGuiColors.DalamudYellow);
-            return;
-        }
-
-        // if the selected idx is -1, it has not been initialized, so initialize it
-        if (_handler.SelectedPatternIdx == -1)
-        {
-            if (_handler.PatternListSize() > 0)
-            {
-                _handler.SetSelectedPattern(_handler.FetchPattern(0), 0);
-            }
-        }
-
-        DrawPatterns();
     }
 
-    private void DrawPatterns()
+    private void DrawPatternEditorHeader()
     {
-        var searchString = PatternSearchString.Lower;
-        // draw the selector on the left
-        _uiShared.DrawComboSearchable("##PatternSelector", ImGui.GetContentRegionAvail().X, ref searchString,
-            _handler.PatternNames, (i) => i, false,
-        (i) =>
+        // use button rounding
+        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
+        var startYpos = ImGui.GetCursorPosY();
+        var iconSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus);
+        Vector2 textSize;
+        using (_uiShared.UidFont.Push())
         {
-            var foundMatch = _handler.GetPatternIdxByName(i);
-            if (_handler.IsIndexInBounds(foundMatch))
-            {
-                _handler.SetSelectedPattern(_handler.FetchPattern(foundMatch), foundMatch);
-            }
-        }, default);
+            textSize = ImGui.CalcTextSize($"Editing Pattern");
+        }
+        var centerYpos = (textSize.Y - iconSize.Y);
+        using (ImRaii.Child("EditPatternHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + (centerYpos - startYpos) * 2), false, ImGuiWindowFlags.NoScrollbar))
+        {
+            // now calculate it so that the cursors Yposition centers the button in the middle height of the text
+            ImGui.SameLine(10 * ImGuiHelpers.GlobalScale);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
 
-        // draw out the pattern information
-        if(_handler.PatternListSize() > 0)
-        {
-            if(_handler.SelectedPatternNull)
+            // the "fuck go back" button.
+            if (_uiShared.IconButton(FontAwesomeIcon.ArrowLeft))
             {
-                ImGui.Text("No pattern selected.");
+                // reset the createdPattern to a new pattern, and set editing pattern to true
+                _handler.ClearEditingPattern();
                 return;
             }
-            else
+            UiSharedService.AttachToolTip("Discard Pattern Changes & Return to Pattern List");
+            // now next to it we need to draw the header text
+            ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(startYpos);
+            using (_uiShared.UidFont.Push())
             {
-                DrawPatternInfo();
+                UiSharedService.ColorText("Editing Pattern", ImGuiColors.ParsedPink);
             }
+
+            // now calculate it so that the cursors Yposition centers the button in the middle height of the text
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X * 2 - ImGui.GetStyle().ItemSpacing.X * 2);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
+            var currentYpos = ImGui.GetCursorPosY();
+            // for saving contents
+            if (_uiShared.IconButton(FontAwesomeIcon.Save))
+            {
+                // reset the createdPattern to a new pattern, and set editing pattern to true
+                _handler.UpdateEditedPattern();
+            }
+            UiSharedService.AttachToolTip("Save changes to Pattern & Return to Pattern List");
+
+            // right beside it to the right, we need to draw the delete button
+            using (var disableDelete = ImRaii.Disabled(UiSharedService.CtrlPressed()))
+            {
+                ImGui.SameLine();
+                ImGui.SetCursorPosY(currentYpos);
+                if (_uiShared.IconButton(FontAwesomeIcon.Trash))
+                {
+                    // reset the createdPattern to a new pattern, and set editing pattern to true
+                    _handler.RemovePattern(_handler.EditingPatternIndex);
+                }
+            }
+            UiSharedService.AttachToolTip("Delete this Pattern\n(Must hold CTRL while clicking to delete)");
         }
     }
 
-    private void DrawPatternInfo()
+    private void DrawPatternSelectableMenu()
+    {
+        // if list size has changed, refresh the list of hovered items
+        if (ListItemHovered.Count != _handler.PatternListSize())
+        {
+            ListItemHovered.Clear();
+            ListItemHovered.AddRange(Enumerable.Repeat(false, _handler.PatternListSize()));
+        }
+
+        // display the selectable for each pattern using a for loop to keep track of the index
+        for (int i = 0; i < _handler.PatternListSize(); i++)
+        {
+            DrawPatternSelectable(i); // Pass the index to DrawPatternSelectable
+        }
+    }
+
+    private void DrawPatternSelectable(int idx)
+    {
+        // grab the pattern to draw details of.
+        var tmpPattern = _handler.GetPattern(idx);
+        // fetch the name of the pattern, and its text size
+        var name = tmpPattern.Name;
+        Vector2 tmpAlarmTextSize;
+
+        var nameTextSize = ImGui.CalcTextSize(name);
+        // fetch the author name (should only ever be UID, Alias, or Anonymous)
+        var author = tmpPattern.Author;
+        var authorTextSize = ImGui.CalcTextSize(author);
+        // fetch the duration of the pattern
+        var duration = tmpPattern.Duration;
+        var durationTextSize = ImGui.CalcTextSize(duration);
+        // fetch the list of tags.
+        var tags = tmpPattern.Tags;
+        using (_uiShared.UidFont.Push())
+        {
+            tmpAlarmTextSize = ImGui.CalcTextSize($"{name}");
+        }
+        // Get Style sizes
+        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
+        var startYpos = ImGui.GetCursorPosY();
+        var patternToggleButton = tmpPattern.IsActive ? FontAwesomeIcon.Stop : FontAwesomeIcon.Play;
+        var patternToggleButtonSize = _uiShared.GetIconButtonSize(tmpPattern.IsActive ? FontAwesomeIcon.Stop : FontAwesomeIcon.Play);
+
+        // create the selectable
+        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
+        using (ImRaii.Child($"##PatternSelectable{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 65f)))
+        {
+            // create a group for the bounding area
+            using (var group = ImRaii.Group())
+            {
+                // scooch over a bit like 5f
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
+                _uiShared.BigText($"{name}");
+                ImGui.SameLine();
+                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((tmpAlarmTextSize.Y - nameTextSize.Y) / 2));
+                if (tmpPattern.ShouldLoop)
+                {
+                    using (var loopColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.ParsedPink))
+                    {
+                        using (var font = ImRaii.PushFont(UiBuilder.IconFont))
+                        {
+                            ImGui.TextUnformatted(FontAwesomeIcon.Repeat.ToIconString());
+                        }
+                    }
+                }
+            }
+
+            using (var group = ImRaii.Group())
+            {
+                // scooch over a bit like 5f
+                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
+                UiSharedService.ColorText(author, ImGuiColors.DalamudGrey2);
+                ImGui.SameLine();
+                UiSharedService.ColorText("|  " + duration, ImGuiColors.DalamudGrey3);
+                // Below this, we should draw out the tags in a row, with a max of 5 tags. If they extend the width of the window, stop drawing.
+                var currentWidth = 0f;
+                var widthRef = ImGui.GetContentRegionAvail().X;
+            }
+
+            // now, head to the same line of the full width minus the width of the button
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - patternToggleButtonSize.X - ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (65f - patternToggleButtonSize.Y) / 2);
+            // draw out the icon button
+            if (_uiShared.IconButton(patternToggleButton))
+            {
+                // set the enabled state of the pattern based on its current state so that we toggle it
+                if (tmpPattern.IsActive)
+                    _handler.StopPattern(idx);
+                else
+                    _handler.PlayPattern(idx);
+                // toggle the state & early return so we dont access the childclicked button
+                return;
+            }
+            UiSharedService.AttachToolTip("Play / Stop this Pattern");
+        }
+        ListItemHovered[idx] = ImGui.IsItemHovered();
+        if (ImGui.IsItemClicked())
+        {
+            _handler.SetEditingPattern(tmpPattern, idx);
+        }
+        UiSharedService.AttachToolTip("Click me to edit this pattern.");
+    }
+
+    private void DrawPatternEditor(PatternData patternToEdit)
     {
         var region = ImGui.GetContentRegionAvail();
-        // display pattern information
-        _uiShared.BigText(_handler.SelectedPattern!.Name);
-        // on  the same line
-        ImGui.SameLine();
-        // display a large play button.
-        if (_uiShared.IconTextButton(_handler.SelectedPattern.IsActive ? FontAwesomeIcon.Square : FontAwesomeIcon.Play,
-                                     _handler.SelectedPattern.IsActive ? "Stop" : "Play"))
+        // Display the name of the pattern in the top center.
+        var refName = patternToEdit.Name;
+        using (_uiShared.UidFont.Push())
         {
-            if(_handler.SelectedPattern.IsActive)
-            {
-                _handler.StopPattern(_handler.SelectedPatternIdx);
-            }
-            else
-            {
-                _handler.PlayPattern(_handler.SelectedPatternIdx);
-            }
+            _uiShared.EditableTextFieldWithPopup("Pattern Name", ref refName, 32, "Name here...");
+            UiSharedService.AttachToolTip("Right-Click to edit name.");
         }
-        ImGui.SameLine();
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete"))
+        patternToEdit.Name = refName;
+
+        using (var group = ImRaii.Group())
         {
-            _handler.RemovePattern(_handler.SelectedPatternIdx);
+            // under this, in gold, draw out the Pattern Duration
+            using (var loopColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.ParsedGold))
+            {
+                ImGui.TextUnformatted("Author: ");
+            }
+            ImGui.SameLine();
+            ImGui.TextUnformatted(patternToEdit.Author);
         }
 
-        UiSharedService.ColorText("(By " + _handler.SelectedPattern!.Author + ")", ImGuiColors.ParsedGold);
 
-        UiSharedService.TextWrapped(_handler.SelectedPattern!.Description);
-
-        ImGui.TextUnformatted("Duration : " + _handler.SelectedPattern!.Duration);
-
-        if(_uiShared.IconTextButton(FontAwesomeIcon.Repeat, _handler.SelectedPattern!.ShouldLoop ? "Looping" : "Not Looping"))
+        using (var group = ImRaii.Group())
         {
-            if(_handler.SelectedPattern!.ShouldLoop)
+            using (var loopColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.ParsedGold))
             {
-                // set to not looping
-                _handler.SetPatternLoop(_handler.SelectedPatternIdx, false);
+                ImGui.TextUnformatted("Duration: ");
             }
-            else
+            ImGui.SameLine();
+            ImGui.TextUnformatted(patternToEdit.Duration);
+        }
+
+        using (var group = ImRaii.Group())
+        {
+            using (var loopColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.ParsedGold))
             {
-                // set to looping
-                _handler.SetPatternLoop(_handler.SelectedPatternIdx, true);
+                ImGui.TextUnformatted("Looping: ");
+            }
+            ImGui.SameLine();
+            if(_uiShared.IconTextButton(FontAwesomeIcon.Repeat, patternToEdit.ShouldLoop ? "Looping" : "Not Looping", null, true))
+            {
+                // change state
+                patternToEdit.ShouldLoop = !patternToEdit.ShouldLoop;
             }
         }
 
-        var widthRef = ImGui.GetContentRegionAvail().X;
-        var currentWidth = 0f;
-        ImGui.Text("Tags: ");
-        foreach (string tag in _handler.SelectedPattern!.Tags)
+        // grab the current cursorPosY ref.
+        var cursorPosY = ImGui.GetCursorPosY();
+
+        using (var group = ImRaii.Group())
         {
-            currentWidth += _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Tag, tag);
-            if (currentWidth < widthRef)
+            using (var loopColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.ParsedGold))
             {
-                ImGui.SameLine();
+                ImGui.TextUnformatted("Pattern Description: ");
             }
-            else
-            {
-                // reset currentwidth
-                currentWidth = 0f;
-            }
-            _uiShared.IconTextButton(FontAwesomeIcon.Tag, tag);
+
+            var descRef = patternToEdit.Description;
+            _uiShared.EditableTextFieldWithPopup("Pattern Description", ref descRef, 200, "Description here...");
+            UiSharedService.AttachToolTip("Right-Click to edit description.");
+            patternToEdit.Description = descRef;
         }
+
+        // move cursor down 3 ImGui.GetFrameHeightWithSpacing(), then draw the seperator
+        ImGui.SetCursorPosY(cursorPosY + 3 * ImGui.GetFrameHeightWithSpacing());
+        ImGui.Separator();
+
+        // Define the pattern playback parameters 
+        TimeSpan patternDurationTimeSpan = _handler.GetPatternLength(patternToEdit.Name);
+        var newStartDuration = patternToEdit.StartPoint;
+        _uiShared.DrawTimeSpanCombo("Playback Start-Point", patternDurationTimeSpan, ref newStartDuration,
+            UiSharedService.GetWindowContentRegionWidth() / 2);
+        patternToEdit.StartPoint = newStartDuration;
+
+        // calc the max playback length minus the start point we set to declare the max allowable duration to play
+        TimeSpan.TryParseExact(newStartDuration, "hh\\:mm\\:ss", null, out var startPointTimeSpan);
+        var maxPlaybackDuration = patternDurationTimeSpan - startPointTimeSpan;
+
+        // define the duration to playback
+        var newPlaybackDuration = patternToEdit.PlaybackDuration;
+        _uiShared.DrawTimeSpanCombo("Playback Duration", maxPlaybackDuration, ref newPlaybackDuration,
+            UiSharedService.GetWindowContentRegionWidth() / 2);
+
         ImGui.Separator();
         // display filterable search list
         DrawSearchFilter(ImGui.GetContentRegionAvail().X, ImGui.GetStyle().ItemSpacing.X);
-        using (var table = ImRaii.Table("userListForVisibility", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY, 
+        using (var table = ImRaii.Table("userListForVisibility", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY,
             new Vector2(region.X, ImGui.GetContentRegionAvail().Y)))
         {
             if (!table) return;
@@ -213,7 +387,7 @@ public class ToyboxPatterns
 
                 ImGui.TableNextColumn();
                 // display nothing if they are not in the list, otherwise display a check
-                var canSeeIcon = _handler.GetUserIsAllowedToView(_handler.SelectedPatternIdx, pair.UserData.UID) ? FontAwesomeIcon.Check : FontAwesomeIcon.Times;
+                var canSeeIcon = patternToEdit.AllowedUsers.Contains(pair.UserData.UID) ? FontAwesomeIcon.Check : FontAwesomeIcon.Times;
                 using (ImRaii.PushColor(ImGuiCol.Button, ImGui.ColorConvertFloat4ToU32(new(0, 0, 0, 0))))
                 {
                     if (ImGuiUtil.DrawDisabledButton(canSeeIcon.ToIconString(), new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()),
@@ -221,11 +395,11 @@ public class ToyboxPatterns
                     {
                         if (canSeeIcon == FontAwesomeIcon.Times)
                         {
-                            _handler.GrantUserAccessToPattern(_handler.SelectedPatternIdx, pair.UserData.UID);
+                            patternToEdit.AllowedUsers.Add(pair.UserData.UID);
                         }
                         else
                         {
-                            _handler.RevokeUserAccessToPattern(_handler.SelectedPatternIdx, pair.UserData.UID);
+                            patternToEdit.AllowedUsers.Remove(pair.UserData.UID);
                         }
                     }
                 }
@@ -250,55 +424,6 @@ public class ToyboxPatterns
             PairSearchString = string.Empty;
         }
     }
-    public void DrawPatternFilterList(float width)
-    {
-        using var group = ImRaii.Group();
-        DefaultItemSpacing = ImGui.GetStyle().ItemSpacing;
-        using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, Vector2.Zero).Push(ImGuiStyleVar.FrameRounding, 0);
-        ImGui.SetNextItemWidth(width);
-        LowerString.InputWithHint("##patternFilter", "Filter Patterns...", ref PatternSearchString, 64);
-
-        DrawPatternSelector(width);
-    }
-
-    private void DrawPatternSelector(float width)
-    {
-        using var child = ImRaii.Child("##PatternSelector", new Vector2(width, ImGui.GetContentRegionAvail().Y), true, ImGuiWindowFlags.NoScrollbar);
-        if (!child)
-            return;
-
-        using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, DefaultItemSpacing);
-        // temp store the PatternData of the potentially new item
-        int newlySelectedPattern = -1;
-        bool itemSelected = false; // Flag to check if an item has been selected
-
-
-        // draw out the pattern names
-        foreach (string patternName in _handler.PatternNames)
-        {
-            // we determine if it is selected by if it is within the filter we have defined
-            bool showPattern = PatternSearchString.IsEmpty || patternName.Contains(PatternSearchString.Lower, StringComparison.OrdinalIgnoreCase);
-
-            // if we should show this pattern
-            if(showPattern)
-            {
-                // draw it as a selectable
-                bool isSelected = _handler.SelectedPatternIdx.Equals(patternName);
-                if (ImGui.Selectable(patternName, isSelected))
-                {
-                    // update the selected PatternData (could be null, so be careful here.
-                    newlySelectedPattern = _handler.GetPatternIdxByName(patternName);
-                    itemSelected = true; // Mark that an item has been selected
-                }
-            }
-        }
-
-        // If an item was selected during this ImGui frame, update the selected pattern
-        if (itemSelected && newlySelectedPattern != -1)
-        {
-            _handler.SetSelectedPattern(_handler.FetchPattern(newlySelectedPattern), newlySelectedPattern);
-        }
-    }
 
     private void SetFromClipboard()
     {
@@ -318,7 +443,7 @@ public class ToyboxPatterns
 
             // Set the active pattern
             _logger.LogInformation("Set pattern data from clipboard");
-            _handler.AddPattern(pattern);
+            _handler.AddNewPattern(pattern);
         }
         catch (Exception ex)
         {

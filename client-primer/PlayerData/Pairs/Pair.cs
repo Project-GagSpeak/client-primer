@@ -147,36 +147,37 @@ public class Pair
     /// <summary>
     /// Applied updated Gag Appearance Data for the user pair. 
     /// This is sent to all online players, not just visible.
-    /// 
-    /// Because of this, simply applying the data is enough.
     /// </summary>
     public void ApplyAppearanceData(OnlineUserCharaAppearanceDataDto data)
     {
         _logger.LogDebug("Applying updated appearance data for {uid}", data.User.UID);
+
+        // update the full appearance, since we assume this is handled correctly and only called by owner of pair.
+        // Change this to only update info respective to the UpdateDataKind if this fails.
         LastReceivedAppearanceData = data.AppearanceData;
     }
 
     /// <summary>
     /// Applied updated Gag Appearance Data for the user pair. 
     /// This is sent to all online players, not just visible.
-    /// 
-    /// Because of this, simply applying the data is enough.
     /// </summary>
     public void ApplyWardrobeData(OnlineUserCharaWardrobeDataDto data)
     {
         _logger.LogDebug("Applying updated wardrobe data for {uid}", data.User.UID);
+        // update the full appearance, since we assume this is handled correctly and only called by owner of pair.
+        // Change this to only update info respective to the UpdateDataKind if this fails.
         LastReceivedWardrobeData = data.WardrobeData;
     }
 
     /// <summary>
     /// Applies the restraint set information the user pair has allowed you to see.
     /// This is sent to all online players, not just visible.
-    /// 
-    /// Because of this, simply applying the data is enough.
     /// </summary>
     public void ApplyAliasData(OnlineUserCharaAliasDataDto data)
     {
         _logger.LogDebug("Applying updated alias data for {uid}", data.User.UID);
+        // update the full appearance, since we assume this is handled correctly and only called by owner of pair.
+        // Change this to only update info respective to the UpdateDataKind if this fails.
         LastReceivedAliasData = data.AliasData;
     }
 
@@ -189,6 +190,8 @@ public class Pair
     public void ApplyPatternData(OnlineUserCharaToyboxDataDto data)
     {
         _logger.LogDebug("Applying updated pattern data for {uid}", data.User.UID);
+        // update the full appearance, since we assume this is handled correctly and only called by owner of pair.
+        // Change this to only update info respective to the UpdateDataKind if this fails.
         LastReceivedToyboxData = data.ToyboxInfo;
     }
 

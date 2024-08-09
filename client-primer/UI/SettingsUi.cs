@@ -8,6 +8,8 @@ using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.ResourceManager;
+using GagSpeak.ResourceManager.ResourceSpawn;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
@@ -33,6 +35,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly UiSharedService _uiShared;
+    private readonly AvfxManager _avfxManager;
+    private readonly VfxSpawns _vfxSpawns;
     private bool _deleteAccountPopupModalShown = false;
     private bool _deleteFilesPopupModalShown = false;
     private string _exportDescription = string.Empty;
@@ -47,15 +51,18 @@ public class SettingsUi : WindowMediatorSubscriberBase
     public SettingsUi(ILogger<SettingsUi> logger, UiSharedService uiShared,
         ApiController apiController, GagspeakConfigService configService,
         PairManager pairManager, PlayerCharacterManager playerCharacterManager,
-        ClientConfigurationManager clientConfigs,
-        ServerConfigurationManager serverConfigs, GagspeakMediator mediator,
-        IpcManager ipcManager, OnFrameworkService frameworkUtil) : base(logger, mediator, "GagSpeak Settings")
+        ClientConfigurationManager clientConfigs, AvfxManager avfxManager, 
+        VfxSpawns vfxSpawns, ServerConfigurationManager serverConfigs, 
+        GagspeakMediator mediator, IpcManager ipcManager, 
+        OnFrameworkService frameworkUtil) : base(logger, mediator, "GagSpeak Settings")
     {
         _apiController = apiController;
         _playerCharacterManager = playerCharacterManager;
         _configService = configService;
         _pairManager = pairManager;
         _clientConfigs = clientConfigs;
+        _avfxManager = avfxManager;
+        _vfxSpawns = vfxSpawns;
         _serverConfigs = serverConfigs;
         _ipcManager = ipcManager;
         _frameworkUtil = frameworkUtil;
@@ -91,6 +98,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
     public Dictionary<string, string[]> LanguagesDialects { get; init; } // Languages and Dialects for Chat Garbler.
     private string[] _currentDialects; // Array of Dialects for each Language
     private string _activeDialect; // Selected Dialect for Language
+    private string _selectedAvfxFile;
+    private string _selectedAvfxFile2;
+
 
     private string GetDialectFromConfigDialect()
     {
@@ -160,6 +170,72 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }, _configService.Current.LogLevel);
 
+        bool logResourceManagement = _configService.Current.LogResourceManagement;
+        bool logServerHealth = _configService.Current.LogServerConnectionHealth;
+
+        if (ImGui.Checkbox("Log Resource Management", ref logResourceManagement))
+        {
+            _configService.Current.LogResourceManagement = logResourceManagement;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText("Log vibrator audio source management to the debug log.");
+
+        if (ImGui.Checkbox("Log Server Health", ref logServerHealth))
+        {
+            _configService.Current.LogServerConnectionHealth = logServerHealth;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText("Log server connection health to the debug log.");
+
+        _uiShared.BigText("Vibrator Audio Testing Beta");
+        UiSharedService.ColorText("(WILL CRASH YOU IF NOT CORDY)", ImGuiColors.DPSRed);
+
+        var avfxFiles = _avfxManager.GetAvfxFiles();
+        var width = ImGui.GetContentRegionAvail().X / 3;
+        using (var group = ImRaii.Group())
+        {
+            ImGui.SetNextItemWidth(width);
+            if (ImGui.BeginCombo("Select AVFX File", _selectedAvfxFile))
+            {
+                foreach (var file in avfxFiles)
+                {
+                    if (ImGui.Selectable(file, file == _selectedAvfxFile))
+                    {
+                        _selectedAvfxFile = file;
+                    }
+                }
+                ImGui.EndCombo();
+            }
+            ImGui.SetNextItemWidth(width);
+            _vfxSpawns.DrawVfxRemove();
+            ImGui.SetNextItemWidth(width);
+            _vfxSpawns.DrawVfxSpawnOptions(_selectedAvfxFile, true, 1);
+        }
+        
+        ImGui.SameLine();
+
+        using (var group = ImRaii.Group())
+        {
+            ImGui.SetNextItemWidth(width);
+            if (ImGui.BeginCombo("Select AVFX File2", _selectedAvfxFile2))
+            {
+                foreach (var file in avfxFiles)
+                {
+                    if (ImGui.Selectable(file, file == _selectedAvfxFile2))
+                    {
+                        _selectedAvfxFile2 = file;
+                    }
+                }
+                ImGui.EndCombo();
+            }
+            ImGui.SetNextItemWidth(width);
+            _vfxSpawns.DrawVfxRemove();
+            ImGui.SetNextItemWidth(width);
+            _vfxSpawns.DrawVfxSpawnOptions(_selectedAvfxFile2, true, 2);
+        }
+
+
+        ImGui.Separator();
 
         // draw out our pair manager
         // Start of the Pair Manager section

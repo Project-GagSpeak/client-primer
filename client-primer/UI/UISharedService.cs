@@ -430,11 +430,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     {
         using var dis = ImRaii.PushStyle(ImGuiStyleVar.Alpha, disabled ? 0.5f : 1f);
         int num = 0;
-        /*        if (defaultColor.HasValue)
-                {
-                    ImGui.PushStyleColor(ImGuiCol.FrameBg, defaultColor.Value);
-                    num++;
-                }*/
+        // Disable if issues, tends to be culpret
+        if (defaultColor.HasValue)
+        {
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, defaultColor.Value);
+            num++;
+        }
 
         ImGui.PushID(label);
         Vector2 vector;
@@ -680,6 +681,35 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public void ForceSendEnterPress() => User32.keybd_event(0x0D, 0, 0, 0);
 
+    public void EditableTextFieldWithPopup(string popupId, ref string text, uint maxLength, string helpText)
+    {
+        ImGui.TextWrapped(text);
+        if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
+        {
+            ImGui.OpenPopup(popupId);
+        }
+
+        // open the popup if we satisfy that criteria
+        if (ImGui.BeginPopup(popupId))
+        {
+            // store our text from when we open it
+            string currentText = text;
+            var oldText = currentText;
+            // set keyboard focus to the text box
+            if (ImGui.IsWindowAppearing()) { ImGui.SetKeyboardFocusHere(0); }
+            // pompt the user to enter a new name
+            ImGui.TextUnformatted(helpText);
+            if (ImGui.InputText("##Rename", ref currentText, maxLength, ImGuiInputTextFlags.EnterReturnsTrue))
+            {
+                // if our text is updated, send the updated text to the output result as an action string
+                if (currentText != oldText)
+                    text = currentText;
+                // close the popup
+                ImGui.CloseCurrentPopup();
+            }
+            ImGui.EndPopup();
+        }
+    }
 
     public static void CopyableDisplayText(string text, string tooltip = "Click to copy")
     {
@@ -894,14 +924,14 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         if (ImGui.Button($"{patternDuration} / {patternMaxDuration}##TimeSpanCombo-{label}", new Vector2(width, ImGui.GetFrameHeight())))
         {
             ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
-            ImGui.OpenPopup("TimeSpanPopup");
+            ImGui.OpenPopup($"TimeSpanPopup-{label}");
         }
         // just to the right of it, aligned with the button, display the label
         ImUtf8.SameLineInner();
         ImGui.TextUnformatted(label);
 
         // Popup
-        if (ImGui.BeginPopup("TimeSpanPopup"))
+        if (ImGui.BeginPopup($"TimeSpanPopup-{label}"))
         {
             DrawTimeSpanUI(patternMaxDuration, ref patternHour, ref patternMinute, ref patternSecond, ref patternDuration);
             ImGui.EndPopup();

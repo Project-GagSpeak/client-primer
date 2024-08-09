@@ -86,7 +86,7 @@ public class SavePatternPopupHandler : IPopupHandler
         ImGui.Separator();
         if (_uiShared.IconTextButton(FontAwesomeIcon.Save, "Save Pattern Data", SaveWidth))
         {
-            _patternHandler.AddPattern(CompiledPatternData);
+            _patternHandler.AddNewPattern(CompiledPatternData);
             ImGui.CloseCurrentPopup();
         }
         ImGui.SameLine();

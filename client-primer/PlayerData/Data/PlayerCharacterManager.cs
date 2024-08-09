@@ -378,19 +378,18 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             // The below shouldnt necessarily even happen. Its redundant to.(unless we want verification feedback.)
             case DataUpdateKind.WardrobeRestraintOutfitsUpdated:
                 Logger.LogError("Why are you trying to do this, you shouldnt be able to possibly reach here.");
-                //_wardrobeHandler.UpdateRestraintSets(callbackDto.WardrobeData.OutfitNames);
                 break;
             case DataUpdateKind.WardrobeRestraintApplied:
-                _wardrobeHandler.CallbackForceEnableRestraintSet(callbackDto.WardrobeData.ActiveSetName, callbackDto.User.UID);
+                _wardrobeHandler.CallbackForceEnableRestraintSet(callbackDto);
                 break;
             case DataUpdateKind.WardrobeRestraintLocked:
-                _wardrobeHandler.CallbackForceLockRestraintSet(callbackDto.WardrobeData.ActiveSetName, callbackDto.User.UID, callbackDto.WardrobeData.ActiveSetLockTime);
+                _wardrobeHandler.CallbackForceLockRestraintSet(callbackDto);
                 break;
             case DataUpdateKind.WardrobeRestraintUnlocked:
-                _wardrobeHandler.CallbackForceUnlockRestraintSet(callbackDto.WardrobeData.ActiveSetName, callbackDto.User.UID); // TODO: This is bug
+                _wardrobeHandler.CallbackForceUnlockRestraintSet(callbackDto);
                 break;
             case DataUpdateKind.WardrobeRestraintRemoved:
-                _wardrobeHandler.CallbackForceDisableRestraintSet(callbackDto.WardrobeData.ActiveSetName, callbackDto.User.UID);
+                _wardrobeHandler.CallbackForceDisableRestraintSet(callbackDto);
                 break;
         }
     }
@@ -410,7 +409,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                         Logger.LogError("Tried to activate pattern but pattern does not exist? How is this even possible.");
                         return;
                     }
-                    _patternHandler.CallbackActivatePattern(pattern);
+                    _patternHandler.PlayPatternCallback(pattern);
                 }
                 break;
             case DataUpdateKind.ToyboxPatternDeactivated:
@@ -421,7 +420,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                         Logger.LogError("Tried to activate pattern but pattern does not exist? How is this even possible.");
                         return;
                     }
-                    _patternHandler.CallbackDeactivatePattern(pattern);
+                    _patternHandler.StopPatternCallback(pattern);
                 }
                 break;
             case DataUpdateKind.ToyboxAlarmListUpdated:

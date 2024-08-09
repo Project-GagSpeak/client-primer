@@ -84,37 +84,25 @@ public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item
 
 
 #region PLAYERDATA WARDROBE HANDLER RECORDS
-public record RestraintSetToggledMessage(UpdatedNewState State, int RestraintSetIndex, string AssignerUID, bool shouldPushChange) : MessageBase; // whenever the restraint set is toggled.
-public record RestraintSetPropertyChanged(string UidPropertiesChangedFor) : MessageBase; // fired when property is changed for a particular user
-public record RestraintSetAddedMessage(RestraintSet RestraintSetToAdd) : MessageBase; // A newly added restraint set
-public record RestraintSetModified(int RestraintSetIndex) : MessageBase; // fired when a restraint set is modified.
-public record RestraintSetRemovedMessage(int RestraintSetIndex) : MessageBase; // Set being removed
-public record HardcoreRestraintSetDisabledMessage : MessageBase; // when a restraint set is removed.
-public record HardcoreRestraintSetEnabledMessage : MessageBase; // when a restraint set is added.
-public record BeginForcedToFollowMessage(Pair Pair) : MessageBase; // pair issuing the startup of the forced to follow command
-public record EndForcedToFollowMessage(Pair Pair) : MessageBase;
-public record BeginForcedToSitMessage(Pair Pair) : MessageBase; // pair issuing the startup of the forced to sit command
-public record EndForcedToSitMessage(Pair Pair) : MessageBase;
-public record BeginForcedToStayMessage(Pair Pair) : MessageBase; // pair issuing the startup of the forced to stay command
-public record EndForcedToStayMessage(Pair Pair) : MessageBase;
-public record BeginForcedBlindfoldMessage(Pair Pair) : MessageBase; // when a pair forces another to follow
-public record EndForcedBlindfoldMessage(Pair Pair) : MessageBase;
+public record RestraintSetToggledMessage(int SetIdx, string AssignerUID, UpdatedNewState State, bool isHardcoreSet, bool pushChanges) : MessageBase; // whenever the restraint set is toggled.
+public record HardcoreForcedToFollowMessage(Pair Pair, UpdatedNewState State) : MessageBase;
+public record HardcoreForcedToSitMessage(Pair Pair, UpdatedNewState State) : MessageBase; 
+public record HardcoreForcedToStayMessage(Pair Pair, UpdatedNewState State) : MessageBase;
+public record HardcoreForcedBlindfoldMessage(Pair Pair, UpdatedNewState State) : MessageBase;
 #endregion PLAYERDATA WARDROBE HANDLER RECORDS
 
 #region PLAYERDATA TOYBOX HANDLER RECORDS
+public record VfxActorRemoved(IntPtr data) : MessageBase;
 public record ToyScanStarted : MessageBase; // for when the toybox scan is started.
 public record ToyScanFinished : MessageBase; // for when the toybox scan is finished.
 public record VibratorModeToggled(VibratorMode VibratorMode) : MessageBase; // for when the vibrator mode is toggled.
 public record ToyDeviceAdded(ButtplugClientDevice Device) : MessageBase; // for when a device is added.
 public record ToyDeviceRemoved(ButtplugClientDevice Device) : MessageBase; // for when a device is removed.
 public record ButtplugClientDisconnected : MessageBase; // for when the buttplug client disconnects.
-public record ToyboxActiveDeviceChangedMessage(int DeviceIndex) : MessageBase; // for when the active device is changed.
-public record UpdateVibratorIntensity(int NewIntensity) : MessageBase; // for when the vibrator intensity is changed.
-public record PatternAddedMessage(PatternData Pattern) : MessageBase; // for when a pattern is added.
-public record PatternRemovedMessage(PatternData pattern) : MessageBase; // for when a pattern is removed.
-public record PatternActivedMessage(int PatternIndex) : MessageBase; // for when a pattern is activated.
+public record ToyboxActiveDeviceChangedMessage(int DeviceIndex) : MessageBase; // for when the active device is changed.public record PatternRemovedMessage(PatternData pattern) : MessageBase; // for when a pattern is removed.
+public record PatternActivedMessage(int PatternIndex, string StartPoint, string PlaybackDuration) : MessageBase; // for when a pattern is activated.
 public record PatternDeactivedMessage(int PatternIndex) : MessageBase; // for when a pattern is deactivated.
-public record PatternDataChanged(int PatternIndex) : MessageBase; // for when a pattern is changed.
+public record PatternRemovedMessage(PatternData pattern) : MessageBase; // for when a pattern is removed.
 #endregion PLAYERDATA TOYBOX HANDLER RECORDS
 
 /* ------------------ PLAYERDATA CLIENTSIDE PERMISSION HANDLING ------------------- */

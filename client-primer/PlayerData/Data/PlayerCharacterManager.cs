@@ -381,7 +381,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                 case DataUpdateKind.WardrobeRestraintUnlocked: _wardrobeHandler.CallbackForceUnlockRestraintSet(callbackDto); break;
                 case DataUpdateKind.WardrobeRestraintDisabled: _wardrobeHandler.CallbackForceDisableRestraintSet(callbackDto); break;
             }
-            return; // dont process self callbacks if it was a pair callback.
+            return; // don't process self callbacks if it was a pair callback.
         }
 
 
@@ -403,36 +403,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                 }
                 break;
             case DataUpdateKind.WardrobeRestraintDisabled: Logger.LogDebug("Restraint Set Remove Successfully processed by Server!"); break;
-        }
-
-        // Update Appearance without calling any events so we don't loop back to the server.
-        switch (callbackDto.UpdateKind)
-        {
-            // The below shouldnt necessarily even happen. Its redundant to.(unless we want verification feedback.)
-            case DataUpdateKind.WardrobeRestraintOutfitsUpdated:
-                Logger.LogError("Why are you trying to do this, you shouldnt be able to possibly reach here.");
-                break;
-            case DataUpdateKind.WardrobeRestraintApplied:
-                _wardrobeHandler.CallbackForceEnableRestraintSet(callbackDto);
-                break;
-            case DataUpdateKind.WardrobeRestraintLocked:
-                _wardrobeHandler.CallbackForceLockRestraintSet(callbackDto);
-                break;
-            case DataUpdateKind.WardrobeRestraintUnlocked:
-                // strange one-off case where a lock naturally expires. Triggers feedback loop to player letting them know
-                // when the server has processed its state-update for being unlocked, so that the player can remove the set.
-                // (possibly make this an option for auto removal?)
-                if(callbackWasFromSelf)
-                {
-                    int activeSetIdx = _wardrobeHandler.GetRestraintSetIndexByName(callbackDto.WardrobeData.ActiveSetName);
-                    _wardrobeHandler.RemoveRestraintSet(activeSetIdx);
-                }
-                // otherwise if from other player, we should unlock our set and push updates to others.
-                _wardrobeHandler.CallbackForceUnlockRestraintSet(callbackDto);
-                break;
-            case DataUpdateKind.WardrobeRestraintDisabled:
-                _wardrobeHandler.CallbackForceDisableRestraintSet(callbackDto);
-                break;
         }
     }
 

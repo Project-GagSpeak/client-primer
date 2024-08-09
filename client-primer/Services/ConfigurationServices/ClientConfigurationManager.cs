@@ -249,8 +249,9 @@ public class ClientConfigurationManager
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = string.Empty;
             _wardrobeConfig.Save();
 
+            var pairHasHardcoreSetForUID = WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].SetProperties.ContainsKey(UIDofPair);
             // see if the properties are enabled for this set for this user
-            if (PropertiesEnabledForSet(setIndex, UIDofPair))
+            if (pairHasHardcoreSetForUID && PropertiesEnabledForSet(setIndex, UIDofPair))
             {
                 _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, true, pushToServer));
             }
@@ -275,8 +276,11 @@ public class ClientConfigurationManager
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Enabled = true;
             WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = UIDofPair;
             _wardrobeConfig.Save();
+
+            var pairHasHardcoreSetForUID = WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].SetProperties.ContainsKey(UIDofPair);
+
             // see if the properties are enabled for this set for this user
-            if (PropertiesEnabledForSet(setIndex, UIDofPair))
+            if (pairHasHardcoreSetForUID && PropertiesEnabledForSet(setIndex, UIDofPair))
             {
                 _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, true, pushToServer));
             }

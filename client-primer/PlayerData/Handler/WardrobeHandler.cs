@@ -122,7 +122,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         => _clientConfigs.SetRestraintSetState(idx, "SelfApplied", UpdatedNewState.Enabled, true);
 
     public void DisableRestraintSet(int idx) // a self-disable
-        => _clientConfigs.SetRestraintSetState(idx, "SelfApplied", UpdatedNewState.Enabled, true);
+        => _clientConfigs.SetRestraintSetState(idx, "SelfApplied", UpdatedNewState.Disabled, true);
     public void LockRestraintSet(int index, string assignerUID, DateTimeOffset endLockTimeUTC)
         => _clientConfigs.LockRestraintSet(index, assignerUID, endLockTimeUTC, true);
 

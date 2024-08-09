@@ -103,11 +103,9 @@ public static class WardrobeHelpers
     {
         var state = GetOrCreatePairState(pairAliasUID);
 
-
         success = false;
         // Draw out the timer field.
-        state.LockDurationString = DisplayInputField("##Timer_Input", "Format Example: 0h2m7s", state.LockDurationString, 
-            12, comboWidth - ImGui.GetStyle().ItemSpacing.X);
+        state.LockDurationString = DisplayInputField("##Timer_Input", "Format Example: 0h2m7s", state.LockDurationString, 12, comboWidth);
 
         // in same line,
         ImUtf8.SameLineInner();
@@ -210,11 +208,11 @@ public static class WardrobeHelpers
 
 
 
-    private static string DisplayInputField(string id, string hint, string value, uint maxLength, float widthRatio = 1f)
+    private static string DisplayInputField(string id, string hint, string value, uint maxLength, float width)
     {
         var result = value;
-        ImGui.SetNextItemWidth(250 * widthRatio);
-        if (ImGui.InputTextWithHint(id, hint, ref result, maxLength, ImGuiInputTextFlags.None))
+        ImGui.SetNextItemWidth(width);
+        if (ImGui.InputTextWithHint(id, hint, ref result, maxLength, ImGuiInputTextFlags.EnterReturnsTrue))
             return result;
         return value;
     }

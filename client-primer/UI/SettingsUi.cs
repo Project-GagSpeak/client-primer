@@ -5,6 +5,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
+using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
@@ -17,10 +18,12 @@ using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
+using Glamourer.Api.IpcSubscribers;
 using ImGuiNET;
 using System.Globalization;
 using System.Numerics;
 using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
+using static System.Windows.Forms.AxHost;
 
 namespace GagSpeak.UI;
 
@@ -509,6 +512,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         bool toyIsActive = PlayerGlobalPerms.ToyIsActive;
         bool spatialVibratorAudio = PlayerGlobalPerms.SpatialVibratorAudio;
 
+        var RevertState = _clientConfigs.GagspeakConfig.RevertStyle;
+
         // NOTE / TODO : The checkboxes flicker due to the server transfer time. However, we may be able to
         // directly assign before doing the call because we are going to receive the update which will set it again
         // anyways after if anything goes wrong. So we can just do it here if we want later to prevent flickering.
@@ -545,6 +550,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _uiShared.DrawHelpText("If enabled, the Live Chat Garbler will garble your chat messages in-game. (This is done server-side, others will see it too)");
         }
 
+
+        // draw out revert style selection
+        _uiShared.DrawCombo($"Revert Style##Revert Type Style", 200f, Enum.GetValues<RevertStyle>(), (revertStyle) => revertStyle.ToString(),
+        (i) =>
+        {
+            _clientConfigs.GagspeakConfig.RevertStyle = i;
+            _clientConfigs.Save();
+        }, _clientConfigs.GagspeakConfig.RevertStyle);
 
         ImGui.AlignTextToFramePadding();
         ImGui.Text("GagSpeak Channels:");

@@ -6,6 +6,7 @@ using ImGuiNET;
 using System.Numerics;
 using GagSpeak.Utils.PermissionHelpers;
 using static GagspeakAPI.Data.Enum.GagList;
+using OtterGui.Text;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -244,6 +245,8 @@ public partial class UserPairPermsSticky
     private bool ShowSetRemove = false;
     private void DrawWardrobeActions()
     {
+        var applyDisabledState = UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName != string.Empty;
+        var lockDisabledState = UserPairForPerms.LastReceivedWardrobeData.ActiveSetIsLocked;
         // draw the apply-restraint-set button.
         if (_uiShared.IconTextButton(FontAwesomeIcon.Handcuffs, "Apply Restraint Set", WindowMenuWidth,
             true, UserPairForPerms.LastReceivedWardrobeData!.OutfitNames.Count <= 0))
@@ -271,8 +274,7 @@ public partial class UserPairPermsSticky
         }
 
         // draw the lock restraint set button.
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, "Lock Restraint Set", WindowMenuWidth, 
-            true, UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, "Lock Restraint Set", WindowMenuWidth, true, !applyDisabledState || lockDisabledState))
         {
             ShowSetLock = !ShowSetLock;
         }
@@ -284,7 +286,7 @@ public partial class UserPairPermsSticky
             {
                 if (!frameSetLockChild) return;
 
-                float buttonWidth = WindowMenuWidth - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Lock, "Lock Restraint Set");
+                float buttonWidth = ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Lock, "Lock Set") - ImUtf8.ItemInnerSpacing.X;
 
                 using (var restraintSetLockGroup = ImRaii.Group())
                 {
@@ -299,8 +301,7 @@ public partial class UserPairPermsSticky
         }
 
         // draw the unlock restraint set button.
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock Restraint Set", WindowMenuWidth, 
-            true, !UserPairForPerms.LastReceivedWardrobeData!.ActiveSetIsLocked))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock Restraint Set", WindowMenuWidth, true, !applyDisabledState || !lockDisabledState))
         {
             ShowSetUnlock = !ShowSetUnlock;
         }

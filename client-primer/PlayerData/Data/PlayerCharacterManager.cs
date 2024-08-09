@@ -368,9 +368,42 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         }
     }
 
-    public void UpdateWardrobeFromCallback(OnlineUserCharaWardrobeDataDto callbackDto)
+    public void UpdateWardrobeFromCallback(OnlineUserCharaWardrobeDataDto callbackDto,  bool callbackWasFromSelf)
     {
-        // One of our pairs has just forced us to change a setting (we know it is because the server-side validates this)
+        // handle the cases where another pair has updated our data:
+        if (!callbackWasFromSelf)
+        {
+            switch (callbackDto.UpdateKind)
+            {
+                case DataUpdateKind.WardrobeRestraintOutfitsUpdated: Logger.LogError("You should never reach here. Report if you get this."); break;
+                case DataUpdateKind.WardrobeRestraintApplied: _wardrobeHandler.CallbackForceEnableRestraintSet(callbackDto); break;
+                case DataUpdateKind.WardrobeRestraintLocked: _wardrobeHandler.CallbackForceLockRestraintSet(callbackDto); break;
+                case DataUpdateKind.WardrobeRestraintUnlocked: _wardrobeHandler.CallbackForceUnlockRestraintSet(callbackDto); break;
+                case DataUpdateKind.WardrobeRestraintDisabled: _wardrobeHandler.CallbackForceDisableRestraintSet(callbackDto); break;
+            }
+            return; // dont process self callbacks if it was a pair callback.
+        }
+
+
+        // Handle the cases in where we updated our own data.
+        switch(callbackDto.UpdateKind)
+        {
+            case DataUpdateKind.WardrobeRestraintOutfitsUpdated: Logger.LogDebug("ListUpdate Successfully processed by Server!"); break;
+            case DataUpdateKind.WardrobeRestraintApplied: Logger.LogDebug("Restraint Set Apply Successfully processed by Server!"); break;
+            case DataUpdateKind.WardrobeRestraintLocked: Logger.LogDebug("Restraint Set Lock Successfully processed by Server!"); break;
+            case DataUpdateKind.WardrobeRestraintUnlocked:
+                {
+                    // for unlock, if we have enabled the setting for automatically removing unlocked sets, do so.
+                    if(_clientConfigManager.GagspeakConfig.DisableSetUponUnlock)
+                    {
+                        int activeSetIdx = _wardrobeHandler.GetRestraintSetIndexByName(callbackDto.WardrobeData.ActiveSetName);
+                        _wardrobeHandler.DisableRestraintSet(activeSetIdx);
+                    }
+                    Logger.LogDebug("Restraint Set Unlock Successfully processed by Server!");
+                }
+                break;
+            case DataUpdateKind.WardrobeRestraintDisabled: Logger.LogDebug("Restraint Set Remove Successfully processed by Server!"); break;
+        }
 
         // Update Appearance without calling any events so we don't loop back to the server.
         switch (callbackDto.UpdateKind)
@@ -386,9 +419,18 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                 _wardrobeHandler.CallbackForceLockRestraintSet(callbackDto);
                 break;
             case DataUpdateKind.WardrobeRestraintUnlocked:
+                // strange one-off case where a lock naturally expires. Triggers feedback loop to player letting them know
+                // when the server has processed its state-update for being unlocked, so that the player can remove the set.
+                // (possibly make this an option for auto removal?)
+                if(callbackWasFromSelf)
+                {
+                    int activeSetIdx = _wardrobeHandler.GetRestraintSetIndexByName(callbackDto.WardrobeData.ActiveSetName);
+                    _wardrobeHandler.RemoveRestraintSet(activeSetIdx);
+                }
+                // otherwise if from other player, we should unlock our set and push updates to others.
                 _wardrobeHandler.CallbackForceUnlockRestraintSet(callbackDto);
                 break;
-            case DataUpdateKind.WardrobeRestraintRemoved:
+            case DataUpdateKind.WardrobeRestraintDisabled:
                 _wardrobeHandler.CallbackForceDisableRestraintSet(callbackDto);
                 break;
         }

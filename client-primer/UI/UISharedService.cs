@@ -425,7 +425,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
 
-    private bool IconInputTextInternal(FontAwesomeIcon icon, string label, string hint, ref string inputStr,
+    private bool IconInputTextInternal(string id, FontAwesomeIcon icon, string label, string hint, ref string inputStr,
         uint maxLength, Vector4? defaultColor = null, float? width = null, bool disabled = false)
     {
         using var dis = ImRaii.PushStyle(ImGuiStyleVar.Alpha, disabled ? 0.5f : 1f);
@@ -437,7 +437,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             num++;
         }
 
-        ImGui.PushID(label);
+        ImGui.PushID(id);
         Vector2 vector;
         using (IconFont.Push())
             vector = ImGui.CalcTextSize(icon.ToIconString());
@@ -449,7 +449,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         float frameHeight = ImGui.GetFrameHeight();
         ImGui.SetCursorPosX(vector.X + ImGui.GetStyle().FramePadding.X * 2f + num2);
         ImGui.SetNextItemWidth(x - vector.X - num2);
-        bool result = ImGui.InputTextWithHint(label, hint, ref inputStr, maxLength);
+        bool result = ImGui.InputTextWithHint(label, hint, ref inputStr, maxLength, ImGuiInputTextFlags.EnterReturnsTrue);
 
         Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
         using (IconFont.Push())
@@ -464,10 +464,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return result && !disabled;
     }
 
-    public bool IconInputText(FontAwesomeIcon icon, string label, string hint, ref string inputStr,
+    public bool IconInputText(string id, FontAwesomeIcon icon, string label, string hint, ref string inputStr,
         uint maxLength, float? width = null, bool isInPopup = false, bool disabled = false)
     {
-        return IconInputTextInternal(icon, label, hint, ref inputStr, maxLength,
+        return IconInputTextInternal(id, icon, label, hint, ref inputStr, maxLength,
             isInPopup ? ColorHelpers.RgbaUintToVector4(ImGui.GetColorU32(ImGuiCol.PopupBg)) : null,
             width <= 0 ? null : width,
             disabled);

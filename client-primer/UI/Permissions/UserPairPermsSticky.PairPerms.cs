@@ -104,7 +104,7 @@ public partial class UserPairPermsSticky
 
         DrawOtherPairSetting("LockRestraintSets", "LockRestraintSetsAllowed",
             UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets ? (PairAliasOrUID + " allows Locking Restraints") : (PairAliasOrUID + " prevents Locking Restraints"),
-            UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets ? FontAwesomeIcon.ShopLock : FontAwesomeIcon.ShopSlash,
+            UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets ? FontAwesomeIcon.Lock : FontAwesomeIcon.ShopSlash,
             UserPairForPerms.UserPairEditAccess.LockRestraintSetsAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.LockRestraintSetsAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
@@ -115,6 +115,13 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPairEditAccess.MaxAllowedRestraintTimeAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.MaxAllowedRestraintTimeAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.TimeSpan);
+
+        DrawOtherPairSetting("UnlockRestraintSets", "UnlockRestraintSetsAllowed",
+            UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets ? (PairAliasOrUID + " allows Unlocking Restraints") : (PairAliasOrUID + " prevents Unlocking Restraints"),
+            UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets ? FontAwesomeIcon.LockOpen : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairEditAccess.UnlockRestraintSetsAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
+            UserPairForPerms.UserPairEditAccess.UnlockRestraintSetsAllowed,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("RemoveRestraintSets", "RemoveRestraintSetsAllowed",
             UserPairForPerms.UserPairUniquePairPerms.RemoveRestraintSets ? (PairAliasOrUID + " allows Removing Restraints") : (PairAliasOrUID + " prevents Removing Restraints"),
@@ -346,8 +353,9 @@ public partial class UserPairPermsSticky
 
             using (var group = ImRaii.Group())
             {
+                var id = label + "##" + permissionName;
                 // draw the iconTextButton and checkbox beside it. Because we are in control, unless in hardcore, this should never be disabled.
-                if (_uiShared.IconInputText(icon, label, "format 0d0h0m0s...", ref timeSpanString, 32, IconButtonTextWidth*.5f, true, !hasAccess)) { }
+                if (_uiShared.IconInputText(id, icon, label, "format 0d0h0m0s...", ref timeSpanString, 32, IconButtonTextWidth*.5f, true, !hasAccess)) { }
                 // Set the permission once deactivated. If invalid, set to default.
                 if (ImGui.IsItemDeactivatedAfterEdit()
                     && timeSpanString != _uiShared.TimeSpanToString((TimeSpan)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!))

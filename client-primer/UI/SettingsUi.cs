@@ -498,6 +498,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         bool wardrobeEnabled = PlayerGlobalPerms.WardrobeEnabled;
         bool itemAutoEquip = PlayerGlobalPerms.ItemAutoEquip;
         bool restraintSetAutoEquip = PlayerGlobalPerms.RestraintSetAutoEquip;
+        bool restraintSetDisableWhenUnlocked = _clientConfigs.GagspeakConfig.DisableSetUponUnlock;
 
         bool puppeteerEnabled = PlayerGlobalPerms.PuppeteerEnabled;
         string globalTriggerPhrase = PlayerGlobalPerms.GlobalTriggerPhrase;
@@ -549,15 +550,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
             _uiShared.DrawHelpText("If enabled, the Live Chat Garbler will garble your chat messages in-game. (This is done server-side, others will see it too)");
         }
-
-
-        // draw out revert style selection
-        _uiShared.DrawCombo($"Revert Style##Revert Type Style", 200f, Enum.GetValues<RevertStyle>(), (revertStyle) => revertStyle.ToString(),
-        (i) =>
-        {
-            _clientConfigs.GagspeakConfig.RevertStyle = i;
-            _clientConfigs.Save();
-        }, _clientConfigs.GagspeakConfig.RevertStyle);
 
         ImGui.AlignTextToFramePadding();
         ImGui.Text("GagSpeak Channels:");
@@ -710,6 +702,21 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
             _uiShared.DrawHelpText("Allows Glamourer to bind restraint sets to your character.\nRestraint sets can be created in the Wardrobe Interface.");
         }
+
+        if (ImGui.Checkbox("Disable Restraint's When Locks Expire", ref restraintSetDisableWhenUnlocked))
+        {
+            _clientConfigs.GagspeakConfig.DisableSetUponUnlock = restraintSetDisableWhenUnlocked;
+            _clientConfigs.Save();
+        }
+        _uiShared.DrawHelpText("Let's the Active Restraint Set that is locked be automatically disabled when it's lock expires.");
+
+        // draw out revert style selection
+        _uiShared.DrawCombo($"Revert Style##Revert Type Style", 200f, Enum.GetValues<RevertStyle>(), (revertStyle) => revertStyle.ToString(),
+        (i) =>
+        {
+            _clientConfigs.GagspeakConfig.RevertStyle = i;
+            _clientConfigs.Save();
+        }, _clientConfigs.GagspeakConfig.RevertStyle);
 
 
 

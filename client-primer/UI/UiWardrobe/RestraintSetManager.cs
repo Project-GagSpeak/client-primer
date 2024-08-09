@@ -16,6 +16,7 @@ using OtterGui.Widgets;
 using Penumbra.GameData.DataContainers;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Interop;
+using System;
 using System.Globalization;
 using System.Numerics;
 using static PInvoke.User32;
@@ -302,7 +303,6 @@ public class RestraintSetManager
         var remainingLockDuration = "Coming Soon";
 
         // define our sizes
-        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
         var toggleSize = _uiShared.GetIconButtonSize(tmpRestraintSet.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff);
         var lockSize = _uiShared.GetIconButtonSize(tmpRestraintSet.Locked ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock);
@@ -315,10 +315,8 @@ public class RestraintSetManager
         var isActiveSet = (tmpRestraintSet.Enabled == true);
         var isLockedSet = (tmpRestraintSet.Locked == true);
 
-        var selectableHeight = isActiveSet ? ImGui.GetFrameHeight()*3 + ImGui.GetStyle().ItemSpacing.Y*2 : ImGui.GetFrameHeight()*2;
-
         using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
-        using (ImRaii.Child($"##EditRestraintSetHeader{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), selectableHeight)))
+        using (ImRaii.Child($"##EditRestraintSetHeader{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetFrameHeight()*2)))
         {
             // create a group for the bounding area
             using (var group = ImRaii.Group())
@@ -335,13 +333,9 @@ public class RestraintSetManager
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
                 if (isLockedSet)
                 {
-                    UiSharedService.ColorText("Locked By: ", ImGuiColors.DalamudGrey2);
+                    UiSharedService.ColorText("Locked By:", ImGuiColors.DalamudGrey2);
                     ImGui.SameLine();
                     UiSharedService.ColorText(lockedBy, ImGuiColors.DalamudGrey3);
-                    ImGui.SameLine();
-                    UiSharedService.ColorText("|", ImGuiColors.DalamudGrey2);
-                    ImGui.SameLine();
-                    UiSharedService.ColorText("Unlocks In: " + remainingLockDuration, ImGuiColors.DalamudGrey3);
                 }
                 else
                 {
@@ -350,65 +344,23 @@ public class RestraintSetManager
                     UiSharedService.ColorText(trimmedDescription, ImGuiColors.DalamudGrey2);
                 }
             }
-
-            if (isActiveSet)
-            {
-                // display a third row for an input text field for the self-lock time
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
-                var buttonWidth = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Unlock, "Unlocked");
-                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - buttonWidth - ImGui.GetStyle().ItemSpacing.X);
-                using (var disableTimeInput = ImRaii.Disabled(isLockedSet))
-                {
-                    ImGui.InputTextWithHint($"##{name}TimerLockField", "self-lock duration: XdXhXmXs format..", ref LockTimerInputString, 24);
-                }
-                // in the same line draw a button to toggle the lock.
-                ImGui.SameLine();
-
-                var iconLock = isActiveSet ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
-                var textLock = isLockedSet ? "Locked" : "Unlocked";
-
-                // the condition for the icon text button to be disabled, is if the set is locked, and the enabled by != "SelfApplied"
-                var disabled = isLockedSet && lockedBy != "SelfApplied";
-
-                if (_uiShared.IconTextButton(iconLock, textLock, null, false, disabled))
-                {
-                    // when we try to unlock, ONLY allow unlock if you are the one who locked it.
-                    if (isLockedSet && tmpRestraintSet.LockedBy == "SelfApplied")
-                    {
-                        _handler.UnlockRestraintSet(_handler.GetRestraintSetIndexByName(name), "SelfApplied");
-                    }
-                    // if trying to lock it, allow this to happen.
-                    else
-                    {
-                        // if the time we input is valid, do not clear it.
-                        if (_uiShared.TryParseTimeSpan(LockTimerInputString, out var timeSpan))
-                        {
-                            // parse the timespan to the new offset and lock the set.
-                            var endTimeUTC = DateTimeOffset.UtcNow.Add(timeSpan);
-                            _handler.LockRestraintSet(_handler.GetRestraintSetIndexByName(name), "SelfApplied", endTimeUTC);
-                        }
-                        else
-                        {
-                            LockTimerInputString = "Invalid Format use (XdXhXmXs)";
-                        }
-                    }
-                }
-            }
-
             // now, head to the sameline of the full width minus the width of the button
             ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - toggleSize.X - ImGui.GetStyle().ItemSpacing.X);
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (selectableHeight - toggleSize.Y) / 2);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (ImGui.GetFrameHeight() * 2 - toggleSize.Y) / 2);
             // draw out the icon button
             var currentYpos = ImGui.GetCursorPosY();
-            if (_uiShared.IconButton(tmpRestraintSet.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff))
+            using (var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f))
             {
-                // set the enabled state of the restraintSet based on its current state so that we toggle it
-                if (tmpRestraintSet.Enabled)
-                    _handler.DisableRestraintSet(idx);
-                else
-                    _handler.EnableRestraintSet(idx);
-                // toggle the state & early return so we dont access the child clicked button
-                return;
+                if (_uiShared.IconButton(tmpRestraintSet.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff))
+                {
+                    // set the enabled state of the restraintSet based on its current state so that we toggle it
+                    if (tmpRestraintSet.Enabled)
+                        _handler.DisableRestraintSet(idx);
+                    else
+                        _handler.EnableRestraintSet(idx);
+                    // toggle the state & early return so we dont access the child clicked button
+                    return;
+                }
             }
         }
         ListItemHovered[idx] = ImGui.IsItemHovered();
@@ -419,6 +371,50 @@ public class RestraintSetManager
         // if this is the active set, draw a seperator below it
         if (isActiveSet)
         {
+            TimeSpan remainingTime = (tmpRestraintSet.LockedUntil - DateTimeOffset.UtcNow);
+            string remainingTimeStr = $"{remainingTime.Days}d{remainingTime.Hours}h{remainingTime.Minutes}m{remainingTime.Seconds}s";
+            var lockedDescription = tmpRestraintSet.Locked ? $"Locked for {remainingTimeStr}" : "Self-lock: XdXhXmXs format..";
+            // display a third row for an input text field for the self-lock time
+            var iconLock = isActiveSet ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
+            var displayText = isLockedSet ? "Unlock Set" : "Lock Set";
+            var width = ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(iconLock, displayText) - ImGui.GetStyle().ItemInnerSpacing.X;
+            ImGui.SetNextItemWidth(width);
+            using (var disableTimeInput = ImRaii.Disabled(isLockedSet))
+            {
+                ImGui.InputTextWithHint($"##{name}TimerLockField", lockedDescription, ref LockTimerInputString, 24);
+            }
+            // in the same line draw a button to toggle the lock.
+            ImUtf8.SameLineInner();
+
+            // the condition for the icon text button to be disabled, is if the set is locked, and the enabled by != "SelfApplied"
+            var disabled = isLockedSet && lockedBy != "SelfApplied";
+
+            if (_uiShared.IconTextButton(iconLock, displayText, null, false, disabled))
+            {
+                // when we try to unlock, ONLY allow unlock if you are the one who locked it.
+                if (isLockedSet && tmpRestraintSet.LockedBy == "SelfApplied")
+                {
+                    _handler.UnlockRestraintSet(_handler.GetRestraintSetIndexByName(name), "SelfApplied");
+                }
+                // if trying to lock it, allow this to happen.
+                else
+                {
+                    // if the time we input is valid, do not clear it.
+                    if (_uiShared.TryParseTimeSpan(LockTimerInputString, out var timeSpan))
+                    {
+                        // parse the timespan to the new offset and lock the set.
+                        var endTimeUTC = DateTimeOffset.UtcNow.Add(timeSpan);
+                        _handler.LockRestraintSet(_handler.GetRestraintSetIndexByName(name), "SelfApplied", endTimeUTC);
+                    }
+                    else
+                    {
+                        LockTimerInputString = "Invalid: use (XdXhXmXs)";
+                    }
+                }
+            }
+            UiSharedService.AttachToolTip(disabled ? "Only" + tmpRestraintSet.LockedBy + "can unlock your set." 
+                                                   : tmpRestraintSet.Locked ? "Unlock this set." : "Lock this set.");
+            // end of lock draw.
             ImGui.Separator();
         }
     }

@@ -64,7 +64,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         Flags |= ImGuiWindowFlags.NoMove;
 
         // calculate X size based on the tab we are viewing.     ClientPermsForPair & PairActionFunctions are 100*ImGuiHelpers.GlobalScale, PairPerms is 160*ImGuiHelpers.GlobalScale
-        var width = (DrawType == StickyWindowType.PairPerms) ? 160 * ImGuiHelpers.GlobalScale : 100 * ImGuiHelpers.GlobalScale;
+        var width = (DrawType == StickyWindowType.PairPerms) ? 160 * ImGuiHelpers.GlobalScale : 110 * ImGuiHelpers.GlobalScale;
 
         var size = new Vector2(7 * ImGui.GetFrameHeight() + 3 * ImGui.GetStyle().ItemInnerSpacing.X + width,
             _uiShared.LastMainUIWindowSize.Y - ImGui.GetFrameHeightWithSpacing() * 2);

@@ -245,11 +245,13 @@ public partial class UserPairPermsSticky
     private bool ShowSetRemove = false;
     private void DrawWardrobeActions()
     {
-        var applyDisabledState = UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName != string.Empty;
-        var lockDisabledState = UserPairForPerms.LastReceivedWardrobeData.ActiveSetIsLocked;
+        bool applyButtonDisabled = UserPairForPerms.UserPairUniquePairPerms.ApplyRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.OutfitNames.Count <= 0;
+        bool lockButtonDisabled = UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
+        bool unlockButtonDisabled = UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets || !UserPairForPerms.LastReceivedWardrobeData!.ActiveSetIsLocked;
+        bool removeButtonDisabled = UserPairForPerms.UserPairUniquePairPerms.RemoveRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
+        
         // draw the apply-restraint-set button.
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Handcuffs, "Apply Restraint Set", WindowMenuWidth,
-            true, UserPairForPerms.LastReceivedWardrobeData!.OutfitNames.Count <= 0))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Handcuffs, "Apply Restraint Set", WindowMenuWidth, true, applyButtonDisabled))
         {
             ShowSetApply = !ShowSetApply;
         }
@@ -274,7 +276,7 @@ public partial class UserPairPermsSticky
         }
 
         // draw the lock restraint set button.
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, "Lock Restraint Set", WindowMenuWidth, true, !applyDisabledState || lockDisabledState))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, "Lock Restraint Set", WindowMenuWidth, true, lockButtonDisabled))
         {
             ShowSetLock = !ShowSetLock;
         }
@@ -301,7 +303,7 @@ public partial class UserPairPermsSticky
         }
 
         // draw the unlock restraint set button.
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock Restraint Set", WindowMenuWidth, true, !applyDisabledState || !lockDisabledState))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock Restraint Set", WindowMenuWidth, true, unlockButtonDisabled))
         {
             ShowSetUnlock = !ShowSetUnlock;
         }
@@ -321,8 +323,7 @@ public partial class UserPairPermsSticky
         }
 
         // draw the remove restraint set button.
-        if (_uiShared.IconTextButton(FontAwesomeIcon.TimesCircle, "Remove Restraint Set", WindowMenuWidth, 
-            true, UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.TimesCircle, "Remove Restraint Set", WindowMenuWidth, true, removeButtonDisabled))
         {
             ShowSetRemove = !ShowSetRemove;
         }

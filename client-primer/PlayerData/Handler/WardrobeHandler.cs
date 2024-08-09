@@ -47,7 +47,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
             switch (msg.State)
             {
                 case UpdatedNewState.Enabled: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied)); break;
-                case UpdatedNewState.Disabled: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintRemoved)); break;
+                case UpdatedNewState.Disabled: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintDisabled)); break;
                 case UpdatedNewState.Locked: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked)); break;
                 case UpdatedNewState.Unlocked: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked)); break;
             }
@@ -57,6 +57,9 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         Mediator.Subscribe<HardcoreForcedToSitMessage>(this, (msg) => ForcedToSitPair = msg.Pair);
         Mediator.Subscribe<HardcoreForcedToStayMessage>(this, (msg) => ForcedToStayPair = msg.Pair);
         Mediator.Subscribe<HardcoreForcedBlindfoldMessage>(this, (msg) => BlindfoldedByPair = msg.Pair);
+
+        Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => CheckLockedSet());
+
     }
 
     /// <summary> The current restraint set that is active on the client. Null if none. </summary>
@@ -118,11 +121,11 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public RestraintSet GetRestraintSet(int idx)
         => _clientConfigs.GetRestraintSet(idx);
 
-    public void EnableRestraintSet(int idx) // a self-enable
-        => _clientConfigs.SetRestraintSetState(idx, "SelfApplied", UpdatedNewState.Enabled, true);
+    public void EnableRestraintSet(int idx, string AssignerUID = "SelfApplied") // a self-enable
+        => _clientConfigs.SetRestraintSetState(idx, AssignerUID, UpdatedNewState.Enabled, true);
 
-    public void DisableRestraintSet(int idx) // a self-disable
-        => _clientConfigs.SetRestraintSetState(idx, "SelfApplied", UpdatedNewState.Disabled, true);
+    public void DisableRestraintSet(int idx, string AssignerUID = "SelfApplied") // a self-disable
+        => _clientConfigs.SetRestraintSetState(idx, AssignerUID, UpdatedNewState.Disabled, true);
     public void LockRestraintSet(int index, string assignerUID, DateTimeOffset endLockTimeUTC)
         => _clientConfigs.LockRestraintSet(index, assignerUID, endLockTimeUTC, true);
 
@@ -206,4 +209,32 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public void SetBlindfoldDrawData(EquipDrawData drawData)
         => _clientConfigs.SetBlindfoldItem(drawData);
 
+
+    /// <summary>
+    /// On each delayed framework check, verifies if the active restraint set has had its lock expire, and if so to unlock it.
+    /// </summary>
+    private void CheckLockedSet()
+    {
+        if (ActiveSet == null) return;
+
+        // we have an active set, but dont check if it is not locked. We should keep it on if it is simply active.
+        if (!ActiveSet.Locked) return;
+
+        // otherwise, set is both active and locked, so check for unlock
+        try
+        {
+            // check if the locked time minus the current time in UTC is less than timespan.Zero ... if it is, we should push an unlock set update.
+            if (ActiveSet.LockedUntil - DateTimeOffset.UtcNow < TimeSpan.Zero)
+            {
+                // wont madder if we use LockedBy for name when pushing own update because we don't
+                // ensure they match server-side for self owned validation.
+                UnlockRestraintSet(GetActiveSetIndex(), ActiveSet.LockedBy);
+                Logger.LogInformation("Active Set [{0}] has expired its lock, unlocking and removing restraint set.", ActiveSet.Name);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to check locked set for expiration.");
+        }
+    }
 }

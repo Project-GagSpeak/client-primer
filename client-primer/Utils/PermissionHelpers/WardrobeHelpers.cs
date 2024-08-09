@@ -192,7 +192,7 @@ public static class WardrobeHelpers
             try
             {
                 _ = apiController.UserPushPairDataWardrobeUpdate(new OnlineUserCharaWardrobeDataDto
-                    (userPairForPerms.UserData, newWardrobe, DataUpdateKind.WardrobeRestraintRemoved));
+                    (userPairForPerms.UserData, newWardrobe, DataUpdateKind.WardrobeRestraintDisabled));
                 success = true;
                 // clear the selected stuff
                 state.SelectedSetName = string.Empty;

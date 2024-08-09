@@ -293,9 +293,6 @@ public class ClientConfigurationManager
 
     internal void LockRestraintSet(int setIndex, string UIDofPair, DateTimeOffset endLockTimeUTC, bool pushToServer = true)
     {
-        // Ensure we are doing this to ourselves. (Possibly change later to remove entirely once we handle callbacks)
-        if (UIDofPair != "SelfApplied") return;
-
         // set the locked and locked-by status.
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Locked = true;
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = UIDofPair;
@@ -307,9 +304,6 @@ public class ClientConfigurationManager
 
     internal void UnlockRestraintSet(int setIndex, string UIDofPair, bool pushToServer = true)
     {
-        // Ensure we are doing this to ourselves. (Possibly change later to remove entirely once we handle callbacks)
-        if (UIDofPair != "SelfApplied") return;
-
         // Clear all locked states. (making the assumption this is only called when the UIDofPair matches the LockedBy)
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Locked = false;
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = string.Empty;

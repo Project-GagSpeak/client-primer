@@ -43,6 +43,7 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool LiveGarblerZoneChangeWarn { get; set; }                 // if user wants to be warned about the live chat garbler on zone change
     public BlindfoldType BlindfoldStyle { get; set; }                   // the blindfold style the user is using
     public RevertStyle RevertStyle { get; set; }                        // how the user wants to revert their settings (can store locally?)
+    public bool DisableSetUponUnlock { get; set; }                      // If we should remove a set whenever it is unlocked.
     public bool UsingSimulatedVibrator { get; set; }                    // if the user is using a simulated vibrator
     public string Language { get; set; } = "English";                   // the language the user is using for MufflerCore
     public string LanguageDialect { get; set; } = "IPA_US";             // the language dialect the user is using for MufflerCore

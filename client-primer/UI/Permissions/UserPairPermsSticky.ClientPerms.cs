@@ -68,10 +68,10 @@ public partial class UserPairPermsSticky
             PermissionType.Global, PermissionValueType.YesNo);
 
         DrawOwnSetting("MaxLockTime", "MaxLockTimeAllowed",
-            string.Empty,
+            "Max Time",
             FontAwesomeIcon.HourglassHalf,
             $"Max time {PairNickOrAliasOrUID} can lock your gags for.",
-            false,
+            true,
             PermissionType.UniquePairPerm, PermissionValueType.TimeSpan);
 
         DrawOwnSetting("ExtendedLockTimes", "ExtendedLockTimesAllowed",
@@ -95,35 +95,42 @@ public partial class UserPairPermsSticky
 
         DrawOwnSetting("RestraintSetAutoEquip", "RestraintSetAutoEquipAllowed",
             _playerManager.GlobalPerms.RestraintSetAutoEquip ? "Restraint Set Glamour's active" : "Restraint Set Glamour's inactive",
-            _playerManager.GlobalPerms.RestraintSetAutoEquip ? FontAwesomeIcon.Tshirt : FontAwesomeIcon.Ban,
+            _playerManager.GlobalPerms.RestraintSetAutoEquip ? FontAwesomeIcon.ShopLock : FontAwesomeIcon.ShopSlash,
             _playerManager.GlobalPerms.RestraintSetAutoEquip ? "Disable Restraint Set Glamour's. [Global]" : "Enable Restraint Set Glamour's. [Global]",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.Global, PermissionValueType.YesNo);
 
         DrawOwnSetting("ApplyRestraintSets", "ApplyRestraintSetsAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.ApplyRestraintSets ? "Apply Restraint Sets Allowed" : "Preventing Restraint Set Application",
-            UserPairForPerms.UserPairOwnUniquePairPerms.ApplyRestraintSets ? FontAwesomeIcon.Female : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.ApplyRestraintSets ? FontAwesomeIcon.Tshirt : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairOwnUniquePairPerms.ApplyRestraintSets ? $"Prevent {PairNickOrAliasOrUID} from applying restraint sets." : $"Allow {PairNickOrAliasOrUID} to apply your restraint sets.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOwnSetting("LockRestraintSets", "LockRestraintSetsAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.LockRestraintSets ? "Allowing Restraint Set Locking" : "Preventing Restraint Set Locking",
-            UserPairForPerms.UserPairOwnUniquePairPerms.LockRestraintSets ? FontAwesomeIcon.ShopLock : FontAwesomeIcon.ShopSlash,
+            UserPairForPerms.UserPairOwnUniquePairPerms.LockRestraintSets ? FontAwesomeIcon.Lock : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairOwnUniquePairPerms.LockRestraintSets ? $"Prevent {PairNickOrAliasOrUID} from locking your restraint sets." : $"Allow {PairNickOrAliasOrUID} to lock your restraint sets.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOwnSetting("MaxAllowedRestraintTime", "MaxAllowedRestraintTimeAllowed",
-            string.Empty,
+            "Max Time",
             FontAwesomeIcon.HourglassHalf,
             $"Max time {PairNickOrAliasOrUID} can lock your restraint sets for.",
-            false,
+            true,
             PermissionType.UniquePairPerm, PermissionValueType.TimeSpan);
+
+        DrawOwnSetting("UnlockRestraintSets", "UnlockRestraintSetsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.UnlockRestraintSets ? "Allowing Restraint Set Unlocking" : "Preventing Restraint Set Unlocking",
+            UserPairForPerms.UserPairOwnUniquePairPerms.UnlockRestraintSets ? FontAwesomeIcon.LockOpen : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.UnlockRestraintSets ? $"Prevent {PairNickOrAliasOrUID} from unlocking your restraint sets." : $"Allow {PairNickOrAliasOrUID} to unlock your restraint sets.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOwnSetting("RemoveRestraintSets", "RemoveRestraintSetsAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.RemoveRestraintSets ? "Allowing Restraint Set Removal" : "Preventing Restraint Set Removal",
-            UserPairForPerms.UserPairOwnUniquePairPerms.RemoveRestraintSets ? FontAwesomeIcon.Key : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.RemoveRestraintSets ? FontAwesomeIcon.Female : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairOwnUniquePairPerms.RemoveRestraintSets ? $"Prevent {PairNickOrAliasOrUID} from removing your restraint sets." : $"Allow {PairNickOrAliasOrUID} to remove your restraint sets.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
@@ -201,10 +208,10 @@ public partial class UserPairPermsSticky
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOwnSetting("MaxMoodleTime", "MaxMoodleTimeAllowed",
-            string.Empty,
+            "Max Duration",
             FontAwesomeIcon.HourglassHalf,
             $"Max time {PairNickOrAliasOrUID} can apply moodles to you for.",
-            false,
+            true,
             PermissionType.UniquePairPerm, PermissionValueType.TimeSpan);
 
         DrawOwnSetting("AllowPermanentMoodles", "AllowPermanentMoodlesAllowed",
@@ -420,8 +427,9 @@ public partial class UserPairPermsSticky
 
             using (var group = ImRaii.Group())
             {
+                var id = label + "##" + permissionName;
                 // draw the iconTextButton and checkbox beside it. Because we are in control, unless in hardcore, this should never be disabled.
-                if (_uiShared.IconInputText(icon, label, "format 0d0h0m0s...", ref timeSpanString, 32, IconButtonTextWidth * .7f, true, isLocked)) { }
+                if (_uiShared.IconInputText(id, icon, label, "format 0d0h0m0s...", ref timeSpanString, 32, IconButtonTextWidth * .55f, true, false)) { }
                 // Set the permission once deactivated. If invalid, set to default.
                 if (ImGui.IsItemDeactivatedAfterEdit()
                     && timeSpanString != _uiShared.TimeSpanToString((TimeSpan)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!))

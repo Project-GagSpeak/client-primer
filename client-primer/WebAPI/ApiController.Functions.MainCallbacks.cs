@@ -326,7 +326,8 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveOwnDataWardrobe(OnlineUserCharaWardrobeDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataWardrobe: {dataDto}", dataDto);
-        ExecuteSafely(() => _playerCharManager.UpdateWardrobeFromCallback(dataDto));
+        bool callbackWasFromSelf = dataDto.User.UID == UID;
+        ExecuteSafely(() => _playerCharManager.UpdateWardrobeFromCallback(dataDto, callbackWasFromSelf));
         return Task.CompletedTask;
 
     }

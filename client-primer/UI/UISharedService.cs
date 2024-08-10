@@ -358,11 +358,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return result;
     }
 
-    public bool IconButton(FontAwesomeIcon icon, float? height = null)
+    /// <summary> The additional param for an ID is optional. if not provided, the id will be the text. </summary>
+    public bool IconButton(FontAwesomeIcon icon, float? height = null, string id = null!)
     {
         string text = icon.ToIconString();
 
-        ImGui.PushID(text);
+        ImGui.PushID((id == null) ? icon.ToIconString() : id + icon.ToIconString());
         Vector2 vector;
         using (IconFont.Push())
             vector = ImGui.CalcTextSize(text);

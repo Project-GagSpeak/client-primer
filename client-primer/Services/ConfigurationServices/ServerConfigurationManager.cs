@@ -51,6 +51,8 @@ public class ServerConfigurationManager
     /// <returns>The Secret Key</returns>
     public string? GetSecretKey()
     {
+        // fetch the players local content ID
+        var tempLocalContentID = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
         // fetch the characterName
         var charaName = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
         // fetch the characters homeworld ID

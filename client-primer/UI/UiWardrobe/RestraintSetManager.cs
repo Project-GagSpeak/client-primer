@@ -351,15 +351,18 @@ public class RestraintSetManager
             var currentYpos = ImGui.GetCursorPosY();
             using (var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f))
             {
-                if (_uiShared.IconButton(tmpRestraintSet.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff))
+                using (var disableSetToggleButton = ImRaii.Disabled(tmpRestraintSet.Locked))
                 {
-                    // set the enabled state of the restraintSet based on its current state so that we toggle it
-                    if (tmpRestraintSet.Enabled)
-                        _handler.DisableRestraintSet(idx);
-                    else
-                        _handler.EnableRestraintSet(idx);
-                    // toggle the state & early return so we dont access the child clicked button
-                    return;
+                    if (_uiShared.IconButton(tmpRestraintSet.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff))
+                    {
+                        // set the enabled state of the restraintSet based on its current state so that we toggle it
+                        if (tmpRestraintSet.Enabled)
+                            _handler.DisableRestraintSet(idx);
+                        else
+                            _handler.EnableRestraintSet(idx);
+                        // toggle the state & early return so we dont access the child clicked button
+                        return;
+                    }
                 }
             }
         }

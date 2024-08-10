@@ -1,9 +1,13 @@
 using GagSpeak.MufflerCore.Handler;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
 using Microsoft.VisualBasic;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkCounterNode.Delegates;
+using static GagSpeak.UI.Components.MainTabMenu;
+using static PInvoke.User32;
 
 namespace GagSpeak.PlayerData.Data;
 
@@ -17,7 +21,7 @@ public class GagManager : DisposableMediatorSubscriberBase
 
     public GagManager(ILogger<GagManager> logger, GagspeakMediator mediator,
         PlayerCharacterManager characterManager, GagDataHandler gagDataHandler,
-        PadlockHandler padlockHandler, Ipa_EN_FR_JP_SP_Handler IPAParser) 
+        PadlockHandler padlockHandler, Ipa_EN_FR_JP_SP_Handler IPAParser)
         : base(logger, mediator)
     {
         _characterManager = characterManager;
@@ -36,16 +40,22 @@ public class GagManager : DisposableMediatorSubscriberBase
 
         // Triggered whenever the client updated the padlockType from the dropdown menus in the UI
         Mediator.Subscribe<GagLockToggle>(this, (msg) => OnGagLockChanged(msg));
+
+        // check for any locked gags on delayed framework to see if their timers expired.
+        Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => CheckForExpiredTimers());
     }
 
     public bool AnyGagActive => _activeGags.Any(gag => gag.Name != "None");
+    public bool AnyGagLocked => _characterManager.AppearanceData.SlotOneGagPadlock != "None"
+                             || _characterManager.AppearanceData.SlotTwoGagPadlock != "None"
+                             || _characterManager.AppearanceData.SlotThreeGagPadlock != "None";
     public List<Padlocks> PadlockPrevs => _padlockHandler.PadlockPrevs;
     public string[] Passwords => _padlockHandler.Passwords;
     public string[] Timers => _padlockHandler.Timers;
 
     public bool ValidatePassword(int gagLayer, bool currentlyLocked) => _padlockHandler.PasswordValidated(gagLayer, currentlyLocked);
 
-    public bool DisplayPasswordField(int slot) => _padlockHandler.DisplayPasswordField(slot);
+    public bool DisplayPasswordField(int slot,  bool currentlyLocked) => _padlockHandler.DisplayPasswordField(slot, currentlyLocked);
 
     /// <summary>
     /// Updates the list of active gags based on the character's appearance data.
@@ -116,7 +126,9 @@ public class GagManager : DisposableMediatorSubscriberBase
                 _characterManager.AppearanceData.SlotOneGagTimer = DateTimeOffset.MinValue;
                 _characterManager.AppearanceData.SlotOneGagPassword = string.Empty;
                 _characterManager.AppearanceData.SlotOneGagPadlock = "None";
-                Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagUnlockedLayerOne));
+                PadlockPrevs[0] = Padlocks.None;
+                Mediator.Publish(new ActiveLocksUpdated());
+                if (msg.pushChanges) Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagUnlockedLayerOne));
             }
             else if (msg.PadlockInfo.Layer == GagLayer.MiddleLayer)
             {
@@ -124,7 +136,9 @@ public class GagManager : DisposableMediatorSubscriberBase
                 _characterManager.AppearanceData.SlotTwoGagTimer = DateTimeOffset.MinValue;
                 _characterManager.AppearanceData.SlotTwoGagPassword = string.Empty;
                 _characterManager.AppearanceData.SlotTwoGagPadlock = "None";
-                Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagUnlockedLayerTwo));
+                PadlockPrevs[1] = Padlocks.None;
+                Mediator.Publish(new ActiveLocksUpdated());
+                if (msg.pushChanges) Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagUnlockedLayerTwo));
             }
             else if (msg.PadlockInfo.Layer == GagLayer.TopLayer)
             {
@@ -132,7 +146,9 @@ public class GagManager : DisposableMediatorSubscriberBase
                 _characterManager.AppearanceData.SlotThreeGagTimer = DateTimeOffset.MinValue;
                 _characterManager.AppearanceData.SlotThreeGagPassword = string.Empty;
                 _characterManager.AppearanceData.SlotThreeGagPadlock = "None";
-                Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagUnlockedLayerThree));
+                PadlockPrevs[2] = Padlocks.None;
+                Mediator.Publish(new ActiveLocksUpdated());
+                if (msg.pushChanges) Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagUnlockedLayerThree));
             }
         }
         else
@@ -143,6 +159,7 @@ public class GagManager : DisposableMediatorSubscriberBase
                 _characterManager.AppearanceData.SlotOneGagPassword = msg.PadlockInfo.Password;
                 _characterManager.AppearanceData.SlotOneGagTimer = msg.PadlockInfo.Timer;
                 _characterManager.AppearanceData.SlotOneGagAssigner = msg.PadlockInfo.Assigner;
+                Mediator.Publish(new ActiveLocksUpdated());
                 Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagLockedLayerOne));
             }
             else if (msg.PadlockInfo.Layer == GagLayer.MiddleLayer)
@@ -151,6 +168,7 @@ public class GagManager : DisposableMediatorSubscriberBase
                 _characterManager.AppearanceData.SlotTwoGagPassword = msg.PadlockInfo.Password;
                 _characterManager.AppearanceData.SlotTwoGagTimer = msg.PadlockInfo.Timer;
                 _characterManager.AppearanceData.SlotTwoGagAssigner = msg.PadlockInfo.Assigner;
+                Mediator.Publish(new ActiveLocksUpdated());
                 Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagLockedLayerTwo));
             }
             else if (msg.PadlockInfo.Layer == GagLayer.TopLayer)
@@ -159,6 +177,7 @@ public class GagManager : DisposableMediatorSubscriberBase
                 _characterManager.AppearanceData.SlotThreeGagPassword = msg.PadlockInfo.Password;
                 _characterManager.AppearanceData.SlotThreeGagTimer = msg.PadlockInfo.Timer;
                 _characterManager.AppearanceData.SlotThreeGagAssigner = msg.PadlockInfo.Assigner;
+                Mediator.Publish(new ActiveLocksUpdated());
                 Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagLockedLayerThree));
             }
         }
@@ -293,5 +312,67 @@ public class GagManager : DisposableMediatorSubscriberBase
             result = char.ToUpper(result[0]) + result.Substring(1);
         }
         return result;
+    }
+
+    private static readonly HashSet<string> TimerPadlocks = new HashSet<string>
+    {
+        nameof(Padlocks.FiveMinutesPadlock),
+        nameof(Padlocks.TimerPasswordPadlock),
+        nameof(Padlocks.OwnerTimerPadlock)
+    };
+
+
+    private void CheckForExpiredTimers()
+    {
+        // return if characterManager not valid
+        if (_characterManager == null) return;
+
+        // return if appearance data not present.
+        if (_characterManager.AppearanceData == null) return;
+
+        // return if none of our gags have padlocks.
+        if (!AnyGagLocked) return;
+
+        // If a gag does have a padlock, ensure it is a timer padlock
+        if (TimerPadlocks.Contains(_characterManager.AppearanceData.SlotOneGagPadlock))
+        {
+            // If the timer has expired, unlock the gag
+            if (_characterManager.AppearanceData.SlotOneGagTimer - DateTimeOffset.UtcNow <= TimeSpan.Zero)
+            {
+                _characterManager.AppearanceData.SlotOneGagPadlock = "None";
+                _characterManager.AppearanceData.SlotOneGagPassword = string.Empty;
+                _characterManager.AppearanceData.SlotOneGagTimer = DateTimeOffset.MinValue;
+                _characterManager.AppearanceData.SlotOneGagAssigner = string.Empty;
+                PadlockPrevs[0] = Padlocks.None;
+                Mediator.Publish(new ActiveLocksUpdated());
+                Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagUnlockedLayerOne));
+            }
+        }
+        else if (TimerPadlocks.Contains(_characterManager.AppearanceData.SlotTwoGagPadlock))
+        {
+            if (_characterManager.AppearanceData.SlotTwoGagTimer - DateTimeOffset.UtcNow <= TimeSpan.Zero)
+            {
+                _characterManager.AppearanceData.SlotTwoGagPadlock = "None";
+                _characterManager.AppearanceData.SlotTwoGagPassword = string.Empty;
+                _characterManager.AppearanceData.SlotTwoGagTimer = DateTimeOffset.MinValue;
+                _characterManager.AppearanceData.SlotTwoGagAssigner = string.Empty;
+                PadlockPrevs[1] = Padlocks.None;
+                Mediator.Publish(new ActiveLocksUpdated());
+                Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagUnlockedLayerTwo));
+            }
+        }
+        else if (TimerPadlocks.Contains(_characterManager.AppearanceData.SlotThreeGagPadlock))
+        {
+            if (_characterManager.AppearanceData.SlotThreeGagTimer - DateTimeOffset.UtcNow <= TimeSpan.Zero)
+            {
+                _characterManager.AppearanceData.SlotThreeGagPadlock = "None";
+                _characterManager.AppearanceData.SlotThreeGagPassword = string.Empty;
+                _characterManager.AppearanceData.SlotThreeGagTimer = DateTimeOffset.MinValue;
+                _characterManager.AppearanceData.SlotThreeGagAssigner = string.Empty;
+                PadlockPrevs[2] = Padlocks.None;
+                Mediator.Publish(new ActiveLocksUpdated());
+                Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.AppearanceGagUnlockedLayerThree));
+            }
+        }
     }
 }

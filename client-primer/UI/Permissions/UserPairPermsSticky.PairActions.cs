@@ -245,10 +245,10 @@ public partial class UserPairPermsSticky
     private bool ShowSetRemove = false;
     private void DrawWardrobeActions()
     {
-        bool applyButtonDisabled = UserPairForPerms.UserPairUniquePairPerms.ApplyRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.OutfitNames.Count <= 0;
-        bool lockButtonDisabled = UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
-        bool unlockButtonDisabled = UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets || !UserPairForPerms.LastReceivedWardrobeData!.ActiveSetIsLocked;
-        bool removeButtonDisabled = UserPairForPerms.UserPairUniquePairPerms.RemoveRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
+        bool applyButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.ApplyRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.OutfitNames.Count <= 0;
+        bool lockButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
+        bool unlockButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets || !UserPairForPerms.LastReceivedWardrobeData!.ActiveSetIsLocked;
+        bool removeButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.RemoveRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
         
         // draw the apply-restraint-set button.
         if (_uiShared.IconTextButton(FontAwesomeIcon.Handcuffs, "Apply Restraint Set", WindowMenuWidth, true, applyButtonDisabled))
@@ -292,9 +292,11 @@ public partial class UserPairPermsSticky
 
                 using (var restraintSetLockGroup = ImRaii.Group())
                 {
-                    WardrobeHelpers.DrawRestraintSetSelection(UserPairForPerms, ImGui.GetContentRegionAvail().X, UserPairForPerms.UserData.UID, _uiShared);
-                    WardrobeHelpers.DrawLockRestraintSet(UserPairForPerms, buttonWidth,
-                        UserPairForPerms.UserData.UID, _logger, _uiShared, _apiController, out bool success);
+                    using (var disabledSelection = ImRaii.Disabled())
+                    {
+                        WardrobeHelpers.DrawRestraintSetSelection(UserPairForPerms, ImGui.GetContentRegionAvail().X, UserPairForPerms.UserData.UID, _uiShared);
+                    }
+                    WardrobeHelpers.DrawLockRestraintSet(UserPairForPerms, buttonWidth, UserPairForPerms.UserData.UID, _logger, _uiShared, _apiController, out bool success);
 
                     if (success) ShowSetLock = false;
                 }

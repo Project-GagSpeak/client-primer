@@ -79,7 +79,7 @@ public record UpdateActiveGags : MessageBase;
 public record ActiveGagsUpdated : MessageBase;
 public record ActiveLocksUpdated : MessageBase;
 public record GagTypeChanged(GagList.GagType NewGagType, GagLayer Layer) : MessageBase; // called whenever the client changes their gag type.
-public record GagLockToggle(PadlockData PadlockInfo, bool Unlocking) : MessageBase; // called whenever the client changes their padlock.
+public record GagLockToggle(PadlockData PadlockInfo, bool Unlocking, bool pushChanges) : MessageBase; // called whenever the client changes their padlock.
 public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase; // TODO: ADD implementation for this.
 
 

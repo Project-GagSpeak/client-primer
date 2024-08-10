@@ -1,5 +1,6 @@
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
@@ -60,6 +61,18 @@ public class ClientConfigurationManager
         _alarmConfig = alarmConfig;
         _triggersConfig = triggersConfig;
 
+
+        if (_configService.Current.ChannelsGagSpeak.Count == 0)
+        {
+            _logger.LogWarning("Channel list is empty, adding Say as the default channel.");
+            _configService.Current.ChannelsGagSpeak = new List<ChatChannel.ChatChannels> { ChatChannel.ChatChannels.Say };
+        }
+        if (_configService.Current.ChannelsPuppeteer.Count == 0)
+        {
+            _logger.LogWarning("Channel list is empty, adding Say as the default channel.");
+            _configService.Current.ChannelsPuppeteer = new List<ChatChannel.ChatChannels> { ChatChannel.ChatChannels.Say };
+        }
+
         // insure the nicknames and tag configs exist in the main server.
         if (_gagStorageConfig.Current.GagStorage == null) { _gagStorageConfig.Current.GagStorage = new(); }
         // create a new storage file
@@ -101,7 +114,8 @@ public class ClientConfigurationManager
 
     public bool HasCreatedConfigs()
     {
-        return (GagspeakConfig != null && WardrobeConfig != null && AliasConfig != null && PatternConfig != null);
+        return (GagspeakConfig != null && GagStorageConfig != null && WardrobeConfig != null && AliasConfig != null 
+             && PatternConfig != null && AlarmConfig != null && TriggerConfig != null);
     }
 
     /// <summary> Saves the GagspeakConfig. </summary>

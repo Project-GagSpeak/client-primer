@@ -310,7 +310,8 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveOwnDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataAppearance: {dataDto}", dataDto);
-        ExecuteSafely(() => _playerCharManager.UpdateAppearanceFromCallback(dataDto));
+        bool callbackWasFromSelf = dataDto.User.UID == UID;
+        ExecuteSafely(() => _playerCharManager.UpdateAppearanceFromCallback(dataDto, callbackWasFromSelf));
         return Task.CompletedTask;
     }
 

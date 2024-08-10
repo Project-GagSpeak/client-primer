@@ -56,16 +56,6 @@ public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
                         }
                     }
 
-                    /*JToken restraintSetsToken = wardrobeStorageToken["RestraintSets"];
-                    if (restraintSetsToken is JArray restraintSetsArray)
-                    {
-                        foreach (JObject restraintSetObject in restraintSetsArray)
-                        {
-                            RestraintSet restraintSet = new RestraintSet();
-                            restraintSet.Deserialize(restraintSetObject);
-                            wardrobeStorage.RestraintSets.Add(restraintSet);
-                        }
-                    }*/
                     // Assuming BlindfoldInfo follows a similar pattern
                     JToken blindfoldInfoToken = wardrobeStorageToken["BlindfoldInfo"];
                     if (blindfoldInfoToken != null)

@@ -47,11 +47,11 @@ public record GagDrawData
         serializer.Converters.Add(new EquipItemConverter());
         GameItem = jsonObject["GameItem"] != null ? jsonObject["GameItem"].ToObject<EquipItem>(serializer) : new EquipItem();
         // Parse the StainId
-        if (jsonObject["GameStain"] is JArray gameStainArray && gameStainArray.Count >= 2)
+        var gameStainString = jsonObject["GameStain"]?.Value<string>() ?? "0,0";
+        var stainParts = gameStainString.Split(',');
+        if (stainParts.Length == 2 && int.TryParse(stainParts[0], out int stain1) && int.TryParse(stainParts[1], out int stain2))
         {
-            var stain1 = gameStainArray[0].ToObject<StainId>();
-            var stain2 = gameStainArray[1].ToObject<StainId>();
-            GameStain = new StainIds(stain1, stain2);
+            GameStain = new StainIds((StainId)stain1, (StainId)stain2);
         }
         else
         {

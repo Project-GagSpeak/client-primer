@@ -23,23 +23,30 @@ public class PadlockHandler
     public string[] Passwords = new string[3] { "", "", "" }; // when they enter password prior to locking. 
     public string[] Timers = new string[3] { "", "", "" }; // when they enter a timer prior to locking.
 
-    public bool DisplayPasswordField(int slot)
+    public bool DisplayPasswordField(int slot, bool isLocked)
     {
         switch (PadlockPrevs[slot])
         {
             case Padlocks.CombinationPadlock:
-                Passwords[slot] = DisplayInputField("##Combination_Input", "Enter 4 digit combination...", Passwords[slot], 4);
+                Passwords[slot] = DisplayInputField($"##Combination_Input{slot}", "Enter 4 digit combination...", Passwords[slot], 4);
                 return true;
             case Padlocks.PasswordPadlock:
-                Passwords[slot] = DisplayInputField("##Password_Input", "Enter password", Passwords[slot], 20);
+                Passwords[slot] = DisplayInputField($"##Password_Input{slot}", "Enter password", Passwords[slot], 20);
                 return true;
             case Padlocks.TimerPasswordPadlock:
-                Passwords[slot] = DisplayInputField("##Password_Input", "Enter password", Passwords[slot], 20, 2 / 3f);
-                ImGui.SameLine(0, 3);
-                Timers[slot] = DisplayInputField("##Timer_Input", "Ex: 0h2m7s", Timers[slot], 12, .325f);
+                if (isLocked)
+                {
+                    Passwords[slot] = DisplayInputField($"##Password_Input{slot}", "Enter password", Passwords[slot], 20);
+                }
+                else
+                {
+                    Passwords[slot] = DisplayInputField($"##Password_Input{slot}", "Enter password", Passwords[slot], 20, 2 / 3f);
+                    ImGui.SameLine(0, 3);
+                    Timers[slot] = DisplayInputField($"##Timer_Input{slot}", "Ex: 0h2m7s", Timers[slot], 12, .325f);
+                }
                 return true;
             case Padlocks.OwnerTimerPadlock:
-                Timers[slot] = DisplayInputField("##Timer_Input", "Ex: 0h2m7s", Timers[slot], 12);
+                Timers[slot] = DisplayInputField($"##Timer_Input{slot}", "Ex: 0h2m7s", Timers[slot], 12);
                 return true;
             default:
                 return false;
@@ -60,12 +67,14 @@ public class PadlockHandler
 
     public bool PasswordValidated(int slot, bool currentlyLocked)
     {
+        _logger.LogDebug($"Validating Password for Slot {slot} which has padlock type {PadlockPrevs[slot]}");
         switch (PadlockPrevs[slot])
         {
             case Padlocks.None:
                 return false;
             case Padlocks.MetalPadlock:
             case Padlocks.FiveMinutesPadlock:
+                Timers[slot] = "0h5m0s";
                 return true; 
             case Padlocks.CombinationPadlock:
                 {

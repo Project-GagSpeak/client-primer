@@ -494,6 +494,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         bool cmdsFromParty = PlayerGlobalPerms.CommandsFromParty;
         bool liveChatGarblerActive = PlayerGlobalPerms.LiveChatGarblerActive;
         bool liveChatGarblerLocked = PlayerGlobalPerms.LiveChatGarblerLocked;
+        bool removeGagOnLockExpiration = _clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration;
 
         bool wardrobeEnabled = PlayerGlobalPerms.WardrobeEnabled;
         bool itemAutoEquip = PlayerGlobalPerms.ItemAutoEquip;
@@ -550,6 +551,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
             _uiShared.DrawHelpText("If enabled, the Live Chat Garbler will garble your chat messages in-game. (This is done server-side, others will see it too)");
         }
+
+        if (ImGui.Checkbox("Remove Gag on Timer Padlock expiration.", ref removeGagOnLockExpiration))
+        {
+            _clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration = removeGagOnLockExpiration;
+            _clientConfigs.Save();
+        }
+        _uiShared.DrawHelpText("When a Gag is locked by a Timer, the Gag will be removed once the timer expires.");
 
         ImGui.AlignTextToFramePadding();
         ImGui.Text("GagSpeak Channels:");

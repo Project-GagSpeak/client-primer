@@ -1,5 +1,6 @@
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.WebAPI;
+using Newtonsoft.Json.Linq;
 
 namespace GagSpeak.GagspeakConfiguration.Configurations;
 
@@ -13,5 +14,6 @@ public class ServerConfig : IGagspeakConfiguration
         ServiceUri = ApiController.MainServiceUri,
     };
 
-    public int Version { get; set; } = 1;
+    public static int CurrentVersion => 2;
+    public int Version { get; set; } = CurrentVersion;
 }

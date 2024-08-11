@@ -21,17 +21,18 @@ public class RemotePatternMaker : RemoteBase
 {
     // the class includes are shared however (i think), so dont worry about that.
     private readonly UiSharedService _uiShared;
-    private readonly DeviceHandler _intifaceHandler; // these SHOULD all be shared. but if not put into Service.
+    private readonly ToyboxVibeService _vibeService; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
     private readonly string _windowName;
     public RemotePatternMaker(ILogger<RemotePatternMaker> logger,
         GagspeakMediator mediator, UiSharedService uiShared,
-        ToyboxRemoteService remoteService, DeviceHandler deviceHandler,
-        string windowName = "Pattern Creator") : base(logger, mediator, uiShared, remoteService, deviceHandler, windowName)
+        ToyboxRemoteService remoteService, ToyboxVibeService vibeService,
+        string windowName = "Pattern Creator") 
+        : base(logger, mediator, uiShared, remoteService, vibeService, windowName)
     {
         // grab the shared services
         _uiShared = uiShared;
-        _intifaceHandler = deviceHandler;
+        _vibeService = vibeService;
         _remoteService = remoteService;
         _windowName = windowName;
     }
@@ -247,19 +248,19 @@ public class RemotePatternMaker : RemoteBase
     private void PlayIntensityToDevices()
     {
         // if any devices are currently connected, and our intiface client is connected,
-        if (_intifaceHandler.AnyDeviceConnected && _intifaceHandler.ConnectedToIntiface)
+        if (_vibeService.ConnectedToyActive)
         {
             //_logger.LogTrace("Sending Vibration Data to Devices!");
             // send the vibration data to all connected devices
             if (IsLooping && !IsDragging && StoredLoopDataBlock.Count > 0)
             {
                 //_logger.LogTrace($"{(byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex])}");
-                _intifaceHandler.SendVibeToAllDevices((byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex]));
+                _vibeService.SendNextIntensity((byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex]));
             }
             else
             {
                 //_logger.LogTrace($"{(byte)Math.Round(CirclePosition[1])}");
-                _intifaceHandler.SendVibeToAllDevices((byte)Math.Round(CirclePosition[1]));
+                _vibeService.SendNextIntensity((byte)Math.Round(CirclePosition[1]));
             }
         }
     }

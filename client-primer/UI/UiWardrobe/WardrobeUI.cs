@@ -34,6 +34,9 @@ public class WardrobeUI : WindowMediatorSubscriberBase
         _moodlesPanel = moodlesManager;
         _cosmeticsPanel = restraintCosmetics;
 
+        AllowPinning = false;
+        AllowClickthrough = false;
+
         _tabMenu = new WardrobeTabMenu(_handler);
 
         // define initial size of window and to not respect the close hotkey.

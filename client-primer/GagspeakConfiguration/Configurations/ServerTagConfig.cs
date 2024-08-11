@@ -5,5 +5,6 @@ namespace GagSpeak.GagspeakConfiguration.Configurations;
 public class ServerTagConfig : IGagspeakConfiguration
 {
     public ServerTagStorage ServerTagStorage { get; set; }
-    public int Version { get; set; } = 0;
+    public static int CurrentVersion => 1;
+    public int Version { get; set; } = CurrentVersion;
 }

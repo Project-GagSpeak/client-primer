@@ -13,103 +13,47 @@ namespace GagSpeak.GagspeakConfiguration;
 public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig>
 {
     public const string ConfigName = "gag-storage.json";
-
+    public const bool PerCharacterConfig = true;
     public GagStorageConfigService(string configDir) : base(configDir) { }
 
     protected override string ConfigurationName => ConfigName;
+    protected override bool PerCharacterConfigPath => PerCharacterConfig;
 
-    protected override GagStorageConfig LoadConfig()
+    protected override GagStorageConfig DeserializeConfig(JObject configJson)
     {
         GagStorageConfig config = new GagStorageConfig();
-        if (!File.Exists(ConfigurationPath))
+
+        // Assuming GagStorage has a default constructor
+        config.GagStorage = new GagStorage();
+        config.GagStorage.GagEquipData = new Dictionary<GagList.GagType, GagDrawData>();
+
+        JObject gagEquipDataObject = configJson["GagStorage"]["GagEquipData"].Value<JObject>();
+        if (gagEquipDataObject == null) return config;
+        
+        foreach (var gagData in gagEquipDataObject)
         {
-            Save();
-            return config;
-        }
-        if (File.Exists(ConfigurationPath))
-        {
-            try
+            var gagType = (GagList.GagType)Enum.Parse(typeof(GagList.GagType), gagData.Key);
+            if (gagData.Value is JObject itemObject)
             {
-                string json = File.ReadAllText(ConfigurationPath);
-                JObject configObject = JObject.Parse(json);
-
-                // Check for Version property
-                JToken versionToken = configObject["Version"];
-                if (versionToken == null)
-                {
-                    return config!;
-                }
-
-                if (versionToken.ToObject<int>() != config.Version)
-                {
-                    // Version mismatch or missing, remove associated files
-                    var gagStorageFiles = Directory.EnumerateFiles(ConfigurationDirectory, "gag-storage.json");
-                    // if migrating from version 0 to version 1
-                    if (versionToken.ToObject<int>() == 0 && config.Version == 1)
-                    {
-                        // perform a full reset
-                        foreach (var file in gagStorageFiles)
-                        {
-                            File.Delete(file);
-                        }
-                        return config;
-                    }
-                }
-
-                // Assuming GagStorage has a default constructor
-                config.GagStorage = new GagStorage();
-                config.GagStorage.GagEquipData = new Dictionary<GagList.GagType, GagDrawData>();
-
-                JObject gagEquipDataObject = configObject["GagStorage"]["GagEquipData"].Value<JObject>();
-                foreach (var gagData in gagEquipDataObject)
-                {
-                    var gagType = (GagList.GagType)Enum.Parse(typeof(GagList.GagType), gagData.Key);
-                    if (gagData.Value is JObject itemObject)
-                    {
-                        string? slotString = itemObject["Slot"].Value<string>();
-                        EquipSlot slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), slotString);
-                        var gagDrawData = new GagDrawData(ItemIdVars.NothingItem(slot)); // Assuming GagDrawData has a parameterless constructor
-                        gagDrawData.Deserialize(itemObject);
-                        config.GagStorage.GagEquipData.Add(gagType,gagDrawData);
-                    }
-                }
-                Save();
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Failed to load {ConfigurationName} configuration.", ex);
+                string? slotString = itemObject["Slot"].Value<string>();
+                EquipSlot slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), slotString);
+                var gagDrawData = new GagDrawData(ItemIdVars.NothingItem(slot)); // Assuming GagDrawData has a parameterless constructor
+                gagDrawData.Deserialize(itemObject);
+                config.GagStorage.GagEquipData.Add(gagType,gagDrawData);
             }
         }
-        _configLastWriteTime = GetConfigLastWriteTime();
         return config;
     }
 
-    protected override void SaveDirtyConfig()
+    protected override string SerializeConfig(GagStorageConfig config)
     {
-        _configIsDirty = false;
-        var existingConfigs = Directory.EnumerateFiles(ConfigurationDirectory, ConfigurationName + ".bak.*").Select(c => new FileInfo(c))
-            .OrderByDescending(c => c.LastWriteTime).ToList();
-        if (existingConfigs.Skip(1).Any())
-        {
-            foreach (var config in existingConfigs.Skip(1))
-            {
-                config.Delete();
-            }
-        }
-
-        try
-        {
-            File.Copy(ConfigurationPath, ConfigurationPath + ".bak." + DateTime.Now.ToString("yyyyMMddHHmmss"), overwrite: true);
-        }
-        catch {  /* Consume */}
-
         JObject configObject = new JObject()
         {
-            ["Version"] = Current.Version // Include the version of GagStorageConfig
+            ["Version"] = config.Version // Include the version of GagStorageConfig
         };
         JObject gagEquipDataObject = new JObject();
 
-        foreach (var kvp in Current.GagStorage.GagEquipData)
+        foreach (var kvp in config.GagStorage.GagEquipData)
         {
             gagEquipDataObject[kvp.Key.ToString()] = kvp.Value.Serialize();
         }
@@ -119,10 +63,6 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
             ["GagEquipData"] = gagEquipDataObject
         };
 
-        string json = configObject.ToString(Formatting.Indented);
-        var tempPath = ConfigurationPath + ".tmp";
-        File.WriteAllText(tempPath, json);
-        File.Move(tempPath, ConfigurationPath, true);
-        _configLastWriteTime = new FileInfo(ConfigurationPath).LastWriteTimeUtc;
+        return configObject.ToString(Formatting.Indented);
     }
 }

@@ -1,4 +1,5 @@
 using GagSpeak.PlayerData.Factories;
+using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data.VibeServer;
 using GagspeakAPI.Dto.Connection;
@@ -11,13 +12,15 @@ namespace GagSpeak.PlayerData.PrivateRooms;
 /// </summary>
 public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
 {
+    private readonly ClientConfigurationManager _clientConfigs;
     private readonly PrivateRoomFactory _roomFactory;
     private readonly ConcurrentDictionary<string, PrivateRoom> _rooms;
     private Lazy<List<PrivateRoom>> _privateRoomsInternal;
     private readonly List<RoomInviteDto> _roomInvites;
     public PrivateRoomManager(ILogger<PrivateRoomManager> logger, GagspeakMediator mediator,
-        PrivateRoomFactory roomFactory) : base(logger, mediator)
+        ClientConfigurationManager clientConfigs, PrivateRoomFactory roomFactory) : base(logger, mediator)
     {
+        _clientConfigs = clientConfigs;
         _roomFactory = roomFactory;
         _rooms = new(StringComparer.Ordinal);
         _roomInvites = [];

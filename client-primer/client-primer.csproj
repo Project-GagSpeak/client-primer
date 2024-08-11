@@ -7,7 +7,7 @@
         <TargetFramework>net8.0-windows</TargetFramework>
         <Copyright>Copyright © 2024</Copyright>
         <LangVersion>latest</LangVersion>
-        <Version>0.4.4.1</Version>
+        <Version>0.5.0.0</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
@@ -45,8 +45,6 @@
     <ItemGroup>
       <Compile Include="Services\ConfigurationServices\EquipItemConverter.cs.bak" />
       <Compile Include="Services\ConfigurationServices\EquipItemSurrogate.cs.bak" />
-      <Compile Include="Toybox\.Old\VibeSoundSim\LoopStream.cs" />
-      <Compile Include="Toybox\.Old\VibeSoundSim\SoundPlayback.cs" />
     </ItemGroup>
 
     <!--Other DLL's for dalamud supporting module/components-->
@@ -163,6 +161,7 @@
       <Folder Include="UpdateMonitoring\Chat\ChatMonitors\" />
     </ItemGroup>
 </Project>
+
 
 
 

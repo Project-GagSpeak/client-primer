@@ -4,8 +4,6 @@ using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Interop.Ipc;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
@@ -14,15 +12,11 @@ using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Connection;
 using ImGuiNET;
-using JetBrains.Annotations;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using ProjectGagspeakAPI.Data.VibeServer;
-using System.Security.Claims;
 using static GagspeakAPI.Data.Enum.GagList;
-using static PInvoke.User32;
 
 namespace GagSpeak.Services.ConfigurationServices;
 
@@ -30,11 +24,9 @@ namespace GagSpeak.Services.ConfigurationServices;
 /// This configuration manager helps manage the various interactions with all config files related to server-end activity.
 /// <para> It provides a comprehensive interface for configuring servers, managing tags and nicknames, and handling authentication keys. </para>
 /// </summary>
-public class ClientConfigurationManager
+public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 {
     private readonly OnFrameworkService _frameworkUtils;            // a utilities class with methods that work with the Dalamud framework
-    private readonly ILogger<ClientConfigurationManager> _logger;   // the logger for the server config manager
-    private readonly GagspeakMediator _mediator;            // the mediator for our Gagspeak Mediator
     private readonly GagspeakConfigService _configService;          // the primary gagspeak config service.
     private readonly GagStorageConfigService _gagStorageConfig;     // the config for the gag storage service (toybox gag storage)
     private readonly WardrobeConfigService _wardrobeConfig;         // the config for the wardrobe service (restraint sets)
@@ -44,15 +36,13 @@ public class ClientConfigurationManager
     private readonly TriggerConfigService _triggersConfig;          // the config for the triggers service (toybox triggers storage)
 
     public ClientConfigurationManager(ILogger<ClientConfigurationManager> logger,
-        OnFrameworkService onFrameworkService, GagspeakMediator GagspeakMediator,
+        GagspeakMediator GagspeakMediator, OnFrameworkService onFrameworkService,
         GagspeakConfigService configService, GagStorageConfigService gagStorageConfig,
         WardrobeConfigService wardrobeConfig, AliasConfigService aliasConfig,
         PatternConfigService patternConfig, AlarmConfigService alarmConfig,
-        TriggerConfigService triggersConfig)
+        TriggerConfigService triggersConfig) : base(logger, GagspeakMediator)
     {
-        _logger = logger;
         _frameworkUtils = onFrameworkService;
-        _mediator = GagspeakMediator;
         _configService = configService;
         _gagStorageConfig = gagStorageConfig;
         _wardrobeConfig = wardrobeConfig;
@@ -61,15 +51,67 @@ public class ClientConfigurationManager
         _alarmConfig = alarmConfig;
         _triggersConfig = triggersConfig;
 
+        InitConfigs();
 
+        // Subscribe to the connected message update so we know when to update our global permissions
+        Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
+        {
+            // update our configs to point to the new user.
+            if (msg.Connection.User.UID != _configService.Current.LastUidLoggedIn)
+            {
+                UpdateConfigs(msg.Connection.User.UID);
+            }
+            // update the last logged in UID
+            _configService.Current.LastUidLoggedIn = msg.Connection.User.UID;
+            Save();
+
+            // make sure bratty subs dont use disconnect to think they can get free.
+            SyncDataWithConnectionDto(msg.Connection);
+        });
+    }
+
+    // define public access to various storages (THESE ARE ONLY GETTERS, NO SETTERS)
+    public GagspeakConfig GagspeakConfig => _configService.Current; // UNIVERSAL
+    public GagStorageConfig GagStorageConfig => _gagStorageConfig.Current; // PER PLAYER
+    private WardrobeConfig WardrobeConfig => _wardrobeConfig.Current; // PER PLAYER
+    private AliasConfig AliasConfig => _aliasConfig.Current; // PER PLAYER
+    private PatternConfig PatternConfig => _patternConfig.Current; // PER PLAYER
+    private AlarmConfig AlarmConfig => _alarmConfig.Current; // PER PLAYER
+    private TriggerConfig TriggerConfig => _triggersConfig.Current; // PER PLAYER
+
+    public void UpdateConfigs(string loggedInPlayerUID)
+    {
+        _gagStorageConfig.UpdateUid(loggedInPlayerUID);
+        _wardrobeConfig.UpdateUid(loggedInPlayerUID);
+        _aliasConfig.UpdateUid(loggedInPlayerUID);
+        _triggersConfig.UpdateUid(loggedInPlayerUID);
+        _alarmConfig.UpdateUid(loggedInPlayerUID);
+
+        InitConfigs();
+    }
+
+    public bool HasCreatedConfigs()
+        => (GagspeakConfig != null && GagStorageConfig != null && WardrobeConfig != null && AliasConfig != null
+          && PatternConfig != null && AlarmConfig != null && TriggerConfig != null);
+
+    /// <summary> Saves the GagspeakConfig. </summary>
+    public void Save()
+    {
+        var caller = new StackTrace().GetFrame(1)?.GetMethod()?.ReflectedType?.Name ?? "Unknown";
+        Logger.LogDebug("{caller} Calling config save", caller);
+        _configService.Save();
+    }
+
+    public void InitConfigs()
+    {
         if (_configService.Current.ChannelsGagSpeak.Count == 0)
         {
-            _logger.LogWarning("Channel list is empty, adding Say as the default channel.");
+            Logger.LogWarning("Channel list is empty, adding Say as the default channel.");
             _configService.Current.ChannelsGagSpeak = new List<ChatChannel.ChatChannels> { ChatChannel.ChatChannels.Say };
         }
         if (_configService.Current.ChannelsPuppeteer.Count == 0)
         {
-            _logger.LogWarning("Channel list is empty, adding Say as the default channel.");
+            Logger.LogWarning("Channel list is empty, adding Say as the default channel.");
             _configService.Current.ChannelsPuppeteer = new List<ChatChannel.ChatChannels> { ChatChannel.ChatChannels.Say };
         }
 
@@ -78,20 +120,18 @@ public class ClientConfigurationManager
         // create a new storage file
         if (_gagStorageConfig.Current.GagStorage.GagEquipData.IsNullOrEmpty())
         {
-            _logger.LogWarning("Gag Storage Config is empty, creating a new one.");
+            Logger.LogWarning("Gag Storage Config is empty, creating a new one.");
             try
             {
-                _gagStorageConfig.Current.GagStorage.GagEquipData =
-                    Enum.GetValues(typeof(GagList.GagType))
-                        .Cast<GagList.GagType>()
-                        .ToDictionary(gagType => gagType, gagType => new GagDrawData(ItemIdVars.NothingItem(EquipSlot.Head)));
+                _gagStorageConfig.Current.GagStorage.GagEquipData = Enum.GetValues(typeof(GagList.GagType))
+                    .Cast<GagList.GagType>().ToDictionary(gagType => gagType, gagType => new GagDrawData(ItemIdVars.NothingItem(EquipSlot.Head)));
                 // print the keys in the dictionary
-                _logger.LogInformation("Gag Storage Config Created with {count} keys", _gagStorageConfig.Current.GagStorage.GagEquipData.Count);
+                Logger.LogInformation("Gag Storage Config Created with {count} keys", _gagStorageConfig.Current.GagStorage.GagEquipData.Count);
                 _gagStorageConfig.Save();
             }
             catch (Exception e)
             {
-                _logger.LogError(e, "Failed to create Gag Storage Config");
+                Logger.LogError(e, "Failed to create Gag Storage Config");
             }
         }
         if (_wardrobeConfig.Current.WardrobeStorage == null) { _wardrobeConfig.Current.WardrobeStorage = new(); }
@@ -99,36 +139,12 @@ public class ClientConfigurationManager
         if (_patternConfig.Current.PatternStorage == null) { _patternConfig.Current.PatternStorage = new(); }
         if (_alarmConfig.Current.AlarmStorage == null) { _alarmConfig.Current.AlarmStorage = new(); }
         if (_triggersConfig.Current.TriggerStorage == null) { _triggersConfig.Current.TriggerStorage = new(); }
-
-    }
-
-    // define public access to various storages (THESE ARE ONLY GETTERS, NO SETTERS)
-    public GagspeakConfig GagspeakConfig => _configService.Current;
-    public GagStorageConfig GagStorageConfig => _gagStorageConfig.Current;
-    private WardrobeConfig WardrobeConfig => _wardrobeConfig.Current;
-    private AliasConfig AliasConfig => _aliasConfig.Current;
-    private PatternConfig PatternConfig => _patternConfig.Current;
-    private AlarmConfig AlarmConfig => _alarmConfig.Current;
-    private TriggerConfig TriggerConfig => _triggersConfig.Current;
-
-
-    public bool HasCreatedConfigs()
-    {
-        return (GagspeakConfig != null && GagStorageConfig != null && WardrobeConfig != null && AliasConfig != null 
-             && PatternConfig != null && AlarmConfig != null && TriggerConfig != null);
-    }
-
-    /// <summary> Saves the GagspeakConfig. </summary>
-    public void Save()
-    {
-        var caller = new StackTrace().GetFrame(1)?.GetMethod()?.ReflectedType?.Name ?? "Unknown";
-        _logger.LogDebug("{caller} Calling config save", caller);
-        _configService.Save();
     }
 
     #region ConnectionDto Update Methods
-    public void SyncDataWithConnectionDto(ConnectionDto dto)
+    private void SyncDataWithConnectionDto(ConnectionDto dto)
     {
+        // TODO: Update this after we turn the activestate into an object from its raw values.
         string assigner = (dto.WardrobeActiveSetAssigner == string.Empty) ? "SelfApplied" : dto.WardrobeActiveSetAssigner;
         // if the active set is not string.Empty, we should update our active sets.
         if (dto.WardrobeActiveSetName != string.Empty)
@@ -137,13 +153,10 @@ public class ClientConfigurationManager
         }
 
         // if the set was locked, we should lock it with the appropriate time.
-        if(dto.WardrobeActiveSetLocked)
+        if (dto.WardrobeActiveSetLocked)
         {
             LockRestraintSet(GetRestraintSetIdxByName(dto.WardrobeActiveSetName), assigner, dto.WardrobeActiveSetLockTime, false);
         }
-
-        // if active pattern was playing, resume it at the stopped time. TODO: Implement this logic.
-
     }
 
 
@@ -197,7 +210,7 @@ public class ClientConfigurationManager
     {
         _gagStorageConfig.Current.GagStorage.GagEquipData[gagType] = newData;
         _gagStorageConfig.Save();
-        _logger.LogInformation("GagStorage Config Saved");
+        Logger.LogInformation("GagStorage Config Saved");
     }
     #endregion Gag Storage Methods
     /* --------------------- Wardrobe Config Methods --------------------- */
@@ -221,9 +234,9 @@ public class ClientConfigurationManager
         }
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(newSet);
         _wardrobeConfig.Save();
-        _logger.LogInformation("Restraint Set added to wardrobe");
+        Logger.LogInformation("Restraint Set added to wardrobe");
         // publish to mediator
-        _mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
     }
 
     // remove a restraint set
@@ -231,7 +244,7 @@ public class ClientConfigurationManager
     {
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.RemoveAt(setIndex);
         _wardrobeConfig.Save();
-        _mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
     }
 
     // Called whenever set is saved.
@@ -239,7 +252,7 @@ public class ClientConfigurationManager
     {
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets[setIndex] = updatedSet;
         _wardrobeConfig.Save();
-        _mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
     }
 
     internal bool PropertiesEnabledForSet(int setIndexToCheck, string UIDtoCheckPropertiesFor)
@@ -267,11 +280,11 @@ public class ClientConfigurationManager
             // see if the properties are enabled for this set for this user
             if (pairHasHardcoreSetForUID && PropertiesEnabledForSet(setIndex, UIDofPair))
             {
-                _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, true, pushToServer));
+                Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, true, pushToServer));
             }
             else
             {
-                _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, false, pushToServer));
+                Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, false, pushToServer));
             }
         }
         else
@@ -296,11 +309,11 @@ public class ClientConfigurationManager
             // see if the properties are enabled for this set for this user
             if (pairHasHardcoreSetForUID && PropertiesEnabledForSet(setIndex, UIDofPair))
             {
-                _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, true, pushToServer));
+                Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, true, pushToServer));
             }
             else
             {
-                _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, false, pushToServer));
+                Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, false, pushToServer));
             }
         }
     }
@@ -312,8 +325,8 @@ public class ClientConfigurationManager
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = UIDofPair;
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = endLockTimeUTC;
         _wardrobeConfig.Save();
-        
-        _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, UpdatedNewState.Locked, false, pushToServer));
+
+        Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, UpdatedNewState.Locked, false, pushToServer));
     }
 
     internal void UnlockRestraintSet(int setIndex, string UIDofPair, bool pushToServer = true)
@@ -323,8 +336,8 @@ public class ClientConfigurationManager
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = string.Empty;
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = DateTimeOffset.MinValue;
         _wardrobeConfig.Save();
-        
-        _mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, UpdatedNewState.Unlocked, false, pushToServer));
+
+        Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, UpdatedNewState.Unlocked, false, pushToServer));
     }
 
 
@@ -357,7 +370,7 @@ public class ClientConfigurationManager
     {
         if (!_aliasConfig.Current.AliasStorage.ContainsKey(userId))
         {
-            _logger.LogDebug("User {userId} does not have an alias list, creating one.", userId);
+            Logger.LogDebug("User {userId} does not have an alias list, creating one.", userId);
             // If not, initialize it with a new AliasList object
             _aliasConfig.Current.AliasStorage[userId] = new AliasStorage();
             _aliasConfig.Save();
@@ -369,14 +382,14 @@ public class ClientConfigurationManager
         // Check if the userId key exists in the AliasStorage dictionary
         if (!_aliasConfig.Current.AliasStorage.ContainsKey(userId))
         {
-            _logger.LogDebug("User {userId} does not have an alias list, creating one.", userId);
+            Logger.LogDebug("User {userId} does not have an alias list, creating one.", userId);
             // If not, initialize it with a new AliasList object
             _aliasConfig.Current.AliasStorage[userId] = new AliasStorage();
         }
         // Add alias logic
         _aliasConfig.Current.AliasStorage[userId].AliasList.Add(alias);
         _aliasConfig.Save();
-        _mediator.Publish(new PlayerCharAliasChanged(userId));
+        Mediator.Publish(new PlayerCharAliasChanged(userId));
     }
 
     public void RemoveAlias(string userId, AliasTrigger alias)
@@ -384,7 +397,7 @@ public class ClientConfigurationManager
         // Remove alias logic
         _aliasConfig.Current.AliasStorage[userId].AliasList.Remove(alias);
         _aliasConfig.Save();
-        _mediator.Publish(new PlayerCharAliasChanged(userId));
+        Mediator.Publish(new PlayerCharAliasChanged(userId));
     }
 
     public void UpdateAliasInput(string userId, int aliasIndex, string input)
@@ -392,7 +405,7 @@ public class ClientConfigurationManager
         // Update alias input logic
         _aliasConfig.Current.AliasStorage[userId].AliasList[aliasIndex].InputCommand = input;
         _aliasConfig.Save();
-        _mediator.Publish(new PlayerCharAliasChanged(userId));
+        Mediator.Publish(new PlayerCharAliasChanged(userId));
     }
 
     public void UpdateAliasOutput(string userId, int aliasIndex, string output)
@@ -400,7 +413,7 @@ public class ClientConfigurationManager
         // Update alias output logic
         _aliasConfig.Current.AliasStorage[userId].AliasList[aliasIndex].OutputCommand = output;
         _aliasConfig.Save();
-        _mediator.Publish(new PlayerCharAliasChanged(userId));
+        Mediator.Publish(new PlayerCharAliasChanged(userId));
     }
 
     #endregion Alias Config Methods
@@ -434,8 +447,8 @@ public class ClientConfigurationManager
         _patternConfig.Current.PatternStorage.Patterns.Add(newPattern);
         _patternConfig.Save();
         // publish to mediator one was added
-        _logger.LogInformation("Pattern Added: {0}", newPattern.Name);
-        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
+        Logger.LogInformation("Pattern Added: {0}", newPattern.Name);
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
     public void RemovePattern(int indexToRemove)
@@ -445,8 +458,8 @@ public class ClientConfigurationManager
         _patternConfig.Current.PatternStorage.Patterns.RemoveAt(indexToRemove);
         _patternConfig.Save();
         // publish to mediator one was removed
-        _mediator.Publish(new PatternRemovedMessage(patternToRemove));
-        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
+        Mediator.Publish(new PatternRemovedMessage(patternToRemove));
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
     public void SetPatternState(int idx, bool newState, string startPoint = "", string playbackDuration = "", bool shouldPublishToMediator = true)
@@ -456,49 +469,49 @@ public class ClientConfigurationManager
         if (newState)
         {
             // if we are activating, make sure we pass in the startpoint and playback duration. if the passed in is string.Empty, use the vars from the pattern[idx].
-            _mediator.Publish(new PatternActivedMessage(idx,
+            Mediator.Publish(new PatternActivedMessage(idx,
                 string.IsNullOrWhiteSpace(startPoint) ? _patternConfig.Current.PatternStorage.Patterns[idx].StartPoint : startPoint,
                 string.IsNullOrWhiteSpace(playbackDuration) ? _patternConfig.Current.PatternStorage.Patterns[idx].Duration : playbackDuration));
         }
         else
         {
-            _mediator.Publish(new PatternDeactivedMessage(idx));
+            Mediator.Publish(new PatternDeactivedMessage(idx));
         }
         // Push update if we should publish
         if (shouldPublishToMediator)
         {
-            _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
+            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
         }
     }
 
     public void UpdatePatternStatesFromCallback(List<PatternInfo> callbackPatternList)
     {
         // iterate over each alarmInfo in the alarmInfo list. If any of the AlarmStorages alarms have a different enabled state than the alarm info's, change it.
-/*        foreach (AlarmInfo alarmInfo in callbackAlarmList)
-        {
-            // if the alarm is found in the list,
-            if (_alarmConfig.Current.AlarmStorage.Alarms.Any(x => x.Name == alarmInfo.Name))
-            {
-                // grab the alarm reference
-                var alarmRef = _alarmConfig.Current.AlarmStorage.Alarms.FirstOrDefault(x => x.Name == alarmInfo.Name);
-                // update the enabled state if the values are different.
-                if (alarmRef != null && alarmRef.Enabled != alarmInfo.Enabled)
+        /*        foreach (AlarmInfo alarmInfo in callbackAlarmList)
                 {
-                    alarmRef.Enabled = alarmInfo.Enabled;
-                }
-            }
-            else
-            {
-                _logger.LogWarning("Failed to match an Alarm in your list with an alarm in the callbacks list. This shouldnt be possible?");
-            }
-        } DO NOTHING FOR NOW */
+                    // if the alarm is found in the list,
+                    if (_alarmConfig.Current.AlarmStorage.Alarms.Any(x => x.Name == alarmInfo.Name))
+                    {
+                        // grab the alarm reference
+                        var alarmRef = _alarmConfig.Current.AlarmStorage.Alarms.FirstOrDefault(x => x.Name == alarmInfo.Name);
+                        // update the enabled state if the values are different.
+                        if (alarmRef != null && alarmRef.Enabled != alarmInfo.Enabled)
+                        {
+                            alarmRef.Enabled = alarmInfo.Enabled;
+                        }
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Failed to match an Alarm in your list with an alarm in the callbacks list. This shouldnt be possible?");
+                    }
+                } DO NOTHING FOR NOW */
     }
 
     public void UpdatePattern(PatternData pattern, int idx)
     {
         _patternConfig.Current.PatternStorage.Patterns[idx] = pattern;
         _patternConfig.Save();
-        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
     public string EnsureUniqueName(string baseName)
@@ -528,7 +541,7 @@ public class ClientConfigurationManager
                 alarm.PatternToPlay = "";
                 alarm.PatternDuration = "00:00";
                 _alarmConfig.Save();
-                _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
+                Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
             }
         }
     }
@@ -546,17 +559,17 @@ public class ClientConfigurationManager
         _alarmConfig.Current.AlarmStorage.Alarms.Add(alarm);
         _alarmConfig.Save();
 
-        _logger.LogInformation("Alarm Added: {0}", alarm.Name);
-        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
+        Logger.LogInformation("Alarm Added: {0}", alarm.Name);
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
     }
 
     public void RemoveAlarm(int indexToRemove)
     {
-        _logger.LogInformation("Alarm Removed: {0}", _alarmConfig.Current.AlarmStorage.Alarms[indexToRemove].Name);
+        Logger.LogInformation("Alarm Removed: {0}", _alarmConfig.Current.AlarmStorage.Alarms[indexToRemove].Name);
         _alarmConfig.Current.AlarmStorage.Alarms.RemoveAt(indexToRemove);
         _alarmConfig.Save();
 
-        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
     }
 
     public void SetAlarmState(int idx, bool newState, bool shouldPublishToMediator = true)
@@ -567,7 +580,7 @@ public class ClientConfigurationManager
         // publish the alarm added/removed based on state
         if (shouldPublishToMediator)
         {
-            _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmToggled));
+            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmToggled));
         }
     }
 
@@ -589,7 +602,7 @@ public class ClientConfigurationManager
             }
             else
             {
-                _logger.LogWarning("Failed to match an Alarm in your list with an alarm in the callbacks list. This shouldnt be possible?");
+                Logger.LogWarning("Failed to match an Alarm in your list with an alarm in the callbacks list. This shouldnt be possible?");
             }
         }
     }
@@ -599,7 +612,7 @@ public class ClientConfigurationManager
     {
         _alarmConfig.Current.AlarmStorage.Alarms[idx] = alarm;
         _alarmConfig.Save();
-        _mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
     }
 
     #endregion Alarm Config Methods

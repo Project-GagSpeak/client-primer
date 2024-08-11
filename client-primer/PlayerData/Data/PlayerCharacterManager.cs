@@ -74,9 +74,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             _playerCharAppearance = msg.Connection.CharacterAppearanceData;
             // Update the active Gags in the Gag Manager
             Mediator.Publish(new UpdateActiveGags());
-
-            // update remaining connection data to reflect our client accurately to them.
-            _clientConfigManager.SyncDataWithConnectionDto(msg.Connection);
         });
 
         // These are called whenever we update our own data.

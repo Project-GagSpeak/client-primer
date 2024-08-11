@@ -3,6 +3,7 @@ using System.Numerics;
 
 namespace GagSpeak.Toybox.Services;
 // contains common things all remotes share and do not need unique instances to contain.
+// also should be repurposed when possible to.
 public class ToyboxRemoteService
 {
     private readonly ILogger<ToyboxRemoteService> _logger;

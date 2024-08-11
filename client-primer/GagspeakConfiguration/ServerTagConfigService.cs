@@ -4,9 +4,10 @@ namespace GagSpeak.GagspeakConfiguration;
 public class ServerTagConfigService : ConfigurationServiceBase<ServerTagConfig>
 {
     public const string ConfigName = "servertags.json";
-
-    public ServerTagConfigService(string configDir) : base(configDir) {
-    }
+    public const bool PerCharacterConfig = false;
+    public ServerTagConfigService(string configDir) : base(configDir) { }
 
     protected override string ConfigurationName => ConfigName;
+    protected override bool PerCharacterConfigPath => PerCharacterConfig;
+
 }

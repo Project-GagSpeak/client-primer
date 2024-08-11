@@ -4,7 +4,9 @@ namespace GagSpeak.GagspeakConfiguration.Configurations;
 
 public class WardrobeConfig : IGagspeakConfiguration
 {
-    /// <summary> The GagSpeak Clients Pattern Stroage </summary>
+    /// <summary> The GagSpeak Clients Pattern Storage </summary>
     public WardrobeStorage WardrobeStorage { get; set; }
-    public int Version { get; set; } = 1;
+    // Using Static to view version during initial load for migrations.
+    public static int CurrentVersion => 1;
+    public int Version { get; set; } = CurrentVersion;
 }

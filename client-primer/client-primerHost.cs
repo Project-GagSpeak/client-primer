@@ -25,6 +25,7 @@ using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.Toybox.Services;
+using GagSpeak.Toybox.SimulatedVibe;
 using GagSpeak.UI;
 using GagSpeak.UI.Components;
 using GagSpeak.UI.Components.Popup;
@@ -226,6 +227,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ToyboxTriggerManager>()
         .AddSingleton<ToyboxAlarmManager>()
         .AddSingleton<ToyboxCosmetics>()
+        .AddSingleton((s) => new VibeSimAudio(s.GetRequiredService<ILogger<VibeSimAudio>>(), pi))
 
         .AddSingleton<OrdersViewActive>()
         .AddSingleton<OrdersCreator>()
@@ -244,6 +246,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<HubFactory>()
         .AddSingleton<TokenProvider>()
         // Service Services
+        .AddSingleton<ToyboxVibeService>()
         .AddSingleton<ToyboxRemoteService>()
         .AddSingleton<GlamourChangedService>()
         .AddSingleton<ClientConfigurationManager>()

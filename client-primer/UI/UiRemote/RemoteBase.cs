@@ -24,19 +24,20 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
 {
     // the class includes are shared however (i think), so dont worry about that.
     private readonly UiSharedService _uiShared;
-    private readonly DeviceHandler _intifaceHandler;
+    private readonly ToyboxVibeService _vibeService;
     private readonly ToyboxRemoteService _remoteService;
 
     public RemoteBase(ILogger logger,
         GagspeakMediator mediator, UiSharedService uiShared,
-        ToyboxRemoteService remoteService, DeviceHandler deviceHandler,
+        ToyboxRemoteService remoteService, ToyboxVibeService vibeService,
         string windowName): base(logger, mediator, windowName + " Remote")
     {
         // grab the shared services
         _uiShared = uiShared;
-        _intifaceHandler = deviceHandler;
+        _vibeService = vibeService;
         _remoteService = remoteService;
-
+        AllowPinning = false;
+        AllowClickthrough = false;
         Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoResize;
 
         // define initial size of window and to not respect the close hotkey.
@@ -410,7 +411,7 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
         DurationStopwatch.Start();
         RemoteOnline = true;
         // start up the simulated vibrator if active.
-        // TODO: Spacial & Simulated Audio integration
+        _vibeService.StartActiveVibes();
     }
 
     public virtual void StopVibrating()
@@ -425,7 +426,7 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
         RecordedPositions.Clear();
         StoredLoopDataBlock.Clear();
         // Reset vibrations on motors prior to recording back to original state.
-        _intifaceHandler.StopAllDevices();
+        _vibeService.StopActiveVibes();
     }
 
     /// <summary>

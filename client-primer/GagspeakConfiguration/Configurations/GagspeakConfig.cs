@@ -4,17 +4,21 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.UI;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.ChatMessages;
+using GagspeakAPI.Data.VibeServer;
 
 namespace GagSpeak.GagspeakConfiguration.Configurations;
 
 [Serializable]
 public class GagspeakConfig : IGagspeakConfiguration
 {
-    public int Version { get; set; } = 1;                               // the version of the config file
+    public static int CurrentVersion => 2;
+    public int Version { get; set; } = CurrentVersion;
+
+    public string LastUidLoggedIn { get; set; } = "";                   // the last UID the user logged in with
+    
     public bool AcknowledgementUnderstood { get; set; } = false;        // if the user has acknowledged the terms of service
     public bool ButtonUsed { get; set; } = false;                       // if the user has used the button
     public bool AccountCreated { get; set; } = false;                   // if the user has created an account in the plugin
-    public bool AccountClaimed { get; set; } = false;                   // if the user has claimed their account sucessfully.
     public bool EnableDtrEntry { get; set; } = false;                   // enable the DTR entry
     public bool ShowUidInDtrTooltip { get; set; } = true;               // show the UID of a user in the tooltip
     public bool PreferNicknameInDtrTooltip { get; set; } = false;       // prefer nickname in DTR tooltip
@@ -38,14 +42,15 @@ public class GagspeakConfig : IGagspeakConfiguration
     public List<ChatChannel.ChatChannels> ChannelsPuppeteer { get; set; } = []; // which channels should puppeteer messages be scanning? 
 
     // migrated from gagspeak information for client user. (stuff unnecessary to be in the DB)
-    public bool LiveGarblerZoneChangeWarn { get; set; }                 // if user wants to be warned about the live chat garbler on zone change
-    public BlindfoldType BlindfoldStyle { get; set; }                   // the blindfold style the user is using
-    public RevertStyle RevertStyle { get; set; }                        // how the user wants to revert their settings (can store locally?)
-    public bool DisableSetUponUnlock { get; set; }                      // If we should remove a set whenever it is unlocked.
-    public bool RemoveGagUponLockExpiration { get; set; }               // If we should remove a gag upon lock expiration.
-    public bool UsingSimulatedVibrator { get; set; }                    // if the user is using a simulated vibrator
-    public string Language { get; set; } = "English";                   // the language the user is using for MufflerCore
-    public string LanguageDialect { get; set; } = "IPA_US";             // the language dialect the user is using for MufflerCore
+    public bool LiveGarblerZoneChangeWarn { get; set; } = false;                // if user wants to be warned about the live chat garbler on zone change
+    public BlindfoldType BlindfoldStyle { get; set; } = BlindfoldType.Sensual;  // the blindfold style the user is using
+    public RevertStyle RevertStyle { get; set; } = RevertStyle.ToGameOnly;      // how the user wants to revert their settings (can store locally?)
+    public bool DisableSetUponUnlock { get; set; } = false;                     // If we should remove a set whenever it is unlocked.
+    public bool RemoveGagUponLockExpiration { get; set; } = false;              // If we should remove a gag upon lock expiration.
+    public VibratorMode VibratorMode { get; set; } = VibratorMode.Actual;       // if the user is using a simulated vibrator
+    public VibeSimType VibeSimAudio { get; set; } = VibeSimType.Quiet;          // the audio settings for the simulated vibrator
+    public string Language { get; set; } = "English";                           // the language the user is using for MufflerCore
+    public string LanguageDialect { get; set; } = "IPA_US";                     // the language dialect the user is using for MufflerCore
     public bool UsingLegacyControls { get; set; } = GameConfig.UiControl.GetBool("MoveMode"); // grabs our movement mode for the game.
     public string IntifaceConnectionSocket { get; set; } = "ws://localhost:12345"; // connection link from plugin to intiface
 }

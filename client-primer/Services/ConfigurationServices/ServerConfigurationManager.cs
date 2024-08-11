@@ -44,50 +44,100 @@ public class ServerConfigurationManager
     public ServerTagStorage TagStorage => _serverTagConfig.Current.ServerTagStorage;
     public ServerNicknamesStorage NicknameStorage => _nicknamesConfig.Current.ServerNicknames;
 
-    /// <summary> Deals with managing authentication keys and associating characters with servers. 
-    /// <para> This includes retrieving secret keys for authentication and adding character information to server configurations. </para>
-    /// </summary>
-    /// <param name="serverIdx">The IDX of the server we are connected to.</param>
-    /// <returns>The Secret Key</returns>
-    public string? GetSecretKey()
+    /// <summary> Retrieves the key for the currently logged in character. Returns null if none found. </summary>
+    /// <returns> The Secret Key </returns>
+    public string? GetSecretKeyForCharacter()
     {
-        // fetch the players local content ID
-        var tempLocalContentID = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
-        // fetch the characterName
-        var charaName = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
-        // fetch the characters homeworld ID
-        var worldId = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult();
-        // see if the current server does not have any authentications or any secret keys
-        if (!CurrentServer.Authentications.Any() && CurrentServer.SecretKeys.Any())
-        {
-            // then add an authentication  with the character name, world, and current server's secret key.
-            // (change this later so it adds on the first generation)
-            CurrentServer.Authentications.Add(new Authentication()
-            {
-                CharacterName = charaName,
-                WorldId = worldId,
-                SecretKeyIdx = CurrentServer.SecretKeys.Last().Key, // add new authentication with the secret key being the last added key
-            });
+        // fetch the players local content ID (matches regardless of name or world change) and the name & worldId.
+        var LocalContentID = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
 
-            Save();
-        }
+        // Once we have obtained the information, check to see if the currently logged in character has a matching authentication with the same local content ID.
+        Authentication? auth = CurrentServer.Authentications.Find(f => f.CharacterPlayerContentId == LocalContentID);
 
-        // create a authentication object (possibly null) that finds the character name and world ID in the current server authentications
-        Authentication? auth = CurrentServer.Authentications
-                .Find(f => string.Equals(f.CharacterName, charaName, StringComparison.Ordinal) && f.WorldId == worldId);
-
-        // if it is null (since it is possible), then return null.
+        // If the authentication is null, return null.
         if (auth == null) return null;
 
-        // otherwise, if the current server has a secret key with the authentication's secret key index, return the key.
-        if (CurrentServer.SecretKeys.TryGetValue(auth.SecretKeyIdx, out var secretKey))
+        UpdateAuthForNameAndWorldChange(LocalContentID);
+
+        // finally, return the secret key of this authentication, since we know it to be valid.
+        return auth.SecretKey.Key;
+    }
+
+    // TODO: REMOVE THIS METHOD WHEN EXITING OPEN BETA, THIS IS ONLY FOR PROFILE MIGRATION.
+    public void UpdateMatchingCharacterForLocalContentId()
+    {
+        // fetch the players local content ID (matches regardless of name or world change) and the name & worldId.
+        var LocalContentID = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
+        var charaName = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
+        var worldId = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult();
+
+        // locate an authentication where the character name and world match the stored authentication, but have a content ID of 0.
+        Authentication? auth = CurrentServer.Authentications.Find(f => f.CharacterPlayerContentId == 0 && f.CharacterName == charaName && f.WorldId == worldId);
+        if (auth == null) return;
+
+        // update the content id
+        auth.CharacterPlayerContentId = LocalContentID;
+        Save();
+    }
+
+    public void UpdateAuthForNameAndWorldChange(ulong localContentId)
+    {
+        // locate the auth with the matching local content ID, and update the name and world if they do not match.
+        Authentication? auth = CurrentServer.Authentications.Find(f => f.CharacterPlayerContentId == localContentId);
+        if (auth == null) return;
+
+        // fetch the players name and world ID.
+        var charaName = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
+        var worldId = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult();
+
+        // update the name if it has changed.
+        if (auth.CharacterName != charaName)
         {
-            return secretKey.Key;
+            auth.CharacterName = charaName;
         }
 
-        // if we land here for some god forsaken reason, return null.
-        return null;
+        // update the world ID if it has changed.
+        if (auth.WorldId != worldId)
+        {
+            auth.WorldId = worldId;
+        }
     }
+
+    public bool HasAnySecretKeys() => CurrentServer.Authentications.Any(a => !string.IsNullOrEmpty(a.SecretKey.Key));
+
+    public bool CharacterHasSecretKey()
+    {
+        var localContentID = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
+        return CurrentServer.Authentications.Any(a => a.CharacterPlayerContentId == localContentID && !string.IsNullOrEmpty(a.SecretKey.Key));
+    }
+
+    public void GenerateAuthForCurrentCharacter(bool isPrimary = false)
+    {
+        // generates a new auth object for the list of authentications with no secret key.
+        var auth = new Authentication
+        {
+            CharacterPlayerContentId = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult(),
+            CharacterName = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult(),
+            WorldId = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult(),
+            IsPrimary = isPrimary,
+            SecretKey = new SecretKey()
+        };
+    }
+
+    public void SetSecretKeyForCharacter(ulong localContentID, SecretKey keyToAdd)
+    {
+        // Check if the currently logged-in character has a matching authentication with the same local content ID.
+        Authentication? auth = CurrentServer.Authentications.Find(f => f.CharacterPlayerContentId == localContentID);
+
+        // If the authentication is null, throw an exception.
+        if (auth == null) throw new Exception("No authentication found for the current character.");
+
+        // Update the existing authentication with the new secret key.
+        auth.SecretKey = keyToAdd;
+        // Save the updated configuration.
+        Save();
+    }
+
 
     /// <summary> Gets the server API Url </summary>
     public string GetServerApiUrl() => _configService.Current.ServerStorage.ServiceUri;
@@ -105,28 +155,6 @@ public class ServerConfigurationManager
         var caller = new StackTrace().GetFrame(1)?.GetMethod()?.ReflectedType?.Name ?? "Unknown";
         _logger.LogDebug("{caller} Calling config save", caller);
         _configService.Save();
-    }
-
-    /// <summary> Adds the current character to the server storage object </summary>
-    internal void AddCurrentCharacterToServer(bool addLastSecretKey = false)
-    {
-        // append the authentication to the serverStorage object
-        CurrentServer.Authentications.Add(new Authentication()
-        {
-            CharacterName = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult(),
-            WorldId = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult(),
-            SecretKeyIdx = addLastSecretKey ? CurrentServer.SecretKeys.Last().Key : -1,
-        });
-        // Save the ServerConfigurationManager
-        Save();
-    }
-
-    /// <summary> Adds an empty character to the server storage object </summary>
-    internal void AddEmptyCharacterToServer()
-    {
-        // create a new authentication for it, then saves the server configuration manager
-        CurrentServer.Authentications.Add(new Authentication());
-        Save();
     }
 
     /// <summary> Adds a new secret key to the server storage object </summary>

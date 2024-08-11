@@ -5,6 +5,7 @@ using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data.VibeServer;
 using GagspeakAPI.Data.Enum;
 using ProjectGagspeakAPI.Data.VibeServer;
+using GagSpeak.Toybox.Services;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -15,16 +16,14 @@ namespace GagSpeak.PlayerData.Handlers;
 public class AlarmHandler : MediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly DeviceHandler _IntifaceHandler;
     private readonly PatternHandler _patternHandler;
     private DateTime _lastExecutionTime;
 
     public AlarmHandler(ILogger<AlarmHandler> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        DeviceHandler handler, PatternHandler patternHandler) : base(logger, mediator)
+        PatternHandler patternHandler) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
-        _IntifaceHandler = handler;
         _patternHandler = patternHandler;
 
         // subscribe to the pattern removed, so we can clear the configured patterns of any alarms they were associated with

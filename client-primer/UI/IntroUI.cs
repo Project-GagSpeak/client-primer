@@ -37,9 +37,13 @@ public class IntroUi : WindowMediatorSubscriberBase
         _configService = configService;
         _serverConfigurationManager = serverConfigurationManager;
         _frameworkUtils = frameworkutils;
+        
         IsOpen = false;                 // do not start with the window open
+        
         ShowCloseButton = false;        // do not show the close button
         RespectCloseHotkey = false;     // do not respect the close hotkey (in otherwords, require the user to read this)
+        AllowPinning = false;
+        AllowClickthrough = false;
 
         SizeConstraints = new WindowSizeConstraints()           // set the size of the window
         {
@@ -194,8 +198,8 @@ public class IntroUi : WindowMediatorSubscriberBase
                 _ = Task.Run(async () =>
                 {
                     var accountDetails = await _uiShared.ApiController.FetchNewAccountDetailsAndDisconnect();
-                    _secretKey = accountDetails.Item2;
                     _aquiredUID = accountDetails.Item1;
+                    _secretKey = accountDetails.Item2;
                 });
             }
 
@@ -221,24 +225,27 @@ public class IntroUi : WindowMediatorSubscriberBase
                 // display the create account button.
                 if (ImGui.Button(buttonText))
                 {
-                    // add a new secret key object to the list of secret keys stored within the main server's server storage.
-                    _serverConfigurationManager.CurrentServer!.SecretKeys.Add(_serverConfigurationManager.CurrentServer.SecretKeys
-                        .Select(k => k.Key)
-                        .LastOrDefault() + 1, new SecretKey()
-                        {
-                            FriendlyName = $"GagSpeak Setup Generated AccountKey ({DateTime.Now:yyyy-MM-dd})",    // set a friendly name
-                            Key = _secretKey,                                                                     // then store the actual key
-                        });
+                    _serverConfigurationManager.GenerateAuthForCurrentCharacter(true);
+                    // grab our local content id
+                    var contentId = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
 
-                    // add the currently logged in character to the server using the last added secret key
-                    _serverConfigurationManager.AddCurrentCharacterToServer(addLastSecretKey: true);
-                    // now set the secret key to a blank string
-                    _secretKey = string.Empty;
-                    // then attempt to connect to the server with that profile setup.
+                    // set the key to that newly added authentication
+                    SecretKey newKey = new()
+                    {
+                        Label = $"GagSpeak Main Account Secret Key - ({DateTime.Now:yyyy-MM-dd})",
+                        Key = _secretKey,
+                    };
+
+                    // set the secret key for the character
+                    _serverConfigurationManager.SetSecretKeyForCharacter(contentId, newKey);
+
+                    // run the create connections and set our account created to true
                     _ = Task.Run(() => _uiShared.ApiController.CreateConnections());
+                    _secretKey = string.Empty;
                     _configService.Current.AccountCreated = true; // set the account created flag to true
                     _configService.Save(); // save the configuration
                 }
+                UiSharedService.AttachToolTip("THIS WILL CREATE YOUR PRIMARY ACCOUNT. ENSURE YOUR KEY IS CORRECT.");
             }
 
             ImGui.Separator();

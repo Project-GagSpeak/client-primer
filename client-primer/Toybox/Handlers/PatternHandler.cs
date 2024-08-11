@@ -2,6 +2,7 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Services;
 using GagspeakAPI.Data;
 
 namespace GagSpeak.PlayerData.Handlers;
@@ -9,14 +10,12 @@ namespace GagSpeak.PlayerData.Handlers;
 public class PatternHandler : MediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly DeviceHandler _IntifaceHandler;
 
     public PatternHandler(ILogger<PatternHandler> logger,
-        GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        DeviceHandler handler) : base(logger, mediator)
+        GagspeakMediator mediator, ClientConfigurationManager clientConfigs) 
+        : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
-        _IntifaceHandler = handler;
 
         Mediator.Subscribe<PatternActivedMessage>(this, (msg) => PlaybackRunning = true);
 

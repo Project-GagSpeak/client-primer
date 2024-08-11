@@ -36,6 +36,9 @@ public class ToyboxUI : WindowMediatorSubscriberBase
         _cosmetics = cosmetics;
         _patternPlayback = playback;
 
+        AllowPinning = false;
+        AllowClickthrough = false;
+
         _tabMenu = new ToyboxTabMenu();
 
         // define initial size of window and to not respect the close hotkey.

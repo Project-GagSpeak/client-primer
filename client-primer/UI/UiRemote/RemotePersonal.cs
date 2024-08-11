@@ -22,20 +22,19 @@ public class RemotePersonal : RemoteBase
 {
     // the class includes are shared however (i think), so dont worry about that.
     private readonly UiSharedService _uiShared;
-    private readonly DeviceHandler _intifaceHandler; // these SHOULD all be shared. but if not put into Service.
+    private readonly ToyboxVibeService _vibeService; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
     private readonly string _windowName;
 
     public RemotePersonal(ILogger<RemotePersonal> logger,
         GagspeakMediator mediator, UiSharedService uiShared,
-        ToyboxRemoteService remoteService, DeviceHandler deviceHandler,
-        string windowName = "Personal") : base(logger, mediator, uiShared, remoteService, deviceHandler, windowName)
+        ToyboxRemoteService remoteService, ToyboxVibeService vibeService,
+        string windowName = "Personal") : base(logger, mediator, uiShared, remoteService, vibeService, windowName)
     {
         // grab the shared services
         _uiShared = uiShared;
-        _intifaceHandler = deviceHandler;
+        _vibeService = vibeService;
         _remoteService = remoteService;
-
     }
 
     protected override void Dispose(bool disposing)
@@ -168,21 +167,20 @@ public class RemotePersonal : RemoteBase
     /// </summary>
     public override void RecordData(object? sender, ElapsedEventArgs e)
     {
-        // _logger.LogTrace($"AnyDeviceConnected: {_intifaceHandler.AnyDeviceConnected}, ConnectedToIntiface: {_intifaceHandler.ConnectedToIntiface}");
-        // if any devices are currently connected, and our intiface client is connected,
-        if (_intifaceHandler.AnyDeviceConnected && _intifaceHandler.ConnectedToIntiface)
+        // this means if either simulated vibe or actual vibe is active
+        if (_vibeService.ConnectedToyActive)
         {
             //_logger.LogTrace("Sending Vibration Data to Devices!");
             // send the vibration data to all connected devices
             if (IsLooping && !IsDragging && StoredLoopDataBlock.Count > 0)
             {
                 //_logger.LogTrace($"{(byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex])}");
-                _intifaceHandler.SendVibeToAllDevices((byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex]));
+                _vibeService.SendNextIntensity((byte)Math.Round(StoredLoopDataBlock[BufferLoopIndex]));
             }
             else
             {
                 //_logger.LogTrace($"{(byte)Math.Round(CirclePosition[1])}");
-                _intifaceHandler.SendVibeToAllDevices((byte)Math.Round(CirclePosition[1]));
+                _vibeService.SendNextIntensity((byte)Math.Round(CirclePosition[1]));
             }
         }
     }

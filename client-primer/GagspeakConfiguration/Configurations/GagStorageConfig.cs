@@ -5,5 +5,6 @@ namespace GagSpeak.GagspeakConfiguration.Configurations;
 public class GagStorageConfig : IGagspeakConfiguration
 {
     public GagStorage GagStorage { get; set; }
-    public int Version { get; set; } = 1;
+    public static int CurrentVersion => 1;
+    public int Version { get; set; } = CurrentVersion;
 }

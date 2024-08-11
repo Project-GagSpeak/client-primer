@@ -30,6 +30,9 @@ public class GagSetupUI : WindowMediatorSubscriberBase
         _activeGags = activeGags;
         _gagStorage = gagStorage;
 
+        AllowPinning = false;
+        AllowClickthrough = false;
+
         _tabMenu = new GagSetupTabMenu();
 
         // define initial size of window and to not respect the close hotkey.

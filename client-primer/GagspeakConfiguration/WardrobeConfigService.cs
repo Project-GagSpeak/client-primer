@@ -8,136 +8,82 @@ namespace GagSpeak.GagspeakConfiguration;
 public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
 {
     public const string ConfigName = "wardrobe.json";
-
+    public const bool PerCharacterConfig = true;
     public WardrobeConfigService(string configDir) : base(configDir) { }
 
     protected override string ConfigurationName => ConfigName;
+    protected override bool PerCharacterConfigPath => PerCharacterConfig;
 
-    protected override WardrobeConfig LoadConfig()
+    protected override WardrobeConfig DeserializeConfig(JObject configJson)
     {
-        WardrobeConfig config = new WardrobeConfig();
-        if (!File.Exists(ConfigurationPath))
+        var config = new WardrobeConfig();
+        // Deserialize WardrobeStorage
+        JToken wardrobeStorageToken = configJson["WardrobeStorage"];
+        if (wardrobeStorageToken != null)
         {
-            Save();
-            return config;
-        }
-        if (File.Exists(ConfigurationPath))
-        {
-            try
+            WardrobeStorage wardrobeStorage = new WardrobeStorage();
+
+            var restraintSetsArray = wardrobeStorageToken["RestraintSets"]?.Value<JArray>();
+            if (restraintSetsArray == null)
             {
-                string json = File.ReadAllText(ConfigurationPath);
-                JObject configObject = JObject.Parse(json);
-
-                // Deserialize WardrobeStorage
-                JToken wardrobeStorageToken = configObject["WardrobeStorage"];
-                if (wardrobeStorageToken != null)
-                {
-                    WardrobeStorage wardrobeStorage = new WardrobeStorage();
-
-                    var restraintSetsArray = wardrobeStorageToken["RestraintSets"]?.Value<JArray>();
-                    if (restraintSetsArray == null)
-                    {
-                        throw new Exception("RestraintSets property is missing in RestraintSets.json");
-                    }
-
-                    // we are in version 1, so we should deserialize appropriately
-                    foreach (var item in restraintSetsArray)
-                    {
-                        var restraintSet = new RestraintSet();
-                        var ItemValue = item.Value<JObject>();
-                        if (ItemValue != null)
-                        {
-                            restraintSet.Deserialize(ItemValue);
-                            wardrobeStorage.RestraintSets.Add(restraintSet);
-                        }
-                        else
-                        {
-                            throw new Exception("restraint set contains invalid property");
-                        }
-                    }
-
-                    // Assuming BlindfoldInfo follows a similar pattern
-                    JToken blindfoldInfoToken = wardrobeStorageToken["BlindfoldInfo"];
-                    if (blindfoldInfoToken != null)
-                    {
-                        BlindfoldModel blindfoldModel = new BlindfoldModel();
-                        blindfoldModel.Deserialize((JObject)blindfoldInfoToken);
-                        wardrobeStorage.BlindfoldInfo = blindfoldModel;
-                    }
-                    else
-                    {
-                        wardrobeStorage.BlindfoldInfo = new BlindfoldModel();
-                    }
-                    config.WardrobeStorage = wardrobeStorage; // loads the wardrobe storage into the stored config.
-                }
-
-                // Deserialize Version
-                JToken versionToken = configObject["Version"];
-                if (versionToken != null)
-                {
-                    config.Version = versionToken.ToObject<int>();
-                }
-                Save();
+                throw new Exception("RestraintSets property is missing in RestraintSets.json");
             }
-            catch (Exception e)
+
+            // we are in version 1, so we should deserialize appropriately
+            foreach (var item in restraintSetsArray)
             {
-                throw new Exception($"Failed to load configuration file {ConfigurationPath} {e}");
+                var restraintSet = new RestraintSet();
+                var ItemValue = item.Value<JObject>();
+                if (ItemValue != null)
+                {
+                    restraintSet.Deserialize(ItemValue);
+                    wardrobeStorage.RestraintSets.Add(restraintSet);
+                }
+                else
+                {
+                    throw new Exception("restraint set contains invalid property");
+                }
             }
+
+            // Assuming BlindfoldInfo follows a similar pattern
+            JToken blindfoldInfoToken = wardrobeStorageToken["BlindfoldInfo"];
+            if (blindfoldInfoToken != null)
+            {
+                BlindfoldModel blindfoldModel = new BlindfoldModel();
+                blindfoldModel.Deserialize((JObject)blindfoldInfoToken);
+                wardrobeStorage.BlindfoldInfo = blindfoldModel;
+            }
+            else
+            {
+                wardrobeStorage.BlindfoldInfo = new BlindfoldModel();
+            }
+            config.WardrobeStorage = wardrobeStorage; // loads the wardrobe storage into the stored config.
         }
-        _configLastWriteTime = GetConfigLastWriteTime();
         return config;
     }
 
-    protected override void SaveDirtyConfig()
+    protected override string SerializeConfig(WardrobeConfig config)
     {
-        _configIsDirty = false;
-        var existingConfigs = Directory.EnumerateFiles(ConfigurationDirectory, ConfigurationName + ".bak.*").Select(c => new FileInfo(c))
-            .OrderByDescending(c => c.LastWriteTime).ToList();
-        if (existingConfigs.Skip(1).Any())
+        // serialize here.
+        JObject configObject = new JObject
         {
-            foreach (var config in existingConfigs.Skip(1))
-            {
-                config.Delete();
-            }
-        }
+            ["Version"] = config.Version,
+            ["WardrobeStorage"] = new JObject()
+        };
 
-        try
+        JArray restraintSetsArray = new JArray();
+        foreach (RestraintSet restraintSet in config.WardrobeStorage.RestraintSets)
         {
-            File.Copy(ConfigurationPath, ConfigurationPath + ".bak." + DateTime.Now.ToString("yyyyMMddHHmmss"), overwrite: true);
+            restraintSetsArray.Add(restraintSet.Serialize());
         }
-        catch { /* Consume */ }
+        configObject["WardrobeStorage"]["RestraintSets"] = restraintSetsArray;
 
-        try
-        {
-            // serialize here.
-            JObject configObject = new JObject
-            {
-                ["Version"] = Current.Version,
-                ["WardrobeStorage"] = new JObject()
-            };
+        // Use Serialize method for BlindfoldInfo
+        JObject blindfoldInfoObject = config.WardrobeStorage.BlindfoldInfo.Serialize();
 
-            JArray restraintSetsArray = new JArray();
-            foreach (RestraintSet restraintSet in Current.WardrobeStorage.RestraintSets)
-            {
-                restraintSetsArray.Add(restraintSet.Serialize());
-            }
-            configObject["WardrobeStorage"]["RestraintSets"] = restraintSetsArray;
+        // Add blindfoldInfoObject to the WardrobeStorage JObject
+        configObject["WardrobeStorage"]["BlindfoldInfo"] = blindfoldInfoObject;
 
-            // Use Serialize method for BlindfoldInfo
-            JObject blindfoldInfoObject = Current.WardrobeStorage.BlindfoldInfo.Serialize();
-
-            // Add blindfoldInfoObject to the WardrobeStorage JObject
-            configObject["WardrobeStorage"]["BlindfoldInfo"] = blindfoldInfoObject;
-
-            string json = configObject.ToString(Formatting.Indented);
-            var tempPath = ConfigurationPath + ".tmp";
-            File.WriteAllText(tempPath, json);
-            File.Move(tempPath, ConfigurationPath, true);
-            _configLastWriteTime = new FileInfo(ConfigurationPath).LastWriteTimeUtc;
-        }
-        catch (Exception ex) 
-        {
-            throw new Exception($"Failed to save {ConfigurationName} configuration.", ex);
-        }
+        return configObject.ToString(Formatting.Indented);
     }
 }

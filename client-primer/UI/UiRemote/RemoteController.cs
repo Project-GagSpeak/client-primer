@@ -24,20 +24,20 @@ public class RemoteController : RemoteBase
 {
     // the class includes are shared however (i think), so dont worry about that.
     private readonly UiSharedService _uiShared;
-    private readonly DeviceHandler _intifaceHandler; // these SHOULD all be shared. but if not put into Service.
+    private readonly ToyboxVibeService _vibeService; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
     private readonly ApiController _apiController;
     private bool _isExpanded = false;
 
     public RemoteController(ILogger<RemoteController> logger,
         GagspeakMediator mediator, UiSharedService uiShared,
-        DeviceHandler deviceHandler, ToyboxRemoteService remoteService,
+        ToyboxVibeService vibeService, ToyboxRemoteService remoteService,
         ApiController apiController, PrivateRoom privateRoom) 
-        : base(logger, mediator, uiShared, remoteService, deviceHandler, privateRoom.RoomName)
+        : base(logger, mediator, uiShared, remoteService, vibeService, privateRoom.RoomName)
     {
         // grab the shared services
         _uiShared = uiShared;
-        _intifaceHandler = deviceHandler;
+        _vibeService = vibeService;
         _remoteService = remoteService;
         _apiController = apiController;
         // initialize our private room data with the private room passed in on startup so we can properly interact with the correct data.

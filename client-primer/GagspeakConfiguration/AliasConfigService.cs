@@ -6,8 +6,10 @@ namespace GagSpeak.GagspeakConfiguration;
 public class AliasConfigService : ConfigurationServiceBase<AliasConfig>
 {
     public const string ConfigName = "alias-lists.json";
-
+    public const bool PerCharacterConfig = true;
     public AliasConfigService(string configDir) : base(configDir) { }
 
     protected override string ConfigurationName => ConfigName;
+    protected override bool PerCharacterConfigPath => PerCharacterConfig;
+
 }

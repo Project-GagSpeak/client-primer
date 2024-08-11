@@ -20,7 +20,7 @@ public class UiFactory
     private readonly GagspeakMediator _gagspeakMediator;
     private readonly ApiController _apiController;
     private readonly UiSharedService _uiSharedService;
-    private readonly DeviceHandler _deviceHandler;
+    private readonly ToyboxVibeService _vibeService;
     private readonly IdDisplayHandler _displayHandler;
     private readonly PairManager _pairManager;
     private readonly PlayerCharacterManager _playerManager;
@@ -30,7 +30,7 @@ public class UiFactory
 
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator,
         ApiController apiController, UiSharedService uiSharedService, 
-        DeviceHandler handler, IdDisplayHandler displayHandler, 
+        ToyboxVibeService vibeService, IdDisplayHandler displayHandler, 
         PairManager pairManager, PlayerCharacterManager playerManager,
         ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
         ProfileService profileManager)
@@ -39,7 +39,7 @@ public class UiFactory
         _gagspeakMediator = gagspeakMediator;
         _apiController = apiController;
         _uiSharedService = uiSharedService;
-        _deviceHandler = handler;
+        _vibeService = vibeService;
         _displayHandler = displayHandler;
         _pairManager = pairManager;
         _playerManager = playerManager;
@@ -51,7 +51,7 @@ public class UiFactory
     public RemoteController CreateControllerRemote(PrivateRoom privateRoom)
     {
         return new RemoteController(_loggerFactory.CreateLogger<RemoteController>(), _gagspeakMediator,
-            _uiSharedService, _deviceHandler, _remoteService, _apiController, privateRoom);
+            _uiSharedService, _vibeService, _remoteService, _apiController, privateRoom);
     }
 
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)

@@ -6,5 +6,6 @@ public class PatternConfig : IGagspeakConfiguration
 {
     /// <summary> The GagSpeak Clients Pattern Stroage </summary>
     public PatternStorage PatternStorage { get; set; }
-    public int Version { get; set; } = 2;
+    public static int CurrentVersion => 2;
+    public int Version { get; set; } = CurrentVersion;
 }

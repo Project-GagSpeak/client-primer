@@ -1,6 +1,8 @@
 using NAudio.Wave;
 
-public class LoopStream : WaveStream, IDisposable
+namespace GagSpeak.Toybox.SimulatedVibe;
+// Loops the audio played back so that it can be played back indefinitely until stopped.
+public class VibeSimLooper : WaveStream, IDisposable
 {
     WaveStream sourceStream;
     public bool EnableLooping { get; set; }
@@ -12,7 +14,7 @@ public class LoopStream : WaveStream, IDisposable
         set => sourceStream.Position = value;
     }
 
-    public LoopStream(WaveStream sourceStream)
+    public VibeSimLooper(WaveStream sourceStream)
     {
         this.sourceStream = sourceStream;
         this.EnableLooping = true;

@@ -1,413 +1,138 @@
-/*using Buttplug.Client;
-using Buttplug.Client.Connectors.WebsocketConnector;
-using Dalamud.Game.Gui.Dtr;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
-using Dalamud.Plugin.Services;
-using GagSpeak.PlayerData.Data;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.SimulatedVibe;
+using GagspeakAPI.Data.VibeServer;
+using Microsoft.Extensions.Logging;
+using NAudio.Wave;
 
 namespace GagSpeak.Toybox.Services;
+// handles the management of the connected devices or simulated vibrator.
 public class ToyboxVibeService : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
-    public ButtplugClient client;
-    public ButtplugWebsocketConnector connector;
-    public ButtplugClientDevice? ActiveDevice; // our connected, active device from the list of devices in the ButtplugClient.
-    // internal var for the dtr bar
-    private readonly IDtrBarEntry DtrEntry;
-    private DateTime LastBatteryCheck;
+    private readonly DeviceHandler _deviceHandler; // handles the actual connected devices.
+    private readonly VibeSimAudio _vibeSimAudio; // handles the simulated vibrator
 
-    public ToyboxVibeService(ILogger<ToyboxVibeService> logger, GagspeakMediator mediator,
-        ClientConfigurationManager config, PlayerCharacterManager characterHandler,
-        IChatGui chatGui, IDtrBar dtrBar) : base(logger, mediator)
+    public ToyboxVibeService(ILogger<ToyboxVibeService> logger,
+        GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
+        DeviceHandler deviceHandler, VibeSimAudio vibeSimAudio) : base(logger, mediator)
     {
-        _clientConfigs = config;
-        _playerManager = characterHandler;
+        _clientConfigs = clientConfigs;
+        _deviceHandler = deviceHandler;
+        _vibeSimAudio = vibeSimAudio;
 
-        // initially assume we have no connected devices
-        AnyDeviceConnected = false;
-        IsScanning = false;
-        DeviceIndex = -1;
-        StepCount = 0;
-        BatteryLevel = 0;
-        LastBatteryCheck = DateTime.MinValue;
-        ////// STEP ONE /////////
-        // connect to connector and then client
-        connector = CreateNewConnector();
-        // create a new client
-        client = new ButtplugClient("GagSpeak");
-        ////// STEP TWO /////////
-        // once the client connects, it will ask server for list of devices.
-        // we will want to make sure that we check to see if we have them, meaning we will need to set up events.
-        // in order to cover all conditions, we should set up all of our events so we can recieve them from the server
-        // (Side note: it is fine that our connector is defined up top, because it isnt used until we do ConnectASync)
-        client.DeviceAdded += OnDeviceAdded;
-        client.DeviceRemoved += OnDeviceRemoved;
-        client.ScanningFinished += OnScanningFinished;
-        client.ServerDisconnect += OnServerDisconnect;
-
-        // set the dtr bar entry
-        DtrEntry = dtrBar.Get("GagSpeak");
-
-        // subscribe to mediator events.
-        Mediator.Subscribe<ToyboxActiveDeviceChangedMessage>(this, (msg) =>
+        if (UsingSimulatedVibe)
         {
-            Logger.LogDebug($"Active Device Index Changed to: {msg.DeviceIndex}");
-            // first make sure this index is within valid bounds of our client devices
-            if (msg.DeviceIndex >= 0 && msg.DeviceIndex < client.Devices.Count())
-            {
-                DeviceIndex = msg.DeviceIndex;
-                ActiveDevice = client.Devices.ElementAt(DeviceIndex);
-                // get the step size for the new device
-                GetStepIntervalForActiveDevice();
-                GetBatteryLevelForActiveDevice();
-            }
-            else
-            {
-                Logger.LogError($"Active Device Index {msg.DeviceIndex} out of bounds, not updating.");
-            }
-
-        });
-
-        Mediator.Subscribe<FrameworkUpdateMessage>(this, (msg) => FrameworkUpdate());
+            // play it
+            _vibeSimAudio.Play();
+        }
     }
 
-    // public accessors
-    public int DeviceIndex;         // know our actively selected device index in _client.Devices[]
-    public bool AnyDeviceConnected; // to know if any device is connected without needing to interact with server
-    public bool IsScanning;         // to know if we are scanning
-    public double StepInterval;         // know the step size of our active device
-    public int StepCount;           // know the step count of our active device
-    public double BatteryLevel;     // know the battery level of our active device
-    public int VibratorIntensity;   // the intensity of the vibrator. (reflects what is played to our lovense device)
-    public bool ClientConnected => client.Connected;
-    public bool ActiveDeviceNotNull => ActiveDevice != null;
-    public bool HasConnectedDevice => client.Connected && client.Devices.Any();
+    // public accessors here.
+    public VibratorMode CurrentVibratorModeUsed => _clientConfigs.GagspeakConfig.VibratorMode;
+    public bool UsingSimulatedVibe => CurrentVibratorModeUsed == VibratorMode.Simulated;
+    public bool UsingRealVibe => CurrentVibratorModeUsed == VibratorMode.Actual;
+    public bool ConnectedToyActive => (CurrentVibratorModeUsed == VibratorMode.Actual)
+        ? _deviceHandler.ConnectedToIntiface && _deviceHandler.AnyDeviceConnected
+        : VibeSimAudioPlaying;
 
-    // when this service is disposed, we need to be sure to dispose of the client and the connector
+
+    public bool IntifaceConnected => _deviceHandler.ConnectedToIntiface;
+    public bool ScanningForDevices => _deviceHandler.ScanningForDevices;
+
+
+    public bool VibeSimAudioPlaying { get; private set; } = false;
+    public float VibeSimVolume { get; private set; } = 0.0f;
+    public string ActiveSimPlaybackDevice => _vibeSimAudio.PlaybackDevices[_vibeSimAudio.ActivePlaybackDeviceId];
+    public List<string> PlaybackDevices => _vibeSimAudio.PlaybackDevices;
+
+
+    // Grab device handler via toyboxvibeService.
+    public DeviceHandler DeviceHandler => _deviceHandler;
+    public VibeSimAudio VibeSimAudio => _vibeSimAudio;
+
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        // client disposal
-        client.DisconnectAsync();
-        client.Dispose();
-        connector.Dispose();
-        // framework disposal
-        DtrEntry.Remove();
 
-        // dispose of our events
-        client.DeviceAdded -= OnDeviceAdded;
-        client.DeviceRemoved -= OnDeviceRemoved;
-        client.ScanningFinished -= OnScanningFinished;
-        client.ServerDisconnect -= OnServerDisconnect;
+        // stop the sound player if it is playing
+        if (_vibeSimAudio.isPlaying)
+        {
+            _vibeSimAudio.Stop();
+        }
+        _vibeSimAudio.Dispose();
     }
 
-    private void FrameworkUpdate()
+
+    public void UpdateVibeSimAudioType(VibeSimType newType)
     {
-        // if using a connected device, update battery level and display percent remaining to DTR Bar
-        if (ActiveDevice != null)
+        _clientConfigs.GagspeakConfig.VibeSimAudio = newType;
+        _clientConfigs.Save();
+
+        if (newType == VibeSimType.Normal)
         {
-            string displayName = string.IsNullOrEmpty(ActiveDevice.DisplayName) ? ActiveDevice.Name : ActiveDevice.DisplayName;
-            int batteryPercent = (int)(BatteryLevel * 100);
-
-            DtrEntry.Text = new SeString(
-                new IconPayload(BitmapFontIcon.ElementLightning),
-                new TextPayload($"{displayName} - {batteryPercent}%"));
-
-            DtrEntry.Shown = true;
+            _vibeSimAudio.ChangeAudioPath("vibrator.wav");
         }
-        // otherwise if using a simulated vibe do the same but with simulated vibe message
-        else if (_clientConfigs.GagspeakConfig.UsingSimulatedVibrator && _playerManager.GlobalPerms.ToyIsActive)
+        else if (newType == VibeSimType.Quiet)
         {
-            DtrEntry.Text = new SeString(
-                new IconPayload(BitmapFontIcon.ElementLightning),
-                new TextPayload("Simulated Vibe Active"));
-
-            DtrEntry.Shown = true;
+            _vibeSimAudio.ChangeAudioPath("vibratorQuiet.wav");
         }
-        // otherwise do not show dtr
-        else
-        {
-            DtrEntry.Shown = false;
-        }
+        _vibeSimAudio.SetVolume(VibeSimVolume);
+    }
 
-        // trigger a battery check every 15 seconds while connected
-        if (ActiveDevice != null && (DateTime.Now - LastBatteryCheck).TotalSeconds > 30)
+    public void SwitchPlaybackDevice(int deviceId)
+    {
+        _vibeSimAudio.SwitchDevice(deviceId);
+    }
+
+
+    public void StartActiveVibes()
+    {
+        // start the vibe based on the type used for the vibe.
+        if (UsingRealVibe)
         {
-            GetBatteryLevelForActiveDevice();
-            LastBatteryCheck = DateTime.Now;
+            // do something?
+        }
+        else if (UsingSimulatedVibe)
+        {
+            VibeSimAudioPlaying = true;
+            _vibeSimAudio.Play();
         }
     }
 
 
-    #region Event Handlers
-    private void OnDeviceAdded(object? sender, DeviceAddedEventArgs e)
+    public void StopActiveVibes()
     {
-        Logger.LogDebug($"Device Added: {e.Device.Name}");
-        if (client.Devices.Count() > 0 && !AnyDeviceConnected)
+        // stop the vibe based on the type used for the vibe.
+        if (UsingRealVibe)
         {
-            ActiveDevice = client.Devices.First();
-            GetStepIntervalForActiveDevice();
-            GetBatteryLevelForActiveDevice();
-            AnyDeviceConnected = true;
+            _deviceHandler.StopAllDevices();
         }
-        if (AnyDeviceConnected)
+        else if (UsingSimulatedVibe)
         {
-            ActiveDevice = client.Devices.First();
-            GetStepIntervalForActiveDevice();
-            GetBatteryLevelForActiveDevice();
+            VibeSimAudioPlaying = false;
+            _vibeSimAudio.Stop();
         }
     }
 
-    /// <summary Fired every time a device is removed from the client </summary>
-    private void OnDeviceRemoved(object? sender, DeviceRemovedEventArgs e)
+    public void SendNextIntensity(byte intensity)
     {
-        Logger.LogDebug($"Device Removed: {e.Device.Name}");
-        if (!HasConnectedDevice)
+        if (ConnectedToyActive)
         {
-            AnyDeviceConnected = false;
-            DeviceIndex = -1;
-        }
-    }
-
-    /// <summary Fired when scanning for devices is finished </summary>
-    private void OnScanningFinished(object? sender, EventArgs e)
-    {
-        Logger.LogDebug("Scanning Finished");
-        IsScanning = false;
-    }
-
-    /// <summary Fired when the server disconnects </summary>
-    private void OnServerDisconnect(object? sender, EventArgs e)
-    {
-        // reset all of our variables so we dont display any data requiring one
-        AnyDeviceConnected = false;
-        IsScanning = false;
-        DeviceIndex = -1;
-        ActiveDevice = null;
-        StepCount = 0;
-        BatteryLevel = 0;
-        Logger.LogDebug("Server Disconnected");
-    }
-
-    #endregion Event Handlers
-
-    #region Client Functions
-
-    public ButtplugWebsocketConnector CreateNewConnector()
-    {
-        return _clientConfigs.GagspeakConfig.IntifaceConnectionSocket != null
-                    ? new ButtplugWebsocketConnector(new Uri($"{_clientConfigs.GagspeakConfig.IntifaceConnectionSocket}"))
-                    : new ButtplugWebsocketConnector(new Uri("ws://localhost:12345"));
-    }
-
-    /// <summary> Connect to the server asynchronously </summary>
-    public async void ConnectToServerAsync()
-    {
-        try
-        {
-            if (client.Connected)
+            if (UsingRealVibe)
             {
-                Logger.LogInformation("No Need to connect to the Intiface server, client was already connected!");
+                DeviceHandler.SendVibeToAllDevices(intensity);
             }
-
-            Logger.LogDebug("Attempting to connect to the Intiface server, client was not initially connected");
-            await client.ConnectAsync(connector);
-            // after we wait for the connector to process, check if the connection is there
-            if (client.Connected)
+            else if (UsingSimulatedVibe)
             {
-                // 1. see if there are already devices connected
-                AnyDeviceConnected = HasConnectedDevice;
-                // 2. If AnyDeviceConnected is true, set our active device to the first device in the list
-                if (AnyDeviceConnected)
-                {
-                    // set our active device to the first device in the list
-                    ActiveDevice = client.Devices.First();
-                    GetStepIntervalForActiveDevice();
-                    GetBatteryLevelForActiveDevice();
-                    // we should also set our device index to 0
-                    DeviceIndex = 0;
-                    // activate the vibe
-                    if (_playerManager.GlobalPerms.ToyIsActive)
-                    {
-                        Logger.LogDebug($"Active Device: {ActiveDevice.Name}, is enabled! Vibrating with intensity: " +
-                            $"{(byte)((VibratorIntensity / (double)StepCount) * 100)}");
-                        // do the vibe babyyy
-                        await ToyboxVibrateAsync((byte)((VibratorIntensity / (double)StepCount) * 100), 100);
-                    }
-                }
-                // if we meet here, it's fine, it just means we are connected and dont yet have anything to display.
-                // So we will wait until a device is added to set AnyDeviceConnected to true
-                Logger.LogInformation("Successfully connected to the Intiface server!");
-            }
-            else
-            {
-                DisconnectAsync();
-                Logger.LogInformation("Timed out while attempting to connect to Intiface Server!");
+                _vibeSimAudio.SetVolume(intensity / 100f);
             }
         }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Error in ConnectToServerAsync: {ex.Message.ToString()}");
-            Logger.LogInformation("Error while connecting to Intiface Server! Make sure you have disabled any other plugins " +
-            $"that connect with Intiface before connecting, or make sure you have Intiface running.");
-        }
     }
-
-    /// <summary> Disconnect from the server asynchronously </summary>
-    public async void DisconnectAsync()
-    {
-        // when called, attempt to:
-        try
-        {
-            // see if we are connected to the server. If we are, then disconnect from the server
-            if (client.Connected)
-            {
-                await client.DisconnectAsync();
-                if (client.Connected == false)
-                {
-                    Logger.LogInformation("Successfully disconnected from the Intiface server!");
-                }
-            }
-            // once it is disconnected, dispose of the client and the connector
-            connector.Dispose();
-            connector = CreateNewConnector();
-        }
-        // if at any point we fail here, throw an exception
-        catch (Exception ex)
-        {
-            // log the exception
-            Logger.LogError($"Error while disconnecting from Async: {ex.ToString()}");
-        }
-    }
-
-    /// <summary> Start scanning for devices asynchronously </summary>
-    public async Task StartScanForDevicesAsync()
-    {
-        Logger.LogInformation("Now scanning for devices, you may attempt to connect a device now");
-        try
-        {
-            if (client.Connected)
-            {
-                IsScanning = true;
-                await client.StartScanningAsync();
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Error in ScanForDevicesAsync: {ex.ToString()}");
-        }
-    }
-
-    /// <summary> Stop scanning for devices asynchronously </summary>
-    public async Task StopScanForDevicesAsync()
-    {
-        Logger.LogInformation("Halting the scan for new devices to add");
-        try
-        {
-            if (client.Connected)
-            {
-                await client.StopScanningAsync();
-                if (IsScanning)
-                {
-                    IsScanning = false;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Error in StopScanForDevicesAsync: {ex.ToString()}");
-        }
-    }
-
-    /// <summary> Get's the devices step size. </summary>
-    /// <returns>The step size of the device</returns>
-    public void GetStepIntervalForActiveDevice()
-    {
-        try
-        {
-            if (client.Connected && ActiveDevice != null)
-            {
-                if (ActiveDevice.VibrateAttributes.Count > 0)
-                {
-                    ActiveDevice.VibrateAttributes.
-                    StepCount = (int)ActiveDevice.VibrateAttributes.First().StepCount;
-                    StepInterval = 1.0 / StepCount;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Error in setting step size: {ex.ToString()}");
-        }
-    }
-
-    public async void GetBatteryLevelForActiveDevice()
-    {
-        try
-        {
-            if (client.Connected && ActiveDevice != null)
-            {
-                if (ActiveDevice.HasBattery)
-                {
-                    // try get to get the battery level
-                    try
-                    {
-                        BatteryLevel = await ActiveDevice.BatteryAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.LogError($"Error in getting battery level: {ex.ToString()}");
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Error in getting battery level: {ex.ToString()}");
-        }
-    }
-
-
-    // Vibrate the device for a set amount of time and strength
-    public async Task ToyboxVibrateAsync(byte intensity, int msUntilTaskComplete = 100)
-    {
-        // when this is received, attempt to:
-        try
-        {
-            // must recalculate the strength to be between 0 and 1. Here before going in
-            double strength = intensity / 100.0;
-            // round the strength to the nearest step
-            strength = Math.Round(strength / StepInterval) * StepInterval;
-            // log it
-            // Logger.LogDebug($"Rounded Step: {strength}");
-            // send it
-            if (AnyDeviceConnected && DeviceIndex >= 0 && msUntilTaskComplete > 0)
-            {
-                await ActiveDevice!.VibrateAsync(strength); // the strength to move to from previous strength level
-                // wait for the set amount of seconds
-                await Task.Delay(msUntilTaskComplete);
-            }
-            else
-            {
-                Logger.LogError("No device connected or device index is out of bounds, cannot vibrate.");
-
-            }
-        }
-        // if at any point we fail here, throw an exception
-        catch (Exception ex)
-        {
-            // log the exception
-            Logger.LogError($"Error while vibrating: {ex.ToString()}");
-        }
-    }
-    #endregion Toy Functions
 }
 
 
 
 
-*/
+

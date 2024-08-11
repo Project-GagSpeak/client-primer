@@ -6,8 +6,10 @@ namespace GagSpeak.GagspeakConfiguration;
 public class TriggerConfigService : ConfigurationServiceBase<TriggerConfig>
 {
     public const string ConfigName = "triggers.json";
-
+    public const bool PerCharacterConfig = true;
     public TriggerConfigService(string configDir) : base(configDir) { }
 
     protected override string ConfigurationName => ConfigName;
+    protected override bool PerCharacterConfigPath => PerCharacterConfig;
+
 }

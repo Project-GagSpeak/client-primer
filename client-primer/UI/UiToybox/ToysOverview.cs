@@ -1,15 +1,19 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Services;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data.VibeServer;
 using ImGuiNET;
 using OtterGui.Text;
 using PInvoke;
+using System.Media;
 using System.Runtime.InteropServices;
 using static FFXIVClientStructs.FFXIV.Component.GUI.AtkUnitBase.Delegates;
 
@@ -23,15 +27,14 @@ public class ToyboxOverview
     private readonly UiSharedService _uiShared;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly ServerConfigurationManager _serverConfigs;
-    /*    private readonly SoundPlayer _soundPlayer; // this is tmp until we find a better way (possibly via ingame SCD's)*/
-    private readonly DeviceHandler _IntifaceHandler;
+    private readonly ToyboxVibeService _vibeService;
 
     public ToyboxOverview(ILogger<ToyboxOverview> logger,
         GagspeakMediator mediator, ApiController controller,
         UiSharedService uiSharedService,
         ClientConfigurationManager clientConfigs,
         ServerConfigurationManager serverConfigs,
-        /*SoundPlayer soundPlayer,*/ DeviceHandler intifaceHandler)
+        ToyboxVibeService vibeService)
     {
         _logger = logger;
         _mediator = mediator;
@@ -39,9 +42,9 @@ public class ToyboxOverview
         _uiShared = uiSharedService;
         _clientConfigs = clientConfigs;
         _serverConfigs = serverConfigs;
-        /*_soundPlayer = soundPlayer;*/
-        _IntifaceHandler = intifaceHandler;
+        _vibeService = vibeService;
 
+        // grab path to the intiface
         IntifacePath = GetApplicationPath();
     }
 
@@ -57,70 +60,107 @@ public class ToyboxOverview
             _clientConfigs.GagspeakConfig.IntifaceConnectionSocket = "ws://localhost:12345";
             _clientConfigs.Save();
         }
-        // draw out the field for defining the intiface connection address
-        string refName = _clientConfigs.GagspeakConfig.IntifaceConnectionSocket;
 
-        ImGui.SetNextItemWidth(200f);
-        if (ImGui.InputTextWithHint($"Server Address##ConnectionWSaddr", "Leave blank for default...",
-            ref refName, 100, ImGuiInputTextFlags.EnterReturnsTrue))
+        // display a dropdown for the type of vibrator to use
+        ImGui.SetNextItemWidth(125f);
+        if (ImGui.BeginCombo("Set Vibrator Type##VibratorMode", _clientConfigs.GagspeakConfig.VibratorMode.ToString()))
         {
-            // do not allow the change if it doesnt contain ws://
-            if (!refName.Contains("ws://"))
+            foreach (VibratorMode mode in Enum.GetValues(typeof(VibratorMode)))
             {
-                refName = "ws://localhost:12345";
-
+                if (ImGui.Selectable(mode.ToString(), mode == _clientConfigs.GagspeakConfig.VibratorMode))
+                {
+                    _clientConfigs.GagspeakConfig.VibratorMode = mode;
+                    _clientConfigs.Save();
+                }
             }
-            else
-            {
-                _clientConfigs.GagspeakConfig.IntifaceConnectionSocket = refName;
-                _clientConfigs.Save();
-                // TODO: Maybe publish a mediator message here that we changed the connectionsocket? (or refresh UI idk)
-            }
+            ImGui.EndCombo();
         }
-        UiSharedService.AttachToolTip($"Change the Intiface Server Address to a custom one if you desire!." +
-                 Environment.NewLine + "Leave blank to use the default address.");
 
         // display the wide list of connected devices, along with if they are active or not, below some scanner options
-        var textSize = ImGui.CalcTextSize("Scanner Status: ");
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted("Scanner Status: ");
-
-        ImGui.SameLine(textSize.X + ImGui.GetStyle().ItemSpacing.X);
-        var color = _IntifaceHandler.ScanningForDevices ? ImGuiColors.DalamudYellow : ImGuiColors.DalamudRed;
-        using (ImRaii.PushColor(ImGuiCol.Text, color))
-        {
-            ImGui.TextUnformatted(_IntifaceHandler.ScanningForDevices ? "Scanning..." : "Idle");
-        }
-
-        ImGui.SameLine(textSize.X + ImGui.GetStyle().ItemSpacing.X + ImGui.CalcTextSize("Scanning...").X + ImGui.GetStyle().ItemSpacing.X);
-        var width = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Search, "Start Scanning for Devices");
-        if (_uiShared.IconButton(FontAwesomeIcon.Search))
-        {
-            // search scanning if we are not scanning, otherwise stop scanning.
-            if (_IntifaceHandler.ScanningForDevices)
-            {
-                _IntifaceHandler.StopDeviceScanAsync().ConfigureAwait(false);
-            }
-            else
-            {
-                _IntifaceHandler.StartDeviceScanAsync().ConfigureAwait(false);
-            }
-        }
-
-        if (_uiShared.IconTextButton(FontAwesomeIcon.TabletAlt, "Personal Remote"))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.TabletAlt, "Personal Remote", 125f))
         {
             // open the personal remote window
             _mediator.Publish(new UiToggleMessage(typeof(RemotePersonal)));
         }
+        ImUtf8.SameLineInner();
+        ImGui.Text("Open Personal Remote");
 
         // draw out the list of devices
         ImGui.Separator();
-        _uiShared.BigText("Connected Devices");
-        DrawDevicesTable();
+        _uiShared.BigText("Connected Device(s)");
+        if (_clientConfigs.GagspeakConfig.VibratorMode == VibratorMode.Simulated)
+        {
+            DrawSimulatedVibeInfo();
+        }
+        else
+        {
+            DrawDevicesTable();
+        }
+    }
+
+
+    private void DrawSimulatedVibeInfo()
+    {
+        ImGui.SetNextItemWidth(175 * ImGuiHelpers.GlobalScale);
+        var vibeType = _clientConfigs.GagspeakConfig.VibeSimAudio;
+        if (ImGui.BeginCombo("Vibe Sim Audio##SimVibeAudioType", _clientConfigs.GagspeakConfig.VibeSimAudio.ToString()))
+        {
+            foreach (VibeSimType mode in Enum.GetValues(typeof(VibeSimType)))
+            {
+                if (ImGui.Selectable(mode.ToString(), mode == _clientConfigs.GagspeakConfig.VibeSimAudio))
+                {
+                    _vibeService.UpdateVibeSimAudioType(mode);
+                }
+            }
+            ImGui.EndCombo();
+        }
+        UiSharedService.AttachToolTip("Select the type of simulated vibrator sound to play when the intensity is adjusted.");
+
+        // draw out the combo for the audio device selection to play to
+        ImGui.SetNextItemWidth(175 * ImGuiHelpers.GlobalScale);
+        int prevDeviceId = _vibeService.VibeSimAudio.ActivePlaybackDeviceId; // to only execute code to update data once it is changed
+        // display the list        
+        if (ImGui.BeginCombo("Playback Device##Playback Device", _vibeService.ActiveSimPlaybackDevice))
+        {
+            foreach (var device in _vibeService.PlaybackDevices)
+            {
+                bool isSelected = (_vibeService.ActiveSimPlaybackDevice == device);
+                if (ImGui.Selectable(device, isSelected))
+                {
+                    _vibeService.SwitchPlaybackDevice(_vibeService.PlaybackDevices.IndexOf(device));
+                }
+            }
+            ImGui.EndCombo();
+        }
+        UiSharedService.AttachToolTip("Select the audio device to play the simulated vibrator sound to.");
+
+
     }
 
     public void DrawDevicesTable()
     {
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Search, "Device Scanner", null, false, !_vibeService.IntifaceConnected))
+        { 
+            // search scanning if we are not scanning, otherwise stop scanning.
+            if (_vibeService.ScanningForDevices)
+            {
+                _vibeService.DeviceHandler.StopDeviceScanAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                _vibeService.DeviceHandler.StartDeviceScanAsync().ConfigureAwait(false);
+            }
+        }
+        var color = _vibeService.ScanningForDevices ? ImGuiColors.DalamudYellow : ImGuiColors.DalamudRed;
+        var scanText = _vibeService.ScanningForDevices ? "Scanning..." : "Idle";
+        ImGui.SameLine();
+        ImGui.TextUnformatted("Scanner Status: ");
+        ImGui.SameLine();
+        using (ImRaii.PushColor(ImGuiCol.Text, color))
+        {
+            ImGui.TextUnformatted(scanText);
+        }
+
         /*        using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, 4));
                 using var table = ImRaii.Table("ConnectedDevices", 7, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY);
                 if (!table) { return; }
@@ -175,7 +215,7 @@ public class ToyboxOverview
         var printAddr = intifaceConnectionStr != string.Empty;
 
         // if the server is connected, then we should display the server info
-        if (_IntifaceHandler.ConnectedToIntiface)
+        if (_vibeService.IntifaceConnected)
         {
             // fancy math shit for clean display, adjust when moving things around
             ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (addrSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
@@ -198,8 +238,8 @@ public class ToyboxOverview
         ImGui.SameLine();
 
         // now we need to display the connection link button beside it.
-        var color = UiSharedService.GetBoolColor(_IntifaceHandler.ConnectedToIntiface);
-        var connectedIcon = !_IntifaceHandler.ConnectedToIntiface ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
+        var color = UiSharedService.GetBoolColor(_vibeService.IntifaceConnected);
+        var connectedIcon = !_vibeService.IntifaceConnected ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
 
         ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
         if (printAddr)
@@ -215,18 +255,18 @@ public class ToyboxOverview
             if (_uiShared.IconButton(connectedIcon))
             {
                 // if we are connected to intiface, then we should disconnect.
-                if (_IntifaceHandler.ConnectedToIntiface)
+                if (_vibeService.IntifaceConnected)
                 {
-                    _IntifaceHandler.DisconnectFromIntifaceAsync();
+                    _vibeService.DeviceHandler.DisconnectFromIntifaceAsync();
                 }
                 // otherwise, we should connect to intiface.
                 else
                 {
-                    _IntifaceHandler.ConnectToIntifaceAsync();
+                    _vibeService.DeviceHandler.ConnectToIntifaceAsync();
                 }
             }
         }
-        UiSharedService.AttachToolTip(_IntifaceHandler.ConnectedToIntiface
+        UiSharedService.AttachToolTip(_vibeService.IntifaceConnected
             ? "Disconnect from Intiface Central" : "Connect to Intiface Central");
 
         // go back to the far left, at the same height, and draw another button.

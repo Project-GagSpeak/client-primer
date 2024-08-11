@@ -6,5 +6,6 @@ public class AliasConfig : IGagspeakConfiguration
 {
     /// <summary> AliasList Storage per-paired user. </summary>
     public Dictionary<string, AliasStorage> AliasStorage { get; set; }
-    public int Version { get; set; } = 0;
+    public static int CurrentVersion => 1;
+    public int Version { get; set; } = CurrentVersion;
 }

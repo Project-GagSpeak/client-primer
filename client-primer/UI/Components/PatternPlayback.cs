@@ -16,8 +16,8 @@ namespace GagSpeak.UI.Components;
 /// </summary>
 public class PatternPlayback : DisposableMediatorSubscriberBase
 {
-    private readonly DeviceHandler _devices;
     private readonly ToyboxRemoteService _remoteService;
+    private readonly ToyboxVibeService _vibeService;
     private readonly PatternHandler _pHandler;
 
     public Stopwatch PlaybackDuration;
@@ -26,12 +26,12 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
     private double[] CurrentPositions = new double[2];
 
     public PatternPlayback(ILogger<PatternPlayback> logger,
-        GagspeakMediator mediator, DeviceHandler deviceHandler, 
-        ToyboxRemoteService remoteService, PatternHandler patternHandler)
+        GagspeakMediator mediator, ToyboxRemoteService remoteService, 
+        ToyboxVibeService vibeService, PatternHandler patternHandler) 
         : base(logger, mediator)
     {
-        _devices = deviceHandler;
         _remoteService = remoteService;
+        _vibeService = vibeService;
         _pHandler = patternHandler;
 
         PlaybackDuration = new Stopwatch();
@@ -145,9 +145,19 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
         Logger.LogDebug($"Starting playback of pattern {_pHandler.ActivePattern.Name}");
         // set the playback index to the start
         ReadBufferIdx = 0;
+
+        // iniitalize volume levels if using simulated vibe
+        if (_vibeService.UsingSimulatedVibe)
+        {
+            InitializeVolumeLevels(_pHandler.ActivePattern.PatternByteData);
+        }
+
         // start our timers
         PlaybackDuration.Start();
         PlaybackUpdateTimer.Start();
+
+        // begin playing the pattern to the vibrators
+        _vibeService.StartActiveVibes();
     }
 
     public void InitializeVolumeLevels(List<byte> intensityPattern)
@@ -172,7 +182,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
         PlaybackDuration.Stop();
         PlaybackDuration.Reset();
         // reset vibe to normal levels TODO figure out how to go back to normal levels
-        _devices.StopAllDevices();
+        _vibeService.StopActiveVibes();
 
     }
 
@@ -204,11 +214,9 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
             CurrentPositions[1] = _pHandler.ActivePattern.PatternByteData[ReadBufferIdx];
 
             // Send the vibration command to the device
-            if (_devices.AnyDeviceConnected && _devices.ConnectedToIntiface)
-            {
+            _vibeService.SendNextIntensity(_pHandler.ActivePattern.PatternByteData[ReadBufferIdx]);
 
-                _devices.SendVibeToAllDevices(_pHandler.ActivePattern.PatternByteData[ReadBufferIdx]);
-            }
+            // Increment the buffer index
             ReadBufferIdx++;
         }
     }

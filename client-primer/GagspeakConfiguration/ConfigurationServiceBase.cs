@@ -2,6 +2,7 @@ using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.Services.ConfigurationServices;
 using System.CodeDom;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace GagSpeak.GagspeakConfiguration;
 /// <summary>
@@ -14,10 +15,13 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
     protected bool _configIsDirty = false;    // if the config is dirty
     protected DateTime _configLastWriteTime; // last write time
     private Lazy<T> _currentConfigInternal; // current config
-
+    private string? _currentUid = null; // current user id
     protected ConfigurationServiceBase(string configurationDirectory)
     {
         ConfigurationDirectory = configurationDirectory;
+
+        // Load the UID from persistent storage
+        _currentUid = LoadUid();
 
         _ = Task.Run(CheckForConfigUpdatesInternal, _periodicCheckCts.Token);
         _ = Task.Run(CheckForDirtyConfigInternal, _periodicCheckCts.Token);
@@ -28,7 +32,11 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
     public string ConfigurationDirectory { get; init; }
     public T Current => _currentConfigInternal.Value;
     protected abstract string ConfigurationName { get; }
-    protected string ConfigurationPath => Path.Combine(ConfigurationDirectory, ConfigurationName);
+    protected abstract bool PerCharacterConfigPath { get; }
+    // path can either be universal or per character
+    protected string ConfigurationPath => PerCharacterConfigPath && !string.IsNullOrEmpty(_currentUid)
+        ? Path.Combine(ConfigurationDirectory, _currentUid, ConfigurationName)
+        : Path.Combine(ConfigurationDirectory, ConfigurationName);
 
     public void Dispose()
     {
@@ -36,10 +44,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         GC.SuppressFinalize(this);
     }
 
-    public void Save()
-    {
-        _configIsDirty = true;
-    }
+    public void Save() => _configIsDirty = true;
 
     protected virtual void Dispose(bool disposing)
     {
@@ -47,9 +52,37 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         _periodicCheckCts.Dispose();
         if (_configIsDirty) SaveDirtyConfig();
     }
+    protected virtual JObject MigrateConfig(JObject oldConfigJson, int readVersion) { return oldConfigJson; }
+    protected virtual T DeserializeConfig(JObject configJson)
+    {
+        var settings = new JsonSerializerSettings
+        {
+            Converters = new List<JsonConverter> { new EquipItemConverter() }
+        };
+        return JsonConvert.DeserializeObject<T>(configJson.ToString(), settings)!;
+    }
 
+    protected int GetCurrentVersion()
+    {
+        var currentVersionProperty = typeof(T).GetProperty("CurrentVersion", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public);
+        if (currentVersionProperty == null)
+        {
+            throw new InvalidOperationException("The configuration class does not have a static CurrentVersion property.");
+        }
+        return (int)currentVersionProperty.GetValue(null)!;
+    }
     protected virtual T LoadConfig()
     {
+        // if this config should be using a perplayer file save, but the uid is null, return and do not load.
+        if (PerCharacterConfigPath && string.IsNullOrEmpty(_currentUid))
+        {
+            //_logger.LogWarning($"UID is null for {ConfigurationName} configuration. Not loading.");
+            // return early so we do not save this config to the files
+            return (T)Activator.CreateInstance(typeof(T))!;
+        }
+
+        EnsureDirectoryExists();
+
         T? config;
         if (!File.Exists(ConfigurationPath))
         {
@@ -61,24 +94,43 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
             try
             {
                 string json = File.ReadAllText(ConfigurationPath);
-                config = JsonConvert.DeserializeObject<T>(json, new JsonSerializerSettings()
+                var configJson = JObject.Parse(json);
+
+                var readVersion = configJson["Version"]?.Value<int>() ?? 1;
+                // Perform migration if the version is not equal to the current version.
+                if (readVersion < GetCurrentVersion())
                 {
-                    Converters = new List<JsonConverter> { new EquipItemConverter() },
-                });
+                    // update the version number to the current version in the config object
+                    configJson["Version"] = GetCurrentVersion();
+                    // perform migrations
+                    configJson = MigrateConfig(configJson, readVersion);
+                }
+
+                // and deserialize the json into the config object
+                try
+                {
+                    config = DeserializeConfig(configJson);
+                    Save();
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception($"Failed to load {ConfigurationName} configuration. {ex.StackTrace}");
+                    config = default;
+                }
             }
             catch(Exception ex)
             {
                 throw new Exception($"Failed to load {ConfigurationName} configuration. {ex.StackTrace}");
-                // config failed to load for some reason
                 config = default;
             }
+            // if config was null, create a new instance of the config
             if (config == null)
             {
                 config = (T)Activator.CreateInstance(typeof(T))!;
                 Save();
             }
         }
-
+        // set last write time to prime save.
         _configLastWriteTime = GetConfigLastWriteTime();
         return config;
     }
@@ -86,7 +138,9 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
     protected virtual void SaveDirtyConfig()
     {
         _configIsDirty = false;
-        var existingConfigs = Directory.EnumerateFiles(ConfigurationDirectory, ConfigurationName + ".bak.*").Select(c => new FileInfo(c))
+        var existingConfigs = PerCharacterConfigPath && !string.IsNullOrEmpty(_currentUid)
+                            ? Directory.EnumerateFiles(Path.Combine(ConfigurationDirectory, _currentUid), ConfigurationName + ".bak.*").Select(c => new FileInfo(c))
+                            : Directory.EnumerateFiles(ConfigurationDirectory, ConfigurationName + ".bak.*").Select(c => new FileInfo(c))
             .OrderByDescending(c => c.LastWriteTime).ToList();
         if (existingConfigs.Skip(1).Any())
         {
@@ -100,19 +154,31 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         {
             File.Copy(ConfigurationPath, ConfigurationPath + ".bak." + DateTime.Now.ToString("yyyyMMddHHmmss"), overwrite: true);
         }
-        catch
-        {
-            // ignore if file cannot be backupped once
-        }
+        catch {  /* Consume */ }
+
         var temp = ConfigurationPath + ".tmp";
-        string json = JsonConvert.SerializeObject(Current, Formatting.Indented, new JsonSerializerSettings
+        string json = "";
+        try
         {
-            Converters = new List<JsonConverter> { new EquipItemConverter() }
-        });
+            json = SerializeConfig(Current);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Failed to serialize {ConfigurationName} configuration. {ex.StackTrace}");
+        }
         File.WriteAllText(temp, json);
         File.Move(temp, ConfigurationPath, true);
         _configLastWriteTime = new FileInfo(ConfigurationPath).LastWriteTimeUtc;
     }
+
+    protected virtual string SerializeConfig(T config)
+    {
+        return JsonConvert.SerializeObject(config, Formatting.Indented, new JsonSerializerSettings
+        {
+            Converters = new List<JsonConverter> { new EquipItemConverter() }
+        });
+    }
+
 
     private async Task CheckForConfigUpdatesInternal()
     {
@@ -147,5 +213,58 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
     {
         _configLastWriteTime = GetConfigLastWriteTime();
         return new Lazy<T>(LoadConfig);
+    }
+
+    // New method to update the UID
+    public void UpdateUid(string newUid)
+    {
+        _currentUid = newUid;
+        SaveUid(newUid); // Save the UID to persistent storage
+        _currentConfigInternal = LazyConfig(); // Recalculate the configuration path
+    }
+
+    // Method to save the UID to persistent storage
+    private void SaveUid(string uid)
+    {
+        var uidFilePath = Path.Combine(ConfigurationDirectory, "config-testing.json");
+        if (!File.Exists(uidFilePath))
+        {
+            throw new Exception("UID file does not exist.");
+        }
+
+        // Read the existing JSON
+        string json = File.ReadAllText(uidFilePath);
+        var configJson = JObject.Parse(json);
+
+        // Update the LastUidLoggedIn property
+        configJson["LastUidLoggedIn"] = uid;
+
+        // Write the updated JSON back to the file
+        File.WriteAllText(uidFilePath, configJson.ToString());
+    }
+
+    // Method to load the UID from persistent storage
+    private string? LoadUid()
+    {
+        var uidFilePath = Path.Combine(ConfigurationDirectory, "config-testing.json");
+        // if the file does not exist, throw an exception
+        if (!File.Exists(uidFilePath))
+        {
+            throw new Exception("UID file does not exist.");
+        }
+        // read the contents of the file
+        string json = File.ReadAllText(uidFilePath);
+        var configJson = JObject.Parse(json);
+        // extract the LastUidLoggedIn property
+        return configJson["LastUidLoggedIn"]?.Value<string>();
+    }
+
+    private void EnsureDirectoryExists()
+    {
+        var directory = Path.GetDirectoryName(ConfigurationPath);
+        if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
     }
 }

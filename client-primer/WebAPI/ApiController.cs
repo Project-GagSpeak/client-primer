@@ -365,7 +365,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         }
 
         // get the currently stored secretkey from the server manager
-        var secretKey = _serverConfigs.GetSecretKey();
+        var secretKey = _serverConfigs.GetSecretKeyForCharacter();
         // log the secret key
         Logger.LogDebug("Secret Key fetched: {secretKey}", secretKey);
         // if the secret key is null or empty
@@ -670,6 +670,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// </summary>
     private void FrameworkUtilOnLogIn()
     {
+        // TODO: REMOVE THIS, ONLY FOR MIGRATING EXISTING PROFILES.
+        _serverConfigs.UpdateMatchingCharacterForLocalContentId();
         // would run a create connections upon login
         _ = Task.Run(() => CreateConnections());
     }

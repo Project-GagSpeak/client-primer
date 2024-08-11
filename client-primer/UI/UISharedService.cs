@@ -9,7 +9,6 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Client.UI;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Localization;
 using GagSpeak.PlayerData.Pairs;
@@ -21,13 +20,11 @@ using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Enum;
 using ImGuiNET;
-using OtterGui;
 using OtterGui.Text;
 using PInvoke;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace GagSpeak.UI;
 
@@ -58,9 +55,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private ISharedImmediateTexture _sharedTextures;    // represents a shared texture cache for plugin images. (REMAKE THIS INTO A DICTIONARY)
 
     public Dictionary<string, object> _selectedComboItems;    // the selected combo items
-    private bool _glamourerExists = false;                              // if glamourer currently exists on the client
-    private bool _moodlesExists = false;                                // if moodles currently exists on the client
     private bool _penumbraExists = false;                               // if penumbra currently exists on the client
+    private bool _glamourerExists = false;                              // if glamourer currently exists on the client
+    private bool _customizePlusExists = false;                          // if customize plus currently exists on the client
+    private bool _moodlesExists = false;                                // if moodles currently exists on the client
     private bool _useTheme = true;                                      // if we should use the GagSpeak Theme
 
     // default image paths
@@ -94,8 +92,9 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         // A subscription from our mediator to see on each delayed framework if the IPC's are available from the IPC manager
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) =>
         {
-            // _penumbraExists = _ipcManager.Penumbra.APIAvailable; (add soon)
-            // _glamourerExists = _ipcManager.Glamourer.APIAvailable; (add soon)
+            _penumbraExists = _ipcManager.Penumbra.APIAvailable;
+            _glamourerExists = _ipcManager.Glamourer.APIAvailable;
+            _customizePlusExists = _ipcManager.CustomizePlus.APIAvailable;
             _moodlesExists = _ipcManager.Moodles.APIAvailable;
         });
 
@@ -118,11 +117,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public IFontHandle GameFont { get; init; } // the current game font
     // public bool HasValidPenumbraModPath => !(_ipcManager.Penumbra.ModDirectory ?? string.Empty).IsNullOrEmpty() && Directory.Exists(_ipcManager.Penumbra.ModDirectory);
     public IFontHandle IconFont { get; init; } // the current icon font
-    public string PlayerName => _frameworkUtil.GetPlayerName();
     public UserData PlayerUserData => _apiController.GetConnectionDto().Result.User;
     public IFontHandle UidFont { get; init; } // the current UID font
     public IFontHandle GagspeakFont { get; init; } // the current Gagspeak font
     public Dictionary<ushort, string> WorldData => _frameworkUtil.WorldData.Value;
+    public ulong PlayerLocalContentID => _frameworkUtil.GetPlayerLocalContentId();
+    public string PlayerName => _frameworkUtil.GetPlayerName();
     public uint WorldId => _frameworkUtil.GetHomeWorldId(); // the homeworld ID of the current player
     public bool UseTheme => _useTheme;
     public string SearchFilter { get; set; } = ""; // the search filter used in whitelist. Stored here to ensure the tab menu can clear it upon switching tabs.
@@ -486,7 +486,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     // helpers to get the static images
     public IDalamudTextureWrap GetGagspeakLogo() => GetImageFromDirectoryFile(GagspeakLogoPath);
     public IDalamudTextureWrap GetGagspeakLogoSmall() => GetImageFromDirectoryFile(GagspeakLogoPathSmall);
-    public IDalamudTextureWrap GetGagspeakLogoNoRadial() => GetImageFromDirectoryFile("iconCute.png");
+    public IDalamudTextureWrap GetGagspeakLogoNoRadial() => GetImageFromDirectoryFile(GagspeakLogoNoRadial);
     public IDalamudTextureWrap GetSupporterTierOne() => GetImageFromDirectoryFile(SupporterTierOnePath);
     public IDalamudTextureWrap GetSupporterTierTwo() => GetImageFromDirectoryFile(SupporterTierTwoPath);
     public IDalamudTextureWrap GetSupporterTierThree() => GetImageFromDirectoryFile(SupporterTierThreePath);
@@ -501,7 +501,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImDrawListPtr drawList = ImGui.GetWindowDrawList();
         Vector2 uv0 = new Vector2(0, 0);
         Vector2 uv1 = new Vector2(1, 1);
-        var color = Color(1, 1, 1,1);
+        var color = Color(1, 1, 1, 1);
 
         drawList.AddImageRounded(texture.ImGuiHandle,
                                     new Vector2(center.X - radius, center.Y - radius),
@@ -731,7 +731,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     /// <summary> Pulled from ECommons </summary>
-    public static bool InputTextMultilineExpanding(string id, ref string text, uint maxLength = 500, 
+    public static bool InputTextMultilineExpanding(string id, ref string text, uint maxLength = 500,
         int minLines = 2, int maxLines = 10, int? width = null)
     {
         return ImGui.InputTextMultiline(id, ref text, maxLength, new(width ?? ImGui.GetContentRegionAvail().X, ImGui.CalcTextSize("A").Y * Math.Clamp(text.Split("\n").Length + 1, minLines, maxLines)));
@@ -778,7 +778,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         FontText(text, UidFont, color);
     }
 
-    public void BooleanToColoredIcon(bool value, bool inline = true, 
+    public void BooleanToColoredIcon(bool value, bool inline = true,
         FontAwesomeIcon trueIcon = FontAwesomeIcon.Check, FontAwesomeIcon falseIcon = FontAwesomeIcon.Times)
     {
         using var colorgreen = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.HealerGreen, value);
@@ -866,7 +866,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
 
         // if the selected item is not in the list of items being passed in, update it to the first item in the comboItems list
-        if(!comboItems.Contains((T)selectedItem!))
+        if (!comboItems.Contains((T)selectedItem!))
         {
             selectedItem = comboItems.First();
             _selectedComboItems[comboName] = selectedItem!;
@@ -948,9 +948,9 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         // Specify the number of columns. In this case, 2 for minutes and seconds.
         if (ImGui.BeginTable("TimeDurationTable", 3)) // 3 columns for hours, minutes, seconds
         {
-            ImGui.TableSetupColumn("##Hours", ImGuiTableColumnFlags.WidthFixed, (patternHourTextSize.X + ImGui.GetStyle().ItemSpacing.X*4));
-            ImGui.TableSetupColumn("##Minutes", ImGuiTableColumnFlags.WidthFixed, (patternMinuteTextSize.X + ImGui.GetStyle().ItemSpacing.X*4));
-            ImGui.TableSetupColumn("##Seconds", ImGuiTableColumnFlags.WidthFixed, (patternSecondTextSize.X + ImGui.GetStyle().ItemSpacing.X*4));
+            ImGui.TableSetupColumn("##Hours", ImGuiTableColumnFlags.WidthFixed, (patternHourTextSize.X + ImGui.GetStyle().ItemSpacing.X * 4));
+            ImGui.TableSetupColumn("##Minutes", ImGuiTableColumnFlags.WidthFixed, (patternMinuteTextSize.X + ImGui.GetStyle().ItemSpacing.X * 4));
+            ImGui.TableSetupColumn("##Seconds", ImGuiTableColumnFlags.WidthFixed, (patternSecondTextSize.X + ImGui.GetStyle().ItemSpacing.X * 4));
 
             ImGui.TableNextRow();
             ImGui.TableNextColumn();
@@ -1057,6 +1057,14 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         IconText(_glamourerExists ? check : cross, GetBoolColor(_glamourerExists));
         ImGui.SameLine();
         AttachToolTip($"Glamourer is " + (_glamourerExists ? "available and up to date." : "unavailable or not up to date."));
+        ImGui.Spacing();
+
+        ImGui.SameLine();
+        ImGui.TextUnformatted("Customize+");
+        ImGui.SameLine();
+        IconText(_customizePlusExists ? check : cross, GetBoolColor(_customizePlusExists));
+        ImGui.SameLine();
+        AttachToolTip($"Customize+ is " + (_customizePlusExists ? "available and up to date." : "unavailable or not up to date."));
         ImGui.Spacing();
 
         ImGui.SameLine();

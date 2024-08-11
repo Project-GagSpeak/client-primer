@@ -229,7 +229,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
         {
             var apiUrl = _serverManager.CurrentApiUrl;
             var charaHash = _frameworkUtil.GetPlayerNameHashedAsync().GetAwaiter().GetResult();
-            var secretKey = _serverManager.GetSecretKey();
+            var secretKey = _serverManager.GetSecretKeyForCharacter();
 
             // Example logic to decide which identifier to use.
             if (!string.IsNullOrEmpty(secretKey))

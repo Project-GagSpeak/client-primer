@@ -30,6 +30,8 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         _userPairListHandler = userPairListHandler;
         _aliasTable = aliasTable;
 
+        AllowPinning = false;
+        AllowClickthrough = false;
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints
         {

@@ -94,8 +94,6 @@ public class RestraintSetManager
         var region = ImGui.GetContentRegionAvail();
         var topLeftSideHeight = region.Y;
 
-        if (_handler.RestraintSetListSize() > 0)
-        {
             using (var managerTable = ImRaii.Table("RestraintsManagerTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
             {
                 if (!managerTable) return;
@@ -107,17 +105,19 @@ public class RestraintSetManager
 
                 var regionSize = ImGui.GetContentRegionAvail();
 
-                using (var leftChild = ImRaii.Child($"###SelectableListWardrobe", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
+            using (var leftChild = ImRaii.Child($"###SelectableListWardrobe", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
+            {
+                DrawCreateRestraintSetHeader();
+                ImGui.Separator();
+                if (_handler.RestraintSetListSize() > 0)
                 {
-                    DrawCreateRestraintSetHeader();
-                    ImGui.Separator();
                     DrawRestraintSetSelectableMenu();
                 }
-
-                ImGui.TableNextColumn();
-
-                DrawRestraintSetPreview();
             }
+
+            ImGui.TableNextColumn();
+
+            DrawRestraintSetPreview();
         }
     }
 

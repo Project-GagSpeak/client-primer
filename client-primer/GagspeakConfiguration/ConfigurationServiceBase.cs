@@ -250,7 +250,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         // if the file does not exist, throw an exception
         if (!File.Exists(uidFilePath))
         {
-            throw new Exception("UID file does not exist.");
+            return null;
         }
         // read the contents of the file
         string json = File.ReadAllText(uidFilePath);

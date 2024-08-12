@@ -89,10 +89,10 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     }
     public bool EditingSetNull => SetBeingEdited == null;
 
-    public void SetEditingRestraintSet(RestraintSet set, int index)
+    public void SetEditingRestraintSet(RestraintSet set)
     {
         SetBeingEdited = set;
-        EditingSetIndex = index;
+        EditingSetIndex = GetRestraintSetIndexByName(set.Name);
     }
 
     public void ClearEditingRestraintSet()
@@ -118,6 +118,8 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public int RestraintSetListSize()
         => _clientConfigs.GetRestraintSetCount();
 
+    public List<RestraintSet> GetAllSetsForSearch()
+        => _clientConfigs.StoredRestraintSets;
     public RestraintSet GetRestraintSet(int idx)
         => _clientConfigs.GetRestraintSet(idx);
 

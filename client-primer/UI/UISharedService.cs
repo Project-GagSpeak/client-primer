@@ -25,6 +25,11 @@ using PInvoke;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Formats;
+
 
 namespace GagSpeak.UI;
 
@@ -62,9 +67,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private bool _useTheme = true;                                      // if we should use the GagSpeak Theme
 
     // default image paths
-    private const string GagspeakLogoPath = "iconUI.png";
-    private const string GagspeakLogoPathSmall = "icon.png";
-    private const string GagspeakLogoNoRadial = "iconNoRadial.png";
+    private const string Logo512Path = "icon512.png";
+    private const string Logo256Path = "icon256.png";
+    private const string Logo512bgPath = "icon512bg.png";
+    private const string Logo256bgPath = "icon256bg.png";
     private const string SupporterTierOnePath = "Tier1Supporter.png";
     private const string SupporterTierTwoPath = "Tier2Supporter.png";
     private const string SupporterTierThreePath = "Tier3Supporter.png";
@@ -128,6 +134,37 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public string SearchFilter { get; set; } = ""; // the search filter used in whitelist. Stored here to ensure the tab menu can clear it upon switching tabs.
     public Vector2 LastMainUIWindowPosition { get; set; } = Vector2.Zero;
     public Vector2 LastMainUIWindowSize { get; set; } = Vector2.Zero;
+
+    public IDalamudTextureWrap? GetImageFromDirectoryFile(string path)
+        => _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, path)).GetWrapOrDefault();
+
+    public IDalamudTextureWrap? RentImageFromFile(string path)
+    {
+        _sharedTextures = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, path));
+        if (_sharedTextures.GetWrapOrDefault() == null) return null;
+        else return _sharedTextures.RentAsync().Result;
+    }
+
+    // helpers to get the static images
+    public IDalamudTextureWrap? GetLogo() => GetImageFromDirectoryFile(Logo512Path);
+    public IDalamudTextureWrap? RentLogo() => RentImageFromFile(Logo512Path);
+    public IDalamudTextureWrap? GetLogoNoRadial() => GetImageFromDirectoryFile(Logo512bgPath);
+    public IDalamudTextureWrap? RentLogoNoRadial() => RentImageFromFile(Logo512bgPath);
+    public IDalamudTextureWrap? GetLogoSmall() => GetImageFromDirectoryFile(Logo256Path);
+    public IDalamudTextureWrap? RentLogoSmall() => RentImageFromFile(Logo256Path);
+    public IDalamudTextureWrap? GetLogoNoRadialSmall() => GetImageFromDirectoryFile(Logo256bgPath);
+    public IDalamudTextureWrap? RentLogoNoRadialSmall() => RentImageFromFile(Logo256bgPath);
+    public IDalamudTextureWrap? GetSupporterTierOne() => GetImageFromDirectoryFile(SupporterTierOnePath);
+    public IDalamudTextureWrap? RentSupporterTierOne() => RentImageFromFile(SupporterTierOnePath);
+    public IDalamudTextureWrap? GetSupporterTierTwo() => GetImageFromDirectoryFile(SupporterTierTwoPath);
+    public IDalamudTextureWrap? RentSupporterTierTwo() => RentImageFromFile(SupporterTierTwoPath);
+    public IDalamudTextureWrap? GetSupporterTierThree() => GetImageFromDirectoryFile(SupporterTierThreePath);
+    public IDalamudTextureWrap? RentSupporterTierThree() => RentImageFromFile(SupporterTierThreePath);
+
+    public IDalamudTextureWrap LoadImage(byte[] imageData)
+    {
+        return _textureProvider.CreateFromImageAsync(imageData).Result;
+    }
 
     /// <summary> 
     /// A helper function to attach a tooltip to a section in the UI currently hovered. 
@@ -473,51 +510,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             width <= 0 ? null : width,
             disabled);
     }
-
-    /// <summary> Grabs a TextureWrap from the sharedIntermediateTexture interface via a path directory. </summary>
-    /// <returns> A DalamudTexture Wrap. Advised to use [ if(!(RESULT is { } wrap) to verify validity. </returns>
-    public IDalamudTextureWrap GetImageFromDirectoryFile(string path)
-    {
-        // fetch the image from plugin directory and store as the active shared intermediate texture
-        _sharedTextures = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, path));
-        return _sharedTextures.GetWrapOrEmpty();
-    }
-
-    // helpers to get the static images
-    public IDalamudTextureWrap GetGagspeakLogo() => GetImageFromDirectoryFile(GagspeakLogoPath);
-    public IDalamudTextureWrap GetGagspeakLogoSmall() => GetImageFromDirectoryFile(GagspeakLogoPathSmall);
-    public IDalamudTextureWrap GetGagspeakLogoNoRadial() => GetImageFromDirectoryFile(GagspeakLogoNoRadial);
-    public IDalamudTextureWrap GetSupporterTierOne() => GetImageFromDirectoryFile(SupporterTierOnePath);
-    public IDalamudTextureWrap GetSupporterTierTwo() => GetImageFromDirectoryFile(SupporterTierTwoPath);
-    public IDalamudTextureWrap GetSupporterTierThree() => GetImageFromDirectoryFile(SupporterTierThreePath);
-
-    public IDalamudTextureWrap LoadImage(byte[] imageData)
-    {
-        return _textureProvider.CreateFromImageAsync(imageData).Result;
-    }
-
-    public void DrawCircularImage(IDalamudTextureWrap texture, Vector2 center, float radius)
-    {
-        ImDrawListPtr drawList = ImGui.GetWindowDrawList();
-        Vector2 uv0 = new Vector2(0, 0);
-        Vector2 uv1 = new Vector2(1, 1);
-        var color = Color(1, 1, 1, 1);
-
-        drawList.AddImageRounded(texture.ImGuiHandle,
-                                    new Vector2(center.X - radius, center.Y - radius),
-                                    new Vector2(center.X + radius, center.Y + radius),
-                                    uv0, uv1, color, radius);
-        // Define the circular region
-        drawList.PushClipRect(center - new Vector2(radius, radius), center + new Vector2(radius, radius), true);
-        drawList.AddCircleFilled(center, radius, ImGui.GetColorU32(new Vector4(1, 1, 1, 1)), 100);
-
-        // Draw the image within the circular region
-        drawList.AddImage(texture.ImGuiHandle, center - new Vector2(radius, radius), center + new Vector2(radius, radius), uv0, uv1);
-
-        // Pop the clipping rectangle
-        drawList.PopClipRect();
-    }
-
 
     public Padlocks GetPadlock(string padlockType)
     {
@@ -1028,6 +1020,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         var offset2 = (CurrentValBigSize - ImGui.CalcTextSize(prevValue).X) / 2;
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + offset2);
         ImGui.TextDisabled(nextValue); // Previous value (centered)
+    }
+
+    public void SetCursorXtoCenter(float width)
+    {
+        // push the big boi font for the UID
+        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - width / 2);
     }
 
     public void DrawHelpText(string helpText)

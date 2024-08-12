@@ -29,7 +29,7 @@ public class MainTabMenu
     private readonly UiSharedService _uiSharedService;
     private string _filter = string.Empty;
 
-    private SelectedTab _selectedTab = SelectedTab.Whitelist;
+    private SelectedTab _selectedTab = SelectedTab.Homepage;
 
     public MainTabMenu(GagspeakMediator mediator, ApiController apiController, 
         PairManager pairManager, UiSharedService uiSharedService)

@@ -78,7 +78,7 @@ public class OrdersUI : WindowMediatorSubscriberBase
                 using (var leftChild = ImRaii.Child($"###OrdersLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
                     // attempt to obtain an image wrap for it
-                    var iconTexture = _uiSharedService.GetImageFromDirectoryFile("icon.png");
+                    var iconTexture = _uiSharedService.GetLogoSmall();
                     if (!(iconTexture is { } wrap))
                     {
                         _logger.LogWarning("Failed to render image!");

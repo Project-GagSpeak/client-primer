@@ -1,7 +1,6 @@
 using Dalamud.Interface;
 using Dalamud.Plugin;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI.Handlers;
 using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UI.UiOrders;
 using GagSpeak.UI.UiPuppeteer;
@@ -65,7 +64,7 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         // get the width of the window content region we set earlier
         var _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
         var _spacingX = ImGui.GetStyle().ItemSpacing.X;
-        var buttonX = (availableWidth - spacingX) / 2f;
+        var buttonX = (availableWidth - spacingX);
 
         // My Remote
         if (_uiShared.IconTextButton(FontAwesomeIcon.WaveSquare, "Lovense Remote Interface", buttonX))
@@ -81,49 +80,29 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         {
             Mediator.Publish(new UiToggleMessage(typeof(OrdersUI)));
         }
-        UiSharedService.AttachToolTip("View your active Orders or setup orders for others");
 
         // Opens the Gags Status Interface UI
         if (_uiShared.IconTextButton(FontAwesomeIcon.CommentSlash, "Gags Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(GagSetupUI)));
         }
-        UiSharedService.AttachToolTip("View and analyze your generated character data");
 
         // Opens the Wardrobe Module UI
         if (_uiShared.IconTextButton(FontAwesomeIcon.ToiletPortable, "Wardrobe Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(WardrobeUI)));
         }
-        UiSharedService.AttachToolTip("View and analyze your generated character data");
 
         // Opens the Puppeteer Module UI
         if (_uiShared.IconTextButton(FontAwesomeIcon.PersonHarassing, "Puppeteer Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(PuppeteerUI)));
         }
-        UiSharedService.AttachToolTip("View and analyze your generated character data");
 
         // Opens the Toybox Module UI
         if (_uiShared.IconTextButton(FontAwesomeIcon.BoxOpen, "Toybox Interface", buttonX))
         {
             Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
         }
-        UiSharedService.AttachToolTip("View and analyze your generated character data");
-
-        if (ImGui.Button("Open Plugin Config Folder", new Vector2(5f * ImGui.GetFrameHeight(), ImGui.GetFrameHeight())))
-        {
-            ImGui.SetTooltip("For when you need to inspect or remove config files for debugging purposes.\nModifying them directly could lead to TONS of bugs, so be careful!");
-            try
-            {
-                var ConfigDirectory = pi.ConfigDirectory.FullName;
-                Process.Start(new ProcessStartInfo { FileName = ConfigDirectory, UseShellExecute = true });
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"[ConfigFileOpen] Failed to open the config directory. {e.Message}");
-            }
-        }
-
     }
 }

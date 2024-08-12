@@ -42,6 +42,7 @@ public class GagspeakConfig : IGagspeakConfiguration
     public List<ChatChannel.ChatChannels> ChannelsPuppeteer { get; set; } = []; // which channels should puppeteer messages be scanning? 
 
     // migrated from gagspeak information for client user. (stuff unnecessary to be in the DB)
+    public string Safeword { get; set; } = "";                               // the safeword the user has set
     public bool LiveGarblerZoneChangeWarn { get; set; } = false;                // if user wants to be warned about the live chat garbler on zone change
     public BlindfoldType BlindfoldStyle { get; set; } = BlindfoldType.Sensual;  // the blindfold style the user is using
     public RevertStyle RevertStyle { get; set; } = RevertStyle.ToGameOnly;      // how the user wants to revert their settings (can store locally?)

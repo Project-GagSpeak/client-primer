@@ -78,7 +78,7 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                 {
                     // get the gag setup logo image
                     //var iconTexture = _uiSharedService.GetImageFromDirectoryFile("icon.png");
-                    var iconTexture = _uiSharedService.GetGagspeakLogoSmall();
+                    var iconTexture = _uiSharedService.GetLogoSmall();
                     if (!(iconTexture is { } wrap))
                     {
                         _logger.LogWarning("Failed to render image!");

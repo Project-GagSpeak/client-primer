@@ -178,7 +178,7 @@ public static class GagSpeakServiceExtensions
 
         // ResourceManager Services
         .AddSingleton((s) => new ResourceLoader(s.GetRequiredService<ILogger<ResourceLoader>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(), 
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<AvfxManager>(), s.GetRequiredService<ScdManager>(), dm, ss, gip))
         .AddSingleton((s) => new AvfxManager(s.GetRequiredService<ILogger<AvfxManager>>(), dm, pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new ScdManager(s.GetRequiredService<ILogger<ScdManager>>(), dm, pi.ConfigDirectory.FullName))
@@ -188,6 +188,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
         .AddSingleton<GagSpeakHost>()
         .AddSingleton<ModAssociations>()
+        .AddSingleton<ProfileFactory>()
+
         // apparently adding services from submodules is cursed
         .AddSingleton((s) => new DictBonusItems(pi, new Logger(), dm))
         .AddSingleton((s) => new DictStain(pi, new Logger(), dm))
@@ -240,7 +242,10 @@ public static class GagSpeakServiceExtensions
         // UI Extras services
         .AddSingleton<MainUiHomepage>()
         .AddSingleton<MainUiWhitelist>()
-        .AddSingleton<MainUiAccount>()
+        .AddSingleton((s) => new MainUiAccount(s.GetRequiredService<ILogger<MainUiAccount>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
+            s.GetRequiredService<UiSharedService>(), s.GetRequiredService<OnFrameworkService>(),
+            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<ProfileService>(), pi))
         // WebAPI Services
         .AddSingleton<ApiController>()
         .AddSingleton<HubFactory>()
@@ -302,7 +307,6 @@ public static class GagSpeakServiceExtensions
         ITextureProvider tp, INotificationManager nm, IChatGui cg, IDataManager dm)
     => services
         // Service Services
-        .AddScoped<ProfileFactory>()
         .AddScoped<DrawEntityFactory>()
         .AddScoped<UiFactory>()
         .AddScoped<SelectTagForPairUi>()
@@ -327,9 +331,7 @@ public static class GagSpeakServiceExtensions
         .AddScoped<WindowMediatorSubscriberBase, BlindfoldUI>((s) => new BlindfoldUI(s.GetRequiredService<ILogger<BlindfoldUI>>(),
             s.GetRequiredService<GagspeakMediator>(), pi, s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<UiSharedService>(), tp))
-        .AddScoped<WindowMediatorSubscriberBase, EditProfileUi>((s) => new EditProfileUi(s.GetRequiredService<ILogger<EditProfileUi>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(), tp, s.GetRequiredService<UiSharedService>(),
-            s.GetRequiredService<FileDialogManager>(), s.GetRequiredService<ProfileService>()))
+        .AddScoped<WindowMediatorSubscriberBase, EditProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, PopupHandler>()
         .AddScoped<IPopupHandler, VerificationPopupHandler>()
         .AddScoped<IPopupHandler, SavePatternPopupHandler>()

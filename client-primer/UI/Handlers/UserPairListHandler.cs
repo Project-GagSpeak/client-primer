@@ -7,6 +7,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components.UserPairList;
 using GagSpeak.WebAPI;
 using ImGuiNET;
+using OtterGui.Text;
 using System.Collections.Immutable;
 using System.Numerics;
 
@@ -113,7 +114,7 @@ public class UserPairListHandler
         {
             _uiSharedService.SearchFilter = filter;
         }
-        ImGui.SameLine();
+        ImUtf8.SameLineInner();
         using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(_uiSharedService.SearchFilter));
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
         {

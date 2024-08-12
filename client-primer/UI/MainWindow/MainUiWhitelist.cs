@@ -75,7 +75,7 @@ public class MainUiWhitelist : DisposableMediatorSubscriberBase
         try
         {
             // show the search filter just above the contacts list to form a nice separation.
-            _userPairListHandler.DrawSearchFilter(_windowContentWidth, ImGui.GetStyle().ItemSpacing.X);
+            _userPairListHandler.DrawSearchFilter(_windowContentWidth, ImGui.GetStyle().ItemInnerSpacing.X);
             ImGui.Separator();
 
             // then display our pairing list
@@ -139,82 +139,4 @@ public class MainUiWhitelist : DisposableMediatorSubscriberBase
         // return a push to the footer to know where to draw our bottom tab bar
         return ImGui.GetCursorPosY() - pairlistEnd - ImGui.GetTextLineHeight();
     }
-
-    /// <summary>
-    /// Funky ass logic to determine if we should open sticky permission window for the selected pair. 
-    /// Also determines if we show pairs permissions, or our permissions for the pair.
-    /// </summary>
-    /*private void UpdateShouldOpenStatus(Pair? specificPair = null, StickyWindowType type = StickyWindowType.None)
-    {
-        // Default assumption.
-        var indexToKeep = -1;
-        if (specificPair == null)
-        {
-            Logger.LogTrace("No specific Pair provided, finding first Pair with ShouldOpen true");
-            indexToKeep = _userPairListHandler.AllPairDrawsDistinct.FindIndex(pair => pair.Pair.ShouldOpenPermWindow);
-        }
-        else
-        {
-            Logger.LogTrace("Specific Pair provided: {0}", specificPair.UserData.AliasOrUID);
-            indexToKeep = _userPairListHandler.AllPairDrawsDistinct.FindIndex(pair => pair.Pair == specificPair);
-        }
-        // Toggle the ShouldOpen status if the Pair is found
-        if (indexToKeep != -1)
-        {
-            Logger.LogDebug("Found specific Pair, Checking current window type.");
-            var currentStatus = _userPairListHandler.AllPairDrawsDistinct[indexToKeep].Pair.ShouldOpenPermWindow;
-            // If we're turning it off, reset indexToKeep to handle deactivation correctly
-            if (currentStatus && type == _userPairPermsSticky.DrawType)
-            {
-                Logger.LogTrace("Requested Window is same type as current, toggling off");
-                _userPairListHandler.AllPairDrawsDistinct[indexToKeep].Pair.ShouldOpenPermWindow = !currentStatus;
-                indexToKeep = -1;
-            }
-            else if (!currentStatus && type != StickyWindowType.None && _userPairPermsSticky.DrawType == StickyWindowType.None)
-            {
-                Logger.LogTrace("Requesting to open window from currently closed state");
-                _userPairListHandler.AllPairDrawsDistinct[indexToKeep].Pair.ShouldOpenPermWindow = true;
-            }
-            else if (currentStatus && (type == StickyWindowType.PairPerms || type == StickyWindowType.ClientPermsForPair) && _userPairPermsSticky.DrawType != type)
-            {
-                Logger.LogTrace("Requesting to change window type from client to pair, or vise versa");
-            }
-            else if (!currentStatus && (type == StickyWindowType.PairPerms || type == StickyWindowType.ClientPermsForPair))
-            {
-                Logger.LogTrace("Opening the same window but for another user, switching pair and changing index");
-                _userPairListHandler.AllPairDrawsDistinct[indexToKeep].Pair.ShouldOpenPermWindow = !currentStatus;
-            }
-            else
-            {
-                Logger.LogTrace("Don't know exactly how you got here");
-            }
-        }
-
-        Logger.LogDebug("Index to keep: {0} || setting all others to false", indexToKeep);
-        // Set ShouldOpen to false for all other DrawUserPairs
-        for (var i = 0; i < _userPairListHandler.AllPairDrawsDistinct.Count; i++)
-        {
-            if (i != indexToKeep)
-            {
-                _userPairListHandler.AllPairDrawsDistinct[i].Pair.ShouldOpenPermWindow = false;
-            }
-        }
-
-        // Update _PairToDrawPermissionsFor based on the current status
-        if (indexToKeep != -1)
-        {
-            Logger.LogTrace("Setting _PairToDrawPermissionsFor to {0}", _userPairListHandler.AllPairDrawsDistinct[indexToKeep].Pair.UserData.AliasOrUID);
-            _PairToDrawPermissionsFor = _userPairListHandler.AllPairDrawsDistinct[indexToKeep].Pair;
-            if (type != StickyWindowType.None)
-            {
-                _userPairPermsSticky.DrawType = type;
-            }
-        }
-        else
-        {
-            Logger.LogTrace("Setting _PairToDrawPermissionsFor to null && Setting DrawType to none");
-            _PairToDrawPermissionsFor = null;
-            _userPairPermsSticky.DrawType = StickyWindowType.None;
-        }
-    }*/
 }

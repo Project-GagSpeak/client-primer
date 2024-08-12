@@ -55,9 +55,15 @@ public class RestraintSetManager
 
     private RestraintSet CreatedRestraintSet = new RestraintSet();
     public bool CreatingRestraintSet = false;
-    private List<bool> ListItemHovered = new List<bool>();
-    private LowerString RestraintSetSearchString = LowerString.Empty;
     private string LockTimerInputString = string.Empty;
+
+    private LowerString RestraintSetSearchString = LowerString.Empty;
+    private List<RestraintSet> FilteredSetList
+        => _handler.GetAllSetsForSearch()
+            .Where(set => set.Name.Contains(RestraintSetSearchString, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    private List<bool> ListItemHovered = new List<bool>();
+
 
     public void DrawManageSets(Vector2 cellPadding)
     {
@@ -94,20 +100,22 @@ public class RestraintSetManager
         var region = ImGui.GetContentRegionAvail();
         var topLeftSideHeight = region.Y;
 
-            using (var managerTable = ImRaii.Table("RestraintsManagerTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
-            {
-                if (!managerTable) return;
-                // setup the columns
-                ImGui.TableSetupColumn("SetList", ImGuiTableColumnFlags.WidthFixed, 300f);
-                ImGui.TableSetupColumn("PreviewSet", ImGuiTableColumnFlags.WidthStretch);
+        using (var managerTable = ImRaii.Table("RestraintsManagerTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
+        {
+            if (!managerTable) return;
+            // setup the columns
+            ImGui.TableSetupColumn("SetList", ImGuiTableColumnFlags.WidthFixed, 300f);
+            ImGui.TableSetupColumn("PreviewSet", ImGuiTableColumnFlags.WidthStretch);
 
-                ImGui.TableNextRow(); ImGui.TableNextColumn();
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
 
-                var regionSize = ImGui.GetContentRegionAvail();
+            var regionSize = ImGui.GetContentRegionAvail();
 
             using (var leftChild = ImRaii.Child($"###SelectableListWardrobe", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
             {
                 DrawCreateRestraintSetHeader();
+                ImGui.Separator();
+                DrawSearchFilter(regionSize.X, ImGui.GetStyle().ItemInnerSpacing.X);
                 ImGui.Separator();
                 if (_handler.RestraintSetListSize() > 0)
                 {
@@ -117,7 +125,13 @@ public class RestraintSetManager
 
             ImGui.TableNextColumn();
 
-            DrawRestraintSetPreview();
+            // grab the index in the highlighted set that is true
+            var highlightedIndex = ListItemHovered.FindIndex(x => x.Equals(true));
+            // if non are, return
+            if (highlightedIndex == -1) return;
+
+            // otherwise, draw.
+            DrawRestraintSetPreview(FilteredSetList[highlightedIndex]);
         }
     }
 
@@ -268,52 +282,61 @@ public class RestraintSetManager
         }
     }
 
-    private void DrawRestraintSetSelectableMenu()
+    /// <summary> Draws the search filter for our user pair list (whitelist) </summary>
+    public void DrawSearchFilter(float availableWidth, float spacingX)
     {
-        // if list size has changed, refresh the list of hovered items
-        if (ListItemHovered.Count != _handler.RestraintSetListSize())
+        var buttonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
+        ImGui.SetNextItemWidth(availableWidth - buttonSize - spacingX);
+        string filter = RestraintSetSearchString;
+        if (ImGui.InputTextWithHint("##RestraintFilter", "Search for Restraint Set", ref filter, 255))
         {
-            ListItemHovered.Clear();
-            ListItemHovered.AddRange(Enumerable.Repeat(false, _handler.RestraintSetListSize()));
+            RestraintSetSearchString = filter;
         }
-
-        // create a search filter for the restraint set list
-
-
-        // display the selectable for each restraintSet using a for loop to keep track of the index
-        for (int i = 0; i < _handler.RestraintSetListSize(); i++)
+        ImUtf8.SameLineInner();
+        using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(RestraintSetSearchString));
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
         {
-            DrawRestraintSetSelectable(i); // Pass the index to DrawRestraintSetSelectable
+            RestraintSetSearchString = string.Empty;
         }
     }
 
-    private void DrawRestraintSetSelectable(int idx)
+    private void DrawRestraintSetSelectableMenu()
     {
-        // grab the temp restraintSet
-        var tmpRestraintSet = _handler.GetRestraintSet(idx);
+        // if list size has changed, refresh the list of hovered items
+        if (ListItemHovered.Count != FilteredSetList.Count)
+        {
+            ListItemHovered.Clear();
+            ListItemHovered.AddRange(Enumerable.Repeat(false, FilteredSetList.Count));
+        }
 
+        // display the selectable for each restraintSet using a for loop to keep track of the index
+        for (int i = 0; i < FilteredSetList.Count; i++)
+        {
+            var set = FilteredSetList[i];
+            DrawRestraintSetSelectable(set, i); // Pass the index to DrawRestraintSetSelectable
+        }
+    }
+
+    private void DrawRestraintSetSelectable(RestraintSet set, int idx)
+    {
         // grab the name of the set
-        var name = tmpRestraintSet.Name;
-
+        var name = set.Name;
         // grab the description of the set
-        var description = tmpRestraintSet.Description;
+        var description = set.Description;
         // grab who the set was locked by
-        var lockedBy = tmpRestraintSet.LockedBy;
-        // fetch the DisplayTime left until unlocked if locked.
-        var remainingLockDuration = "Coming Soon";
+        var lockedBy = set.LockedBy;
 
         // define our sizes
         var startYpos = ImGui.GetCursorPosY();
-        var toggleSize = _uiShared.GetIconButtonSize(tmpRestraintSet.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff);
-        var lockSize = _uiShared.GetIconButtonSize(tmpRestraintSet.Locked ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock);
-        var nameTextSize = ImGui.CalcTextSize(tmpRestraintSet.Name);
-        var descriptionTextSize = ImGui.CalcTextSize(tmpRestraintSet.Description);
+        var toggleSize = _uiShared.GetIconButtonSize(set.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff);
+        var lockSize = _uiShared.GetIconButtonSize(set.Locked ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock);
+        var nameTextSize = ImGui.CalcTextSize(set.Name);
+        var descriptionTextSize = ImGui.CalcTextSize(set.Description);
         var lockedByTextSize = ImGui.CalcTextSize(lockedBy);
-        var remainingLockDurationTextSize = ImGui.CalcTextSize(remainingLockDuration);
 
         // determine the height of this selection and what kind of selection it is.
-        var isActiveSet = (tmpRestraintSet.Enabled == true);
-        var isLockedSet = (tmpRestraintSet.Locked == true);
+        var isActiveSet = (set.Enabled == true);
+        var isLockedSet = (set.Locked == true);
 
         using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
         using (ImRaii.Child($"##EditRestraintSetHeader{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetFrameHeight()*2)))
@@ -351,12 +374,12 @@ public class RestraintSetManager
             var currentYpos = ImGui.GetCursorPosY();
             using (var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f))
             {
-                using (var disableSetToggleButton = ImRaii.Disabled(tmpRestraintSet.Locked))
+                using (var disableSetToggleButton = ImRaii.Disabled(set.Locked))
                 {
-                    if (_uiShared.IconButton(tmpRestraintSet.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff))
+                    if (_uiShared.IconButton(set.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff))
                     {
                         // set the enabled state of the restraintSet based on its current state so that we toggle it
-                        if (tmpRestraintSet.Enabled)
+                        if (set.Enabled)
                             _handler.DisableRestraintSet(idx);
                         else
                             _handler.EnableRestraintSet(idx);
@@ -369,14 +392,14 @@ public class RestraintSetManager
         ListItemHovered[idx] = ImGui.IsItemHovered();
         if (ImGui.IsItemClicked())
         {
-            _handler.SetEditingRestraintSet(tmpRestraintSet, idx);
+            _handler.SetEditingRestraintSet(set);
         }
         // if this is the active set, draw a seperator below it
         if (isActiveSet)
         {
-            TimeSpan remainingTime = (tmpRestraintSet.LockedUntil - DateTimeOffset.UtcNow);
+            TimeSpan remainingTime = (set.LockedUntil - DateTimeOffset.UtcNow);
             string remainingTimeStr = $"{remainingTime.Days}d{remainingTime.Hours}h{remainingTime.Minutes}m{remainingTime.Seconds}s";
-            var lockedDescription = tmpRestraintSet.Locked ? $"Locked for {remainingTimeStr}" : "Self-lock: XdXhXmXs format..";
+            var lockedDescription = set.Locked ? $"Locked for {remainingTimeStr}" : "Self-lock: XdXhXmXs format..";
             // display a third row for an input text field for the self-lock time
             var iconLock = isActiveSet ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
             var displayText = isLockedSet ? "Unlock Set" : "Lock Set";
@@ -395,7 +418,7 @@ public class RestraintSetManager
             if (_uiShared.IconTextButton(iconLock, displayText, null, false, disabled))
             {
                 // when we try to unlock, ONLY allow unlock if you are the one who locked it.
-                if (isLockedSet && tmpRestraintSet.LockedBy == "SelfApplied")
+                if (isLockedSet && set.LockedBy == "SelfApplied")
                 {
                     _handler.UnlockRestraintSet(_handler.GetRestraintSetIndexByName(name), "SelfApplied");
                 }
@@ -415,23 +438,14 @@ public class RestraintSetManager
                     }
                 }
             }
-            UiSharedService.AttachToolTip(disabled ? "Only" + tmpRestraintSet.LockedBy + "can unlock your set." 
-                                                   : tmpRestraintSet.Locked ? "Unlock this set." : "Lock this set.");
-            // end of lock draw.
+            UiSharedService.AttachToolTip(disabled ? "Only" + set.LockedBy + "can unlock your set." 
+                                                   : set.Locked ? "Unlock this set." : "Lock this set.");
             ImGui.Separator();
         }
     }
 
-    private void DrawRestraintSetPreview()
+    private void DrawRestraintSetPreview(RestraintSet set)
     {
-        // fetch the highlighted index in ListItemHovered that is set to true
-        var highlightedIndex = ListItemHovered.FindIndex(x => x == true);
-        // if we have a highlighted index, draw the preview of the restraintSet
-        if (highlightedIndex == -1) return;
-
-        // grab the temp restraintSet
-        var tmpRestraintSet = _handler.GetRestraintSet(highlightedIndex);
-
         // embed a new table within this table.
         using (var equipIconsTable = ImRaii.Table("equipIconsTable", 2, ImGuiTableFlags.RowBg))
         {
@@ -447,27 +461,27 @@ public class RestraintSetManager
 
             foreach (var slot in EquipSlotExtensions.EquipmentSlots)
             {
-                tmpRestraintSet.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                set.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
                 ImGui.SameLine(0, 3);
                 using (var groupDraw = ImRaii.Group())
                 {
-                    DrawStain(tmpRestraintSet, slot);
+                    DrawStain(set, slot);
                 }
             }
             foreach (var slot in BonusExtensions.AllFlags)
             {
-                tmpRestraintSet.BonusDrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                set.BonusDrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
             }
             // i am dumb and dont know how to place adjustable divider lengths
             ImGui.TableNextColumn();
             //draw out the accessory slots
             foreach (var slot in EquipSlotExtensions.AccessorySlots)
             {
-                tmpRestraintSet.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                set.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
                 ImGui.SameLine(0, 3);
                 using (var groupDraw = ImRaii.Group())
                 {
-                    DrawStain(tmpRestraintSet, slot);
+                    DrawStain(set, slot);
                 }
             }
         }

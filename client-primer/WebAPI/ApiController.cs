@@ -633,7 +633,10 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // wait for 30 seconds
             await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
             // log that we are checking the client health state
-            Logger.LogTrace("Checking Main Server Client Health State");
+            if(_gagspeakConfigService.Current.LogServerConnectionHealth)
+            {
+                Logger.LogTrace("Checking Main Server Client Health State");
+            }
             // refresh the token and check if we need to reconnect
             bool requireReconnect = await RefreshToken(ct).ConfigureAwait(false);
             // if we need to reconnect, break out of the loop
@@ -652,7 +655,10 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // wait for 30 seconds
             await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
             // log that we are checking the client health state
-            Logger.LogTrace("Checking Toybox Client Health State");
+            if (_gagspeakConfigService.Current.LogServerConnectionHealth)
+            {
+                Logger.LogTrace("Checking Toybox Server Client Health State");
+            }
             // refresh the token and check if we need to reconnect
             bool requireReconnect = await RefreshToken(ct).ConfigureAwait(false);
             // if we need to reconnect, break out of the loop

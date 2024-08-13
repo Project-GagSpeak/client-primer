@@ -378,7 +378,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_GlobalChatMessage(GlobalChatMessageDto dto)
     {
         // TODO: Turn this into a direct call over a mediator if we do not need to use APIController in the service.
-        ExecuteSafely(() => Mediator.Publish(new GlobalChatMessage(dto)));
+        ExecuteSafely(() => Mediator.Publish(new GlobalChatMessage(dto, (dto.MessageSender.UID == UID))));
         return Task.CompletedTask;
     }
 

@@ -27,21 +27,24 @@ public class DiscoverService : DisposableMediatorSubscriberBase
         // set the chat log up.
         GagspeakGlobalChat = new ChatLog();
 
-        Mediator.Subscribe<GlobalChatMessage>(pairManager, (msg) => AddChatMessage(msg.ChatMessage));
+        Mediator.Subscribe<GlobalChatMessage>(pairManager, (msg) => AddChatMessage(msg));
 
         Mediator.Subscribe<DisconnectedMessage>(this, (msg) => GagspeakGlobalChat.ClearMessages());
     }
 
 
-    private void AddChatMessage(GlobalChatMessageDto msg)
+    private void AddChatMessage(GlobalChatMessage msg)
     {
         // extract the userdata from the message
-        var userData = msg.MessageSender;
+        var userData = msg.ChatMessage.MessageSender;
 
         // grab the list of our currently online pairs.
         var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == userData.UID);
 
         string SenderName = "Anon. Kinkster";
+
+        if (msg.FromSelf) SenderName = msg.ChatMessage.MessageSender.AliasOrUID;
+        
         // see if the message Sender is in our list of online pairs.
         if (matchedPair != null)
         {
@@ -54,7 +57,7 @@ public class DiscoverService : DisposableMediatorSubscriberBase
         {
             User = SenderName,
             SupporterTier = userData.SupporterTier ?? CkSupporterTier.NoRole,
-            Message = msg.Message,
+            Message = msg.ChatMessage.Message,
         };
 
         GagspeakGlobalChat.AddMessage(msgToAdd);

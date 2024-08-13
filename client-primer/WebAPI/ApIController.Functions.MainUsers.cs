@@ -6,6 +6,7 @@ using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
 using Microsoft.AspNetCore.SignalR.Client;
 using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Dto.Toybox;
 
 namespace GagSpeak.WebAPI;
 
@@ -64,6 +65,18 @@ public partial class ApiController // Partial class for MainHub User Functions.
     public async Task<List<UserPairDto>> UserGetPairedClients()
     {
         return await _gagspeakHub!.InvokeAsync<List<UserPairDto>>(nameof(UserGetPairedClients)).ConfigureAwait(false);
+    }
+
+
+    /// <summary>
+    /// Sends a message to the gagspeak Global chat.
+    /// </summary>
+    public async Task SendGlobalChat(GlobalChatMessageDto dto)
+    {
+        // if we are not connected, return
+        if (!IsConnected) return;
+        // if we are connected, send the message to the global chat
+        await _gagspeakHub!.InvokeAsync(nameof(SendGlobalChat), dto).ConfigureAwait(false);
     }
 
     /// <summary> 

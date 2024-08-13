@@ -242,6 +242,7 @@ public static class GagSpeakServiceExtensions
         // UI Extras services
         .AddSingleton<MainUiHomepage>()
         .AddSingleton<MainUiWhitelist>()
+        .AddSingleton<MainUiDiscover>()
         .AddSingleton((s) => new MainUiAccount(s.GetRequiredService<ILogger<MainUiAccount>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
             s.GetRequiredService<UiSharedService>(), s.GetRequiredService<OnFrameworkService>(),
@@ -257,12 +258,12 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()
         .AddSingleton<GagspeakMediator>()
+        .AddSingleton<DiscoverService>()
         .AddSingleton((s) => new ProfileService(s.GetRequiredService<ILogger<ProfileService>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
             s.GetRequiredService<ProfileFactory>()))
         .AddSingleton((s) => new OnFrameworkService(s.GetRequiredService<ILogger<OnFrameworkService>>(),
-            cs, con, dm, fw, gg, tm, ot,
-            s.GetRequiredService<GagspeakMediator>()));
+            cs, con, dm, fw, gg, tm, ot, s.GetRequiredService<GagspeakMediator>()));
     #endregion GenericServices
 
     #region IpcServices
@@ -317,7 +318,8 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ApiController>(), s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<PairManager>(), s.GetRequiredService<ServerConfigurationManager>(),
             s.GetRequiredService<MainUiHomepage>(), s.GetRequiredService<MainUiWhitelist>(),
-            s.GetRequiredService<MainUiAccount>(), s.GetRequiredService<DrawEntityFactory>(), pi))
+            s.GetRequiredService<MainUiDiscover>(), s.GetRequiredService<MainUiAccount>(), 
+            s.GetRequiredService<DrawEntityFactory>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
         .AddScoped<WindowMediatorSubscriberBase, RemotePersonal>()

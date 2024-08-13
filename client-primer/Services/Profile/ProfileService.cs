@@ -72,14 +72,25 @@ public class ProfileService : MediatorSubscriberBase
 
     public void RemoveGagspeakProfile(UserData userData)
     {
-        Logger.LogInformation("Removing profile for {user}", userData);
-        // remove them from the dictionary.
-        _gagspeakProfiles.Remove(userData, out _);
+        Logger.LogInformation("Removing profile for {user} if it exists.", userData);
+        // Check if the profile exists before attempting to dispose and remove it
+        if (_gagspeakProfiles.TryGetValue(userData, out var profile))
+        {
+            // Run the cleanup on the object first before removing it
+            profile.Dispose();
+            // Remove them from the dictionary
+            _gagspeakProfiles.TryRemove(userData, out _);
+        }
     }
 
     public void ClearAllProfiles()
     {
         Logger.LogInformation("Clearing all profiles.");
+        // dispose of all the profile data.
+        foreach (var profile in _gagspeakProfiles.Values)
+        {
+            profile.Dispose();
+        }
         // clear the dictionary.
         _gagspeakProfiles.Clear();
     }

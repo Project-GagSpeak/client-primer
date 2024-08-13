@@ -1,13 +1,13 @@
 using GagSpeak.PlayerData.Factories;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI.UiRemote;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Comparer;
 using GagspeakAPI.Data.VibeServer;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.User;
+using GagSpeak.Utils.ChatLog;
 
 namespace GagSpeak.PlayerData.PrivateRooms;
 
@@ -38,7 +38,7 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
         PrivateRoomChatlog = new ChatLog();
 
         // add a dummy message to it.
-        ChatLog.AddMessage("System", "Welcome to the room!");
+        PrivateRoomChatlog.AddMessage(new ChatMessage("System", null, "Welcome to the room!"));
         
         // initialize the lazy list of participants.
         _directParticipantsInternal = DirectParticipantsLazy();
@@ -47,9 +47,9 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
         Mediator.Subscribe<ToyboxPrivateRoomLeft>(this, (msg) =>
         {
             if (msg.RoomName == RoomName)
-                ChatLog.ClearMessages();
+                PrivateRoomChatlog.ClearMessages();
 
-            ChatLog.AddMessage("System", "Welcome to the room!");
+            PrivateRoomChatlog.AddMessage(new ChatMessage("System", null, "Welcome to the room!"));
         });
     }
 
@@ -179,7 +179,7 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
 
     public void AddChatMessage(RoomMessageDto message)
     {
-        ChatLog.AddMessage(message.SenderName.ChatAlias, message.Message);
+        PrivateRoomChatlog.AddMessage(new ChatMessage(message.SenderName.ChatAlias, null, message.Message));
     }
 
     /// <summary> Retrieves a participant's device information push data. </summary>

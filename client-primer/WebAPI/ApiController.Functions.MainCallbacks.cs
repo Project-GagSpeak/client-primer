@@ -373,6 +373,16 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
+
+    /// <summary> Receive a Global Chat Message. DO NOT LOG THIS. </summary>
+    public Task Client_GlobalChatMessage(GlobalChatMessageDto dto)
+    {
+        // TODO: Turn this into a direct call over a mediator if we do not need to use APIController in the service.
+        ExecuteSafely(() => Mediator.Publish(new GlobalChatMessage(dto)));
+        return Task.CompletedTask;
+    }
+
+
     /// <summary> Server has sent us a UserDto has just went offline, and is notifying all connected pairs about it.
     /// <para> Use this info to update the UserDto in our pair manager so they are marked as offline.</para>
     /// </summary>
@@ -567,6 +577,13 @@ public partial class ApiController // Partial class for MainHub Callbacks
     {
         if (_initialized) return;
         _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataToybox), act);
+    }
+
+
+    public void OnGlobalChatMessage(Action<GlobalChatMessageDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_GlobalChatMessage), act);
     }
 
     public void OnUserSendOffline(Action<UserDto> act)

@@ -1,4 +1,4 @@
-namespace GagSpeak.UI.UiRemote;
+namespace GagSpeak.Utils.ChatLog;
 
 public class ChatCircularBuffer<T> : IEnumerable<T>
 {
@@ -49,7 +49,7 @@ public class ChatCircularBuffer<T> : IEnumerable<T>
             {
                 throw new IndexOutOfRangeException($"Cannot access index {index}. Buffer size is {_size}");
             }
-            int actualIndex = InternalIndex(index);
+            var actualIndex = InternalIndex(index);
             return _buffer[actualIndex];
         }
         set
@@ -62,7 +62,7 @@ public class ChatCircularBuffer<T> : IEnumerable<T>
             {
                 throw new IndexOutOfRangeException($"Cannot access index {index}. Buffer size is {_size}");
             }
-            int actualIndex = InternalIndex(index);
+            var actualIndex = InternalIndex(index);
             _buffer[actualIndex] = value;
         }
     }
@@ -125,10 +125,10 @@ public class ChatCircularBuffer<T> : IEnumerable<T>
 
     public T[] ToArray()
     {
-        T[] newArray = new T[Size];
-        int newArrayOffset = 0;
+        var newArray = new T[Size];
+        var newArrayOffset = 0;
         var segments = ToArraySegments();
-        foreach (ArraySegment<T> segment in segments)
+        foreach (var segment in segments)
         {
             Array.Copy(segment.Array, segment.Offset, newArray, newArrayOffset, segment.Count);
             newArrayOffset += segment.Count;
@@ -144,9 +144,9 @@ public class ChatCircularBuffer<T> : IEnumerable<T>
     public IEnumerator<T> GetEnumerator()
     {
         var segments = ToArraySegments();
-        foreach (ArraySegment<T> segment in segments)
+        foreach (var segment in segments)
         {
-            for (int i = 0; i < segment.Count; i++)
+            for (var i = 0; i < segment.Count; i++)
             {
                 yield return segment.Array[segment.Offset + i];
             }

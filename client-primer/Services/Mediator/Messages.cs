@@ -17,6 +17,7 @@ using Penumbra.GameData.Structs;
 using System.Numerics;
 using GagspeakAPI.Data.VibeServer;
 using GagSpeak.PlayerData.PrivateRooms;
+using GagspeakAPI.Dto.Toybox;
 
 namespace GagSpeak.Services.Mediator;
 
@@ -147,6 +148,7 @@ public record ClosedMainUiMessage : MessageBase; // indicates the main UI has be
 public record RemoveWindowMessage(WindowMediatorSubscriberBase Window) : MessageBase; // fired upon request to remove a window from the UI service.
 public record CompactUiChange(Vector2 Size, Vector2 Position) : MessageBase; // fired whenever we change the window size or position
 
+public record GlobalChatMessage(GlobalChatMessageDto ChatMessage) : MessageBase;
 public record OpenPrivateRoomRemote(PrivateRoom PrivateRoom) : MessageBase; // unique for each private room.
 public record ProfileOpenStandaloneMessage(Pair Pair) : MessageBase; // for opening the profile standlone window.
 public record ProfilePopoutToggle(Pair? Pair) : MessageBase; // toggles the profile popout window for a paired client.

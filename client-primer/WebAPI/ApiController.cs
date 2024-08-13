@@ -730,6 +730,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             OnUserReceiveOwnDataToybox(dto => _ = Client_UserReceiveOwnDataToybox(dto));
             OnUserReceiveOtherDataToybox(dto => _ = Client_UserReceiveOtherDataToybox(dto));
 
+            OnGlobalChatMessage(dto => _ = Client_GlobalChatMessage(dto));
             OnUserSendOffline(dto => _ = Client_UserSendOffline(dto));
             OnUserSendOnline(dto => _ = Client_UserSendOnline(dto));
             OnUserUpdateProfile(dto => _ = Client_UserUpdateProfile(dto));
@@ -843,8 +844,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         {
             // initialize the api hooks again
             InitializeApiHooks();
-            // get the new connectionDto
-            _connectionDto = await GetConnectionDto(publishConnected: false).ConfigureAwait(false);
+            // get the new connectionDto // TODO: Make this false, not true.
+            _connectionDto = await GetConnectionDto(publishConnected: true).ConfigureAwait(false);
             // if its not equal to the APIVersion then stop the connection
             if (_connectionDto.ServerVersion != IGagspeakHub.ApiVersion)
             {

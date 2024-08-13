@@ -39,6 +39,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private readonly MainTabMenu _tabMenu;
     private readonly MainUiHomepage _homepage;
     private readonly MainUiWhitelist _whitelist;
+    private readonly MainUiDiscover _discover;
     private readonly MainUiAccount _account;
     private readonly IDalamudPluginInterface _pi;
     private int _secretKeyIdx = -1;
@@ -49,9 +50,10 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     public bool ThemePushed = false;
 
     public MainWindowUI(ILogger<MainWindowUI> logger, GagspeakMediator mediator,
-        UiSharedService uiShared, ApiController apiController, GagspeakConfigService configService, 
-        PairManager pairManager, ServerConfigurationManager serverManager,
-        MainUiHomepage homepage, MainUiWhitelist whitelist, MainUiAccount account,
+        UiSharedService uiShared, ApiController apiController, 
+        GagspeakConfigService configService, PairManager pairManager, 
+        ServerConfigurationManager serverManager, MainUiHomepage homepage, 
+        MainUiWhitelist whitelist, MainUiDiscover discover, MainUiAccount account,
         DrawEntityFactory drawEntityFactory, IDalamudPluginInterface pi) 
         : base(logger, mediator, "###GagSpeakMainUI")
     {
@@ -61,6 +63,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         _serverManager = serverManager;
         _homepage = homepage;
         _whitelist = whitelist;
+        _discover = discover;
         _account = account;
         _pi = pi;
         _uiShared = uiShared;
@@ -202,7 +205,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                     using (ImRaii.PushId("whitelistComponent")) _whitelist.DrawWhitelistSection();
                     break;
                 case MainTabMenu.SelectedTab.Discover:
-                    // using (ImRaii.PushId("discoverComponent")) DrawDiscoverSection();
+                    using (ImRaii.PushId("discoverComponent")) _discover.DrawDiscoverySection();
                     break;
                 case MainTabMenu.SelectedTab.MySettings:
                     using (ImRaii.PushId("accountSettingsComponent")) _account.DrawAccountSection();

@@ -229,7 +229,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         var uidFilePath = Path.Combine(ConfigurationDirectory, "config-testing.json");
         if (!File.Exists(uidFilePath))
         {
-            throw new Exception("UID file does not exist.");
+            return; // do not save UID.
         }
 
         // Read the existing JSON

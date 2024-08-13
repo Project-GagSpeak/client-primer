@@ -122,6 +122,10 @@ public class ServerConfigurationManager
             IsPrimary = isPrimary,
             SecretKey = new SecretKey()
         };
+
+        // add the new authentication to the list of authentications.
+        CurrentServer.Authentications.Add(auth);
+        Save();
     }
 
     public void SetSecretKeyForCharacter(ulong localContentID, SecretKey keyToAdd)

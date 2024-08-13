@@ -269,18 +269,18 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         ImUtf8.SameLineInner();
         ImGui.SetNextItemWidth(20 * ImGuiHelpers.GlobalScale);
         var endChar = TempEndChar ?? SelectedPair.UserPairOwnUniquePairPerms.EndChar.ToString();
-        if (ImGui.InputText($"##{SelectedPair.UserData.AliasOrUID}sStarChar", ref startChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
+        if (ImGui.InputText($"##{SelectedPair.UserData.AliasOrUID}sStarChar", ref endChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
         {
-            TempStartChar = startChar;
+            TempEndChar = endChar;
         }
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
-            if (string.IsNullOrEmpty(startChar) || startChar == " ")
+            if (string.IsNullOrEmpty(endChar) || endChar == " ")
             {
-                startChar = ")";
+                endChar = ")";
             }
-            SelectedPair.UserPairOwnUniquePairPerms.StartChar = startChar[0];
-            TempStartChar = null!;
+            SelectedPair.UserPairOwnUniquePairPerms.EndChar = endChar[0];
+            TempEndChar = null!;
             // TODO: publish to mediator our update so we push it
         }
         UiSharedService.AttachToolTip($"Custom End Character that replaces the right enclosing bracket.\n" +

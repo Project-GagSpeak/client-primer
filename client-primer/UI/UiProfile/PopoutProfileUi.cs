@@ -94,7 +94,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
 
             if (!(pfpWrap is { } wrap))
             {
-                _logger.LogWarning("Player Image was null, replacing with default image until new image data is made!");
+                /* Consume Wrap until Generated */
             }
             else
             {

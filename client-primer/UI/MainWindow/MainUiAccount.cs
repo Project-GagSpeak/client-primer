@@ -103,7 +103,7 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
 
                 if (!(_profileImageWrap is { } wrap))
                 {
-                    Logger.LogWarning("Player Image was null, replacing with default image until new image data is made!");
+                    /* Consume Wrap until Generated */
                 }
                 else
                 {

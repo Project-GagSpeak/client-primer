@@ -1,3 +1,5 @@
+using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
@@ -5,6 +7,7 @@ using GagSpeak.WebAPI;
 using GagspeakAPI.Dto.Toybox;
 using ImGuiNET;
 using OtterGui;
+using OtterGui.Text;
 using System.Numerics;
 
 namespace GagSpeak.UI.MainWindow;
@@ -13,13 +16,16 @@ namespace GagSpeak.UI.MainWindow;
 public class MainUiDiscover : DisposableMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
+    private readonly UiSharedService _uiSharedService;
     private readonly DiscoverService _discoveryService;
 
     public MainUiDiscover(ILogger<MainUiDiscover> logger,
-        GagspeakMediator mediator, ApiController apiController, 
+        GagspeakMediator mediator, ApiController apiController,
+        UiSharedService uiSharedService,
         DiscoverService discoverService) : base(logger, mediator)
     {
         _apiController = apiController;
+        _uiSharedService = uiSharedService;
         _discoveryService = discoverService;
 
         Mediator.Subscribe<DisconnectedMessage>(this, (_) =>
@@ -36,12 +42,17 @@ public class MainUiDiscover : DisposableMediatorSubscriberBase
         // stuff
         DrawGlobalChatlog();
     }
+    private bool shouldFocusChatInput = false;
+
     private void DrawGlobalChatlog()
     {
         // grab the content region of the current section
         var CurrentRegion = ImGui.GetContentRegionAvail();
 
+        // center cursor
         ImGuiUtil.Center("Global GagSpeak Chat");
+        // icon to display
+        FontAwesomeIcon Icon = _discoveryService.GagspeakGlobalChat.Autoscroll ? FontAwesomeIcon.ArrowDownUpLock: FontAwesomeIcon.ArrowDownUpAcrossLine;
         ImGui.Separator();
 
         // Calculate the height for the chat log, leaving space for the input text field
@@ -56,20 +67,37 @@ public class MainUiDiscover : DisposableMediatorSubscriberBase
 
         // Now draw out the input text field
         var nextMessageRef = NextChatMessage;
-        ImGui.SetNextItemWidth(CurrentRegion.X);
+
+        ImGui.SetNextItemWidth(CurrentRegion.X - _uiSharedService.GetIconButtonSize(Icon).X - ImGui.GetStyle().ItemInnerSpacing.X);
+        //ImGui.SetKeyboardFocusHere();
         if (ImGui.InputTextWithHint("##ChatInputBox", "chat message here...", ref nextMessageRef, 300))
         {
             // Update the stored message
             NextChatMessage = nextMessageRef;
         }
-
         // Check if the input text field is focused and the Enter key is pressed
         if (ImGui.IsItemFocused() && ImGui.IsKeyPressed(ImGuiKey.Enter))
         {
+            // if the message content is empty, return
+            if (string.IsNullOrWhiteSpace(NextChatMessage)) return;
             // Send the message to the server
             Logger.LogTrace($"Sending Message: {NextChatMessage}");
             _apiController.SendGlobalChat(new GlobalChatMessageDto(_apiController.PlayerUserData, NextChatMessage)).ConfigureAwait(false);
             NextChatMessage = string.Empty;
+            // set the flag to focus the input box
+            shouldFocusChatInput = true;
+        }
+        if (shouldFocusChatInput)
+        {
+            ImGui.SetKeyboardFocusHere(-1);
+            shouldFocusChatInput = false;
+        }
+
+        // Set focus to the input box if the flag is set
+        ImUtf8.SameLineInner();
+        if (_uiSharedService.IconButton(Icon))
+        {
+            _discoveryService.GagspeakGlobalChat.Autoscroll = !_discoveryService.GagspeakGlobalChat.Autoscroll;
         }
     }
 }

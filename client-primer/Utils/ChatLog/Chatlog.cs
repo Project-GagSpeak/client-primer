@@ -1,15 +1,19 @@
 using Dalamud.Interface;
+using FFXIVClientStructs.FFXIV.Common.Lua;
+using GagSpeak.UI;
 using GagSpeak.Utils;
 using ImGuiNET;
 using OtterGui;
+using System.Linq;
 using System.Numerics;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentTextInput.Delegates;
 
 namespace GagSpeak.Utils.ChatLog;
 // an instance of a chatlog.
 public class ChatLog
 {
     public readonly ChatCircularBuffer<ChatMessage> Messages = new(1000);
-    private bool Autoscroll = true;
+    public bool Autoscroll = true;
     private int PreviousMessageCount = 0;
     private readonly Dictionary<string, Vector4> UserColors = new();
 
@@ -38,13 +42,29 @@ public class ChatLog
 
                 UserColors[x.User] = color;
             }
-            ImGui.TextColored(UserColors[x.User], $" [{x.User}]");
-            ImGui.SameLine();
-            ImGui.TextWrapped(x.Message);
+
+            // grab cursorscreenpox
+            var cursorPos = ImGui.GetCursorScreenPos();
+            // Print the user name with color
+            ImGui.TextColored(UserColors[x.User], $"[{x.User}]");
+
+            // Calculate the width of the user's name plus brackets
+            var nameWidth = ImGui.CalcTextSize($"[{x.User}]").X;
+            var spaceWidth = ImGui.CalcTextSize(" ").X;
+            int spaceCount = (int)(nameWidth / spaceWidth)+2;
+            string spaces = new string(' ', spaceCount);
+            // Print the message with wrapping
+            ImGui.SetCursorScreenPos(new Vector2(ImGui.GetCursorScreenPos().X, cursorPos.Y));
+            ImGui.TextWrapped(spaces + x.Message);
         }
 
         // Always scroll to the bottom after rendering messages
-        ImGui.SetScrollHereY(1.0f);
+        // Only scroll to the bottom if auto-scroll is enabled and a new message is received
+        if (Autoscroll && Messages.Count() != PreviousMessageCount)
+        {
+            ImGui.SetScrollHereY(1.0f);
+            PreviousMessageCount = Messages.Count();
+        }
 
         ImGui.EndChild();
     }

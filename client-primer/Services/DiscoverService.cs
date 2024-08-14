@@ -26,36 +26,38 @@ public class DiscoverService : DisposableMediatorSubscriberBase
 
         // set the chat log up.
         GagspeakGlobalChat = new ChatLog();
-
+        AddSystemWelcome();
         Mediator.Subscribe<GlobalChatMessage>(pairManager, (msg) => AddChatMessage(msg));
 
+        Mediator.Subscribe<ConnectedMessage>(this, (msg) => AddSystemWelcome());
         Mediator.Subscribe<DisconnectedMessage>(this, (msg) => GagspeakGlobalChat.ClearMessages());
+    }
+
+    private void AddSystemWelcome()
+    {
+        GagspeakGlobalChat.AddMessage(new ChatMessage("System", "System", null, "Welcome to the GagSpeak Global Chat!. " +
+            "Your Name in here is Anonymous to anyone you have not yet added. Feel free to say hi!"));
     }
 
 
     private void AddChatMessage(GlobalChatMessage msg)
     {
+        string SenderName = "Anon. Kinkster";
+
         // extract the userdata from the message
         var userData = msg.ChatMessage.MessageSender;
-
         // grab the list of our currently online pairs.
         var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == userData.UID);
 
-        string SenderName = "Anon. Kinkster";
-
+        // determine the displayname
         if (msg.FromSelf) SenderName = msg.ChatMessage.MessageSender.AliasOrUID;
-        
-        // see if the message Sender is in our list of online pairs.
-        if (matchedPair != null)
-        {
-            // if they are, set the name to their nickname, alias, or UID.
-            SenderName = matchedPair.GetNickname() ?? matchedPair.UserData.AliasOrUID;
-        }
+        if (matchedPair != null) SenderName = matchedPair.GetNickname() ?? matchedPair.UserData.AliasOrUID;
 
         // construct the chat message struct to add.
         ChatMessage msgToAdd = new ChatMessage
         {
-            User = SenderName,
+            UID = userData.UID,
+            Name = SenderName,
             SupporterTier = userData.SupporterTier ?? CkSupporterTier.NoRole,
             Message = msg.ChatMessage.Message,
         };

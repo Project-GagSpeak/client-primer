@@ -104,14 +104,13 @@ public class GagspeakProfile : DisposableMediatorSubscriberBase
             {
                 Logger.LogTrace("Loading no radial small.");
                 _lastProfileImage?.Dispose();
-                _lastProfileImage = _uiShared.RentLogoNoRadialSmall();
+                _lastProfileImage = _uiShared.RentLogoNoRadial();
             }
             else
             {
                 Logger.LogTrace("Loading default image while processing the actual image.");
                 _lastProfileImage?.Dispose();
-                _lastProfileImage = _uiShared.RentLogoNoRadialSmall();
-
+                _lastProfileImage = _uiShared.RentLogoNoRadial();
                 _ = Task.Run(() =>
                 {
                     LoadImageDataToWrap();

@@ -5,6 +5,7 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.UI.Handlers;
 using System.Collections.Immutable;
 using GagSpeak.UI;
+using OtterGui.Text;
 
 namespace GagSpeak.UI.Components.UserPairList;
 
@@ -56,9 +57,9 @@ public abstract class DrawFolderBase : IDrawFolder
             // draw opener
             var icon = _tagHandler.IsTagOpen(_id) ? FontAwesomeIcon.CaretDown : FontAwesomeIcon.CaretRight;
 
+            ImUtf8.SameLineInner();
             ImGui.AlignTextToFramePadding();
             //_logger.LogInformation("Drawing folder {0}", _id);
-
             _uiSharedService.IconText(icon);
             if (ImGui.IsItemClicked())
             {

@@ -1,12 +1,5 @@
-using Dalamud.Interface;
-using FFXIVClientStructs.FFXIV.Common.Lua;
-using GagSpeak.UI;
-using GagSpeak.Utils;
 using ImGuiNET;
-using OtterGui;
-using System.Linq;
 using System.Numerics;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentTextInput.Delegates;
 
 namespace GagSpeak.Utils.ChatLog;
 // an instance of a chatlog.
@@ -29,7 +22,7 @@ public class ChatLog
 
         foreach (var x in Messages)
         {
-            if (!UserColors.ContainsKey(x.User))
+            if (!UserColors.ContainsKey(x.UID))
             {
                 Vector4 color;
                 do
@@ -40,18 +33,18 @@ public class ChatLog
                     color = new Vector4(r, g, b, 1.0f);
                 } while ((color.X < 0.4f && color.Y < 0.4f && color.Z < 0.4f) || UserColors.ContainsValue(color));
 
-                UserColors[x.User] = color;
+                UserColors[x.UID] = color;
             }
 
             // grab cursorscreenpox
             var cursorPos = ImGui.GetCursorScreenPos();
             // Print the user name with color
-            ImGui.TextColored(UserColors[x.User], $"[{x.User}]");
+            ImGui.TextColored(UserColors[x.Name], $"[{x.Name}]");
 
             // Calculate the width of the user's name plus brackets
-            var nameWidth = ImGui.CalcTextSize($"[{x.User}]").X;
+            var nameWidth = ImGui.CalcTextSize($"[{x.Name}]").X;
             var spaceWidth = ImGui.CalcTextSize(" ").X;
-            int spaceCount = (int)(nameWidth / spaceWidth)+2;
+            int spaceCount = (int)(nameWidth / spaceWidth) + 2;
             string spaces = new string(' ', spaceCount);
             // Print the message with wrapping
             ImGui.SetCursorScreenPos(new Vector2(ImGui.GetCursorScreenPos().X, cursorPos.Y));

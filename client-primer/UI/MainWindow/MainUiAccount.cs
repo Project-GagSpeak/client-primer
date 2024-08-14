@@ -91,7 +91,7 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
                 if (profileData.Base64ProfilePicture.IsNullOrEmpty())
                 {
                     _profileImageWrap?.Dispose();
-                    _profileImageWrap = _uiShared.GetLogoNoRadialSmall();
+                    _profileImageWrap = _uiShared.GetLogoNoRadial();
                 }
                 else if (!_profileImageData.SequenceEqual(profileData.ImageData.Value) && !string.IsNullOrEmpty(profileData.Base64ProfilePicture))
                 {

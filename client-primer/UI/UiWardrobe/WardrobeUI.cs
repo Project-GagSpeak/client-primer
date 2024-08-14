@@ -84,7 +84,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
 
                 using (var leftChild = ImRaii.Child($"###WardrobeLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
-                    var iconTexture = _uiSharedService.GetLogoSmall();
+                    var iconTexture = _uiSharedService.GetLogo();
                     if (!(iconTexture is { } wrap))
                     {
                         _logger.LogWarning("Failed to render image!");

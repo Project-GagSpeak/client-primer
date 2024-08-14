@@ -38,7 +38,7 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
         PrivateRoomChatlog = new ChatLog();
 
         // add a dummy message to it.
-        PrivateRoomChatlog.AddMessage(new ChatMessage("System", null, "Welcome to the room!"));
+        PrivateRoomChatlog.AddMessage(new ChatMessage("System", "System", null, "Welcome to the room!"));
         
         // initialize the lazy list of participants.
         _directParticipantsInternal = DirectParticipantsLazy();
@@ -49,7 +49,7 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
             if (msg.RoomName == RoomName)
                 PrivateRoomChatlog.ClearMessages();
 
-            PrivateRoomChatlog.AddMessage(new ChatMessage("System", null, "Welcome to the room!"));
+            PrivateRoomChatlog.AddMessage(new ChatMessage("System", "System", null, "Welcome to the room!"));
         });
     }
 
@@ -179,7 +179,7 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
 
     public void AddChatMessage(RoomMessageDto message)
     {
-        PrivateRoomChatlog.AddMessage(new ChatMessage(message.SenderName.ChatAlias, null, message.Message));
+        PrivateRoomChatlog.AddMessage(new ChatMessage(message.SenderName.ChatAlias, message.SenderName.ChatAlias, null, message.Message));
     }
 
     /// <summary> Retrieves a participant's device information push data. </summary>

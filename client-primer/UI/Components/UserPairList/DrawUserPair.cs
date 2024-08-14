@@ -1,5 +1,6 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
@@ -11,6 +12,7 @@ using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
 using ImGuiNET;
 using OtterGui;
+using OtterGui.Text;
 using System.Numerics;
 using static GagSpeak.UI.Components.MainTabMenu;
 
@@ -30,6 +32,8 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
     private readonly UiSharedService _uiSharedService;
     private float _menuWidth = -1;
     private bool _wasHovered = false;
+    // store the created texturewrap for the supporter tier image so we are not loading it every single time.
+    private IDalamudTextureWrap? _supporterWrap = null;
     public DrawUserPair(ILogger<DrawUserPair> logger, string id, Pair entry, ApiController apiController,
         IdDisplayHandler uIDDisplayHandler, GagspeakMediator gagspeakMediator, SelectTagForPairUi selectTagForPairUi,
         UiSharedService uiSharedService) : base(logger, gagspeakMediator)
@@ -46,12 +50,22 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
     public Pair Pair => _pair;
     public UserPairDto UserPair => _pair.UserPair!;
 
+    protected override void Dispose(bool disposing)
+    {
+        _supporterWrap?.Dispose();
+        _supporterWrap = null;
+        base.Dispose(disposing);
+    }
+
     public void DrawPairedClient()
     {
+        // get the current screen cursor pos
+        var cursorPos = ImGui.GetCursorPosX();
         using var id = ImRaii.PushId(GetType() + _id);
         var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), _wasHovered);
         using (ImRaii.Child(GetType() + _id, new System.Numerics.Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
         {
+            ImUtf8.SameLineInner();
             DrawLeftSide();
             ImGui.SameLine();
             var posX = ImGui.GetCursorPosX();
@@ -65,6 +79,8 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         }
         _wasHovered = ImGui.IsItemHovered();
         color.Dispose();
+        // if they were a supporter, go back to the start and draw the image.
+        if (!_pair.UserData.SupporterTier.Equals(CkSupporterTier.NoRole)) DrawSupporterIcon(cursorPos);
     }
 
     public void DrawPairedClientListForm()
@@ -73,6 +89,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), _wasHovered);
         using (ImRaii.Child(GetType() + _id, new Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
         {
+            ImUtf8.SameLineInner();
             DrawLeftSide();
             ImGui.SameLine();
             var posX = ImGui.GetCursorPosX();
@@ -88,6 +105,43 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         }
         _wasHovered = ImGui.IsItemHovered();
         color.Dispose();
+    }
+
+    private void DrawSupporterIcon(float cursorPos)
+    {
+        ImGui.SameLine(cursorPos);
+        ImGui.SetCursorPosX(cursorPos - _uiSharedService.GetIconData(FontAwesomeIcon.EllipsisV).X - ImGui.GetStyle().ItemSpacing.X);
+        // fetch new image if needed, otherwise use existing
+        if (_supporterWrap == null)
+        {
+            // fetch the supporter wrap.
+            switch (_pair.UserData.SupporterTier)
+            {
+                case CkSupporterTier.ServerBooster:
+                    _supporterWrap = _uiSharedService.RentSupporterBooster();
+                    break;
+                case CkSupporterTier.IllustriousSupporter:
+                    _supporterWrap = _uiSharedService.RentSupporterTierOne();
+                    break;
+                case CkSupporterTier.EsteemedPatron:
+                    _supporterWrap = _uiSharedService.RentSupporterTierTwo();
+                    break;
+                case CkSupporterTier.DistinguishedConnoisseur:
+                    _supporterWrap = _uiSharedService.RentSupporterTierThree();
+                    break;
+                case CkSupporterTier.KinkporiumMistress:
+                    _supporterWrap = _uiSharedService.RentSupporterTierFour();
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        if ((_supporterWrap is { } supporterImage))
+        {
+            ImGui.Image(supporterImage.ImGuiHandle, new Vector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight()));
+        }
+        // return to the end of the line.
     }
 
     private void DrawLeftSide()

@@ -87,7 +87,7 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                 using (var leftChild = ImRaii.Child($"###ToyboxLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
                     // attempt to obtain an image wrap for it
-                    var iconTexture = _uiShared.GetLogoSmall();
+                    var iconTexture = _uiShared.GetLogo();
                     if (!(iconTexture is { } wrap))
                     {
                         _logger.LogWarning("Failed to render image!");

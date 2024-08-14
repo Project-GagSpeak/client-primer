@@ -25,10 +25,6 @@ using PInvoke;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
-using SixLabors.ImageSharp.Formats;
 
 
 namespace GagSpeak.UI;
@@ -67,13 +63,28 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private bool _useTheme = true;                                      // if we should use the GagSpeak Theme
 
     // default image paths
-    private const string Logo512Path = "icon512.png";
     private const string Logo256Path = "icon256.png";
-    private const string Logo512bgPath = "icon512bg.png";
     private const string Logo256bgPath = "icon256bg.png";
-    private const string SupporterTierOnePath = "Tier1Supporter.png";
-    private const string SupporterTierTwoPath = "Tier2Supporter.png";
-    private const string SupporterTierThreePath = "Tier3Supporter.png";
+    private const string SupporterBooster = "BoosterIcon.png";
+    private const string SupporterT1 = "Tier1Icon.png";
+    private const string SupporterT2 = "Tier2Icon.png";
+    private const string SupporterT3 = "Tier3Icon.png";
+    private const string OwnerT4 = "Tier4Icon.png";
+    // helpers to get the static images
+    public IDalamudTextureWrap? GetLogo() => GetImageFromDirectoryFile(Logo256Path);
+    public IDalamudTextureWrap? RentLogo() => RentImageFromFile(Logo256Path);
+    public IDalamudTextureWrap? GetLogoNoRadial() => GetImageFromDirectoryFile(Logo256bgPath);
+    public IDalamudTextureWrap? RentLogoNoRadial() => RentImageFromFile(Logo256bgPath);
+    public IDalamudTextureWrap? GetSupporterBooster() => GetImageFromDirectoryFile(SupporterBooster);
+    public IDalamudTextureWrap? RentSupporterBooster() => RentImageFromFile(SupporterBooster);
+    public IDalamudTextureWrap? GetSupporterTierOne() => GetImageFromDirectoryFile(SupporterT1);
+    public IDalamudTextureWrap? RentSupporterTierOne() => RentImageFromFile(SupporterT1);
+    public IDalamudTextureWrap? GetSupporterTierTwo() => GetImageFromDirectoryFile(SupporterT2);
+    public IDalamudTextureWrap? RentSupporterTierTwo() => RentImageFromFile(SupporterT2);
+    public IDalamudTextureWrap? GetSupporterTierThree() => GetImageFromDirectoryFile(SupporterT3);
+    public IDalamudTextureWrap? RentSupporterTierThree() => RentImageFromFile(SupporterT3);
+    public IDalamudTextureWrap? GetSupporterTierFour() => GetImageFromDirectoryFile(OwnerT4);
+    public IDalamudTextureWrap? RentSupporterTierFour() => RentImageFromFile(OwnerT4);
 
     public UiSharedService(ILogger<UiSharedService> logger, GagspeakMediator mediator,
         Dalamud.Localization localization, ApiController apiController,
@@ -144,22 +155,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         if (_sharedTextures.GetWrapOrDefault() == null) return null;
         else return _sharedTextures.RentAsync().Result;
     }
-
-    // helpers to get the static images
-    public IDalamudTextureWrap? GetLogo() => GetImageFromDirectoryFile(Logo512Path);
-    public IDalamudTextureWrap? RentLogo() => RentImageFromFile(Logo512Path);
-    public IDalamudTextureWrap? GetLogoNoRadial() => GetImageFromDirectoryFile(Logo512bgPath);
-    public IDalamudTextureWrap? RentLogoNoRadial() => RentImageFromFile(Logo512bgPath);
-    public IDalamudTextureWrap? GetLogoSmall() => GetImageFromDirectoryFile(Logo256Path);
-    public IDalamudTextureWrap? RentLogoSmall() => RentImageFromFile(Logo256Path);
-    public IDalamudTextureWrap? GetLogoNoRadialSmall() => GetImageFromDirectoryFile(Logo256bgPath);
-    public IDalamudTextureWrap? RentLogoNoRadialSmall() => RentImageFromFile(Logo256bgPath);
-    public IDalamudTextureWrap? GetSupporterTierOne() => GetImageFromDirectoryFile(SupporterTierOnePath);
-    public IDalamudTextureWrap? RentSupporterTierOne() => RentImageFromFile(SupporterTierOnePath);
-    public IDalamudTextureWrap? GetSupporterTierTwo() => GetImageFromDirectoryFile(SupporterTierTwoPath);
-    public IDalamudTextureWrap? RentSupporterTierTwo() => RentImageFromFile(SupporterTierTwoPath);
-    public IDalamudTextureWrap? GetSupporterTierThree() => GetImageFromDirectoryFile(SupporterTierThreePath);
-    public IDalamudTextureWrap? RentSupporterTierThree() => RentImageFromFile(SupporterTierThreePath);
 
     public IDalamudTextureWrap LoadImage(byte[] imageData)
     {

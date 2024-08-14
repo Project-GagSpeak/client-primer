@@ -6,6 +6,8 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.GagspeakConfiguration;
+using Dalamud.Interface.Textures.TextureWraps;
+using GagspeakAPI.Data.Enum;
 
 namespace GagSpeak.UI.Handlers;
 
@@ -21,8 +23,6 @@ public class IdDisplayHandler
     private string _lastMouseOverUid = string.Empty;
     private bool _popupShown = false;
     private DateTime? _popupTime;
-    private TextureWrap? _textureWrap;
-
     public IdDisplayHandler(GagspeakMediator mediator, ServerConfigurationManager serverManager, GagspeakConfigService gagspeakConfigService)
     {
         _mediator = mediator;
@@ -68,8 +68,6 @@ public class IdDisplayHandler
                     _mediator.Publish(new ProfilePopoutToggle(Pair: null));
                     _lastMouseOverUid = string.Empty;
                     _popupShown = false;
-                    _textureWrap?.Dispose();
-                    _textureWrap = null;
                 }
             }
 
@@ -116,7 +114,6 @@ public class IdDisplayHandler
             UiSharedService.AttachToolTip("Hit ENTER to save\nRight click to cancel");
         }
     }
-
     public (bool isUid, string text) GetPlayerText(Pair pair)
     {
         var textIsUid = true;

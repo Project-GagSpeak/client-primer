@@ -119,7 +119,7 @@ public sealed class GagSpeak : IDalamudPlugin
             // add the services related to the configs for GagSpeak
             .AddGagSpeakConfigs(pi)
             // add the scoped services for GagSpeak
-            .AddGagSpeakScoped(pi, tp, nm, cg, dm)
+            .AddGagSpeakScoped(cm, pi, tp, nm, cg, dm)
             // add the hosted services for GagSpeak (these should all contain startAsync and stopAsync methods)
             .AddGagSpeakHosted();
     }
@@ -304,8 +304,8 @@ public static class GagSpeakServiceExtensions
 
     #endregion ConfigServices
     #region ScopedServices
-    public static IServiceCollection AddGagSpeakScoped(this IServiceCollection services, IDalamudPluginInterface pi,
-        ITextureProvider tp, INotificationManager nm, IChatGui cg, IDataManager dm)
+    public static IServiceCollection AddGagSpeakScoped(this IServiceCollection services, ICommandManager cm,
+        IDalamudPluginInterface pi, ITextureProvider tp, INotificationManager nm, IChatGui cg, IDataManager dm)
     => services
         // Service Services
         .AddScoped<DrawEntityFactory>()
@@ -346,9 +346,8 @@ public static class GagSpeakServiceExtensions
         .AddScoped((s) => new UiService(s.GetRequiredService<ILogger<UiService>>(), pi.UiBuilder, s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(),
             s.GetRequiredService<UiFactory>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<FileDialogManager>()))
-        /*        .AddScoped((s) => new CommandManagerService(commandManager, s.GetRequiredService<PerformanceCollectorService>(),
-                    s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<CacheMonitor>(), s.GetRequiredService<ApiController>(),
-                    s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>())) */
+        .AddScoped((s) => new CommandManagerService(s.GetRequiredService<GagspeakMediator>(), 
+            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<ServerConfigurationManager>(), cg, cm))
         .AddScoped((s) => new NotificationService(s.GetRequiredService<ILogger<NotificationService>>(),
             s.GetRequiredService<GagspeakMediator>(), nm, cg, s.GetRequiredService<GagspeakConfigService>()))
         .AddScoped((s) => new UiSharedService(s.GetRequiredService<ILogger<UiSharedService>>(), s.GetRequiredService<GagspeakMediator>(),

@@ -26,7 +26,6 @@ public class DiscoverService : DisposableMediatorSubscriberBase
 
         // set the chat log up.
         GagspeakGlobalChat = new ChatLog();
-        AddSystemWelcome();
         Mediator.Subscribe<GlobalChatMessage>(pairManager, (msg) => AddChatMessage(msg));
 
         Mediator.Subscribe<ConnectedMessage>(this, (msg) => AddSystemWelcome());

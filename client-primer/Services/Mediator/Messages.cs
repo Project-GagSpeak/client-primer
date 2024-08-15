@@ -157,5 +157,7 @@ public record VerificationPopupMessage(VerificationDto VerificationCode) : Messa
 public record PatternSavePromptMessage(List<byte> StoredData, string Duration) : MessageBase; // prompts the popup and passes in savedata
 public record BlindfoldUiTypeChange(BlindfoldType NewType) : MessageBase; // for changing blindfold type.
 
+public record SafewordUsedMessage : MessageBase; // for when the safeword is used.
+
 #pragma warning restore S2094
 #pragma warning restore MA0048 // File name must match type name

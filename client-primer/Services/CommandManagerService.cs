@@ -1,112 +1,107 @@
-/*using Dalamud.Game.Command;
+using Dalamud.Game.Command;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
-using Mare.FileCache;
-using Mare.MareConfiguration;
-using Mare.Services.Mediator;
-using Mare.Services.ServerConfiguration;
-using Mare.UI;
-using Mare.WebAPI;
+using GagSpeak.GagspeakConfiguration;
+using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Mediator;
+using GagSpeak.UI;
+using GagSpeak.UI.MainWindow;
+using GagSpeak.WebAPI;
+using OtterGui.Classes;
 using System.Globalization;
+using System.Windows.Input;
 
 namespace GagSpeak.Services;
 
+/// <summary> Handles all of the commands that are used in the plugin. </summary>
 public sealed class CommandManagerService : IDisposable
 {
-    private const string _commandName = "/mare";
+    private const string MainCommand = "/gagspeak";
+    private const string SafewordCommand = "/safeword";
+    private readonly GagspeakMediator _mediator;
+    private readonly GagspeakConfigService _mainConfig;
+    private readonly ServerConfigurationManager _serverConfigs;
+    private readonly IChatGui _chat;
+    private readonly ICommandManager _commands;
 
-    private readonly ApiController _apiController;
-    private readonly ICommandManager _commandManager;
-    private readonly MareMediator _mediator;
-    private readonly MareConfigService _mareConfigService;
-    private readonly PerformanceCollectorService _performanceCollectorService;
-    private readonly CacheMonitor _cacheMonitor;
-    private readonly ServerConfigurationManager _serverConfigurationManager;
-
-    public CommandManagerService(ICommandManager commandManager, PerformanceCollectorService performanceCollectorService,
-        ServerConfigurationManager serverConfigurationManager, CacheMonitor periodicFileScanner,
-        ApiController apiController, MareMediator mediator, MareConfigService mareConfigService)
+    public CommandManagerService(GagspeakMediator mediator,
+        GagspeakConfigService mainConfig, ServerConfigurationManager serverConfigs, 
+        IChatGui chat, ICommandManager commandManager)
     {
-        _commandManager = commandManager;
-        _performanceCollectorService = performanceCollectorService;
-        _serverConfigurationManager = serverConfigurationManager;
-        _cacheMonitor = periodicFileScanner;
-        _apiController = apiController;
         _mediator = mediator;
-        _mareConfigService = mareConfigService;
-        _commandManager.AddHandler(_commandName, new CommandInfo(OnCommand)
+        _mainConfig = mainConfig;
+        _serverConfigs = serverConfigs;
+        _chat = chat;
+        _commands = commandManager;
+
+        // Add handlers to the main commands
+        _commands.AddHandler(MainCommand, new CommandInfo(OnGagSpeak)
         {
-            HelpMessage = "Opens the Mare  UI"
+            HelpMessage = "Toggles main UI when used without arguements. Use with 'help' or '?' to view sub-commands.",
+            ShowInHelp = true
+        });
+        _commands.AddHandler(SafewordCommand, new CommandInfo(OnSafeword)
+        {
+            HelpMessage = "revert all settings to false and disable any active components. For emergency uses.",
+            ShowInHelp = true
         });
     }
 
     public void Dispose()
     {
-        _commandManager.RemoveHandler(_commandName);
+        // Remove the handlers from the main commands
+        _commands.RemoveHandler(MainCommand);
+        _commands.RemoveHandler(SafewordCommand);
     }
 
-    private void OnCommand(string command, string args)
+    private void OnGagSpeak(string command, string args)
     {
         var splitArgs = args.ToLowerInvariant().Trim().Split(" ", StringSplitOptions.RemoveEmptyEntries);
-
+        // if no arguements.
         if (splitArgs.Length == 0)
         {
             // Interpret this as toggling the UI
-            if (_mareConfigService.Current.HasValidSetup())
-                _mediator.Publish(new UiToggleMessage(typeof(CompactUi)));
+            if (_mainConfig.Current.HasValidSetup())
+                _mediator.Publish(new UiToggleMessage(typeof(MainWindowUI)));
             else
                 _mediator.Publish(new UiToggleMessage(typeof(IntroUi)));
             return;
         }
 
-        if (string.Equals(splitArgs[0], "toggle", StringComparison.OrdinalIgnoreCase))
+        else if (string.Equals(splitArgs[0], "settings", StringComparison.OrdinalIgnoreCase))
         {
-            if (_apiController.ServerState == WebAPI.SignalR.Utils.ServerState.Disconnecting)
-            {
-                _mediator.Publish(new NotificationMessage("Mare disconnecting", "Cannot use /toggle while Mare  is still disconnecting",
-                    Dalamud.Interface.Internal.Notifications.NotificationType.Error));
-            }
+            _mediator.Publish(new UiToggleMessage(typeof(SettingsUi)));
+        }
 
-            if (_serverConfigurationManager.CurrentServer == null) return;
-            var fullPause = splitArgs.Length > 1 ? splitArgs[1] switch
-            {
-                "on" => false,
-                "off" => true,
-                _ => !_serverConfigurationManager.CurrentServer.FullPause,
-            } : !_serverConfigurationManager.CurrentServer.FullPause;
-
-            if (fullPause != _serverConfigurationManager.CurrentServer.FullPause)
-            {
-                _serverConfigurationManager.CurrentServer.FullPause = fullPause;
-                _serverConfigurationManager.Save();
-                _ = _apiController.CreateConnections();
-            }
-        }
-        else if (string.Equals(splitArgs[0], "gpose", StringComparison.OrdinalIgnoreCase))
+        // if its help or ?, print help
+        else if (string.Equals(splitArgs[0], "help", StringComparison.OrdinalIgnoreCase) || string.Equals(splitArgs[0], "?", StringComparison.OrdinalIgnoreCase))
         {
-            _mediator.Publish(new UiToggleMessage(typeof(GposeUi)));
-        }
-        else if (string.Equals(splitArgs[0], "rescan", StringComparison.OrdinalIgnoreCase))
-        {
-            _cacheMonitor.InvokeScan();
-        }
-        else if (string.Equals(splitArgs[0], "perf", StringComparison.OrdinalIgnoreCase))
-        {
-            if (splitArgs.Length > 1 && int.TryParse(splitArgs[1], CultureInfo.InvariantCulture, out var limitBySeconds))
-            {
-                _performanceCollectorService.PrintPerformanceStats(limitBySeconds);
-            }
-            else
-            {
-                _performanceCollectorService.PrintPerformanceStats();
-            }
-        }
-        else if (string.Equals(splitArgs[0], "medi", StringComparison.OrdinalIgnoreCase))
-        {
-            _mediator.PrintSubscriberInfo();
-        }
-        else if (string.Equals(splitArgs[0], "analyze", StringComparison.OrdinalIgnoreCase))
-        {
-            _mediator.Publish(new UiToggleMessage(typeof(DataAnalysisUi)));
+            PrintHelpToChat();
         }
     }
-}*/
+
+    private void OnSafeword(string command, string argument)
+    {
+        // if the safeword was not provided, ask them to provide it.
+        if (string.IsNullOrWhiteSpace(argument))
+        { // If no safeword is provided
+            _chat.Print("Please provide a safeword. Usage: /gagspeak safeword [your_safeword]");
+            return;
+        }
+
+        // If safeword matches, invoke the safeword mediator
+        if (_mainConfig.Current.Safeword == argument)
+        {
+            _mediator.Publish(new SafewordUsedMessage());
+        }
+    }
+
+    private void PrintHelpToChat()
+    {
+        _chat.Print(new SeStringBuilder().AddYellow(" -- Gagspeak Commands --").BuiltString);
+        _chat.Print(new SeStringBuilder().AddCommand("/gagspeak", "Toggles the primary UI").BuiltString);
+        _chat.Print(new SeStringBuilder().AddCommand("/gagspeak settings", "Toggles the settings UI window.").BuiltString);
+        _chat.Print(new SeStringBuilder().AddCommand("/safeword", "Cries out your safeword, disabling any active restrictions.").BuiltString);
+    }
+}
+

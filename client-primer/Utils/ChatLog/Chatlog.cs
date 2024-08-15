@@ -39,7 +39,7 @@ public class ChatLog
             // grab cursorscreenpox
             var cursorPos = ImGui.GetCursorScreenPos();
             // Print the user name with color
-            ImGui.TextColored(UserColors[x.Name], $"[{x.Name}]");
+            ImGui.TextColored(UserColors[x.UID], $"[{x.Name}]");
 
             // Calculate the width of the user's name plus brackets
             var nameWidth = ImGui.CalcTextSize($"[{x.Name}]").X;

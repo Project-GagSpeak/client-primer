@@ -56,6 +56,21 @@ public static class UtilsExtensions
         }
     }
 
+    public static TimeSpan GetTimespanFromTimespanString(this string pattern)
+    {
+        if (string.IsNullOrWhiteSpace(pattern)) return TimeSpan.Zero;
+
+        if (TimeSpan.TryParseExact(pattern, "hh\\:mm\\:ss", null, out var timeSpan) && timeSpan.TotalHours >= 1)
+        {
+            return timeSpan;
+        }
+        else if (TimeSpan.TryParseExact(pattern, "mm\\:ss", null, out timeSpan))
+        {
+            return timeSpan;
+        }
+        return TimeSpan.Zero;
+    }
+
 
     /// <summary>
     /// Not my code, pulled from:

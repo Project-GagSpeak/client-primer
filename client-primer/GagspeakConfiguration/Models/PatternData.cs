@@ -90,7 +90,7 @@ public record PatternData
             }
 
             PatternByteData.Clear();
-            var patternDataString = jsonObject["PatternData"]?.Value<string>();
+            var patternDataString = jsonObject["PatternByteData"]?.Value<string>();
             if (string.IsNullOrEmpty(patternDataString))
             {
                 // If the string is null or empty, generate a list with a single byte of 0

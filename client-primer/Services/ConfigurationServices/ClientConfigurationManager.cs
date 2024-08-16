@@ -17,6 +17,7 @@ using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using ProjectGagspeakAPI.Data.VibeServer;
 using static GagspeakAPI.Data.Enum.GagList;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace GagSpeak.Services.ConfigurationServices;
 
@@ -136,11 +137,18 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
                 Logger.LogError(e, "Failed to create Gag Storage Config");
             }
         }
+
         if (_wardrobeConfig.Current.WardrobeStorage == null) { _wardrobeConfig.Current.WardrobeStorage = new(); }
+
         if (_aliasConfig.Current.AliasStorage == null) { _aliasConfig.Current.AliasStorage = new(); }
+
         if (_patternConfig.Current.PatternStorage == null) { _patternConfig.Current.PatternStorage = new(); }
+
         if (_alarmConfig.Current.AlarmStorage == null) { _alarmConfig.Current.AlarmStorage = new(); }
+        // check to see if any loaded alarms contain a pattern no longer present.
+
         if (_triggersConfig.Current.TriggerStorage == null) { _triggersConfig.Current.TriggerStorage = new(); }
+
     }
 
     #region ConnectionDto Update Methods
@@ -427,12 +435,22 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public TimeSpan GetPatternLength(int idx)
     {
         var pattern = _patternConfig.Current.PatternStorage.Patterns[idx].Duration;
+        return GetTimespanFromTimespanString(pattern);
+    }
 
-        if (string.IsNullOrWhiteSpace(pattern) || !TimeSpan.TryParseExact(pattern, "hh\\:mm\\:ss", null, out var timespanDuration))
+    public TimeSpan GetTimespanFromTimespanString(string pattern)
+    {
+        if (string.IsNullOrWhiteSpace(pattern)) return TimeSpan.Zero;
+
+        if (TimeSpan.TryParseExact(pattern, "hh\\:mm\\:ss", null, out var timeSpan) && timeSpan.TotalHours >= 1)
         {
-            timespanDuration = TimeSpan.Zero; // Default to 0 minutes and 0 seconds
+            return timeSpan;
         }
-        return timespanDuration;
+        else if (TimeSpan.TryParseExact(pattern, "mm\\:ss", null, out timeSpan))
+        {
+            return timeSpan;
+        }
+        return TimeSpan.Zero;
     }
 
     public void AddNewPattern(PatternData newPattern)
@@ -455,22 +473,11 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
-    public void SetPatternState(int idx, bool newState, string startPoint = "", string playbackDuration = "", bool shouldPublishToMediator = true)
+    public void SetPatternState(int idx, bool newState, bool shouldPublishToMediator = true)
     {
+        // this updates the active state, allowing our playback service by knowing what pattern to play
         _patternConfig.Current.PatternStorage.Patterns[idx].IsActive = newState;
         _patternConfig.Save();
-        if (newState)
-        {
-            // if we are activating, make sure we pass in the startpoint and playback duration. if the passed in is string.Empty, use the vars from the pattern[idx].
-            Mediator.Publish(new PatternActivedMessage(idx,
-                string.IsNullOrWhiteSpace(startPoint) ? _patternConfig.Current.PatternStorage.Patterns[idx].StartPoint : startPoint,
-                string.IsNullOrWhiteSpace(playbackDuration) ? _patternConfig.Current.PatternStorage.Patterns[idx].Duration : playbackDuration));
-        }
-        else
-        {
-            Mediator.Publish(new PatternDeactivedMessage(idx));
-        }
-        // Push update if we should publish
         if (shouldPublishToMediator)
         {
             Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));

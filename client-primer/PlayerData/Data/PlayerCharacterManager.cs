@@ -4,6 +4,7 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Services;
 using GagSpeak.UI;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
@@ -40,7 +41,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly WardrobeHandler _wardrobeHandler;
     // No Puppeteer Handler. Introduces circular dependency.
-    private readonly PatternHandler _patternHandler;
+    private readonly PatternPlaybackService _playbackService;
     private readonly AlarmHandler _alarmHandler;
     private readonly TriggerHandler _triggerHandler;
     private readonly ClientConfigurationManager _clientConfigManager;
@@ -58,13 +59,13 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger,
         GagspeakMediator mediator, PairManager pairManager,
-        WardrobeHandler wardrobeHandler, PatternHandler patternHandler, 
+        WardrobeHandler wardrobeHandler, PatternPlaybackService playbackService, 
         AlarmHandler alarmHandler, TriggerHandler triggerHandler, 
         ClientConfigurationManager clientConfiguration) : base(logger, mediator)
     {
         _pairManager = pairManager;
         _wardrobeHandler = wardrobeHandler;
-        _patternHandler = patternHandler;
+        _playbackService = playbackService;
         _alarmHandler = alarmHandler;
         _clientConfigManager = clientConfiguration;
 
@@ -464,7 +465,9 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                         Logger.LogError("Tried to activate pattern but pattern does not exist? How is this even possible.");
                         return;
                     }
-                    _patternHandler.PlayPatternCallback(pattern);
+                    int patternIdx = _clientConfigManager.GetPatternIdxByName(pattern);
+                    var patternData = _clientConfigManager.FetchPattern(patternIdx);
+                    _playbackService.PlayPattern(patternIdx, patternData.StartPoint, patternData.Duration, false);
                 }
                 break;
             case DataUpdateKind.ToyboxPatternDeactivated:
@@ -475,7 +478,8 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                         Logger.LogError("Tried to activate pattern but pattern does not exist? How is this even possible.");
                         return;
                     }
-                    _patternHandler.StopPatternCallback(pattern);
+                    int patternIdx = _clientConfigManager.GetPatternIdxByName(pattern);
+                    _playbackService.StopPattern(patternIdx, false);
                 }
                 break;
             case DataUpdateKind.ToyboxAlarmListUpdated:

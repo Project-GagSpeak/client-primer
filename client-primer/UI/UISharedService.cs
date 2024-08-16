@@ -71,19 +71,19 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private const string SupporterT3 = "Tier3Icon.png";
     private const string OwnerT4 = "Tier4Icon.png";
     // helpers to get the static images
-    public IDalamudTextureWrap? GetLogo() => GetImageFromDirectoryFile(Logo256Path);
+    public IDalamudTextureWrap GetLogo() => GetImageFromDirectoryFile(Logo256Path);
     public IDalamudTextureWrap? RentLogo() => RentImageFromFile(Logo256Path);
-    public IDalamudTextureWrap? GetLogoNoRadial() => GetImageFromDirectoryFile(Logo256bgPath);
+    public IDalamudTextureWrap GetLogoNoRadial() => GetImageFromDirectoryFile(Logo256bgPath);
     public IDalamudTextureWrap? RentLogoNoRadial() => RentImageFromFile(Logo256bgPath);
-    public IDalamudTextureWrap? GetSupporterBooster() => GetImageFromDirectoryFile(SupporterBooster);
+    public IDalamudTextureWrap GetSupporterBooster() => GetImageFromDirectoryFile(SupporterBooster);
     public IDalamudTextureWrap? RentSupporterBooster() => RentImageFromFile(SupporterBooster);
-    public IDalamudTextureWrap? GetSupporterTierOne() => GetImageFromDirectoryFile(SupporterT1);
+    public IDalamudTextureWrap GetSupporterTierOne() => GetImageFromDirectoryFile(SupporterT1);
     public IDalamudTextureWrap? RentSupporterTierOne() => RentImageFromFile(SupporterT1);
-    public IDalamudTextureWrap? GetSupporterTierTwo() => GetImageFromDirectoryFile(SupporterT2);
+    public IDalamudTextureWrap GetSupporterTierTwo() => GetImageFromDirectoryFile(SupporterT2);
     public IDalamudTextureWrap? RentSupporterTierTwo() => RentImageFromFile(SupporterT2);
-    public IDalamudTextureWrap? GetSupporterTierThree() => GetImageFromDirectoryFile(SupporterT3);
+    public IDalamudTextureWrap GetSupporterTierThree() => GetImageFromDirectoryFile(SupporterT3);
     public IDalamudTextureWrap? RentSupporterTierThree() => RentImageFromFile(SupporterT3);
-    public IDalamudTextureWrap? GetSupporterTierFour() => GetImageFromDirectoryFile(OwnerT4);
+    public IDalamudTextureWrap GetSupporterTierFour() => GetImageFromDirectoryFile(OwnerT4);
     public IDalamudTextureWrap? RentSupporterTierFour() => RentImageFromFile(OwnerT4);
 
     public UiSharedService(ILogger<UiSharedService> logger, GagspeakMediator mediator,
@@ -146,8 +146,18 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public Vector2 LastMainUIWindowPosition { get; set; } = Vector2.Zero;
     public Vector2 LastMainUIWindowSize { get; set; } = Vector2.Zero;
 
-    public IDalamudTextureWrap? GetImageFromDirectoryFile(string path)
-        => _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, path)).GetWrapOrDefault();
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing) return;
+
+        base.Dispose(disposing);
+
+        UidFont.Dispose();
+        GameFont.Dispose();
+    }
+
+    public IDalamudTextureWrap GetImageFromDirectoryFile(string path)
+        => _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, path)).GetWrapOrEmpty();
 
     public IDalamudTextureWrap? RentImageFromFile(string path)
     {
@@ -899,17 +909,30 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public void DrawTimeSpanCombo(string label, TimeSpan patternMaxDuration, ref string patternDuration, float width)
     {
         // Parse the current pattern duration
-        if (!TimeSpan.TryParseExact(patternDuration, "hh\\:mm\\:ss", null, out TimeSpan duration) || duration > patternMaxDuration)
+        // Parse the current pattern duration, trying first hh:mm:ss, then mm:ss if the former fails
+        bool parseSuccess = TimeSpan.TryParseExact(patternDuration, "hh\\:mm\\:ss", null, out TimeSpan duration);
+        if (!parseSuccess)
+        {
+            parseSuccess = TimeSpan.TryParseExact(patternDuration, "mm\\:ss", null, out duration);
+        }
+
+        // If parsing fails or duration exceeds the max allowed duration, set it to the max duration
+        if (!parseSuccess || duration > patternMaxDuration)
         {
             duration = patternMaxDuration;
         }
+
         int patternHour = duration.Hours;
         int patternMinute = duration.Minutes;
         int patternSecond = duration.Seconds;
 
+        string maxDurationFormatted = patternMaxDuration.Hours > 0
+            ? patternMaxDuration.ToString("hh\\:mm\\:ss")
+            : patternMaxDuration.ToString("mm\\:ss");
+
         // Button to open popup
         var pos = ImGui.GetCursorScreenPos();
-        if (ImGui.Button($"{patternDuration} / {patternMaxDuration}##TimeSpanCombo-{label}", new Vector2(width, ImGui.GetFrameHeight())))
+        if (ImGui.Button($"{patternDuration} / {maxDurationFormatted}##TimeSpanCombo-{label}", new Vector2(width, ImGui.GetFrameHeight())))
         {
             ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
             ImGui.OpenPopup($"TimeSpanPopup-{label}");
@@ -928,21 +951,28 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     private void DrawTimeSpanUI(TimeSpan patternMaxDuration, ref int patternHour, ref int patternMinute, ref int patternSecond, ref string patternDuration)
     {
+        var totalColumns = patternMaxDuration.TotalHours >= 1 ? 3 : 2;
         // Define the scales 
         Vector2 patternHourTextSize = ImGui.CalcTextSize($"{patternHour:00}h");
         Vector2 patternMinuteTextSize = ImGui.CalcTextSize($"{patternMinute:00}m");
         Vector2 patternSecondTextSize = ImGui.CalcTextSize($"{patternSecond:00}s");
         // Specify the number of columns. In this case, 2 for minutes and seconds.
-        if (ImGui.BeginTable("TimeDurationTable", 3)) // 3 columns for hours, minutes, seconds
+        if (ImGui.BeginTable("TimeDurationTable", totalColumns)) // 3 columns for hours, minutes, seconds
         {
-            ImGui.TableSetupColumn("##Hours", ImGuiTableColumnFlags.WidthFixed, (patternHourTextSize.X + ImGui.GetStyle().ItemSpacing.X * 4));
+            if (patternMaxDuration.TotalHours >= 1)
+            {
+                ImGui.TableSetupColumn("##Hours", ImGuiTableColumnFlags.WidthFixed, (patternHourTextSize.X + ImGui.GetStyle().ItemSpacing.X * 4));
+            }
             ImGui.TableSetupColumn("##Minutes", ImGuiTableColumnFlags.WidthFixed, (patternMinuteTextSize.X + ImGui.GetStyle().ItemSpacing.X * 4));
             ImGui.TableSetupColumn("##Seconds", ImGuiTableColumnFlags.WidthFixed, (patternSecondTextSize.X + ImGui.GetStyle().ItemSpacing.X * 4));
 
             ImGui.TableNextRow();
-            ImGui.TableNextColumn();
-            DrawTimeComponentUI(ref patternHour, ref patternMinute, ref patternSecond, patternMaxDuration,
-                patternMaxDuration.Hours, "h", patternHourTextSize, ref patternDuration, isHour: true);
+            if(patternMaxDuration.TotalHours >= 1)
+            {
+                ImGui.TableNextColumn();
+                DrawTimeComponentUI(ref patternHour, ref patternMinute, ref patternSecond, patternMaxDuration,
+                    patternMaxDuration.Hours, "h", patternHourTextSize, ref patternDuration, isHour: true);
+            }
 
             ImGui.TableNextColumn();
             DrawTimeComponentUI(ref patternHour, ref patternMinute, ref patternSecond, patternMaxDuration,
@@ -1009,7 +1039,14 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             minutes = Math.Clamp(minutes, 0, (hours == patternMaxDuration.Hours ? patternMaxDuration.Minutes : 59));
             seconds = Math.Clamp(seconds, 0, (minutes == (hours == patternMaxDuration.Hours ? patternMaxDuration.Minutes : 59) ? patternMaxDuration.Seconds : 59));
 
-            patternDuration = new TimeSpan(hours, minutes, seconds).ToString("hh\\:mm\\:ss");
+            if (patternMaxDuration.Hours >= 1)
+            {
+                patternDuration = new TimeSpan(hours, minutes, seconds).ToString("hh\\:mm\\:ss");
+            }
+            else
+            {
+                patternDuration = new TimeSpan(0, minutes, seconds).ToString("mm\\:ss");
+            }
         }
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5f);
         var offset2 = (CurrentValBigSize - ImGui.CalcTextSize(prevValue).X) / 2;
@@ -1164,83 +1201,4 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public sealed record IconScaleData(Vector2 IconSize, Vector2 NormalizedIconScale, float OffsetX, float IconScaling);
-
-    protected override void Dispose(bool disposing)
-    {
-        if (!disposing) return;
-
-        base.Dispose(disposing);
-
-        UidFont.Dispose();
-        GameFont.Dispose();
-    }
-
-    /*
-     * Simplified variation of the TimeSpan combo box that does not display the previous and post values.
-     * 
-    public void DrawTimeSpanCombo(string label, TimeSpan patternMaxDuration, ref string patternDuration, float width)
-    {
-        // Parse the current pattern duration
-        TimeSpan duration = TimeSpan.TryParseExact(patternDuration, "hh\\:mm\\:ss", null, out TimeSpan parsedDuration) && parsedDuration <= patternMaxDuration
-                            ? parsedDuration
-                            : patternMaxDuration;
-
-        // Button to open popup
-        var pos = ImGui.GetCursorScreenPos();
-        if (ImGui.Button($"{patternDuration} / {patternMaxDuration}##TimeSpanCombo-{label}", new Vector2(width, ImGui.GetFrameHeight())))
-        {
-            ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
-            ImGui.OpenPopup("TimeSpanPopup");
-        }
-        ImUtf8.SameLineInner();
-        ImGui.TextUnformatted(label); // Display the label
-
-        // Popup for adjusting time
-        if (ImGui.BeginPopup("TimeSpanPopup"))
-        {
-            DrawTimeSpanUI(patternMaxDuration, ref duration, ref patternDuration);
-            ImGui.EndPopup();
-        }
-    }
-
-    private void DrawTimeSpanUI(TimeSpan patternMaxDuration, ref TimeSpan duration, ref string patternDuration)
-    {
-        int patternHour = duration.Hours, patternMinute = duration.Minutes, patternSecond = duration.Seconds;
-
-        if (ImGui.BeginTable("TimeDurationTable", 3)) // 3 columns for hours, minutes, seconds
-        {
-            DrawTimeComponentUI("##Hours", ref patternHour, patternMaxDuration.Hours, "h");
-            ImGui.TableNextColumn();
-            DrawTimeComponentUI("##Minutes", ref patternMinute, 59, "m");
-            ImGui.TableNextColumn();
-            DrawTimeComponentUI("##Seconds", ref patternSecond, 59, "s");
-
-            ImGui.EndTable();
-        }
-
-        // Update duration and patternDuration if changed
-        TimeSpan newDuration = new TimeSpan(patternHour, patternMinute, patternSecond);
-        if (newDuration != duration)
-        {
-            duration = newDuration <= patternMaxDuration ? newDuration : patternMaxDuration;
-            patternDuration = duration.ToString("hh\\:mm\\:ss");
-        }
-    }
-
-    private void DrawTimeComponentUI(string label, ref int timeComponent, int maxValue, string suffix)
-    {
-        string currentValue = $"{timeComponent:00}{suffix}";
-        using (_uiShared.UidFont.Push())
-        {
-            ImGui.Text(currentValue); // Display current value with big font
-        }
-
-        // Adjust the value with the mouse wheel
-        if (ImGui.IsItemHovered() && ImGui.GetIO().MouseWheel != 0)
-        {
-            timeComponent += (int)-ImGui.GetIO().MouseWheel;
-            timeComponent = (timeComponent < 0) ? 0 : (timeComponent > maxValue) ? maxValue : timeComponent; // Clamp
-        }
-    }
-    */
 }

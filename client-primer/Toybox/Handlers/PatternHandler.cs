@@ -1,3 +1,4 @@
+using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
@@ -7,6 +8,8 @@ using GagspeakAPI.Data;
 
 namespace GagSpeak.PlayerData.Handlers;
 
+// Responcible for handling the management of patterns.
+// Pattern playback is managed by the PatternPlaybackService.
 public class PatternHandler : MediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
@@ -16,10 +19,6 @@ public class PatternHandler : MediatorSubscriberBase
         : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
-
-        Mediator.Subscribe<PatternActivedMessage>(this, (msg) => PlaybackRunning = true);
-
-        Mediator.Subscribe<PatternDeactivedMessage>(this, (msg) => PlaybackRunning = false);
     }
 
     // Handles the pattern stuff
@@ -39,22 +38,11 @@ public class PatternHandler : MediatorSubscriberBase
     }
     public bool EditingPatternNull => PatternBeingEdited == null;
 
-
-    // Store a reference to the currently active pattern so that we can allow our Pattern Playback to reference it
-    public PatternData? ActivePattern => _clientConfigs.GetActiveRunningPattern();
     public List<string> PatternNames => _clientConfigs.GetPatternNames();
-    /// <summary> 
-    /// Used by pattern Playback to determine if a Pattern is playing. 
-    /// (UPDATE TO REF THE BOOL FOR ACTIVE PATTERN) 
-    /// </summary>
+
     public bool IsAnyPatternPlaying() => _clientConfigs.IsAnyPatternPlaying();
 
-    /// <summary>
-    /// Get the index of the currently active pattern
-    /// </summary>
-    /// <returns> The index of the currently active pattern. </returns>
     public int GetActivePatternIdx() => _clientConfigs.ActivePatternIdx();
-    public bool PlaybackRunning { get; private set; } = false; // convert to ref to if ActivePattern is null later if possible.
 
     public void SetEditingPattern(PatternData pattern, int index)
     {
@@ -86,7 +74,10 @@ public class PatternHandler : MediatorSubscriberBase
         => _clientConfigs.AddNewPattern(newPattern);
 
     public void RemovePattern(int idxToRemove)
-        => _clientConfigs.RemovePattern(idxToRemove);
+    {
+        _clientConfigs.RemovePattern(idxToRemove);
+        ClearEditingPattern();
+    }
 
     public int PatternListSize()
         => _clientConfigs.GetPatternCount();
@@ -94,28 +85,8 @@ public class PatternHandler : MediatorSubscriberBase
     public PatternData GetPattern(int index) 
         => _clientConfigs.FetchPattern(index);
 
-    // add a fancy play pattern method here that not only takes in a pattern index, but also the pattern start point and playback duration.
-    public void PlayPattern(int idx, string startPoint = "00:00", string duration = "00:00")
-        => _clientConfigs.SetPatternState(idx, true, startPoint, duration, true);
-
-    public void PlayPatternCallback(string patternName, string startPoint = "00:00", string duration = "00:00")
-    {
-        var idx = _clientConfigs.GetPatternIdxByName(patternName);
-        _clientConfigs.SetPatternState(idx, true, startPoint, duration, false);
-    }
-
-    public void StopPattern(int idx)
-        => _clientConfigs.SetPatternState(idx, false, "", "", true);
-
-    public void StopPatternCallback(string patternName)
-    {
-        var idx = _clientConfigs.GetPatternIdxByName(patternName);
-        _clientConfigs.SetPatternState(idx, false, "", "", false);
-    }
-
     public void UpdatePatternStatesFromCallback(List<PatternInfo> PatternInfoList)
         => _clientConfigs.UpdatePatternStatesFromCallback(PatternInfoList);
-
 
     // Called by the AlarmManager. Scans if index of active pattern is in bounds of list.
     public bool IsIndexInBounds(int idx) => _clientConfigs.IsIndexInBounds(idx);

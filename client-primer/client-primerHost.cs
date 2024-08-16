@@ -260,6 +260,7 @@ public static class GagSpeakServiceExtensions
         // Service Services
         .AddSingleton<ToyboxVibeService>()
         .AddSingleton<ToyboxRemoteService>()
+        .AddSingleton<PatternPlaybackService>()
         .AddSingleton<GlamourChangedService>()
         .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()

@@ -105,9 +105,8 @@ public record VibratorModeToggled(VibratorMode VibratorMode) : MessageBase; // f
 public record ToyDeviceAdded(ButtplugClientDevice Device) : MessageBase; // for when a device is added.
 public record ToyDeviceRemoved(ButtplugClientDevice Device) : MessageBase; // for when a device is removed.
 public record ButtplugClientDisconnected : MessageBase; // for when the buttplug client disconnects.
-public record ToyboxActiveDeviceChangedMessage(int DeviceIndex) : MessageBase; // for when the active device is changed.public record PatternRemovedMessage(PatternData pattern) : MessageBase; // for when a pattern is removed.
-public record PatternActivedMessage(int PatternIndex, string StartPoint, string PlaybackDuration) : MessageBase; // for when a pattern is activated.
-public record PatternDeactivedMessage(int PatternIndex) : MessageBase; // for when a pattern is deactivated.
+public record ToyboxActiveDeviceChangedMessage(int DeviceIndex) : MessageBase; 
+public record PlaybackStateToggled(int PatternIndex, UpdatedNewState NewState) : MessageBase; // for when a pattern is activated.
 public record PatternRemovedMessage(PatternData pattern) : MessageBase; // for when a pattern is removed.
 #endregion PLAYERDATA TOYBOX HANDLER RECORDS
 

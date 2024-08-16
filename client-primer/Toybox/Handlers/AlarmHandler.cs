@@ -16,15 +16,15 @@ namespace GagSpeak.PlayerData.Handlers;
 public class AlarmHandler : MediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PatternHandler _patternHandler;
+    private readonly PatternPlaybackService _playbackService;
     private DateTime _lastExecutionTime;
 
     public AlarmHandler(ILogger<AlarmHandler> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        PatternHandler patternHandler) : base(logger, mediator)
+        PatternPlaybackService playbackService) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
-        _patternHandler = patternHandler;
+        _playbackService = playbackService;
 
         // subscribe to the pattern removed, so we can clear the configured patterns of any alarms they were associated with
         Mediator.Subscribe<PatternRemovedMessage>(this, (msg) =>
@@ -96,6 +96,12 @@ public class AlarmHandler : MediatorSubscriberBase
     public void UpdateAlarmStatesFromCallback(List<AlarmInfo> AlarmInfoList)
         => _clientConfigs.UpdateAlarmStatesFromCallback(AlarmInfoList);
 
+    public TimeSpan GetPatternLength(string name)
+    => (_clientConfigs.GetPatternIdxByName(name) == -1)
+        ? TimeSpan.Zero
+        : _clientConfigs.GetPatternLength(_clientConfigs.GetPatternIdxByName(name));
+
+
     public string GetAlarmFrequencyString(List<DayOfWeek> FrequencyOptions)
     {
         // if the alarm is empty, return "never".
@@ -160,7 +166,8 @@ public class AlarmHandler : MediatorSubscriberBase
             if (now.Hour == alarmTime.Hour && now.Minute == alarmTime.Minute)
             {
                 Logger.LogInformation("Playing Pattern : {0}", alarm.PatternToPlay);
-                _patternHandler.PlayPattern(_patternHandler.GetPatternIdxByName(alarm.PatternToPlay));
+                int alarmPatternIdx = _playbackService.GetPatternIdxFromName(alarm.PatternToPlay);
+                _playbackService.PlayPattern(alarmPatternIdx, alarm.PatternStartPoint, alarm.PatternDuration, true);
             }
         }
     }

@@ -7,6 +7,7 @@ using GagSpeak.Interop.IpcHelpers.GameData;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Services;
 using GagSpeak.UI.UiRemote;
 using ImGuiNET;
 using Newtonsoft.Json;
@@ -22,16 +23,19 @@ public class ToyboxPatterns
     private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiShared;
     private readonly PatternHandler _handler;
+    private readonly PatternPlaybackService _playbackService;
     private readonly PairManager _pairManager;
 
     public ToyboxPatterns(ILogger<ToyboxPatterns> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        PatternHandler patternHandler, PairManager pairManager)
+        PatternHandler patternHandler, PatternPlaybackService playbackService, 
+        PairManager pairManager)
     {
         _logger = logger;
         _mediator = mediator;
         _uiShared = uiSharedService;
         _handler = patternHandler;
+        _playbackService = playbackService;
         _pairManager = pairManager;
     }
 
@@ -156,7 +160,7 @@ public class ToyboxPatterns
             UiSharedService.AttachToolTip("Save changes to Pattern & Return to Pattern List");
 
             // right beside it to the right, we need to draw the delete button
-            using (var disableDelete = ImRaii.Disabled(UiSharedService.CtrlPressed()))
+            using (var disableDelete = ImRaii.Disabled(!UiSharedService.CtrlPressed()))
             {
                 ImGui.SameLine();
                 ImGui.SetCursorPosY(currentYpos);
@@ -257,9 +261,13 @@ public class ToyboxPatterns
             {
                 // set the enabled state of the pattern based on its current state so that we toggle it
                 if (tmpPattern.IsActive)
-                    _handler.StopPattern(idx);
+                {
+                    _playbackService.StopPattern(idx, true);
+                }
                 else
-                    _handler.PlayPattern(idx);
+                {
+                    _playbackService.PlayPattern(idx, tmpPattern.StartPoint, tmpPattern.Duration, true);
+                }
                 // toggle the state & early return so we dont access the childclicked button
                 return;
             }
@@ -349,13 +357,24 @@ public class ToyboxPatterns
         patternToEdit.StartPoint = newStartDuration;
 
         // calc the max playback length minus the start point we set to declare the max allowable duration to play
-        TimeSpan.TryParseExact(newStartDuration, "hh\\:mm\\:ss", null, out var startPointTimeSpan);
+        bool parseSuccess = TimeSpan.TryParseExact(newStartDuration, "hh\\:mm\\:ss", null, out TimeSpan startPointTimeSpan);
+        if (!parseSuccess)
+        {
+            parseSuccess = TimeSpan.TryParseExact(newStartDuration, "mm\\:ss", null, out startPointTimeSpan);
+        }
+
+        // If parsing fails or duration exceeds the max allowed duration, set it to the max duration
+        if (!parseSuccess || startPointTimeSpan > patternDurationTimeSpan)
+        {
+            startPointTimeSpan = patternDurationTimeSpan;
+        }
         var maxPlaybackDuration = patternDurationTimeSpan - startPointTimeSpan;
 
         // define the duration to playback
         var newPlaybackDuration = patternToEdit.PlaybackDuration;
         _uiShared.DrawTimeSpanCombo("Playback Duration", maxPlaybackDuration, ref newPlaybackDuration,
             UiSharedService.GetWindowContentRegionWidth() / 2);
+        patternToEdit.PlaybackDuration = newPlaybackDuration;
 
         ImGui.Separator();
         // display filterable search list

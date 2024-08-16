@@ -123,25 +123,6 @@ public unsafe class ChatInputDetour : IDisposable
                 // Set the matched command to the matched channel type. 
                 matchedChannelType = matchedCommand;
 
-                // TODO: See if this is even nessisary now at all, because I dont think it is.
-                // if tell command is matched, need extra step to protect target name
-                /*if (matchedCommand.StartsWith("/tell") || matchedCommand.StartsWith("/t"))
-                {
-                    _logger.LogDebug($"[Chat Processor]: Matched Command is a tell command");
-                    /// Using /gag command on yourself sends /tell which should be caught by this
-                    /// Depends on <seealso cref="MsgEncoder.MessageEncoder"/> message to start like :"/tell {targetPlayer} *{playerPayload.PlayerName}"
-                    /// Since only outgoing tells are affected, {targetPlayer} and {playerPayload.PlayerName} will be the same
-                    var selfTellRegex = @"(?<=^|\s)/t(?:ell)?\s{1}(?<name>\S+\s{1}\S+)@\S+\s{1}\*\k<name>(?=\s|$)";
-                    if (!Regex.Match(inputString, selfTellRegex).Value.IsNullOrEmpty())
-                    {
-                        _logger.LogDebug("[Chat Processor]: Ignoring Message as it is a self /gag command");
-                        return ProcessChatInputHook.Original(uiModule, message, a3);
-                    }
-                    // Match any other outgoing tell to preserve target name
-                    var tellRegex = @"(?<=^|\s)/t(?:ell)?\s{1}(?:\S+\s{1}\S+@\S+|\<r\>)\s?(?=\S|\s|$)";
-                    matchedCommand = Regex.Match(inputString, tellRegex).Value;
-                }*/
-
                 _logger.LogTrace($"Matched Command [{matchedCommand}] for matchedChannelType: [{matchedChannelType}]");
             }
 
@@ -204,13 +185,13 @@ public unsafe class ChatInputDetour : IDisposable
                 catch (Exception e)
                 {   
                     // if at any point we fail here, throw an exception.
-                    _logger.LogError($"Error sending message to chat box: {e.Message}");
+                    _logger.LogError($"Error sending message to chat box: {e}");
                 }
             }
         }
         catch (Exception e)
         { // cant ever have enough safety!
-            _logger.LogError($"Error sending message to chat box (secondary): {e.Message}");
+            _logger.LogError($"Error sending message to chat box (secondary): {e}");
         }
         // return the original message untranslated
         return ProcessChatInputHook.Original(uiModule, message, a3);

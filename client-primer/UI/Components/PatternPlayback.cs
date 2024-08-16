@@ -8,6 +8,8 @@ using GagSpeak.Toybox.Services;
 using ImGuiNET;
 using ImPlotNET;
 using System.Timers;
+using GagSpeak.Utils;
+using GagspeakAPI.Data.Enum;
 
 namespace GagSpeak.UI.Components;
 
@@ -18,7 +20,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
 {
     private readonly ToyboxRemoteService _remoteService;
     private readonly ToyboxVibeService _vibeService;
-    private readonly PatternHandler _pHandler;
+    private readonly PatternPlaybackService _playbackService;
 
     public Stopwatch PlaybackDuration;
     private UpdateTimer PlaybackUpdateTimer;
@@ -27,24 +29,26 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
 
     public PatternPlayback(ILogger<PatternPlayback> logger,
         GagspeakMediator mediator, ToyboxRemoteService remoteService, 
-        ToyboxVibeService vibeService, PatternHandler patternHandler) 
+        ToyboxVibeService vibeService, PatternPlaybackService playbackService) 
         : base(logger, mediator)
     {
         _remoteService = remoteService;
         _vibeService = vibeService;
-        _pHandler = patternHandler;
+        _playbackService = playbackService;
 
         PlaybackDuration = new Stopwatch();
         PlaybackUpdateTimer = new UpdateTimer(20, ReadVibePosFromBuffer);
 
-        Mediator.Subscribe<PatternActivedMessage>(this, (msg) =>
+        Mediator.Subscribe<PlaybackStateToggled>(this, (msg) =>
         {
-            StartPlayback(msg.PatternIndex);
-        });
-
-        Mediator.Subscribe<PatternDeactivedMessage>(this, (msg) =>
-        {
-            StopPlayback(msg.PatternIndex);
+            if(msg.NewState == UpdatedNewState.Enabled)
+            {
+                StartPlayback();
+            }
+            if(msg.NewState == UpdatedNewState.Disabled)
+            {
+                StopPlayback(msg.PatternIndex);
+            }
         });
     }
 
@@ -68,7 +72,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
             float[] xs;  // x-values
             float[] ys;  // y-values
                          // if we are playing back
-            if (_pHandler.PlaybackRunning && _pHandler.ActivePattern != null)
+            if (_playbackService.PlaybackActive && _playbackService.ShouldRunPlayback)
             {
                 int start = Math.Max(0, ReadBufferIdx - 150);
                 int count = Math.Min(150, ReadBufferIdx - start + 1);
@@ -76,8 +80,8 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
 
 
                 xs = Enumerable.Range(-buffer, count + buffer).Select(i => (float)i).ToArray();
-                ys = _pHandler.ActivePattern.PatternByteData.Skip(_pHandler.ActivePattern.PatternByteData.Count - buffer).Take(buffer)
-                    .Concat(_pHandler.ActivePattern.PatternByteData.Skip(start).Take(count))
+                ys = _playbackService.PlaybackByteRange.Skip(_playbackService.PlaybackByteRange.Count - buffer).Take(buffer)
+                    .Concat(_playbackService.PlaybackByteRange.Skip(start).Take(count))
                     .Select(pos => (float)pos).ToArray();
 
                 // Transform the x-values so that the latest position appears at x=0
@@ -129,28 +133,22 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
     }
     #region Helper Fuctions
     // When active, the circle will not fall back to the 0 coordinate on the Y axis of the plot, and remain where it is
-    public void StartPlayback(int PatternIdx)
+    public void StartPlayback()
     {
-        // see if a pattern is already active. And it is not our pattern
-        if (_pHandler.IsAnyPatternPlaying())
+        if(_playbackService.ActivePattern == null)
         {
-            var activeIdx = _pHandler.GetActivePatternIdx();
-            if (activeIdx != PatternIdx)
-            {
-                // stop the active pattern
-                StopPlayback(activeIdx);
-            }
+            Logger.LogWarning("It should be impossible to reach here. if you do, "+ 
+                "there is a massive issue with the code. Report it ASAP");
+            return;
         }
         // start a new one
-        Logger.LogDebug($"Starting playback of pattern {_pHandler.ActivePattern.Name}");
+        Logger.LogDebug($"Starting playback of pattern {_playbackService.ActivePattern?.Name}");
+        
         // set the playback index to the start
         ReadBufferIdx = 0;
 
         // iniitalize volume levels if using simulated vibe
-        if (_vibeService.UsingSimulatedVibe)
-        {
-            InitializeVolumeLevels(_pHandler.ActivePattern.PatternByteData);
-        }
+        if (_vibeService.UsingSimulatedVibe) InitializeVolumeLevels(_playbackService.PlaybackByteRange);
 
         // start our timers
         PlaybackDuration.Start();
@@ -159,7 +157,6 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
         // begin playing the pattern to the vibrators
         _vibeService.StartActiveVibes();
     }
-
     public void InitializeVolumeLevels(List<byte> intensityPattern)
     {
         volumeLevels.Clear();
@@ -174,7 +171,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
 
     public void StopPlayback(int PatternIdx)
     {
-        Logger.LogDebug($"Stopping playback of pattern {_pHandler.PatternNames[PatternIdx]}");
+        Logger.LogDebug($"Stopping playback of pattern {_playbackService.GetPatternNameFromIdx(PatternIdx)}");
         // clear the local variables
         ReadBufferIdx = 0;
         // reset the timers
@@ -189,36 +186,35 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
     private int ReadBufferIdx;  // The current index of the playback
     private void ReadVibePosFromBuffer(object? sender, ElapsedEventArgs e)
     {
-        // If we're playing back the stored positions
-        if (_pHandler.PlaybackRunning && _pHandler.ActivePattern != null)
+        // return if the playback is no longer active.
+        if (!_playbackService.PlaybackActive) return;
+        
+        // If the new read buffer idx >= the total length of the list, stop playback, or loop to start.
+        if (ReadBufferIdx >= _playbackService.PlaybackByteRange.Count)
         {
-            // If we've reached the end of the stored positions, stop playback
-            if (ReadBufferIdx >= _pHandler.ActivePattern.PatternByteData.Count)
+            // If we should loop, start it over again.
+            if (_playbackService.ActivePattern!.ShouldLoop)
             {
-                // If we should loop, start it over again.
-                if (_pHandler.ActivePattern.ShouldLoop)
-                {
-                    ReadBufferIdx = 0;
-                    PlaybackDuration.Restart();
-                    return;
-                }
-                // otherwise, stop.
-                else
-                {
-                    _pHandler.StopPattern(_pHandler.GetPatternIdxByName(_pHandler.ActivePattern.Name));
-                    return;
-                }
+                ReadBufferIdx = 0;
+                PlaybackDuration.Restart();
+                return;
             }
-
-            // Convert the current stored position to a float and store it in currentPos
-            CurrentPositions[1] = _pHandler.ActivePattern.PatternByteData[ReadBufferIdx];
-
-            // Send the vibration command to the device
-            _vibeService.SendNextIntensity(_pHandler.ActivePattern.PatternByteData[ReadBufferIdx]);
-
-            // Increment the buffer index
-            ReadBufferIdx++;
+            // otherwise, stop.
+            else
+            {
+                _playbackService.StopPattern(_playbackService.GetIdxOfActivePattern(), true);
+                return;
+            }
         }
+
+        // Convert the current stored position to a float and store it in currentPos
+        CurrentPositions[1] = _playbackService.PlaybackByteRange[ReadBufferIdx];
+
+        // Send the vibration command to the device
+        _vibeService.SendNextIntensity(_playbackService.PlaybackByteRange[ReadBufferIdx]);
+
+        // Increment the buffer index
+        ReadBufferIdx++;
     }
     #endregion Helper Fuctions
 }

@@ -175,9 +175,26 @@ public class Pair
     public void ApplyAliasData(OnlineUserCharaAliasDataDto data)
     {
         _logger.LogDebug("Applying updated alias data for {uid}", data.User.UID);
-        // update the full appearance, since we assume this is handled correctly and only called by owner of pair.
-        // Change this to only update info respective to the UpdateDataKind if this fails.
-        LastReceivedAliasData = data.AliasData;
+        // update either the name associated to the list, or the list itself.
+        if(LastReceivedAliasData == null)
+        {
+            LastReceivedAliasData = data.AliasData;
+        }
+
+        // otherwise, update the appropriate part.
+        if(data.UpdateKind == DataUpdateKind.PuppeteerAliasListUpdated)
+        {
+            LastReceivedAliasData.AliasList = data.AliasData.AliasList;
+        }
+        else if(data.UpdateKind == DataUpdateKind.PuppeteerPlayerNameRegistered)
+        {
+            LastReceivedAliasData.CharacterName = data.AliasData.CharacterName;
+            LastReceivedAliasData.CharacterWorld = data.AliasData.CharacterWorld;
+        }
+        else
+        {
+            _logger.LogWarning("Unknown Set Type");
+        }
     }
 
     /// <summary>

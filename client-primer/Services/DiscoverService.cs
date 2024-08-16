@@ -37,7 +37,6 @@ public class DiscoverService : DisposableMediatorSubscriberBase
                 AddSystemWelcome();
             }
         });
-        Mediator.Subscribe<DisconnectedMessage>(this, (msg) => GagspeakGlobalChat.ClearMessages());
     }
 
     private void AddSystemWelcome()

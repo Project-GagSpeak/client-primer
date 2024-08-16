@@ -13,6 +13,7 @@ using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Dto.Connection;
+using Penumbra.GameData.Structs;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -362,7 +363,7 @@ public partial class UserPairPermsSticky
         if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Update Pair With Name", WindowMenuWidth, true))
         {
             var name = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
-            var world = _frameworkUtils.GetWorldIdAsync().GetAwaiter().GetResult();
+            var world = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult();
             var worldName = _uiShared.WorldData[(ushort)world];
             // compile the alias data to send including our own name and world information, along with an empty alias list.
             var dataToPush = new CharacterAliasData()

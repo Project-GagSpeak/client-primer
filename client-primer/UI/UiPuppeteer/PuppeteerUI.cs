@@ -9,6 +9,8 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Handlers;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
+using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Text;
@@ -183,6 +185,34 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                         $"{_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.EndChar}");
                         UiSharedService.AttachToolTip($"The spaces between the brackets and commands/trigger phrases are optional.");
                     }
+
+
+                    bool allowSitRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowSitRequests;
+                    if (ImGui.Checkbox("Allow Sit Commands", ref allowSitRequests))
+                    {
+                        _logger.LogTrace($"Updated own pair permission: AllowSitCommands to {allowSitRequests}");
+                        _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
+                            new KeyValuePair<string, object>("AllowSitRequests", allowSitRequests)));
+                    }
+                    UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform /sit and /groundsit");
+
+                    bool allowMotionRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowMotionRequests;
+                    if (ImGui.Checkbox("Allow Emotes & Expressions", ref allowMotionRequests))
+                    {
+                        _logger.LogTrace($"Updated own pair permission: AllowEmotesExpressions to {allowMotionRequests}");
+                        _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
+                            new KeyValuePair<string, object>("AllowMotionRequests", allowMotionRequests)));
+                    }
+                    UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform emotes and expressions");
+
+                    bool allowAllRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowAllRequests;
+                    if (ImGui.Checkbox("Allow All Commands", ref allowAllRequests))
+                    {
+                        _logger.LogTrace($"Updated own pair permission: AllowAllCommands to {allowAllRequests}");
+                        _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
+                            new KeyValuePair<string, object>("AllowAllRequests", allowAllRequests)));
+                    }
+                    UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform any command");
 
                 }
                 pairCharaInfo.Dispose();

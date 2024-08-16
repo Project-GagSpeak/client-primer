@@ -87,6 +87,8 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
         string senderName = senderPlayerPayload.PlayerName;
         string senderWorld = senderPlayerPayload.World.Name;
 
+        Logger.LogInformation($"Chat Message from {senderName} in {senderWorld} with message: {message.TextValue}");
+
         // check for globalTriggers
         if (_puppeteerHandler.IsValidGlobalTriggerWord(message, type))
         {

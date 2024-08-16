@@ -1,13 +1,7 @@
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface.ImGuiNotification;
-using Dalamud.Plugin.Services;
-using GagSpeak.GagspeakConfiguration;
-using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils.ChatLog;
 using GagspeakAPI.Data.Enum;
-using GagspeakAPI.Dto.Toybox;
 
 namespace GagSpeak.Services;
 

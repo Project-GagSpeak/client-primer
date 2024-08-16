@@ -44,8 +44,8 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar;
 
         IsOpen = true; // open the window
-
     }
+
 
     public override void OnClose() => Mediator.Publish(new RemoveWindowMessage(this)); // remove window on close.
 

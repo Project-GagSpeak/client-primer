@@ -362,10 +362,6 @@ public partial class UserPairPermsSticky
         if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Update Pair With Name", WindowMenuWidth, true))
         {
             // compile the alias data to send including our own name and world information, along with an empty alias list.
-            var name = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
-            var world = _frameworkUtils.GetWorldIdAsync().GetAwaiter().GetResult();
-            var worldName = _uiShared.WorldData[(ushort)world];
-
             var dataToPush = new CharacterAliasData()
             {
                 CharacterName = name,
@@ -377,7 +373,7 @@ public partial class UserPairPermsSticky
                 (UserPairForPerms.UserData, dataToPush, DataUpdateKind.PuppeteerPlayerNameRegistered));
             _logger.LogDebug("Sent Puppeteer Name to " + UserPairForPerms.UserData.AliasOrUID);
         }
-        UiSharedService.AttachToolTip("Opens the profile for this user in a new window");
+        UiSharedService.AttachToolTip("Sends your Name & World to this pair so their puppeteer will listen for messages from you.");
 
         ImGui.Separator();
     }

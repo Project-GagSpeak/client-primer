@@ -1139,6 +1139,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Alias Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
                         ImGui.Indent();
+                        ImGui.Text($"Listening To: {clientPair.LastReceivedAliasData.CharacterName} @ {clientPair.LastReceivedAliasData.CharacterWorld}");
                         foreach (var alias in clientPair.LastReceivedAliasData.AliasList)
                         {
                             var tmptext = alias.Enabled ? "Enabled" : "Disabled";

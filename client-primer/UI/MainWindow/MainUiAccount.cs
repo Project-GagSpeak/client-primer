@@ -87,21 +87,9 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
                     UiSharedService.ColorTextWrapped("Your profile has been flagged for inappropriate content. Please review your profile.", ImGuiColors.DalamudRed);
                 }
 
-                // ensure we only update the texture wrap when the data is changed.
-                if (profileData.Base64ProfilePicture.IsNullOrEmpty())
-                {
-                    _profileImageWrap?.Dispose();
-                    _profileImageWrap = _uiShared.GetLogoNoRadial();
-                }
-                else if (!_profileImageData.SequenceEqual(profileData.ImageData.Value) && !string.IsNullOrEmpty(profileData.Base64ProfilePicture))
-                {
-                    _profileImageData = profileData.ImageData.Value;
-                    _profileImageWrap?.Dispose();
-                    _profileImageWrap = _uiShared.LoadImage(_profileImageData);
-                }
+                var pfpWrap = profileData.GetCurrentProfileOrDefault();
 
-
-                if (!(_profileImageWrap is { } wrap))
+                if (!(pfpWrap is { } wrap))
                 {
                     /* Consume Wrap until Generated */
                 }

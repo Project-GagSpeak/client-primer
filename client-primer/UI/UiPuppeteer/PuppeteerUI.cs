@@ -83,7 +83,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                     var iconTexture = _uiShared.GetLogo();
                     if (!(iconTexture is { } wrap))
                     {
-                        _logger.LogWarning("Failed to render image!");
+                        /*_logger.LogWarning("Failed to render image!");*/
                     }
                     else
                     {

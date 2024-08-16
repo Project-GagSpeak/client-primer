@@ -85,7 +85,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             if (_lastAliasData == null || !Equals(newAliasData, _lastAliasData))
             {
                 _lastAliasData = newAliasData;
-                PushCharacterAliasListData(msg.userData);
+                PushCharacterAliasListData(msg.userData, msg.UpdateKind);
             }
             else
             {
@@ -172,7 +172,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
     }
 
     /// <summary> Pushes the character alias list to the respective pair we updated it for. </summary>
-    private void PushCharacterAliasListData(UserData onlinePairToPushTo)
+    private void PushCharacterAliasListData(UserData onlinePairToPushTo, DataUpdateKind updateKind)
     {
         if (_lastAliasData != null)
         {

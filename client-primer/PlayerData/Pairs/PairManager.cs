@@ -267,12 +267,12 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // first see if our clientUID exists as a key in dto.CompositeData.AliasData. If it does not, define it as an empty data.
         if (!dto.CompositeData.AliasData.ContainsKey(clientUID))
         {
-            _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, dto.CompositeData.AliasData[clientUID]));
+            _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, dto.CompositeData.AliasData[clientUID], dto.UpdateKind));
         }
         else
         {
             // REVIEW: This might cause issues with any potential desync. If it does look into
-            _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, new CharacterAliasData()));
+            _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, new CharacterAliasData(), dto.UpdateKind));
         }
 
         // apply the pattern data to the pair.

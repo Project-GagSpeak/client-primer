@@ -17,6 +17,7 @@ public class DiscoverService : DisposableMediatorSubscriberBase
     private readonly PairManager _pairManager;
 
     public ChatLog GagspeakGlobalChat { get; private set; }
+    private bool _connectedFirstTime = false;
 
 
     public DiscoverService(ILogger<DiscoverService> logger, GagspeakMediator mediator,
@@ -28,7 +29,14 @@ public class DiscoverService : DisposableMediatorSubscriberBase
         GagspeakGlobalChat = new ChatLog();
         Mediator.Subscribe<GlobalChatMessage>(pairManager, (msg) => AddChatMessage(msg));
 
-        Mediator.Subscribe<ConnectedMessage>(this, (msg) => AddSystemWelcome());
+        Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
+        {
+            if (!_connectedFirstTime)
+            {
+                _connectedFirstTime = true;
+                AddSystemWelcome();
+            }
+        });
         Mediator.Subscribe<DisconnectedMessage>(this, (msg) => GagspeakGlobalChat.ClearMessages());
     }
 

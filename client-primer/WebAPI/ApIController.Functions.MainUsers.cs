@@ -457,6 +457,18 @@ public partial class ApiController // Partial class for MainHub User Functions.
         }
     }
 
+    public async Task UserPushPairDataAliasStorageUpdate(OnlineUserCharaAliasDataDto dto)
+    {
+        try
+        {
+            await _gagspeakHub!.InvokeAsync(nameof(UserPushPairDataAliasStorageUpdate), dto).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, $"Failed to Push an update to {dto.User.UID}'s Alias data");
+        }
+    }
+
     /// <summary>
     /// Updates another pairs toybox info data with the new changes you've made to them.
     /// </summary>

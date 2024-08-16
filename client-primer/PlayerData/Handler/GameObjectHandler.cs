@@ -25,6 +25,8 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         _isOwnedObject = ownedObject;
         Name = string.Empty;
 
+        Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
+
         // cutscene mediators would help with halting processing.
         Mediator.Subscribe<ZoneSwitchEndMessage>(this, (_) => ZoneSwitchEnd());
         Mediator.Subscribe<ZoneSwitchStartMessage>(this, (_) => ZoneSwitchStart());
@@ -41,7 +43,17 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
     public string Name { get; private set; } // the name of the character
     private IntPtr DrawObjectAddress { get; set; } // the address of the characters draw object.
 
-    public void Invalidate() => Address = IntPtr.Zero; // sets game objects address to 0
+    public void Invalidate()
+    {
+        Address = IntPtr.Zero;
+        DrawObjectAddress = IntPtr.Zero;
+    }
+
+    public override string ToString()
+    {
+        var owned = _isOwnedObject ? "Self" : "Other";
+        return $"{owned}/{Name} ({Address:X},{DrawObjectAddress:X})";
+    }
 
     protected override void Dispose(bool disposing)
     {
@@ -104,12 +116,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             }
 
             // if this is not a owned object, instantly publish the character changed message and return.
-            if (!_isOwnedObject)
-            {
-                Logger.LogTrace("Is not a owned object.");
-                /* Consume */
-                return;
-            }
+            if (!_isOwnedObject) return;
 
             // if there was a difference in the address, or draw object, and it is an owned object, then publish the cache creation.
             if ((addrDiff || drawObjDiff) && _isOwnedObject)

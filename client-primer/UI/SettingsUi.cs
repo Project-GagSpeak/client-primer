@@ -1172,6 +1172,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     ImGui.Text($"OnlineUser Alias: {clientPair.CachedPlayerOnlineDto.User.Alias}");
                     ImGui.Text($"OnlineUser Identifier: {clientPair.CachedPlayerOnlineDto.Ident}");
                     ImGui.Text($"HasCachedPlayer? : {clientPair.HasCachedPlayer}");
+                    ImGui.Text(clientPair.CachedPlayerString());
                 }
                 else
                 {

@@ -71,7 +71,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         OnFrameworkService.GlamourChangeEventsDisabled = true;
 
         // do not accept if we have enable wardrobe turned off.
-        if (!_playerManager.GlobalPerms.WardrobeEnabled)
+        if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
         {
             Logger.LogDebug("Wardrobe is disabled, so not processing Generic Update");
             OnFrameworkService.GlamourChangeFinishedDrawing = true;
@@ -131,7 +131,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         OnFrameworkService.GlamourChangeEventsDisabled = true;
 
         // do not accept if we have enable wardrobe turned off.
-        if (!_playerManager.GlobalPerms.WardrobeEnabled)
+        if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
         {
             Logger.LogDebug("Wardrobe is disabled, so not processing Gag Update");
             OnFrameworkService.GlamourChangeFinishedDrawing = true;
@@ -193,7 +193,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         OnFrameworkService.GlamourChangeEventsDisabled = true;
 
         // do not accept if we have enable wardrobe turned off.
-        if (!_playerManager.GlobalPerms.WardrobeEnabled)
+        if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
         {
             Logger.LogDebug("Wardrobe is disabled, so not processing Restraint Set Update");
             OnFrameworkService.GlamourChangeFinishedDrawing = true;
@@ -271,7 +271,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         OnFrameworkService.GlamourChangeEventsDisabled = true;
 
         // do not accept if we have enable wardrobe turned off.
-        if (!_playerManager.GlobalPerms.WardrobeEnabled)
+        if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
         {
             Logger.LogDebug("Wardrobe is disabled, so not processing Blindfold Update");
             OnFrameworkService.GlamourChangeFinishedDrawing = true;

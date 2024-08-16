@@ -6,10 +6,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.UI.MainWindow;
-using GagSpeak.WebAPI;
 using OtterGui.Classes;
-using System.Globalization;
-using System.Windows.Input;
 
 namespace GagSpeak.Services;
 
@@ -25,7 +22,7 @@ public sealed class CommandManagerService : IDisposable
     private readonly ICommandManager _commands;
 
     public CommandManagerService(GagspeakMediator mediator,
-        GagspeakConfigService mainConfig, ServerConfigurationManager serverConfigs, 
+        GagspeakConfigService mainConfig, ServerConfigurationManager serverConfigs,
         IChatGui chat, ICommandManager commandManager)
     {
         _mediator = mediator;

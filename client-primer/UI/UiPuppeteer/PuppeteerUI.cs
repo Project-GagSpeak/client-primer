@@ -1,6 +1,9 @@
+using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Data;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
@@ -16,18 +19,20 @@ namespace GagSpeak.UI.UiPuppeteer;
 
 public class PuppeteerUI : WindowMediatorSubscriberBase
 {
-    private readonly UiSharedService _uiSharedService;
+    private readonly UiSharedService _uiShared;
     private readonly UserPairListHandler _userPairListHandler;
     private readonly ClientConfigurationManager _clientConfigs;
+    private readonly PuppeteerHandler _puppeteerHandler;
     private readonly AliasTable _aliasTable;
     public PuppeteerUI(ILogger<PuppeteerUI> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService, ClientConfigurationManager clientConfigs, 
-        UserPairListHandler userPairListHandler, AliasTable aliasTable)
-        : base(logger, mediator, "Puppeteer UI")
+        UserPairListHandler userPairListHandler, PuppeteerHandler handler,
+        AliasTable aliasTable) : base(logger, mediator, "Puppeteer UI")
     {
-        _uiSharedService = uiSharedService;
+        _uiShared = uiSharedService;
         _clientConfigs = clientConfigs;
         _userPairListHandler = userPairListHandler;
+        _puppeteerHandler = handler;
         _aliasTable = aliasTable;
 
         AllowPinning = false;
@@ -39,34 +44,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             MaximumSize = new Vector2(1000, float.MaxValue)
         };
         RespectCloseHotkey = false;
-
-        // subscriber to update the pair being displayed.
-        Mediator.Subscribe<UpdateDisplayWithPair>(this, (msg) => 
-        {
-            // for firstime generations
-            if(SelectedPair == null)
-            {
-                SelectedPair = msg.Pair;
-                _aliasTable.AliasTriggerList = _clientConfigs.FetchListForPair(msg.Pair.UserData.UID);
-            }
-
-            // for refreshing data once we switch pairs.
-            if (SelectedPair.UserData.UID != msg.Pair.UserData.UID)
-            {
-                _logger.LogTrace($"Updating display to reflect pair {msg.Pair.UserData.AliasOrUID}");
-                SelectedPair = msg.Pair;
-                _aliasTable.AliasTriggerList = _clientConfigs.FetchListForPair(msg.Pair.UserData.UID);
-                TempTriggerStorage = SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase ?? null!;
-                TempStartChar = SelectedPair.UserPairOwnUniquePairPerms.StartChar.ToString() ?? null!;
-                TempEndChar = SelectedPair.UserPairOwnUniquePairPerms.EndChar.ToString() ?? null!;
-            }
-        });
     }
-
-    public Pair? SelectedPair = null; // the selected pair we are referencing when drawing the right half.
-    private string TempTriggerStorage = null!;
-    private string TempStartChar = null!;
-    private string TempEndChar = null!;
 
     protected override void PreDrawInternal()
     {
@@ -86,7 +64,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         var cellPadding = ImGui.GetStyle().CellPadding;
 
         // create the draw-table for the selectable and viewport displays
-        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiSharedService.GetFontScalerFloat(), 0));
+        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiShared.GetFontScalerFloat(), 0));
         try
         {
             using (var table = ImRaii.Table($"PuppeteerUiWindowTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
@@ -102,7 +80,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
 
                 using (var leftChild = ImRaii.Child($"###PuppeteerLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
-                    var iconTexture = _uiSharedService.GetLogo();
+                    var iconTexture = _uiShared.GetLogo();
                     if (!(iconTexture is { } wrap))
                     {
                         _logger.LogWarning("Failed to render image!");
@@ -111,7 +89,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                     {
                         UtilsExtensions.ImGuiLineCentered("###PuppeteerLogo", () =>
                         {
-                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiSharedService.GetFontScalerFloat(), 125f * _uiSharedService.GetFontScalerFloat()));
+                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiShared.GetFontScalerFloat(), 125f * _uiShared.GetFontScalerFloat()));
                             if (ImGui.IsItemHovered())
                             {
                                 ImGui.BeginTooltip();
@@ -149,7 +127,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
     // Main Right-half Draw function for puppeteer.
     private void DrawPuppeteer(Vector2 DefaultCellPadding)
     {
-        if (SelectedPair == null)
+        if (_puppeteerHandler.SelectedPair == null)
         {
             ImGui.Text("Select a pair to view their puppeteer setup.");
             return;
@@ -158,87 +136,125 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
 
         // draw title
-        using (_uiSharedService.UidFont.Push())
-        {
-            ImGui.Text($"Settings for {SelectedPair.UserData.AliasOrUID}");
-        }
-
-        // below, draw trigger phrase info prompt
-        ImGui.Text($"Your Trigger Phrase for {SelectedPair.PlayerName}");
-        UiSharedService.AttachToolTip(
-                $"When {SelectedPair.UserData.AliasOrUID} says the entered phrase in chat,\n" +
-                "you will execute everything after it, (or within your defined brackets)");
-        
-        // draw out trigger phrase input
-        DrawSelectedPairTriggerPhrase(region.X);
-
-        // draw example usage
-        if (!string.IsNullOrEmpty(SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase))
-        {
-            // if trigger phrase exists, see if it has splits to contain multiple.
-            bool hasSplits = SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase.Contains("|");
-            var displayText = hasSplits ? SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase.Split('|')[0] 
-                                        : SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase;
-            // example display
-            ImGui.Text($"Example Usage from : {SelectedPair.UserData.AliasOrUID}");
-            ImGui.TextColored(new Vector4(1.0f, 1.0f, 0.0f, 1.0f), $"<{SelectedPair.UserData.AliasOrUID}> " +
-            $"{displayText} {SelectedPair.UserPairOwnUniquePairPerms.StartChar} " + $"glamour apply Hogtied | p | [me] "+
-            $"{SelectedPair.UserPairOwnUniquePairPerms.EndChar}");
-            UiSharedService.AttachToolTip($"The spaces between the brackets and commands/trigger phrases are optional.");
-        }
-
-        // draw permissions & channels
+        DrawPuppeteerHeader(DefaultCellPadding);
         ImGui.Separator();
 
-        bool allowSitRequests = SelectedPair.UserPairOwnUniquePairPerms.AllowSitRequests;
-        if (ImGui.Checkbox("Allow Sit Commands", ref allowSitRequests))
+        using (var headerGroup = ImRaii.Group())
         {
-            SelectedPair.UserPairOwnUniquePairPerms.AllowSitRequests = allowSitRequests;
-            // TODO : publish to mediator our update so we push it
-        }
-        UiSharedService.AttachToolTip($"Allows {SelectedPair.UserData.AliasOrUID} to make you perform /sit and /groundsit");
-
-        bool allowMotionRequests = SelectedPair.UserPairOwnUniquePairPerms.AllowMotionRequests;
-        if (ImGui.Checkbox("Allow Emotes & Expressions", ref allowMotionRequests))
-        {
-            SelectedPair.UserPairOwnUniquePairPerms.AllowMotionRequests = allowMotionRequests;
-            // TODO : publish to mediator our update so we push it
-        }
-        UiSharedService.AttachToolTip($"Allows {SelectedPair.UserData.AliasOrUID} to make you perform emotes and expressions");
-
-        bool allowAllRequests = SelectedPair.UserPairOwnUniquePairPerms.AllowAllRequests;
-        if (ImGui.Checkbox("Allow All Commands", ref allowAllRequests))
-        {
-            SelectedPair.UserPairOwnUniquePairPerms.AllowAllRequests = allowAllRequests;
-            // TODO : publish to mediator our update so we push it
-        }
-        UiSharedService.AttachToolTip($"Allows {SelectedPair.UserData.AliasOrUID} to make you perform any command");
-
-        using (_uiSharedService.UidFont.Push())
-        {
-            ImGui.Text("AliasList");
+            if (_puppeteerHandler.StorageBeingEdited.CharacterName != string.Empty)
+            {
+                ImGui.Text("Scanning for Trigger Messages from: ");
+                ImGui.SameLine();
+                var text = $"{_puppeteerHandler.StorageBeingEdited.CharacterName} @ {_puppeteerHandler.StorageBeingEdited.CharacterWorld}";
+                UiSharedService.ColorText(text, ImGuiColors.ParsedPink);
+            }
+            else
+            {
+                UiSharedService.ColorText("No CharacterName to listen to for this Pair." + Environment.NewLine
+                    + "Have them press 'Update Pair with Name'" + Environment.NewLine
+                    + "They is found under the UserPair Actions Menu", ImGuiColors.DalamudRed);
+            }
         }
 
-        using (var aliasTable = ImRaii.Child($"###PuppeteerAliasList", Vector2.Zero, false, ImGuiWindowFlags.NoScrollbar))
+        ImGui.Separator();
+        using (var disabledEdited = ImRaii.Disabled(_puppeteerHandler.StorageBeingEdited.CharacterName == string.Empty))
         {
-            _aliasTable.DrawAliasListTable(SelectedPair.UserData.UID, DefaultCellPadding.Y);
+            // Create a Tabbar for the sub-sections of the puppeteer.
+            using var tabBar = ImRaii.TabBar("Puppeteer Sub-Tabs");
+
+            if (tabBar)
+            {
+                var pairCharaInfo = ImRaii.TabItem("Pair Character");
+                if (pairCharaInfo)
+                {
+                    DrawSelectedPairTriggerPhrase(region.X);
+
+                    // draw example usage
+                    if (!string.IsNullOrEmpty(_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase))
+                    {
+                        // if trigger phrase exists, see if it has splits to contain multiple.
+                        bool hasSplits = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase.Contains("|");
+                        var displayText = hasSplits ? _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase.Split('|')[0]
+                                                    : _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase;
+                        // example display
+                        ImGui.Text($"Example Usage from : {_puppeteerHandler.SelectedPair.UserData.AliasOrUID}");
+                        ImGui.TextColored(new Vector4(1.0f, 1.0f, 0.0f, 1.0f), $"<{_puppeteerHandler.SelectedPair.UserData.AliasOrUID}> " +
+                        $"{displayText} {_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.StartChar} " + $"glamour apply Hogtied | p | [me] " +
+                        $"{_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.EndChar}");
+                        UiSharedService.AttachToolTip($"The spaces between the brackets and commands/trigger phrases are optional.");
+                    }
+
+                }
+                pairCharaInfo.Dispose();
+
+                // create glamour tab (applying the visuals)
+                var aliasList = ImRaii.TabItem("Your Alias List");
+                if (aliasList)
+                {
+                    _aliasTable.DrawAliasListTable(_puppeteerHandler.SelectedPair.UserData.UID, DefaultCellPadding.Y);
+                }
+                aliasList.Dispose();
+            }
         }
     }
 
+    private void DrawPuppeteerHeader(Vector2 DefaultCellPadding)
+    {
+        if (_puppeteerHandler.SelectedPair == null) return;
+
+        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
+        var startYpos = ImGui.GetCursorPosY();
+        var iconSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus);
+        Vector2 textSize;
+        using (_uiShared.UidFont.Push())
+        {
+            textSize = ImGui.CalcTextSize($"Setup for {_puppeteerHandler.SelectedPair.UserData.AliasOrUID}");
+        }
+        var centerYpos = (textSize.Y - iconSize.Y);
+        using (ImRaii.Child("EditAliasStorageForPair", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + (centerYpos - startYpos) * 2 - DefaultCellPadding.Y)))
+        {
+            // now next to it we need to draw the header text
+            ImGui.SameLine(ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(startYpos);
+            using (_uiShared.UidFont.Push())
+            {
+                UiSharedService.ColorText($"Setup for {_puppeteerHandler.SelectedPair.UserData.AliasOrUID}", ImGuiColors.ParsedPink);
+            }
+
+            // now calculate it so that the cursors Yposition centers the button in the middle height of the text
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X - ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos - DefaultCellPadding.Y);
+            using (var disabledEdited = ImRaii.Disabled(_puppeteerHandler.StorageBeingEdited.CharacterName == string.Empty))
+            {
+                if (_uiShared.IconButton(FontAwesomeIcon.Save))
+                {
+                    _puppeteerHandler.UpdatedEditedStorage();
+                }
+                UiSharedService.AttachToolTip("Update Changes made for this pair.");
+            }
+        }
+    }
+
+    private string _tempTriggerStorage = null!;
+    private string _tempStartChar = null!;
+    private string _tempEndChar = null!;
     private void DrawSelectedPairTriggerPhrase(float width)
     {
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("Trigger Phrase");
+        _uiShared.DrawHelpText("This is the phrase your pair needs to say to make YOU execute a command.");
         ImGui.SetNextItemWidth(width * 0.8f);
         // store temp value to contain within the text input
-        var TriggerPhrase = TempTriggerStorage ?? SelectedPair!.UserPairOwnUniquePairPerms.TriggerPhrase;
-        if (ImGui.InputTextWithHint($"##{SelectedPair!.UserData.AliasOrUID}sTrigger", "Leave Blank for no trigger phrase...",
+        var TriggerPhrase = _tempTriggerStorage ?? _puppeteerHandler.SelectedPair!.UserPairOwnUniquePairPerms.TriggerPhrase;
+        if (ImGui.InputTextWithHint($"##{_puppeteerHandler.SelectedPair!.UserData.AliasOrUID}sTrigger", "Leave Blank for no trigger phrase...",
             ref TriggerPhrase, 64, ImGuiInputTextFlags.EnterReturnsTrue))
         {
-            TempTriggerStorage = TriggerPhrase;
+            _tempTriggerStorage = TriggerPhrase;
         }
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
-            SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase = TriggerPhrase;
-            TempTriggerStorage = null!;
+            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase = TriggerPhrase;
+            _tempTriggerStorage = null!;
             // TODO: publish to mediator our update so we push it
         }
         UiSharedService.AttachToolTip("You can create multiple trigger phrases by placing a | between phrases.");
@@ -247,10 +263,10 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         ImUtf8.SameLineInner();
         ImGui.SetNextItemWidth(20*ImGuiHelpers.GlobalScale);
         // draw out the start and end characters
-        var startChar = TempStartChar ?? SelectedPair.UserPairOwnUniquePairPerms.StartChar.ToString();
-        if (ImGui.InputText($"##{SelectedPair.UserData.AliasOrUID}sStarChar", ref startChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
+        var startChar = _tempStartChar ?? _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.StartChar.ToString();
+        if (ImGui.InputText($"##{_puppeteerHandler.SelectedPair.UserData.AliasOrUID}sStarChar", ref startChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
         {
-            TempStartChar = startChar;
+            _tempStartChar = startChar;
         }
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
@@ -258,8 +274,8 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             {
                 startChar = "(";
             }
-            SelectedPair.UserPairOwnUniquePairPerms.StartChar = startChar[0];
-            TempStartChar = null!;
+            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.StartChar = startChar[0];
+            _tempStartChar = null!;
             // TODO: publish to mediator our update so we push it
         }
         UiSharedService.AttachToolTip($"Custom Start Character that replaces the left enclosing bracket.\n" +
@@ -268,10 +284,10 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         // on same line inner, draw the end char.
         ImUtf8.SameLineInner();
         ImGui.SetNextItemWidth(20 * ImGuiHelpers.GlobalScale);
-        var endChar = TempEndChar ?? SelectedPair.UserPairOwnUniquePairPerms.EndChar.ToString();
-        if (ImGui.InputText($"##{SelectedPair.UserData.AliasOrUID}sStarChar", ref endChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
+        var endChar = _tempEndChar ?? _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.EndChar.ToString();
+        if (ImGui.InputText($"##{_puppeteerHandler.SelectedPair.UserData.AliasOrUID}sStarChar", ref endChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
         {
-            TempEndChar = endChar;
+            _tempEndChar = endChar;
         }
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
@@ -279,8 +295,8 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             {
                 endChar = ")";
             }
-            SelectedPair.UserPairOwnUniquePairPerms.EndChar = endChar[0];
-            TempEndChar = null!;
+            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.EndChar = endChar[0];
+            _tempEndChar = null!;
             // TODO: publish to mediator our update so we push it
         }
         UiSharedService.AttachToolTip($"Custom End Character that replaces the right enclosing bracket.\n" +

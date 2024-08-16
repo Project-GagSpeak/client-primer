@@ -5,6 +5,7 @@ using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Handlers;
+using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using ImGuiNET;
 using OtterGui;
@@ -14,6 +15,7 @@ namespace GagSpeak.UI.Permissions;
 
 public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
 {
+    private readonly OnFrameworkService _frameworkUtils;
     private readonly PlayerCharacterManager _playerManager;
     protected readonly IdDisplayHandler _displayHandler;
     private readonly UiSharedService _uiShared;
@@ -24,12 +26,14 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
 
     public UserPairPermsSticky(ILogger<UserPairPermsSticky> logger,
         GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
-        PlayerCharacterManager pcManager, IdDisplayHandler displayHandler,
-        UiSharedService uiSharedService, ApiController apiController, 
-        PairManager configService) : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
+        OnFrameworkService frameworkUtils, PlayerCharacterManager pcManager, 
+        IdDisplayHandler displayHandler, UiSharedService uiSharedService, 
+        ApiController apiController, PairManager configService) 
+        : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
     {
-        _playerManager = pcManager; // define our services
-        _uiShared = uiSharedService; // define our services
+        _frameworkUtils = frameworkUtils;
+        _playerManager = pcManager;
+        _uiShared = uiSharedService;
         _apiController = apiController;
         _pairManager = configService;
 

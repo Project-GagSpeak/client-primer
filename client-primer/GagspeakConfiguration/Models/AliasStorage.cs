@@ -9,5 +9,7 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 public class AliasStorage
 {
     /// <summary> The storage of all aliases you have for the spesified user (defined in key) </summary>
+    public string CharacterName { get; set; } = string.Empty;
+    public string CharacterWorld { get; set; } = string.Empty;
     public List<AliasTrigger> AliasList { get; set; } = [];
 }

@@ -127,14 +127,14 @@ public record MoodlesMessage(IntPtr Address) : MessageBase; // indicated a moodl
 public record PlayerCharIpcChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharAppearanceChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase;
-public record PlayerCharAliasChanged(string UpdatedPairUID) : MessageBase;
+public record PlayerCharAliasChanged(string UpdatedPairUID, DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
 
 public record CharacterDataCreatedMessage(CharacterCompositeData CharacterData) : MessageBase;
 public record CharacterIpcDataCreatedMessage(CharacterIPCData CharacterIPCData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterAppearanceDataCreatedMessage(CharacterAppearanceData CharacterAppearanceData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterWardrobeDataCreatedMessage(CharacterWardrobeData CharacterWardrobeData, DataUpdateKind UpdateKind) : SameThreadMessage;
-public record CharacterAliasDataCreatedMessage(CharacterAliasData CharacterAliasData, UserData userData) : SameThreadMessage;
+public record CharacterAliasDataCreatedMessage(CharacterAliasData CharacterAliasData, UserData userData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterToyboxDataCreatedMessage(CharacterToyboxData CharacterToyboxData, DataUpdateKind UpdateKind) : SameThreadMessage;
 
 

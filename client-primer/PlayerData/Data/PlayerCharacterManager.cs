@@ -39,6 +39,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
     private readonly WardrobeHandler _wardrobeHandler;
+    private readonly PuppeteerHandler _puppeteerHandler;
     private readonly PatternHandler _patternHandler;
     private readonly AlarmHandler _alarmHandler;
     private readonly TriggerHandler _triggerHandler;
@@ -57,13 +58,16 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger,
         GagspeakMediator mediator, PairManager pairManager,
-        WardrobeHandler wardrobeHandler, PatternHandler patternHandler,
-        AlarmHandler alarmHandler, TriggerHandler triggerHandler,
-        ClientConfigurationManager clientConfiguration) : base(logger, mediator)
+        WardrobeHandler wardrobeHandler, PuppeteerHandler puppeteerHandler, 
+        PatternHandler patternHandler, AlarmHandler alarmHandler, 
+        TriggerHandler triggerHandler, ClientConfigurationManager clientConfiguration) 
+        : base(logger, mediator)
     {
         _pairManager = pairManager;
         _wardrobeHandler = wardrobeHandler;
+        _puppeteerHandler = puppeteerHandler;
         _patternHandler = patternHandler;
+        _alarmHandler = alarmHandler;
         _clientConfigManager = clientConfiguration;
 
         // Subscribe to the connected message update so we know when to update our global permissions
@@ -195,9 +199,12 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     private CharacterAliasData CompileAliasToAPI(string UserUID)
     {
+        var AliasStoage = _clientConfigManager.FetchAliasStorageForPair(UserUID);
         CharacterAliasData dataToPush = new CharacterAliasData
         {
-            AliasList = _clientConfigManager.FetchListForPair(UserUID)
+            CharacterName = AliasStoage.CharacterName,
+            CharacterWorld = AliasStoage.CharacterWorld,
+            AliasList = AliasStoage.AliasList
         };
 
         return dataToPush;
@@ -236,7 +243,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         }
 
         var dataToPush = CompileAliasToAPI(userPair.UID);
-        Mediator.Publish(new CharacterAliasDataCreatedMessage(dataToPush, userPair));
+        Mediator.Publish(new CharacterAliasDataCreatedMessage(dataToPush, userPair, DataUpdateKind.PuppeteerAliasListUpdated));
     }
 
     public void PushToyboxDataToAPI(PlayerCharToyboxChanged msg)
@@ -425,6 +432,22 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                 }
                 break;
             case DataUpdateKind.WardrobeRestraintDisabled: Logger.LogDebug("Restraint Set Remove Successfully processed by Server!"); break;
+        }
+    }
+
+    public void UpdateAliasStorageFromCallback(OnlineUserCharaAliasDataDto callbackDto)
+    {
+        // this call should only ever be used for updating the registered name of a pair. if used for any other purpose, log error.
+        if (callbackDto.UpdateKind == DataUpdateKind.PuppeteerPlayerNameRegistered)
+        {
+            // do the update for name registeration of this pair.
+            _puppeteerHandler.UpdatePlayerInfoForUID(callbackDto.User.UID, callbackDto.AliasData.CharacterName, callbackDto.AliasData.CharacterWorld);
+            Logger.LogDebug("Player Name Registered Successfully processed by Server!");
+        }
+        else
+        {
+            Logger.LogError("Another Player should not be attempting to update your own alias list. Report this if you see it.");
+            return;
         }
     }
 

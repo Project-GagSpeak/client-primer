@@ -220,7 +220,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<RestraintCosmetics>()
         .AddSingleton<WardrobeHandler>()
 
-
+        .AddSingleton<PuppeteerHandler>()
         .AddSingleton<AliasTable>()
 
         .AddSingleton<ToyboxOverview>()

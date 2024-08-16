@@ -92,9 +92,8 @@ public class Pair
     public bool IsPaused => UserPair.OwnPairPerms.IsPaused; 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;                          // if the paired user is visible.
     public string? PlayerName => CachedPlayer?.PlayerName ?? UserData.AliasOrUID ?? string.Empty;  // Name of pair player. If empty, (pair handler) CachedData is not initialized yet.
-                                                                            // Tells compactUI if this window is the window that should be open.
-    public bool ShouldOpenPermWindow = false;                               // if this pairs permissions window should open.
 
+    public string CachedPlayerString() => CachedPlayer?.ToString() ?? "No Cached Player"; // string representation of the cached player.
 
     /// <summary>
     /// Applies the IPC related data that should effect players within visible range of the client, to the user pair.

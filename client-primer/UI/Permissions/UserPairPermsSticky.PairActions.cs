@@ -7,6 +7,12 @@ using System.Numerics;
 using GagSpeak.Utils.PermissionHelpers;
 using static GagspeakAPI.Data.Enum.GagList;
 using OtterGui.Text;
+using GagSpeak.Services.Mediator;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
+using GagspeakAPI.Data.Character;
+using GagspeakAPI.Data;
+using GagSpeak.WebAPI;
+using GagspeakAPI.Dto.Connection;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -353,7 +359,25 @@ public partial class UserPairPermsSticky
     private void DrawPuppeteerActions()
     {
         // draw the Alias List popout ref button. (opens a popout window 
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Update Pair With Name", WindowMenuWidth, true))
+        {
+            // compile the alias data to send including our own name and world information, along with an empty alias list.
+            var name = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
+            var world = _frameworkUtils.GetWorldIdAsync().GetAwaiter().GetResult();
+            var worldName = _uiShared.WorldData[(ushort)world];
 
+            var dataToPush = new CharacterAliasData()
+            {
+                CharacterName = name,
+                CharacterWorld = worldName,
+                AliasList = new List<AliasTrigger>()
+            };
+
+            _ = _apiController.UserPushPairDataAliasStorageUpdate(new OnlineUserCharaAliasDataDto
+                (UserPairForPerms.UserData, dataToPush, DataUpdateKind.PuppeteerPlayerNameRegistered));
+            _logger.LogDebug("Sent Puppeteer Name to " + UserPairForPerms.UserData.AliasOrUID);
+        }
+        UiSharedService.AttachToolTip("Opens the profile for this user in a new window");
 
         ImGui.Separator();
     }

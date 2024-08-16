@@ -2,6 +2,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Data;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
@@ -15,25 +16,15 @@ namespace GagSpeak.UI.UiPuppeteer;
 public class AliasTable : DisposableMediatorSubscriberBase
 {
     private readonly UiSharedService _uiSharedService;
-    private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PuppeteerHandler _handler;
 
     public AliasTable(ILogger<AliasTable> logger, GagspeakMediator mediator,
-        UiSharedService uiSharedService, PlayerCharacterManager playerManager,
-        ClientConfigurationManager clientConfigs) : base(logger, mediator)
+        UiSharedService uiSharedService, PuppeteerHandler handler) : base(logger, mediator)
     {
         _uiSharedService = uiSharedService;
-        _playerManager = playerManager;
-        _clientConfigs = clientConfigs;
-
-        Mediator.Subscribe<PlayerCharAliasChanged>(this, (msg) =>
-
-        {
-            AliasTriggerList = _clientConfigs.FetchListForPair(msg.UpdatedPairUID);
-        });
+        _handler = handler;
     }
 
-    public List<AliasTrigger> AliasTriggerList = null!; // Field to track the AliasTrigger list
     private int EditableAliasIndex = -1; // Field to track the editable AliasTrigger
     private AliasTrigger NewTrigger = new AliasTrigger(); // stores data of a trigger yet to be added, modifiable in the add new alias row.
 
@@ -52,7 +43,7 @@ public class AliasTable : DisposableMediatorSubscriberBase
         // create a new aliastrigger list temporarily
         try
         { 
-            var aliasTriggerListShallowCopy = AliasTriggerList.ToList();
+            var aliasTriggerListShallowCopy = _handler.StorageBeingEdited.AliasList.ToList();
             foreach (var (aliasTrigger, idx) in aliasTriggerListShallowCopy.Select((value, index) => (value, index)))
             {
                 using var id = ImRaii.PushId(idx);
@@ -60,8 +51,7 @@ public class AliasTable : DisposableMediatorSubscriberBase
             }
             DrawNewModRow(KeyToDrawFor);
         }
-        catch { /* Simple hack that consumes errors during the millisecond that the list is updating via Mediator. 
-                 * Prevents need for duplicate AliasList resources in draw loop */}
+        catch (Exception ex) { Logger.LogError(ex.ToString()); }
     }
 
     private void DrawAssociatedModRow(AliasTrigger aliasTrigger, int idx, string userID)
@@ -71,7 +61,7 @@ public class AliasTable : DisposableMediatorSubscriberBase
         if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), new Vector2(ImGui.GetFrameHeight()),
         "Delete alias from list.\nHold SHIFT in order to delete.", !UiSharedService.ShiftPressed(), true))
         {
-            _clientConfigs.RemoveAlias(userID, aliasTrigger);
+            _handler.RemoveAlias(aliasTrigger);
         }
         ImGui.Text($"ID: {idx + 1}");
         // try to draw the rest, but if it was removed, it cant, so we should skip over and consume the error
@@ -87,13 +77,14 @@ public class AliasTable : DisposableMediatorSubscriberBase
                     if (ImGui.InputTextWithHint($"##aliasText{idx}", "Input phrase goes here...", ref aliasInput, 64, ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         // Assuming a method to update an alias directly by index exists
-                        _clientConfigs.UpdateAliasInput(userID, idx, aliasInput);
+                        _handler.UpdateAliasInput(idx, aliasInput);
                     }
                 UiSharedService.AttachToolTip($"The string of words that {userID} would have to say to make you execute the output command");
 
                 // next line draw output
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2*ImGuiHelpers.GlobalScale);
                 _uiSharedService.IconButton(FontAwesomeIcon.LongArrowAltRight);
+                UiSharedService.AttachToolTip($"The command that will be executed when the input phrase is said by {userID}");
                 ImUtf8.SameLineInner();
                 string aliasOutput = aliasTrigger.OutputCommand;
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
@@ -101,7 +92,7 @@ public class AliasTable : DisposableMediatorSubscriberBase
                     if (ImGui.InputTextWithHint($"##command{idx}", "Output command goes here...", ref aliasOutput, 200, ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         // Assuming a method to update an alias directly by index exists
-                        _clientConfigs.UpdateAliasOutput(userID, idx, aliasOutput);
+                        _handler.UpdateAliasOutput(idx, aliasOutput);
                     }
                 UiSharedService.AttachToolTip($"The command that will be executed when the input phrase is said by {userID}");
             }
@@ -121,7 +112,7 @@ public class AliasTable : DisposableMediatorSubscriberBase
         ImGui.TableNextColumn();
         if (_uiSharedService.IconButton(FontAwesomeIcon.Plus))
         {
-            _clientConfigs.AddAlias(userID, NewTrigger);
+            _handler.AddAlias(NewTrigger);
             NewTrigger = new AliasTrigger();
         }
         UiSharedService.AttachToolTip("Add the alias configuration to the list.");

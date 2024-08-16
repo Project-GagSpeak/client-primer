@@ -47,7 +47,13 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         _lifetime = lifetime;
         // subscribe to the framework update Message 
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
-        // other methods were subscribed here, but for now they are being left out until i can understand this more.
+
+        // Make our pair no longer visible if we begin zoning.
+        Mediator.Subscribe<ZoneSwitchStartMessage>(this, (_) =>
+        {
+            _charaHandler?.Invalidate();
+            IsVisible = false;
+        });
     }
 
     // determines if a paired user is visible. (if they are in render range)
@@ -81,7 +87,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     {
         return OnlineUser == null
             ? base.ToString() ?? string.Empty
-            : OnlineUser.User.AliasOrUID + ":" + PlayerName + ":" + (IPlayerCharacter != nint.Zero ? "HasChar" : "NoChar");
+            : "AliasOrUID: " + OnlineUser.User.AliasOrUID + ":: PlayerName: " + PlayerName + ":: Player Address:" 
+            + (IPlayerCharacter != nint.Zero ? "HasChar" : "NoChar") + (_charaHandler != null ? _charaHandler.ToString() : "NoHandler");
     }
 
     protected override void Dispose(bool disposing)
@@ -106,6 +113,28 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
             // if the hosted service lifetime is ending, return
             if (_lifetime.ApplicationStopping.IsCancellationRequested) return;
+
+            // if we are not zoning, or in a cutscene, but this player is being disposed, they are leaving a zone.
+            // Because this is happening, we need to make sure that we revert their IPC data and toggle their address & visibility.
+            if (_frameworkUtil is { IsZoning: false } && !string.IsNullOrEmpty(name))
+            {
+                Logger.LogTrace("[{applicationId}] Restoring State for {name} ({OnlineUser})", applicationId, name, OnlineUser);
+
+                // They are visible but being disposed, so revert their applied customization data
+                var cts = new CancellationTokenSource();
+                cts.CancelAfter(TimeSpan.FromSeconds(30));
+
+                try
+                {
+                    RevertIpcDataAsync(name, applicationId, cts.Token).GetAwaiter().GetResult();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    Logger.LogWarning(ex, "Error Reverting character during disposal {name}", name);
+                }
+
+                cts.CancelDispose();
+            }
         }
         catch (Exception ex)
         {
@@ -144,23 +173,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         Logger.LogDebug("[BASE-{appbase}] Downloading and applying character for {name}", applicationBase, this);
 
         // process the changes to the character data (look further into the purpose of the deep cloning at a later time)
-        ApplyAlterationsForCharacter(applicationBase, characterData, charaDataChangesToUpdate);
-    }
-
-
-    /// <summary> Method responsible for applying any and all alterations to a paired character.
-    /// <para> 
-    /// This includes any IPC calls that are to be made to the character.
-    /// At the moment it does not support much else, but easily could.
-    /// </para>
-    /// <para> Method is the ONLY METHOD which should be calling CallAlterationsToIpcAsync </para>
-    /// </summary>
-    /// <param name="applicationBase">The base of the application for alterations</param>
-    /// <param name="charaData">The character data information of the paired user</param>
-    /// <param name="updatedData">the kinds of data from the character data to used in the update.</param>
-    private void ApplyAlterationsForCharacter(Guid applicationBase, CharacterIPCData charaData, HashSet<PlayerChanges> updatedData)
-    {
-        if (!updatedData.Any())
+        if (!charaDataChangesToUpdate.Any())
         {
             Logger.LogDebug("[BASE-{appBase}] Nothing to update for {obj}", applicationBase, this);
             return;
@@ -169,21 +182,21 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         // recreate the application cancellation token source
         _applicationCTS = _applicationCTS.CancelRecreate() ?? new CancellationTokenSource();
         var token = _applicationCTS.Token;
+
         // run the application task in async to apply the customization data to the paired user.
         _applicationTask = Task.Run(async () =>
         {
             // await for the customization data to be applied
-            await CallAlterationsToIpcAsync(_applicationId, updatedData, charaData, token).ConfigureAwait(false);
+            await CallAlterationsToIpcAsync(_applicationId, charaDataChangesToUpdate, characterData, token).ConfigureAwait(false);
             // throw if canceled
             token.ThrowIfCancellationRequested();
 
             // update the cachedData 
-            _cachedIpcData = charaData;
+            _cachedIpcData = characterData;
 
             Logger.LogDebug("[{applicationId}] Application finished", _applicationId);
         }, token);
     }
-
 
     /// <summary> Method that will apply any visual alterations such as moodles onto other paired users.
     /// <para> Primarily responsible for calling upon the various IPC's we have linked when there is a change to be made and apply them</para>
@@ -235,9 +248,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    /// <summary> Called every framework update for the pair handler. 
-    /// <para> I really dont understand this so you'll have to seriously debug this later.</para>
-    /// </summary>
+
     private void FrameworkUpdate()
     {
         // if the player name is null or empty

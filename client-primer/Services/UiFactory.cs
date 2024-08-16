@@ -10,6 +10,7 @@ using GagSpeak.UI.Handlers;
 using GagSpeak.UI.Permissions;
 using GagSpeak.UI.Profile;
 using GagSpeak.UI.UiRemote;
+using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 
 namespace GagSpeak.Services;
@@ -27,13 +28,14 @@ public class UiFactory
     private readonly ToyboxRemoteService _remoteService;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly ProfileService _gagspeakProfileManager;
+    private readonly OnFrameworkService _frameworkUtils;
 
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator,
         ApiController apiController, UiSharedService uiSharedService, 
         ToyboxVibeService vibeService, IdDisplayHandler displayHandler, 
         PairManager pairManager, PlayerCharacterManager playerManager,
         ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
-        ProfileService profileManager)
+        ProfileService profileManager, OnFrameworkService frameworkUtils)
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;
@@ -46,6 +48,7 @@ public class UiFactory
         _remoteService = remoteService;
         _serverConfigs = serverConfigs;
         _gagspeakProfileManager = profileManager;
+        _frameworkUtils = frameworkUtils;
     }
 
     public RemoteController CreateControllerRemote(PrivateRoom privateRoom)
@@ -63,7 +66,7 @@ public class UiFactory
     // create a new instance window of the userpair permissions window every time a new pair is selected.
     public UserPairPermsSticky CreateStickyPairPerms(Pair pair, StickyWindowType drawType)
     {
-        return new UserPairPermsSticky(_loggerFactory.CreateLogger<UserPairPermsSticky>(), _gagspeakMediator,
-            pair, drawType, _playerManager, _displayHandler, _uiSharedService, _apiController, _pairManager);
+        return new UserPairPermsSticky(_loggerFactory.CreateLogger<UserPairPermsSticky>(), _gagspeakMediator, pair, 
+            drawType, _frameworkUtils, _playerManager, _displayHandler, _uiSharedService, _apiController, _pairManager);
     }
 }

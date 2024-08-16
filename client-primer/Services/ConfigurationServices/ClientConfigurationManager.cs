@@ -366,7 +366,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     /* --------------------- Puppeteer Alias Configs --------------------- */
     #region Alias Config Methods
-    public List<AliasTrigger> FetchListForPair(string userId)
+    public AliasStorage FetchAliasStorageForPair(string userId)
     {
         if (!_aliasConfig.Current.AliasStorage.ContainsKey(userId))
         {
@@ -375,45 +375,23 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             _aliasConfig.Current.AliasStorage[userId] = new AliasStorage();
             _aliasConfig.Save();
         }
-        return _aliasConfig.Current.AliasStorage[userId].AliasList;
-    }
-    public void AddAlias(string userId, AliasTrigger alias)
-    {
-        // Check if the userId key exists in the AliasStorage dictionary
-        if (!_aliasConfig.Current.AliasStorage.ContainsKey(userId))
-        {
-            Logger.LogDebug("User {userId} does not have an alias list, creating one.", userId);
-            // If not, initialize it with a new AliasList object
-            _aliasConfig.Current.AliasStorage[userId] = new AliasStorage();
-        }
-        // Add alias logic
-        _aliasConfig.Current.AliasStorage[userId].AliasList.Add(alias);
-        _aliasConfig.Save();
-        Mediator.Publish(new PlayerCharAliasChanged(userId));
+        return _aliasConfig.Current.AliasStorage[userId];
     }
 
-    public void RemoveAlias(string userId, AliasTrigger alias)
+    // Called whenever set is saved.
+    internal void UpdateAliasStorage(string userId, AliasStorage newStorage)
     {
-        // Remove alias logic
-        _aliasConfig.Current.AliasStorage[userId].AliasList.Remove(alias);
+        _aliasConfig.Current.AliasStorage[userId] = newStorage;
         _aliasConfig.Save();
-        Mediator.Publish(new PlayerCharAliasChanged(userId));
+        Mediator.Publish(new PlayerCharAliasChanged(userId, DataUpdateKind.PuppeteerAliasListUpdated));
     }
 
-    public void UpdateAliasInput(string userId, int aliasIndex, string input)
+    // called from a callback update from other paired client. Never called by self. Meant to set another players name to our config.
+    internal void UpdateAliasStoragePlayerInfo(string userId, string charaName, string charaWorld)
     {
-        // Update alias input logic
-        _aliasConfig.Current.AliasStorage[userId].AliasList[aliasIndex].InputCommand = input;
+        _aliasConfig.Current.AliasStorage[userId].CharacterName = charaName;
+        _aliasConfig.Current.AliasStorage[userId].CharacterWorld = charaWorld;
         _aliasConfig.Save();
-        Mediator.Publish(new PlayerCharAliasChanged(userId));
-    }
-
-    public void UpdateAliasOutput(string userId, int aliasIndex, string output)
-    {
-        // Update alias output logic
-        _aliasConfig.Current.AliasStorage[userId].AliasList[aliasIndex].OutputCommand = output;
-        _aliasConfig.Save();
-        Mediator.Publish(new PlayerCharAliasChanged(userId));
     }
 
     #endregion Alias Config Methods

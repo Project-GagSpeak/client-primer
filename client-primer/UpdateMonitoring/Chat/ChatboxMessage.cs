@@ -54,6 +54,9 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<UpdateChatListeners>(this, (msg) => OnUpdateChatListeners());
 
+        // load in the initial list of chat listeners
+        OnUpdateChatListeners();
+
     }
 
     public Queue<string> MessageQueue; // the messages to send to the server.
@@ -71,6 +74,7 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
 
     private void OnUpdateChatListeners()
     {
+        Logger.LogDebug("Updating Chat Listeners");
         var listeners = _puppeteerHandler.GetPlayersToListenFor();
         PlayersToListenFor = listeners.Select(x => new ChatListener { PlayerName = x.Item1, WorldName = x.Item2 }).ToList();
     }
@@ -87,8 +91,6 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
         string senderName = senderPlayerPayload.PlayerName;
         string senderWorld = senderPlayerPayload.World.Name;
 
-        Logger.LogInformation($"Chat Message from {senderName} in {senderWorld} with message: {message.TextValue}");
-
         // check for globalTriggers
         if (_puppeteerHandler.IsValidGlobalTriggerWord(message, type))
         {
@@ -98,7 +100,7 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
 
             // enqueue the message and log sucess
             Logger.LogInformation(senderName + " used your global trigger phase to make you exeucte a message!");
-            MessageQueue.Enqueue(msgToSend.TextValue);
+            MessageQueue.Enqueue("/" + msgToSend.TextValue);
         }
 
         // check for puppeteer pair triggers
@@ -112,13 +114,16 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
             {
                 // get the new message to send
                 SeString msgToSend = _puppeteerHandler.NewMessageFromPuppeteerTrigger(triggerPhrases, matchedPair.UserPairOwnUniquePairPerms, message, type);
-
+                
                 // convert any alias's set for this user if any are present.
                 msgToSend = _puppeteerHandler.ConvertAliasCommandsIfAny(matchedPair.UserData.UID, msgToSend.TextValue);
 
-                // enqueue the message and log sucess
-                Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!");
-                MessageQueue.Enqueue(msgToSend.TextValue);
+                if (!msgToSend.TextValue.IsNullOrEmpty())
+                {
+                    // enqueue the message and log sucess
+                    Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!");
+                    MessageQueue.Enqueue("/" + msgToSend.TextValue);
+                }
             }
         }
     }
@@ -128,7 +133,6 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
         matchedPair = null;
         // make sure we are listening for this player.
         if (!PlayersToListenFor.Any(listener => listener.PlayerName == name && listener.WorldName == world)) return false;
-
         // make sure they exist in our alias list config
         var uidOfSender = _puppeteerHandler.GetUIDMatchingSender(name, world);
         if (uidOfSender.IsNullOrEmpty()) return false;

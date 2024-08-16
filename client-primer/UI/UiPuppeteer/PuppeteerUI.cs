@@ -145,7 +145,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         {
             if (_puppeteerHandler.StorageBeingEdited.CharacterName != string.Empty)
             {
-                ImGui.Text("Scanning for Trigger Messages from: ");
+                ImGui.Text("Scanning messages from: ");
                 ImGui.SameLine();
                 var text = $"{_puppeteerHandler.StorageBeingEdited.CharacterName} @ {_puppeteerHandler.StorageBeingEdited.CharacterWorld}";
                 UiSharedService.ColorText(text, ImGuiColors.ParsedPink);
@@ -180,9 +180,9 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                                                     : _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase;
                         // example display
                         ImGui.Text($"Example Usage from : {_puppeteerHandler.SelectedPair.UserData.AliasOrUID}");
-                        ImGui.TextColored(new Vector4(1.0f, 1.0f, 0.0f, 1.0f), $"<{_puppeteerHandler.SelectedPair.UserData.AliasOrUID}> " +
-                        $"{displayText} {_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.StartChar} " + $"glamour apply Hogtied | p | [me] " +
-                        $"{_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.EndChar}");
+                        UiSharedService.ColorTextWrapped($"<{_puppeteerHandler.StorageBeingEdited.CharacterName}"
+                           + $"{_puppeteerHandler.StorageBeingEdited.CharacterWorld}> {displayText} {_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.StartChar} " 
+                           + $"glamour apply Hogtied | p | [me] " + $"{_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.EndChar}", ImGuiColors.ParsedPink);
                         UiSharedService.AttachToolTip($"The spaces between the brackets and commands/trigger phrases are optional.");
                     }
 
@@ -283,9 +283,10 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         }
         if (ImGui.IsItemDeactivatedAfterEdit())
         {
-            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase = TriggerPhrase;
+            _logger.LogTrace($"Updated own pair permission: TriggerPhrase to {TriggerPhrase}");
+            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
+                new KeyValuePair<string, object>("TriggerPhrase", TriggerPhrase)));
             _tempTriggerStorage = null!;
-            // TODO: publish to mediator our update so we push it
         }
         UiSharedService.AttachToolTip("You can create multiple trigger phrases by placing a | between phrases.");
 
@@ -304,9 +305,10 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             {
                 startChar = "(";
             }
-            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.StartChar = startChar[0];
+            _logger.LogTrace($"Updated own pair permission: StartChar to {startChar}");
+            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
+                new KeyValuePair<string, object>("StartChar", startChar[0])));
             _tempStartChar = null!;
-            // TODO: publish to mediator our update so we push it
         }
         UiSharedService.AttachToolTip($"Custom Start Character that replaces the left enclosing bracket.\n" +
             "Replaces the [ ( ] in Ex: [ TriggerPhrase (commandToExecute) ]");
@@ -325,9 +327,10 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             {
                 endChar = ")";
             }
-            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.EndChar = endChar[0];
+            _logger.LogTrace($"Updated own pair permission: EndChar to {endChar}");
+            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
+                new KeyValuePair<string, object>("EndChar", endChar[0])));
             _tempEndChar = null!;
-            // TODO: publish to mediator our update so we push it
         }
         UiSharedService.AttachToolTip($"Custom End Character that replaces the right enclosing bracket.\n" +
             "Replaces the [ ) ] in Ex: [ TriggerPhrase (commandToExecute) ]");

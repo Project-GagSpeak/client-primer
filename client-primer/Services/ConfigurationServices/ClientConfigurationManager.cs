@@ -68,6 +68,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             // make sure bratty subs dont use disconnect to think they can get free.
             SyncDataWithConnectionDto(msg.Connection);
         });
+
+        Mediator.Publish(new UpdateChatListeners());
     }
 
     // define public access to various storages (THESE ARE ONLY GETTERS, NO SETTERS)
@@ -403,6 +405,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _aliasConfig.Current.AliasStorage[userId].CharacterName = charaName;
         _aliasConfig.Current.AliasStorage[userId].CharacterWorld = charaWorld;
         _aliasConfig.Save();
+        Mediator.Publish(new UpdateChatListeners());
     }
 
 

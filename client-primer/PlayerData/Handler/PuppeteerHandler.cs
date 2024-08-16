@@ -71,7 +71,7 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
 
     // Store an accessor of the alarm being edited.
     private AliasStorage? _storageBeingEdited;
-    public string UidOfStorage { get; private set; } = string.Empty;
+    public string UidOfStorage => SelectedPair?.UserData.UID ?? string.Empty;
     public AliasStorage StorageBeingEdited
     {
         get
@@ -87,18 +87,11 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
     public bool EditingListIsNull => StorageBeingEdited == null;
 
     #region PuppeteerSettings
-    public void ClearEditedAliasStorage()
-    {
-        UidOfStorage = string.Empty;
-        StorageBeingEdited = null!;
-    }
 
     public void UpdatedEditedStorage()
     {
         // update the set in the client configs
         _clientConfigs.UpdateAliasStorage(UidOfStorage, StorageBeingEdited);
-        // clear the editing set
-        ClearEditedAliasStorage();
     }
 
     // Only intended to be called via the AliasStorage Callback dto.
@@ -125,6 +118,9 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
 
     public void UpdateAliasOutput(int aliasIndex, string output)
         => StorageBeingEdited.AliasList[aliasIndex].OutputCommand = output;
+
+    public void UpdateAliasEnabled(int aliasIndex, bool enabled)
+        => StorageBeingEdited.AliasList[aliasIndex].Enabled = enabled;
 
     #endregion PuppeteerSettings
     #region PuppeteerTriggerDetection
@@ -313,11 +309,15 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
     {
         // handle sit commands
         if (permsForSender.AllowSitRequests)
+        {
+            Logger.LogTrace("Checking if message is a sit command");
             if (messageRecieved.TextValue == "sit" || messageRecieved.TextValue == "groundsit") return true;
+        }
 
         // handle motion commands
         if (permsForSender.AllowMotionRequests)
         {
+            Logger.LogTrace("Checking if message is a motion command");
             // we can check to see if it is a valid emote
             var emotes = _dataManager.GetExcelSheet<Emote>();
             if (emotes != null)
@@ -331,7 +331,11 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         }
 
         // handle all commands
-        if (permsForSender.AllowSitRequests) return true;
+        if (permsForSender.AllowAllRequests)
+        {
+            Logger.LogTrace("Checking if message is an all command");
+            return true;
+        }
 
         // Failure
         return false;
@@ -341,6 +345,8 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
     {
         // now we can use this index to scan our aliasLists
         List<AliasTrigger> Triggers = GetAliasStorage(SenderUid).AliasList;
+
+        Logger.LogTrace("Found {0} alias triggers for this user", Triggers.Count);
 
         // sort by decending length so that shorter equivalents to not override longer variants.
         var sortedAliases = Triggers.OrderByDescending(alias => alias.InputCommand.Length);

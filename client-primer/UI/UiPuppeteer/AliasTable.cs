@@ -102,6 +102,16 @@ public class AliasTable : DisposableMediatorSubscriberBase
             {
                 EditableAliasIndex = (EditableAliasIndex == idx) ? -1 : idx;
             }
+            UiSharedService.AttachToolTip("Edit the alias configuration.");
+            // draw the enable button.
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2 * ImGuiHelpers.GlobalScale);
+            var enabledRef = aliasTrigger.Enabled;
+            if (ImGui.Checkbox($"##Enable{idx}{aliasTrigger.InputCommand}", ref enabledRef))
+            { 
+                _handler.UpdateAliasEnabled(idx, enabledRef);
+            }
+            UiSharedService.AttachToolTip("Enable / Disable the Alias.");
+
             ImGui.TableNextRow();
         }
         catch(Exception ex) { Logger.LogError(ex.StackTrace); }

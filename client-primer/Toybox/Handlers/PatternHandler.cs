@@ -82,6 +82,9 @@ public class PatternHandler : MediatorSubscriberBase
     public int PatternListSize()
         => _clientConfigs.GetPatternCount();
 
+    public List<PatternData> GetPatternsForSearch()
+        => _clientConfigs.GetPatternsForSearch();
+
     public PatternData GetPattern(int index) 
         => _clientConfigs.FetchPattern(index);
 

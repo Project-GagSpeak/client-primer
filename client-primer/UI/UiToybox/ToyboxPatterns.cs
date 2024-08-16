@@ -10,9 +10,11 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagSpeak.UI.UiRemote;
 using ImGuiNET;
+using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using Newtonsoft.Json;
 using OtterGui;
 using OtterGui.Classes;
+using OtterGui.Text;
 using System.Numerics;
 
 namespace GagSpeak.UI.UiToybox;
@@ -42,16 +44,25 @@ public class ToyboxPatterns
     private Vector2 DefaultItemSpacing { get; set; } // TODO: remove
 
     // Private accessor vars for list management.
-    private List<bool> ListItemHovered = new List<bool>();
     private LowerString PatternSearchString = LowerString.Empty;
+    private List<PatternData> FilteredPatternsList
+        => _handler.GetPatternsForSearch()
+            .Where(pattern => pattern.Name.Contains(PatternSearchString, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    private List<bool> ListItemHovered = new List<bool>();
+
     private LowerString PairSearchString = LowerString.Empty;
 
     public void DrawPatternManagerPanel()
     {
+        var regionSize = ImGui.GetContentRegionAvail();
+
         // if we are simply viewing the main page, display list of patterns  
         if (_handler.EditingPatternNull)
         {
             DrawCreateOrImportPatternHeader();
+            ImGui.Separator();
+            DrawSearchFilter(regionSize.X, ImGui.GetStyle().ItemInnerSpacing.X);
             ImGui.Separator();
             if (_handler.PatternListSize() > 0)
                 DrawPatternSelectableMenu();
@@ -174,39 +185,62 @@ public class ToyboxPatterns
         }
     }
 
+    /// <summary> Draws the search filter for our user pair list (whitelist) </summary>
+    public void DrawSearchFilter(float availableWidth, float spacingX)
+    {
+        var buttonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
+        ImGui.SetNextItemWidth(availableWidth - buttonSize - spacingX);
+        string filter = PatternSearchString;
+        if (ImGui.InputTextWithHint("##PatternSearchStringFilter", "Search for a Pattern", ref filter, 255))
+        {
+            PatternSearchString = filter;
+        }
+        ImUtf8.SameLineInner();
+        using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(PatternSearchString));
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
+        {
+            PatternSearchString = string.Empty;
+        }
+    }
+
     private void DrawPatternSelectableMenu()
     {
+        var region = ImGui.GetContentRegionAvail();
+        var topLeftSideHeight = region.Y;
         // if list size has changed, refresh the list of hovered items
         if (ListItemHovered.Count != _handler.PatternListSize())
         {
             ListItemHovered.Clear();
-            ListItemHovered.AddRange(Enumerable.Repeat(false, _handler.PatternListSize()));
+            ListItemHovered.AddRange(Enumerable.Repeat(false, FilteredPatternsList.Count));
         }
 
-        // display the selectable for each pattern using a for loop to keep track of the index
-        for (int i = 0; i < _handler.PatternListSize(); i++)
+        using (var leftChild = ImRaii.Child($"###SelectablePatternList", region with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar))
         {
-            DrawPatternSelectable(i); // Pass the index to DrawPatternSelectable
+            // display the selectable for each pattern using a for loop to keep track of the index
+            for (int i = 0; i < FilteredPatternsList.Count; i++)
+            {
+                var pattern = FilteredPatternsList[i];
+                DrawPatternSelectable(pattern, i); // Pass the index to DrawPatternSelectable
+            }
         }
     }
 
-    private void DrawPatternSelectable(int idx)
+    private void DrawPatternSelectable(PatternData pattern, int idx)
     {
-        // grab the pattern to draw details of.
-        var tmpPattern = _handler.GetPattern(idx);
+
         // fetch the name of the pattern, and its text size
-        var name = tmpPattern.Name;
+        var name = pattern.Name;
         Vector2 tmpAlarmTextSize;
 
         var nameTextSize = ImGui.CalcTextSize(name);
         // fetch the author name (should only ever be UID, Alias, or Anonymous)
-        var author = tmpPattern.Author;
+        var author = pattern.Author;
         var authorTextSize = ImGui.CalcTextSize(author);
         // fetch the duration of the pattern
-        var duration = tmpPattern.Duration;
+        var duration = pattern.Duration;
         var durationTextSize = ImGui.CalcTextSize(duration);
         // fetch the list of tags.
-        var tags = tmpPattern.Tags;
+        var tags = pattern.Tags;
         using (_uiShared.UidFont.Push())
         {
             tmpAlarmTextSize = ImGui.CalcTextSize($"{name}");
@@ -214,8 +248,8 @@ public class ToyboxPatterns
         // Get Style sizes
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
-        var patternToggleButton = tmpPattern.IsActive ? FontAwesomeIcon.Stop : FontAwesomeIcon.Play;
-        var patternToggleButtonSize = _uiShared.GetIconButtonSize(tmpPattern.IsActive ? FontAwesomeIcon.Stop : FontAwesomeIcon.Play);
+        var patternToggleButton = pattern.IsActive ? FontAwesomeIcon.Stop : FontAwesomeIcon.Play;
+        var patternToggleButtonSize = _uiShared.GetIconButtonSize(pattern.IsActive ? FontAwesomeIcon.Stop : FontAwesomeIcon.Play);
 
         // create the selectable
         using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
@@ -229,7 +263,7 @@ public class ToyboxPatterns
                 _uiShared.BigText($"{name}");
                 ImGui.SameLine();
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((tmpAlarmTextSize.Y - nameTextSize.Y) / 2));
-                if (tmpPattern.ShouldLoop)
+                if (pattern.ShouldLoop)
                 {
                     using (var loopColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.ParsedPink))
                     {
@@ -260,13 +294,13 @@ public class ToyboxPatterns
             if (_uiShared.IconButton(patternToggleButton))
             {
                 // set the enabled state of the pattern based on its current state so that we toggle it
-                if (tmpPattern.IsActive)
+                if (pattern.IsActive)
                 {
                     _playbackService.StopPattern(idx, true);
                 }
                 else
                 {
-                    _playbackService.PlayPattern(idx, tmpPattern.StartPoint, tmpPattern.Duration, true);
+                    _playbackService.PlayPattern(idx, pattern.StartPoint, pattern.Duration, true);
                 }
                 // toggle the state & early return so we dont access the childclicked button
                 return;
@@ -276,7 +310,7 @@ public class ToyboxPatterns
         ListItemHovered[idx] = ImGui.IsItemHovered();
         if (ImGui.IsItemClicked())
         {
-            _handler.SetEditingPattern(tmpPattern, idx);
+            _handler.SetEditingPattern(pattern, idx);
         }
         UiSharedService.AttachToolTip("Click me to edit this pattern.");
     }
@@ -378,7 +412,7 @@ public class ToyboxPatterns
 
         ImGui.Separator();
         // display filterable search list
-        DrawSearchFilter(ImGui.GetContentRegionAvail().X, ImGui.GetStyle().ItemSpacing.X);
+        DrawUidSearchFilter(ImGui.GetContentRegionAvail().X, ImGui.GetStyle().ItemSpacing.X);
         using (var table = ImRaii.Table("userListForVisibility", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY,
             new Vector2(region.X, ImGui.GetContentRegionAvail().Y)))
         {
@@ -427,7 +461,7 @@ public class ToyboxPatterns
     }
 
     /// <summary> Draws the search filter for our user pair list (whitelist) </summary>
-    public void DrawSearchFilter(float availableWidth, float spacingX)
+    public void DrawUidSearchFilter(float availableWidth, float spacingX)
     {
         var buttonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
         ImGui.SetNextItemWidth(availableWidth - buttonSize - spacingX);

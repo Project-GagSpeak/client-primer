@@ -1,3 +1,4 @@
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Data;
@@ -32,6 +33,24 @@ public class GagSetupUI : WindowMediatorSubscriberBase
 
         AllowPinning = false;
         AllowClickthrough = false;
+        TitleBarButtons = new()
+        {
+            new TitleBarButton()
+            {
+                Icon = FontAwesomeIcon.CloudDownloadAlt,
+                Click = (msg) =>
+                {
+                    Mediator.Publish(new UiToggleMessage(typeof(MigrationsUI)));
+                },
+                IconOffset = new(2,1),
+                ShowTooltip = () =>
+                {
+                    ImGui.BeginTooltip();
+                    ImGui.Text("Migrate Old GagStorage Files");
+                    ImGui.EndTooltip();
+                }
+            }
+        };
 
         _tabMenu = new GagSetupTabMenu();
 

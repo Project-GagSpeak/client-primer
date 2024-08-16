@@ -12,6 +12,7 @@ using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Connection;
 using ImGuiNET;
+using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
@@ -423,7 +424,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     /// <summary> Fetches the currently Active Alarm to have as a reference accessor. Can be null. </summary>
     public PatternData? GetActiveRunningPattern() => _patternConfig.Current.PatternStorage.Patterns.FirstOrDefault(p => p.IsActive);
-
+    public List<PatternData> GetPatternsForSearch() => _patternConfig.Current.PatternStorage.Patterns;
     public PatternData FetchPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx];
     public int GetPatternIdxByName(string name) => _patternConfig.Current.PatternStorage.Patterns.FindIndex(p => p.Name == name);
     public List<string> GetPatternNames() => _patternConfig.Current.PatternStorage.Patterns.Select(set => set.Name).ToList();
@@ -455,10 +456,29 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     public void AddNewPattern(PatternData newPattern)
     {
+        // if a pattern from the patternstorage with the same name already exists, continue.
+        if (_patternConfig.Current.PatternStorage.Patterns.Any(x => x.Name == newPattern.Name)) return;
+        // otherwise, add it
         _patternConfig.Current.PatternStorage.Patterns.Add(newPattern);
         _patternConfig.Save();
         // publish to mediator one was added
         Logger.LogInformation("Pattern Added: {0}", newPattern.Name);
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
+    }
+
+    // Bulk variant.
+    public void AddNewPatterns(List<PatternData> newPattern)
+    {
+        foreach (var pattern in newPattern)
+        {
+            // if a pattern from the patternstorage with the same name already exists, continue.
+            if (_patternConfig.Current.PatternStorage.Patterns.Any(x => x.Name == pattern.Name)) continue;
+            // otherwise, add it
+            _patternConfig.Current.PatternStorage.Patterns.Add(pattern);
+        }
+        _patternConfig.Save();
+        // publish to mediator one was added
+        Logger.LogInformation("Added: {0} Patterns to Toybox", newPattern.Count);
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 

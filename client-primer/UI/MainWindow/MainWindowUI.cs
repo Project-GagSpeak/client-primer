@@ -101,7 +101,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 ShowTooltip = () =>
                 {
                     ImGui.BeginTooltip();
-                    ImGui.Text("Open Gagspeak Event Viewer");
+                    ImGui.Text("Migrations & Event Viewer");
                     ImGui.EndTooltip();
                 }
             }

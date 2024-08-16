@@ -23,6 +23,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Data;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Migrations;
 using GagSpeak.Services.Textures;
 using GagSpeak.Toybox.Services;
 using GagSpeak.Toybox.SimulatedVibe;
@@ -306,8 +307,13 @@ public static class GagSpeakServiceExtensions
         // server-end configs
         .AddSingleton((s) => new ServerConfigService(pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new NicknamesConfigService(pi.ConfigDirectory.FullName))
-        .AddSingleton((s) => new ServerTagConfigService(pi.ConfigDirectory.FullName));
-    /*.AddSingleton((s) => new ConfigurationMigrator(s.GetRequiredService<ILogger<ConfigurationMigrator>>(), pi)); May need this to migrate our configs */
+        .AddSingleton((s) => new ServerTagConfigService(pi.ConfigDirectory.FullName))
+
+        // Configuration Migrators
+        .AddSingleton((s) => new MigrateGagStorage(s.GetRequiredService<ILogger<MigrateGagStorage>>()))
+        .AddSingleton((s) => new MigrateRestraintSets(s.GetRequiredService<ILogger<MigrateRestraintSets>>()))
+        .AddSingleton((s) => new MigratePatterns(s.GetRequiredService<ILogger<MigratePatterns>>(),
+            s.GetRequiredService<ClientConfigurationManager>(), pi.ConfigDirectory.FullName));
 
     #endregion ConfigServices
     #region ScopedServices
@@ -329,6 +335,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<DrawEntityFactory>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
+        .AddScoped<WindowMediatorSubscriberBase, MigrationsUI>()
         .AddScoped<WindowMediatorSubscriberBase, RemotePersonal>()
         .AddScoped<WindowMediatorSubscriberBase, RemotePatternMaker>()
         // RemoteController made via the factory is defined via the factory and not here.

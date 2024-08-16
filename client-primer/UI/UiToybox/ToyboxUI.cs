@@ -1,3 +1,4 @@
+using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.Services.Mediator;
@@ -38,6 +39,24 @@ public class ToyboxUI : WindowMediatorSubscriberBase
 
         AllowPinning = false;
         AllowClickthrough = false;
+        TitleBarButtons = new()
+        {
+            new TitleBarButton()
+            {
+                Icon = FontAwesomeIcon.CloudDownloadAlt,
+                Click = (msg) =>
+                {
+                    Mediator.Publish(new UiToggleMessage(typeof(MigrationsUI)));
+                },
+                IconOffset = new(2,1),
+                ShowTooltip = () =>
+                {
+                    ImGui.BeginTooltip();
+                    ImGui.Text("Migrate Old Pattern Data");
+                    ImGui.EndTooltip();
+                }
+            }
+        };
 
         _tabMenu = new ToyboxTabMenu();
 

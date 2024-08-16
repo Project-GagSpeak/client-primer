@@ -157,8 +157,9 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<OnlinePairManager>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<VisiblePairManager>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<NotificationService>();
-            // boot up our chatGarbler services.
 
+            // boot up our chat services.
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatBoxMessage>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatSender>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatInputDetour>();
         }
@@ -168,3 +169,66 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
         }
     }
 }
+
+/*
+                                 _,..----.._
+                               _/  . -.     \_
+                              /     \  \      \_
+                             /    _  \ _`-.  -. \
+                            /  _-'_.  /    \   \ \
+                           /  /  /     \-_  \_ /  .
+                          /  /  /     / \_\_  '   `.
+                         (   `._'    /    \ \_     |
+                          \         /      ; |    -.
+                          /  /     /       \ |._   |
+                         (  / ._.-'         )/ |  ||
+                          \`|  ---.  .---. //  ' .'|
+                          . \  `-' )  `''  '  /  ' |
+                         /  | (   /          // /  '
+                         `. |\ \  ._.       // /  /____
+                           \|| |\ ____     // '/  /    `-
+                            '| \ \`..'  / / .-'  /       \
+                             | |  \_  _/ / '( ) |         \
+                ___..__      | /    `'  /  `./  \          \
+             _-'       `-.   |      /   \   /  / \          .
+           _/             `- |  // /   .-  /  /   \         `
+          /   _.-           `'.   .-' /     _// /| \_
+         /   /        _    )   `./    \ .--'-' / /\_ \       \
+        /   /      .-' `-./      |     `-'__.-' /  \\|
+       /    |   -\ |      - ._   \  _          '    /'
+       |    /  / | |       \  )   -' .-.            \         :
+       |   / . | | |   .--.|  /  /  /o |             \        `
+       |  / /  | : |   .--.| .  /   \_/               \        \
+       / / (   | \ |  `._O'| ! .                       \        .
+      // .  `  |  \ \      |.' |                       .        |
+      /|  -._  |   \|   )  |   `              /       . \       `
+       |     \ |           '  ) \            /        '  .       .
+     _/     -._ \  .----. /  /   \._     _.-'        .   \       \
+  .-'_-'-,     \ \  `--' /  (     . `---'            '    \       \
+ |.-'  _/       \ \     / .-.\  \\ \                /     \        \
+ \\   /          ) )-._.'/    `.  \|               |       \  _     )
+  \|  /|     _.-'//     /       `-.|               |        -'      |
+      |\ \  /    / _.-'/           -.              |        |       |
+      |   `-.    \'  .'              \             \        '       '
+      \\    `.   |  /                 `.            \      .        '
+      /      -  _/                      `.           `.    |        '
+      \   _.'  /                          -.          |    |       ,
+     / -.     /           _.-               `.        |    |       '
+    /    -   _.              `\               -.      `.   |      /
+    \ -.   .'                  `._              \      |   !     ,
+     |  ._/                       -.             `. .-=\  .'
+     |   /._            |           `.             \-'  |.'     /
+     |  /,o ;                        |-            _`.--'       ;
+     \ .|`.'            |            | `-_      _.'_.          /
+     -' |               '            |    `.   (_ .           /
+    /   \              /             |      `-_ _' _         /`.
+   /     \           .'              |      /(_' _'         .' !
+  .       `._     _.'                |     / ( -'_.-'     _.'  |
+  (       |  `---'                    \-._'   (._ _.- _.-'      .
+  `.      |  \                         \      |: `---'  |       !
+    \     |   \                         \     ||        |        .
+     `.__.|    \                         \`-._/`.       |        !
+          |                               \   \ |       |         .
+           \                               \_  \|       |         |
+            \                            .-' `. `.      |         `
+*/

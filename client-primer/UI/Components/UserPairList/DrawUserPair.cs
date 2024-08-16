@@ -85,6 +85,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
 
     public void DrawPairedClientListForm()
     {
+        var cursorPos = ImGui.GetCursorPosX();
         using var id = ImRaii.PushId(GetType() + _id);
         var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), _wasHovered);
         using (ImRaii.Child(GetType() + _id, new Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
@@ -105,10 +106,13 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         }
         _wasHovered = ImGui.IsItemHovered();
         color.Dispose();
+        // if they were a supporter, go back to the start and draw the image.
+        if (!_pair.UserData.SupporterTier.Equals(CkSupporterTier.NoRole)) DrawSupporterIcon(cursorPos);
     }
 
     private void DrawSupporterIcon(float cursorPos)
     {
+        var tooltipString = "";
         ImGui.SameLine(cursorPos);
         ImGui.SetCursorPosX(cursorPos - _uiSharedService.GetIconData(FontAwesomeIcon.EllipsisV).X - ImGui.GetStyle().ItemSpacing.X);
         // fetch new image if needed, otherwise use existing
@@ -119,18 +123,23 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
             {
                 case CkSupporterTier.ServerBooster:
                     _supporterWrap = _uiSharedService.RentSupporterBooster();
+                    tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting the discord with a server Boost!";
                     break;
                 case CkSupporterTier.IllustriousSupporter:
                     _supporterWrap = _uiSharedService.RentSupporterTierOne();
+                    tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting CK as a Illustrious Supporter";
                     break;
                 case CkSupporterTier.EsteemedPatron:
                     _supporterWrap = _uiSharedService.RentSupporterTierTwo();
+                    tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting CK as a Esteemed Patron";
                     break;
                 case CkSupporterTier.DistinguishedConnoisseur:
                     _supporterWrap = _uiSharedService.RentSupporterTierThree();
+                    tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting CK as a Distinguished Connoisseur";
                     break;
                 case CkSupporterTier.KinkporiumMistress:
                     _supporterWrap = _uiSharedService.RentSupporterTierFour();
+                    tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is the Shop Mistress of CK, and the Dev of GagSpeak.";
                     break;
                 default:
                     break;

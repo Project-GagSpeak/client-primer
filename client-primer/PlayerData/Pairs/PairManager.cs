@@ -134,10 +134,12 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     }
 
     /// <summary> Fetches the filtered list of user pair objects where only users that are currently online are returned.</summary>
-    public List<Pair> GetOnlineUserPairs() => _allClientPairs.Where(p => !string.IsNullOrEmpty(p.Value.GetPlayerNameHash())).Select(p => p.Value).ToList();
+    public List<Pair> GetOnlineUserPairs() 
+        => _allClientPairs.Where(p => !string.IsNullOrEmpty(p.Value.GetPlayerNameHash())).Select(p => p.Value).ToList();
 
     /// <summary> Fetches all online userPairs, but returns the key instead of value like above.</summary>
-    public List<UserData> GetOnlineUserDatas() => _allClientPairs.Where(p => !string.IsNullOrEmpty(p.Value.GetPlayerNameHash())).Select(p => p.Key).ToList();
+    public List<UserData> GetOnlineUserDatas() 
+        => _allClientPairs.Where(p => !string.IsNullOrEmpty(p.Value.GetPlayerNameHash())).Select(p => p.Key).ToList();
 
     /// <summary> fetches the total number of online users that are also visible to the client.</summary>
     public int GetVisibleUserCount() => _allClientPairs.Count(p => p.Value.IsVisible);
@@ -153,7 +155,6 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
     // Fetch a user's UserData off of their UID
     public UserData? GetUserDataFromUID(string uid) => _allClientPairs.Keys.FirstOrDefault(p => p.UID == uid);
-
 
     /// <summary> Marks a user pair as offline.</summary>
     public void MarkPairOffline(UserData user)

@@ -39,7 +39,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
     private readonly WardrobeHandler _wardrobeHandler;
-    private readonly PuppeteerHandler _puppeteerHandler;
+    // No Puppeteer Handler. Introduces circular dependency.
     private readonly PatternHandler _patternHandler;
     private readonly AlarmHandler _alarmHandler;
     private readonly TriggerHandler _triggerHandler;
@@ -58,14 +58,12 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger,
         GagspeakMediator mediator, PairManager pairManager,
-        WardrobeHandler wardrobeHandler, PuppeteerHandler puppeteerHandler, 
-        PatternHandler patternHandler, AlarmHandler alarmHandler, 
-        TriggerHandler triggerHandler, ClientConfigurationManager clientConfiguration) 
-        : base(logger, mediator)
+        WardrobeHandler wardrobeHandler, PatternHandler patternHandler, 
+        AlarmHandler alarmHandler, TriggerHandler triggerHandler, 
+        ClientConfigurationManager clientConfiguration) : base(logger, mediator)
     {
         _pairManager = pairManager;
         _wardrobeHandler = wardrobeHandler;
-        _puppeteerHandler = puppeteerHandler;
         _patternHandler = patternHandler;
         _alarmHandler = alarmHandler;
         _clientConfigManager = clientConfiguration;
@@ -441,7 +439,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         if (callbackDto.UpdateKind == DataUpdateKind.PuppeteerPlayerNameRegistered)
         {
             // do the update for name registeration of this pair.
-            _puppeteerHandler.UpdatePlayerInfoForUID(callbackDto.User.UID, callbackDto.AliasData.CharacterName, callbackDto.AliasData.CharacterWorld);
+            Mediator.Publish(new UpdateCharacterListenerForUid(callbackDto.User.UID, callbackDto.AliasData.CharacterName, callbackDto.AliasData.CharacterWorld));
             Logger.LogDebug("Player Name Registered Successfully processed by Server!");
         }
         else

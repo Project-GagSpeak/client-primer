@@ -92,6 +92,11 @@ public record HardcoreForcedToStayMessage(Pair Pair, UpdatedNewState State) : Me
 public record HardcoreForcedBlindfoldMessage(Pair Pair, UpdatedNewState State) : MessageBase;
 #endregion PLAYERDATA WARDROBE HANDLER RECORDS
 
+#region PLAYERDATA PUPPETEER HANDLER RECORDS
+public record UpdateChatListeners : MessageBase; // for updating the chat listeners.
+public record UpdateCharacterListenerForUid(string Uid, string CharName, string CharWorld) : MessageBase;
+#endregion PLAYERDATA PUPPETEER HANDLER RECORDS
+
 #region PLAYERDATA TOYBOX HANDLER RECORDS
 public record VfxActorRemoved(IntPtr data) : MessageBase;
 public record ToyScanStarted : MessageBase; // for when the toybox scan is started.

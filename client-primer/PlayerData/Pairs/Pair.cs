@@ -182,14 +182,18 @@ public class Pair
         }
 
         // otherwise, update the appropriate part.
-        if(data.UpdateKind == DataUpdateKind.PuppeteerAliasListUpdated)
+        if (data.UpdateKind == DataUpdateKind.PuppeteerAliasListUpdated)
         {
             LastReceivedAliasData.AliasList = data.AliasData.AliasList;
         }
-        else if(data.UpdateKind == DataUpdateKind.PuppeteerPlayerNameRegistered)
+        else if (data.UpdateKind == DataUpdateKind.PuppeteerPlayerNameRegistered)
         {
             LastReceivedAliasData.CharacterName = data.AliasData.CharacterName;
             LastReceivedAliasData.CharacterWorld = data.AliasData.CharacterWorld;
+        }
+        else if (data.UpdateKind == DataUpdateKind.FullDataUpdate)
+        {
+            LastReceivedAliasData = data.AliasData;
         }
         else
         {

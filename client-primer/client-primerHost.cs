@@ -113,7 +113,7 @@ public sealed class GagSpeak : IDalamudPlugin
             .AddSingleton<FileDialogManager>()
             .AddSingleton(new Dalamud.Localization("GagSpeak.Localization.", "", useEmbedded: true))
             // add the generic services for GagSpeak
-            .AddGagSpeakGeneric(pi, cs, con, dm, fw, gg, gip, ot, ss, tm, tp)
+            .AddGagSpeakGeneric(pi, cs, cg, con, dm, fw, gg, gip, ot, ss, tm, tp)
             // add the services related to the IPC calls for GagSpeak
             .AddGagSpeakIPC(pi, cs)
             // add the services related to the configs for GagSpeak
@@ -135,7 +135,7 @@ public static class GagSpeakServiceExtensions
 {
     #region GenericServices
     public static IServiceCollection AddGagSpeakGeneric(this IServiceCollection services,
-        IDalamudPluginInterface pi, IClientState cs, ICondition con, IDataManager dm, IFramework fw,
+        IDalamudPluginInterface pi, IClientState cs, IChatGui cg, ICondition con, IDataManager dm, IFramework fw,
         IGameGui gg, IGameInteropProvider gip, IObjectTable ot, ISigScanner ss, ITargetManager tm, ITextureProvider tp)
     => services
         // Events Services
@@ -149,6 +149,10 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new Ipa_EN_FR_JP_SP_Handler(s.GetRequiredService<ILogger<Ipa_EN_FR_JP_SP_Handler>>(),
             s.GetRequiredService<ClientConfigurationManager>(), pi))
 
+        // Chat Services
+        .AddSingleton((s) => new ChatBoxMessage(s.GetRequiredService<ILogger<ChatBoxMessage>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PuppeteerHandler>(),
+            s.GetRequiredService<ChatSender>(), cg, cs))    
         .AddSingleton((s) => new ChatSender(ss))
         .AddSingleton((s) => new ChatInputDetour(ss, gip, s.GetRequiredService<ILogger<ChatInputDetour>>(),
             s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterManager>(),
@@ -220,7 +224,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<RestraintCosmetics>()
         .AddSingleton<WardrobeHandler>()
 
-        .AddSingleton<PuppeteerHandler>()
+        .AddSingleton((s) => new PuppeteerHandler(s.GetRequiredService<ILogger<PuppeteerHandler>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
+            s.GetRequiredService<PlayerCharacterManager>(), s.GetRequiredService<PairManager>(), dm))
         .AddSingleton<AliasTable>()
 
         .AddSingleton<ToyboxOverview>()

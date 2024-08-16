@@ -231,120 +231,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         _uiShared.DrawHelpText("When a Gag is locked by a Timer, the Gag will be removed once the timer expires.");
 
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("GagSpeak Channels:");
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.SetTooltip("Every selected channel from here becomes a channel that your direct chat garbler works in.");
-        }
-        ImGui.SameLine();
-        // Create the language dropdown
-        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 65);
-        string prevLang = _configService.Current.Language; // to only execute code to update data once it is changed
-        if (ImGui.BeginCombo("##Language", _configService.Current.Language, ImGuiComboFlags.NoArrowButton))
-        {
-            foreach (var language in LanguagesDialects.Keys.ToArray())
-            {
-                bool isSelected = (_configService.Current.Language == language);
-                if (ImGui.Selectable(language, isSelected))
-                {
-                    _configService.Current.Language = language;
-                    _configService.Save();
-                }
-                if (isSelected)
-                {
-                    ImGui.SetItemDefaultFocus();
-                }
-            }
-            ImGui.EndCombo();
-        }
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.SetTooltip("Select the language you want to use for GagSpeak.");
-        }
-        //update if changed 
-        if (prevLang != _configService.Current.Language)
-        { // set the language to the newly selected language once it is changed
-            _currentDialects = LanguagesDialects[_configService.Current.Language]; // update the dialects for the new language
-            _activeDialect = _currentDialects[0]; // set the active dialect to the first dialect of the new language
-            SetConfigDialectFromDialect(_activeDialect);
-            _configService.Save();
-        }
-        ImGui.SameLine();
-        // Create the dialect dropdown
-        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 55);
-        string[] dialects = LanguagesDialects[_configService.Current.Language];
-        string prevDialect = _activeDialect; // to only execute code to update data once it is changed
-        if (ImGui.BeginCombo("##Dialect", _activeDialect, ImGuiComboFlags.NoArrowButton))
-        {
-            foreach (var dialect in dialects)
-            {
-                bool isSelected = (_activeDialect == dialect);
-                if (ImGui.Selectable(dialect, isSelected))
-                {
-                    _activeDialect = dialect;
-                }
-                if (isSelected)
-                {
-                    ImGui.SetItemDefaultFocus();
-                }
-            }
-            ImGui.EndCombo();
-        }
-        if (ImGui.IsItemHovered())
-        {
-            ImGui.SetTooltip("Select the Dialect you want to use for GagSpeak.");
-        }
-        //update if changed
-        if (prevDialect != _activeDialect)
-        { // set the dialect to the newly selected dialect once it is changed
-            SetConfigDialectFromDialect(_activeDialect);
-            _configService.Save();
-        }
-
-        // display the channels
-        var i = 0;
-        foreach (var e in ChatChannel.GetOrderedChannels())
-        {
-            // See if it is already enabled by default
-            var enabled = _configService.Current.ChannelsGagSpeak.Contains(e);
-            // Create a new line after every 4 columns
-            if (i != 0 && (i == 4 || i == 7 || i == 11 || i == 15 || i == 19))
-            {
-                ImGui.NewLine();
-                //i = 0;
-            }
-            // Move to the next row if it is LS1 or CWLS1
-            if (e is ChatChannel.ChatChannels.LS1 or ChatChannel.ChatChannels.CWL1)
-                ImGui.Separator();
-
-            if (ImGui.Checkbox($"{e}", ref enabled))
-            {
-                // See If the UIHelpers.Checkbox is clicked, If not, add to the list of enabled channels, otherwise, remove it.
-                if (enabled)
-                {
-                    // ensure that it is not already in the list first
-                    if (!_configService.Current.ChannelsGagSpeak.Contains(e))
-                    {
-                        // if it doesn't exist, add it.
-                        _configService.Current.ChannelsGagSpeak.Add(e);
-                    }
-                }
-                else
-                {
-                    // try and remove the channel from the list.
-                    _configService.Current.ChannelsGagSpeak.Remove(e);
-                }
-                // save config.
-                _configService.Save();
-            }
-
-            ImGui.SameLine();
-            i++;
-        }
-
-
-
         ImGui.Separator();
         _uiShared.BigText("Wardrobe");
 
@@ -518,7 +404,161 @@ public class SettingsUi : WindowMediatorSubscriberBase
     {
         _lastTab = "Preferences";
 
+        _uiShared.BigText("Live Chat Garbler");
+
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("GagSpeak Channels:");
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Every selected channel from here becomes a channel that your direct chat garbler works in.");
+        }
+        ImGui.SameLine();
+        // Create the language dropdown
+        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 65);
+        string prevLang = _configService.Current.Language; // to only execute code to update data once it is changed
+        if (ImGui.BeginCombo("##Language", _configService.Current.Language, ImGuiComboFlags.NoArrowButton))
+        {
+            foreach (var language in LanguagesDialects.Keys.ToArray())
+            {
+                bool isSelected = (_configService.Current.Language == language);
+                if (ImGui.Selectable(language, isSelected))
+                {
+                    _configService.Current.Language = language;
+                    _configService.Save();
+                }
+                if (isSelected)
+                {
+                    ImGui.SetItemDefaultFocus();
+                }
+            }
+            ImGui.EndCombo();
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Select the language you want to use for GagSpeak.");
+        }
+        //update if changed 
+        if (prevLang != _configService.Current.Language)
+        { // set the language to the newly selected language once it is changed
+            _currentDialects = LanguagesDialects[_configService.Current.Language]; // update the dialects for the new language
+            _activeDialect = _currentDialects[0]; // set the active dialect to the first dialect of the new language
+            SetConfigDialectFromDialect(_activeDialect);
+            _configService.Save();
+        }
+        ImGui.SameLine();
+        // Create the dialect dropdown
+        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 55);
+        string[] dialects = LanguagesDialects[_configService.Current.Language];
+        string prevDialect = _activeDialect; // to only execute code to update data once it is changed
+        if (ImGui.BeginCombo("##Dialect", _activeDialect, ImGuiComboFlags.NoArrowButton))
+        {
+            foreach (var dialect in dialects)
+            {
+                bool isSelected = (_activeDialect == dialect);
+                if (ImGui.Selectable(dialect, isSelected))
+                {
+                    _activeDialect = dialect;
+                }
+                if (isSelected)
+                {
+                    ImGui.SetItemDefaultFocus();
+                }
+            }
+            ImGui.EndCombo();
+        }
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.SetTooltip("Select the Dialect you want to use for GagSpeak.");
+        }
+        //update if changed
+        if (prevDialect != _activeDialect)
+        { // set the dialect to the newly selected dialect once it is changed
+            SetConfigDialectFromDialect(_activeDialect);
+            _configService.Save();
+        }
+
+        // display the channels
+        var i = 0;
+        foreach (var e in ChatChannel.GetOrderedChannels())
+        {
+            // See if it is already enabled by default
+            var enabled = _configService.Current.ChannelsGagSpeak.Contains(e);
+            // Create a new line after every 4 columns
+            if (i != 0 && (i == 4 || i == 7 || i == 11 || i == 15 || i == 19))
+            {
+                ImGui.NewLine();
+                //i = 0;
+            }
+            // Move to the next row if it is LS1 or CWLS1
+            if (e is ChatChannel.ChatChannels.LS1 or ChatChannel.ChatChannels.CWL1)
+                ImGui.Separator();
+
+            if (ImGui.Checkbox($"{e}", ref enabled))
+            {
+                // See If the UIHelpers.Checkbox is clicked, If not, add to the list of enabled channels, otherwise, remove it.
+                if (enabled)
+                {
+                    // ensure that it is not already in the list first
+                    if (!_configService.Current.ChannelsGagSpeak.Contains(e))
+                    {
+                        // if it doesn't exist, add it.
+                        _configService.Current.ChannelsGagSpeak.Add(e);
+                    }
+                }
+                else
+                {
+                    // try and remove the channel from the list.
+                    _configService.Current.ChannelsGagSpeak.Remove(e);
+                }
+                // save config.
+                _configService.Save();
+            }
+
+            ImGui.SameLine();
+            i++;
+        }
+
+        ImGui.NewLine();
+        ImGui.Separator();
+        _uiShared.BigText("Puppeteer Allowed Channels");
+        // display the channels
+        var j = 0;
+        foreach (var e in ChatChannel.GetOrderedChannels())
+        {
+            // See if it is already enabled by default
+            var enabled = _configService.Current.ChannelsPuppeteer.Contains(e);
+
+            // Create a new line after every 4 columns
+            if (j != 0 && (j == 4 || j == 7 || j == 11 || j == 15 || j == 19))
+                ImGui.NewLine();
+
+            // Move to the next row if it is LS1 or CWLS1
+            if (e is ChatChannel.ChatChannels.LS1 or ChatChannel.ChatChannels.CWL1)
+                ImGui.Separator();
+
+            if (ImGui.Checkbox($"{e}##{e}puppeteer", ref enabled))
+            {
+                if (enabled)
+                {
+                    if (!_configService.Current.ChannelsPuppeteer.Contains(e))
+                    {
+                        _configService.Current.ChannelsPuppeteer.Add(e);
+                    }
+                }
+                else
+                {
+                    _configService.Current.ChannelsPuppeteer.Remove(e);
+                }
+                _configService.Save();
+            }
+
+            ImGui.SameLine();
+            j++;
+        }
+
+        ImGui.NewLine();
         // the nicknames section
+        ImGui.Separator();
         _uiShared.BigText("Nicknames");
 
         // see if the user wants to allow a popup to create nicknames upon adding a paired user

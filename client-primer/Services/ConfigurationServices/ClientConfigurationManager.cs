@@ -159,6 +159,14 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         }
     }
 
+    // TODO: Add the triggers to this too.
+    public List<(string, string)> GetPlayersToListenFor()
+    {
+        // select from the aliasStorages, the character name and world where the values are not string.empty.
+        return AliasConfig.AliasStorage.Select(x => (x.Value.CharacterName, x.Value.CharacterWorld))
+            .Where(x => x.Item1 != string.Empty && x.Item2 != string.Empty).ToList();
+    }
+
 
     #endregion ConnectionDto Update Methods
 
@@ -366,6 +374,9 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     /* --------------------- Puppeteer Alias Configs --------------------- */
     #region Alias Config Methods
+    public string? GetUidMatchingSender(string name, string world)
+        => AliasConfig.AliasStorage.FirstOrDefault(x => x.Value.CharacterName == name && x.Value.CharacterWorld == world).Key;
+
     public AliasStorage FetchAliasStorageForPair(string userId)
     {
         if (!_aliasConfig.Current.AliasStorage.ContainsKey(userId))
@@ -393,6 +404,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _aliasConfig.Current.AliasStorage[userId].CharacterWorld = charaWorld;
         _aliasConfig.Save();
     }
+
 
     #endregion Alias Config Methods
     /* --------------------- Toybox Pattern Configs --------------------- */

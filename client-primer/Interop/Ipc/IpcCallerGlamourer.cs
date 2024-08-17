@@ -214,21 +214,22 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     /// <param name="changeType"> The type of change that occurred. </param>"
     private void GlamourerChanged(nint address, StateChangeType changeType)
     {
-        if (OnFrameworkService.GlamourChangeEventsDisabled || !OnFrameworkService.GlamourChangeFinishedDrawing)
+        // do not accept if coming from other player besides us.
+        if (address != _onFrameworkService._playerAddr) return;
+
+        // block if we are not desiring to listen to changes yet.
+        if (OnFrameworkService.GlamourChangeEventsDisabled)
         {
             Logger.LogTrace($"GlamourEvent Blocked: {changeType}");
             return;
         }
-        // do not accept if coming from other player besides us.
-        if (address != _onFrameworkService._playerAddr) return;
 
         // See if the change type is a type we are looking for
         if (changeType == StateChangeType.Design
         || changeType == StateChangeType.Reapply
         || changeType == StateChangeType.Reset
         || changeType == StateChangeType.Equip
-        || changeType == StateChangeType.Stains
-        || changeType == StateChangeType.Weapon)
+        || changeType == StateChangeType.Stains)
         {
             Logger.LogTrace($"StateChangeType is {changeType}");
 

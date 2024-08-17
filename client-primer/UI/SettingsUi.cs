@@ -1319,6 +1319,17 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         // draw our separator
         ImGui.Separator();
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("OnFrameworkService.GlamourChangeEventsDisabled:");
+        ImGui.SameLine();
+        ImGui.Text(OnFrameworkService.GlamourChangeEventsDisabled.ToString());
+
+        ImGui.AlignTextToFramePadding();
+        ImGui.Text("OnFrameworkService.GlamourChangeFinishedDrawing:");
+        ImGui.SameLine();
+        ImGui.Text(OnFrameworkService.GlamourChangeFinishedDrawing.ToString());
+
+        ImGui.Separator();
         // draw out the tab bar for us.
         if (ImGui.BeginTabBar("mainTabBar"))
         {

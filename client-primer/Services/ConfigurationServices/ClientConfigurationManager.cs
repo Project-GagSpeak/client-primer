@@ -12,13 +12,11 @@ using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Connection;
 using ImGuiNET;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using ProjectGagspeakAPI.Data.VibeServer;
 using static GagspeakAPI.Data.Enum.GagList;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace GagSpeak.Services.ConfigurationServices;
 
@@ -188,7 +186,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal EquipSlot GetGagTypeEquipSlot(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot;
     internal EquipItem GetGagTypeEquipItem(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem;
     internal StainIds GetGagTypeStain(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameStain;
-    
+
     internal void UpdateGagStorageDictionary(Dictionary<GagType, GagDrawData> newGagStorage)
     {
         _gagStorageConfig.Current.GagStorage.GagEquipData = newGagStorage;

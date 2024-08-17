@@ -17,7 +17,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PairManager _pairManager;
 
-    public WardrobeHandler(ILogger<GagDataHandler> logger, GagspeakMediator mediator,
+    public WardrobeHandler(ILogger<WardrobeHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfiguration, PairManager pairManager)
         : base(logger, mediator)
     {

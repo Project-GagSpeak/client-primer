@@ -94,6 +94,8 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     {
         base.Dispose(disposing);
 
+
+
         _glamourChanged.Disable();
         _glamourChanged?.Dispose();
         // revert our character back to the base game state
@@ -212,7 +214,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     /// <param name="changeType"> The type of change that occurred. </param>"
     private void GlamourerChanged(nint address, StateChangeType changeType)
     {
-        if (OnFrameworkService.GlamourChangeEventsDisabled)
+        if (OnFrameworkService.GlamourChangeEventsDisabled || !OnFrameworkService.GlamourChangeFinishedDrawing)
         {
             Logger.LogTrace($"GlamourEvent Blocked: {changeType}");
             return;

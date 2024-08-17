@@ -56,30 +56,44 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
 
         // unsub
         _glamourFastUpdate.GlamourEventFired -= UpdateGenericAppearance;
-
     }
 
 
     // public async void UpdateGenericAppearance(UpdateGlamourMessage msg)
     private CancellationTokenSource _cts;
     private static SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
-    public async void UpdateGenericAppearance(object sender, GlamourFastUpdateArgs msg)
+
+    private async Task ExecuteWithSemaphore(Func<Task> action)
     {
-        // prevent multiple updates from happening at once.
         _cts.Cancel();
         await semaphore.WaitAsync();
         OnFrameworkService.GlamourChangeEventsDisabled = true;
-
-        // do not accept if we have enable wardrobe turned off.
-        if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
-        {
-            Logger.LogDebug("Wardrobe is disabled, so not processing Generic Update");
-            OnFrameworkService.GlamourChangeFinishedDrawing = true;
-            return;
-        }
-
         try
         {
+            await action();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Error during semaphore execution: {ex}");
+        }
+        finally
+        {
+            OnFrameworkService.GlamourChangeFinishedDrawing = true;
+            semaphore.Release();
+        }
+    }
+
+
+    public async void UpdateGenericAppearance(object sender, GlamourFastUpdateArgs msg)
+    {
+        await ExecuteWithSemaphore(async () =>
+        {
+            if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
+            {
+                Logger.LogDebug("Wardrobe is disabled, so not processing Generic Update");
+                return;
+            }
+
             // For Generic UpdateAllGags
             if (msg.GenericUpdateType == GlamourUpdateType.UpdateAllGags)
             {
@@ -109,37 +123,24 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
             {
                 Logger.LogDebug($"Processing Safeword Update");
                 await _Interop.GlamourerRevertCharacter(_frameworkUtils._playerAddr);
-                // this might be blocking disable restraint sets so look into.
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Error Modifying Generic Glamour {ex}");
-        }
-        finally
-        {
-            OnFrameworkService.GlamourChangeFinishedDrawing = true;
-            semaphore.Release();
-        }
+        });
     }
+
 
     public async void UpdateGagsAppearance(UpdateGlamourGagsMessage msg)
     {
-        // prevent multiple updates from happening at once.
-        _cts.Cancel();
-        await semaphore.WaitAsync();
-        OnFrameworkService.GlamourChangeEventsDisabled = true;
-
-        // do not accept if we have enable wardrobe turned off.
-        if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
+        await ExecuteWithSemaphore(async () =>
         {
-            Logger.LogDebug("Wardrobe is disabled, so not processing Gag Update");
-            OnFrameworkService.GlamourChangeFinishedDrawing = true;
-            return;
-        }
+            // do not accept if we have enable wardrobe turned off.
+            if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
+            {
+                Logger.LogDebug("Wardrobe is disabled, so not processing Gag Update");
+                OnFrameworkService.GlamourChangeFinishedDrawing = true;
+                semaphore.Release();
+                return;
+            }
 
-        try
-        {
             // For GagEquip
             if (msg.NewState == UpdatedNewState.Enabled && _playerManager.GlobalPerms.ItemAutoEquip)
             {
@@ -163,7 +164,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                 var gagType = Enum.GetValues(typeof(GagList.GagType)).Cast<GagList.GagType>().First(g => g.GetGagAlias() == msg.GagType.GetGagAlias());
                 // this should replace it with nothing
                 await _Interop.SetItemToCharacterAsync((ApiEquipSlot)_clientConfigs.GetGagTypeEquipSlot(gagType),
-                    ItemIdVars.NothingItem(_clientConfigs.GetGagTypeEquipSlot(gagType)).Id.Id, [0,0], 0);
+                    ItemIdVars.NothingItem(_clientConfigs.GetGagTypeEquipSlot(gagType)).Id.Id, [0, 0], 0);
                 // reapply any restraints hiding under them, if any
                 await ApplyRestrainSetToCachedCharacterData();
                 // update blindfold (TODO)
@@ -172,36 +173,23 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                     await EquipBlindfold();
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Error Modifying Gag Glamour {ex}");
-        }
-        finally
-        {
-            OnFrameworkService.GlamourChangeFinishedDrawing = true;
-            semaphore.Release();
-        }
+        });
     }
 
 
     public async void UpdateRestraintSetAppearance(UpdateGlamourRestraintsMessage msg)
     {
-        // prevent multiple updates from happening at once.
-        _cts.Cancel();
-        await semaphore.WaitAsync();
-        OnFrameworkService.GlamourChangeEventsDisabled = true;
-
-        // do not accept if we have enable wardrobe turned off.
-        if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
+        await ExecuteWithSemaphore(async () =>
         {
-            Logger.LogDebug("Wardrobe is disabled, so not processing Restraint Set Update");
-            OnFrameworkService.GlamourChangeFinishedDrawing = true;
-            return;
-        }
+            // do not accept if we have enable wardrobe turned off.
+            if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
+            {
+                Logger.LogDebug("Wardrobe is disabled, so not processing Restraint Set Update");
+                OnFrameworkService.GlamourChangeFinishedDrawing = true;
+                semaphore.Release();
+                return;
+            }
 
-        try
-        {
             if (msg.NewState == UpdatedNewState.Enabled)
             {
                 Logger.LogDebug($"Processing Restraint Set Update");
@@ -250,36 +238,23 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                     await EquipBlindfold();
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Error Modifying RestraintSet Glamour {ex}");
-        }
-        finally
-        {
-            OnFrameworkService.GlamourChangeFinishedDrawing = true;
-            semaphore.Release();
-        }
+        });
     }
 
     // there was a semiphore slim here before, but dont worry about it now.
     public async void UpdateGlamourerBlindfoldAppearance(UpdateGlamourBlindfoldMessage msg)
     {
-        // prevent multiple updates from happening at once.
-        _cts.Cancel();
-        await semaphore.WaitAsync();
-        OnFrameworkService.GlamourChangeEventsDisabled = true;
-
-        // do not accept if we have enable wardrobe turned off.
-        if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
+        await ExecuteWithSemaphore(async () =>
         {
-            Logger.LogDebug("Wardrobe is disabled, so not processing Blindfold Update");
-            OnFrameworkService.GlamourChangeFinishedDrawing = true;
-            return;
-        }
 
-        try
-        {
+            // do not accept if we have enable wardrobe turned off.
+            if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
+            {
+                Logger.LogDebug("Wardrobe is disabled, so not processing Blindfold Update");
+                OnFrameworkService.GlamourChangeFinishedDrawing = true;
+                return;
+            }
+
             if (msg.NewState == UpdatedNewState.Enabled)
             {
                 Logger.LogDebug($"Processing Blindfold Equipped");
@@ -307,16 +282,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                     Logger.LogDebug($"Assigner is not on your whitelist, so not setting item.");
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError($"Error processing blindfold update: {ex}");
-        }
-        finally
-        {
-            OnFrameworkService.GlamourChangeFinishedDrawing = true;
-            semaphore.Release();
-        }
+        });
     }
 
     #region Task Methods for Glamour Updates

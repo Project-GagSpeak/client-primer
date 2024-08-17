@@ -310,8 +310,10 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new ServerTagConfigService(pi.ConfigDirectory.FullName))
 
         // Configuration Migrators
-        .AddSingleton((s) => new MigrateGagStorage(s.GetRequiredService<ILogger<MigrateGagStorage>>()))
-        .AddSingleton((s) => new MigrateRestraintSets(s.GetRequiredService<ILogger<MigrateRestraintSets>>()))
+        .AddSingleton((s) => new MigrateGagStorage(s.GetRequiredService<ILogger<MigrateGagStorage>>(),
+            s.GetRequiredService<ClientConfigurationManager>(), pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new MigrateRestraintSets(s.GetRequiredService<ILogger<MigrateRestraintSets>>(),
+            s.GetRequiredService<ClientConfigurationManager>(), pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new MigratePatterns(s.GetRequiredService<ILogger<MigratePatterns>>(),
             s.GetRequiredService<ClientConfigurationManager>(), pi.ConfigDirectory.FullName));
 

@@ -113,7 +113,10 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         => _clientConfigs.AddNewRestraintSet(newSet);
 
     public void RemoveRestraintSet(int idxToRemove)
-        => _clientConfigs.RemoveRestraintSet(idxToRemove);
+    {
+        _clientConfigs.RemoveRestraintSet(idxToRemove);
+        ClearEditingRestraintSet();
+    }
 
     public int RestraintSetListSize()
         => _clientConfigs.GetRestraintSetCount();

@@ -79,7 +79,10 @@ public class AlarmHandler : MediatorSubscriberBase
         => _clientConfigs.AddNewAlarm(newAlarm);
 
     public void RemoveAlarm(int idxToRemove)
-        => _clientConfigs.RemoveAlarm(idxToRemove);
+    {
+        _clientConfigs.RemoveAlarm(idxToRemove);
+        ClearEditingAlarm();
+    }
 
     public int AlarmListSize()
         => _clientConfigs.FetchAlarmCount();

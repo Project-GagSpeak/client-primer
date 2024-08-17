@@ -188,11 +188,21 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal EquipSlot GetGagTypeEquipSlot(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot;
     internal EquipItem GetGagTypeEquipItem(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem;
     internal StainIds GetGagTypeStain(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameStain;
+    
+    internal void UpdateGagStorageDictionary(Dictionary<GagType, GagDrawData> newGagStorage)
+    {
+        _gagStorageConfig.Current.GagStorage.GagEquipData = newGagStorage;
+        _gagStorageConfig.Save();
+        Logger.LogInformation("GagStorage Config Saved");
+    }
+
+
     internal IReadOnlyList<byte> GetGagTypeStainIds(GagType gagType)
     {
         var GameStains = _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameStain;
         return [GameStains.Stain1.Id, GameStains.Stain2.Id];
     }
+
     internal int GetGagTypeSlotId(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.ActiveSlotId;
 
     internal void SetGagEnabled(GagType gagType, bool isEnabled)
@@ -254,6 +264,23 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(newSet);
         _wardrobeConfig.Save();
         Logger.LogInformation("Restraint Set added to wardrobe");
+        // publish to mediator
+        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+    }
+
+    internal void AddNewRestraintSets(List<RestraintSet> newSets)
+    {
+        foreach (var newSet in newSets)
+        {
+            // add 1 to the name until it is unique.
+            while (WardrobeConfig.WardrobeStorage.RestraintSets.Any(x => x.Name == newSet.Name))
+            {
+                newSet.Name += "(copy)";
+            }
+            _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(newSet);
+        }
+        _wardrobeConfig.Save();
+        Logger.LogInformation("Added {count} Restraint Sets to wardrobe", newSets.Count);
         // publish to mediator
         Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
     }

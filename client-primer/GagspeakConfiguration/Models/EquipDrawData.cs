@@ -20,7 +20,6 @@ public record EquipDrawData
     public EquipSlot Slot { get; set; } = EquipSlot.Head;
     public EquipItem GameItem { get; set; } = new EquipItem();
     public StainIds GameStain { get; set; } = StainIds.None;
-    public int ActiveSlotId { get; set; } = 0; // what slot of the equipment it is.
 
     public EquipDrawData(EquipItem gameItem) => GameItem = gameItem;
 
@@ -42,7 +41,6 @@ public record EquipDrawData
             ["Slot"] = Slot.ToString(),
             ["GameItem"] = gameItemObj,
             ["GameStain"] = GameStain.ToString(),
-            ["ActiveSlotId"] = ActiveSlotId,
         };
     }
 
@@ -66,6 +64,5 @@ public record EquipDrawData
         {
             GameStain = StainIds.None;
         }
-        ActiveSlotId = jsonObject["ActiveSlotId"]?.Value<int>() ?? 0;
     }
 }

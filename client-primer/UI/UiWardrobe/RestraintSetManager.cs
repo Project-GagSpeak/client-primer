@@ -131,7 +131,10 @@ public class RestraintSetManager
             if (highlightedIndex == -1) return;
 
             // otherwise, draw.
-            DrawRestraintSetPreview(FilteredSetList[highlightedIndex]);
+            if (FilteredSetList.Count > 0)
+            {
+                DrawRestraintSetPreview(FilteredSetList[highlightedIndex]);
+            }
         }
     }
 
@@ -256,7 +259,7 @@ public class RestraintSetManager
             }
 
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X - ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X*2 - ImGui.GetStyle().ItemSpacing.X*2);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             var currentYpos = ImGui.GetCursorPosY();
             // for saving contents
@@ -268,7 +271,7 @@ public class RestraintSetManager
             UiSharedService.AttachToolTip("Save changes to Restraint Set & Return to the main list");
 
             // right beside it to the right, we need to draw the delete button
-            using (var disableDelete = ImRaii.Disabled(UiSharedService.CtrlPressed()))
+            using (var disableDelete = ImRaii.Disabled(!UiSharedService.CtrlPressed()))
             {
                 ImGui.SameLine();
                 ImGui.SetCursorPosY(currentYpos);
@@ -363,7 +366,7 @@ public class RestraintSetManager
                 else
                 {
                     // trim the description to the first 50 characters, then add ... at the end
-                    var trimmedDescription = description.Length > 50 ? description.Substring(0, 50) + "..." : description;
+                    var trimmedDescription = description.Length > 50 ? description.Substring(0, 30) + "..." : description;
                     UiSharedService.ColorText(trimmedDescription, ImGuiColors.DalamudGrey2);
                 }
             }

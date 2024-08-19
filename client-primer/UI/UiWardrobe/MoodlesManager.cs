@@ -25,6 +25,13 @@ public class MoodlesManager : DisposableMediatorSubscriberBase
 
     public void DrawMoodlesManager()
     {
+        using (_uiShared.UidFont.Push())
+        {
+            UiSharedService.ColorText("PLEASE FOR THE LOVE OF GOD", ImGuiColors.DalamudRed);
+            UiSharedService.ColorText("DO NOT USE THIS TAB YET.", ImGuiColors.DalamudRed);
+            UiSharedService.ColorText("DONT BREAK MY SERVERS PLEASE ;-;", ImGuiColors.DalamudRed);
+        }
+
         if (ImGui.Button("Retrieve Moodles Info"))
         {
             RetrieveMoodlesInfo();

@@ -142,7 +142,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public string PlayerName => _frameworkUtil.GetPlayerName();
     public uint WorldId => _frameworkUtil.GetHomeWorldId(); // the homeworld ID of the current player
     public bool UseTheme => _useTheme;
-    public string SearchFilter { get; set; } = ""; // the search filter used in whitelist. Stored here to ensure the tab menu can clear it upon switching tabs.
     public Vector2 LastMainUIWindowPosition { get; set; } = Vector2.Zero;
     public Vector2 LastMainUIWindowSize { get; set; } = Vector2.Zero;
 

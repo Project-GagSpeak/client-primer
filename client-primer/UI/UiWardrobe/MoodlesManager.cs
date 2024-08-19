@@ -12,7 +12,7 @@ public class MoodlesManager : DisposableMediatorSubscriberBase
     private readonly WardrobeHandler _handler;
     private readonly IpcCallerMoodles _ipcCallerMoodles;
     private List<MoodlesStatusInfo>? _moodlesInfo;
-    private List<(List<MoodlesStatusInfo>, Guid)>? _presetsInfo;
+    private List<(Guid, List<Guid>)>? _presetsInfo;
 
     public MoodlesManager(ILogger<MoodlesManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
@@ -22,6 +22,7 @@ public class MoodlesManager : DisposableMediatorSubscriberBase
         _handler = handler;
         _ipcCallerMoodles = ipcCallerMoodles;
     }
+
 
     public void DrawMoodlesManager()
     {
@@ -77,9 +78,9 @@ public class MoodlesManager : DisposableMediatorSubscriberBase
             {
                 ImGui.Text($"Preset ID [{preset.Item2}] applies the following Moodles:");
                 ImGui.Indent();
-                foreach (var moodle in preset.Item1)
+                foreach (var presetStatusesGuid in preset.Item2)
                 {
-                    ImGui.Text(moodle.Title);
+                    ImGui.Text(presetStatusesGuid.ToString());
                 }
                 ImGui.Unindent();
             }

@@ -1,14 +1,11 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Utility;
-using ImGuiNET;
-using GagspeakAPI.Data.Enum;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
-using GagSpeak;
-using System.Numerics;
 using GagSpeak.WebAPI;
+using ImGuiNET;
+using System.Numerics;
 
 namespace GagSpeak.UI.Components;
 
@@ -22,16 +19,13 @@ namespace GagSpeak.UI.Components;
 public class MainTabMenu
 {
     private readonly ApiController _apiController;
-
     private readonly GagspeakMediator _mediator;
-
     private readonly PairManager _pairManager;
     private readonly UiSharedService _uiSharedService;
-    private string _filter = string.Empty;
 
     private SelectedTab _selectedTab = SelectedTab.Homepage;
 
-    public MainTabMenu(GagspeakMediator mediator, ApiController apiController, 
+    public MainTabMenu(GagspeakMediator mediator, ApiController apiController,
         PairManager pairManager, UiSharedService uiSharedService)
     {
         _mediator = mediator;
@@ -49,30 +43,11 @@ public class MainTabMenu
         MySettings,
     }
 
-    private string Filter
-    {
-        get => _uiSharedService.SearchFilter;
-        set
-        {
-            if (!string.Equals(_filter, value, StringComparison.OrdinalIgnoreCase))
-            {
-                _mediator.Publish(new RefreshUiMessage());
-            }
-
-            _filter = value;
-        }
-    }
-
     public SelectedTab TabSelection
     {
-        get => _selectedTab; 
+        get => _selectedTab;
         set
         {
-            if (_selectedTab == SelectedTab.Whitelist && value != SelectedTab.Whitelist)
-            {
-                Filter = string.Empty;
-            }
-
             _selectedTab = value;
         }
     }
@@ -116,7 +91,7 @@ public class MainTabMenu
                 drawList.AddLine(
                     x with { Y = x.Y + buttonSize.Y + spacing.Y },
                     xAfter with { Y = xAfter.Y + buttonSize.Y + spacing.Y, X = xAfter.X - spacing.X },
-                    underlineColor, 
+                    underlineColor,
                     2);
             }
         }

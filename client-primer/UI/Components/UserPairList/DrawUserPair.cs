@@ -110,9 +110,9 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         if (!_pair.UserData.SupporterTier.Equals(CkSupporterTier.NoRole)) DrawSupporterIcon(cursorPos);
     }
 
+    private string tooltipString = "";
     private void DrawSupporterIcon(float cursorPos)
     {
-        var tooltipString = "";
         ImGui.SameLine(cursorPos);
         ImGui.SetCursorPosX(cursorPos - _uiSharedService.GetIconData(FontAwesomeIcon.EllipsisV).X - ImGui.GetStyle().ItemSpacing.X);
         // fetch new image if needed, otherwise use existing
@@ -150,6 +150,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         {
             ImGui.Image(supporterImage.ImGuiHandle, new Vector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight()));
         }
+        UiSharedService.AttachToolTip(tooltipString);
         // return to the end of the line.
     }
 

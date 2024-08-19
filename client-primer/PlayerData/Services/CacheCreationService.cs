@@ -189,8 +189,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         previousData.MoodlesStatuses = await _ipcManager.Moodles.GetMoodlesInfoAsync().ConfigureAwait(false) ?? new();
 
         // Obtain the Moodles Presets from Moodles.
-        var presets = await _ipcManager.Moodles.GetPresetsInfoAsync().ConfigureAwait(false) ?? new();
-        previousData.MoodlesPresets = presets.ToDictionary(preset => preset.Item2, preset => preset.Item1);
+        previousData.MoodlesPresets = await _ipcManager.Moodles.GetPresetsInfoAsync().ConfigureAwait(false) ?? new();
 
         Logger.LogDebug("Moodles is now: {moodles}", previousData.MoodlesData);
 

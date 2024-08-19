@@ -23,8 +23,8 @@ public sealed class IpcCallerMoodles : IIpcCaller
     // API Getter Functions
     private readonly ICallGateSubscriber<Guid, MoodlesStatusInfo> _getMoodleInfo;
     private readonly ICallGateSubscriber<List<MoodlesStatusInfo>> _getMoodlesInfo;
-    private readonly ICallGateSubscriber<Guid, (List<MoodlesStatusInfo>, Guid)> _getPresetInfo;
-    private readonly ICallGateSubscriber<List<(List<MoodlesStatusInfo>, Guid)>> _getPresetsInfo;
+    private readonly ICallGateSubscriber<Guid, (Guid, List<Guid>)> _getPresetInfo;
+    private readonly ICallGateSubscriber<List<(Guid, List<Guid>)>> _getPresetsInfo;
     private readonly ICallGateSubscriber<nint, string> _moodlesGetStatus;
 
     // API Enactor Functions
@@ -50,8 +50,8 @@ public sealed class IpcCallerMoodles : IIpcCaller
         // API Getter Functions
         _getMoodleInfo = pi.GetIpcSubscriber<Guid, MoodlesStatusInfo>("Moodles.GetRegisteredMoodleInfo");
         _getMoodlesInfo = pi.GetIpcSubscriber<List<MoodlesStatusInfo>>("Moodles.GetRegisteredMoodlesInfo");
-        _getPresetInfo = pi.GetIpcSubscriber<Guid, (List<MoodlesStatusInfo>, Guid)>("Moodles.GetRegisteredPresetInfo");
-        _getPresetsInfo = pi.GetIpcSubscriber<List<(List<MoodlesStatusInfo>, Guid)>>("Moodles.GetRegisteredPresetsInfo");
+        _getPresetInfo = pi.GetIpcSubscriber<Guid, (Guid, List<Guid>)>("Moodles.GetRegisteredPresetInfo");
+        _getPresetsInfo = pi.GetIpcSubscriber<List<(Guid, List<Guid>)>>("Moodles.GetRegisteredPresetsInfo");
         _moodlesGetStatus = pi.GetIpcSubscriber<nint, string>("Moodles.GetStatusManagerByPtr");
         
         // API Enactor Functions
@@ -144,7 +144,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     }
 
     /// <summary> This method gets the preset info for a provided GUID from the client. </summary>
-    public async Task<(List<MoodlesStatusInfo>, Guid)?> GetPresetInfoAsync(Guid guid)
+    public async Task<(Guid, List<Guid>)?> GetPresetInfoAsync(Guid guid)
     {
         if (!APIAvailable) return null; // return if the API isnt available
 
@@ -161,7 +161,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     }
 
     /// <summary> This method gets the list of all our clients Presets Info </summary>
-    public async Task<List<(List<MoodlesStatusInfo>, Guid)>?> GetPresetsInfoAsync()
+    public async Task<List<(Guid, List<Guid>)>?> GetPresetsInfoAsync()
     {
         if (!APIAvailable) return null; // return if the API isnt available
 

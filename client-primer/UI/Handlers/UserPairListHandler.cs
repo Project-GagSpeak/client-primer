@@ -10,6 +10,7 @@ using ImGuiNET;
 using OtterGui.Text;
 using System.Collections.Immutable;
 using System.Numerics;
+using static FFXIVClientStructs.FFXIV.Client.LayoutEngine.LayoutManager;
 
 namespace GagSpeak.UI.Handlers;
 
@@ -20,6 +21,7 @@ namespace GagSpeak.UI.Handlers;
 public class UserPairListHandler
 {
     private readonly ILogger<UserPairListHandler> _logger;
+    private readonly GagspeakMediator _mediator;
     private List<IDrawFolder> _drawFolders;
     private List<DrawUserPair> _allUserPairDrawsDistinct; // disinct userpairs to draw
     private readonly TagHandler _tagHandler;
@@ -27,13 +29,15 @@ public class UserPairListHandler
     private readonly DrawEntityFactory _drawEntityFactory;
     private readonly GagspeakConfigService _configService;
     private readonly UiSharedService _uiSharedService;
+    private string _filter = string.Empty;
 
     public UserPairListHandler(ILogger<UserPairListHandler> logger,
-        TagHandler tagHandler, PairManager pairManager,
-        DrawEntityFactory drawEntityFactory, GagspeakConfigService configService,
-        UiSharedService uiSharedService)
+        GagspeakMediator mediator, TagHandler tagHandler, 
+        PairManager pairManager, DrawEntityFactory drawEntityFactory, 
+        GagspeakConfigService configService, UiSharedService uiSharedService)
     {
         _logger = logger;
+        _mediator = mediator;
         _tagHandler = tagHandler;
         _pairManager = pairManager;
         _drawEntityFactory = drawEntityFactory;
@@ -41,11 +45,26 @@ public class UserPairListHandler
         _uiSharedService = uiSharedService;
 
         UpdateDrawFoldersAndUserPairDraws();
+
+
     }
 
     /// <summary> List of all draw folders to display in the UI </summary>
     public List<DrawUserPair> AllPairDrawsDistinct => _allUserPairDrawsDistinct;
 
+    public string Filter
+    {
+        get => _filter;
+        private set
+        {
+            if (!string.Equals(_filter, value, StringComparison.OrdinalIgnoreCase))
+            {
+                _mediator.Publish(new RefreshUiMessage());
+            }
+
+            _filter = value;
+        }
+    }
 
     /// <summary>
     /// Draws the list of pairs belonging to the client user.
@@ -109,16 +128,16 @@ public class UserPairListHandler
     {
         var buttonSize = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
         ImGui.SetNextItemWidth(availableWidth - buttonSize - spacingX);
-        string filter = _uiSharedService.SearchFilter;
+        string filter = Filter;
         if (ImGui.InputTextWithHint("##filter", "Filter for UID/notes", ref filter, 255))
         {
-            _uiSharedService.SearchFilter = filter;
+            Filter = filter;
         }
         ImUtf8.SameLineInner();
-        using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(_uiSharedService.SearchFilter));
+        using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(Filter));
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
         {
-            _uiSharedService.SearchFilter = string.Empty;
+            Filter = string.Empty;
         }
     }
 
@@ -148,11 +167,11 @@ public class UserPairListHandler
         var filteredPairs = allPairs
             .Where(p =>
             {
-                if (_uiSharedService.SearchFilter.IsNullOrEmpty()) return true;
+                if (Filter.IsNullOrEmpty()) return true;
                 // return a user if the filter matches their alias or ID, playerChara name, or the nickname we set.
-                return p.UserData.AliasOrUID.Contains(_uiSharedService.SearchFilter, StringComparison.OrdinalIgnoreCase) ||
-                       (p.GetNickname()?.Contains(_uiSharedService.SearchFilter, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                       (p.PlayerName?.Contains(_uiSharedService.SearchFilter, StringComparison.OrdinalIgnoreCase) ?? false);
+                return p.UserData.AliasOrUID.Contains(Filter, StringComparison.OrdinalIgnoreCase) ||
+                       (p.GetNickname()?.Contains(Filter, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                       (p.PlayerName?.Contains(Filter, StringComparison.OrdinalIgnoreCase) ?? false);
             });
 
         // the alphabetical sort function of the pairs.

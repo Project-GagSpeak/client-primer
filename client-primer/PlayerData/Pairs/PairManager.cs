@@ -254,9 +254,6 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // if they are found, publish an event message that we have received character data from our paired User
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Composite Data")));
 
-        // break down the composite data into its core components, and update the necessary parts.
-        _allClientPairs[dto.User].ApplyVisibleData(new OnlineUserCharaIpcDataDto(dto.User, dto.CompositeData.IPCData, dto.UpdateKind));
-
         // apply the other appearances to the pair.
         _allClientPairs[dto.User].ApplyAppearanceData(new OnlineUserCharaAppearanceDataDto(dto.User, dto.CompositeData.AppearanceData, dto.UpdateKind));
 

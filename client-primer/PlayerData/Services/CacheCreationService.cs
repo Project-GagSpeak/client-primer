@@ -5,12 +5,15 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Character;
+using System.Linq;
 
 namespace GagSpeak.PlayerData.Services;
 
 #pragma warning disable MA0040
 
 // this is a sealed scoped class meaning the cache service would be unique for every player assigned to it.
+
+// Edit: I THINK this is just for our player character.
 public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 {
     private readonly SemaphoreSlim _cacheCreateLock = new(1);
@@ -18,11 +21,12 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     private readonly OnFrameworkService _frameworkUtil;
     private readonly IpcManager _ipcManager;
     private readonly CancellationTokenSource _cts = new();
-    private readonly CharacterCompositeData _playerCompositeData = new();
-    private readonly GameObjectHandler _playerObject;          // handler for player object.
     private Task? _cacheCreationTask;
     private CancellationTokenSource _moodlesCts = new();
     private bool _isZoning = false;
+
+    private readonly CharacterIPCData _playerIpcData = new(); // handler for our player character's IPC data.
+    private readonly GameObjectHandler _playerObject;         // handler for player characters object.
 
     public CacheCreationService(ILogger<CacheCreationService> logger, GagspeakMediator mediator,
         GameObjectHandlerFactory gameObjectHandlerFactory, OnFrameworkService frameworkUtil,
@@ -50,7 +54,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             _ = Task.Run(() =>
             {
                 Logger.LogTrace("Clearing cache for {obj}", msg.ObjectToCreateFor);
-                Mediator.Publish(new CharacterDataCreatedMessage(_playerCompositeData));
+                Mediator.Publish(new CharacterDataCreatedMessage(_playerIpcData));
             });
         });
 
@@ -113,8 +117,8 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             {
                 try
                 {
-                    await BuildCharacterData(_playerCompositeData, toCreate, _cts.Token).ConfigureAwait(false);
-                    Mediator.Publish(new CharacterDataCreatedMessage(_playerCompositeData));
+                    await BuildCharacterData(_playerIpcData, toCreate, _cts.Token).ConfigureAwait(false);
+                    Mediator.Publish(new CharacterDataCreatedMessage(_playerIpcData));
                 }
                 catch (Exception ex)
                 {
@@ -133,7 +137,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     }
 
     /*   Creating and Buildering Character Information from IPC data */
-    public async Task BuildCharacterData(CharacterCompositeData previousData, GameObjectHandler playerRelatedObject, CancellationToken token)
+    public async Task BuildCharacterData(CharacterIPCData previousData, GameObjectHandler playerRelatedObject, CancellationToken token)
     {
         if (playerRelatedObject == null || playerRelatedObject.Address == nint.Zero) return;
 
@@ -170,7 +174,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         return ((Character*)playerPointer)->GameObject.DrawObject == null;
     }
 
-    private async Task<CharacterCompositeData> CreateCharacterData(CharacterCompositeData previousData, GameObjectHandler playerRelatedObject, CancellationToken token)
+    private async Task<CharacterIPCData> CreateCharacterData(CharacterIPCData previousData, GameObjectHandler playerRelatedObject, CancellationToken token)
     {
         var charaPointer = playerRelatedObject.Address;
 
@@ -178,9 +182,17 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 
         var start = DateTime.UtcNow;
 
-        // grab the moodles data from the player object.
-        previousData.IPCData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(playerRelatedObject.Address).ConfigureAwait(false) ?? string.Empty;
-        Logger.LogDebug("Moodles is now: {moodles}", previousData.IPCData.MoodlesData);
+        // Obtain the Status Manager State for the player object.
+        previousData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(playerRelatedObject.Address).ConfigureAwait(false) ?? string.Empty;
+
+        // Obtain the Moodles Statuses from Moodles.
+        previousData.MoodlesStatuses = await _ipcManager.Moodles.GetMoodlesInfoAsync().ConfigureAwait(false) ?? new();
+
+        // Obtain the Moodles Presets from Moodles.
+        var presets = await _ipcManager.Moodles.GetPresetsInfoAsync().ConfigureAwait(false) ?? new();
+        previousData.MoodlesPresets = presets.ToDictionary(preset => preset.Item2, preset => preset.Item1);
+
+        Logger.LogDebug("Moodles is now: {moodles}", previousData.MoodlesData);
 
         Logger.LogInformation("IPC Update for player object took {time}ms", TimeSpan.FromTicks(DateTime.UtcNow.Ticks - start.Ticks).TotalMilliseconds);
 

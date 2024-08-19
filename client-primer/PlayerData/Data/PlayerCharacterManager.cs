@@ -110,7 +110,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     public CharacterCompositeData CompileCompositeDataToSend()
     {
         // make use of the various compiling methods to construct our composite data.
-        CharacterIPCData ipcData = CompileIpcToAPI();
         CharacterAppearanceData appearanceData = CompileAppearanceToAPI();
         CharacterWardrobeData wardrobeData = CompileWardrobeToAPI();
 
@@ -125,7 +124,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
         return new CharacterCompositeData
         {
-            IPCData = ipcData,
             AppearanceData = appearanceData,
             WardrobeData = wardrobeData,
             AliasData = aliasData,

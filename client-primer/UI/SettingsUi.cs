@@ -15,13 +15,17 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
+using Newtonsoft.Json;
 using System.Globalization;
 using System.Numerics;
 using System.Reflection.Metadata;
+using System.Text.Json;
+using static PInvoke.User32;
 
 namespace GagSpeak.UI;
 
@@ -88,9 +92,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
             MaximumSize = new Vector2(800, 2000),
         };
 
+        Mediator.Subscribe<CharacterDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterData);
         Mediator.Subscribe<OpenSettingsUiMessage>(this, (_) => Toggle());
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = false);
     }
+
+    public CharacterIPCData? LastCreatedCharacterData { private get; set; }
 
     private ApiController ApiController => _uiShared.ApiController;
     private UserGlobalPermissions PlayerGlobalPerms => _playerCharacterManager.GlobalPerms;
@@ -969,6 +976,32 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _lastTab = "Player Debug";
         // display Debug Configuration in fat text
         _uiShared.BigText("Player Character Debug Info:");
+        if (LastCreatedCharacterData != null && ImGui.TreeNode("Last created character data"))
+        {
+            var json = JsonConvert.SerializeObject(LastCreatedCharacterData, Formatting.Indented);
+            foreach (var line in json.Split('\n'))
+            {
+                ImGui.TextUnformatted($"{line}");
+            }
+
+            ImGui.TreePop();
+        }
+
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Copy, "[DEBUG] Copy Last created Character Data to clipboard"))
+        {
+            if (LastCreatedCharacterData != null)
+            {
+                var json = JsonConvert.SerializeObject(LastCreatedCharacterData, Formatting.Indented);
+                ImGui.SetClipboardText(json);
+            }
+            else
+            {
+                ImGui.SetClipboardText("ERROR: No created character data, cannot copy.");
+            }
+        }
+        UiSharedService.AttachToolTip("Use this when reporting mods being rejected from the server.");
+
+
         // draw debug information for character information.
         if (ImGui.CollapsingHeader("Global Data")) { DrawGlobalInfo(); }
         if (ImGui.CollapsingHeader("Appearance Data")) { DrawAppearanceInfo(); }

@@ -136,7 +136,7 @@ public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase
 public record PlayerCharAliasChanged(string UpdatedPairUID, DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
 
-public record CharacterDataCreatedMessage(CharacterCompositeData CharacterData) : MessageBase;
+public record CharacterDataCreatedMessage(CharacterIPCData CharacterData) : MessageBase; // TODO: See how to remove this?
 public record CharacterIpcDataCreatedMessage(CharacterIPCData CharacterIPCData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterAppearanceDataCreatedMessage(CharacterAppearanceData CharacterAppearanceData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterWardrobeDataCreatedMessage(CharacterWardrobeData CharacterWardrobeData, DataUpdateKind UpdateKind) : SameThreadMessage;

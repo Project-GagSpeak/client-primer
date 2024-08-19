@@ -111,28 +111,28 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
     /// <summary> Moodles IPC senders. </summary>
-    public async Task UserApplyMoodlesByGuid(ApplyMoodlesByGuidDto dto)
+    public async Task<bool> UserApplyMoodlesByGuid(ApplyMoodlesByGuidDto dto)
     {
-        if (!IsConnected) return;
-        await _gagspeakHub!.InvokeAsync(nameof(UserApplyMoodlesByGuid), dto).ConfigureAwait(false);
+        if (!IsConnected) return false;
+        return await _gagspeakHub!.InvokeAsync<bool>(nameof(UserApplyMoodlesByGuid), dto).ConfigureAwait(false);
     }
 
-    public async Task UserApplyMoodlesByStatus(ApplyMoodlesByStatusDto dto)
+    public async Task<bool> UserApplyMoodlesByStatus(ApplyMoodlesByStatusDto dto)
     {
-        if (!IsConnected) return;
-        await _gagspeakHub!.InvokeAsync(nameof(UserApplyMoodlesByStatus), dto).ConfigureAwait(false);
+        if (!IsConnected) return false;
+        return await _gagspeakHub!.InvokeAsync<bool>(nameof(UserApplyMoodlesByStatus), dto).ConfigureAwait(false);
     }
 
-    public async Task UserRemoveMoodles(RemoveMoodlesDto dto)
+    public async Task<bool> UserRemoveMoodles(RemoveMoodlesDto dto)
     {
-        if (!IsConnected) return;
-        await _gagspeakHub!.InvokeAsync(nameof(UserRemoveMoodles), dto).ConfigureAwait(false);
+        if (!IsConnected) return false;
+        return await _gagspeakHub!.InvokeAsync<bool>(nameof(UserRemoveMoodles), dto).ConfigureAwait(false);
     }
 
-    public async Task UserClearMoodles(UserDto dto)
+    public async Task<bool> UserClearMoodles(UserDto dto)
     {
-        if (!IsConnected) return;
-        await _gagspeakHub!.InvokeAsync(nameof(UserClearMoodles), dto).ConfigureAwait(false);
+        if (!IsConnected) return false;
+        return await _gagspeakHub!.InvokeAsync<bool>(nameof(UserClearMoodles), dto).ConfigureAwait(false);
     }
 
 

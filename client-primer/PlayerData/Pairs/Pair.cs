@@ -52,16 +52,11 @@ public class Pair
     private PairHandler? CachedPlayer { get; set; }
 
     /// <summary> 
-    /// 
     /// THE IMPORTANT DATA FOR THE PAIR OBJECT
-    /// 
     /// <para>
-    /// 
     /// This UserPairDto object, while simple, contains ALL of the pairs global, pair, and edit access permissions.
-    /// 
     /// This means any permission that is being modified will be accessing this object directly, 
-    /// and is set whenever the pair is added. Initialized in the constructor on pair creation.
-    /// 
+    /// and is set whenever the pair is added. Initialized in the constructor on pair creation
     /// </para>
     /// </summary>
     public UserPairDto UserPair { get; set; }

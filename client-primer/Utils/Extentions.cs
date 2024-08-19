@@ -1,3 +1,4 @@
+using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Interface.Utility;
 using GagSpeak.Services.Textures;
 using ImGuiNET;
@@ -70,6 +71,9 @@ public static class UtilsExtensions
         }
         return TimeSpan.Zero;
     }
+
+    public static string GetNameWithWorld(this IPlayerCharacter pc)
+        => pc == null ? null : (pc.Name.ToString() + "@" + pc.HomeWorld.GameData.Name);
 
 
     /// <summary>

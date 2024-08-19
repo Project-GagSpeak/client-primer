@@ -1,13 +1,15 @@
 using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI.Utils;
 using GagSpeak.UpdateMonitoring;
+using Dalamud.Game.ClientState.Objects.SubKinds;
+using GagSpeak.Utils;
+#nullable disable
 
 namespace GagSpeak.PlayerData.Handlers;
 public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
 {
     private readonly OnFrameworkService _frameworkUtil; // for method helpers handled on the game's framework thread.
     private readonly Func<IntPtr> _getAddress;          // for getting the address of the object.
-    private readonly bool _isOwnedObject;               // if this is an owned object of the cache creation service.
     private Task? _delayedZoningTask;                   // task to delay checking and updating owned object between zones.
     private CancellationTokenSource _zoningCts = new(); // CTS for the zoning task
     private CancellationTokenSource? _clearCts = new(); // CTS for the cache creation service
@@ -22,8 +24,9 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             _frameworkUtil.EnsureIsOnFramework();
             return getAddress.Invoke();
         };
-        _isOwnedObject = ownedObject;
-        Name = string.Empty;
+        IsOwnedObject = ownedObject;
+        // POTENTIAL CRASH CAUSE: (for moodles check)
+        NameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(Address).GetAwaiter().GetResult().GetNameWithWorld();
 
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
 
@@ -31,33 +34,36 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         Mediator.Subscribe<ZoneSwitchEndMessage>(this, (_) => ZoneSwitchEnd());
         Mediator.Subscribe<ZoneSwitchStartMessage>(this, (_) => ZoneSwitchStart());
 
+        // push a notifier to our IPC that we have created a new game object handler from our pairs.
+        Mediator.Publish(new GameObjectHandlerCreatedMessage(this, IsOwnedObject));
+
         // run the object checks on framework thread.
         _frameworkUtil.RunOnFrameworkThread(CheckAndUpdateObject).GetAwaiter().GetResult();
 
     }
 
-    // this is very likely going to go wrong since there is an
-    // address updater inside of the updateobject method we erased.
-    // (im certain it will, but i just want to see SOMETHING happen right now)
+
+    // Determines if this object is the Player Character or not.
+    public readonly bool IsOwnedObject;
+
     public IntPtr Address { get; private set; } // addr of character
-    public string Name { get; private set; } // the name of the character
+
+    // TODO: Add functionality for this later. Figure out how to make it work as
+    // its more efficient for the IPC in the long run.
+    public string NameWithWorld { get; private set; } // the name of the character
     private IntPtr DrawObjectAddress { get; set; } // the address of the characters draw object.
 
     public void Invalidate()
     {
         Address = IntPtr.Zero;
+        NameWithWorld = string.Empty;
         DrawObjectAddress = IntPtr.Zero;
-    }
-
-    public override string ToString()
-    {
-        var owned = _isOwnedObject ? "Self" : "Other";
-        return $"{owned}/{Name} ({Address:X},{DrawObjectAddress:X})";
     }
 
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
+        Mediator.Publish(new GameObjectHandlerDestroyedMessage(this, IsOwnedObject));
     }
 
     private void FrameworkUpdate()
@@ -116,21 +122,21 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             }
 
             // if this is not a owned object, instantly publish the character changed message and return.
-            if (!_isOwnedObject) return;
+            if (!IsOwnedObject) return;
 
             // if there was a difference in the address, or draw object, and it is an owned object, then publish the cache creation.
-            if ((addrDiff || drawObjDiff) && _isOwnedObject)
+            if ((addrDiff || drawObjDiff) && IsOwnedObject)
             {
                 Logger.LogDebug("Changed, Sending CreateCacheObjectMessage");
-                Mediator.Publish(new CreateCacheForObjectMessage(this));
+                Mediator.Publish(new CreateCacheForObjectMessage(this)); // will update the player character cache from its previous data.
             }
         }
         // otherwise, if the new address OR the new draw object was IntPtr.Zero / not visible, and we had a change in address or draw object.
         else if (addrDiff || drawObjDiff)
         {
-            // log the change, and if it is an owned object, publish the clear cache message since it is no longer valid.
             Logger.LogTrace("[{this}] Changed", this);
-            if (_isOwnedObject)
+            // only fires when the change is from us.
+            if (IsOwnedObject)
             {
                 Logger.LogDebug("[{this}] Calling upon ClearAsync due to an owned object vanishing.", this);
                 _clearCts?.CancelDispose();
@@ -154,7 +160,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
 
     private void ZoneSwitchEnd()
     {
-        if (!_isOwnedObject || _haltProcessing) return;
+        if (!IsOwnedObject || _haltProcessing) return;
 
         _clearCts?.Cancel();
         _clearCts?.Dispose();
@@ -171,7 +177,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
 
     private void ZoneSwitchStart()
     {
-        if (!_isOwnedObject || _haltProcessing) return;
+        if (!IsOwnedObject || _haltProcessing) return;
 
         _zoningCts = new();
         Logger.LogDebug("[{obj}] Starting Delay After Zoning", this);

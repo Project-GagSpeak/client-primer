@@ -127,7 +127,9 @@ public record UpdateGlamourBlindfoldMessage(UpdatedNewState NewState, string Ass
 public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
 
 // Whenever we update our own data (callbacks from server are updated separately to avoid loops)
-public record MoodlesMessage(IntPtr Address) : MessageBase; // indicated a moodles message was published.
+public record MoodlesStatusManagerChangedMessage(IntPtr Address) : MessageBase; // when our status manager changes.
+public record MoodlesStatusModified(Guid Guid) : MessageBase; // when we change one of our moodles settings.
+public record MoodlesPresetModified(Guid Guid) : MessageBase; // when we change one of our moodles presets.
 public record PlayerCharIpcChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharAppearanceChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase;
@@ -162,6 +164,10 @@ public record PatternSavePromptMessage(List<byte> StoredData, string Duration) :
 public record BlindfoldUiTypeChange(BlindfoldType NewType) : MessageBase; // for changing blindfold type.
 
 public record SafewordUsedMessage : MessageBase; // for when the safeword is used.
+
+/* ------------------ GAGSPEAK IPC RECORDS ------------------ */
+public record GameObjectHandlerCreatedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
+public record GameObjectHandlerDestroyedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
 
 #pragma warning restore S2094
 #pragma warning restore MA0048 // File name must match type name

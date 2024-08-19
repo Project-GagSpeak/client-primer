@@ -7,6 +7,7 @@ using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.UserPair;
 using GagSpeak.Services.Mediator;
 using Microsoft.AspNetCore.SignalR.Client;
+using GagspeakAPI.Dto.IPC;
 
 namespace GagSpeak.WebAPI;
 
@@ -110,6 +111,48 @@ public partial class ApiController // Partial class for MainHub Callbacks
         ExecuteSafely(() => _pairManager.RemoveUserPair(dto));
         return Task.CompletedTask;
     }
+
+
+    /// <summary> Handles for Moodles IPC </summary>
+
+    public Task Client_UserApplyMoodlesByGuid(ApplyMoodlesByGuidDto dto)
+    {
+        // Should make us call to the moodles IPC to apply the statuses recieved
+        // (permissions verified by server)
+        Logger.LogDebug("Client_UserApplyMoodlesByGuid: {dto}", dto);
+        // ExecuteSafely(() => _playerCharManager.ApplyMoodlesByGuid(dto));
+        return Task.CompletedTask;
+    }
+
+    public Task Client_UserApplyMoodlesByStatus(ApplyMoodlesByStatusDto dto)
+    {
+        // Should make us call to the moodles IPC to apply the statuses recieved
+        // (permissions verified by server)
+        Logger.LogDebug("Client_UserApplyMoodlesByStatus: {dto}", dto);
+        // ExecuteSafely(() => _playerCharManager.ApplyMoodlesByStatus(dto));
+        return Task.CompletedTask;
+    }
+
+    public Task Client_UserRemoveMoodles(RemoveMoodlesDto dto)
+    {
+        // Should make us call to the moodles IPC to remove the statuses recieved
+        // (permissions verified by server)
+        Logger.LogDebug("Client_UserRemoveMoodles: {dto}", dto);
+        // ExecuteSafely(() => _playerCharManager.RemoveMoodles(dto));
+        return Task.CompletedTask;
+    }
+
+    public Task Client_UserClearMoodles(UserDto dto)
+    {
+        // Should make us call to the moodles IPC to clear all statuses
+        // (permissions verified by server)
+        Logger.LogDebug("Client_UserClearMoodles: {dto}", dto);
+        // ExecuteSafely(() => _playerCharManager.ClearMoodles(dto));
+        return Task.CompletedTask;
+    }
+
+
+
 
     /// <summary> 
     /// 
@@ -464,6 +507,30 @@ public partial class ApiController // Partial class for MainHub Callbacks
     {
         if (_initialized) return;
         _gagspeakHub!.On(nameof(Client_UserRemoveClientPair), act);
+    }
+
+    public void OnUserApplyMoodlesByGuid(Action<ApplyMoodlesByGuidDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserApplyMoodlesByGuid), act);
+    }
+
+    public void OnUserApplyMoodlesByStatus(Action<ApplyMoodlesByStatusDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserApplyMoodlesByStatus), act);
+    }
+
+    public void OnUserRemoveMoodles(Action<RemoveMoodlesDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserRemoveMoodles), act);
+    }
+
+    public void OnUserClearMoodles(Action<UserDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserClearMoodles), act);
     }
 
     public void OnUpdateUserIndividualPairStatusDto(Action<UserIndividualPairStatusDto> action)

@@ -54,7 +54,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             });
         });
 
-        Mediator.Subscribe<MoodlesMessage>(this, (msg) =>
+        Mediator.Subscribe<MoodlesStatusManagerChangedMessage>(this, (msg) =>
         {
             if (_isZoning) return;
             // Assuming _playerObject is now a single GameObjectHandler instance

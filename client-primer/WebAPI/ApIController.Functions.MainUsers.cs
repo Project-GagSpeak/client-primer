@@ -7,6 +7,7 @@ using GagspeakAPI.Dto.UserPair;
 using Microsoft.AspNetCore.SignalR.Client;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Toybox;
+using GagspeakAPI.Dto.IPC;
 
 namespace GagSpeak.WebAPI;
 
@@ -108,6 +109,32 @@ public partial class ApiController // Partial class for MainHub User Functions.
         if (!IsConnected) return;
         await _gagspeakHub!.InvokeAsync(nameof(UserSetProfile), userDescription).ConfigureAwait(false);
     }
+
+    /// <summary> Moodles IPC senders. </summary>
+    public async Task UserApplyMoodlesByGuid(ApplyMoodlesByGuidDto dto)
+    {
+        if (!IsConnected) return;
+        await _gagspeakHub!.InvokeAsync(nameof(UserApplyMoodlesByGuid), dto).ConfigureAwait(false);
+    }
+
+    public async Task UserApplyMoodlesByStatus(ApplyMoodlesByStatusDto dto)
+    {
+        if (!IsConnected) return;
+        await _gagspeakHub!.InvokeAsync(nameof(UserApplyMoodlesByStatus), dto).ConfigureAwait(false);
+    }
+
+    public async Task UserRemoveMoodles(RemoveMoodlesDto dto)
+    {
+        if (!IsConnected) return;
+        await _gagspeakHub!.InvokeAsync(nameof(UserRemoveMoodles), dto).ConfigureAwait(false);
+    }
+
+    public async Task UserClearMoodles(UserDto dto)
+    {
+        if (!IsConnected) return;
+        await _gagspeakHub!.InvokeAsync(nameof(UserClearMoodles), dto).ConfigureAwait(false);
+    }
+
 
     /// <summary>
     /// Pushes the composite user data of a a character to other recipients.

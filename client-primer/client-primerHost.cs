@@ -290,7 +290,11 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new IpcManager(s.GetRequiredService<ILogger<IpcManager>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<IpcCallerCustomize>(),
             s.GetRequiredService<IpcCallerGlamourer>(), s.GetRequiredService<IpcCallerPenumbra>(),
-            s.GetRequiredService<IpcCallerMoodles>()));
+            s.GetRequiredService<IpcCallerMoodles>()))
+
+        .AddSingleton((s) => new IpcProvider(s.GetRequiredService<ILogger<IpcProvider>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
+            s.GetRequiredService<OnFrameworkService>(), pi));
 
     #endregion IpcServices
     #region ConfigServices
@@ -379,6 +383,7 @@ public static class GagSpeakServiceExtensions
         .AddHostedService(p => p.GetRequiredService<GagspeakMediator>())
         .AddHostedService(p => p.GetRequiredService<OnFrameworkService>())
         .AddHostedService(p => p.GetRequiredService<EventAggregator>())
+        .AddHostedService(p => p.GetRequiredService<IpcProvider>())
         // add our main Plugin.cs file as a hosted ;
         .AddHostedService<GagSpeakHost>();
     #endregion HostedServices

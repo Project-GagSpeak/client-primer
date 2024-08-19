@@ -1,5 +1,6 @@
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
@@ -107,6 +108,20 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     {
         return await RunOnFrameworkThread(() => _objectTable.CreateObjectReference(reference)).ConfigureAwait(false);
     }
+
+    /// <summary> Get the player character from the object table based on the pointer address</summary>
+    public IPlayerCharacter? GetIPlayerCharacterFromObjectTable(IntPtr address)
+    {
+        EnsureIsOnFramework();
+        return (IPlayerCharacter?)_objectTable.CreateObjectReference(address);
+    }
+
+    /// <summary> Get the player character from the object table based on the pointer address asynchronously</summary>
+    public async Task<IPlayerCharacter?> GetIPlayerCharacterFromObjectTableAsync(IntPtr address)
+    {
+        return await RunOnFrameworkThread(() => (IPlayerCharacter?)_objectTable.CreateObjectReference(address)).ConfigureAwait(false);
+    }
+
 
     /// <summary> Get if the player is not null, and if FFXIVClientState determines the playercharacter is valid </summary>
     /// <returns>a boolean telling us if the player character is present or not</returns>
@@ -324,30 +339,21 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
 
         // we need to update our stored playercharacters to know if they are still valid, and to update our pair handlers
         // Begin by adding the range of existing player character keys
+        var playerCharacters = _objectTable.OfType<IPlayerCharacter>().ToList();
         _notUpdatedCharas.AddRange(_playerCharas.Keys);
 
         // for each object in the renderable object table
-        for (var i = 0; i < 200; i++)
+        foreach (var chara in playerCharacters)
         {
-            var chara = _objectTable[i];
-            // if the character is null or the object kind is not a player, then continue to next object.
-            if (chara == null || chara.ObjectKind != Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player)
-                continue;
-
-            // otherwise, get the character name and hash it
             var charaName = chara.Name.ToString();
             var hash = (charaName, ((BattleChara*)chara.Address)->Character.HomeWorld).GetHash256();
 
-            // there was a check to see if anything was drawing here, but we can add back if problems arise.
             _notUpdatedCharas.Remove(hash);
-            // store the sucessful hash into the player characters list
             _playerCharas[hash] = (charaName, chara.Address);
         }
 
-        // for the remaining characters that are not yet updated, remove them from the player characters list
         foreach (var notUpdatedChara in _notUpdatedCharas)
         {
-            // removing them should invalidate the pair handler BUT I COULD BE TOTALLY WRONG ITS JUST SPECULATION
             _playerCharas.Remove(notUpdatedChara);
         }
 

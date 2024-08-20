@@ -11,9 +11,9 @@ namespace GagSpeak.PlayerData.Services;
 
 #pragma warning disable MA0040
 
-// this is a sealed scoped class meaning the cache service would be unique for every player assigned to it.
-
-// Edit: I THINK this is just for our player character.
+// Made for the player character.
+// Holds the cached information about changes to make to the player.
+// Changes are pushed to the visible player manager. Which performs the API calls.
 public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 {
     private readonly SemaphoreSlim _cacheCreateLock = new(1);
@@ -57,6 +57,11 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
                 Mediator.Publish(new CharacterDataCreatedMessage(_playerIpcData));
             });
         });
+
+
+
+
+
 
         Mediator.Subscribe<MoodlesStatusManagerChangedMessage>(this, (msg) =>
         {
@@ -183,7 +188,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         var start = DateTime.UtcNow;
 
         // Obtain the Status Manager State for the player object.
-        previousData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(playerRelatedObject.Address).ConfigureAwait(false) ?? string.Empty;
+        previousData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(playerRelatedObject.NameWithWorld).ConfigureAwait(false) ?? string.Empty;
 
         // Obtain the Moodles Statuses from Moodles.
         previousData.MoodlesStatuses = await _ipcManager.Moodles.GetMoodlesInfoAsync().ConfigureAwait(false) ?? new();

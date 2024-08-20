@@ -6,6 +6,12 @@ using GagSpeak.Utils;
 #nullable disable
 
 namespace GagSpeak.PlayerData.Handlers;
+
+/// <summary>
+/// Handles the state of the visible game objects. Can refer to player character or another visible pair.
+/// 
+/// Helps with detecting when they are valid in the object table or not, and what to do with them.
+/// </summary>
 public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
 {
     private readonly OnFrameworkService _frameworkUtil; // for method helpers handled on the game's framework thread.
@@ -25,8 +31,6 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             return getAddress.Invoke();
         };
         IsOwnedObject = ownedObject;
-        // POTENTIAL CRASH CAUSE: (for moodles check)
-        NameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(Address).GetAwaiter().GetResult().GetNameWithWorld();
 
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
 
@@ -53,8 +57,14 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
     public string NameWithWorld { get; private set; } // the name of the character
     private IntPtr DrawObjectAddress { get; set; } // the address of the characters draw object.
 
+    public override string ToString()
+    {
+        return "Name@World: " + NameWithWorld + " || Address: " + Address.ToString("X");
+    }
+
     public void Invalidate()
     {
+        Logger.LogDebug("Object for {NameWithWorld} is now invalid, clearing Address & NameWithWorld", NameWithWorld);
         Address = IntPtr.Zero;
         NameWithWorld = string.Empty;
         DrawObjectAddress = IntPtr.Zero;
@@ -93,7 +103,6 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         // if the address still exists, update the draw object address.
         if (Address != IntPtr.Zero)
         {
-            // _ptrNullCounter = 0; // Might have signifigance later we'll see.
             var drawObjAddr = (IntPtr)((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)Address)->DrawObject;
             DrawObjectAddress = drawObjAddr;
         }
@@ -121,17 +130,23 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
                 _clearCts = null;
             }
 
-            // if this is not a owned object, instantly publish the character changed message and return.
+            if (addrDiff || drawObjDiff)
+            {
+                NameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(Address).GetAwaiter().GetResult().GetNameWithWorld();
+                Logger.LogDebug("Object Address Changed, updating with name & world {NameWithWorld}", NameWithWorld);
+            }
+
+            // If the gameobject is not a player character and a visible pair. update the name with world if the address is different, and then return.
             if (!IsOwnedObject) return;
 
-            // if there was a difference in the address, or draw object, and it is an owned object, then publish the cache creation.
+            // Update the player characters cache in the cache creation service.
             if ((addrDiff || drawObjDiff) && IsOwnedObject)
             {
                 Logger.LogDebug("Changed, Sending CreateCacheObjectMessage");
                 Mediator.Publish(new CreateCacheForObjectMessage(this)); // will update the player character cache from its previous data.
             }
         }
-        // otherwise, if the new address OR the new draw object was IntPtr.Zero / not visible, and we had a change in address or draw object.
+        // reaching this case means that one of the addresses because IntPtr.Zero, so we need to clear the cache.
         else if (addrDiff || drawObjDiff)
         {
             Logger.LogTrace("[{this}] Changed", this);

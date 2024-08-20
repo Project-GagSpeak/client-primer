@@ -15,6 +15,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     
     // Remember, all these are called only when OUR client changes. Not other pairs.
     private readonly ICallGateSubscriber<int> _moodlesApiVersion;
+    private readonly ICallGateSubscriber<object> _moodlesReady;
     
     private readonly ICallGateSubscriber<IPlayerCharacter, object> _onStatusManagerModified;
     private readonly ICallGateSubscriber<Guid, object> _onStatusSettingsModified;
@@ -25,11 +26,13 @@ public sealed class IpcCallerMoodles : IIpcCaller
     private readonly ICallGateSubscriber<List<MoodlesStatusInfo>> _getMoodlesInfo;
     private readonly ICallGateSubscriber<Guid, (Guid, List<Guid>)> _getPresetInfo;
     private readonly ICallGateSubscriber<List<(Guid, List<Guid>)>> _getPresetsInfo;
-    private readonly ICallGateSubscriber<nint, string> _moodlesGetStatus;
+    private readonly ICallGateSubscriber<string, string> _moodlesGetStatus;
 
     // API Enactor Functions
-    private readonly ICallGateSubscriber<nint, string, object> _moodlesSetStatus;
-    private readonly ICallGateSubscriber<nint, object> _moodlesRevertStatus;
+    private readonly ICallGateSubscriber<string, string, List<MoodlesStatusInfo>, object> _applyStatusesFromPair;
+    private readonly ICallGateSubscriber<string, string, object> _setStatusManager;
+    private readonly ICallGateSubscriber<List<Guid>, string, object> _removeStatusesFromManager;
+    private readonly ICallGateSubscriber<string, object> _clearStatusesFromManager;
 
 
     private readonly ILogger<IpcCallerMoodles> _logger;
@@ -45,6 +48,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         _gagspeakMediator = gagspeakMediator;
 
         _moodlesApiVersion = pi.GetIpcSubscriber<int>("Moodles.Version");
+        _moodlesReady = pi.GetIpcSubscriber<object>("Moodles.Ready");
 
         // TODO: Change nint to name@world later.
         // API Getter Functions
@@ -52,11 +56,13 @@ public sealed class IpcCallerMoodles : IIpcCaller
         _getMoodlesInfo = pi.GetIpcSubscriber<List<MoodlesStatusInfo>>("Moodles.GetRegisteredMoodlesInfo");
         _getPresetInfo = pi.GetIpcSubscriber<Guid, (Guid, List<Guid>)>("Moodles.GetRegisteredPresetInfo");
         _getPresetsInfo = pi.GetIpcSubscriber<List<(Guid, List<Guid>)>>("Moodles.GetRegisteredPresetsInfo");
-        _moodlesGetStatus = pi.GetIpcSubscriber<nint, string>("Moodles.GetStatusManagerByPtr");
-        
+        _moodlesGetStatus = pi.GetIpcSubscriber<string, string>("Moodles.GetStatusManagerByName");
+
         // API Enactor Functions
-        _moodlesSetStatus = pi.GetIpcSubscriber<nint, string, object>("Moodles.SetStatusManagerByPtr");
-        _moodlesRevertStatus = pi.GetIpcSubscriber<nint, object>("Moodles.ClearStatusManagerByPtr");
+        _applyStatusesFromPair = pi.GetIpcSubscriber<string, string, List<MoodlesStatusInfo>, object>("Moodles.ApplyStatusesFromGSpeakPair");
+        _setStatusManager = pi.GetIpcSubscriber<string, string, object>("Moodles.SetStatusManagerByName");
+        _removeStatusesFromManager = pi.GetIpcSubscriber<List<Guid>, string, object>("Moodles.RemoveMoodlesByGUIDByName");
+        _clearStatusesFromManager = pi.GetIpcSubscriber<string, object>("Moodles.ClearStatusManagerByName");
 
 
         // API Action Events:
@@ -64,12 +70,16 @@ public sealed class IpcCallerMoodles : IIpcCaller
         _onStatusSettingsModified = pi.GetIpcSubscriber<Guid, object>("Moodles.StatusModified");
         _onPresetModified = pi.GetIpcSubscriber<Guid, object>("Moodles.PresetModified");
 
+        _moodlesReady.Subscribe(OnMoodlesReady); // fires whenever our client's moodles are ready.
         _onStatusManagerModified.Subscribe(OnStatusManagerModified); // fires whenever our client's status manager changes.
         _onStatusSettingsModified.Subscribe(OnStatusModified); // fires whenever our client's changes the settings of a Moodle.
         _onPresetModified.Subscribe(OnPresetModified); // fires whenever our client's changes the settings of a Moodle preset.
 
         CheckAPI(); // check to see if we have a valid API
     }
+
+    private void OnMoodlesReady()
+        => _gagspeakMediator.Publish(new MoodlesReady());
 
     /// <summary> This method is called when the moodles change </summary>
     /// <param name="character">The character that had modified moodles.</param>
@@ -104,6 +114,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     /// <summary> This method disposes of the IPC caller moodles</summary>
     public void Dispose()
     {
+        _moodlesReady.Unsubscribe(OnMoodlesReady);
         _onStatusManagerModified.Unsubscribe(OnStatusManagerModified);
         _onStatusSettingsModified.Unsubscribe(OnStatusModified);
         _onPresetModified.Unsubscribe(OnPresetModified);
@@ -180,13 +191,13 @@ public sealed class IpcCallerMoodles : IIpcCaller
 
 
     /// <summary> This method gets the status of the moodles for a partiular address</summary>
-    public async Task<string?> GetStatusAsync(nint address)
+    public async Task<string?> GetStatusAsync(string playerNameWithWorld)
     {
         if (!APIAvailable) return null; // return if the API isnt available
 
         try // otherwise, try and return an awaited task that gets the status of the moodles for a particular address
         {
-            return await _frameworkUtil.RunOnFrameworkThread(() => _moodlesGetStatus.InvokeFunc(address)).ConfigureAwait(false);
+            return await _frameworkUtil.RunOnFrameworkThread(() => _moodlesGetStatus.InvokeFunc(playerNameWithWorld)).ConfigureAwait(false);
 
         }
         catch (Exception e)
@@ -197,19 +208,32 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
     }
 
-    /// <summary> Sets the moodles status for a gameobject spesified by the pointer</summary>
-    /// <para> This will be what allows us to forcible set moodles to other players. </para>
-    /// </summary>
-    /// <param name="pointer">the pointer address of the player to set the status for</param>
-    /// <param name="status">the moodles status information to apply</param>
-    /// <returns></returns>
-    public async Task SetStatusAsync(nint pointer, string status)
+    /// <summary> This method applies the statuses from a pair to the client </summary>
+    public async Task ApplyStatusesFromPairToSelf(string applierNameWithWorld, string recipientNameWithWorld, List<MoodlesStatusInfo> statuses)
+    {
+        if (!APIAvailable) return;
+        try
+        {
+            await _frameworkUtil.RunOnFrameworkThread(() => 
+                _applyStatusesFromPair.InvokeAction(applierNameWithWorld, recipientNameWithWorld, statuses)).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Could not Apply Moodles Status");
+        }
+    }
+
+
+
+    /// <summary> Likely wont use???? </summary>
+    public async Task SetStatusAsync(string playerNameWithWorld, string status)
     {
         // if the API is not available, return
         if (!APIAvailable) return;
         try
         {
-            await _frameworkUtil.RunOnFrameworkThread(() => _moodlesSetStatus.InvokeAction(pointer, status)).ConfigureAwait(false);
+            await _frameworkUtil.RunOnFrameworkThread(() => 
+                _setStatusManager.InvokeAction(playerNameWithWorld, status)).ConfigureAwait(false);
         }
         catch (Exception e)
         {
@@ -217,14 +241,30 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
     }
 
-    /// <summary> Reverts the status of the moodles for a gameobject spesified by the pointer</summary>
-    /// <param name="pointer">the pointer address of the player to revert the status for</param>
-    public async Task RevertStatusAsync(nint pointer)
+    public async Task RemoveStatusesAsync(string playerNameWithWorld, List<Guid> statusesToRemove)
     {
         if (!APIAvailable) return;
         try
         {
-            await _frameworkUtil.RunOnFrameworkThread(() => _moodlesRevertStatus.InvokeAction(pointer)).ConfigureAwait(false);
+            await _frameworkUtil.RunOnFrameworkThread(() => 
+                _removeStatusesFromManager.InvokeAction(statusesToRemove, playerNameWithWorld)).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Could not Set Moodles Status");
+        }
+    }
+
+
+    /// <summary> Reverts the status of the moodles for a gameobject spesified by the pointer</summary>
+    /// <param name="pointer">the pointer address of the player to revert the status for</param>
+    public async Task ClearStatusAsync(string playerNameWithWorld)
+    {
+        if (!APIAvailable) return;
+        try
+        {
+            await _frameworkUtil.RunOnFrameworkThread(() => 
+                _clearStatusesFromManager.InvokeAction(playerNameWithWorld)).ConfigureAwait(false);
         }
         catch (Exception e)
         {

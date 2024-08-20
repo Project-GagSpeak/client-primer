@@ -66,8 +66,8 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
     private async Task ExecuteWithSemaphore(Func<Task> action)
     {
         _cts.Cancel();
-        await semaphore.WaitAsync();
         OnFrameworkService.GlamourChangeEventsDisabled = true;
+        await semaphore.WaitAsync();
         try
         {
             await action();
@@ -78,8 +78,9 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         }
         finally
         {
-            OnFrameworkService.GlamourChangeFinishedDrawing = true;
             semaphore.Release();
+            OnFrameworkService.GlamourChangeFinishedDrawing = true;
+
         }
     }
 

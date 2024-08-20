@@ -20,10 +20,8 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
     private readonly PlayerCharacterManager _playerManager;
     private readonly PairManager _pairManager;
 
-    // Store the most recently sent component of our API formats from our player character
-    // TODO: The variable below should be reflecting the players latest IpcData. This is initially stored in the playerManager, 
-    // But we dont know when that is set. For now we will set it to a new object at the start.
-    private CharacterIPCData LastIpcData => _playerManager.IpcData;
+    // Stores the last recieved IpcData from our client player characters cache creation service.
+    private CharacterIPCData LastIpcData = null!;
 
     // stores the set of newly visible players to update with our latest IPC data.
     private readonly HashSet<PairHandler> _newVisiblePlayers = [];
@@ -51,7 +49,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
             if (LastIpcData == null || !Equals(newData, LastIpcData))
             {
                 Logger.LogDebug("Pushing new IPC data to all visible players");
-                _playerManager.UpdateIpcData(newData);
+                LastIpcData = newData;
                 PushCharacterIpcData(_pairManager.GetVisibleUsers(), msg.UpdateKind);
             }
             else
@@ -59,6 +57,17 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
                 Logger.LogDebug("Data was no different. Not sending data");
             }
         });
+
+        // Called whenever we are requesting to apply a set of moodles from our clients Moodle Statuses, to another pair.
+        Mediator.Subscribe<MoodlesApplyStatusToPair>(this, (msg) =>
+        {
+            Logger.LogDebug("Applying List of your Statuses from your Moodles to {user}", msg.StatusDto.User.AliasOrUID);
+            _ = Task.Run(async () =>
+            {
+                await _apiController.UserApplyMoodlesByStatus(msg.StatusDto).ConfigureAwait(false);
+            });
+        });
+
 
         // Add pair to list when they become visible.
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, (msg) => _newVisiblePlayers.Add(msg.Player));

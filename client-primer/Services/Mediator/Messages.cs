@@ -18,6 +18,7 @@ using System.Numerics;
 using GagspeakAPI.Data.VibeServer;
 using GagSpeak.PlayerData.PrivateRooms;
 using GagspeakAPI.Dto.Toybox;
+using GagspeakAPI.Dto.IPC;
 
 namespace GagSpeak.Services.Mediator;
 
@@ -127,9 +128,13 @@ public record UpdateGlamourBlindfoldMessage(UpdatedNewState NewState, string Ass
 public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
 
 // Whenever we update our own data (callbacks from server are updated separately to avoid loops)
+public record MoodlesReady : MessageBase;
 public record MoodlesStatusManagerChangedMessage(IntPtr Address) : MessageBase; // when our status manager changes.
 public record MoodlesStatusModified(Guid Guid) : MessageBase; // when we change one of our moodles settings.
 public record MoodlesPresetModified(Guid Guid) : MessageBase; // when we change one of our moodles presets.
+// dont think the record below is needed tbh.
+public record MoodlesApplyStatusGuidToPair(ApplyMoodlesByGuidDto StatusDto) : MessageBase;
+public record MoodlesApplyStatusToPair(ApplyMoodlesByStatusDto StatusDto) : MessageBase;
 public record PlayerCharIpcChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharAppearanceChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase;

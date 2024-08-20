@@ -293,7 +293,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<IpcCallerMoodles>()))
 
         .AddSingleton((s) => new IpcProvider(s.GetRequiredService<ILogger<IpcProvider>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PairManager>(), 
             s.GetRequiredService<OnFrameworkService>(), pi));
 
     #endregion IpcServices

@@ -27,12 +27,12 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private Task? _applicationTask;
     private CancellationTokenSource? _applicationCTS = new();
 
-    // the cached data for the paired player. This is where it is stored. Right here. Yup. Not the pair class, here.
+    // the cached data for the paired player.
     private CharacterIPCData? _cachedIpcData = null;
 
-    // will only need a very basic level of this for now storing minimum data and minimum interactions
     // primarily used for initialization and address checking for visibility
     private GameObjectHandler? _charaHandler;
+
     private bool _isVisible;
 
     public PairHandler(ILogger<PairHandler> logger, OnlineUserIdentDto onlineUser,
@@ -77,25 +77,23 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
     public OnlineUserIdentDto OnlineUser { get; private set; }  // the online user Dto. Set when pairhandler is made for the cached player in the pair object.
     public nint IPlayerCharacter => _charaHandler?.Address ?? nint.Zero; // the player character object address
-    public unsafe uint IPlayerCharacterId => (uint)((_charaHandler?.Address ?? nint.Zero) == nint.Zero  // the player character object id
-        ? uint.MaxValue
-        : ((FFXIVClientStructs.FFXIV.Client.Game.Object.GameObject*)_charaHandler!.Address)->GetGameObjectId());
-    public string? PlayerName { get; private set; }                                         // the player name
-    public string PlayerNameHash => OnlineUser.Ident;                                       // the player name hash
+    public string? PlayerName { get; private set; }
+    public string PlayerNameWithWorld => _charaHandler?.NameWithWorld ?? string.Empty;
+    public string PlayerNameHash => OnlineUser.Ident;
 
     public override string ToString()
     {
         return OnlineUser == null
             ? base.ToString() ?? string.Empty
-            : "AliasOrUID: " + OnlineUser.User.AliasOrUID + ":: PlayerName: " + PlayerName + ":: Player Address:" 
-            + (IPlayerCharacter != nint.Zero ? "HasChar" : "NoChar") + (_charaHandler != null ? _charaHandler.ToString() : "NoHandler");
+            : "AliasOrUID: " + OnlineUser.User.AliasOrUID + "|| PlayerName: " + PlayerName + " || " 
+            + (_charaHandler != null ? _charaHandler.ToString() : "NoHandler");
     }
 
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
 
-        var name = PlayerName;
+        var name = PlayerNameWithWorld;
         Logger.LogDebug("Disposing {name} ({user})", name, OnlineUser);
         try
         {
@@ -234,7 +232,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                     case PlayerChanges.Glamourer:
                         break;
                     case PlayerChanges.Moodles:
-                        await _ipcManager.Moodles.SetStatusAsync(handler.Address, charaData.MoodlesData).ConfigureAwait(false);
+                        await _ipcManager.Moodles.SetStatusAsync(handler.NameWithWorld, charaData.MoodlesData).ConfigureAwait(false);
                         break;
                     default:
                         break;
@@ -329,14 +327,12 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// <returns></returns>
     private async Task RevertIpcDataAsync(string name, Guid applicationId, CancellationToken cancelToken)
     {
-        // get the player character address from the cached table by the pairs online user identity
-        nint address = _frameworkUtil.GetIPlayerCharacterFromCachedTableByIdent(OnlineUser.Ident);
         // if the address is zero, return
-        if (address == nint.Zero) return;
+        if (name == string.Empty) return;
 
         Logger.LogDebug("[{applicationId}] Reverting all Customization for {alias}/{name}", applicationId, OnlineUser.User.AliasOrUID, name);
 
         Logger.LogDebug("[{applicationId}] Restoring Moodles for {alias}/{name}", applicationId, OnlineUser.User.AliasOrUID, name);
-        await _ipcManager.Moodles.RevertStatusAsync(address).ConfigureAwait(false);
+        await _ipcManager.Moodles.ClearStatusAsync(name).ConfigureAwait(false);
     }
 }

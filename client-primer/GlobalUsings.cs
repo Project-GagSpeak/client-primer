@@ -30,4 +30,16 @@ global using MoodlesStatusInfo = (
     int Seconds,
     bool NoExpire,
     bool AsPermanent
-);
+    );
+
+global using OtherPairsMoodlePermsForClient = (
+    bool AllowPositive,
+    bool AllowNegative,
+    bool AllowSpecial,
+    bool AllowApplyingOwnMoodles,
+    bool AllowApplyingPairsMoodles,
+    System.TimeSpan MaxDuration,
+    bool AllowPermanent,
+    bool AllowRemoval
+    );
+

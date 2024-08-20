@@ -92,7 +92,8 @@ public unsafe class ChatInputDetour : IDisposable
             }
 
             // if our chat garbler is disabled or we dont have any active gags, dont worry about anything past this point and return original.
-            if((_playerManager.GlobalPerms != null && !_playerManager.GlobalPerms.LiveChatGarblerActive) || !_gagManager.AnyGagActive)
+            if((_playerManager.GlobalPerms != null && !_playerManager.GlobalPerms.LiveChatGarblerActive) 
+             || _playerManager.GlobalPerms != null && !_gagManager.AnyGagActive)
             { 
                 return ProcessChatInputHook.Original(uiModule, message, a3);
             }

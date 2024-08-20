@@ -40,14 +40,7 @@ public class Pair
     }
 
     /// <summary> 
-    /// 
-    /// The cached player PairHandler object for this pair. (STORES THE CHARACTER DATA FOR THIS PAIRED USER)
-    /// 
-    /// <para>
-    /// 
-    /// The <c>CreateCachedPlayer</c> Function should be the only function setting this to anything but null.
-    /// 
-    /// </para>
+    /// The object that is responcible for handling the state of the pairs gameobject handler.
     /// </summary>
     private PairHandler? CachedPlayer { get; set; }
 
@@ -81,13 +74,13 @@ public class Pair
     public IndividualPairStatus IndividualPairStatus => UserPair.IndividualPairStatus;  // the individual pair status of the pair in relation to the client.
     public bool IsDirectlyPaired => IndividualPairStatus != IndividualPairStatus.None;  // if the pair is directly paired.
     public bool IsOneSidedPair => IndividualPairStatus == IndividualPairStatus.OneSided; // if the pair is one sided.
-    public bool IsOnline => CachedPlayer != null;                                       // lets us know if the paired user is online. 
     public OnlineUserIdentDto CachedPlayerOnlineDto => CachedPlayer.OnlineUser;       // the online user ident dto of the cached player.
     public bool IsPaired => IndividualPairStatus == IndividualPairStatus.Bidirectional; // if the user is paired bidirectionally.
-    public bool IsPaused => UserPair.OwnPairPerms.IsPaused; 
+    public bool IsPaused => UserPair.OwnPairPerms.IsPaused;
+    public bool IsOnline => CachedPlayer != null;                                       // lets us know if the paired user is online. 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;                          // if the paired user is visible.
-    public string? PlayerName => CachedPlayer?.PlayerName ?? UserData.AliasOrUID ?? string.Empty;  // Name of pair player. If empty, (pair handler) CachedData is not initialized yet.
-
+    public string PlayerName => CachedPlayer?.PlayerName ?? UserData.AliasOrUID ?? string.Empty;  // Name of pair player. If empty, (pair handler) CachedData is not initialized yet.
+    public string PlayerNameWithWorld => CachedPlayer?.PlayerNameWithWorld ?? string.Empty;
     public string CachedPlayerString() => CachedPlayer?.ToString() ?? "No Cached Player"; // string representation of the cached player.
 
     /// <summary>

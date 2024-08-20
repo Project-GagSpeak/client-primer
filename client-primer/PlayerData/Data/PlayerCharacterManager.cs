@@ -1,4 +1,6 @@
+using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Interop.Ipc;
 using GagSpeak.Interop.IpcHelpers;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
@@ -12,7 +14,9 @@ using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
+using GagspeakAPI.Dto.IPC;
 using GagspeakAPI.Dto.Permissions;
+using GagspeakAPI.Dto.User;
 using static FFXIVClientStructs.FFXIV.Component.GUI.AtkCounterNode.Delegates;
 
 namespace GagSpeak.PlayerData.Data;
@@ -40,34 +44,30 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
     private readonly WardrobeHandler _wardrobeHandler;
-    // No Puppeteer Handler. Introduces circular dependency.
     private readonly PatternPlaybackService _playbackService;
     private readonly AlarmHandler _alarmHandler;
     private readonly TriggerHandler _triggerHandler;
     private readonly ClientConfigurationManager _clientConfigManager;
 
+    private readonly IpcCallerMoodles _ipcCallerMoodles; // used to make moodles calls.
+
     // Stored data as retrieved from the server upon connection:
     private UserGlobalPermissions _playerCharGlobalPerms { get; set; }
     private CharacterAppearanceData _playerCharAppearance { get; set; }
-
-    // TODO: expand this to store more than just the Moodles string, but IPC information
-    private CharacterIPCData _playerCharIpc { get; set; } = new CharacterIPCData();
-
-
-    // TEMP STORAGE: Make this part of the IPC transfer object later! (Once C+ works again)
-    IList<CustomizePlusProfileData> ClientCustomizeProfileList { get; set; }
-
     public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger,
         GagspeakMediator mediator, PairManager pairManager,
         WardrobeHandler wardrobeHandler, PatternPlaybackService playbackService, 
         AlarmHandler alarmHandler, TriggerHandler triggerHandler, 
-        ClientConfigurationManager clientConfiguration) : base(logger, mediator)
+        ClientConfigurationManager clientConfiguration,
+        IpcCallerMoodles ipcCallerMoodles) : base(logger, mediator)
     {
         _pairManager = pairManager;
         _wardrobeHandler = wardrobeHandler;
         _playbackService = playbackService;
         _alarmHandler = alarmHandler;
+        _triggerHandler = triggerHandler;
         _clientConfigManager = clientConfiguration;
+        _ipcCallerMoodles = ipcCallerMoodles;
 
         // Subscribe to the connected message update so we know when to update our global permissions
         Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
@@ -81,7 +81,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
         // These are called whenever we update our own data.
         // (Server callbacks handled separately to avoid looping calls to and from server infinitely)
-        Mediator.Subscribe<PlayerCharIpcChanged>(this, (msg) => PushIpcDataToAPI(msg));
         Mediator.Subscribe<PlayerCharAppearanceChanged>(this, (msg) => PushAppearanceDataToAPI(msg));
         Mediator.Subscribe<PlayerCharWardrobeChanged>(this, (msg) => PushWardrobeDataToAPI(msg));
         Mediator.Subscribe<PlayerCharAliasChanged>(this, (msg) => PushAliasListDataToAPI(msg));
@@ -93,17 +92,51 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     // public access definitions.
     public UserGlobalPermissions GlobalPerms => _playerCharGlobalPerms;
     public CharacterAppearanceData AppearanceData => _playerCharAppearance;
-    public CharacterIPCData IpcData => _playerCharIpc; // remove?
     public bool ShouldRemoveGagUponLockExpiration => _clientConfigManager.GagspeakConfig.RemoveGagUponLockExpiration;
     public bool ShouldDisableSetUponUnlock => _clientConfigManager.GagspeakConfig.DisableSetUponUnlock;
 
     public bool IsPlayerGagged() => AppearanceData.SlotOneGagType != "None"
-                                 || AppearanceData.SlotTwoGagType != "None"
-                                 || AppearanceData.SlotThreeGagType != "None";
+        || AppearanceData.SlotTwoGagType != "None" || AppearanceData.SlotThreeGagType != "None";
 
+    public void ApplyStatusesByGuid(ApplyMoodlesByGuidDto dto)
+    {
+        Logger.LogDebug("Recieved ApplyMoodlesByGuidDto: {dto}", dto);
+    }
 
-    public void UpdateIpcData(CharacterIPCData ipcData) => _playerCharIpc = ipcData;
+    public void ApplyStatusesToSelf(ApplyMoodlesByStatusDto dto, string clientPlayerNameWithWorld)
+    {
+        string nameWithWorldOfApplier = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == dto.User.UID)?.PlayerNameWithWorld ?? string.Empty;
+        if (nameWithWorldOfApplier.IsNullOrEmpty())
+        {
+            Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
+            return;
+        }
 
+        _ = _ipcCallerMoodles.ApplyStatusesFromPairToSelf(nameWithWorldOfApplier, clientPlayerNameWithWorld, dto.Statuses).ConfigureAwait(false);
+    }
+
+    public void RemoveStatusesFromSelf(RemoveMoodlesDto dto)
+    {
+        string nameWithWorld = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == dto.User.UID)?.PlayerNameWithWorld ?? string.Empty;
+        if (nameWithWorld.IsNullOrEmpty())
+        {
+            Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
+            return;
+        }
+        _ = _ipcCallerMoodles.RemoveStatusesAsync(nameWithWorld, dto.Statuses).ConfigureAwait(false);
+    }
+
+    public void ClearStatusesFromSelf(UserDto dto)
+    {
+        string nameWithWorld = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == dto.User.UID)?.PlayerNameWithWorld ?? string.Empty;
+        if (nameWithWorld.IsNullOrEmpty())
+        {
+            Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
+            return;
+        }
+        // hack to not wait for this forever or require it to be a task.
+        _ = _ipcCallerMoodles.ClearStatusAsync(nameWithWorld).ConfigureAwait(false);
+    }
 
     #region Compile & Push Data for Server Transfer
     // helper method to decompile a received composite data message
@@ -129,19 +162,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             AliasData = aliasData,
             ToyboxData = toyboxData
         };
-    }
-
-    // TODO: When working with Moodles, ensure that this & the cache creation service are handled properly.
-    // In practice, this should not exist, but only temporarily does to help with compiling data.
-    // The IPC Data itself should be handled within the cache creation service. As it is stored within the GameObjectHandler.
-    private CharacterIPCData CompileIpcToAPI()
-    {
-        CharacterIPCData dataToPush = new CharacterIPCData
-        {
-            MoodlesData = IpcData.MoodlesData
-        };
-
-        return dataToPush;
     }
 
     private CharacterAppearanceData CompileAppearanceToAPI()
@@ -210,12 +230,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private CharacterToyboxData CompileToyboxToAPI()
     {
         return _clientConfigManager.CompileToyboxToAPI();
-    }
-
-    public void PushIpcDataToAPI(PlayerCharIpcChanged msg)
-    {
-        var dataToPush = CompileIpcToAPI();
-        Mediator.Publish(new CharacterIpcDataCreatedMessage(dataToPush, msg.UpdateKind));
     }
 
     public void PushAppearanceDataToAPI(PlayerCharAppearanceChanged msg)

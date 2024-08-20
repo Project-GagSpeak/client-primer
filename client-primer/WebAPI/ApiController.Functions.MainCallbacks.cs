@@ -8,6 +8,7 @@ using GagspeakAPI.Dto.UserPair;
 using GagSpeak.Services.Mediator;
 using Microsoft.AspNetCore.SignalR.Client;
 using GagspeakAPI.Dto.IPC;
+using GagSpeak.Utils;
 
 namespace GagSpeak.WebAPI;
 
@@ -113,53 +114,57 @@ public partial class ApiController // Partial class for MainHub Callbacks
     }
 
 
-    /// <summary> Handles for Moodles IPC </summary>
-
+    /// <summary>
+    /// Should only be triggered if another pair is toggling on one of your existing moodles.
+    /// This should be 
+    /// </summary>
     public Task Client_UserApplyMoodlesByGuid(ApplyMoodlesByGuidDto dto)
     {
         // Should make us call to the moodles IPC to apply the statuses recieved
         // (permissions verified by server)
         Logger.LogDebug("Client_UserApplyMoodlesByGuid: {dto}", dto);
-        // ExecuteSafely(() => _playerCharManager.ApplyMoodlesByGuid(dto));
+        ExecuteSafely(() => _playerCharManager.ApplyStatusesByGuid(dto));
         return Task.CompletedTask;
     }
+
 
     public Task Client_UserApplyMoodlesByStatus(ApplyMoodlesByStatusDto dto)
     {
-        // Should make us call to the moodles IPC to apply the statuses recieved
-        // (permissions verified by server)
         Logger.LogDebug("Client_UserApplyMoodlesByStatus: {dto}", dto);
-        // ExecuteSafely(() => _playerCharManager.ApplyMoodlesByStatus(dto));
+        // obtain the localplayername and world
+        string NameWithWorld = _frameworkUtils.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtils._playerAddr).GetAwaiter().GetResult()?.GetNameWithWorld() ?? string.Empty;
+        ExecuteSafely(() => _playerCharManager.ApplyStatusesToSelf(dto, NameWithWorld));
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Intended to clear all moodles from OUR client player.
+    /// Should make a call to our moodles IPC to remove the statuses listed by their GUID's
+    /// </summary>
     public Task Client_UserRemoveMoodles(RemoveMoodlesDto dto)
     {
-        // Should make us call to the moodles IPC to remove the statuses recieved
-        // (permissions verified by server)
         Logger.LogDebug("Client_UserRemoveMoodles: {dto}", dto);
-        // ExecuteSafely(() => _playerCharManager.RemoveMoodles(dto));
+        ExecuteSafely(() => _playerCharManager.RemoveStatusesFromSelf(dto));
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Intended to clear all moodles from OUR client player.
+    /// Should make a call to our moodles IPC to clear all statuses.
+    /// </summary>
     public Task Client_UserClearMoodles(UserDto dto)
     {
-        // Should make us call to the moodles IPC to clear all statuses
-        // (permissions verified by server)
         Logger.LogDebug("Client_UserClearMoodles: {dto}", dto);
-        // ExecuteSafely(() => _playerCharManager.ClearMoodles(dto));
+        ExecuteSafely(() => _playerCharManager.ClearStatusesFromSelf(dto));
         return Task.CompletedTask;
     }
 
 
 
 
-    /// <summary> 
-    /// 
-    /// Sent to client from server informing them to update individual pair status of a client pair.
-    /// 
+    /// <summary>
+    /// Sent to client from server informing them to update individual pair status of a client pair
     /// Status should be updated in the pair manager.
-    /// 
     /// </summary>
     public Task Client_UpdateUserIndividualPairStatusDto(UserIndividualPairStatusDto dto)
     {

@@ -156,6 +156,23 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     // Fetch a user's UserData off of their UID
     public UserData? GetUserDataFromUID(string uid) => _allClientPairs.Keys.FirstOrDefault(p => p.UID == uid);
 
+    public OtherPairsMoodlePermsForClient GetMoodlePermsForPairByName(string nameWithWorld)
+    {
+        var pair = _allClientPairs.FirstOrDefault(p => p.Value.PlayerNameWithWorld == nameWithWorld).Value;
+        if (pair == null || pair.UserPairUniquePairPerms == null) return new OtherPairsMoodlePermsForClient();
+
+        return (
+            pair.UserPairUniquePairPerms.AllowPositiveStatusTypes,
+            pair.UserPairUniquePairPerms.AllowNegativeStatusTypes,
+            pair.UserPairUniquePairPerms.AllowSpecialStatusTypes,
+            pair.UserPairUniquePairPerms.PairCanApplyYourMoodlesToYou,
+            pair.UserPairUniquePairPerms.PairCanApplyOwnMoodlesToYou,
+            pair.UserPairUniquePairPerms.MaxMoodleTime,
+            pair.UserPairUniquePairPerms.AllowPermanentMoodles,
+            pair.UserPairUniquePairPerms.AllowRemovingMoodles
+            );
+    }
+
     /// <summary> Marks a user pair as offline.</summary>
     public void MarkPairOffline(UserData user)
     {

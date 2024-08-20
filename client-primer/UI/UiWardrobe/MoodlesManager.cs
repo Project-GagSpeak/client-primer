@@ -6,8 +6,9 @@ using ImGuiNET;
 
 namespace GagSpeak.UI.UiWardrobe;
 
-public class MoodlesManager : DisposableMediatorSubscriberBase
+public class MoodlesManager
 {
+    private readonly ILogger<MoodlesManager> _logger;
     private readonly UiSharedService _uiShared;
     private readonly WardrobeHandler _handler;
     private readonly IpcCallerMoodles _ipcCallerMoodles;
@@ -15,9 +16,10 @@ public class MoodlesManager : DisposableMediatorSubscriberBase
     private List<(Guid, List<Guid>)>? _presetsInfo;
 
     public MoodlesManager(ILogger<MoodlesManager> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
-        WardrobeHandler handler, IpcCallerMoodles ipcCallerMoodles) : base(logger, mediator)
+        UiSharedService uiSharedService, WardrobeHandler handler, 
+        IpcCallerMoodles ipcCallerMoodles)
     {
+        _logger = logger;
         _uiShared = uiSharedService;
         _handler = handler;
         _ipcCallerMoodles = ipcCallerMoodles;
@@ -26,13 +28,6 @@ public class MoodlesManager : DisposableMediatorSubscriberBase
 
     public void DrawMoodlesManager()
     {
-        using (_uiShared.UidFont.Push())
-        {
-            UiSharedService.ColorText("PLEASE FOR THE LOVE OF GOD", ImGuiColors.DalamudRed);
-            UiSharedService.ColorText("DO NOT USE THIS TAB YET.", ImGuiColors.DalamudRed);
-            UiSharedService.ColorText("DONT BREAK MY SERVERS PLEASE ;-;", ImGuiColors.DalamudRed);
-        }
-
         if (ImGui.Button("Retrieve Moodles Info"))
         {
             RetrieveMoodlesInfo();
@@ -95,7 +90,7 @@ public class MoodlesManager : DisposableMediatorSubscriberBase
         _moodlesInfo = await _ipcCallerMoodles.GetMoodlesInfoAsync().ConfigureAwait(false);
         _presetsInfo = await _ipcCallerMoodles.GetPresetsInfoAsync().ConfigureAwait(false);
 
-        Logger.LogInformation("IPC Update for player object took {time}ms", TimeSpan.FromTicks(DateTime.UtcNow.Ticks - start.Ticks).TotalMilliseconds);
+        _logger.LogInformation("IPC Update for player object took {time}ms", TimeSpan.FromTicks(DateTime.UtcNow.Ticks - start.Ticks).TotalMilliseconds);
     }
 
     private void PrintMoodleInfo(MoodlesStatusInfo moodle)

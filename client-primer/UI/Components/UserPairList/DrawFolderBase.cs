@@ -44,10 +44,7 @@ public abstract class DrawFolderBase : IDrawFolder
 
     public void Draw()
     {
-        if (!RenderIfEmpty && !DrawPairs.Any())
-        {
-            return;
-        }
+        if (!RenderIfEmpty && !DrawPairs.Any()) return;
 
         using var id = ImRaii.PushId("folder_" + _id);
         var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), _wasHovered);

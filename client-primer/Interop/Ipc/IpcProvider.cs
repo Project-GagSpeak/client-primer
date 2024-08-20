@@ -2,12 +2,16 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using GagSpeak.PlayerData.Handlers;
+using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data.IPC;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using GagspeakAPI.Dto.IPC;
+using System.Net.NetworkInformation;
+using GagspeakAPI.Data;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -19,46 +23,78 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
     private const int GagspeakApiVersion = 1;
 
     private readonly ILogger<IpcProvider> _logger;
-    private readonly ApiController _apiController;
+    private readonly PairManager _pairManager;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly IDalamudPluginInterface _pi;
 
-    private readonly List<GameObjectHandler> VisiblePairObjects = [];
+    public GagspeakMediator Mediator { get; init; }
+    private GameObjectHandler? _playerObject = null;
+
+    /// <summary>
+    /// Stores the visible game object, and the moodles permissions 
+    /// for the pair belonging to that object.
+    /// </summary>
+    private readonly List<(GameObjectHandler, OtherPairsMoodlePermsForClient)> VisiblePairObjects = [];
 
     /// <summary>
     /// Stores the list of handled players by the GagSpeak plugin.
     /// <para> String Stored is in format [Player Name@World] </para>
-    /// THE ABOVE IS A TODO. For now, for the sake of sanity, use address.
     /// </summary>
-    private ICallGateProvider<List<nint>>? _handledVisiblePairs;
+    private ICallGateProvider<List<(string, OtherPairsMoodlePermsForClient)>>? _handledVisiblePairs;
 
     /// <summary>
     /// Obtains an ApplyStatusToPair message from Moodles, and invokes the update to the player if permissions allow it.
     /// <para> THIS WILL NOT WORK IF THE PAIR HAS NOT GIVEN YOU PERMISSION TO APPLY </para>
     /// </summary>
-    private ICallGateProvider<string, string, List<MoodlesStatusInfo>, object?>? _applyStatusesToPairRequest;
+    private ICallGateProvider<string, string, List<MoodlesStatusInfo>, bool, object?>? _applyStatusesToPairRequest;
 
-    public GagspeakMediator Mediator { get; init; }
+    /// <summary>
+    /// An action event to let other plugins know when our list is updated.
+    /// This allows them to not need to call upon the list every frame.
+    /// </summary>
+    private static ICallGateProvider<object>? _listUpdated;
+
+    private static ICallGateProvider<int>? GagSpeakApiVersion;
+    private static ICallGateProvider<object>? GagSpeakReady;
+    private static ICallGateProvider<object>? GagSpeakDisposing;
 
     public IpcProvider(ILogger<IpcProvider> logger, GagspeakMediator mediator,
-        ApiController apiController, OnFrameworkService frameworkUtils,
+        PairManager pairManager, OnFrameworkService frameworkUtils, 
         IDalamudPluginInterface pi)
     {
         _logger = logger;
-        _apiController = apiController;
+        _pairManager = pairManager;
         _frameworkUtils = frameworkUtils;
         _pi = pi;
         Mediator = mediator;
 
+        Mediator.Subscribe<MoodlesReady>(this, (_) => NotifyListChanged());
+
         Mediator.Subscribe<GameObjectHandlerCreatedMessage>(this, (msg) =>
         {
-            if (msg.OwnedObject) return;
-            VisiblePairObjects.Add(msg.GameObjectHandler);
+            _logger.LogInformation("Received GameObjectHandlerCreatedMessage for {handler}", msg.GameObjectHandler.NameWithWorld);
+            if (msg.OwnedObject)
+            {
+                _playerObject = msg.GameObjectHandler;
+                return;
+            }
+            // obtain the moodles permissions for this pair.
+            var moodlePerms = _pairManager.GetMoodlePermsForPairByName(msg.GameObjectHandler.NameWithWorld);
+            VisiblePairObjects.Add((msg.GameObjectHandler, moodlePerms));
+            // notify that our list is changed
+            NotifyListChanged();
         });
         Mediator.Subscribe<GameObjectHandlerDestroyedMessage>(this, (msg) =>
         {
-            if (msg.OwnedObject) return;
-            VisiblePairObjects.Remove(msg.GameObjectHandler);
+            _logger.LogInformation("Received GameObjectHandlerDestroyedMessage for {handler}", msg.GameObjectHandler.NameWithWorld);
+            if (msg.OwnedObject)
+            {
+                _playerObject = null;
+                return;
+            }
+            VisiblePairObjects.RemoveAll(pair => pair.Item1.NameWithWorld == msg.GameObjectHandler.NameWithWorld);
+            // notify that our list is changed
+            NotifyListChanged();
         });
     }
 
@@ -66,31 +102,65 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
     {
         _logger.LogInformation("Starting IpcProviderService");
 
-        _handledVisiblePairs = _pi.GetIpcProvider<List<nint>>("GagSpeak.GetHandledVisiblePairs");
-        _handledVisiblePairs.RegisterFunc(GetHandledAddresses);
+        GagSpeakApiVersion = _pi.GetIpcProvider<int>("GagSpeak.GetApiVersion");
+        GagSpeakApiVersion.RegisterFunc(() => GagspeakApiVersion);
+
+        GagSpeakReady = _pi.GetIpcProvider<object>("GagSpeak.Ready");
+        GagSpeakDisposing = _pi.GetIpcProvider<object>("GagSpeak.Disposing");
+
+        _handledVisiblePairs = _pi.GetIpcProvider<List<(string, OtherPairsMoodlePermsForClient)>>("GagSpeak.GetHandledVisiblePairs");
+        _handledVisiblePairs.RegisterFunc(GetVisiblePairs);
 
         // Register our action.
-        _applyStatusesToPairRequest = _pi.GetIpcProvider<string, string, List<MoodlesStatusInfo>, object?>("GagSpeak.ApplyStatusesToPairRequest");
+        _applyStatusesToPairRequest = _pi.GetIpcProvider<string, string, List<MoodlesStatusInfo>, bool, object?>("GagSpeak.ApplyStatusesToPairRequest");
         _applyStatusesToPairRequest.RegisterAction(HandleApplyStatusesToPairRequest);
 
+        _listUpdated = _pi.GetIpcProvider<object>("GagSpeak.VisiblePairsUpdated");
 
         _logger.LogInformation("Started IpcProviderService");
+        NotifyReady();
+
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogDebug("Stopping IpcProvider Service");
+        NotifyDisposing();
+
+
+        GagSpeakApiVersion?.UnregisterFunc();
+
+        GagSpeakReady?.UnregisterFunc();
+        GagSpeakDisposing?.UnregisterFunc();
 
         _handledVisiblePairs?.UnregisterFunc();
+
+        _applyStatusesToPairRequest?.UnregisterAction();
+
+        _listUpdated?.UnregisterAction();
 
         Mediator.UnsubscribeAll(this);
 
         return Task.CompletedTask;
     }
 
-    private List<nint> GetHandledAddresses()
-        => VisiblePairObjects.Where(g => g.Address != nint.Zero).Select(g => g.Address).Distinct().ToList();
+    private static void NotifyReady() => GagSpeakReady?.SendMessage();
+    private static void NotifyDisposing() => GagSpeakDisposing?.SendMessage();
+
+    private static void NotifyListChanged() => _listUpdated?.SendMessage();
+
+
+    private List<(string, OtherPairsMoodlePermsForClient)> GetVisiblePairs()
+    {
+        var ret = new List<(string, OtherPairsMoodlePermsForClient)>();
+
+
+        return VisiblePairObjects.Where(g => g.Item1.NameWithWorld != string.Empty && g.Item1.Address != nint.Zero)
+            .Select(g => ((g.Item1.NameWithWorld),(g.Item2)))
+            .Distinct()
+            .ToList();
+    }
 
     /// <summary>
     /// Handles the request from our clients moodles plugin to update another one of our pairs status.
@@ -98,29 +168,82 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
     /// <param name="requester">The name of the player requesting the apply (SHOULD ALWAYS BE OUR CLIENT PLAYER) </param>
     /// <param name="recipient">The name of the player to apply the status to. (SHOULD ALWAYS BE A PAIR) </param>
     /// <param name="statuses">The list of statuses to apply to the recipient. </param>
-    private void HandleApplyStatusesToPairRequest(string requester, string recipient, List<MoodlesStatusInfo> statuses)
+    private void HandleApplyStatusesToPairRequest(string requester, string recipient, List<MoodlesStatusInfo> statuses, bool isPreset)
     {
-        // print a warning if the recipient is not equal to our current player
-
         // use linQ to iterate through the handled visible game objects to find the object that is an owned object, and compare its NameWithWorld to the recipient.
-        var requesterObject = VisiblePairObjects.FirstOrDefault(g => g.IsOwnedObject && g.NameWithWorld == requester);
-        if (requesterObject == null)
+        if (_playerObject == null)
         {
-            _logger.LogWarning("Received ApplyStatusesToPairRequest for {requester} but could not find the requester", requester);
+            _logger.LogWarning("The Client Player Character Object is currently null (changing areas or loading?) So not updating.");
             return;
         }
 
         // we should throw a warning and return if the requester is not a visible pair.
-        var recipientObject = VisiblePairObjects.FirstOrDefault(g => g.NameWithWorld == recipient);
-        if (recipientObject == null)
+        var recipientObject = VisiblePairObjects.FirstOrDefault(g => g.Item1.NameWithWorld == recipient);
+        if (recipientObject.Item1 == null)
         {
             _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but could not find the recipient", recipient);
             return;
         }
 
-        // finally, assuming we have these, we need to check if they have the proper permissions to apply.
-        // For now, we will ignore permissions and apply regardless.
+// Until we inplement permission updates, just apply the damn thing.
+/*
+        // ensure that they allow applying own moodles (which meant our moodles onto their client)
+        if (!recipientObject.Item2.AllowApplyingOwnMoodles)
+        {
+            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow applying own moodles", recipient);
+            return;
+        }
 
+        // if any of the statuses are a positive status, and they do not allow them, reject it.
+        if (statuses.Any(s => s.Type == StatusType.Positive && !recipientObject.Item2.AllowPositive))
+        {
+            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow positive moodles", recipient);
+            return;
+        }
+
+        // if any of the statuses are a negative status, and they do not allow them, reject it.
+        if (statuses.Any(s => s.Type == StatusType.Negative && !recipientObject.Item2.AllowNegative))
+        {
+            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow negative moodles", recipient);
+            return;
+        }
+
+        // if any of the statuses are a special types, and they do not allow them, reject it.
+        if (statuses.Any(s => s.Type == StatusType.Special && !recipientObject.Item2.AllowSpecial))
+        {
+            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow special moodles", recipient);
+            return;
+        }
+
+        // if its permanent and they do not allow them, reject it.
+        if (statuses.Any(s => s.NoExpire && !recipientObject.Item2.AllowPermanent))
+        {
+            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow permanent moodles", recipient);
+            return;
+        }
+
+        // if any moodles have a timespan longer than our max allowed timespan, reject it.
+        if (statuses.Any(s => s.Days > recipientObject.Item2.MaxDuration.Days 
+                           || s.Hours > recipientObject.Item2.MaxDuration.Hours 
+                           || s.Minutes > recipientObject.Item2.MaxDuration.Minutes 
+                           || s.Seconds > recipientObject.Item2.MaxDuration.Seconds))
+        {
+            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow moodles with a timespan longer than their max", recipient);
+            return;
+        }
+*/
+        // the moodle and permissions are valid.
+        UserData pairUser = _pairManager.DirectPairs.FirstOrDefault(p => p.PlayerNameWithWorld == recipient)!.UserData;
+        if (pairUser == null)
+        {
+            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but could not find the UID for the pair", recipient);
+            return;
+        }
+
+        // fetch the UID for the pair to apply for.
+        _logger.LogInformation("Received ApplyStatusesToPairRequest for {recipient} from {requester}, applying statuses", recipient, requester);
+        var dto = new ApplyMoodlesByStatusDto(pairUser, statuses, (isPreset ? IpcToggleType.MoodlesPreset : IpcToggleType.MoodlesStatus));
+        Mediator.Publish(new MoodlesApplyStatusToPair(dto));
     }
 }
 

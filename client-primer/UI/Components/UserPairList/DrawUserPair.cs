@@ -21,7 +21,7 @@ namespace GagSpeak.UI.Components.UserPairList;
 /// <summary>
 /// Class handling the draw function for a singular user pair that the client has. (one row)
 /// </summary>
-public class DrawUserPair : DisposableMediatorSubscriberBase
+public class DrawUserPair
 {
     protected readonly ApiController _apiController;
     protected readonly IdDisplayHandler _displayHandler;
@@ -36,7 +36,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
     private IDalamudTextureWrap? _supporterWrap = null;
     public DrawUserPair(ILogger<DrawUserPair> logger, string id, Pair entry, ApiController apiController,
         IdDisplayHandler uIDDisplayHandler, GagspeakMediator gagspeakMediator, SelectTagForPairUi selectTagForPairUi,
-        UiSharedService uiSharedService) : base(logger, gagspeakMediator)
+        UiSharedService uiSharedService)
     {
         _id = id;
         _pair = entry;
@@ -50,11 +50,10 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
     public Pair Pair => _pair;
     public UserPairDto UserPair => _pair.UserPair!;
 
-    protected override void Dispose(bool disposing)
+    public void Dispose()
     {
         _supporterWrap?.Dispose();
         _supporterWrap = null;
-        base.Dispose(disposing);
     }
 
     public void DrawPairedClient()
@@ -225,12 +224,7 @@ public class DrawUserPair : DisposableMediatorSubscriberBase
         ImGui.SameLine(currentRightSide);
         if (_uiSharedService.IconButton(FontAwesomeIcon.Cog))
         {
-            if (Pair == null)
-            {
-                Logger.LogWarning("Pair is null");
-            }
-            // if we press the cog, we should modify its appearance, and set that we are drawing for this pair to true
-            _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.ClientPermsForPair));
+            if (Pair != null) _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.ClientPermsForPair));
         }
         UiSharedService.AttachToolTip("Set your Permissions for " + _pair.UserData.AliasOrUID);
 

@@ -156,21 +156,37 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     // Fetch a user's UserData off of their UID
     public UserData? GetUserDataFromUID(string uid) => _allClientPairs.Keys.FirstOrDefault(p => p.UID == uid);
 
-    public OtherPairsMoodlePermsForClient GetMoodlePermsForPairByName(string nameWithWorld)
+    public (MoodlesGSpeakPairPerms, MoodlesGSpeakPairPerms) GetMoodlePermsForPairByName(string nameWithWorld)
     {
         var pair = _allClientPairs.FirstOrDefault(p => p.Value.PlayerNameWithWorld == nameWithWorld).Value;
-        if (pair == null || pair.UserPairUniquePairPerms == null) return new OtherPairsMoodlePermsForClient();
+        if (pair == null || pair.UserPairOwnUniquePairPerms == null || pair.UserPairUniquePairPerms == null)
+        {
+            return (new MoodlesGSpeakPairPerms(), new MoodlesGSpeakPairPerms());
+        }
 
-        return (
-            pair.UserPairUniquePairPerms.AllowPositiveStatusTypes,
-            pair.UserPairUniquePairPerms.AllowNegativeStatusTypes,
-            pair.UserPairUniquePairPerms.AllowSpecialStatusTypes,
-            pair.UserPairUniquePairPerms.PairCanApplyYourMoodlesToYou,
-            pair.UserPairUniquePairPerms.PairCanApplyOwnMoodlesToYou,
-            pair.UserPairUniquePairPerms.MaxMoodleTime,
-            pair.UserPairUniquePairPerms.AllowPermanentMoodles,
-            pair.UserPairUniquePairPerms.AllowRemovingMoodles
-            );
+        var ownPerms = (
+            pair.UserPairOwnUniquePairPerms.AllowPositiveStatusTypes,
+            pair.UserPairOwnUniquePairPerms.AllowNegativeStatusTypes,
+            pair.UserPairOwnUniquePairPerms.AllowSpecialStatusTypes,
+            pair.UserPairOwnUniquePairPerms.PairCanApplyYourMoodlesToYou,
+            pair.UserPairOwnUniquePairPerms.PairCanApplyOwnMoodlesToYou,
+            pair.UserPairOwnUniquePairPerms.MaxMoodleTime,
+            pair.UserPairOwnUniquePairPerms.AllowPermanentMoodles,
+            pair.UserPairOwnUniquePairPerms.AllowRemovingMoodles
+        );
+
+        var uniquePerms = (
+                pair.UserPairUniquePairPerms.AllowPositiveStatusTypes,
+                pair.UserPairUniquePairPerms.AllowNegativeStatusTypes,
+                pair.UserPairUniquePairPerms.AllowSpecialStatusTypes,
+                pair.UserPairUniquePairPerms.PairCanApplyYourMoodlesToYou,
+                pair.UserPairUniquePairPerms.PairCanApplyOwnMoodlesToYou,
+                pair.UserPairUniquePairPerms.MaxMoodleTime,
+                pair.UserPairUniquePairPerms.AllowPermanentMoodles,
+                pair.UserPairUniquePairPerms.AllowRemovingMoodles
+        );
+
+        return (ownPerms, uniquePerms);
     }
 
     /// <summary> Marks a user pair as offline.</summary>

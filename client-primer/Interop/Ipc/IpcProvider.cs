@@ -34,13 +34,13 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
     /// Stores the visible game object, and the moodles permissions 
     /// for the pair belonging to that object.
     /// </summary>
-    private readonly List<(GameObjectHandler, OtherPairsMoodlePermsForClient)> VisiblePairObjects = [];
+    private readonly List<(GameObjectHandler, MoodlesGSpeakPairPerms, MoodlesGSpeakPairPerms)> VisiblePairObjects = [];
 
     /// <summary>
     /// Stores the list of handled players by the GagSpeak plugin.
     /// <para> String Stored is in format [Player Name@World] </para>
     /// </summary>
-    private ICallGateProvider<List<(string, OtherPairsMoodlePermsForClient)>>? _handledVisiblePairs;
+    private ICallGateProvider<List<(string, MoodlesGSpeakPairPerms, MoodlesGSpeakPairPerms)>>? _handledVisiblePairs;
 
     /// <summary>
     /// Obtains an ApplyStatusToPair message from Moodles, and invokes the update to the player if permissions allow it.
@@ -80,7 +80,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
             }
             // obtain the moodles permissions for this pair.
             var moodlePerms = _pairManager.GetMoodlePermsForPairByName(msg.GameObjectHandler.NameWithWorld);
-            VisiblePairObjects.Add((msg.GameObjectHandler, moodlePerms));
+            VisiblePairObjects.Add((msg.GameObjectHandler, moodlePerms.Item1, moodlePerms.Item2));
             // notify that our list is changed
             NotifyListChanged();
         });
@@ -108,7 +108,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         GagSpeakReady = _pi.GetIpcProvider<object>("GagSpeak.Ready");
         GagSpeakDisposing = _pi.GetIpcProvider<object>("GagSpeak.Disposing");
 
-        _handledVisiblePairs = _pi.GetIpcProvider<List<(string, OtherPairsMoodlePermsForClient)>>("GagSpeak.GetHandledVisiblePairs");
+        _handledVisiblePairs = _pi.GetIpcProvider<List<(string, MoodlesGSpeakPairPerms, MoodlesGSpeakPairPerms)>>("GagSpeak.GetHandledVisiblePairs");
         _handledVisiblePairs.RegisterFunc(GetVisiblePairs);
 
         // Register our action.
@@ -151,13 +151,13 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
     private static void NotifyListChanged() => _listUpdated?.SendMessage();
 
 
-    private List<(string, OtherPairsMoodlePermsForClient)> GetVisiblePairs()
+    private List<(string, MoodlesGSpeakPairPerms, MoodlesGSpeakPairPerms)> GetVisiblePairs()
     {
-        var ret = new List<(string, OtherPairsMoodlePermsForClient)>();
+        var ret = new List<(string, MoodlesGSpeakPairPerms, MoodlesGSpeakPairPerms)>();
 
 
         return VisiblePairObjects.Where(g => g.Item1.NameWithWorld != string.Empty && g.Item1.Address != nint.Zero)
-            .Select(g => ((g.Item1.NameWithWorld),(g.Item2)))
+            .Select(g => ((g.Item1.NameWithWorld),(g.Item2),(g.Item3)))
             .Distinct()
             .ToList();
     }

@@ -15,8 +15,8 @@ public abstract record Trigger
     // generic attributes
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public double StartAfter { get; set; } = 0.0;
-    public double EndAfter { get; set; } = 0.0;
+    public TimeSpan StartAfter { get; set; } = TimeSpan.Zero;
+    public TimeSpan EndAfter { get; set; } = TimeSpan.Zero;
 
     // Define which kind of trigger it is
     public abstract TriggerKind Type { get; }

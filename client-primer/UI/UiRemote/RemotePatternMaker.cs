@@ -198,7 +198,7 @@ public class RemotePatternMaker : RemoteBase
     public override void StopVibrating()
     {
         // before we stop the stopwatch from the base call, we must make sure that we extract it here
-        var Duration = DurationStopwatch.Elapsed.ToString(@"mm\:ss");
+        var Duration = DurationStopwatch.Elapsed;
         _logger.LogDebug($"Stopping Recording on parent class {_windowName}!");
         // call the base stop
         base.StopVibrating();

@@ -72,7 +72,10 @@ public class SavePatternPopupHandler : IPopupHandler
         // duration field.
         ImGui.Text("Pattern Duration: ");
         ImGui.SameLine();
-        UiSharedService.ColorText(CompiledPatternData.Duration, ImGuiColors.ParsedPink);
+        string text = CompiledPatternData.Duration.Hours > 0
+                    ? CompiledPatternData.Duration.ToString("hh\\:mm\\:ss")
+                    : CompiledPatternData.Duration.ToString("mm\\:ss");
+        UiSharedService.ColorText(text, ImGuiColors.ParsedPink);
         // loop field
         var loop = CompiledPatternData.ShouldLoop;
         if (ImGui.Checkbox("Loop Pattern", ref loop))

@@ -33,7 +33,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     private readonly AliasConfigService _aliasConfig;               // the config for the alias lists (puppeteer stuff)
     private readonly PatternConfigService _patternConfig;           // the config for the pattern service (toybox pattern storage))
     private readonly AlarmConfigService _alarmConfig;               // the config for the alarm service (toybox alarm storage)
-    private readonly TriggerConfigService _triggersConfig;          // the config for the triggers service (toybox triggers storage)
+    private readonly TriggerConfigService _triggerConfig;          // the config for the triggers service (toybox triggers storage)
 
     public ClientConfigurationManager(ILogger<ClientConfigurationManager> logger,
         GagspeakMediator GagspeakMediator, OnFrameworkService onFrameworkService,
@@ -49,7 +49,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _aliasConfig = aliasConfig;
         _patternConfig = patternConfig;
         _alarmConfig = alarmConfig;
-        _triggersConfig = triggersConfig;
+        _triggerConfig = triggersConfig;
 
         InitConfigs();
 
@@ -79,14 +79,14 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     private AliasConfig AliasConfig => _aliasConfig.Current; // PER PLAYER
     private PatternConfig PatternConfig => _patternConfig.Current; // PER PLAYER
     private AlarmConfig AlarmConfig => _alarmConfig.Current; // PER PLAYER
-    private TriggerConfig TriggerConfig => _triggersConfig.Current; // PER PLAYER
+    private TriggerConfig TriggerConfig => _triggerConfig.Current; // PER PLAYER
 
     public void UpdateConfigs(string loggedInPlayerUID)
     {
         _gagStorageConfig.UpdateUid(loggedInPlayerUID);
         _wardrobeConfig.UpdateUid(loggedInPlayerUID);
         _aliasConfig.UpdateUid(loggedInPlayerUID);
-        _triggersConfig.UpdateUid(loggedInPlayerUID);
+        _triggerConfig.UpdateUid(loggedInPlayerUID);
         _alarmConfig.UpdateUid(loggedInPlayerUID);
 
         InitConfigs();
@@ -146,7 +146,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         if (_alarmConfig.Current.AlarmStorage == null) { _alarmConfig.Current.AlarmStorage = new(); }
         // check to see if any loaded alarms contain a pattern no longer present.
 
-        if (_triggersConfig.Current.TriggerStorage == null) { _triggersConfig.Current.TriggerStorage = new(); }
+        if (_triggerConfig.Current.TriggerStorage == null) { _triggerConfig.Current.TriggerStorage = new(); }
 
     }
 
@@ -415,20 +415,20 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     public AliasStorage FetchAliasStorageForPair(string userId)
     {
-        if (!_aliasConfig.Current.AliasStorage.ContainsKey(userId))
+        if (!AliasConfig.AliasStorage.ContainsKey(userId))
         {
             Logger.LogDebug("User {userId} does not have an alias list, creating one.", userId);
             // If not, initialize it with a new AliasList object
-            _aliasConfig.Current.AliasStorage[userId] = new AliasStorage();
+            AliasConfig.AliasStorage[userId] = new AliasStorage();
             _aliasConfig.Save();
         }
-        return _aliasConfig.Current.AliasStorage[userId];
+        return AliasConfig.AliasStorage[userId];
     }
 
     // Called whenever set is saved.
     internal void UpdateAliasStorage(string userId, AliasStorage newStorage)
     {
-        _aliasConfig.Current.AliasStorage[userId] = newStorage;
+        AliasConfig.AliasStorage[userId] = newStorage;
         _aliasConfig.Save();
         Mediator.Publish(new PlayerCharAliasChanged(userId, DataUpdateKind.PuppeteerAliasListUpdated));
     }
@@ -436,8 +436,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     // called from a callback update from other paired client. Never called by self. Meant to set another players name to our config.
     internal void UpdateAliasStoragePlayerInfo(string userId, string charaName, string charaWorld)
     {
-        _aliasConfig.Current.AliasStorage[userId].CharacterName = charaName;
-        _aliasConfig.Current.AliasStorage[userId].CharacterWorld = charaWorld;
+        AliasConfig.AliasStorage[userId].CharacterName = charaName;
+        AliasConfig.AliasStorage[userId].CharacterWorld = charaWorld;
         _aliasConfig.Save();
         Mediator.Publish(new UpdateChatListeners());
     }
@@ -448,43 +448,23 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     #region Pattern Config Methods
 
     /// <summary> Fetches the currently Active Alarm to have as a reference accessor. Can be null. </summary>
-    public PatternData? GetActiveRunningPattern() => _patternConfig.Current.PatternStorage.Patterns.FirstOrDefault(p => p.IsActive);
-    public List<PatternData> GetPatternsForSearch() => _patternConfig.Current.PatternStorage.Patterns;
-    public PatternData FetchPattern(int idx) => _patternConfig.Current.PatternStorage.Patterns[idx];
-    public int GetPatternIdxByName(string name) => _patternConfig.Current.PatternStorage.Patterns.FindIndex(p => p.Name == name);
-    public List<string> GetPatternNames() => _patternConfig.Current.PatternStorage.Patterns.Select(set => set.Name).ToList();
-    public bool IsIndexInBounds(int index) => index >= 0 && index < _patternConfig.Current.PatternStorage.Patterns.Count;
-    public bool IsAnyPatternPlaying() => _patternConfig.Current.PatternStorage.Patterns.Any(p => p.IsActive);
-    public int ActivePatternIdx() => _patternConfig.Current.PatternStorage.Patterns.FindIndex(p => p.IsActive);
-    public int GetPatternCount() => _patternConfig.Current.PatternStorage.Patterns.Count;
-
-    public TimeSpan GetPatternLength(int idx)
-    {
-        var pattern = _patternConfig.Current.PatternStorage.Patterns[idx].Duration;
-        return GetTimespanFromTimespanString(pattern);
-    }
-
-    public TimeSpan GetTimespanFromTimespanString(string pattern)
-    {
-        if (string.IsNullOrWhiteSpace(pattern)) return TimeSpan.Zero;
-
-        if (TimeSpan.TryParseExact(pattern, "hh\\:mm\\:ss", null, out var timeSpan) && timeSpan.TotalHours >= 1)
-        {
-            return timeSpan;
-        }
-        else if (TimeSpan.TryParseExact(pattern, "mm\\:ss", null, out timeSpan))
-        {
-            return timeSpan;
-        }
-        return TimeSpan.Zero;
-    }
+    public PatternData? GetActiveRunningPattern() => PatternConfig.PatternStorage.Patterns.FirstOrDefault(p => p.IsActive);
+    public List<PatternData> GetPatternsForSearch() => PatternConfig.PatternStorage.Patterns;
+    public PatternData FetchPattern(int idx) => PatternConfig.PatternStorage.Patterns[idx];
+    public int GetPatternIdxByName(string name) => PatternConfig.PatternStorage.Patterns.FindIndex(p => p.Name == name);
+    public List<string> GetPatternNames() => PatternConfig.PatternStorage.Patterns.Select(set => set.Name).ToList();
+    public bool IsIndexInBounds(int index) => index >= 0 && index < PatternConfig.PatternStorage.Patterns.Count;
+    public bool IsAnyPatternPlaying() => PatternConfig.PatternStorage.Patterns.Any(p => p.IsActive);
+    public int ActivePatternIdx() => PatternConfig.PatternStorage.Patterns.FindIndex(p => p.IsActive);
+    public int GetPatternCount() => PatternConfig.PatternStorage.Patterns.Count;
+    public TimeSpan GetPatternLength(int idx) => PatternConfig.PatternStorage.Patterns[idx].Duration;
 
     public void AddNewPattern(PatternData newPattern)
     {
         // if a pattern from the patternstorage with the same name already exists, continue.
-        if (_patternConfig.Current.PatternStorage.Patterns.Any(x => x.Name == newPattern.Name)) return;
+        if (PatternConfig.PatternStorage.Patterns.Any(x => x.Name == newPattern.Name)) return;
         // otherwise, add it
-        _patternConfig.Current.PatternStorage.Patterns.Add(newPattern);
+        PatternConfig.PatternStorage.Patterns.Add(newPattern);
         _patternConfig.Save();
         // publish to mediator one was added
         Logger.LogInformation("Pattern Added: {0}", newPattern.Name);
@@ -497,9 +477,9 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         foreach (var pattern in newPattern)
         {
             // if a pattern from the patternstorage with the same name already exists, continue.
-            if (_patternConfig.Current.PatternStorage.Patterns.Any(x => x.Name == pattern.Name)) continue;
+            if (PatternConfig.PatternStorage.Patterns.Any(x => x.Name == pattern.Name)) continue;
             // otherwise, add it
-            _patternConfig.Current.PatternStorage.Patterns.Add(pattern);
+            PatternConfig.PatternStorage.Patterns.Add(pattern);
         }
         _patternConfig.Save();
         // publish to mediator one was added
@@ -510,8 +490,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public void RemovePattern(int indexToRemove)
     {
         // grab the patternData of the pattern we are removing.
-        var patternToRemove = _patternConfig.Current.PatternStorage.Patterns[indexToRemove];
-        _patternConfig.Current.PatternStorage.Patterns.RemoveAt(indexToRemove);
+        var patternToRemove = PatternConfig.PatternStorage.Patterns[indexToRemove];
+        PatternConfig.PatternStorage.Patterns.RemoveAt(indexToRemove);
         _patternConfig.Save();
         // publish to mediator one was removed
         Mediator.Publish(new PatternRemovedMessage(patternToRemove));
@@ -521,7 +501,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public void SetPatternState(int idx, bool newState, bool shouldPublishToMediator = true)
     {
         // this updates the active state, allowing our playback service by knowing what pattern to play
-        _patternConfig.Current.PatternStorage.Patterns[idx].IsActive = newState;
+        PatternConfig.PatternStorage.Patterns[idx].IsActive = newState;
         _patternConfig.Save();
         if (shouldPublishToMediator)
         {
@@ -535,10 +515,10 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         /*        foreach (AlarmInfo alarmInfo in callbackAlarmList)
                 {
                     // if the alarm is found in the list,
-                    if (_alarmConfig.Current.AlarmStorage.Alarms.Any(x => x.Name == alarmInfo.Name))
+                    if (AlarmConfig.AlarmStorage.Alarms.Any(x => x.Name == alarmInfo.Name))
                     {
                         // grab the alarm reference
-                        var alarmRef = _alarmConfig.Current.AlarmStorage.Alarms.FirstOrDefault(x => x.Name == alarmInfo.Name);
+                        var alarmRef = AlarmConfig.AlarmStorage.Alarms.FirstOrDefault(x => x.Name == alarmInfo.Name);
                         // update the enabled state if the values are different.
                         if (alarmRef != null && alarmRef.Enabled != alarmInfo.Enabled)
                         {
@@ -554,7 +534,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     public void UpdatePattern(PatternData pattern, int idx)
     {
-        _patternConfig.Current.PatternStorage.Patterns[idx] = pattern;
+        PatternConfig.PatternStorage.Patterns[idx] = pattern;
         _patternConfig.Save();
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
@@ -564,7 +544,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         int copyNumber = 1;
         string newName = baseName;
 
-        while (_patternConfig.Current.PatternStorage.Patterns.Any(set => set.Name == newName))
+        while (PatternConfig.PatternStorage.Patterns.Any(set => set.Name == newName))
             newName = baseName + $"(copy{copyNumber++})";
 
         return newName;
@@ -573,18 +553,18 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     #endregion Pattern Config Methods
     /* --------------------- Toybox Alarm Configs --------------------- */
     #region Alarm Config Methods
-    public List<Alarm> AlarmsRef => _alarmConfig.Current.AlarmStorage.Alarms; // readonly accessor
-    public Alarm FetchAlarm(int idx) => _alarmConfig.Current.AlarmStorage.Alarms[idx];
-    public int FetchAlarmCount() => _alarmConfig.Current.AlarmStorage.Alarms.Count;
+    public List<Alarm> AlarmsRef => AlarmConfig.AlarmStorage.Alarms; // readonly accessor
+    public Alarm FetchAlarm(int idx) => AlarmConfig.AlarmStorage.Alarms[idx];
+    public int FetchAlarmCount() => AlarmConfig.AlarmStorage.Alarms.Count;
     public void RemovePatternNameFromAlarms(string patternName)
     {
-        for (int i = 0; i < _alarmConfig.Current.AlarmStorage.Alarms.Count; i++)
+        for (int i = 0; i < AlarmConfig.AlarmStorage.Alarms.Count; i++)
         {
-            var alarm = _alarmConfig.Current.AlarmStorage.Alarms[i];
+            var alarm = AlarmConfig.AlarmStorage.Alarms[i];
             if (alarm.PatternToPlay == patternName)
             {
                 alarm.PatternToPlay = "";
-                alarm.PatternDuration = "00:00";
+                alarm.PatternDuration = TimeSpan.Zero;
                 _alarmConfig.Save();
                 Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
             }
@@ -597,11 +577,11 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         int copyNumber = 1;
         string newName = alarm.Name;
 
-        while (_alarmConfig.Current.AlarmStorage.Alarms.Any(set => set.Name == newName))
+        while (AlarmConfig.AlarmStorage.Alarms.Any(set => set.Name == newName))
             newName = alarm.Name + $"(copy{copyNumber++})";
 
         alarm.Name = newName;
-        _alarmConfig.Current.AlarmStorage.Alarms.Add(alarm);
+        AlarmConfig.AlarmStorage.Alarms.Add(alarm);
         _alarmConfig.Save();
 
         Logger.LogInformation("Alarm Added: {0}", alarm.Name);
@@ -610,8 +590,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     public void RemoveAlarm(int indexToRemove)
     {
-        Logger.LogInformation("Alarm Removed: {0}", _alarmConfig.Current.AlarmStorage.Alarms[indexToRemove].Name);
-        _alarmConfig.Current.AlarmStorage.Alarms.RemoveAt(indexToRemove);
+        Logger.LogInformation("Alarm Removed: {0}", AlarmConfig.AlarmStorage.Alarms[indexToRemove].Name);
+        AlarmConfig.AlarmStorage.Alarms.RemoveAt(indexToRemove);
         _alarmConfig.Save();
 
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
@@ -619,7 +599,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     public void SetAlarmState(int idx, bool newState, bool shouldPublishToMediator = true)
     {
-        _alarmConfig.Current.AlarmStorage.Alarms[idx].Enabled = newState;
+        AlarmConfig.AlarmStorage.Alarms[idx].Enabled = newState;
         _alarmConfig.Save();
 
         // publish the alarm added/removed based on state
@@ -635,10 +615,10 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         foreach (AlarmInfo alarmInfo in callbackAlarmList)
         {
             // if the alarm is found in the list,
-            if (_alarmConfig.Current.AlarmStorage.Alarms.Any(x => x.Name == alarmInfo.Name))
+            if (AlarmConfig.AlarmStorage.Alarms.Any(x => x.Name == alarmInfo.Name))
             {
                 // grab the alarm reference
-                var alarmRef = _alarmConfig.Current.AlarmStorage.Alarms.FirstOrDefault(x => x.Name == alarmInfo.Name);
+                var alarmRef = AlarmConfig.AlarmStorage.Alarms.FirstOrDefault(x => x.Name == alarmInfo.Name);
                 // update the enabled state if the values are different.
                 if (alarmRef != null && alarmRef.Enabled != alarmInfo.Enabled)
                 {
@@ -655,7 +635,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     public void UpdateAlarm(Alarm alarm, int idx)
     {
-        _alarmConfig.Current.AlarmStorage.Alarms[idx] = alarm;
+        AlarmConfig.AlarmStorage.Alarms[idx] = alarm;
         _alarmConfig.Save();
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
     }
@@ -665,7 +645,78 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     /* --------------------- Toybox Trigger Configs --------------------- */
     #region Trigger Config Methods
 
-    // stuff
+    public List<Trigger> GetTriggersForSearch() => TriggerConfig.TriggerStorage.Triggers; // readonly accessor
+    public Trigger FetchTrigger(int idx) => TriggerConfig.TriggerStorage.Triggers[idx];
+    public int FetchTriggerCount() => TriggerConfig.TriggerStorage.Triggers.Count;
+
+    public void AddNewTrigger(Trigger alarm)
+    {
+        // ensure the alarm has a unique name.
+        int copyNumber = 1;
+        string newName = alarm.Name;
+
+        while (TriggerConfig.TriggerStorage.Triggers.Any(set => set.Name == newName))
+            newName = alarm.Name + $"(copy{copyNumber++})";
+
+        alarm.Name = newName;
+        TriggerConfig.TriggerStorage.Triggers.Add(alarm);
+        _triggerConfig.Save();
+
+        Logger.LogInformation("Trigger Added: {0}", alarm.Name);
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerListUpdated));
+    }
+
+    public void RemoveTrigger(int indexToRemove)
+    {
+        Logger.LogInformation("Trigger Removed: {0}", TriggerConfig.TriggerStorage.Triggers[indexToRemove].Name);
+        TriggerConfig.TriggerStorage.Triggers.RemoveAt(indexToRemove);
+        _triggerConfig.Save();
+
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerListUpdated));
+    }
+
+    public void SetTriggerState(int idx, bool newState, bool shouldPublishToMediator = true)
+    {
+        TriggerConfig.TriggerStorage.Triggers[idx].Enabled = newState;
+        _triggerConfig.Save();
+
+        // publish the alarm added/removed based on state
+        if (shouldPublishToMediator)
+        {
+            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerActiveStatusChanged));
+        }
+    }
+
+    public void UpdateTriggerStatesFromCallback(List<TriggerInfo> callbackTriggerList)
+    {
+        // iterate over each alarmInfo in the alarmInfo list. If any of the TriggerStorages alarms have a different enabled state than the alarm info's, change it.
+        foreach (TriggerInfo triggerInfo in callbackTriggerList)
+        {
+            // if the trigger is found in the list,
+            if (TriggerConfig.TriggerStorage.Triggers.Any(x => x.Name == triggerInfo.Name))
+            {
+                // grab the trigger reference
+                var triggerRef = TriggerConfig.TriggerStorage.Triggers.FirstOrDefault(x => x.Name == triggerInfo.Name);
+                // update the enabled state if the values are different.
+                if (triggerRef != null && triggerRef.Enabled != triggerInfo.Enabled)
+                {
+                    triggerRef.Enabled = triggerInfo.Enabled;
+                }
+            }
+            else
+            {
+                Logger.LogWarning("Failed to match an Trigger in your list with an trigger in the callbacks list. This shouldnt be possible?");
+            }
+        }
+    }
+
+
+    public void UpdateTrigger(Trigger trigger, int idx)
+    {
+        TriggerConfig.TriggerStorage.Triggers[idx] = trigger;
+        _triggerConfig.Save();
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerListUpdated));
+    }
 
     #endregion Trigger Config Methods
 

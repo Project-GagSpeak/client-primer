@@ -1,5 +1,6 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Components;
 using Dalamud.Interface.GameFonts;
 using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Interface.Textures;
@@ -400,8 +401,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     /// <summary> The additional param for an ID is optional. if not provided, the id will be the text. </summary>
-    public bool IconButton(FontAwesomeIcon icon, float? height = null, string id = null!)
+    public bool IconButton(FontAwesomeIcon icon, float? height = null, string? id = null, bool disabled = false)
     {
+        using var dis = ImRaii.PushStyle(ImGuiStyleVar.Alpha, disabled ? 0.5f : 1f);
+
         string text = icon.ToIconString();
 
         ImGui.PushID((id == null) ? icon.ToIconString() : id + icon.ToIconString());
@@ -419,7 +422,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             windowDrawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), text);
         ImGui.PopID();
 
-        return result;
+        return result && !disabled;
     }
 
     private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null, bool disabled = false)
@@ -726,13 +729,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.PopTextWrapPos();
     }
 
-    /// <summary> Pulled from ECommons </summary>
-    public static bool InputTextMultilineExpanding(string id, ref string text, uint maxLength = 500,
-        int minLines = 2, int maxLines = 10, int? width = null)
-    {
-        return ImGui.InputTextMultiline(id, ref text, maxLength, new(width ?? ImGui.GetContentRegionAvail().X, ImGui.CalcTextSize("A").Y * Math.Clamp(text.Split("\n").Length + 1, minLines, maxLines)));
-    }
-
     public static Vector4 UploadColor((long, long) data) => data.Item1 == 0 ? ImGuiColors.DalamudGrey :
         data.Item1 == data.Item2 ? ImGuiColors.ParsedGreen : ImGuiColors.DalamudYellow;
 
@@ -772,6 +768,79 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public void BigText(string text, Vector4? color = null)
     {
         FontText(text, UidFont, color);
+    }
+
+    private static int FindWrapPosition(string text, float wrapWidth)
+    {
+        float currentWidth = 0;
+        int lastSpacePos = -1;
+        for (int i = 0; i < text.Length; i++)
+        {
+            char c = text[i];
+            currentWidth += ImGui.CalcTextSize(c.ToString()).X;
+            if (char.IsWhiteSpace(c))
+            {
+                lastSpacePos = i;
+            }
+            if (currentWidth > wrapWidth)
+            {
+                return lastSpacePos >= 0 ? lastSpacePos : i;
+            }
+        }
+        return -1;
+    }
+
+    private static unsafe int TextEditCallback(ImGuiInputTextCallbackData* data, float wrapWidth)
+    {
+        string text = Marshal.PtrToStringAnsi((IntPtr)data->Buf, data->BufTextLen);
+        var lines = text.Split('\n').ToList();
+        bool textModified = false;
+        // Traverse each line to check if it exceeds the wrap width
+        for (int i = 0; i < lines.Count; i++)
+        {
+            float lineWidth = ImGui.CalcTextSize(lines[i]).X;
+            while (lineWidth + 10f > wrapWidth)
+            {
+                // Find where to break the line
+                int wrapPos = FindWrapPosition(lines[i], wrapWidth);
+                if (wrapPos >= 0)
+                {
+                    // Insert a newline at the wrap position
+                    string part1 = lines[i].Substring(0, wrapPos);
+                    string part2 = lines[i].Substring(wrapPos).TrimStart();
+                    lines[i] = part1;
+                    lines.Insert(i + 1, part2);
+                    textModified = true;
+                    lineWidth = ImGui.CalcTextSize(part2).X;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        // Merge all lines back to the buffer
+        if (textModified)
+        {
+            string newText = string.Join("\n", lines);
+            byte[] newTextBytes = Encoding.UTF8.GetBytes(newText.PadRight(data->BufSize, '\0'));
+            Marshal.Copy(newTextBytes, 0, (IntPtr)data->Buf, newTextBytes.Length);
+            data->BufTextLen = newText.Length;
+            data->BufDirty = 1;
+            data->CursorPos = Math.Min(data->CursorPos, data->BufTextLen);
+        }
+        return 0;
+    }
+
+    public unsafe static bool InputTextWrapMultiline(string id, ref string text, uint maxLength = 500, int lineHeight = 2, float? width = null)
+    {
+        float wrapWidth = width ?? ImGui.GetContentRegionAvail().X; // determine wrap width
+        bool result = ImGui.InputTextMultiline(id, ref text, maxLength,
+             new(width ?? ImGui.GetContentRegionAvail().X, ImGui.CalcTextSize("A").Y * lineHeight), // expanding height calc.
+             ImGuiInputTextFlags.CallbackEdit | ImGuiInputTextFlags.NoHorizontalScroll, // flag stuff 
+             (data) => { return TextEditCallback(data, wrapWidth); });
+
+        return result;
     }
 
     public void BooleanToColoredIcon(bool value, bool inline = true,
@@ -905,33 +974,16 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return (T)_selectedComboItems[comboName];
     }
 
-    public void DrawTimeSpanCombo(string label, TimeSpan patternMaxDuration, ref string patternDuration, float width)
+    public void DrawTimeSpanCombo(string label, TimeSpan patternMaxDuration, ref TimeSpan patternDuration, float width, string format = "hh\\:mm\\:ss")
     {
-        // Parse the current pattern duration
-        // Parse the current pattern duration, trying first hh:mm:ss, then mm:ss if the former fails
-        bool parseSuccess = TimeSpan.TryParseExact(patternDuration, "hh\\:mm\\:ss", null, out TimeSpan duration);
-        if (!parseSuccess)
-        {
-            parseSuccess = TimeSpan.TryParseExact(patternDuration, "mm\\:ss", null, out duration);
-        }
+        if (patternDuration > patternMaxDuration) patternDuration = patternMaxDuration;
 
-        // If parsing fails or duration exceeds the max allowed duration, set it to the max duration
-        if (!parseSuccess || duration > patternMaxDuration)
-        {
-            duration = patternMaxDuration;
-        }
-
-        int patternHour = duration.Hours;
-        int patternMinute = duration.Minutes;
-        int patternSecond = duration.Seconds;
-
-        string maxDurationFormatted = patternMaxDuration.Hours > 0
-            ? patternMaxDuration.ToString("hh\\:mm\\:ss")
-            : patternMaxDuration.ToString("mm\\:ss");
+        string maxDurationFormatted = patternMaxDuration.ToString(format);
+        string patternDurationFormatted = patternDuration.ToString(format);
 
         // Button to open popup
         var pos = ImGui.GetCursorScreenPos();
-        if (ImGui.Button($"{patternDuration} / {maxDurationFormatted}##TimeSpanCombo-{label}", new Vector2(width, ImGui.GetFrameHeight())))
+        if (ImGui.Button($"{patternDurationFormatted} / {maxDurationFormatted}##TimeSpanCombo-{label}", new Vector2(width, ImGui.GetFrameHeight())))
         {
             ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
             ImGui.OpenPopup($"TimeSpanPopup-{label}");
@@ -943,54 +995,79 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         // Popup
         if (ImGui.BeginPopup($"TimeSpanPopup-{label}"))
         {
-            DrawTimeSpanUI(patternMaxDuration, ref patternHour, ref patternMinute, ref patternSecond, ref patternDuration);
+            DrawTimeSpanUI(ref patternDuration, patternMaxDuration, format);
             ImGui.EndPopup();
         }
     }
 
-    private void DrawTimeSpanUI(TimeSpan patternMaxDuration, ref int patternHour, ref int patternMinute, ref int patternSecond, ref string patternDuration)
+    private void DrawTimeSpanUI(ref TimeSpan patternDuration, TimeSpan maxDuration, string format)
     {
-        var totalColumns = patternMaxDuration.TotalHours >= 1 ? 3 : 2;
-        // Define the scales 
-        Vector2 patternHourTextSize = ImGui.CalcTextSize($"{patternHour:00}h");
-        Vector2 patternMinuteTextSize = ImGui.CalcTextSize($"{patternMinute:00}m");
-        Vector2 patternSecondTextSize = ImGui.CalcTextSize($"{patternSecond:00}s");
+        var totalColumns = GetColumnCountFromFormat(format);
         // Specify the number of columns. In this case, 2 for minutes and seconds.
         if (ImGui.BeginTable("TimeDurationTable", totalColumns)) // 3 columns for hours, minutes, seconds
         {
-            if (patternMaxDuration.TotalHours >= 1)
-            {
-                ImGui.TableSetupColumn("##Hours", ImGuiTableColumnFlags.WidthFixed, (patternHourTextSize.X + ImGui.GetStyle().ItemSpacing.X * 4));
-            }
-            ImGui.TableSetupColumn("##Minutes", ImGuiTableColumnFlags.WidthFixed, (patternMinuteTextSize.X + ImGui.GetStyle().ItemSpacing.X * 4));
-            ImGui.TableSetupColumn("##Seconds", ImGuiTableColumnFlags.WidthFixed, (patternSecondTextSize.X + ImGui.GetStyle().ItemSpacing.X * 4));
-
+            // Setup columns based on the format
+            if (format.Contains("hh")) ImGui.TableSetupColumn("##Hours", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("00").X + ImGui.GetStyle().ItemSpacing.X * totalColumns+1);
+            if (format.Contains("mm")) ImGui.TableSetupColumn("##Minutes", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("00").X + ImGui.GetStyle().ItemSpacing.X * totalColumns + 1);
+            if (format.Contains("ss")) ImGui.TableSetupColumn("##Seconds", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("00").X + ImGui.GetStyle().ItemSpacing.X * totalColumns + 1);
+            if (format.Contains("fff")) ImGui.TableSetupColumn("##Milliseconds", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("000").X + ImGui.GetStyle().ItemSpacing.X * totalColumns + 1);
             ImGui.TableNextRow();
-            if(patternMaxDuration.TotalHours >= 1)
+
+            // Draw components based on the format
+            if (format.Contains("hh"))
             {
                 ImGui.TableNextColumn();
-                DrawTimeComponentUI(ref patternHour, ref patternMinute, ref patternSecond, patternMaxDuration,
-                    patternMaxDuration.Hours, "h", patternHourTextSize, ref patternDuration, isHour: true);
+                DrawTimeComponentUI(ref patternDuration, maxDuration, "h", ImGui.CalcTextSize(patternDuration.Hours.ToString("00")));
             }
-
-            ImGui.TableNextColumn();
-            DrawTimeComponentUI(ref patternHour, ref patternMinute, ref patternSecond, patternMaxDuration,
-                patternMaxDuration.Minutes, "m", patternMinuteTextSize, ref patternDuration, isMinute: true);
-
-            ImGui.TableNextColumn();
-            DrawTimeComponentUI(ref patternHour, ref patternMinute, ref patternSecond, patternMaxDuration,
-                patternMinute < patternMaxDuration.Minutes ? 59 : patternMaxDuration.Seconds, "s", patternSecondTextSize, ref patternDuration);
+            if (format.Contains("mm"))
+            {
+                ImGui.TableNextColumn();
+                DrawTimeComponentUI(ref patternDuration, maxDuration, "m", ImGui.CalcTextSize(patternDuration.Minutes.ToString("00")));
+            }
+            if (format.Contains("ss"))
+            {
+                ImGui.TableNextColumn();
+                DrawTimeComponentUI(ref patternDuration, maxDuration, "s", ImGui.CalcTextSize(patternDuration.Seconds.ToString("00")));
+            }
+            if (format.Contains("fff"))
+            {
+                ImGui.TableNextColumn();
+                DrawTimeComponentUI(ref patternDuration, maxDuration, "ms", ImGui.CalcTextSize(patternDuration.Milliseconds.ToString("000")));
+            }
 
             ImGui.EndTable();
         }
     }
 
-    private void DrawTimeComponentUI(ref int hours, ref int minutes, ref int seconds, TimeSpan patternMaxDuration,
-        int maxValue, string suffix, Vector2 textSize, ref string patternDuration, bool isHour = false, bool isMinute = false)
+    private void DrawTimeComponentUI(ref TimeSpan duration, TimeSpan maxDuration, string suffix, Vector2 textSize)
     {
-        string prevValue = $"{Math.Max(0, (isHour ? hours : isMinute ? minutes : seconds) - 1):00}";
-        string currentValue = $"{(isHour ? hours : isMinute ? minutes : seconds):00}{suffix}";
-        string nextValue = $"{Math.Min(maxValue, (isHour ? hours : isMinute ? minutes : seconds) + 1):00}";
+        string prevValue = suffix switch
+        {
+            "h" => $"{Math.Max(0, (duration.Hours - 1)):00}",
+            "m" => $"{Math.Max(0, (duration.Minutes - 1)):00}",
+            "s" => $"{Math.Max(0, (duration.Seconds - 1)):00}",
+            "ms" => $"{Math.Max(0, (duration.Milliseconds - 1)):000}",
+            _ => $"UNK"
+        };
+        
+        string currentValue = suffix switch
+        {
+            "h" => $"{duration.Hours:00}",
+            "m" => $"{duration.Minutes:00}",
+            "s" => $"{duration.Seconds:00}",
+            "ms" => $"{duration.Milliseconds:000}",
+            _ => $"UNK"
+        };
+
+        string nextValue = suffix switch
+        {
+            "h" => $"{Math.Min(maxDuration.Hours, (duration.Hours + 1)):00}",
+            "m" => $"{Math.Min(maxDuration.Minutes, (duration.Minutes + 1)):00}",
+            "s" => $"{Math.Min(maxDuration.Seconds, (duration.Seconds + 1)):00}",
+            "ms" => $"{Math.Min(maxDuration.Milliseconds, (duration.Milliseconds + 1)):000}",
+            _ => $"UNK"
+        };
+
         float CurrentValBigSize;
         using (UidFont.Push())
         {
@@ -1005,52 +1082,37 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         if (ImGui.IsItemHovered() && ImGui.GetIO().MouseWheel != 0)
         {
             int delta = -(int)ImGui.GetIO().MouseWheel;
-            if (isHour) { hours += delta; }
-            else if (isMinute) { minutes += delta; }
-            else { seconds += delta; }
-            // Rollover and clamp logic
-            if (seconds < 0)
+            switch (suffix)
             {
-                seconds += 60;
-                minutes--;
-            }
-            else if (seconds > 59)
-            {
-                seconds -= 60;
-                minutes++;
-            }
-
-            if (minutes < 0)
-            {
-                minutes += 60;
-                hours--;
-            }
-            else if (minutes > 59)
-            {
-                minutes -= 60;
-                hours++;
-            }
-
-            // Ensure the hours do not exceed the max allowed hours
-            hours = Math.Clamp(hours, 0, patternMaxDuration.Hours);
-
-            // Clamp minutes and seconds based on max values and current hour and minute values
-            minutes = Math.Clamp(minutes, 0, (hours == patternMaxDuration.Hours ? patternMaxDuration.Minutes : 59));
-            seconds = Math.Clamp(seconds, 0, (minutes == (hours == patternMaxDuration.Hours ? patternMaxDuration.Minutes : 59) ? patternMaxDuration.Seconds : 59));
-
-            if (patternMaxDuration.Hours >= 1)
-            {
-                patternDuration = new TimeSpan(hours, minutes, seconds).ToString("hh\\:mm\\:ss");
-            }
-            else
-            {
-                patternDuration = new TimeSpan(0, minutes, seconds).ToString("mm\\:ss");
+                case "h":
+                    duration = new TimeSpan(Math.Clamp(duration.Hours + delta, 0, maxDuration.Hours), duration.Minutes, duration.Seconds);
+                    break;
+                case "m":
+                    duration = new TimeSpan(duration.Hours, Math.Clamp(duration.Minutes + delta, 0, maxDuration.Minutes), duration.Seconds);
+                    break;
+                case "s":
+                    duration = new TimeSpan(duration.Hours, duration.Minutes, Math.Clamp(duration.Seconds + delta, 0, maxDuration.Seconds));
+                    break;
+                case "ms":
+                    duration = new TimeSpan(duration.Hours, duration.Minutes, duration.Seconds, duration.Milliseconds + delta);
+                    // Clamp milliseconds within 0 to 999 range
+                    duration = new TimeSpan(duration.Hours, duration.Minutes, duration.Seconds, Math.Clamp(duration.Milliseconds, 0, 999));
+                    break;
             }
         }
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5f);
         var offset2 = (CurrentValBigSize - ImGui.CalcTextSize(prevValue).X) / 2;
         ImGui.SetCursorPosX(ImGui.GetCursorPosX() + offset2);
         ImGui.TextDisabled(nextValue); // Previous value (centered)
+    }
+    private int GetColumnCountFromFormat(string format)
+    {
+        int columnCount = 0;
+        if (format.Contains("hh")) columnCount++;
+        if (format.Contains("mm")) columnCount++;
+        if (format.Contains("ss")) columnCount++;
+        if (format.Contains("ff")) columnCount++;
+        return columnCount;
     }
 
     public void SetCursorXtoCenter(float width)

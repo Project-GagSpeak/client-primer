@@ -9,7 +9,7 @@ public record Alarm
     public string Name { get; set; } = string.Empty;
     public DateTimeOffset SetTimeUTC { get; set; } = DateTimeOffset.MinValue;
     public string PatternToPlay { get; set; } = string.Empty;
-    public string PatternStartPoint { get; set; } = "00:00";
-    public string PatternDuration { get; set; } = "00:00";
+    public TimeSpan PatternStartPoint { get; set; } = TimeSpan.Zero;
+    public TimeSpan PatternDuration { get; set; } = TimeSpan.Zero;
     public List<DayOfWeek> RepeatFrequency { get; set; } = [];
 }

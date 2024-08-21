@@ -1,6 +1,7 @@
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Interface.Utility;
 using GagSpeak.Services.Textures;
+using GagspeakAPI.Data.VibeServer;
 using ImGuiNET;
 using OtterGui;
 using Penumbra.GameData.Enums;
@@ -92,6 +93,19 @@ public static class UtilsExtensions
         ImGui.SameLine(0, 0);
         CenteredLineWidths[id] = ImGui.GetCursorPosX() - oldCur;
         ImGui.Dummy(Vector2.Zero);
+    }
+
+    public static string TriggerKindToString(this TriggerKind type)
+    {
+        return type switch
+        {
+            TriggerKind.Chat => "Chat Trigger",
+            TriggerKind.SpellAction => "Action Trigger",
+            TriggerKind.HealthPercent => "Health% Trigger",
+            TriggerKind.RestraintSet => "Restraint Trigger",
+            TriggerKind.GagState => "GagState Trigger",
+            _ => "UNK"
+        };
     }
 
     public static GagType GetGagFromAlias(this string alias) => alias switch

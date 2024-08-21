@@ -24,36 +24,31 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
     public PatternData? ActivePattern => _clientConfigs.GetActiveRunningPattern() ?? null;
     public List<byte> PlaybackByteRange { get; private set; } = [];
 
-    public void CalculateSubsetPatternByteData(string startPoint, string playbackDuration)
+    public void CalculateSubsetPatternByteData(TimeSpan startPoint, TimeSpan playbackDuration)
     {
         if (ActivePattern == null) return;
 
-        Logger.LogInformation($"Start point at {startPoint} and duration at {playbackDuration}");
-
-        Logger.LogInformation("Total byte count of original pattern data: " + ActivePattern.PatternByteData.Count);
-
-        TimeSpan startPointTimespan = startPoint.GetTimespanFromTimespanString();
-        TimeSpan durationTimespan = playbackDuration.GetTimespanFromTimespanString();
+        Logger.LogDebug($"Start point at {startPoint} and duration at {playbackDuration}");
+        Logger.LogDebug("Total byte count of original pattern data: " + ActivePattern.PatternByteData.Count);
 
         // Convert start point and duration to indices
-        int _startIndex = (int)(startPointTimespan.TotalSeconds * 50);
-        int _endIndex = durationTimespan == TimeSpan.Zero
+        int _startIndex = (int)(startPoint.TotalSeconds * 50);
+        int _endIndex = playbackDuration == TimeSpan.Zero
             ? ActivePattern.PatternByteData.Count
-            : _startIndex + (int)(durationTimespan.TotalSeconds * 50);
+            : _startIndex + (int)(playbackDuration.TotalSeconds * 50);
 
         // Ensure indices are within bounds
         _startIndex = Math.Max(0, _startIndex);
         _endIndex = Math.Min(ActivePattern.PatternByteData.Count, _endIndex);
 
         // Log the details
-        Logger.LogInformation($"Calculating subset pattern byte data from {_startIndex} to {_endIndex}");
-        Logger.LogInformation($"Pattern byte data count: {ActivePattern.PatternByteData.Count}");
+        Logger.LogDebug($"Calculating subset pattern byte data from {_startIndex} to {_endIndex}");
 
         // Get the subset of the pattern byte data
         PlaybackByteRange = ActivePattern.PatternByteData.Skip(_startIndex).Take(_endIndex - _startIndex).ToList();
     }
 
-    public void PlayPattern(int patternIdx, string patternStartPoint, string patternDuration, bool publishToMediator)
+    public void PlayPattern(int patternIdx, TimeSpan patternStartPoint, TimeSpan patternDuration, bool publishToMediator)
     {
         // stop any other active patterns if there are any.
         if (_clientConfigs.IsAnyPatternPlaying())

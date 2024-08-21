@@ -21,14 +21,14 @@ public record PatternData
     /// <summary> Tags for the pattern. 5 tags at most. </summary>
     public List<string> Tags { get; set; } = new();
 
-    /// <summary> The duration of the pattern </summary>
-    public string Duration { get; set; } = "00:00";
+    /// <summary> The Total Overall Duration of the pattern </summary>
+    public TimeSpan Duration { get; set; } = TimeSpan.Zero;
 
     /// <summary> The start point of the pattern to play </summary>
-    public string StartPoint { get; set; } = "00:00";
+    public TimeSpan StartPoint { get; set; } = TimeSpan.Zero;
 
     /// <summary> The duration of the pattern to play (if 00:00, play full) </summary>
-    public string PlaybackDuration { get; set; } = "00:00";
+    public TimeSpan PlaybackDuration { get; set; } = TimeSpan.Zero;
 
     /// <summary> If the pattern is active </summary>
     public bool IsActive { get; set; } = false;
@@ -77,9 +77,9 @@ public record PatternData
                 Tags = viewAccessArray.Select(x => x.Value<string>()).ToList()!;
             }
 
-            Duration = jsonObject["Duration"]?.Value<string>() ?? "00:00";
-            StartPoint = jsonObject["StartPoint"]?.Value<string>() ?? "00:00";
-            PlaybackDuration = jsonObject["PlaybackDuration"]?.Value<string>() ?? "00:00";
+            Duration = jsonObject["Duration"]?.Value<TimeSpan>() ?? TimeSpan.Zero;
+            StartPoint = jsonObject["StartPoint"]?.Value<TimeSpan>() ?? TimeSpan.Zero;
+            PlaybackDuration = jsonObject["PlaybackDuration"]?.Value<TimeSpan>() ?? TimeSpan.Zero;
             IsActive = jsonObject["IsActive"]?.Value<bool>() ?? false;
             ShouldLoop = jsonObject["ShouldLoop"]?.Value<bool>() ?? false;
 

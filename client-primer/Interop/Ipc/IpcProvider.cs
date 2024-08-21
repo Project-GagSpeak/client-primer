@@ -70,6 +70,21 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
 
         Mediator.Subscribe<MoodlesReady>(this, (_) => NotifyListChanged());
 
+        Mediator.Subscribe<MoodlesPermissionsUpdated>(this, (msg) =>
+        {
+            // update the visible pair objects with their latest permissions.
+            int idxOfPair = VisiblePairObjects.FindIndex(p => p.Item1.NameWithWorld == msg.NameWithWorld);
+            if (idxOfPair == -1)
+            {
+                var newPerms = _pairManager.GetMoodlePermsForPairByName(msg.NameWithWorld);
+                // replace the item 2 and 3 of the index where the pair is.
+                VisiblePairObjects[idxOfPair] = (VisiblePairObjects[idxOfPair].Item1, newPerms.Item1, newPerms.Item2);
+
+                // notify the update
+                NotifyListChanged();
+            }            
+        });
+
         Mediator.Subscribe<GameObjectHandlerCreatedMessage>(this, (msg) =>
         {
             _logger.LogInformation("Received GameObjectHandlerCreatedMessage for {handler}", msg.GameObjectHandler.NameWithWorld);

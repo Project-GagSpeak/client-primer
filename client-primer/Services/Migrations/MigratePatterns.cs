@@ -1,5 +1,6 @@
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Utils;
 using Newtonsoft.Json.Linq;
 using System.Text.RegularExpressions;
 
@@ -105,9 +106,9 @@ public class MigratePatterns
             Description = oldPattern.Description,
             Author = "(Migrated Pattern)",
             Tags = new List<string>(),
-            Duration = oldPattern.Duration,
-            StartPoint = "00:00",
-            PlaybackDuration = oldPattern.Duration,
+            Duration = oldPattern.Duration.GetTimespanFromTimespanString(),
+            StartPoint = TimeSpan.Zero,
+            PlaybackDuration = oldPattern.Duration.GetTimespanFromTimespanString(),
             IsActive = false,
             ShouldLoop = oldPattern.Loop,
             AllowedUsers = new List<string>(),
@@ -168,9 +169,9 @@ public class MigratePatterns
                 Description = oldPattern.Description,
                 Author = "(Migrated Pattern)",
                 Tags = new List<string>(),
-                Duration = oldPattern.Duration,
-                StartPoint = "00:00",
-                PlaybackDuration = oldPattern.Duration,
+                Duration = oldPattern.Duration.GetTimespanFromTimespanString(),
+                StartPoint = TimeSpan.Zero,
+                PlaybackDuration = oldPattern.Duration.GetTimespanFromTimespanString(),
                 IsActive = false,
                 ShouldLoop = oldPattern.Loop,
                 AllowedUsers = new List<string>(),

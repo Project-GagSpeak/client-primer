@@ -393,28 +393,21 @@ public class ToyboxAlarmManager
         }, alarmToCreate.PatternToPlay ?? default);
 
         // if the pattern is not the alarmTocreate.PatternToPlay, it has changed, so update newPatternMaxDuration
-        TimeSpan patternDurationTimeSpan = _handler.GetPatternLength(alarmToCreate.PatternToPlay!);
-        var newStartDuration = alarmToCreate.PatternStartPoint;
-        _uiShared.DrawTimeSpanCombo("Playback Start-Point", patternDurationTimeSpan, ref newStartDuration,
-            UiSharedService.GetWindowContentRegionWidth() / 2);
-        alarmToCreate.PatternStartPoint = newStartDuration;
+        TimeSpan durationTotal = _handler.GetPatternLength(alarmToCreate.PatternToPlay!);
+        var newStartPt = alarmToCreate.PatternStartPoint;
+        _uiShared.DrawTimeSpanCombo("Playback Start-Point", durationTotal, ref newStartPt, UiSharedService.GetWindowContentRegionWidth() / 2);
+        alarmToCreate.PatternStartPoint = newStartPt;
 
-        // calc the max playback length minus the start point we set to declare the max allowable duration to play
-        bool parseSuccess = TimeSpan.TryParseExact(newStartDuration, "hh\\:mm\\:ss", null, out TimeSpan startPointTimeSpan);
-        if (!parseSuccess) parseSuccess = TimeSpan.TryParseExact(newStartDuration, "mm\\:ss", null, out startPointTimeSpan);
-
-        // If parsing fails or duration exceeds the max allowed duration, set it to the max duration
-        if (!parseSuccess || startPointTimeSpan > patternDurationTimeSpan)
+        if(newStartPt > durationTotal)
         {
-            startPointTimeSpan = patternDurationTimeSpan;
+            newStartPt = durationTotal;
         }
-        var maxPlaybackDuration = patternDurationTimeSpan - startPointTimeSpan;
+        var maxPlaybackDuration = durationTotal - newStartPt;
 
         // define the duration to playback
-        var newPlaybackDuration = alarmToCreate.PatternDuration;
-        _uiShared.DrawTimeSpanCombo("Playback Duration", maxPlaybackDuration, ref newPlaybackDuration,
-            UiSharedService.GetWindowContentRegionWidth() / 2);
-        alarmToCreate.PatternDuration = newPlaybackDuration;
+        var newDuration = alarmToCreate.PatternDuration;
+        _uiShared.DrawTimeSpanCombo("Playback Duration", maxPlaybackDuration, ref newDuration, UiSharedService.GetWindowContentRegionWidth() / 2);
+        alarmToCreate.PatternDuration = newDuration;
 
         ImGui.Separator();
 

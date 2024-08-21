@@ -19,6 +19,7 @@ using GagspeakAPI.Data.VibeServer;
 using GagSpeak.PlayerData.PrivateRooms;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.IPC;
+using GagspeakAPI.Data.Permissions;
 
 namespace GagSpeak.Services.Mediator;
 
@@ -91,6 +92,7 @@ public record HardcoreForcedToFollowMessage(Pair Pair, UpdatedNewState State) : 
 public record HardcoreForcedToSitMessage(Pair Pair, UpdatedNewState State) : MessageBase; 
 public record HardcoreForcedToStayMessage(Pair Pair, UpdatedNewState State) : MessageBase;
 public record HardcoreForcedBlindfoldMessage(Pair Pair, UpdatedNewState State) : MessageBase;
+public record MoodlesPermissionsUpdated(string NameWithWorld) : MessageBase;
 #endregion PLAYERDATA WARDROBE HANDLER RECORDS
 
 #region PLAYERDATA PUPPETEER HANDLER RECORDS
@@ -165,7 +167,7 @@ public record ProfileOpenStandaloneMessage(Pair Pair) : MessageBase; // for open
 public record ProfilePopoutToggle(Pair? Pair) : MessageBase; // toggles the profile popout window for a paired client.
 public record ClearProfileDataMessage(UserData? UserData = null) : MessageBase; // a message indicating the need to clear profile data.
 public record VerificationPopupMessage(VerificationDto VerificationCode) : MessageBase; // indicating that we have received a verification code popup.
-public record PatternSavePromptMessage(List<byte> StoredData, string Duration) : MessageBase; // prompts the popup and passes in savedata
+public record PatternSavePromptMessage(List<byte> StoredData, TimeSpan Duration) : MessageBase; // prompts the popup and passes in savedata
 public record BlindfoldUiTypeChange(BlindfoldType NewType) : MessageBase; // for changing blindfold type.
 
 public record SafewordUsedMessage : MessageBase; // for when the safeword is used.

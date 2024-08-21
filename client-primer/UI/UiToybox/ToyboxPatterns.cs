@@ -41,8 +41,6 @@ public class ToyboxPatterns
         _pairManager = pairManager;
     }
 
-    private Vector2 DefaultItemSpacing { get; set; } // TODO: remove
-
     // Private accessor vars for list management.
     private LowerString PatternSearchString = LowerString.Empty;
     private List<PatternData> FilteredPatternsList
@@ -237,7 +235,7 @@ public class ToyboxPatterns
         var author = pattern.Author;
         var authorTextSize = ImGui.CalcTextSize(author);
         // fetch the duration of the pattern
-        var duration = pattern.Duration;
+        var duration = pattern.Duration.Hours > 0 ? pattern.Duration.ToString("hh\\:mm\\:ss") : pattern.Duration.ToString("mm\\:ss");
         var durationTextSize = ImGui.CalcTextSize(duration);
         // fetch the list of tags.
         var tags = pattern.Tags;
@@ -283,7 +281,6 @@ public class ToyboxPatterns
                 ImGui.SameLine();
                 UiSharedService.ColorText("|  " + duration, ImGuiColors.DalamudGrey3);
                 // Below this, we should draw out the tags in a row, with a max of 5 tags. If they extend the width of the window, stop drawing.
-                var currentWidth = 0f;
                 var widthRef = ImGui.GetContentRegionAvail().X;
             }
 
@@ -346,7 +343,8 @@ public class ToyboxPatterns
                 ImGui.TextUnformatted("Duration: ");
             }
             ImGui.SameLine();
-            ImGui.TextUnformatted(patternToEdit.Duration);
+            ImGui.TextUnformatted(patternToEdit.Duration.Hours > 0 
+                ? patternToEdit.Duration.ToString("hh\\:mm\\:ss") : patternToEdit.Duration.ToString("mm\\:ss"));
         }
 
         using (var group = ImRaii.Group())
@@ -386,28 +384,16 @@ public class ToyboxPatterns
         // Define the pattern playback parameters 
         TimeSpan patternDurationTimeSpan = _handler.GetPatternLength(patternToEdit.Name);
         var newStartDuration = patternToEdit.StartPoint;
-        _uiShared.DrawTimeSpanCombo("Playback Start-Point", patternDurationTimeSpan, ref newStartDuration,
-            UiSharedService.GetWindowContentRegionWidth() / 2);
+        _uiShared.DrawTimeSpanCombo("Playback Start-Point", patternDurationTimeSpan, ref newStartDuration, UiSharedService.GetWindowContentRegionWidth() / 2);
         patternToEdit.StartPoint = newStartDuration;
 
         // calc the max playback length minus the start point we set to declare the max allowable duration to play
-        bool parseSuccess = TimeSpan.TryParseExact(newStartDuration, "hh\\:mm\\:ss", null, out TimeSpan startPointTimeSpan);
-        if (!parseSuccess)
-        {
-            parseSuccess = TimeSpan.TryParseExact(newStartDuration, "mm\\:ss", null, out startPointTimeSpan);
-        }
-
-        // If parsing fails or duration exceeds the max allowed duration, set it to the max duration
-        if (!parseSuccess || startPointTimeSpan > patternDurationTimeSpan)
-        {
-            startPointTimeSpan = patternDurationTimeSpan;
-        }
-        var maxPlaybackDuration = patternDurationTimeSpan - startPointTimeSpan;
+        if (newStartDuration > patternDurationTimeSpan) newStartDuration = patternDurationTimeSpan;
+        var maxPlaybackDuration = patternDurationTimeSpan - newStartDuration;
 
         // define the duration to playback
         var newPlaybackDuration = patternToEdit.PlaybackDuration;
-        _uiShared.DrawTimeSpanCombo("Playback Duration", maxPlaybackDuration, ref newPlaybackDuration,
-            UiSharedService.GetWindowContentRegionWidth() / 2);
+        _uiShared.DrawTimeSpanCombo("Playback Duration", maxPlaybackDuration, ref newPlaybackDuration, UiSharedService.GetWindowContentRegionWidth() / 2);
         patternToEdit.PlaybackDuration = newPlaybackDuration;
 
         ImGui.Separator();

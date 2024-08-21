@@ -12,6 +12,7 @@ using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
 using System.Reflection;
 using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
+using ImGuiNET;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -32,6 +33,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     /// </summary>
     public void UpdateOtherPairAllPermissions(UserPairUpdateAllPermsDto dto)
     {
+        bool MoodlesChanged = false;
         if (!_allClientPairs.TryGetValue(dto.User, out var pair))
         {
             throw new InvalidOperationException("No such pair for " + dto);
@@ -47,12 +49,40 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
         // set the permissions.
         pair.UserPair.OtherGlobalPerms = dto.GlobalPermissions;
+        // check to see if we are updating any moodles permissions
+        MoodlesChanged = UpdatingMoodlesPerms(dto.PairPermissions, pair.UserPair.OtherPairPerms);
+        // update pair perms
         pair.UserPair.OtherPairPerms = dto.PairPermissions;
         pair.UserPair.OtherEditAccessPerms = dto.EditAccessPermissions;
 
         Logger.LogTrace("Fresh update >> Paused: {paused}", pair.UserPair.OtherPairPerms.IsPaused);
 
         RecreateLazy(true);
+
+        // push notify after recreating lazy.
+        if (MoodlesChanged)
+        {
+            // only push the notification if they are online.
+            if (GetVisibleUsers().Contains(pair.UserData))
+            {
+                // Handle Moodle permission change
+                Logger.LogTrace($"Moodle permissions were changed, pushing change to provider!");
+                Mediator.Publish(new MoodlesPermissionsUpdated(pair.PlayerNameWithWorld));
+            }
+        }
+
+    }
+
+    private bool UpdatingMoodlesPerms(UserPairPermissions newPerms, UserPairPermissions oldPerms)
+    {
+        return newPerms.AllowPositiveStatusTypes != oldPerms.AllowPositiveStatusTypes
+            || newPerms.AllowNegativeStatusTypes != oldPerms.AllowNegativeStatusTypes
+            || newPerms.AllowSpecialStatusTypes != oldPerms.AllowSpecialStatusTypes
+            || newPerms.PairCanApplyOwnMoodlesToYou != oldPerms.PairCanApplyOwnMoodlesToYou
+            || newPerms.PairCanApplyYourMoodlesToYou != oldPerms.PairCanApplyYourMoodlesToYou
+            || newPerms.MaxMoodleTime != oldPerms.MaxMoodleTime
+            || newPerms.AllowPermanentMoodles != oldPerms.AllowPermanentMoodles
+            || newPerms.AllowRemovingMoodles != oldPerms.AllowRemovingMoodles;
     }
 
     /// <summary>
@@ -95,6 +125,18 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             }
         }
         RecreateLazy(false);
+    }
+
+    private bool IsMoodlePermission(string changedPermission)
+    {
+        return changedPermission == nameof(UserPairPermissions.AllowPositiveStatusTypes) ||
+               changedPermission == nameof(UserPairPermissions.AllowNegativeStatusTypes) ||
+               changedPermission == nameof(UserPairPermissions.AllowSpecialStatusTypes) ||
+               changedPermission == nameof(UserPairPermissions.PairCanApplyOwnMoodlesToYou) ||
+               changedPermission == nameof(UserPairPermissions.PairCanApplyYourMoodlesToYou) ||
+               changedPermission == nameof(UserPairPermissions.MaxMoodleTime) ||
+               changedPermission == nameof(UserPairPermissions.AllowPermanentMoodles) ||
+               changedPermission == nameof(UserPairPermissions.AllowRemovingMoodles);
     }
 
     /// <summary>
@@ -142,6 +184,18 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             }
         }
         RecreateLazy(false);
+
+        // push notify after recreating lazy.
+        if (IsMoodlePermission(ChangedPermission))
+        {
+            // only push the notification if they are online.
+            if(GetVisibleUsers().Contains(pair.UserData))
+            {
+                // Handle Moodle permission change
+                Logger.LogTrace($"Moodle permission '{ChangedPermission}' was changed to '{ChangedValue}', pushing change to provider!");
+                Mediator.Publish(new MoodlesPermissionsUpdated(pair.PlayerNameWithWorld));
+            }
+        }
     }
 
     /// <summary>
@@ -225,6 +279,14 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             }
         }
         RecreateLazy(false);
+
+        // push notify after recreating lazy.
+        if (IsMoodlePermission(ChangedPermission))
+        {
+            // Handle Moodle permission change
+            Logger.LogTrace($"Moodle permission '{ChangedPermission}' was changed to '{ChangedValue}', pushing change to provider!");
+            Mediator.Publish(new MoodlesPermissionsUpdated(pair.PlayerNameWithWorld));
+        }
     }
 
     /// <summary>

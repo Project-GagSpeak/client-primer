@@ -1,25 +1,16 @@
-using GagSpeak.PlayerData.Handlers;
-using GagSpeak.Services.Mediator;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Utils;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
 using GagspeakAPI.Data.VibeServer;
 using ImGuiNET;
 using OtterGui.Classes;
-using System.Globalization;
-using System.Numerics;
-using System.Drawing;
 using OtterGui.Text;
-using GagspeakAPI.Data.Enum;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkCounterNode.Delegates;
-using static GagspeakAPI.Data.Enum.GagList;
-using static System.Windows.Forms.AxHost;
-using GagSpeak.Services.Data;
-using static System.Net.Mime.MediaTypeNames;
+using System.Numerics;
 
 namespace GagSpeak.UI.UiToybox;
 
@@ -41,7 +32,6 @@ public class ToyboxTriggerManager
         _handler = handler;
     }
 
-    // Private accessor vars for list management.
     private List<Trigger> FilteredTriggerList
         => _handler.GetTriggersForSearch()
             .Where(pattern => pattern.Name.Contains(TriggerSearchString, StringComparison.OrdinalIgnoreCase))
@@ -233,7 +223,7 @@ public class ToyboxTriggerManager
         _uiShared.DrawCombo($"##TriggerTypeSelector", availableWidth, Enum.GetValues<TriggerKind>(), (triggerType) => triggerType.TriggerKindToString(),
         (i) =>
         {
-            switch(i)
+            switch (i)
             {
                 case TriggerKind.Chat: CreatedTrigger = new ChatTrigger(); break;
                 case TriggerKind.SpellAction: CreatedTrigger = new SpellActionTrigger(); break;
@@ -380,25 +370,25 @@ public class ToyboxTriggerManager
         }
 
         string desc = triggerToCreate.Description;
-        if(UiSharedService.InputTextWrapMultiline("Description#NewTriggerDescription", ref desc, 100, 3, 200f))
+        if (UiSharedService.InputTextWrapMultiline("Description#NewTriggerDescription", ref desc, 100, 3, 200f))
         {
             triggerToCreate.Description = desc;
         }
 
         var startAfterRef = triggerToCreate.StartAfter;
-/*        _uiShared.DrawTimeSpanCombo("Start Delay (seconds)", triggerSliderLimit, ref startAfterRef, UiSharedService.GetWindowContentRegionWidth() / 2);
-        triggerToCreate.StartAfter.StartPoint = newStartDuration;
+        /*        _uiShared.DrawTimeSpanCombo("Start Delay (seconds)", triggerSliderLimit, ref startAfterRef, UiSharedService.GetWindowContentRegionWidth() / 2);
+                triggerToCreate.StartAfter.StartPoint = newStartDuration;
 
-        // calc the max playback length minus the start point we set to declare the max allowable duration to play
-        if (newStartDuration > patternDurationTimeSpan) newStartDuration = patternDurationTimeSpan;
-        var maxPlaybackDuration = patternDurationTimeSpan - newStartDuration;
+                // calc the max playback length minus the start point we set to declare the max allowable duration to play
+                if (newStartDuration > patternDurationTimeSpan) newStartDuration = patternDurationTimeSpan;
+                var maxPlaybackDuration = patternDurationTimeSpan - newStartDuration;
 
-        // how long to run the trigger for once it starts.
-        var runFor = triggerToCreate.EndAfter;
-        _uiShared.DrawTimeSpanCombo("Execute for (seconds)", , ref runFor, UiSharedService.GetWindowContentRegionWidth() / 2);
-        patternToEdit.PlaybackDuration = newPlaybackDuration;
+                // how long to run the trigger for once it starts.
+                var runFor = triggerToCreate.EndAfter;
+                _uiShared.DrawTimeSpanCombo("Execute for (seconds)", , ref runFor, UiSharedService.GetWindowContentRegionWidth() / 2);
+                patternToEdit.PlaybackDuration = newPlaybackDuration;
 
-        parseSuccess = TimeSpan.TryParseExact(patternDuration, "ss\\:fff", null, out duration);*/
+                parseSuccess = TimeSpan.TryParseExact(patternDuration, "ss\\:fff", null, out duration);*/
 
 
         // draw out the content details for the kind of trigger we are drawing.

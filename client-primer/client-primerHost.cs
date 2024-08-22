@@ -215,7 +215,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ActiveRestraintSet>()
         .AddSingleton<RestraintSetManager>()
         .AddSingleton<RestraintStruggleSim>()
-        .AddSingleton<MoodlesManager>()
+        .AddSingleton((s) => new MoodlesManager(s.GetRequiredService<ILogger<MoodlesManager>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
+            s.GetRequiredService<PairManager>(), s.GetRequiredService<IpcCallerMoodles>(), dm))
         .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
             s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<DictStain>(),
@@ -277,6 +279,8 @@ public static class GagSpeakServiceExtensions
     #region IpcServices
     public static IServiceCollection AddGagSpeakIPC(this IServiceCollection services, IDalamudPluginInterface pi, IClientState cs)
     => services
+        .AddSingleton((s) => new IpcCallerMare(s.GetRequiredService<ILogger<IpcCallerMare>>(), pi,
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
         .AddSingleton((s) => new IpcCallerMoodles(s.GetRequiredService<ILogger<IpcCallerMoodles>>(), pi,
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
         .AddSingleton((s) => new IpcCallerPenumbra(s.GetRequiredService<ILogger<IpcCallerPenumbra>>(), pi,

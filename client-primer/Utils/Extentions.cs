@@ -1,4 +1,6 @@
 using Dalamud.Game.ClientState.Objects.SubKinds;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Utility;
 using GagSpeak.Services.Textures;
 using GagspeakAPI.Data.VibeServer;
@@ -56,6 +58,24 @@ public static class UtilsExtensions
         {
             ImGuiUtil.HoverIcon(ptr, textureSize, size);
         }
+    }
+
+    public static string ExtractText(this SeString seStr, bool onlyFirst = false)
+    {
+        StringBuilder sb = new();
+        foreach (var x in seStr.Payloads)
+        {
+            if (x is TextPayload tp)
+            {
+                sb.Append(tp.Text);
+                if (onlyFirst) break;
+            }
+            if (x.Type == PayloadType.Unknown && x.Encode().SequenceEqual<byte>([0x02, 0x1d, 0x01, 0x03]))
+            {
+                sb.Append(' ');
+            }
+        }
+        return sb.ToString();
     }
 
     public static TimeSpan GetTimespanFromTimespanString(this string pattern)

@@ -166,6 +166,11 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         else return _sharedTextures.RentAsync().Result;
     }
 
+    public IDalamudTextureWrap GetGameStatusIcon(uint IconId)
+    {
+        return _textureProvider.GetFromGameIcon(new GameIconLookup(IconId)).GetWrapOrEmpty();
+    }
+
     public IDalamudTextureWrap LoadImage(byte[] imageData)
     {
         return _textureProvider.CreateFromImageAsync(imageData).Result;

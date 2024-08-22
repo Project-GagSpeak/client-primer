@@ -6,8 +6,6 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
-using System.Linq;
-using static PInvoke.User32;
 
 namespace GagSpeak.PlayerData.Services;
 
@@ -58,7 +56,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 
 
         // called upon whenever a new cache should be added to the cache creation service.
-        Mediator.Subscribe<CreateCacheForObjectMessage>(this, async(msg) =>
+        Mediator.Subscribe<CreateCacheForObjectMessage>(this, async (msg) =>
         {
             Logger.LogDebug("Received CreateCacheForObject for {handler}, updating", msg.ObjectToCreateFor);
             _cacheCreateLock.Wait();
@@ -82,7 +80,14 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             });
         });
 
-        Mediator.Subscribe<MoodlesReady>(this, async(_) =>
+        Mediator.Subscribe<ConnectedMessage>(this, async (_) =>
+        {
+            await FetchLatestMoodlesDataASync().ConfigureAwait(false);
+            Logger.LogInformation("Moodles is now ready, fetching latest info and pushing to all visible pairs");
+            Mediator.Publish(new CharacterIpcDataCreatedMessage(_playerIpcData, DataUpdateKind.IpcUpdateVisible));
+        });
+
+        Mediator.Subscribe<MoodlesReady>(this, async (_) =>
         {
             await FetchLatestMoodlesDataASync().ConfigureAwait(false);
             Logger.LogInformation("Moodles is now ready, fetching latest info and pushing to all visible pairs");

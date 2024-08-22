@@ -148,7 +148,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                             _struggleSimPanel.DrawStruggleSim();
                             break;
                         case WardrobeTabs.Tabs.ManageMoodles:
-                            _moodlesPanel.DrawMoodlesManager();
+                            _moodlesPanel.DrawMoodlesManager(cellPadding);
                             break;
                         case WardrobeTabs.Tabs.Cosmetics:
                             _cosmeticsPanel.DrawCosmetics();

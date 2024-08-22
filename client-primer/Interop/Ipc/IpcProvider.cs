@@ -74,7 +74,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         {
             // update the visible pair objects with their latest permissions.
             int idxOfPair = VisiblePairObjects.FindIndex(p => p.Item1.NameWithWorld == msg.NameWithWorld);
-            if (idxOfPair == -1)
+            if (idxOfPair != -1)
             {
                 var newPerms = _pairManager.GetMoodlePermsForPairByName(msg.NameWithWorld);
                 // replace the item 2 and 3 of the index where the pair is.
@@ -84,6 +84,8 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
                 NotifyListChanged();
             }            
         });
+
+        Mediator.Subscribe<MoodlesUpdateNotifyMessage>(this, (_) => NotifyListChanged());
 
         Mediator.Subscribe<GameObjectHandlerCreatedMessage>(this, (msg) =>
         {

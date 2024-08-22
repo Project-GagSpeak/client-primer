@@ -71,6 +71,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
                     EventSeverity.Informational, text)));
                 // publish a refresh ui message to the mediator
                 Mediator.Publish(new RefreshUiMessage());
+                // push latest list details to Moodles.
+                Mediator.Publish(new MoodlesUpdateNotifyMessage());
             }
         }
     }
@@ -263,6 +265,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             Logger.LogDebug("One-Time Initializing {this}", this);
             // initialize the player character
             Initialize(pc.Name);
+            if (_charaHandler != null) _charaHandler.UpdatePlayerNameWithWorld();
             Logger.LogDebug("One-Time Initialized {this}", this);
             // publish an event message to the mediator for logging purposes
             Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational,
@@ -276,6 +279,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             Guid appData = Guid.NewGuid();
             // and update their visibility to true
             IsVisible = true;
+            if(_charaHandler != null) _charaHandler.UpdatePlayerNameWithWorld();
             // publish the pairHandlerVisible message to the mediator, passing in this pair handler object
             Mediator.Publish(new PairHandlerVisibleMessage(this));
             // if the pairs cachedData is not null
@@ -298,8 +302,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         else if (_charaHandler?.Address == nint.Zero && IsVisible)
         {
             // set is visible to false and invalidate the pair handler
-            IsVisible = false;
             _charaHandler.Invalidate();
+            IsVisible = false;
             Logger.LogTrace("{this} visibility changed, now: {visi}", this, IsVisible);
         }
     }

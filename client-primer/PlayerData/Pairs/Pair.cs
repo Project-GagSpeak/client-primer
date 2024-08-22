@@ -74,7 +74,7 @@ public class Pair
     public IndividualPairStatus IndividualPairStatus => UserPair.IndividualPairStatus;  // the individual pair status of the pair in relation to the client.
     public bool IsDirectlyPaired => IndividualPairStatus != IndividualPairStatus.None;  // if the pair is directly paired.
     public bool IsOneSidedPair => IndividualPairStatus == IndividualPairStatus.OneSided; // if the pair is one sided.
-    public OnlineUserIdentDto CachedPlayerOnlineDto => CachedPlayer.OnlineUser;       // the online user ident dto of the cached player.
+    public OnlineUserIdentDto CachedPlayerOnlineDto => CachedPlayer!.OnlineUser;       // the online user ident dto of the cached player.
     public bool IsPaired => IndividualPairStatus == IndividualPairStatus.Bidirectional; // if the user is paired bidirectionally.
     public bool IsPaused => UserPair.OwnPairPerms.IsPaused;
     public bool IsOnline => CachedPlayer != null;                                       // lets us know if the paired user is online. 
@@ -89,7 +89,7 @@ public class Pair
     public void ApplyVisibleData(OnlineUserCharaIpcDataDto data)
     {
         _applicationCts = _applicationCts.CancelRecreate();
-        // set the last recieved character data to the data.CharaData
+        // set the last received character data to the data.CharaData
         LastReceivedIpcData = data.IPCData;
 
         // if the cached player is null
@@ -185,7 +185,7 @@ public class Pair
         }
         else
         {
-            _logger.LogWarning("Unknown Set Type");
+            _logger.LogWarning("Unknown Set Type: {updateKind}", data.UpdateKind);
         }
     }
 
@@ -215,6 +215,7 @@ public class Pair
         // if we have not yet recieved data from the player at least once since being online, return and do not apply.
         // ( This implies that the pair object has had its CreateCachedPlayer method called )
         if (CachedPlayer == null) return;
+
         // if the last received character data is null, return and do not apply.
         if (LastReceivedIpcData == null) return;
 

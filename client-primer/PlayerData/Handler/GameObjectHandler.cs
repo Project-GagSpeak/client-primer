@@ -90,6 +90,12 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         }
     }
 
+    public void UpdatePlayerNameWithWorld()
+    {
+        if(Address == IntPtr.Zero) return;
+        NameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(Address).GetAwaiter().GetResult().GetNameWithWorld();
+    }
+
     /* Performs an operation on each framework update to check and update the owned objects we have. 
      * It's critical that this doesn't take too much processing power.                              */
     private unsafe void CheckAndUpdateObject()
@@ -132,7 +138,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
 
             if (addrDiff || drawObjDiff)
             {
-                NameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(Address).GetAwaiter().GetResult().GetNameWithWorld();
+                UpdatePlayerNameWithWorld();
                 Logger.LogDebug("Object Address Changed, updating with name & world {NameWithWorld}", NameWithWorld);
             }
 

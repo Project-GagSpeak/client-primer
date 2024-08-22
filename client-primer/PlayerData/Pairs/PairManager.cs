@@ -319,6 +319,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // if they are found, publish an event message that we have received character data from our paired User
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character IPC Data")));
 
+        Logger.LogWarning("Received IPC Data for {user}", dto.User);
         // apply the IPC data to the pair.
         _allClientPairs[dto.User].ApplyVisibleData(dto);
     }

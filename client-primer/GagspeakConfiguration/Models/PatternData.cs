@@ -77,9 +77,10 @@ public record PatternData
                 Tags = viewAccessArray.Select(x => x.Value<string>()).ToList()!;
             }
 
-            Duration = jsonObject["Duration"]?.Value<TimeSpan>() ?? TimeSpan.Zero;
-            StartPoint = jsonObject["StartPoint"]?.Value<TimeSpan>() ?? TimeSpan.Zero;
-            PlaybackDuration = jsonObject["PlaybackDuration"]?.Value<TimeSpan>() ?? TimeSpan.Zero;
+            Duration = TimeSpan.TryParse(jsonObject["Duration"]?.Value<string>(), out var duration) ? duration : TimeSpan.Zero;
+            StartPoint = TimeSpan.TryParse(jsonObject["StartPoint"]?.Value<string>(), out var startPoint) ? startPoint : TimeSpan.Zero;
+            PlaybackDuration = TimeSpan.TryParse(jsonObject["PlaybackDuration"]?.Value<string>(), out var playbackDuration) ? playbackDuration : TimeSpan.Zero;
+
             IsActive = jsonObject["IsActive"]?.Value<bool>() ?? false;
             ShouldLoop = jsonObject["ShouldLoop"]?.Value<bool>() ?? false;
 

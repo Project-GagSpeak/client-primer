@@ -348,7 +348,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Update Other UserPair Ipc Data </summary>
     public Task Client_UserReceiveOtherDataIpc(OnlineUserCharaIpcDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOtherDataIpc: {dataDto}", dataDto);
+        Logger.LogDebug("Client_UserReceiveOtherDataIpc: {dataDto} {ipcIsNull}", dataDto, dataDto.IPCData == null);
         ExecuteSafely(() => _pairManager.ReceiveCharaIpcData(dataDto));
         return Task.CompletedTask;
     }

@@ -1,8 +1,13 @@
+using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Utility.Raii;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Handlers;
+using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using ImGuiNET;
+using OtterGui.Classes;
+using System.Numerics;
 
 namespace GagSpeak.UI.UiWardrobe;
 
@@ -10,24 +15,79 @@ public class MoodlesManager
 {
     private readonly ILogger<MoodlesManager> _logger;
     private readonly UiSharedService _uiShared;
-    private readonly WardrobeHandler _handler;
+    private readonly PairManager _pairManager;
     private readonly IpcCallerMoodles _ipcCallerMoodles;
-    private List<MoodlesStatusInfo>? _moodlesInfo;
-    private List<(Guid, List<Guid>)>? _presetsInfo;
 
     public MoodlesManager(ILogger<MoodlesManager> logger,
-        UiSharedService uiSharedService, WardrobeHandler handler, 
+        UiSharedService uiSharedService, PairManager pairManager, 
         IpcCallerMoodles ipcCallerMoodles)
     {
         _logger = logger;
         _uiShared = uiSharedService;
-        _handler = handler;
+        _pairManager = pairManager;
         _ipcCallerMoodles = ipcCallerMoodles;
+    }
+
+    // Info related to the person we are inspecting.
+    private string PairSearchString = string.Empty;
+    private Pair? PairToInspect = null;
+    private List<MoodlesStatusInfo>? _moodlesInfo;
+    private List<(Guid, List<Guid>)>? _presetsInfo;
+
+    private void MoodlesHeader()
+    {
+        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
+        var startYpos = ImGui.GetCursorPosY();
+        Vector2 textSize;
+        using (_uiShared.UidFont.Push()) { textSize = ImGui.CalcTextSize("Inspect Moodles & Presets"); }
+        var centerYpos = (textSize.Y - ImGui.GetFrameHeight());
+
+        using (ImRaii.Child("MoodlesManagerHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetFrameHeight() + (centerYpos - startYpos) * 2)))
+        {
+            // now next to it we need to draw the header text
+            ImGui.SameLine(ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(startYpos);
+            using (_uiShared.UidFont.Push())
+            {
+                UiSharedService.ColorText("Inspect Moodles & Presets", ImGuiColors.ParsedPink);
+            }
+
+            // now calculate it so that the cursors Yposition centers the button in the middle height of the text
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - 150f - ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
+            var PairList = _pairManager.GetOnlineUserPairs()
+                .Where(pair => pair.LastReceivedIpcData != null
+                && (string.IsNullOrEmpty(PairSearchString)
+                || pair.UserData.AliasOrUID.Contains(PairSearchString, StringComparison.OrdinalIgnoreCase)
+                || (pair.GetNickname() != null && pair.GetNickname()!.Contains(PairSearchString, StringComparison.OrdinalIgnoreCase))))
+                .OrderByDescending(p => p.IsVisible) // Prioritize users with Visible == true
+                .ThenBy(p => p.GetNickname() ?? p.UserData.AliasOrUID, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // Add a special option for "Client Player" at the top of the list
+            PairList.Insert(0, null!);
+
+            _uiShared.DrawComboSearchable("##InspectPair", 150f, ref PairSearchString, PairList,
+                (pair) => pair == null ? "Examine Self" : pair.GetNickname() ?? pair.UserData.AliasOrUID, false,
+                (pair) =>
+                {
+                    if (pair == null)
+                    {
+                        PairToInspect = null;
+                    }
+                    else
+                    {
+                        PairToInspect = pair;
+                    }
+                });
+            UiSharedService.AttachToolTip("Choose Who to Inspect.");
+        }
     }
 
 
     public void DrawMoodlesManager()
     {
+        MoodlesHeader();
         if (ImGui.Button("Retrieve Moodles Info"))
         {
             RetrieveMoodlesInfo();

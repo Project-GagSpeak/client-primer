@@ -23,7 +23,7 @@ public class UserPairListHandler
     private readonly ILogger<UserPairListHandler> _logger;
     private readonly GagspeakMediator _mediator;
     private List<IDrawFolder> _drawFolders;
-    private List<DrawUserPair> _allUserPairDrawsDistinct; // disinct userpairs to draw
+    private List<DrawUserPair> _allUserPairDrawsDistinct; // distinct userpairs to draw
     private readonly TagHandler _tagHandler;
     private readonly PairManager _pairManager;
     private readonly DrawEntityFactory _drawEntityFactory;

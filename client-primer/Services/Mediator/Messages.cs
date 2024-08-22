@@ -134,9 +134,8 @@ public record MoodlesReady : MessageBase;
 public record MoodlesStatusManagerChangedMessage(IntPtr Address) : MessageBase; // when our status manager changes.
 public record MoodlesStatusModified(Guid Guid) : MessageBase; // when we change one of our moodles settings.
 public record MoodlesPresetModified(Guid Guid) : MessageBase; // when we change one of our moodles presets.
-// dont think the record below is needed tbh.
-public record MoodlesApplyStatusGuidToPair(ApplyMoodlesByGuidDto StatusDto) : MessageBase;
 public record MoodlesApplyStatusToPair(ApplyMoodlesByStatusDto StatusDto) : MessageBase;
+public record MoodlesUpdateNotifyMessage : MessageBase; // for pinging the moodles.
 public record PlayerCharIpcChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharAppearanceChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase;

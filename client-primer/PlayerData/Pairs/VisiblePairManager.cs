@@ -71,6 +71,8 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
 
         // Add pair to list when they become visible.
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, (msg) => _newVisiblePlayers.Add(msg.Player));
+        Mediator.Subscribe<ConnectedMessage>(this, (_) => PushCharacterIpcData(_pairManager.GetVisibleUsers(), DataUpdateKind.IpcUpdateVisible));
+
     }
 
     private void FrameworkOnUpdate()
@@ -96,7 +98,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
     private void PushCharacterIpcData(List<UserData> onlinePlayers, DataUpdateKind updateKind)
     {
         // If the list contains any contents and we have new data, asynchronously push it to the server.
-        if (onlinePlayers.Any()/* && _lastIpcData != null*/)
+        if (onlinePlayers.Any() && LastIpcData != null)
         {
             _ = Task.Run(async () =>
             {

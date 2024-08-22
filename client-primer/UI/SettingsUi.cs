@@ -23,9 +23,6 @@ using ImGuiNET;
 using Newtonsoft.Json;
 using System.Globalization;
 using System.Numerics;
-using System.Reflection.Metadata;
-using System.Text.Json;
-using static PInvoke.User32;
 
 namespace GagSpeak.UI;
 
@@ -92,7 +89,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             MaximumSize = new Vector2(800, 2000),
         };
 
-        Mediator.Subscribe<CharacterDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterData);
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
         Mediator.Subscribe<OpenSettingsUiMessage>(this, (_) => Toggle());
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = false);
     }
@@ -1036,7 +1033,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 ImGui.Text($"IsOnline: {clientPair.IsOnline}");
                 ImGui.Text($"IsPaired: {clientPair.IsPaired}");
                 ImGui.Text($"IsVisible: {clientPair.IsVisible}");
-                ImGui.Text($"PlayerName: {clientPair.PlayerName ?? "N/A"}");
+                ImGui.Text($"HasIPCData: {clientPair.LastReceivedIpcData == null}");
+                ImGui.Text($"PlayerName: {clientPair.PlayerNameWithWorld ?? "N/A"}");
 
                 if (clientPair.UserPairGlobalPerms != null)
                 {

@@ -3,10 +3,12 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Handlers;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data.Character;
 using ImGuiNET;
 using OtterGui;
 using System.Numerics;
@@ -21,6 +23,8 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
     private readonly UiSharedService _uiShared;
     private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
+    private readonly MoodlesService _moodlesService;
+    private readonly VisiblePairManager _visiblePairManager;
 
     public enum PermissionType { Global, UniquePairPerm, UniquePairPermEditAccess };
 
@@ -28,14 +32,17 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
         OnFrameworkService frameworkUtils, PlayerCharacterManager pcManager, 
         IdDisplayHandler displayHandler, UiSharedService uiSharedService, 
-        ApiController apiController, PairManager configService) 
-        : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
+        ApiController apiController, PairManager pairManager, MoodlesService moodlesService,
+        VisiblePairManager visiblePairManager) : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
     {
         _frameworkUtils = frameworkUtils;
         _playerManager = pcManager;
         _uiShared = uiSharedService;
         _apiController = apiController;
-        _pairManager = configService;
+        _pairManager = pairManager;
+        _moodlesService = moodlesService;
+        _displayHandler = displayHandler;
+        _visiblePairManager = visiblePairManager;
 
         UserPairForPerms = pairToDrawFor; // set the pair we're drawing for
         DrawType = drawType; // set the type of window we're drawing
@@ -46,6 +53,8 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         IsOpen = true; // open the window
     }
 
+    private CharacterIPCData? LastCreatedCharacterData => _visiblePairManager.ClientIpcData;
+
 
     public override void OnClose() => Mediator.Publish(new RemoveWindowMessage(this)); // remove window on close.
 
@@ -54,7 +63,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
     public float WindowMenuWidth { get; private set; } = -1; // width of the window menu.
     public float IconButtonTextWidth => WindowMenuWidth - ImGui.GetFrameHeightWithSpacing();
     public string PairNickOrAliasOrUID => UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID;
-    public string PairAliasOrUID => UserPairForPerms.UserData.AliasOrUID;
+    public string PairUID => UserPairForPerms.UserData.UID;
     public bool InteractionSuccessful { get; private set; } = true;// set to true every time an interaction is successfully made.
                                                                    // Will display a banner at the top for 3 seconds for user feedback.
 

@@ -17,9 +17,9 @@ public record SpellActionTrigger : Trigger
     public TriggerDirection Direction { get; set; } = TriggerDirection.Self;
 
     // the type of action we are scanning for.
-    public bool HealRelated { get; set; } = false;
-    public bool DamageRelated { get; set; } = false;
+    public ActionType ActionKind { get; set; } = ActionType.Any;
     
     // the threshold value that must be healed/dealth to trigger the action (-1 = full, 0 = onAction)
-    public int ThresholdValue { get; set; } = 10000000;
+    public int ThresholdMinValue { get; set; } = -1;
+    public int ThresholdMaxValue { get; set; } = 10000000;
 }

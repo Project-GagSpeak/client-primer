@@ -1,19 +1,16 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.Utils.PermissionHelpers;
+using GagspeakAPI.Data;
+using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
-using System.Numerics;
-using GagSpeak.Utils.PermissionHelpers;
-using static GagspeakAPI.Data.Enum.GagList;
 using OtterGui.Text;
-using GagSpeak.Services.Mediator;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
-using GagspeakAPI.Data.Character;
-using GagspeakAPI.Data;
-using GagSpeak.WebAPI;
-using GagspeakAPI.Dto.Connection;
-using Penumbra.GameData.Structs;
+using System.Numerics;
+using static GagspeakAPI.Data.Enum.GagList;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -33,31 +30,31 @@ public partial class UserPairPermsSticky
         if (UserPairForPerms != null && UserPairForPerms.IsOnline)
         {
             // Online Pair Actions
-            if(UserPairForPerms.LastReceivedAppearanceData != null)
+            if (UserPairForPerms.LastReceivedAppearanceData != null)
             {
                 ImGui.TextUnformatted("Gag Actions");
                 DrawGagActions();
             }
 
-            if(UserPairForPerms.LastReceivedWardrobeData != null)
+            if (UserPairForPerms.LastReceivedWardrobeData != null)
             {
                 ImGui.TextUnformatted("Wardrobe Actions");
                 DrawWardrobeActions();
             }
 
-            if(UserPairForPerms.LastReceivedAliasData != null)
+            if (UserPairForPerms.LastReceivedAliasData != null)
             {
                 ImGui.TextUnformatted("Puppeteer Actions");
                 DrawPuppeteerActions();
             }
 
-            if(UserPairForPerms.LastReceivedIpcData != null)
+            if (UserPairForPerms.LastReceivedIpcData != null && UserPairForPerms.IsVisible)
             {
                 ImGui.TextUnformatted("Moodles Actions");
                 DrawMoodlesActions();
             }
 
-            if(UserPairForPerms.LastReceivedToyboxData != null)
+            if (UserPairForPerms.LastReceivedToyboxData != null)
             {
                 ImGui.TextUnformatted("Toybox Actions");
                 DrawToyboxActions();
@@ -139,12 +136,12 @@ public partial class UserPairPermsSticky
 
 
         // button for applying a gag (will display the dropdown of the gag list to apply when pressed.
-        if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, ("Apply a Gag to " + PairAliasOrUID),
+        if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, ("Apply a Gag to " + PairUID),
             WindowMenuWidth, true, disableCondition || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures))
         {
             ShowGagList = !ShowGagList;
         }
-        UiSharedService.AttachToolTip("Apply a Gag to " + PairAliasOrUID + ". Click to view options.");
+        UiSharedService.AttachToolTip("Apply a Gag to " + PairUID + ". Click to view options.");
 
         if (ShowGagList)
         {
@@ -164,18 +161,18 @@ public partial class UserPairPermsSticky
 
 
         // button to lock the current layers gag. (references the gag applied, only interactable when layer is gagged.)
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, ("Lock " + PairAliasOrUID + "'s Gag"),
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, ("Lock " + PairUID + "'s Gag"),
             WindowMenuWidth, true, (!lockDisableCondition || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures) || !disableCondition))
         {
             ShowGagLock = !ShowGagLock;
         }
-        UiSharedService.AttachToolTip("Lock " + PairAliasOrUID + "'s Gag. Click to view options.");
+        UiSharedService.AttachToolTip("Lock " + PairUID + "'s Gag. Click to view options.");
 
         if (ShowGagLock)
         {
             // grab if we should expand window height or not prior to drawing it
             bool expandHeight = GagAndLockPairkHelpers.ShouldExpandPasswordWindow(UserPairForPerms.UserData.UID);
-            using (var framedGagLockChild = ImRaii.Child("GagLockChild", new Vector2(WindowMenuWidth, 
+            using (var framedGagLockChild = ImRaii.Child("GagLockChild", new Vector2(WindowMenuWidth,
                 ImGui.GetFrameHeight() * (expandHeight ? 2 + ImGui.GetStyle().ItemSpacing.Y : 1)), false))
             {
                 if (!framedGagLockChild) return;
@@ -185,19 +182,19 @@ public partial class UserPairPermsSticky
                 GagAndLockPairkHelpers.DrawGagLockWindow(UserPairForPerms, comboWidth, UserPairForPerms.UserData.UID,
                     _logger, _uiShared, _apiController, out bool success);
 
-                if(success) ShowGagLock = false;
+                if (success) ShowGagLock = false;
             }
             ImGui.Separator();
         }
 
 
         // button to unlock the current layers gag. (references appearance data of pair. only visible while locked.)
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, ("Unlock " + PairAliasOrUID + "'s Gag"),
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, ("Unlock " + PairUID + "'s Gag"),
             WindowMenuWidth, true, lockDisableCondition || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures))
         {
             ShowGagUnlock = !ShowGagUnlock;
         }
-        UiSharedService.AttachToolTip("Unlock " + PairAliasOrUID + "'s Gag. Click to view options.");
+        UiSharedService.AttachToolTip("Unlock " + PairUID + "'s Gag. Click to view options.");
 
         if (ShowGagUnlock)
         {
@@ -212,19 +209,19 @@ public partial class UserPairPermsSticky
                 GagAndLockPairkHelpers.DrawGagUnlockWindow(UserPairForPerms, comboWidth, UserPairForPerms.UserData.UID,
                     _logger, _uiShared, _apiController, out bool success);
 
-                if(success) ShowGagUnlock = false;
+                if (success) ShowGagUnlock = false;
             }
             ImGui.Separator();
         }
 
 
         // button to remove the current layers gag. (references appearance data of pair. only visible while gagged.)
-        if (_uiShared.IconTextButton(FontAwesomeIcon.TimesCircle, ("Remove " + PairAliasOrUID + "'s Gag"),
+        if (_uiShared.IconTextButton(FontAwesomeIcon.TimesCircle, ("Remove " + PairUID + "'s Gag"),
             WindowMenuWidth, true, (!disableCondition || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures) && lockDisableCondition))
         {
             ShowGagRemove = !ShowGagRemove;
         }
-        UiSharedService.AttachToolTip("Remove " + PairAliasOrUID + "'s Gag. Click to view options.");
+        UiSharedService.AttachToolTip("Remove " + PairUID + "'s Gag. Click to view options.");
 
         if (ShowGagRemove)
         {
@@ -237,7 +234,7 @@ public partial class UserPairPermsSticky
                 GagAndLockPairkHelpers.DrawGagRemoveWindow(UserPairForPerms, comboWidth, UserPairForPerms.UserData.UID,
                     _logger, _uiShared, _apiController, out bool success);
 
-                if(success) ShowGagRemove = false;
+                if (success) ShowGagRemove = false;
             }
         }
         ImGui.Separator();
@@ -256,7 +253,7 @@ public partial class UserPairPermsSticky
         bool lockButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
         bool unlockButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets || !UserPairForPerms.LastReceivedWardrobeData!.ActiveSetIsLocked;
         bool removeButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.RemoveRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
-        
+
         // draw the apply-restraint-set button.
         if (_uiShared.IconTextButton(FontAwesomeIcon.Handcuffs, "Apply Restraint Set", WindowMenuWidth, true, applyButtonDisabled))
         {
@@ -360,7 +357,7 @@ public partial class UserPairPermsSticky
     private void DrawPuppeteerActions()
     {
         // draw the Alias List popout ref button. (opens a popout window 
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Update Pair With Name", WindowMenuWidth, true))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Update " + PairUID + " with your Name", WindowMenuWidth, true))
         {
             var name = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
             var world = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult();
@@ -387,26 +384,187 @@ public partial class UserPairPermsSticky
     #region MoodlesActions
 
     // All of these actions will only display relative to the various filters that the Moodle has applied.
-    // initially test these buttons on self.
+    private bool ShowApplyPairMoodles = false;
+    private bool ShowApplyOwnMoodles = false;
+    private bool ShowApplyPairPresets = false;
+    private bool ShowApplyOwnPresets = false;
+    private bool ShowRemoveMoodles = false;
+    private bool ShowClearMoodles = false;
     private void DrawMoodlesActions()
     {
-        // button for adding a Moodle by GUID from client's Moodle list to paired user. (Requires PairCanApplyOwnMoodlesToYou)
+        // determine disable logic.
+        bool ApplyPairsMoodleToPairDisabled = !UserPairForPerms.UserPairUniquePairPerms.PairCanApplyYourMoodlesToYou;
+        bool ApplyOwnMoodleToPairDisabled = !UserPairForPerms.UserPairUniquePairPerms.PairCanApplyOwnMoodlesToYou;
+        bool RemovePairsMoodlesDisabled = !UserPairForPerms.UserPairUniquePairPerms.AllowRemovingMoodles;
+        bool ClearPairsMoodlesDisabled = !UserPairForPerms.UserPairUniquePairPerms.AllowRemovingMoodles;
 
         // button for adding a Moodle by GUID from the paired user's Moodle list to the paired user. (Requires PairCanApplyYourMoodlesToYou)
+        if (_uiShared.IconTextButton(FontAwesomeIcon.PersonCirclePlus, "Apply a Moodle from their list", WindowMenuWidth, true, ApplyPairsMoodleToPairDisabled))
+        {
+            ShowApplyPairMoodles = !ShowApplyPairMoodles;
+        }
+        UiSharedService.AttachToolTip("Applies a Moodle from " + UserPairForPerms.UserData.AliasOrUID + "'s Moodles List to them.");
 
-        // button for Applying a preset by GUID from the client's preset list to the paired user. (Requires PairCanApplyOwnMoodlesToYou)
+        if (ShowApplyPairMoodles)
+        {
+            using (var child = ImRaii.Child("ApplyPairMoodles", new Vector2(WindowMenuWidth, ImGui.GetFrameHeightWithSpacing()), false))
+            {
+                if (!child) return;
+
+                float buttonWidth = WindowMenuWidth - ImGui.CalcTextSize("Apply").X - ImGui.GetStyle().ItemInnerSpacing.X - ImGui.GetStyle().ItemSpacing.X;
+
+                if (UserPairForPerms.LastReceivedIpcData != null)
+                {
+                    MoodlesHelpers.DrawStatusSelection(UserPairForPerms.LastReceivedIpcData, buttonWidth, PairUID, PairNickOrAliasOrUID, _moodlesService, _logger);
+                    ImUtf8.SameLineInner();
+                    MoodlesHelpers.ApplyPairStatusButton(UserPairForPerms, _apiController, _logger, _frameworkUtils, _uiShared, out bool success);
+                    if (success) ShowApplyPairMoodles = false;
+                }
+                else
+                {
+                    UiSharedService.ColorText(PairUID + " has no Moodles to apply.", ImGuiColors.ParsedOrange);
+                }
+            }
+            ImGui.Separator();
+        }
 
         // button for Applying a preset by GUID from the paired user's preset list to the paired user. (Requires PairCanApplyYourMoodlesToYou)
+        if (_uiShared.IconTextButton(FontAwesomeIcon.FileCirclePlus, "Apply a Preset from their list", WindowMenuWidth, true, ApplyPairsMoodleToPairDisabled))
+        {
+            ShowApplyPairPresets = !ShowApplyPairPresets;
+        }
+        UiSharedService.AttachToolTip("Applies a Preset from " + UserPairForPerms.UserData.AliasOrUID + "'s Presets List to them.");
 
-        // button for removing a Moodle by GUID from client's Moodle list from the paired user. (Requires PairCanApplyOwnMoodlesToYou)
+        if (ShowApplyPairPresets)
+        {
+            using (var child = ImRaii.Child("ApplyPairPresets", new Vector2(WindowMenuWidth, ImGui.GetFrameHeightWithSpacing()), false))
+            {
+                if (!child) return;
 
-        // button for removing a Moodle by GUID from the paired user's Moodle list from the paired user. (Requires PairCanApplyYourMoodlesToYou)
+                float buttonWidth = WindowMenuWidth - ImGui.CalcTextSize("Apply").X - ImGui.GetStyle().ItemInnerSpacing.X - ImGui.GetStyle().ItemSpacing.X;
 
-        // button for removing a preset by GUID from the client's preset list from the paired user. (Requires PairCanApplyOwnMoodlesToYou)
+                if (UserPairForPerms.LastReceivedIpcData != null)
+                {
+                    MoodlesHelpers.DrawPresetSelection(UserPairForPerms.LastReceivedIpcData, buttonWidth, PairUID, PairNickOrAliasOrUID, _uiShared, _logger);
+                    ImUtf8.SameLineInner();
+                    // validate the apply button
+                    MoodlesHelpers.ApplyPairPresetButton(UserPairForPerms, _apiController, _logger, _frameworkUtils, _uiShared, out bool success);
+                    if (success) ShowApplyPairPresets = false;
+                }
+                else
+                {
+                    UiSharedService.ColorText(PairUID + " has no Presets to apply.", ImGuiColors.ParsedOrange);
+                }
+            }
+            ImGui.Separator();
+        }
 
-        // button for removing a preset by GUID from the paired user's preset list from the paired user. (Requires PairCanApplyYourMoodlesToYou)
+
+
+        // button for adding a Moodle by GUID from client's Moodle list to paired user. (Requires PairCanApplyOwnMoodlesToYou)
+        if (_uiShared.IconTextButton(FontAwesomeIcon.UserPlus, "Apply a Moodle from your list", WindowMenuWidth, true, ApplyOwnMoodleToPairDisabled))
+        {
+            ShowApplyOwnMoodles = !ShowApplyOwnMoodles;
+        }
+        UiSharedService.AttachToolTip("Applies a Moodle from your Moodles List to " + PairUID + ".");
+
+        if (ShowApplyOwnMoodles)
+        {
+            using (var child = ImRaii.Child("ApplyOwnMoodles", new Vector2(WindowMenuWidth, ImGui.GetFrameHeightWithSpacing()), false))
+            {
+                if (!child) return;
+
+                float buttonWidth = WindowMenuWidth - ImGui.CalcTextSize("Apply").X - ImGui.GetStyle().ItemInnerSpacing.X - ImGui.GetStyle().ItemSpacing.X;
+
+                if (LastCreatedCharacterData != null)
+                {
+                    MoodlesHelpers.DrawStatusSelection(LastCreatedCharacterData, buttonWidth, PairUID, PairNickOrAliasOrUID, _moodlesService, _logger);
+                    ImUtf8.SameLineInner();
+                    // validate the apply button
+                    MoodlesHelpers.ApplyOwnStatusButton(UserPairForPerms, _apiController, _logger, _frameworkUtils, _uiShared, LastCreatedCharacterData, PairNickOrAliasOrUID, out bool success);
+                    if (success) ShowApplyOwnMoodles = false;
+                }
+                else
+                {
+                    UiSharedService.ColorText("You have no Moodles to apply.", ImGuiColors.ParsedOrange);
+                }
+            }
+            ImGui.Separator();
+        }
+
+        // button for Applying a preset by GUID from the client's preset list to the paired user. (Requires PairCanApplyOwnMoodlesToYou)
+        if (_uiShared.IconTextButton(FontAwesomeIcon.FileCirclePlus, "Apply a Preset from your list", WindowMenuWidth, true, ApplyOwnMoodleToPairDisabled))
+        {
+            ShowApplyOwnPresets = !ShowApplyOwnPresets;
+        }
+        UiSharedService.AttachToolTip("Applies a Preset from your Presets List to " + PairUID + ".");
+
+        if (ShowApplyOwnPresets)
+        {
+            using (var child = ImRaii.Child("ApplyOwnPresets", new Vector2(WindowMenuWidth, ImGui.GetFrameHeightWithSpacing()), false))
+            {
+                if (!child) return;
+
+                float buttonWidth = WindowMenuWidth - ImGui.CalcTextSize("Apply").X - ImGui.GetStyle().ItemInnerSpacing.X - ImGui.GetStyle().ItemSpacing.X;
+
+                if (LastCreatedCharacterData != null)
+                {
+                    MoodlesHelpers.DrawPresetSelection(LastCreatedCharacterData, buttonWidth, PairUID, PairNickOrAliasOrUID, _uiShared, _logger);
+                    ImUtf8.SameLineInner();
+                    ImUtf8.SameLineInner();
+                    // validate the apply button
+                    MoodlesHelpers.ApplyOwnPresetButton(UserPairForPerms, _apiController, _logger, _frameworkUtils, _uiShared, LastCreatedCharacterData, PairNickOrAliasOrUID, out bool success);
+                    if (success) ShowApplyOwnPresets = false;
+                }
+                else
+                {
+                    UiSharedService.ColorText("You have no Presets to apply.", ImGuiColors.ParsedOrange);
+                }
+            }
+            ImGui.Separator();
+        }
+
+        // button for removing a Moodle by GUID from the paired user's list. (Requires AllowsRemovingMoodles)
+        if (_uiShared.IconTextButton(FontAwesomeIcon.UserMinus, "Remove a Moodle from " + PairUID, WindowMenuWidth, true, RemovePairsMoodlesDisabled))
+        {
+            ShowRemoveMoodles = !ShowRemoveMoodles;
+        }
+        UiSharedService.AttachToolTip("Removes a Moodle from " + PairUID + "'s Statuses.");
+
+        if (ShowRemoveMoodles)
+        {
+            using (var child = ImRaii.Child("RemoveMoodles", new Vector2(WindowMenuWidth, ImGui.GetFrameHeightWithSpacing()), false))
+            {
+                if (!child) return;
+
+                float buttonWidth = WindowMenuWidth - ImGui.CalcTextSize("Remove").X - ImGui.GetStyle().ItemInnerSpacing.X - ImGui.GetStyle().ItemSpacing.X;
+
+                MoodlesHelpers.DrawStatusSelection(UserPairForPerms.LastReceivedIpcData, buttonWidth, PairUID, PairNickOrAliasOrUID, _moodlesService, _logger);
+                ImUtf8.SameLineInner();
+                // validate the apply button
+                MoodlesHelpers.RemoveMoodleButton(UserPairForPerms, _apiController, _logger, _frameworkUtils, _uiShared, out bool success);
+                if (success) ShowRemoveMoodles = false;
+            }
+            ImGui.Separator();
+        }
 
         // button for clearing all moodles from the paired user.
+        if (_uiShared.IconTextButton(FontAwesomeIcon.UserSlash, "Clear all Moodles from " + PairUID, WindowMenuWidth, true, ClearPairsMoodlesDisabled))
+        {
+            ShowClearMoodles = !ShowClearMoodles;
+        }
+        UiSharedService.AttachToolTip("Clears all Moodles from " + PairUID + "'s Statuses.");
+
+        if (ShowClearMoodles)
+        {
+            using (var child = ImRaii.Child("ClearMoodles", new Vector2(WindowMenuWidth, ImGui.GetFrameHeightWithSpacing()), false))
+            {
+                if (!child) return;
+
+                MoodlesHelpers.ClearMoodlesButton(UserPairForPerms, _apiController, _frameworkUtils, _uiShared, out bool success);
+                if (success) ShowClearMoodles = false;
+            }
+        }
 
         ImGui.Separator();
     }

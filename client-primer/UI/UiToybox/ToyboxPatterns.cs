@@ -372,15 +372,10 @@ public class ToyboxPatterns
             }
 
             var descRef = patternToEdit.Description;
-            _uiShared.EditableTextFieldWithPopup("Pattern Description", ref descRef, 200, "Description here...");
-            UiSharedService.AttachToolTip("Right-Click to edit description.");
+            var width = ImGui.GetContentRegionAvail().X - 30f;
+            UiSharedService.InputTextWrapMultiline("##PatternDescription", ref descRef, 200, 3, width);
             patternToEdit.Description = descRef;
         }
-
-        // move cursor down 3 ImGui.GetFrameHeightWithSpacing(), then draw the seperator
-        ImGui.SetCursorPosY(cursorPosY + 3 * ImGui.GetFrameHeightWithSpacing());
-        ImGui.Separator();
-
         // Define the pattern playback parameters 
         TimeSpan patternDurationTimeSpan = _handler.GetPatternLength(patternToEdit.Name);
         var newStartDuration = patternToEdit.StartPoint;
@@ -398,7 +393,7 @@ public class ToyboxPatterns
 
         ImGui.Separator();
         // display filterable search list
-        DrawUidSearchFilter(ImGui.GetContentRegionAvail().X, ImGui.GetStyle().ItemSpacing.X);
+        DrawUidSearchFilter(ImGui.GetContentRegionAvail().X);
         using (var table = ImRaii.Table("userListForVisibility", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY,
             new Vector2(region.X, ImGui.GetContentRegionAvail().Y)))
         {
@@ -447,16 +442,16 @@ public class ToyboxPatterns
     }
 
     /// <summary> Draws the search filter for our user pair list (whitelist) </summary>
-    public void DrawUidSearchFilter(float availableWidth, float spacingX)
+    public void DrawUidSearchFilter(float availableWidth)
     {
         var buttonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
-        ImGui.SetNextItemWidth(availableWidth - buttonSize - spacingX);
+        ImGui.SetNextItemWidth(availableWidth - buttonSize - ImGui.GetStyle().ItemInnerSpacing.X);
         string filter = PairSearchString;
         if (ImGui.InputTextWithHint("##filter", "Filter for UID/notes", ref filter, 255))
         {
             PairSearchString = filter;
         }
-        ImGui.SameLine();
+        ImUtf8.SameLineInner();
         using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(PairSearchString));
         if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
         {

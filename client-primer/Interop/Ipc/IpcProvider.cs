@@ -202,53 +202,6 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
             return;
         }
 
-// Until we inplement permission updates, just apply the damn thing.
-/*
-        // ensure that they allow applying own moodles (which meant our moodles onto their client)
-        if (!recipientObject.Item2.AllowApplyingOwnMoodles)
-        {
-            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow applying own moodles", recipient);
-            return;
-        }
-
-        // if any of the statuses are a positive status, and they do not allow them, reject it.
-        if (statuses.Any(s => s.Type == StatusType.Positive && !recipientObject.Item2.AllowPositive))
-        {
-            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow positive moodles", recipient);
-            return;
-        }
-
-        // if any of the statuses are a negative status, and they do not allow them, reject it.
-        if (statuses.Any(s => s.Type == StatusType.Negative && !recipientObject.Item2.AllowNegative))
-        {
-            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow negative moodles", recipient);
-            return;
-        }
-
-        // if any of the statuses are a special types, and they do not allow them, reject it.
-        if (statuses.Any(s => s.Type == StatusType.Special && !recipientObject.Item2.AllowSpecial))
-        {
-            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow special moodles", recipient);
-            return;
-        }
-
-        // if its permanent and they do not allow them, reject it.
-        if (statuses.Any(s => s.NoExpire && !recipientObject.Item2.AllowPermanent))
-        {
-            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow permanent moodles", recipient);
-            return;
-        }
-
-        // if any moodles have a timespan longer than our max allowed timespan, reject it.
-        if (statuses.Any(s => s.Days > recipientObject.Item2.MaxDuration.Days 
-                           || s.Hours > recipientObject.Item2.MaxDuration.Hours 
-                           || s.Minutes > recipientObject.Item2.MaxDuration.Minutes 
-                           || s.Seconds > recipientObject.Item2.MaxDuration.Seconds))
-        {
-            _logger.LogWarning("Received ApplyStatusesToPairRequest for {recipient} but they do not allow moodles with a timespan longer than their max", recipient);
-            return;
-        }
-*/
         // the moodle and permissions are valid.
         UserData pairUser = _pairManager.DirectPairs.FirstOrDefault(p => p.PlayerNameWithWorld == recipient)!.UserData;
         if (pairUser == null)

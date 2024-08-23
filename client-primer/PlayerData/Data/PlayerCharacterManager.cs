@@ -100,7 +100,14 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     public void ApplyStatusesByGuid(ApplyMoodlesByGuidDto dto)
     {
-        Logger.LogDebug("Recieved ApplyMoodlesByGuidDto: {dto}", dto);
+        string nameWithWorldOfApplier = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == dto.User.UID)?.PlayerNameWithWorld ?? string.Empty;
+        if (nameWithWorldOfApplier.IsNullOrEmpty())
+        {
+            Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
+            return;
+        }
+
+        _ = _ipcCallerMoodles.ApplyOwnStatusByGUID(dto.Statuses, nameWithWorldOfApplier).ConfigureAwait(false);
     }
 
     public void ApplyStatusesToSelf(ApplyMoodlesByStatusDto dto, string clientPlayerNameWithWorld)
@@ -123,7 +130,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
             return;
         }
-        _ = _ipcCallerMoodles.RemoveStatusesAsync(nameWithWorld, dto.Statuses).ConfigureAwait(false);
+        _ = _ipcCallerMoodles.RemoveOwnStatusByGuid(dto.Statuses, nameWithWorld).ConfigureAwait(false);
     }
 
     public void ClearStatusesFromSelf(UserDto dto)

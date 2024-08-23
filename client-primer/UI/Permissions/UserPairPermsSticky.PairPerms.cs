@@ -22,21 +22,21 @@ public partial class UserPairPermsSticky
         ImGui.TextUnformatted("Global Settings");
 
         DrawOtherPairSetting("LiveChatGarblerActive", "LiveChatGarblerActiveAllowed", // permission name and permission access name
-            UserPairForPerms.UserPairGlobalPerms.LiveChatGarblerActive ? (PairAliasOrUID+"'s Chat Garbler is Active") : (PairAliasOrUID+"'s Chat Garbler is Inactive"),
+            UserPairForPerms.UserPairGlobalPerms.LiveChatGarblerActive ? (PairUID+"'s Chat Garbler is Active") : (PairUID+"'s Chat Garbler is Inactive"),
             UserPairForPerms.UserPairGlobalPerms.LiveChatGarblerActive ? FontAwesomeIcon.MicrophoneSlash : FontAwesomeIcon.Microphone,
             UserPairForPerms.UserPairEditAccess.LiveChatGarblerActiveAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state. [Global]") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.LiveChatGarblerActiveAllowed,
             PermissionType.Global, PermissionValueType.YesNo); // permission type and value type
 
         DrawOtherPairSetting("LiveChatGarblerLocked", "LiveChatGarblerLockedAllowed",
-            UserPairForPerms.UserPairGlobalPerms.LiveChatGarblerLocked ? (PairAliasOrUID + "'s Chat Garbler is Locked") : (PairAliasOrUID + "'s Chat Garbler is Unlocked"),
+            UserPairForPerms.UserPairGlobalPerms.LiveChatGarblerLocked ? (PairUID + "'s Chat Garbler is Locked") : (PairUID + "'s Chat Garbler is Unlocked"),
             UserPairForPerms.UserPairGlobalPerms.LiveChatGarblerLocked ? FontAwesomeIcon.Key : FontAwesomeIcon.UnlockAlt,
             UserPairForPerms.UserPairEditAccess.LiveChatGarblerLockedAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state. [Global]") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.LiveChatGarblerLockedAllowed,
             PermissionType.Global, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("LockToyboxUI", "LockToyboxUIAllowed",
-            UserPairForPerms.UserPairGlobalPerms.LockToyboxUI ? (PairAliasOrUID + "'s Toybox UI is Restricted") : (PairAliasOrUID + "'s Toybox UI is Accessible"),
+            UserPairForPerms.UserPairGlobalPerms.LockToyboxUI ? (PairUID + "'s Toybox UI is Restricted") : (PairUID + "'s Toybox UI is Accessible"),
             UserPairForPerms.UserPairGlobalPerms.LockToyboxUI ? FontAwesomeIcon.Box : FontAwesomeIcon.BoxOpen,
             UserPairForPerms.UserPairEditAccess.LockToyboxUIAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state. [Global]") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.LockToyboxUIAllowed,
@@ -48,14 +48,14 @@ public partial class UserPairPermsSticky
 
 
         DrawOtherPairSetting("GagFeatures", "GagFeaturesAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.GagFeatures ? (PairAliasOrUID + " enabled Gag Interactions") : (PairAliasOrUID + " disabled Gag Interactions"),
+            UserPairForPerms.UserPairUniquePairPerms.GagFeatures ? (PairUID + " enabled Gag Interactions") : (PairUID + " disabled Gag Interactions"),
             UserPairForPerms.UserPairUniquePairPerms.GagFeatures ? FontAwesomeIcon.CheckCircle : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.GagFeaturesAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.GagFeaturesAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("ItemAutoEquip", "ItemAutoEquipAllowed",
-            UserPairForPerms.UserPairGlobalPerms.ItemAutoEquip ? (PairAliasOrUID + " has Gag Glamours Enabled") : (PairAliasOrUID + " has Gag Glamours Disabled"),
+            UserPairForPerms.UserPairGlobalPerms.ItemAutoEquip ? (PairUID + " has Gag Glamours Enabled") : (PairUID + " has Gag Glamours Disabled"),
             UserPairForPerms.UserPairGlobalPerms.ItemAutoEquip ? FontAwesomeIcon.Surprise : FontAwesomeIcon.MehBlank,
             UserPairForPerms.UserPairEditAccess.ItemAutoEquipAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state. [Global]") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.ItemAutoEquipAllowed,
@@ -69,14 +69,14 @@ public partial class UserPairPermsSticky
             PermissionType.UniquePairPerm, PermissionValueType.TimeSpan);
 
         DrawOtherPairSetting("ExtendedLockTimes", "ExtendedLockTimesAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.ExtendedLockTimes ? (PairAliasOrUID + " allows Extended Locks") : (PairAliasOrUID + " prevents Extended Locks"),
+            UserPairForPerms.UserPairUniquePairPerms.ExtendedLockTimes ? (PairUID + " allows Extended Locks") : (PairUID + " prevents Extended Locks"),
             UserPairForPerms.UserPairUniquePairPerms.ExtendedLockTimes ? FontAwesomeIcon.Stopwatch : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.ExtendedLockTimesAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.ExtendedLockTimesAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("OwnerLocks", "OwnerLocksAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.OwnerLocks ? (PairAliasOrUID + " allows Owner Locks") : (PairAliasOrUID + " prevents Owner Locks"),
+            UserPairForPerms.UserPairUniquePairPerms.OwnerLocks ? (PairUID + " allows Owner Locks") : (PairUID + " prevents Owner Locks"),
             UserPairForPerms.UserPairUniquePairPerms.OwnerLocks ? FontAwesomeIcon.Lock : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.OwnerLocksAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.OwnerLocksAllowed,
@@ -89,21 +89,21 @@ public partial class UserPairPermsSticky
 
         // Rewrite all of the below functions but using the format above
         DrawOtherPairSetting("RestraintSetAutoEquip", "RestraintSetAutoEquipAllowed",
-            UserPairForPerms.UserPairGlobalPerms.RestraintSetAutoEquip ? (PairAliasOrUID + " has Restraint Glamours Enabled") : (PairAliasOrUID + " has Restraint Glamours Disabled"),
+            UserPairForPerms.UserPairGlobalPerms.RestraintSetAutoEquip ? (PairUID + " has Restraint Glamours Enabled") : (PairUID + " has Restraint Glamours Disabled"),
             UserPairForPerms.UserPairGlobalPerms.RestraintSetAutoEquip ? FontAwesomeIcon.Tshirt : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.RestraintSetAutoEquipAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.RestraintSetAutoEquipAllowed,
             PermissionType.Global, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("ApplyRestraintSets", "ApplyRestraintSetsAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.ApplyRestraintSets ? (PairAliasOrUID + " allows Applying Restraints") : (PairAliasOrUID + " prevents Applying Restraints"),
+            UserPairForPerms.UserPairUniquePairPerms.ApplyRestraintSets ? (PairUID + " allows Applying Restraints") : (PairUID + " prevents Applying Restraints"),
             UserPairForPerms.UserPairUniquePairPerms.ApplyRestraintSets ? FontAwesomeIcon.Female : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.ApplyRestraintSetsAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.ApplyRestraintSetsAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("LockRestraintSets", "LockRestraintSetsAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets ? (PairAliasOrUID + " allows Locking Restraints") : (PairAliasOrUID + " prevents Locking Restraints"),
+            UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets ? (PairUID + " allows Locking Restraints") : (PairUID + " prevents Locking Restraints"),
             UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets ? FontAwesomeIcon.Lock : FontAwesomeIcon.ShopSlash,
             UserPairForPerms.UserPairEditAccess.LockRestraintSetsAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.LockRestraintSetsAllowed,
@@ -117,14 +117,14 @@ public partial class UserPairPermsSticky
             PermissionType.UniquePairPerm, PermissionValueType.TimeSpan);
 
         DrawOtherPairSetting("UnlockRestraintSets", "UnlockRestraintSetsAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets ? (PairAliasOrUID + " allows Unlocking Restraints") : (PairAliasOrUID + " prevents Unlocking Restraints"),
+            UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets ? (PairUID + " allows Unlocking Restraints") : (PairUID + " prevents Unlocking Restraints"),
             UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets ? FontAwesomeIcon.LockOpen : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.UnlockRestraintSetsAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.UnlockRestraintSetsAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("RemoveRestraintSets", "RemoveRestraintSetsAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.RemoveRestraintSets ? (PairAliasOrUID + " allows Removing Restraints") : (PairAliasOrUID + " prevents Removing Restraints"),
+            UserPairForPerms.UserPairUniquePairPerms.RemoveRestraintSets ? (PairUID + " allows Removing Restraints") : (PairUID + " prevents Removing Restraints"),
             UserPairForPerms.UserPairUniquePairPerms.RemoveRestraintSets ? FontAwesomeIcon.Key : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.RemoveRestraintSetsAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.RemoveRestraintSetsAllowed,
@@ -135,21 +135,21 @@ public partial class UserPairPermsSticky
         ImGui.TextUnformatted("Puppeteer Permissions");
 
         DrawOtherPairSetting("AllowSitRequests", "AllowSitRequestsAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.AllowSitRequests ? (PairAliasOrUID + " allows Sit Requests") : (PairAliasOrUID + " prevents Sit Requests"),
+            UserPairForPerms.UserPairUniquePairPerms.AllowSitRequests ? (PairUID + " allows Sit Requests") : (PairUID + " prevents Sit Requests"),
             UserPairForPerms.UserPairUniquePairPerms.AllowSitRequests ? FontAwesomeIcon.Chair : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.AllowSitRequestsAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.AllowSitRequestsAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("AllowMotionRequests", "AllowMotionRequestsAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.AllowMotionRequests ? (PairAliasOrUID + " allows Motion Requests") : (PairAliasOrUID + " prevents Motion Requests"),
+            UserPairForPerms.UserPairUniquePairPerms.AllowMotionRequests ? (PairUID + " allows Motion Requests") : (PairUID + " prevents Motion Requests"),
             UserPairForPerms.UserPairUniquePairPerms.AllowMotionRequests ? FontAwesomeIcon.Walking : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.AllowMotionRequestsAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.AllowMotionRequestsAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("AllowAllRequests", "AllowAllRequestsAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.AllowAllRequests ? (PairAliasOrUID + " allows All Requests") : (PairAliasOrUID + " prevents All Requests"),
+            UserPairForPerms.UserPairUniquePairPerms.AllowAllRequests ? (PairUID + " allows All Requests") : (PairUID + " prevents All Requests"),
             UserPairForPerms.UserPairUniquePairPerms.AllowAllRequests ? FontAwesomeIcon.Unlock : FontAwesomeIcon.Lock,
             UserPairForPerms.UserPairEditAccess.AllowAllRequestsAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.AllowAllRequestsAllowed,
@@ -160,35 +160,35 @@ public partial class UserPairPermsSticky
         ImGui.TextUnformatted("Moodles Permissions");
 
         DrawOtherPairSetting("AllowPositiveStatusTypes", "AllowPositiveStatusTypesAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.AllowPositiveStatusTypes ? (PairAliasOrUID + " allows Positive Moodles") : (PairAliasOrUID + " prevents Positive Moodles"),
+            UserPairForPerms.UserPairUniquePairPerms.AllowPositiveStatusTypes ? (PairUID + " allows Positive Moodles") : (PairUID + " prevents Positive Moodles"),
             UserPairForPerms.UserPairUniquePairPerms.AllowPositiveStatusTypes ? FontAwesomeIcon.SmileBeam : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.AllowPositiveStatusTypesAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.AllowPositiveStatusTypesAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("AllowNegativeStatusTypes", "AllowNegativeStatusTypesAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.AllowNegativeStatusTypes ? (PairAliasOrUID + " allows Negative Moodles") : (PairAliasOrUID + " prevents Negative Moodles"),
+            UserPairForPerms.UserPairUniquePairPerms.AllowNegativeStatusTypes ? (PairUID + " allows Negative Moodles") : (PairUID + " prevents Negative Moodles"),
             UserPairForPerms.UserPairUniquePairPerms.AllowNegativeStatusTypes ? FontAwesomeIcon.FrownOpen : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.AllowNegativeStatusTypesAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.AllowNegativeStatusTypesAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("AllowSpecialStatusTypes", "AllowSpecialStatusTypesAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.AllowSpecialStatusTypes ? (PairAliasOrUID + " allows Special Moodles") : (PairAliasOrUID + " prevents Special Moodles"),
+            UserPairForPerms.UserPairUniquePairPerms.AllowSpecialStatusTypes ? (PairUID + " allows Special Moodles") : (PairUID + " prevents Special Moodles"),
             UserPairForPerms.UserPairUniquePairPerms.AllowSpecialStatusTypes ? FontAwesomeIcon.WandMagicSparkles : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.AllowSpecialStatusTypesAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.AllowSpecialStatusTypesAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("PairCanApplyOwnMoodlesToYou", "PairCanApplyOwnMoodlesToYouAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.PairCanApplyOwnMoodlesToYou ? (PairAliasOrUID + " allows applying your Moodles") : (PairAliasOrUID + " prevents applying your Moodles"),
+            UserPairForPerms.UserPairUniquePairPerms.PairCanApplyOwnMoodlesToYou ? (PairUID + " allows applying your Moodles") : (PairUID + " prevents applying your Moodles"),
             UserPairForPerms.UserPairUniquePairPerms.PairCanApplyOwnMoodlesToYou ? FontAwesomeIcon.PersonArrowUpFromLine : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.PairCanApplyOwnMoodlesToYouAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.PairCanApplyOwnMoodlesToYouAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("PairCanApplyYourMoodlesToYou", "PairCanApplyYourMoodlesToYouAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.PairCanApplyYourMoodlesToYou ? (PairAliasOrUID + " allows applying their Moodles") : (PairAliasOrUID + " prevents applying their Moodles"),
+            UserPairForPerms.UserPairUniquePairPerms.PairCanApplyYourMoodlesToYou ? (PairUID + " allows applying their Moodles") : (PairUID + " prevents applying their Moodles"),
             UserPairForPerms.UserPairUniquePairPerms.PairCanApplyYourMoodlesToYou ? FontAwesomeIcon.PersonArrowDownToLine : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.PairCanApplyYourMoodlesToYouAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.PairCanApplyYourMoodlesToYouAllowed,
@@ -202,14 +202,14 @@ public partial class UserPairPermsSticky
             PermissionType.UniquePairPerm, PermissionValueType.TimeSpan);
 
         DrawOtherPairSetting("AllowPermanentMoodles", "AllowPermanentMoodlesAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.AllowPermanentMoodles ? (PairAliasOrUID + " allows Permanent Moodles") : (PairAliasOrUID + " prevents Permanent Moodles"),
+            UserPairForPerms.UserPairUniquePairPerms.AllowPermanentMoodles ? (PairUID + " allows Permanent Moodles") : (PairUID + " prevents Permanent Moodles"),
             UserPairForPerms.UserPairUniquePairPerms.AllowPermanentMoodles ? FontAwesomeIcon.Infinity : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.AllowPermanentMoodlesAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.AllowPermanentMoodlesAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("AllowRemovingMoodles", "AllowRemovingMoodlesAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.AllowRemovingMoodles ? (PairAliasOrUID + " allowing Removal of Moodles") : (PairAliasOrUID + " prevents Removal of Moodles"),
+            UserPairForPerms.UserPairUniquePairPerms.AllowRemovingMoodles ? (PairUID + " allowing Removal of Moodles") : (PairUID + " prevents Removal of Moodles"),
             UserPairForPerms.UserPairUniquePairPerms.AllowRemovingMoodles ? FontAwesomeIcon.Eraser : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.AllowRemovingMoodlesAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.AllowRemovingMoodlesAllowed,
@@ -220,42 +220,42 @@ public partial class UserPairPermsSticky
         ImGui.TextUnformatted("Toybox Permissions");
 
         DrawOtherPairSetting("ChangeToyState", "ChangeToyStateAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.ChangeToyState ? (PairAliasOrUID + " allows Toy State Changing") : (PairAliasOrUID + " prevents Toy State Changing"),
+            UserPairForPerms.UserPairUniquePairPerms.ChangeToyState ? (PairUID + " allows Toy State Changing") : (PairUID + " prevents Toy State Changing"),
             UserPairForPerms.UserPairUniquePairPerms.ChangeToyState ? FontAwesomeIcon.PowerOff : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.ChangeToyStateAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.ChangeToyStateAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("VibratorAlarms", "VibratorAlarmsAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.VibratorAlarms ? (PairAliasOrUID + " allows Alarms Viewing") : (PairAliasOrUID + " prevents Alarm Viewing"),
+            UserPairForPerms.UserPairUniquePairPerms.VibratorAlarms ? (PairUID + " allows Alarms Viewing") : (PairUID + " prevents Alarm Viewing"),
             UserPairForPerms.UserPairUniquePairPerms.VibratorAlarms ? FontAwesomeIcon.Clock : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.VibratorAlarmsAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.VibratorAlarmsAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("VibratorAlarmsToggle", "VibratorAlarmsToggleAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.VibratorAlarmsToggle ? (PairAliasOrUID + " allows Alarm Toggling") : (PairAliasOrUID + " prevents Alarm Toggling"),
+            UserPairForPerms.UserPairUniquePairPerms.VibratorAlarmsToggle ? (PairUID + " allows Alarm Toggling") : (PairUID + " prevents Alarm Toggling"),
             UserPairForPerms.UserPairUniquePairPerms.VibratorAlarmsToggle ? FontAwesomeIcon.Bell : FontAwesomeIcon.BellSlash,
             UserPairForPerms.UserPairEditAccess.VibratorAlarmsToggleAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.VibratorAlarmsToggleAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("CanExecutePatterns", "CanExecutePatternsAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.CanExecutePatterns ? (PairAliasOrUID + " allows Pattern Execution") : (PairAliasOrUID + " prevents Pattern Execution"),
+            UserPairForPerms.UserPairUniquePairPerms.CanExecutePatterns ? (PairUID + " allows Pattern Execution") : (PairUID + " prevents Pattern Execution"),
             UserPairForPerms.UserPairUniquePairPerms.CanExecutePatterns ? FontAwesomeIcon.LandMineOn : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.CanExecutePatternsAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.CanExecutePatternsAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("CanExecuteTriggers", "CanExecuteTriggersAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.CanExecuteTriggers ? (PairAliasOrUID + " allows Toggling Triggers") : (PairAliasOrUID + " prevents Toggling Triggers"),
+            UserPairForPerms.UserPairUniquePairPerms.CanExecuteTriggers ? (PairUID + " allows Toggling Triggers") : (PairUID + " prevents Toggling Triggers"),
             UserPairForPerms.UserPairUniquePairPerms.CanExecuteTriggers ? FontAwesomeIcon.FileMedicalAlt : FontAwesomeIcon.FileExcel,
             UserPairForPerms.UserPairEditAccess.CanExecuteTriggersAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.CanExecuteTriggersAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("CanSendTriggers", "CanSendTriggersAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.CanSendTriggers ? (PairAliasOrUID + " allows sending Triggers") : (PairAliasOrUID + " prevents sending Triggers"),
+            UserPairForPerms.UserPairUniquePairPerms.CanSendTriggers ? (PairUID + " allows sending Triggers") : (PairUID + " prevents sending Triggers"),
             UserPairForPerms.UserPairUniquePairPerms.CanSendTriggers ? FontAwesomeIcon.FileExport : FontAwesomeIcon.FileExcel,
             UserPairForPerms.UserPairEditAccess.CanSendTriggersAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.CanSendTriggersAllowed,

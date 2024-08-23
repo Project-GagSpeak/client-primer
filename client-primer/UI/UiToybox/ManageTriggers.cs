@@ -2,16 +2,21 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
+using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
+using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.VibeServer;
 using ImGuiNET;
+using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Text;
+using System.Drawing;
 using System.Numerics;
-
 namespace GagSpeak.UI.UiToybox;
 
 public class ToyboxTriggerManager
@@ -19,17 +24,23 @@ public class ToyboxTriggerManager
     private readonly ILogger<ToyboxTriggerManager> _logger;
     private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiShared;
+    private readonly PairManager _pairManager;
+    private readonly ClientConfigurationManager _clientConfigs;
     private readonly TriggerHandler _handler;
     private readonly PatternHandler _patternHandler;
 
     public ToyboxTriggerManager(ILogger<ToyboxTriggerManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        TriggerHandler handler)
+        PairManager pairManager, ClientConfigurationManager clientConfigs,
+        TriggerHandler handler, PatternHandler patternHandler)
     {
         _logger = logger;
         _mediator = mediator;
         _uiShared = uiSharedService;
+        _pairManager = pairManager;
+        _clientConfigs = clientConfigs;
         _handler = handler;
+        _patternHandler = patternHandler;
     }
 
     private List<Trigger> FilteredTriggerList
@@ -40,6 +51,9 @@ public class ToyboxTriggerManager
     public bool CreatingTrigger = false;
     private List<bool> ListItemHovered = new List<bool>();
     private LowerString TriggerSearchString = LowerString.Empty;
+    private LowerString PairSearchString = LowerString.Empty;
+    private string GagSearchString = LowerString.Empty;
+
 
     public void DrawTriggersPanel()
     {
@@ -354,92 +368,364 @@ public class ToyboxTriggerManager
     }
 
     // create a new timespan object that is set to 60seconds.
-    private TimeSpan triggerSliderLimit = new TimeSpan(0, 0, 60);
+    private TimeSpan triggerSliderLimit = new TimeSpan(0, 0, 0, 59, 999);
     private void DrawTriggerEditor(Trigger? triggerToCreate)
     {
         if (triggerToCreate == null) return;
 
         ImGui.Spacing();
 
+        // draw out the content details for the kind of trigger we are drawing.
+        if (ImGui.BeginTabBar("TriggerEditorTabBar"))
+        {
+            if (ImGui.BeginTabItem("Info"))
+            {
+                DrawInfoSettings(triggerToCreate);
+                ImGui.EndTabItem();
+            }
+
+            // Draw the options relative to the type we are interacting with.
+            switch (triggerToCreate)
+            {
+                case ChatTrigger chatTrigger:
+                    if(ImGui.BeginTabItem("ChatText"))
+                    {
+                        DrawChatTriggerEditor(chatTrigger);
+                        ImGui.EndTabItem();
+                    }
+                    break;
+                case SpellActionTrigger spellActionTrigger:
+                    if (ImGui.BeginTabItem("Spells/Action"))
+                    {
+                        DrawSpellActionTriggerEditor(spellActionTrigger);
+                        ImGui.EndTabItem();
+                    }
+                    break;
+                case HealthPercentTrigger healthPercentTrigger:
+                    if (ImGui.BeginTabItem("Health %"))
+                    {
+                        DrawHealthPercentTriggerEditor(healthPercentTrigger);
+                        ImGui.EndTabItem();
+                    }
+                    break;
+                case RestraintTrigger restraintTrigger:
+                    if (ImGui.BeginTabItem("RestraintState"))
+                    {
+                        DrawRestraintTriggerEditor(restraintTrigger);
+                        ImGui.EndTabItem();
+                    }
+                    break;
+                case GagTrigger gagTrigger:
+                    if (ImGui.BeginTabItem("GagState"))
+                    {
+                        DrawGagTriggerEditor(gagTrigger);
+                        ImGui.EndTabItem();
+                    }
+                    break;
+            }
+
+            if (ImGui.BeginTabItem("Trigger Action"))
+            {
+                DrawVibeActionSettings(triggerToCreate);
+                ImGui.EndTabItem();
+            }
+
+            if (ImGui.BeginTabItem("Access"))
+            {
+                DrawAccessControl(triggerToCreate);
+                ImGui.EndTabItem();
+            }
+
+            ImGui.EndTabBar();
+        }
+    }
+
+    private void DrawInfoSettings(Trigger triggerToCreate)
+    {
         // draw out the details for the base of the abstract type.
         string name = triggerToCreate.Name;
-        ImGui.SetNextItemWidth(200f);
-        if (ImGui.InputText("Name#NewTriggerName", ref name, 50))
+        UiSharedService.ColorText("Name", ImGuiColors.ParsedGold);
+        ImGui.SetNextItemWidth(225f);
+        if (ImGui.InputTextWithHint("##NewTriggerName", "Enter Trigger Name", ref name, 40))
         {
             triggerToCreate.Name = name;
         }
 
         string desc = triggerToCreate.Description;
-        if (UiSharedService.InputTextWrapMultiline("Description#NewTriggerDescription", ref desc, 100, 3, 200f))
+        UiSharedService.ColorText("Description", ImGuiColors.ParsedGold);
+        if (UiSharedService.InputTextWrapMultiline("##NewTriggerDescription", ref desc, 100, 3, 225f))
         {
             triggerToCreate.Description = desc;
         }
 
         var startAfterRef = triggerToCreate.StartAfter;
-        /*        _uiShared.DrawTimeSpanCombo("Start Delay (seconds)", triggerSliderLimit, ref startAfterRef, UiSharedService.GetWindowContentRegionWidth() / 2);
-                triggerToCreate.StartAfter.StartPoint = newStartDuration;
+        UiSharedService.ColorText("Start After (seconds : Milliseconds)", ImGuiColors.ParsedGold);
+        _uiShared.DrawTimeSpanCombo("##Start Delay (seconds)", triggerSliderLimit, ref startAfterRef, UiSharedService.GetWindowContentRegionWidth() / 2, "ss\\:fff", false);
+        triggerToCreate.StartAfter = startAfterRef;
 
-                // calc the max playback length minus the start point we set to declare the max allowable duration to play
-                if (newStartDuration > patternDurationTimeSpan) newStartDuration = patternDurationTimeSpan;
-                var maxPlaybackDuration = patternDurationTimeSpan - newStartDuration;
-
-                // how long to run the trigger for once it starts.
-                var runFor = triggerToCreate.EndAfter;
-                _uiShared.DrawTimeSpanCombo("Execute for (seconds)", , ref runFor, UiSharedService.GetWindowContentRegionWidth() / 2);
-                patternToEdit.PlaybackDuration = newPlaybackDuration;
-
-                parseSuccess = TimeSpan.TryParseExact(patternDuration, "ss\\:fff", null, out duration);*/
-
-
-        // draw out the content details for the kind of trigger we are drawing.
-        switch (triggerToCreate)
-        {
-            case ChatTrigger chatTrigger:
-                DrawChatTriggerEditor(chatTrigger);
-                break;
-            case SpellActionTrigger spellActionTrigger:
-                DrawSpellActionTriggerEditor(spellActionTrigger);
-                break;
-            case HealthPercentTrigger healthPercentTrigger:
-                DrawHealthPercentTriggerEditor(healthPercentTrigger);
-                break;
-            case RestraintTrigger restraintTrigger:
-                DrawRestraintTriggerEditor(restraintTrigger);
-                break;
-            case GagTrigger gagTrigger:
-                DrawGagTriggerEditor(gagTrigger);
-                break;
-        }
+        var runFor = triggerToCreate.EndAfter;
+        UiSharedService.ColorText("Run For (seconds : Milliseconds)", ImGuiColors.ParsedGold);
+        _uiShared.DrawTimeSpanCombo("##Execute for (seconds)", triggerSliderLimit, ref runFor, UiSharedService.GetWindowContentRegionWidth() / 2, "ss\\:fff", false);
+        triggerToCreate.EndAfter = runFor;
     }
 
 
     private void DrawChatTriggerEditor(ChatTrigger chatTrigger)
     {
-        // draw out the chat trigger editor
-        ImGui.Text("Chat Trigger Editor");
+        string playerName = chatTrigger.FromPlayerName;
+        UiSharedService.ColorText("Triggered By", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("Must follow the format Player Name@World." + Environment.NewLine + "Example: Y'shtola Rhul@Mateus");
+        ImGui.SetNextItemWidth(200f);
+        if (ImGui.InputTextWithHint("##FromPlayerName", "Player Name@World", ref playerName, 72))
+        {
+            chatTrigger.FromPlayerName = playerName;
+        }
+        string triggerText = chatTrigger.ChatText;
+        UiSharedService.ColorText("Trigger Text", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("What the above player must say to activate this trigger.");
+
+        if (UiSharedService.InputTextWrapMultiline("##TriggerTextString", ref triggerText, 100, 3, 200f))
+        {
+            chatTrigger.ChatText = triggerText;
+        }
+
+
+        UiSharedService.ColorText("Can be Triggered in the following Channels:", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("If none are selected, it will accept the trigger text from any channel.");
+        DrawChatTriggerChannels(chatTrigger);
     }
 
     private void DrawSpellActionTriggerEditor(SpellActionTrigger spellActionTrigger)
     {
-        // draw out the spell action trigger editor
-        ImGui.Text("Spell/Action Trigger Editor");
+        UiSharedService.ColorText("Action Type: ", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("The type of action to monitor for." + Environment.NewLine
+            + "Can be listening for different state results of the same action.");
+        _uiShared.DrawCombo("##ActionKindCombo", 150f, Enum.GetValues<ActionType>(), (Actionkind) => Actionkind.ToString(),
+            (i) => spellActionTrigger.ActionKind = i, spellActionTrigger.ActionKind);
+
+        UiSharedService.ColorText("Action Name Text: ", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("The name of the action to listen for that causes the effect." + Environment.NewLine
+            + "Can use | to listen for multiple actions.");
+        ImGui.SetNextItemWidth(200f);
+        string refActionNamesStr = spellActionTrigger.ActionSpellNames;
+        if (ImGui.InputTextWithHint("##ActionSpellNames", "Action Name", ref refActionNamesStr, 255))
+        {
+            spellActionTrigger.ActionSpellNames = spellActionTrigger.ActionSpellNames.Replace(" ", string.Empty);
+        }
+
+        UiSharedService.ColorText("Direction: ", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("If the trigger is invoked when the action hits the client, another object, or either?");
+        // create a dropdown storing the enum values of TriggerDirection
+        _uiShared.DrawCombo("##DirectionSelector", 200f, Enum.GetValues<TriggerDirection>(), (direction) => direction.ToString(),
+            (i) => spellActionTrigger.Direction = i, spellActionTrigger.Direction);
+
+        UiSharedService.ColorText("Threshold Min Value: ", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("Minimum Damage/Heal number to trigger effect.\nLeave -1 for any.");
+        var minVal = spellActionTrigger.ThresholdMinValue;
+        ImGui.SetNextItemWidth(200f);
+        if(ImGui.InputInt("##ThresholdMinValue", ref minVal))
+        {
+            spellActionTrigger.ThresholdMinValue = minVal;
+        }
+
+        UiSharedService.ColorText("Threshold Max Value: ", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("Maximum Damage/Heal number to trigger effect.");
+        var maxVal = spellActionTrigger.ThresholdMaxValue;
+        ImGui.SetNextItemWidth(200f);
+        if (ImGui.InputInt("##ThresholdMaxValue", ref maxVal))
+        {
+            spellActionTrigger.ThresholdMaxValue = maxVal;
+        }
     }
 
     private void DrawHealthPercentTriggerEditor(HealthPercentTrigger healthPercentTrigger)
     {
-        // draw out the health percent trigger editor
-        ImGui.Text("Health Percent Trigger Editor");
+        string playerName = healthPercentTrigger.PlayerToMonitor;
+        UiSharedService.ColorText("Track Health % of:", ImGuiColors.ParsedGold);
+        ImGui.SetNextItemWidth(200f);
+        if (ImGui.InputTextWithHint("##PlayerToTrackHealthOf", "Player Name@World", ref playerName, 72))
+        {
+            healthPercentTrigger.PlayerToMonitor = playerName;
+        }
+        _uiShared.DrawHelpText("Must follow the format Player Name@World." + Environment.NewLine + "Example: Y'shtola Rhul@Mateus");
+
+        UiSharedService.ColorText("Use % Threshold: ", ImGuiColors.ParsedGold);
+        var usePercentageHealth = healthPercentTrigger.UsePercentageHealth;
+        if(ImGui.Checkbox("##Use Percentage Health", ref usePercentageHealth))
+        {
+            healthPercentTrigger.UsePercentageHealth = usePercentageHealth;
+        }
+        _uiShared.DrawHelpText("When Enabled, will watch for when health goes above or below a specific %" + 
+            Environment.NewLine + "Otherwise, listens for when it goes above or below a health range.");
+
+        UiSharedService.ColorText("Pass Kind: ", ImGuiColors.ParsedGold);
+        _uiShared.DrawCombo("##PassKindCombo", 150f, Enum.GetValues<ThresholdPassType>(), (passKind) => passKind.ToString(),
+            (i) => healthPercentTrigger.PassKind = i, healthPercentTrigger.PassKind);
+        _uiShared.DrawHelpText("If the trigger should fire when the health passes above or below the threshold.");
+
+        if(healthPercentTrigger.UsePercentageHealth)
+        {
+            UiSharedService.ColorText("Health % Threshold: ", ImGuiColors.ParsedGold);
+            int minHealth = healthPercentTrigger.MinHealthValue;
+            if (ImGui.SliderInt("##HealthPercentage", ref minHealth, 0, 100, "%d%%"))
+            {
+                healthPercentTrigger.MinHealthValue = minHealth;
+            }
+            _uiShared.DrawHelpText("The Health % that must be crossed to activate the trigger.");
+        }
+        else
+        {
+            UiSharedService.ColorText("Min Health Range Threshold: ", ImGuiColors.ParsedGold);
+            int minHealth = healthPercentTrigger.MinHealthValue;
+            if (ImGui.InputInt("##MinHealthValue", ref minHealth))
+            {
+                healthPercentTrigger.MinHealthValue = minHealth;
+            }
+            _uiShared.DrawHelpText("Lowest HP Value the health should be if triggered upon going below");
+
+            UiSharedService.ColorText("Max Health Range Threshold: ", ImGuiColors.ParsedGold);
+            int maxHealth = healthPercentTrigger.MaxHealthValue;
+            if (ImGui.InputInt("##MaxHealthValue", ref maxHealth))
+            {
+                healthPercentTrigger.MaxHealthValue = maxHealth;
+            }
+            _uiShared.DrawHelpText("Highest HP Value the health should be if triggered upon going above");
+        }
     }
 
     private void DrawRestraintTriggerEditor(RestraintTrigger restraintTrigger)
     {
-        // draw out the restraint trigger editor
-        ImGui.Text("Restraint Trigger Editor");
+        UiSharedService.ColorText("Restraint Set: ", ImGuiColors.ParsedGold);
+        ImGui.SetNextItemWidth(200f);
+        _uiShared.DrawCombo("##RestraintSetCombo", 200f, _clientConfigs.StoredRestraintSets.Select(x => x.Name).ToList(),
+            (name) => name, (i) => restraintTrigger.RestraintSetName = i, restraintTrigger.RestraintSetName);
+        _uiShared.DrawHelpText("The Restraint Set to listen to for this trigger.");
+
+        UiSharedService.ColorText("Restraint Set State: ", ImGuiColors.ParsedGold);
+        _uiShared.DrawCombo("##RestraintStateCombo", 200f, Enum.GetValues<UpdatedNewState>(), (state) => state.ToString(),
+            (i) => restraintTrigger.RestraintState = i, restraintTrigger.RestraintState);
+        _uiShared.DrawHelpText("Trigger should be fired when the restraint set changes to this state.");
     }
 
     private void DrawGagTriggerEditor(GagTrigger gagTrigger)
     {
-        // draw out the gag trigger editor
-        ImGui.Text("Gag Trigger Editor");
+        UiSharedService.ColorText("Gag: ", ImGuiColors.ParsedGold);
+        ImGui.SetNextItemWidth(200f);
+        _uiShared.DrawComboSearchable("##GagTriggerGagType", 250, ref GagSearchString,
+            Enum.GetValues<GagList.GagType>(), (gag) => gag.GetGagAlias(), false,
+            (i) => gagTrigger.Gag = i, gagTrigger.Gag);
+        _uiShared.DrawHelpText("The Gag to listen to for this trigger.");
+
+        UiSharedService.ColorText("Gag State: ", ImGuiColors.ParsedGold);
+        ImGui.SetNextItemWidth(200f);
+        _uiShared.DrawCombo("##GagStateCombo", 200f, Enum.GetValues<UpdatedNewState>(), (state) => state.ToString(),
+            (i) => gagTrigger.GagState = i, gagTrigger.GagState);
+        _uiShared.DrawHelpText("Trigger should be fired when the gag state changes to this.");
+    }
+
+    private void DrawVibeActionSettings(Trigger TriggerToCreate)
+    {
+        UiSharedService.ColorText("Trigger Execution Type: ", ImGuiColors.ParsedGold);
+
+    }
+
+    private void DrawChatTriggerChannels(ChatTrigger chatTrigger)
+    {
+        var i = 0;
+        foreach (var e in ChatChannel.GetOrderedChannels())
+        {
+            // See if it is already enabled by default
+            var enabled = chatTrigger.AllowedChannels.Contains(e);
+
+            // Create a new line after every 4 columns
+            if (i != 0 && (i == 4 || i == 7 || i == 11 || i == 15 || i == 19)) ImGui.NewLine();
+
+            // Move to the next row if it is LS1 or CWLS1
+            if (e is ChatChannel.ChatChannels.LS1 or ChatChannel.ChatChannels.CWL1) ImGui.Separator();
+
+            if (ImGui.Checkbox($"{e}", ref enabled))
+            {
+                if (enabled && !chatTrigger.AllowedChannels.Contains(e))
+                {
+                    // ensure that it is not already in the list first
+                    chatTrigger.AllowedChannels.Add(e);
+                }
+                else
+                {
+                    chatTrigger.AllowedChannels.Remove(e);
+                }
+            }
+
+            ImGui.SameLine();
+            i++;
+        }
+    }
+
+    private void DrawAccessControl(Trigger TriggerToCreate)
+    {
+        // display filterable search list
+        DrawUidSearchFilter(ImGui.GetContentRegionAvail().X);
+        using (var table = ImRaii.Table("userListForVisibility", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY, ImGui.GetContentRegionAvail()))
+        {
+            if (!table) return;
+
+            ImGui.TableSetupColumn("Nickname/Alias/UID", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("Can Toggle", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Can Toggle").X);
+            ImGui.TableHeadersRow();
+
+            var PairList = _pairManager.DirectPairs
+                .Where(pair => string.IsNullOrEmpty(PairSearchString) ||
+                               pair.UserData.AliasOrUID.Contains(PairSearchString, StringComparison.OrdinalIgnoreCase) ||
+                               (pair.GetNickname() != null && pair.GetNickname().Contains(PairSearchString, StringComparison.OrdinalIgnoreCase)))
+                .OrderBy(p => p.GetNickname() ?? p.UserData.AliasOrUID, StringComparer.OrdinalIgnoreCase);
+
+            foreach (Pair pair in PairList)
+            {
+                using var tableId = ImRaii.PushId("userTable_" + pair.UserData.UID);
+
+                ImGui.TableNextColumn(); // alias or UID of user.
+                var nickname = pair.GetNickname();
+                var text = nickname == null ? pair.UserData.AliasOrUID : nickname + " (" + pair.UserData.UID + ")";
+                ImGui.AlignTextToFramePadding();
+                ImGui.TextUnformatted(text);
+
+                ImGui.TableNextColumn();
+                // display nothing if they are not in the list, otherwise display a check
+                var canSeeIcon = TriggerToCreate.CanTrigger.Contains(pair.UserData.UID) ? FontAwesomeIcon.Check : FontAwesomeIcon.Times;
+                using (ImRaii.PushColor(ImGuiCol.Button, ImGui.ColorConvertFloat4ToU32(new(0, 0, 0, 0))))
+                {
+                    if (ImGuiUtil.DrawDisabledButton(canSeeIcon.ToIconString(), new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()),
+                    string.Empty, false, true))
+                    {
+                        if (canSeeIcon == FontAwesomeIcon.Times)
+                        {
+                            TriggerToCreate.CanTrigger.Add(pair.UserData.UID);
+                        }
+                        else
+                        {
+                            TriggerToCreate.CanTrigger.Remove(pair.UserData.UID);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary> Draws the search filter for our user pair list (whitelist) </summary>
+    public void DrawUidSearchFilter(float availableWidth)
+    {
+        var buttonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
+        ImGui.SetNextItemWidth(availableWidth - buttonSize - ImGui.GetStyle().ItemInnerSpacing.X);
+        string filter = PairSearchString;
+        if (ImGui.InputTextWithHint("##filter", "Filter for UID/notes", ref filter, 255))
+        {
+            PairSearchString = filter;
+        }
+        ImUtf8.SameLineInner();
+        using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(PairSearchString));
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
+        {
+            PairSearchString = string.Empty;
+        }
     }
 }

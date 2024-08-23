@@ -24,6 +24,7 @@ using ImGuiNET;
 using OtterGui.Text;
 using PInvoke;
 using System.Numerics;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
@@ -841,7 +842,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     {
         float wrapWidth = width ?? ImGui.GetContentRegionAvail().X; // determine wrap width
         bool result = ImGui.InputTextMultiline(id, ref text, maxLength,
-             new(width ?? ImGui.GetContentRegionAvail().X, ImGui.CalcTextSize("A").Y * lineHeight), // expanding height calc.
+             new(width ?? ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeightWithSpacing() * lineHeight), // expanding height calc.
              ImGuiInputTextFlags.CallbackEdit | ImGuiInputTextFlags.NoHorizontalScroll, // flag stuff 
              (data) => { return TextEditCallback(data, wrapWidth); });
 
@@ -979,7 +980,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return (T)_selectedComboItems[comboName];
     }
 
-    public void DrawTimeSpanCombo(string label, TimeSpan patternMaxDuration, ref TimeSpan patternDuration, float width, string format = "hh\\:mm\\:ss")
+    public void DrawTimeSpanCombo(string label, TimeSpan patternMaxDuration, ref TimeSpan patternDuration, float width, string format = "hh\\:mm\\:ss", bool showLabel = true)
     {
         if (patternDuration > patternMaxDuration) patternDuration = patternMaxDuration;
 
@@ -994,73 +995,91 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             ImGui.OpenPopup($"TimeSpanPopup-{label}");
         }
         // just to the right of it, aligned with the button, display the label
-        ImUtf8.SameLineInner();
-        ImGui.TextUnformatted(label);
+        if(showLabel)
+        {
+            ImUtf8.SameLineInner();
+            ImGui.TextUnformatted(label);
+        }
 
         // Popup
         if (ImGui.BeginPopup($"TimeSpanPopup-{label}"))
         {
-            DrawTimeSpanUI(ref patternDuration, patternMaxDuration, format);
+            DrawTimeSpanUI(ref patternDuration, patternMaxDuration, width, format);
             ImGui.EndPopup();
         }
     }
 
-    private void DrawTimeSpanUI(ref TimeSpan patternDuration, TimeSpan maxDuration, string format)
+    private void DrawTimeSpanUI(ref TimeSpan patternDuration, TimeSpan maxDuration, float width, string format)
     {
         var totalColumns = GetColumnCountFromFormat(format);
+        float extraPadding = ImGui.GetStyle().ItemSpacing.X;
+
+        Vector2 patternHourTextSize;
+        Vector2 patternMinuteTextSize;
+        Vector2 patternSecondTextSize;
+        Vector2 patternMillisecondTextSize;
+
+        using (UidFont.Push())
+        {
+            patternHourTextSize = ImGui.CalcTextSize($"{patternDuration.Hours:00}h");
+            patternMinuteTextSize = ImGui.CalcTextSize($"{patternDuration.Minutes:00}m");
+            patternSecondTextSize = ImGui.CalcTextSize($"{patternDuration.Seconds:00}s");
+            patternMillisecondTextSize = ImGui.CalcTextSize($"{patternDuration.Milliseconds:000}ms");
+        }
+
         // Specify the number of columns. In this case, 2 for minutes and seconds.
         if (ImGui.BeginTable("TimeDurationTable", totalColumns)) // 3 columns for hours, minutes, seconds
         {
             // Setup columns based on the format
-            if (format.Contains("hh")) ImGui.TableSetupColumn("##Hours", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("00").X + ImGui.GetStyle().ItemSpacing.X * totalColumns+1);
-            if (format.Contains("mm")) ImGui.TableSetupColumn("##Minutes", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("00").X + ImGui.GetStyle().ItemSpacing.X * totalColumns + 1);
-            if (format.Contains("ss")) ImGui.TableSetupColumn("##Seconds", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("00").X + ImGui.GetStyle().ItemSpacing.X * totalColumns + 1);
-            if (format.Contains("fff")) ImGui.TableSetupColumn("##Milliseconds", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("000").X + ImGui.GetStyle().ItemSpacing.X * totalColumns + 1);
+            if (format.Contains("hh")) ImGui.TableSetupColumn("##Hours", ImGuiTableColumnFlags.WidthFixed, patternHourTextSize.X + totalColumns+1);
+            if (format.Contains("mm")) ImGui.TableSetupColumn("##Minutes", ImGuiTableColumnFlags.WidthFixed, patternMinuteTextSize.X + totalColumns+1);
+            if (format.Contains("ss")) ImGui.TableSetupColumn("##Seconds", ImGuiTableColumnFlags.WidthFixed, patternSecondTextSize.X + totalColumns+1);
+            if (format.Contains("fff")) ImGui.TableSetupColumn("##Milliseconds", ImGuiTableColumnFlags.WidthFixed, patternMillisecondTextSize.X + totalColumns+1);
             ImGui.TableNextRow();
 
             // Draw components based on the format
             if (format.Contains("hh"))
             {
                 ImGui.TableNextColumn();
-                DrawTimeComponentUI(ref patternDuration, maxDuration, "h", ImGui.CalcTextSize(patternDuration.Hours.ToString("00")));
+                DrawTimeComponentUI(ref patternDuration, maxDuration, "h");
             }
             if (format.Contains("mm"))
             {
                 ImGui.TableNextColumn();
-                DrawTimeComponentUI(ref patternDuration, maxDuration, "m", ImGui.CalcTextSize(patternDuration.Minutes.ToString("00")));
+                DrawTimeComponentUI(ref patternDuration, maxDuration, "m");
             }
             if (format.Contains("ss"))
             {
                 ImGui.TableNextColumn();
-                DrawTimeComponentUI(ref patternDuration, maxDuration, "s", ImGui.CalcTextSize(patternDuration.Seconds.ToString("00")));
+                DrawTimeComponentUI(ref patternDuration, maxDuration, "s");
             }
             if (format.Contains("fff"))
             {
                 ImGui.TableNextColumn();
-                DrawTimeComponentUI(ref patternDuration, maxDuration, "ms", ImGui.CalcTextSize(patternDuration.Milliseconds.ToString("000")));
+                DrawTimeComponentUI(ref patternDuration, maxDuration, "ms");
             }
 
             ImGui.EndTable();
         }
     }
 
-    private void DrawTimeComponentUI(ref TimeSpan duration, TimeSpan maxDuration, string suffix, Vector2 textSize)
+    private void DrawTimeComponentUI(ref TimeSpan duration, TimeSpan maxDuration, string suffix)
     {
         string prevValue = suffix switch
         {
             "h" => $"{Math.Max(0, (duration.Hours - 1)):00}",
             "m" => $"{Math.Max(0, (duration.Minutes - 1)):00}",
             "s" => $"{Math.Max(0, (duration.Seconds - 1)):00}",
-            "ms" => $"{Math.Max(0, (duration.Milliseconds - 1)):000}",
+            "ms" => $"{Math.Max(0, (duration.Milliseconds - 10)):000}",
             _ => $"UNK"
         };
         
         string currentValue = suffix switch
         {
-            "h" => $"{duration.Hours:00}",
-            "m" => $"{duration.Minutes:00}",
-            "s" => $"{duration.Seconds:00}",
-            "ms" => $"{duration.Milliseconds:000}",
+            "h" => $"{duration.Hours:00}h",
+            "m" => $"{duration.Minutes:00}m",
+            "s" => $"{duration.Seconds:00}s",
+            "ms" => $"{duration.Milliseconds:000}ms",
             _ => $"UNK"
         };
 
@@ -1069,7 +1088,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             "h" => $"{Math.Min(maxDuration.Hours, (duration.Hours + 1)):00}",
             "m" => $"{Math.Min(maxDuration.Minutes, (duration.Minutes + 1)):00}",
             "s" => $"{Math.Min(maxDuration.Seconds, (duration.Seconds + 1)):00}",
-            "ms" => $"{Math.Min(maxDuration.Milliseconds, (duration.Milliseconds + 1)):000}",
+            "ms" => $"{Math.Min(maxDuration.Milliseconds, (duration.Milliseconds + 10)):000}",
             _ => $"UNK"
         };
 
@@ -1083,27 +1102,37 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.TextDisabled(prevValue); // Previous value (centered)
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5f);
         BigText(currentValue);
+
         // adjust the value with the mouse wheel
         if (ImGui.IsItemHovered() && ImGui.GetIO().MouseWheel != 0)
         {
+            int hours = duration.Hours;
+            int minutes = duration.Minutes;
+            int seconds = duration.Seconds;
+            int milliseconds = duration.Milliseconds;
+
             int delta = -(int)ImGui.GetIO().MouseWheel;
-            switch (suffix)
-            {
-                case "h":
-                    duration = new TimeSpan(Math.Clamp(duration.Hours + delta, 0, maxDuration.Hours), duration.Minutes, duration.Seconds);
-                    break;
-                case "m":
-                    duration = new TimeSpan(duration.Hours, Math.Clamp(duration.Minutes + delta, 0, maxDuration.Minutes), duration.Seconds);
-                    break;
-                case "s":
-                    duration = new TimeSpan(duration.Hours, duration.Minutes, Math.Clamp(duration.Seconds + delta, 0, maxDuration.Seconds));
-                    break;
-                case "ms":
-                    duration = new TimeSpan(duration.Hours, duration.Minutes, duration.Seconds, duration.Milliseconds + delta);
-                    // Clamp milliseconds within 0 to 999 range
-                    duration = new TimeSpan(duration.Hours, duration.Minutes, duration.Seconds, Math.Clamp(duration.Milliseconds, 0, 999));
-                    break;
-            }
+            if (suffix == "h") { hours += delta; }
+            if (suffix == "m") { minutes += delta; }
+            if (suffix == "s") { seconds += delta; }
+            if (suffix == "ms") { milliseconds += delta*10; }
+            // Rollover and clamp logic
+            if (milliseconds < 0) { milliseconds += 1000; seconds--; }
+            if (milliseconds > 999) { milliseconds -= 1000; seconds++; }
+            if (seconds < 0) { seconds += 60; minutes--; }
+            if (seconds > 59) { seconds -= 60; minutes++; }
+            if (minutes < 0) { minutes += 60; hours--; }
+            if (minutes > 59) { minutes -= 60; hours++; }
+
+            hours = Math.Clamp(hours, 0, maxDuration.Hours);
+            minutes = Math.Clamp(minutes, 0, (hours == maxDuration.Hours ? maxDuration.Minutes : 59));
+            seconds = Math.Clamp(seconds, 0, (minutes == (hours == maxDuration.Hours ? maxDuration.Minutes : 59) ? maxDuration.Seconds : 59));
+            milliseconds = Math.Clamp(milliseconds, 0, (seconds == (minutes == (hours == maxDuration.Hours ? maxDuration.Minutes : 59) ? maxDuration.Seconds : 59) ? maxDuration.Milliseconds : 999));
+
+            // update the duration
+            duration = new TimeSpan(0, hours, minutes, seconds, milliseconds);
+
+            Logger.LogDebug($"Duration changed to {duration.ToString("hh\\:mm\\:ss\\:fff")}");
         }
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5f);
         var offset2 = (CurrentValBigSize - ImGui.CalcTextSize(prevValue).X) / 2;
@@ -1116,7 +1145,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         if (format.Contains("hh")) columnCount++;
         if (format.Contains("mm")) columnCount++;
         if (format.Contains("ss")) columnCount++;
-        if (format.Contains("ff")) columnCount++;
+        if (format.Contains("fff")) columnCount++;
         return columnCount;
     }
 

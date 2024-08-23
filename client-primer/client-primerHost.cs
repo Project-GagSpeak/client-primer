@@ -215,9 +215,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ActiveRestraintSet>()
         .AddSingleton<RestraintSetManager>()
         .AddSingleton<RestraintStruggleSim>()
-        .AddSingleton((s) => new MoodlesManager(s.GetRequiredService<ILogger<MoodlesManager>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
-            s.GetRequiredService<PairManager>(), s.GetRequiredService<IpcCallerMoodles>(), dm))
+        .AddSingleton((s) => new MoodlesService(s.GetRequiredService<ILogger<MoodlesService>>(), s.GetRequiredService<UiSharedService>(), dm))
+        .AddSingleton<MoodlesManager>()
+
         .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
             s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<DictStain>(),

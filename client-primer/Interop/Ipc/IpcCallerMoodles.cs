@@ -29,9 +29,12 @@ public sealed class IpcCallerMoodles : IIpcCaller
     private readonly ICallGateSubscriber<string, string> _moodlesGetStatus;
 
     // API Enactor Functions
+    private readonly ICallGateSubscriber<Guid, string, object> _applyStatusByGuid;
+    private readonly ICallGateSubscriber<Guid, string, object> _applyPresetByGuid;
     private readonly ICallGateSubscriber<string, string, List<MoodlesStatusInfo>, object> _applyStatusesFromPair;
+    private readonly ICallGateSubscriber<List<Guid>, string, object> _removeStatusByGuids;
+
     private readonly ICallGateSubscriber<string, string, object> _setStatusManager;
-    private readonly ICallGateSubscriber<List<Guid>, string, object> _removeStatusesFromManager;
     private readonly ICallGateSubscriber<string, object> _clearStatusesFromManager;
 
 
@@ -59,9 +62,12 @@ public sealed class IpcCallerMoodles : IIpcCaller
         _moodlesGetStatus = pi.GetIpcSubscriber<string, string>("Moodles.GetStatusManagerByName");
 
         // API Enactor Functions
+        _applyStatusByGuid = pi.GetIpcSubscriber<Guid, string, object>("Moodles.AddOrUpdateMoodleByGUIDByName");
+        _applyPresetByGuid = pi.GetIpcSubscriber<Guid, string, object>("Moodles.ApplyPresetByGUIDByName");
         _applyStatusesFromPair = pi.GetIpcSubscriber<string, string, List<MoodlesStatusInfo>, object>("Moodles.ApplyStatusesFromGSpeakPair");
+        _removeStatusByGuids = pi.GetIpcSubscriber<List<Guid>, string, object>("Moodles.RemoveMoodlesByGUIDByName");
+
         _setStatusManager = pi.GetIpcSubscriber<string, string, object>("Moodles.SetStatusManagerByName");
-        _removeStatusesFromManager = pi.GetIpcSubscriber<List<Guid>, string, object>("Moodles.RemoveMoodlesByGUIDByName");
         _clearStatusesFromManager = pi.GetIpcSubscriber<string, object>("Moodles.ClearStatusManagerByName");
 
 
@@ -208,6 +214,45 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
     }
 
+    public async Task ApplyOwnStatusByGUID(List<Guid> guid, string playerNameWithWorld)
+    {
+        if (!APIAvailable) return;
+
+        foreach (var g in guid)
+        {
+            await ApplyOwnStatusByGUID(g, playerNameWithWorld);
+        }
+    }
+
+
+    public async Task ApplyOwnStatusByGUID(Guid guid, string playerNameWithWorld)
+    {
+        if (!APIAvailable) return;
+        try
+        {
+            await _frameworkUtil.RunOnFrameworkThread(() => 
+                _applyStatusByGuid.InvokeAction(guid, playerNameWithWorld)).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Could not Apply Moodles Status");
+        }
+    }
+
+    public async Task ApplyOwnPresetByGUID(Guid guid, string playerNameWithWorld)
+    {
+        if (!APIAvailable) return;
+        try
+        {
+            await _frameworkUtil.RunOnFrameworkThread(() => 
+                _applyPresetByGuid.InvokeAction(guid, playerNameWithWorld)).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Could not Apply Moodles Status");
+        }
+    }
+
     /// <summary> This method applies the statuses from a pair to the client </summary>
     public async Task ApplyStatusesFromPairToSelf(string applierNameWithWorld, string recipientNameWithWorld, List<MoodlesStatusInfo> statuses)
     {
@@ -223,9 +268,20 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
     }
 
+    public async Task RemoveOwnStatusByGuid(List<Guid> guidsToRemove, string playerNameWithWorld)
+    {
+        if (!APIAvailable) return;
+        try
+        {
+            await _frameworkUtil.RunOnFrameworkThread(() =>
+                _removeStatusByGuids.InvokeAction(guidsToRemove, playerNameWithWorld)).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Could not Set Moodles Status");
+        }
+    }
 
-
-    /// <summary> Likely wont use???? </summary>
     public async Task SetStatusAsync(string playerNameWithWorld, string status)
     {
         // if the API is not available, return
@@ -241,20 +297,6 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
     }
 
-    public async Task RemoveStatusesAsync(string playerNameWithWorld, List<Guid> statusesToRemove)
-    {
-        if (!APIAvailable) return;
-        try
-        {
-            await _frameworkUtil.RunOnFrameworkThread(() => 
-                _removeStatusesFromManager.InvokeAction(statusesToRemove, playerNameWithWorld)).ConfigureAwait(false);
-        }
-        catch (Exception e)
-        {
-            _logger.LogWarning(e, "Could not Set Moodles Status");
-        }
-    }
-
 
     /// <summary> Reverts the status of the moodles for a gameobject spesified by the pointer</summary>
     /// <param name="pointer">the pointer address of the player to revert the status for</param>
@@ -263,7 +305,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         if (!APIAvailable) return;
         try
         {
-            await _frameworkUtil.RunOnFrameworkThread(() => 
+            await _frameworkUtil.RunOnFrameworkThread(() =>
                 _clearStatusesFromManager.InvokeAction(playerNameWithWorld)).ConfigureAwait(false);
         }
         catch (Exception e)

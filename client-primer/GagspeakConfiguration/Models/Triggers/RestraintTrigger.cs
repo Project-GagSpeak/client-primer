@@ -4,7 +4,7 @@ using GagspeakAPI.Data.VibeServer;
 namespace GagSpeak.GagspeakConfiguration.Models;
 
 /// <summary>
-/// A basic authentication class to validate that the information from the client when they attempt to connect is correct.
+/// Trigger fired when a restraint set goes into a specific state.
 /// </summary>
 [Serializable]
 public record RestraintTrigger : Trigger

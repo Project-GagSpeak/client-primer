@@ -5,19 +5,15 @@ using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.IPC;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
-using Microsoft.IdentityModel.Tokens;
-using OtterGui.Classes;
-using OtterGui.Text;
 using System.Numerics;
-using System.Security.AccessControl;
 using System.Xml.Linq;
-
 
 namespace GagSpeak.UI.UiWardrobe;
 
@@ -26,17 +22,17 @@ public class MoodlesManager : MediatorSubscriberBase
     private readonly UiSharedService _uiShared;
     private readonly PairManager _pairManager;
     private readonly IpcCallerMoodles _ipcCallerMoodles;
-    private IDataManager _dataManager;
+    private readonly MoodlesService _moodlesService;
     private enum InspectType { Status, Preset }
     public MoodlesManager(ILogger<MoodlesManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         PairManager pairManager, IpcCallerMoodles ipcCallerMoodles,
-        IDataManager dataManager) : base(logger, mediator)
+        MoodlesService moodlesService) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
         _pairManager = pairManager;
         _ipcCallerMoodles = ipcCallerMoodles;
-        _dataManager = dataManager;
+        _moodlesService = moodlesService;
 
         Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
     }
@@ -50,6 +46,8 @@ public class MoodlesManager : MediatorSubscriberBase
     private Pair? PairToInspect = null;
     private int SelectedStatusIndex = 0;
     private int SelectedPresetIndex = 0;
+    private string PresetSearchString = string.Empty;
+    private Vector2 DefaultItemSpacing;
 
     private void MoodlesHeader()
     {
@@ -101,10 +99,16 @@ public class MoodlesManager : MediatorSubscriberBase
                     if (pair == null)
                     {
                         PairToInspect = null;
+                        // reset the indexes
+                        SelectedStatusIndex = 0;
+                        SelectedPresetIndex = 0;
                     }
                     else
                     {
                         PairToInspect = pair;
+                        // reset the indexes
+                        SelectedStatusIndex = 0;
+                        SelectedPresetIndex = 0;
                     }
                 });
 
@@ -115,6 +119,8 @@ public class MoodlesManager : MediatorSubscriberBase
             if (_uiShared.IconTextButton(FontAwesomeIcon.Search, "Statuses", null, false, CurrentType == InspectType.Status))
             {
                 CurrentType = InspectType.Status;
+                // reset the index to 0
+                SelectedStatusIndex = 0;
             }
             UiSharedService.AttachToolTip("View the list of Moodles Statuses");
 
@@ -124,6 +130,8 @@ public class MoodlesManager : MediatorSubscriberBase
             if (_uiShared.IconTextButton(FontAwesomeIcon.Search, "Presets", null, false, CurrentType == InspectType.Preset))
             {
                 CurrentType = InspectType.Preset;
+                // reset the index to 0
+                SelectedPresetIndex = 0;
             }
             UiSharedService.AttachToolTip("View the list of Moodles Presets.");
         }
@@ -134,38 +142,51 @@ public class MoodlesManager : MediatorSubscriberBase
     {
         MoodlesHeader();
         ImGui.Separator();
+        var DataToDisplay = (PairToInspect != null && PairToInspect.LastReceivedIpcData != null) ? PairToInspect.LastReceivedIpcData : LastCreatedCharacterData;
 
         if (CurrentType == InspectType.Status)
         {
-            DrawMoodles(cellPadding);
+            DrawMoodles(DataToDisplay, cellPadding);
         }
         else
         {
-            DrawPresets(cellPadding);
+            DrawPresets(DataToDisplay, cellPadding);
         }
     }
 
-    private void DrawMoodles(Vector2 cellPadding)
+    private void DrawMoodles(CharacterIPCData DataToDisplay, Vector2 cellPadding)
     {
-        var DataToDisplay = PairToInspect != null ? PairToInspect.LastReceivedIpcData : LastCreatedCharacterData;
+        // if they player has no presets, print they do not and return.
+        if (DataToDisplay.MoodlesStatuses.Count == 0)
+        {
+            _uiShared.BigText("Pair has no Statuses set.");
+            return;
+        }
+
         var length = ImGui.GetContentRegionAvail().X;
-        DrawMoodleStatusComboSearchable(length);
+        _moodlesService.DrawMoodleStatusComboSearchable(DataToDisplay, DataToDisplay.MoodlesStatuses[SelectedStatusIndex].Title + "##StatusSelector", 
+            ref SelectedStatusIndex, length, 1.25f);
         ImGui.Separator();
 
         using var child = ImRaii.Child("MoodlesInspectionWindow", -Vector2.One, false);
         if (!child) return;
 
         // draw the moodleInfo
-        var cursorPos = new Vector2(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - StatusSize.X * 2, ImGui.GetCursorPosY()) - new Vector2(20, 5);
+        var cursorPos = new Vector2(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - MoodlesService.StatusSize.X * 2, ImGui.GetCursorPosY()) - new Vector2(20, 5);
         _uiShared.BigText("Moodle Information");
         if (SelectedStatusIndex == -1) return;
-        ImGui.Separator();
         PrintMoodleInfoExtended(DataToDisplay!.MoodlesStatuses[SelectedStatusIndex], cellPadding, cursorPos);
     }
 
-    private void DrawPresets(Vector2 cellPadding)
+    private void DrawPresets(CharacterIPCData DataToDisplay, Vector2 cellPadding)
     {
-        var DataToDisplay = PairToInspect != null ? PairToInspect.LastReceivedIpcData : LastCreatedCharacterData;
+        // if they player has no presets, print they do not and return.
+        if(DataToDisplay.MoodlesPresets.Count == 0)
+        {
+            _uiShared.BigText("Pair has no Presets set.");
+            return;
+        }
+
         var length = ImGui.GetContentRegionAvail().X;
         _uiShared.DrawComboSearchable("##PresetSelector", length, ref PresetSearchString, DataToDisplay!.MoodlesPresets,
             (preset) => preset.Item1.ToString(), false,
@@ -200,93 +221,6 @@ public class MoodlesManager : MediatorSubscriberBase
         }
     }
 
-    private string StatusSearchString = string.Empty;
-    private string PresetSearchString = string.Empty;
-    private Vector2 DefaultItemSpacing;
-    private void DrawMoodleStatusComboSearchable(float width)
-    {
-        CharacterIPCData ipcData = PairToInspect != null ? PairToInspect.LastReceivedIpcData! : LastCreatedCharacterData;
-
-        ImGui.SetNextItemWidth(width - StatusSize.X);
-        string comboLabel = ipcData.MoodlesStatuses[SelectedStatusIndex].Title + "##StatusSelector";
-        // Button to open popup
-        var pos = ImGui.GetCursorScreenPos();
-        if (ImGui.Button(comboLabel, new Vector2(width, ImGui.GetFrameHeight())))
-        {
-            ImGui.SetNextWindowPos(new Vector2(pos.X, pos.Y + ImGui.GetFrameHeight()));
-            ImGui.OpenPopup("##StatusSelectorPopup");
-        }
-
-        // Popup
-        if (ImGui.BeginPopup("##StatusSelectorPopup"))
-        {
-            DrawStatusComboBox(ipcData, width);
-            ImGui.EndPopup();
-        }
-    }
-
-    private void DrawStatusComboBox(CharacterIPCData ipcData, float width)
-    {
-        // Search filter
-        ImGui.SetNextItemWidth(width - StatusSize.X);
-        ImGui.InputTextWithHint("##filter", "Filter...", ref StatusSearchString, 255);
-        var searchText = StatusSearchString.ToLowerInvariant();
-
-        var filteredItems = string.IsNullOrEmpty(searchText)
-            ? ipcData.MoodlesStatuses
-            : ipcData.MoodlesStatuses.Where(item => item.Title.ToLowerInvariant().Contains(searchText));
-
-        ImGui.SetWindowFontScale(1.25f);
-        if (ImGui.BeginTable("TimeDurationTable", 2)) // 2 columns for status name and icon
-        {
-            // Setup columns based on the format
-            ImGui.TableSetupColumn("##StatusName", ImGuiTableColumnFlags.WidthFixed, width - StatusSize.X*2 - ImGui.GetStyle().ItemSpacing.X*2);
-            ImGui.TableSetupColumn("##StatusIcon", ImGuiTableColumnFlags.WidthFixed, StatusSize.X);
-
-            // Display filtered content.
-            foreach (var item in filteredItems)
-            {
-                // Draw out a selectable spanning the cell.
-                ImGui.TableNextRow();
-                ImGui.TableNextColumn();
-                ImGui.SetNextItemWidth(width);
-                bool isSelected = item == ipcData.MoodlesStatuses[SelectedStatusIndex];
-
-                if (ImGui.Selectable(item.Title, isSelected))
-                {
-                    SelectedStatusIndex = ipcData.MoodlesStatuses.IndexOf(item);
-                }
-
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.SetTooltip(item.GUID.ToString());
-                }
-
-                // Move to the next column.
-                ImGui.TableNextColumn();
-                ImGui.AlignTextToFramePadding();
-
-                // Draw out the image.
-                if (item.IconID != 0)
-                {
-                    var statusIcon = _uiShared.GetGameStatusIcon((uint)((uint)item.IconID + item.Stacks - 1));
-
-                    if (statusIcon is { } wrap)
-                    {
-                        ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos() - new Vector2(0, 5));
-                        ImGui.Image(statusIcon.ImGuiHandle, StatusSize);
-                        if (ImGui.IsItemHovered())
-                        {
-                            ImGui.SetTooltip(item.Description);
-                        }
-                    }
-                }
-            }
-            ImGui.EndTable();
-        }
-        ImGui.SetWindowFontScale(1f);
-    }
-
     /// <summary>
     /// This function and all others below were stripped from Moodles purely for the intent of making the visual display of a moodles details
     /// easily recognizable to the end user in a common format.
@@ -298,7 +232,7 @@ public class MoodlesManager : MediatorSubscriberBase
         //using var child = ImRaii.Child("##moodleInfo"+moodle.GUID, -Vector2.One, false);
         using (var table = ImRaii.Table("##moodles", 2, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchSame))
         {
-            if(!table) return;
+            if (!table) return;
 
             ImGui.TableSetupColumn("Status Config Item", ImGuiTableColumnFlags.WidthFixed, 135f);
             ImGui.TableSetupColumn("Value Set", ImGuiTableColumnFlags.WidthStretch);
@@ -317,7 +251,7 @@ public class MoodlesManager : MediatorSubscriberBase
 
             ImGui.TableNextColumn();
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-            var selinfo = GetIconInfo((uint)moodle.IconID);
+            var selinfo = _moodlesService.GetIconInfo((uint)moodle.IconID);
             string iconText = $"Icon: #{moodle.IconID} {selinfo?.Name}";
             ImGui.InputText("##iconNameParsed", ref iconText, 160, ImGuiInputTextFlags.ReadOnly);
 
@@ -409,50 +343,8 @@ public class MoodlesManager : MediatorSubscriberBase
             if (statusIcon is { } wrap)
             {
                 ImGui.SetCursorPos(iconPos);
-                ImGui.Image(statusIcon.ImGuiHandle, StatusSize * 2);
+                ImGui.Image(statusIcon.ImGuiHandle, MoodlesService.StatusSize * 2);
             }
         }
-    }
-    private static readonly Vector2 StatusSize = new(24, 32);
-    private static Dictionary<uint, IconInfo?> IconInfoCache = [];
-    public IconInfo? GetIconInfo(uint iconID)
-    {
-        if (IconInfoCache.TryGetValue(iconID, out var iconInfo))
-        {
-            return iconInfo;
-        }
-        else
-        {
-            var data = _dataManager.GetExcelSheet<Status>()?.FirstOrDefault(x => x.Icon == iconID);
-            if (data == null)
-            {
-                IconInfoCache[iconID] = null;
-                return null;
-            }
-            var info = new IconInfo()
-            {
-                Name = data.Name.ToDalamudString().ExtractText(),
-                IconID = iconID,
-                Type = data.CanIncreaseRewards == 1 ? StatusType.Special : (data.StatusCategory == 2 ? StatusType.Negative : StatusType.Positive),
-                ClassJobCategory = data.ClassJobCategory.Value,
-                IsFCBuff = data.IsFcBuff,
-                IsStackable = data.MaxStacks > 1,
-                Description = data.Description.ToDalamudString().ExtractText()
-
-            };
-            IconInfoCache[iconID] = info;
-            return info;
-        }
-    }
-
-    public struct IconInfo
-    {
-        public string Name;
-        public uint IconID;
-        public StatusType Type;
-        public bool IsStackable;
-        public ClassJobCategory ClassJobCategory;
-        public bool IsFCBuff;
-        public string Description;
     }
 }

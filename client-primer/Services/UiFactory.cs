@@ -29,13 +29,16 @@ public class UiFactory
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly ProfileService _gagspeakProfileManager;
     private readonly OnFrameworkService _frameworkUtils;
+    private readonly MoodlesService _moodlesService;
+    private readonly VisiblePairManager _visiblePairManager;
 
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator,
         ApiController apiController, UiSharedService uiSharedService, 
         ToyboxVibeService vibeService, IdDisplayHandler displayHandler, 
         PairManager pairManager, PlayerCharacterManager playerManager,
         ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
-        ProfileService profileManager, OnFrameworkService frameworkUtils)
+        ProfileService profileManager, OnFrameworkService frameworkUtils,
+        MoodlesService moodlesService, VisiblePairManager visiblePairManager)
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;
@@ -49,6 +52,8 @@ public class UiFactory
         _serverConfigs = serverConfigs;
         _gagspeakProfileManager = profileManager;
         _frameworkUtils = frameworkUtils;
+        _moodlesService = moodlesService;
+        _visiblePairManager = visiblePairManager;
     }
 
     public RemoteController CreateControllerRemote(PrivateRoom privateRoom)
@@ -67,6 +72,7 @@ public class UiFactory
     public UserPairPermsSticky CreateStickyPairPerms(Pair pair, StickyWindowType drawType)
     {
         return new UserPairPermsSticky(_loggerFactory.CreateLogger<UserPairPermsSticky>(), _gagspeakMediator, pair, 
-            drawType, _frameworkUtils, _playerManager, _displayHandler, _uiSharedService, _apiController, _pairManager);
+            drawType, _frameworkUtils, _playerManager, _displayHandler, _uiSharedService, _apiController, _pairManager,
+            _moodlesService, _visiblePairManager);
     }
 }

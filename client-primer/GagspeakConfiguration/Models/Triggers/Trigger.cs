@@ -9,6 +9,7 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 public abstract record Trigger
 {
     // required attributes
+    public Guid TriggerIdentifier { get; set; } = Guid.NewGuid();
     public bool Enabled { get; set; } = false;
     public int Priority { get; set; } = 0;
 

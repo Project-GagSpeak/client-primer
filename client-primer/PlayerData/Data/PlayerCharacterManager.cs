@@ -92,7 +92,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) =>
         {
             LastIpcData = msg.CharacterIPCData;
-            Logger.LogInformation("Latest Stored IPC Data now set to: " + Environment.NewLine
+            Logger.LogTrace("Latest Stored IPC Data now set to: " + Environment.NewLine
                 + "MoodlesData: " + msg.CharacterIPCData.MoodlesData + Environment.NewLine
                 + "MoodlesDataStatuses: " + msg.CharacterIPCData.MoodlesDataStatuses.Count + Environment.NewLine
                 + "MoodlesStatuses: " + msg.CharacterIPCData.MoodlesStatuses.Count + Environment.NewLine

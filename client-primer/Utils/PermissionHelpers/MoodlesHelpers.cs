@@ -263,12 +263,12 @@ public static class MoodlesHelpers
         success = false;
 
         var state = GetOrCreatePairState(pairToRemoveMoodlesFrom.UserData.UID, pairToRemoveMoodlesFrom.GetNickname() ?? pairToRemoveMoodlesFrom.UserData.AliasOrUID);
-        if (pairToRemoveMoodlesFrom.LastReceivedIpcData == null || pairToRemoveMoodlesFrom.LastReceivedIpcData.MoodlesStatuses.Count <= state.StatusIdxForMoodleDataInfo) return;
+        if (pairToRemoveMoodlesFrom.LastReceivedIpcData == null || pairToRemoveMoodlesFrom.LastReceivedIpcData.MoodlesDataStatuses.Count <= state.StatusIdxForMoodleDataInfo) return;
 
-        bool disabled = pairToRemoveMoodlesFrom.LastReceivedIpcData.MoodlesStatuses[state.StatusIdxForMoodleDataInfo].GUID != state.StatusGuidForMoodleDataInfo
+        bool disabled = pairToRemoveMoodlesFrom.LastReceivedIpcData.MoodlesDataStatuses[state.StatusIdxForMoodleDataInfo].GUID != state.StatusGuidForMoodleDataInfo
             || pairToRemoveMoodlesFrom.UserPairUniquePairPerms.AllowRemovingMoodles == false;
 
-        if (ImGuiUtil.DrawDisabledButton("Apply##RemoveStatus"+pairToRemoveMoodlesFrom.UserData.UID, new Vector2(), string.Empty, disabled))
+        if (ImGuiUtil.DrawDisabledButton("Remove##RemoveStatus"+pairToRemoveMoodlesFrom.UserData.UID, new Vector2(), string.Empty, disabled))
         {
             Guid statusGuid = state.StatusGuidForMoodleDataInfo;
             _ = apiController.UserRemoveMoodles(new RemoveMoodlesDto(pairToRemoveMoodlesFrom.UserData, new List<Guid> { statusGuid }));
@@ -335,4 +335,3 @@ public static class MoodlesHelpers
         return true;
     }
 }
-

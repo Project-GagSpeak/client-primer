@@ -106,14 +106,14 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     public void ApplyStatusesByGuid(ApplyMoodlesByGuidDto dto)
     {
-        string nameWithWorldOfApplier = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == dto.User.UID)?.PlayerNameWithWorld ?? string.Empty;
-        if (nameWithWorldOfApplier.IsNullOrEmpty())
+        Logger.LogInformation("Visible Users: {0}", string.Join(", ", _pairManager.GetVisibleUsers().Select(u => u.UID).ToList()));
+        if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID))
         {
             Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
             return;
         }
 
-        _ = _ipcCallerMoodles.ApplyOwnStatusByGUID(dto.Statuses, nameWithWorldOfApplier).ConfigureAwait(false);
+        _ = _ipcCallerMoodles.ApplyOwnStatusByGUID(dto.Statuses).ConfigureAwait(false);
     }
 
     public void ApplyStatusesToSelf(ApplyMoodlesByStatusDto dto, string clientPlayerNameWithWorld)
@@ -130,25 +130,32 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     public void RemoveStatusesFromSelf(RemoveMoodlesDto dto)
     {
-        string nameWithWorld = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == dto.User.UID)?.PlayerNameWithWorld ?? string.Empty;
-        if (nameWithWorld.IsNullOrEmpty())
+        if (!_pairManager.GetVisibleUsers().Contains(dto.User))
         {
             Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
             return;
         }
-        _ = _ipcCallerMoodles.RemoveOwnStatusByGuid(dto.Statuses, nameWithWorld).ConfigureAwait(false);
+
+        _ = _ipcCallerMoodles.RemoveOwnStatusByGuid(dto.Statuses).ConfigureAwait(false);
     }
 
     public void ClearStatusesFromSelf(UserDto dto)
     {
-        string nameWithWorld = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == dto.User.UID)?.PlayerNameWithWorld ?? string.Empty;
-        if (nameWithWorld.IsNullOrEmpty())
+        if (!_pairManager.GetVisibleUsers().Contains(dto.User))
         {
             Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
             return;
         }
+
+        bool CanClearMoodles = _pairManager.DirectPairs.First(p => p.UserData.UID == dto.User.UID).UserPairUniquePairPerms.AllowRemovingMoodles;
+        if (!CanClearMoodles)
+        {
+            Logger.LogError("Player does not have permission to clear their own moodles.");
+            return;
+        }
+
         // hack to not wait for this forever or require it to be a task.
-        _ = _ipcCallerMoodles.ClearStatusAsync(nameWithWorld).ConfigureAwait(false);
+        _ = _ipcCallerMoodles.ClearStatusAsync().ConfigureAwait(false);
     }
 
     #region Compile & Push Data for Server Transfer

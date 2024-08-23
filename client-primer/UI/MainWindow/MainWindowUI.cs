@@ -82,6 +82,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 {
                     Mediator.Publish(new UiToggleMessage(typeof(SettingsUi)));
                 },
+                
                 IconOffset = new(2,1),
                 ShowTooltip = () =>
                 {

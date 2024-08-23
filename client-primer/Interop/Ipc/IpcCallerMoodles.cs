@@ -2,6 +2,7 @@ using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
 using GagSpeak.UpdateMonitoring;
 
 namespace GagSpeak.Interop.Ipc;
@@ -214,14 +215,24 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
     }
 
-    public async Task ApplyOwnStatusByGUID(List<Guid> guid, string playerNameWithWorld)
+    public async Task ApplyOwnStatusByGUID(List<Guid> guid)
     {
         if (!APIAvailable) return;
 
-        foreach (var g in guid)
+        // grab the player name with world
+        string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
+        
+        if (string.IsNullOrEmpty(playerNameWithWorld))
         {
-            await ApplyOwnStatusByGUID(g, playerNameWithWorld);
+            _logger.LogError("Could not get player name with world for Client Player!!!!");
         }
+
+        // run the tasks in async with each other
+        var tasks = new List<Task>();
+        foreach (var g in guid) tasks.Add(ApplyOwnStatusByGUID(g, playerNameWithWorld));
+
+        await Task.WhenAll(tasks);
+        return;
     }
 
 
@@ -240,13 +251,23 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
     }
 
-    public async Task ApplyOwnPresetByGUID(Guid guid, string playerNameWithWorld)
+    public async Task ApplyOwnPresetByGUID(Guid guid)
     {
         if (!APIAvailable) return;
         try
         {
-            await _frameworkUtil.RunOnFrameworkThread(() => 
-                _applyPresetByGuid.InvokeAction(guid, playerNameWithWorld)).ConfigureAwait(false);
+            await _frameworkUtil.RunOnFrameworkThread(() =>
+            {
+                string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
+                if (string.IsNullOrEmpty(playerNameWithWorld))
+                {
+                    _logger.LogError("Could not get player name with world for Client Player!!!!");
+                }
+                else
+                {
+                    _applyPresetByGuid.InvokeAction(guid, playerNameWithWorld);
+                }
+            }).ConfigureAwait(false);
         }
         catch (Exception e)
         {
@@ -269,13 +290,23 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
     }
 
-    public async Task RemoveOwnStatusByGuid(List<Guid> guidsToRemove, string playerNameWithWorld)
+    public async Task RemoveOwnStatusByGuid(List<Guid> guidsToRemove)
     {
         if (!APIAvailable) return;
         try
         {
             await _frameworkUtil.RunOnFrameworkThread(() =>
-                _removeStatusByGuids.InvokeAction(guidsToRemove, playerNameWithWorld)).ConfigureAwait(false);
+            {
+                string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
+                if (string.IsNullOrEmpty(playerNameWithWorld))
+                {
+                    _logger.LogError("Could not get player name with world for Client Player!!!!");
+                }
+                else
+                {
+                    _removeStatusByGuids.InvokeAction(guidsToRemove, playerNameWithWorld);
+                }
+            }).ConfigureAwait(false);
         }
         catch (Exception e)
         {
@@ -298,9 +329,17 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
     }
 
+    public async Task ClearStatusAsync()
+    {
+        string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
+        if (string.IsNullOrEmpty(playerNameWithWorld))
+        {
+            _logger.LogError("Could not get player name with world for Client Player!!!!");
+        }
+        await ClearStatusAsync(playerNameWithWorld);
+    }
 
     /// <summary> Reverts the status of the moodles for a gameobject spesified by the pointer</summary>
-    /// <param name="pointer">the pointer address of the player to revert the status for</param>
     public async Task ClearStatusAsync(string playerNameWithWorld)
     {
         if (!APIAvailable) return;

@@ -393,10 +393,10 @@ public partial class UserPairPermsSticky
     private void DrawMoodlesActions()
     {
         // determine disable logic.
-        bool ApplyPairsMoodleToPairDisabled = !UserPairForPerms.UserPairUniquePairPerms.PairCanApplyYourMoodlesToYou;
-        bool ApplyOwnMoodleToPairDisabled = !UserPairForPerms.UserPairUniquePairPerms.PairCanApplyOwnMoodlesToYou;
-        bool RemovePairsMoodlesDisabled = !UserPairForPerms.UserPairUniquePairPerms.AllowRemovingMoodles;
-        bool ClearPairsMoodlesDisabled = !UserPairForPerms.UserPairUniquePairPerms.AllowRemovingMoodles;
+        bool ApplyPairsMoodleToPairDisabled = !UserPairForPerms.UserPairUniquePairPerms.PairCanApplyYourMoodlesToYou || UserPairForPerms.LastReceivedIpcData?.MoodlesStatuses.Count <= 0;
+        bool ApplyOwnMoodleToPairDisabled = !UserPairForPerms.UserPairUniquePairPerms.PairCanApplyOwnMoodlesToYou || LastCreatedCharacterData?.MoodlesStatuses.Count <= 0;
+        bool RemovePairsMoodlesDisabled = !UserPairForPerms.UserPairUniquePairPerms.AllowRemovingMoodles || UserPairForPerms.LastReceivedIpcData?.MoodlesDataStatuses.Count <= 0;
+        bool ClearPairsMoodlesDisabled = !UserPairForPerms.UserPairUniquePairPerms.AllowRemovingMoodles || UserPairForPerms.LastReceivedIpcData?.MoodlesData == string.Empty;
 
         // button for adding a Moodle by GUID from the paired user's Moodle list to the paired user. (Requires PairCanApplyYourMoodlesToYou)
         if (_uiShared.IconTextButton(FontAwesomeIcon.PersonCirclePlus, "Apply a Moodle from their list", WindowMenuWidth, true, ApplyPairsMoodleToPairDisabled))
@@ -415,7 +415,7 @@ public partial class UserPairPermsSticky
 
                 if (UserPairForPerms.LastReceivedIpcData != null)
                 {
-                    MoodlesHelpers.DrawStatusSelection(UserPairForPerms.LastReceivedIpcData, buttonWidth, PairUID, PairNickOrAliasOrUID, _moodlesService, _logger);
+                    MoodlesHelpers.DrawPairStatusSelection(UserPairForPerms.LastReceivedIpcData.MoodlesStatuses, buttonWidth, PairUID, PairNickOrAliasOrUID, _moodlesService, _logger);
                     ImUtf8.SameLineInner();
                     MoodlesHelpers.ApplyPairStatusButton(UserPairForPerms, _apiController, _logger, _frameworkUtils, _uiShared, out bool success);
                     if (success) ShowApplyPairMoodles = false;
@@ -445,7 +445,7 @@ public partial class UserPairPermsSticky
 
                 if (UserPairForPerms.LastReceivedIpcData != null)
                 {
-                    MoodlesHelpers.DrawPresetSelection(UserPairForPerms.LastReceivedIpcData, buttonWidth, PairUID, PairNickOrAliasOrUID, _uiShared, _logger);
+                    MoodlesHelpers.DrawPairPresetSelection(UserPairForPerms.LastReceivedIpcData, buttonWidth, PairUID, PairNickOrAliasOrUID, _uiShared, _logger);
                     ImUtf8.SameLineInner();
                     // validate the apply button
                     MoodlesHelpers.ApplyPairPresetButton(UserPairForPerms, _apiController, _logger, _frameworkUtils, _uiShared, out bool success);
@@ -478,7 +478,7 @@ public partial class UserPairPermsSticky
 
                 if (LastCreatedCharacterData != null)
                 {
-                    MoodlesHelpers.DrawStatusSelection(LastCreatedCharacterData, buttonWidth, PairUID, PairNickOrAliasOrUID, _moodlesService, _logger);
+                    MoodlesHelpers.DrawOwnStatusSelection(LastCreatedCharacterData.MoodlesStatuses, buttonWidth, PairUID, PairNickOrAliasOrUID, _moodlesService, _logger);
                     ImUtf8.SameLineInner();
                     // validate the apply button
                     MoodlesHelpers.ApplyOwnStatusButton(UserPairForPerms, _apiController, _logger, _frameworkUtils, _uiShared, LastCreatedCharacterData, PairNickOrAliasOrUID, out bool success);
@@ -509,7 +509,7 @@ public partial class UserPairPermsSticky
 
                 if (LastCreatedCharacterData != null)
                 {
-                    MoodlesHelpers.DrawPresetSelection(LastCreatedCharacterData, buttonWidth, PairUID, PairNickOrAliasOrUID, _uiShared, _logger);
+                    MoodlesHelpers.DrawOwnPresetSelection(LastCreatedCharacterData, buttonWidth, PairUID, PairNickOrAliasOrUID, _uiShared, _logger);
                     ImUtf8.SameLineInner();
                     ImUtf8.SameLineInner();
                     // validate the apply button
@@ -539,7 +539,7 @@ public partial class UserPairPermsSticky
 
                 float buttonWidth = WindowMenuWidth - ImGui.CalcTextSize("Remove").X - ImGui.GetStyle().ItemInnerSpacing.X - ImGui.GetStyle().ItemSpacing.X;
 
-                MoodlesHelpers.DrawStatusSelection(UserPairForPerms.LastReceivedIpcData, buttonWidth, PairUID, PairNickOrAliasOrUID, _moodlesService, _logger);
+                MoodlesHelpers.DrawPairActiveStatusSelection(UserPairForPerms.LastReceivedIpcData!.MoodlesDataStatuses, buttonWidth, PairUID, PairNickOrAliasOrUID, _moodlesService, _logger);
                 ImUtf8.SameLineInner();
                 // validate the apply button
                 MoodlesHelpers.RemoveMoodleButton(UserPairForPerms, _apiController, _logger, _frameworkUtils, _uiShared, out bool success);
@@ -560,8 +560,7 @@ public partial class UserPairPermsSticky
             using (var child = ImRaii.Child("ClearMoodles", new Vector2(WindowMenuWidth, ImGui.GetFrameHeightWithSpacing()), false))
             {
                 if (!child) return;
-
-                MoodlesHelpers.ClearMoodlesButton(UserPairForPerms, _apiController, _frameworkUtils, _uiShared, out bool success);
+                MoodlesHelpers.ClearMoodlesButton(UserPairForPerms, _apiController, _frameworkUtils, _uiShared, WindowMenuWidth, out bool success);
                 if (success) ShowClearMoodles = false;
             }
         }

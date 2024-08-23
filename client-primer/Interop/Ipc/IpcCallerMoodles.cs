@@ -27,7 +27,10 @@ public sealed class IpcCallerMoodles : IIpcCaller
     private readonly ICallGateSubscriber<List<MoodlesStatusInfo>> _getMoodlesInfo;
     private readonly ICallGateSubscriber<Guid, (Guid, List<Guid>)> _getPresetInfo;
     private readonly ICallGateSubscriber<List<(Guid, List<Guid>)>> _getPresetsInfo;
-    private readonly ICallGateSubscriber<string, string> _moodlesGetStatus;
+    private readonly ICallGateSubscriber<string> _getStatusManager;
+    private readonly ICallGateSubscriber<string, string> _getStatusManagerByName;
+    private readonly ICallGateSubscriber<List<MoodlesStatusInfo>> _getStatusManagerInfo;
+    private readonly ICallGateSubscriber<string, List<MoodlesStatusInfo>> _getStatusManagerInfoByName;
 
     // API Enactor Functions
     private readonly ICallGateSubscriber<Guid, string, object> _applyStatusByGuid;
@@ -60,7 +63,10 @@ public sealed class IpcCallerMoodles : IIpcCaller
         _getMoodlesInfo = pi.GetIpcSubscriber<List<MoodlesStatusInfo>>("Moodles.GetRegisteredMoodlesInfo");
         _getPresetInfo = pi.GetIpcSubscriber<Guid, (Guid, List<Guid>)>("Moodles.GetRegisteredPresetInfo");
         _getPresetsInfo = pi.GetIpcSubscriber<List<(Guid, List<Guid>)>>("Moodles.GetRegisteredPresetsInfo");
-        _moodlesGetStatus = pi.GetIpcSubscriber<string, string>("Moodles.GetStatusManagerByName");
+        _getStatusManager = pi.GetIpcSubscriber<string>("Moodles.GetStatusManagerLP");
+        _getStatusManagerByName = pi.GetIpcSubscriber<string, string>("Moodles.GetStatusManagerByName");
+        _getStatusManagerInfo = pi.GetIpcSubscriber<List<MoodlesStatusInfo>>("Moodles.GetStatusManagerInfoLP");
+        _getStatusManagerInfoByName = pi.GetIpcSubscriber<string, List<MoodlesStatusInfo>>("Moodles.GetStatusManagerInfoByName");
 
         // API Enactor Functions
         _applyStatusByGuid = pi.GetIpcSubscriber<Guid, string, object>("Moodles.AddOrUpdateMoodleByGUIDByName");
@@ -130,7 +136,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     /// <summary> This method gets the moodles info for a provided GUID from the client. </summary>
     public async Task<MoodlesStatusInfo?> GetMoodleInfoAsync(Guid guid)
     {
-        if (!APIAvailable) return null; // return if the API isnt available
+        if (!APIAvailable) return null; 
 
         try // otherwise, try and return an awaited task that gets the moodles info for a provided GUID
         {
@@ -138,7 +144,6 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            // log it if we failed.
             _logger.LogWarning(e, "Could not Get Moodles Info");
             return null;
         }
@@ -147,7 +152,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     /// <summary> This method gets the list of all our clients Moodles Info </summary>
     public async Task<List<MoodlesStatusInfo>?> GetMoodlesInfoAsync()
     {
-        if (!APIAvailable) return null; // return if the API isnt available
+        if (!APIAvailable) return null; 
 
         try // otherwise, try and return an awaited task that gets the list of all our clients Moodles Info
         {
@@ -155,7 +160,6 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            // log it if we failed.
             _logger.LogWarning(e, "Could not Get Moodles Info");
             return null;
         }
@@ -164,7 +168,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     /// <summary> This method gets the preset info for a provided GUID from the client. </summary>
     public async Task<(Guid, List<Guid>)?> GetPresetInfoAsync(Guid guid)
     {
-        if (!APIAvailable) return null; // return if the API isnt available
+        if (!APIAvailable) return null; 
 
         try // otherwise, try and return an awaited task that gets the preset info for a provided GUID
         {
@@ -172,7 +176,6 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            // log it if we failed.
             _logger.LogWarning(e, "Could not Get Moodles Preset Info");
             return null;
         }
@@ -181,35 +184,74 @@ public sealed class IpcCallerMoodles : IIpcCaller
     /// <summary> This method gets the list of all our clients Presets Info </summary>
     public async Task<List<(Guid, List<Guid>)>?> GetPresetsInfoAsync()
     {
-        if (!APIAvailable) return null; // return if the API isnt available
-
-        try // otherwise, try and return an awaited task that gets the list of all our clients Presets Info
+        if (!APIAvailable) return null; 
+        try
         {
             return await _frameworkUtil.RunOnFrameworkThread(() => _getPresetsInfo.InvokeFunc()).ConfigureAwait(false);
         }
         catch (Exception e)
         {
-            // log it if we failed.
             _logger.LogWarning(e, "Could not Get Moodles Presets Info");
             return null;
         }
     }
 
+    /// <summary> This method gets the status information of our client player </summary>
+    public async Task<List<MoodlesStatusInfo>?> GetStatusInfoAsync()
+    {
+        if (!APIAvailable) return null;
+        try
+        {
+            return await _frameworkUtil.RunOnFrameworkThread(() => _getStatusManagerInfo.InvokeFunc()).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Could not Get Moodles Status");
+            return null;
+        }
+    }
+
+    /// <summary> Obtain the status information of a visible player </summary>
+    public async Task<List<MoodlesStatusInfo>?> GetStatusInfoAsync(string playerNameWithWorld)
+    {
+        if (!APIAvailable) return null;
+        try
+        {
+            return await _frameworkUtil.RunOnFrameworkThread(() => _getStatusManagerInfoByName.InvokeFunc(playerNameWithWorld)).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Could not Get Moodles Status");
+            return null;
+        }
+    }
+
+    /// <summary> To use when we want to obtain the status manager for our client player, without needing to calculate our address. </summary>
+    public async Task<string?> GetClientPlayerStatusAsync()
+    {
+        if(!APIAvailable) return null;
+        try
+        {
+            return await _frameworkUtil.RunOnFrameworkThread(() => _getStatusManager.InvokeFunc()).ConfigureAwait(false);
+        }
+        catch (Exception e)
+        {
+            _logger.LogWarning(e, "Could not Get Moodles Status");
+            return null;
+        }
+    }
 
 
     /// <summary> This method gets the status of the moodles for a partiular address</summary>
     public async Task<string?> GetStatusAsync(string playerNameWithWorld)
     {
-        if (!APIAvailable) return null; // return if the API isnt available
-
-        try // otherwise, try and return an awaited task that gets the status of the moodles for a particular address
+        if (!APIAvailable) return null; 
+        try
         {
-            return await _frameworkUtil.RunOnFrameworkThread(() => _moodlesGetStatus.InvokeFunc(playerNameWithWorld)).ConfigureAwait(false);
-
+            return await _frameworkUtil.RunOnFrameworkThread(() => _getStatusManagerByName.InvokeFunc(playerNameWithWorld)).ConfigureAwait(false);
         }
         catch (Exception e)
         {
-            // log it if we failed.
             _logger.LogWarning(e, "Could not Get Moodles Status");
             return null;
         }
@@ -219,12 +261,11 @@ public sealed class IpcCallerMoodles : IIpcCaller
     {
         if (!APIAvailable) return;
 
-        // grab the player name with world
         string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
-        
         if (string.IsNullOrEmpty(playerNameWithWorld))
         {
             _logger.LogError("Could not get player name with world for Client Player!!!!");
+            return;
         }
 
         // run the tasks in async with each other
@@ -241,8 +282,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         if (!APIAvailable) return;
         try
         {
-            await _frameworkUtil.RunOnFrameworkThread(() => 
-                _applyStatusByGuid.InvokeAction(guid, playerNameWithWorld)).ConfigureAwait(false);
+            await _frameworkUtil.RunOnFrameworkThread(() => _applyStatusByGuid.InvokeAction(guid, playerNameWithWorld)).ConfigureAwait(false);
             _logger.LogDebug("Applied Moodles Status by guid {guid} to {playerNameWithWorld}", guid, playerNameWithWorld);
         }
         catch (Exception e)
@@ -316,7 +356,6 @@ public sealed class IpcCallerMoodles : IIpcCaller
 
     public async Task SetStatusAsync(string playerNameWithWorld, string status)
     {
-        // if the API is not available, return
         if (!APIAvailable) return;
         try
         {

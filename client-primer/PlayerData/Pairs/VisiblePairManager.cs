@@ -45,7 +45,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
             var newData = msg.CharacterIPCData;
             // Send if attached data is different from last sent data.
             // this check also helps us ensure that we are not receiving the same data as pairHandlerVisible
-            if (LastIpcData == null || !Equals(newData, LastIpcData))
+            if (LastIpcData == null || LastIpcData.Equals(newData))
             {
                 Logger.LogDebug("Pushing new IPC data to all visible players");
                 LastIpcData = newData;

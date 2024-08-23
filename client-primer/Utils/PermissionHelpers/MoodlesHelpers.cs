@@ -17,6 +17,7 @@ using GagspeakAPI.Data;
 using GagspeakAPI.Dto.User;
 using GagspeakAPI.Data.Permissions;
 using OtterGui;
+using ImGuiNET;
 
 namespace GagSpeak.Utils.PermissionHelpers;
 
@@ -40,50 +41,94 @@ public static class MoodlesHelpers
         return state;
     }
 
+    // Storing seperate selections for each dropdown to avoid out of bounds index conflicts.
     private class PairState
     {
         public string Name;
-        public int SelectedStatusIdx = 2;
-        public int SelectedPresetIdx = 0;
-        public Guid SelectedStatusGuid = Guid.Empty;
-        public Guid SelectedPresetGuid = Guid.Empty;
+        public int StatusIdxForOwnList = 0;
+        public int StatusIdxForPairList = 0;
+        public int PresetIdxForOwnList = 0;
+        public int PresetIdxForPairList = 0;
+        public int StatusIdxForMoodleDataInfo = 0;
+        public Guid StatusGuidForOwnList = Guid.Empty;
+        public Guid StatusGuidForPairList = Guid.Empty;
+        public Guid PresetGuidForOwnList = Guid.Empty;
+        public Guid PresetGuidForPairList = Guid.Empty;
+        public Guid StatusGuidForMoodleDataInfo = Guid.Empty;
     }
 
-    public static void DrawStatusSelection(CharacterIPCData ipcData, float width, string UID, string nickname, MoodlesService moodlesService, ILogger logger)
+    public static void DrawOwnStatusSelection(List<MoodlesStatusInfo> statusList, float width, string UID, string nickname, MoodlesService moodlesService, ILogger logger)
+    {
+        var state = GetOrCreatePairState(UID, nickname);
+        DrawStatuses(statusList, width, UID, nickname, moodlesService, logger, ref state.StatusIdxForOwnList, ref state.StatusGuidForOwnList);
+    }
+
+    public static void DrawPairStatusSelection(List<MoodlesStatusInfo> statusList, float width, string UID, string nickname, MoodlesService moodlesService, ILogger logger)
+    {
+        var state = GetOrCreatePairState(UID, nickname);
+        DrawStatuses(statusList, width, UID, nickname, moodlesService, logger, ref state.StatusIdxForPairList, ref state.StatusGuidForPairList);
+    }
+
+    public static void DrawPairActiveStatusSelection(List<MoodlesStatusInfo> statusList, float width, string UID, string nickname, MoodlesService moodlesService, ILogger logger)
+    {
+        var state = GetOrCreatePairState(UID, nickname);
+        DrawStatuses(statusList, width, UID, nickname, moodlesService, logger, ref state.StatusIdxForMoodleDataInfo, ref state.StatusGuidForMoodleDataInfo);
+    }
+
+    private static void DrawStatuses(List<MoodlesStatusInfo> statusList, float width, string UID, string nickname, 
+        MoodlesService moodlesService, ILogger logger, ref int StateIdx, ref Guid SelectedGuid)
     {
         var state = GetOrCreatePairState(UID, nickname);
         // reset selected Idx if list has changed and made the selectable beyond the bounds.
-        if (ipcData.MoodlesStatuses.Count <= state.SelectedStatusIdx)
+        if (statusList.Count <= StateIdx)
         {
-            logger.LogWarning("SelectedStatusIdx was out of bounds. The count was {count} and the selected index was {selectedIdx}", ipcData.MoodlesStatuses.Count, state.SelectedStatusIdx);
-            state.SelectedStatusIdx = 0;
+            logger.LogWarning("SelectedStatusIdx was out of bounds. The count was {count} and the selected index was {selectedIdx}", statusList.Count, StateIdx);
+            StateIdx = 0;
         }
             // Draw out the status selector.
-        if (moodlesService.DrawMoodleStatusComboSearchable(ipcData, "##Status for " + nickname, ref state.SelectedStatusIdx, width, 1.0f))
+        if (moodlesService.DrawMoodleStatusComboSearchable(statusList, "##Status for " + nickname, ref StateIdx, width, 1.0f))
         {
-            logger.LogTrace("SelectedStatusIdx is now {selectedStatusIdx} with GUID {guid}", state.SelectedStatusIdx, ipcData.MoodlesStatuses[state.SelectedStatusIdx].GUID);
-            state.SelectedStatusGuid = ipcData.MoodlesStatuses[state.SelectedStatusIdx].GUID;
+            logger.LogTrace("SelectedStatusIdx is now {selectedStatusIdx} with GUID {guid}", StateIdx, statusList[StateIdx].GUID);
+            SelectedGuid = statusList[StateIdx].GUID;
         }
         UiSharedService.AttachToolTip("Select a status to apply to " + nickname);
     }
 
-    public static void DrawPresetSelection(CharacterIPCData ipcData, float width, string UID, string nickname, UiSharedService uiShared, ILogger logger)
+    public static void DrawOwnPresetSelection(CharacterIPCData ipcData, float width, string UID, string nickname, UiSharedService uiShared, ILogger logger)
+    {
+        var state = GetOrCreatePairState(UID, nickname);
+        DrawPresetSelection(ipcData, width, UID, nickname, uiShared, logger, ref state.PresetIdxForOwnList, ref state.PresetGuidForOwnList);
+    }
+    public static void DrawPairPresetSelection(CharacterIPCData ipcData, float width, string UID, string nickname, UiSharedService uiShared, ILogger logger)
+    {
+        var state = GetOrCreatePairState(UID, nickname);
+        DrawPresetSelection(ipcData, width, UID, nickname, uiShared, logger, ref state.PresetIdxForPairList, ref state.PresetGuidForPairList);
+    }
+
+    private static void DrawPresetSelection(CharacterIPCData ipcData, float width, string UID, string nickname, 
+        UiSharedService uiShared, ILogger logger, ref int SelectedIdx, ref Guid SelectedGuid)
     {
         var state = GetOrCreatePairState(UID, nickname);
         // reset selected Idx if list has changed and made the selectable beyond the bounds.
-        if (ipcData.MoodlesPresets.Count <= state.SelectedPresetIdx) state.SelectedPresetIdx = 0;
+        if (ipcData.MoodlesPresets.Count <= SelectedIdx) SelectedIdx = 0;
 
+        var newGuid = Guid.Empty;
+        var newIdx = -1;
         // Draw out the status selector.
         uiShared.DrawComboSearchable("##PresetSelector", width, ref MoodlesPresetSearch, ipcData.MoodlesPresets,
             (preset) => preset.Item1.ToString(), false, 
             (preset) =>
             {
-                state.SelectedPresetGuid = preset.Item1;
-                state.SelectedPresetIdx = ipcData.MoodlesPresets.IndexOf(preset);
+                newGuid = preset.Item1;
+                newIdx = ipcData.MoodlesPresets.IndexOf(preset);
             });
 
+        // store the new info if updated
+        if (newGuid != Guid.Empty) SelectedGuid = newGuid;
+        if (newIdx != -1) SelectedIdx = newIdx;
+
         // Extract the titles of the statuses for the selected preset
-        var statusTitles = ipcData.MoodlesPresets[state.SelectedPresetIdx].Item2
+        var statusTitles = ipcData.MoodlesPresets[SelectedIdx].Item2
             .Select(guid => ipcData.MoodlesStatuses.FirstOrDefault(status => status.GUID == guid).Title)
             .Where(title => !string.IsNullOrEmpty(title));
 
@@ -98,21 +143,21 @@ public static class MoodlesHelpers
         success = false;
 
         var state = GetOrCreatePairState(Pair.UserData.UID, Pair.GetNickname() ?? Pair.UserData.AliasOrUID);
-        if (Pair.LastReceivedIpcData == null || Pair.LastReceivedIpcData.MoodlesStatuses.Count <= state.SelectedStatusIdx) return;
+        if (Pair.LastReceivedIpcData == null || Pair.LastReceivedIpcData.MoodlesStatuses.Count <= state.StatusIdxForPairList) return;
 
-        bool disabled = Pair.LastReceivedIpcData.MoodlesStatuses[state.SelectedStatusIdx].GUID != state.SelectedStatusGuid;
+        bool disabled = Pair.LastReceivedIpcData.MoodlesStatuses[state.StatusIdxForPairList].GUID != state.StatusGuidForPairList;
         if (ImGuiUtil.DrawDisabledButton("Apply##ApplyPairStatus" + Pair.UserData.UID, new Vector2(), string.Empty, disabled))
         {
             // validate the permissions for it.
-            var statusInfo = new List<MoodlesStatusInfo> { Pair.LastReceivedIpcData.MoodlesStatuses[state.SelectedStatusIdx] };
+            var statusInfo = new List<MoodlesStatusInfo> { Pair.LastReceivedIpcData.MoodlesStatuses[state.StatusIdxForPairList] };
             if (!ValidatePermissionForApplication(logger, Pair.UserPairUniquePairPerms, statusInfo)) return;
 
-            Guid statusGuid = state.SelectedStatusGuid;
+            Guid statusGuid = state.StatusGuidForPairList;
             logger.LogInformation("Applying status {statusGuid} to {pairNickname}", statusGuid, Pair.GetNickname() ?? Pair.UserData.AliasOrUID);
             _ = ApiController.UserApplyMoodlesByGuid(new ApplyMoodlesByGuidDto(Pair.UserData, new List<Guid> { statusGuid }, IpcToggleType.MoodlesStatus));
             success = true;
-            state.SelectedStatusIdx = 0;
-            state.SelectedStatusGuid = Guid.Empty;
+            state.StatusIdxForPairList = 0;
+            state.StatusGuidForPairList = Guid.Empty;
         }
         UiSharedService.AttachToolTip("Apply the selected status to " + Pair.GetNickname() ?? Pair.UserData.AliasOrUID);
         return;
@@ -124,14 +169,14 @@ public static class MoodlesHelpers
         success = false;
 
         var state = GetOrCreatePairState(Pair.UserData.UID, Pair.GetNickname() ?? Pair.UserData.AliasOrUID);
-        if (Pair.LastReceivedIpcData == null || Pair.LastReceivedIpcData.MoodlesPresets.Count <= state.SelectedPresetIdx) return;
+        if (Pair.LastReceivedIpcData == null || Pair.LastReceivedIpcData.MoodlesPresets.Count <= state.PresetIdxForPairList) return;
 
-        bool disabled = Pair.LastReceivedIpcData.MoodlesPresets[state.SelectedPresetIdx].Item1 != state.SelectedPresetGuid;
+        bool disabled = Pair.LastReceivedIpcData.MoodlesPresets[state.PresetIdxForPairList].Item1 != state.PresetGuidForPairList;
         if (ImGuiUtil.DrawDisabledButton("Apply##ApplyPairPreset" + Pair.UserData.UID, new Vector2(), string.Empty, disabled))
         {
             // compile together the list of statuses to apply by extracting them from our status list where the ID's match.
             List<MoodlesStatusInfo> statusesToApply = new List<MoodlesStatusInfo>();
-            foreach (var presetStatusGuid in Pair.LastReceivedIpcData.MoodlesPresets[state.SelectedPresetIdx].Item2)
+            foreach (var presetStatusGuid in Pair.LastReceivedIpcData.MoodlesPresets[state.PresetIdxForPairList].Item2)
             {
                 var statusToAdd = Pair.LastReceivedIpcData.MoodlesStatuses.Where(s => s.GUID == presetStatusGuid).FirstOrDefault();
                 if (statusToAdd.GUID != presetStatusGuid) return;
@@ -142,7 +187,7 @@ public static class MoodlesHelpers
             // validate permissions
             if (!ValidatePermissionForApplication(logger, Pair.UserPairUniquePairPerms, statusesToApply)) return;
 
-            Guid statusGuid = state.SelectedPresetGuid;
+            Guid statusGuid = state.PresetGuidForPairList;
             _ = ApiController.UserApplyMoodlesByGuid(new ApplyMoodlesByGuidDto(Pair.UserData, statusesToApply.Select(s => s.GUID).ToList(), IpcToggleType.MoodlesPreset));
             success = true;
         }
@@ -158,19 +203,19 @@ public static class MoodlesHelpers
         success = false;
 
         var state = GetOrCreatePairState(pairForApplication.UserData.UID, pairNickname);
-        if (clientPlayerIpc == null || clientPlayerIpc.MoodlesStatuses.Count <= state.SelectedStatusIdx) return;
+        if (clientPlayerIpc == null || clientPlayerIpc.MoodlesStatuses.Count <= state.StatusIdxForOwnList) return;
 
-        bool disabled = clientPlayerIpc.MoodlesStatuses[state.SelectedStatusIdx].GUID != state.SelectedStatusGuid;
+        bool disabled = clientPlayerIpc.MoodlesStatuses[state.StatusIdxForOwnList].GUID != state.StatusGuidForOwnList;
         if (ImGuiUtil.DrawDisabledButton("Apply##ApplyOwnStatus"+pairForApplication.UserData.UID, new Vector2(), string.Empty, disabled))
         {
-            MoodlesStatusInfo status = clientPlayerIpc.MoodlesStatuses[state.SelectedStatusIdx];
+            MoodlesStatusInfo status = clientPlayerIpc.MoodlesStatuses[state.StatusIdxForOwnList];
             // validate permissions
             if (!ValidatePermissionForApplication(logger, pairForApplication.UserPairUniquePairPerms, new List<MoodlesStatusInfo> { status })) return;
 
             _ = ApiController.UserApplyMoodlesByStatus(new ApplyMoodlesByStatusDto(pairForApplication.UserData, new List<MoodlesStatusInfo> { status }, IpcToggleType.MoodlesStatus));
             success = true;
-            state.SelectedStatusIdx = 0;
-            state.SelectedStatusGuid = Guid.Empty;
+            state.StatusIdxForOwnList = 0;
+            state.StatusGuidForOwnList = Guid.Empty;
         }
         UiSharedService.AttachToolTip("Apply the selected status to " + pairNickname);
         return;
@@ -182,14 +227,14 @@ public static class MoodlesHelpers
         success = false;
 
         var state = GetOrCreatePairState(pairForApplication.UserData.UID, pairNickname);
-        if (clientPlayerIpc == null || clientPlayerIpc.MoodlesPresets.Count <= state.SelectedPresetIdx) return;
+        if (clientPlayerIpc == null || clientPlayerIpc.MoodlesPresets.Count <= state.PresetIdxForOwnList) return;
 
-        bool disabled = clientPlayerIpc.MoodlesPresets[state.SelectedPresetIdx].Item1 != state.SelectedPresetGuid;
+        bool disabled = clientPlayerIpc.MoodlesPresets[state.PresetIdxForOwnList].Item1 != state.PresetGuidForOwnList;
         if (ImGuiUtil.DrawDisabledButton("Apply##ApplyOwnPreset" + pairForApplication.UserData.UID, new Vector2(), string.Empty, disabled))
         {
             // compile together the list of statuses to apply by extracting them from our status list where the ID's match.
             List<MoodlesStatusInfo> statusesToApply = new List<MoodlesStatusInfo>();
-            foreach (var presetStatusGuid in clientPlayerIpc.MoodlesPresets[state.SelectedPresetIdx].Item2)
+            foreach (var presetStatusGuid in clientPlayerIpc.MoodlesPresets[state.PresetIdxForOwnList].Item2)
             {
                 var statusToAdd = clientPlayerIpc.MoodlesStatuses.Where(s => s.GUID == presetStatusGuid).FirstOrDefault();
                 if (statusToAdd.GUID != presetStatusGuid) return;
@@ -202,8 +247,8 @@ public static class MoodlesHelpers
 
             _ = ApiController.UserApplyMoodlesByStatus(new ApplyMoodlesByStatusDto(pairForApplication.UserData, statusesToApply, IpcToggleType.MoodlesPreset));
             success = true;
-            state.SelectedPresetIdx = 0;
-            state.SelectedPresetGuid = Guid.Empty;
+            state.PresetIdxForOwnList = 0;
+            state.PresetGuidForOwnList = Guid.Empty;
         }
         UiSharedService.AttachToolTip("Apply the selected status to " + pairNickname);
         return;
@@ -218,18 +263,18 @@ public static class MoodlesHelpers
         success = false;
 
         var state = GetOrCreatePairState(pairToRemoveMoodlesFrom.UserData.UID, pairToRemoveMoodlesFrom.GetNickname() ?? pairToRemoveMoodlesFrom.UserData.AliasOrUID);
-        if (pairToRemoveMoodlesFrom.LastReceivedIpcData == null || pairToRemoveMoodlesFrom.LastReceivedIpcData.MoodlesStatuses.Count <= state.SelectedStatusIdx) return;
+        if (pairToRemoveMoodlesFrom.LastReceivedIpcData == null || pairToRemoveMoodlesFrom.LastReceivedIpcData.MoodlesStatuses.Count <= state.StatusIdxForMoodleDataInfo) return;
 
-        bool disabled = pairToRemoveMoodlesFrom.LastReceivedIpcData.MoodlesStatuses[state.SelectedStatusIdx].GUID != state.SelectedStatusGuid
+        bool disabled = pairToRemoveMoodlesFrom.LastReceivedIpcData.MoodlesStatuses[state.StatusIdxForMoodleDataInfo].GUID != state.StatusGuidForMoodleDataInfo
             || pairToRemoveMoodlesFrom.UserPairUniquePairPerms.AllowRemovingMoodles == false;
 
         if (ImGuiUtil.DrawDisabledButton("Apply##RemoveStatus"+pairToRemoveMoodlesFrom.UserData.UID, new Vector2(), string.Empty, disabled))
         {
-            Guid statusGuid = state.SelectedStatusGuid;
+            Guid statusGuid = state.StatusGuidForMoodleDataInfo;
             _ = apiController.UserRemoveMoodles(new RemoveMoodlesDto(pairToRemoveMoodlesFrom.UserData, new List<Guid> { statusGuid }));
             success = true;
-            state.SelectedStatusIdx = 0;
-            state.SelectedStatusGuid = Guid.Empty;
+            state.StatusIdxForMoodleDataInfo = 0;
+            state.StatusGuidForMoodleDataInfo = Guid.Empty;
         }
         UiSharedService.AttachToolTip("Remove the selected status from " + pairToRemoveMoodlesFrom.GetNickname() ?? pairToRemoveMoodlesFrom.UserData.AliasOrUID);
         return;
@@ -238,13 +283,13 @@ public static class MoodlesHelpers
 
     #region ClearMoodles
     public static void ClearMoodlesButton(Pair pairToClearMoodlesFrom, ApiController apiController,
-        OnFrameworkService frameworkUtils, UiSharedService uiShared, out bool success)
+        OnFrameworkService frameworkUtils, UiSharedService uiShared, float width, out bool success)
     {
         success = false;
 
         if (!pairToClearMoodlesFrom.UserPairUniquePairPerms.AllowRemovingMoodles || pairToClearMoodlesFrom.LastReceivedIpcData == null) return;
 
-        if (ImGuiUtil.DrawDisabledButton("Apply##ClearStatus" + pairToClearMoodlesFrom.UserData.UID, new Vector2(), string.Empty, pairToClearMoodlesFrom.LastReceivedIpcData.MoodlesData == string.Empty))
+        if (ImGui.Button("Clear All Active Moodles##ClearStatus" + pairToClearMoodlesFrom.UserData.UID, new Vector2(width, ImGui.GetFrameHeight())))
         {
             _ = apiController.UserClearMoodles(new(pairToClearMoodlesFrom.UserData));
             success = true;

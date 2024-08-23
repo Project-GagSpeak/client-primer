@@ -166,7 +166,7 @@ public class MoodlesManager : MediatorSubscriberBase
         }
 
         var length = ImGui.GetContentRegionAvail().X;
-        _moodlesService.DrawMoodleStatusComboSearchable(DataToDisplay, DataToDisplay.MoodlesStatuses[SelectedStatusIndex].Title + "##StatusSelector", 
+        _moodlesService.DrawMoodleStatusComboSearchable(DataToDisplay.MoodlesStatuses, DataToDisplay.MoodlesStatuses[SelectedStatusIndex].Title + "##StatusSelector", 
             ref SelectedStatusIndex, length, 1.25f);
         ImGui.Separator();
 

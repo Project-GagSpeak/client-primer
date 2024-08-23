@@ -95,7 +95,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     {
         base.Dispose(disposing);
 
+        // store name and address to reference removal properly.
         var name = PlayerNameWithWorld;
+        var address = _charaHandler?.Address ?? nint.Zero;
         Logger.LogDebug("Disposing {name} ({user})", name, OnlineUser);
         try
         {
@@ -126,7 +128,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
                 try
                 {
-                    RevertIpcDataAsync(name, applicationId, cts.Token).GetAwaiter().GetResult();
+                    RevertIpcDataAsync(name, address, applicationId, cts.Token).GetAwaiter().GetResult();
                 }
                 catch (InvalidOperationException ex)
                 {
@@ -149,33 +151,29 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    /// <summary> Method responsible for applying the stored character data to the paired user.
+    /// <summary> 
+    /// Method responsible for applying the stored character data to the paired user.
     /// <para> 
-    /// Will first check to see if This includes any IPC calls that are to be made to the character.
-    /// At the moment it does not support much else, but easily could.
+    /// This is usually handled by Mare, but in the case that mare is not installed, 
+    /// GagSpeak will be able to take over for the supported IPC it can work with.
     /// </para>
-    /// <para> Method is the ONLY METHOD which should be calling CallAlterationsToIpcAsync </para>
     /// </summary>
-    /// <param name="applicationBase"></param>
-    /// <param name="characterData"></param>
-    /// <param name="forceApplyCustomization"></param>
     public void ApplyCharacterData(Guid applicationBase, CharacterIPCData characterData)
     {
         // publish the message to the mediator that we are applying character data
-        Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational,
-            "Applying Character Data")));
+        Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational, "Applying Character IPC Data")));
 
         // check update data to see what character data we will need to update.
         // We pass in _cachedIpcData?.DeepClone() to send what the past data was,
         // so we can compare it against the new data to know if its different.
         var charaDataChangesToUpdate = characterData.CheckUpdatedData(applicationBase, _cachedIpcData?.DeepClone() ?? new(), Logger, this);
 
-        Logger.LogDebug("[BASE-{appbase}] Downloading and applying character for {name}", applicationBase, this);
+        Logger.LogDebug("Applying IPC data for {identifier} ({name})", this, PlayerName);
 
         // process the changes to the character data (look further into the purpose of the deep cloning at a later time)
         if (!charaDataChangesToUpdate.Any())
         {
-            Logger.LogDebug("[BASE-{appBase}] Nothing to update for {obj}", applicationBase, this);
+            Logger.LogDebug("Nothing to update for {identifier} ({name})", applicationBase, PlayerName);
             return;
         }
 
@@ -194,44 +192,37 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             // update the cachedData 
             _cachedIpcData = characterData;
 
-            Logger.LogDebug("[{applicationId}] Application finished", _applicationId);
+            Logger.LogDebug("ApplyData finished for [{name}] ({application})", PlayerName, _applicationId);
         }, token);
     }
 
-    /// <summary> Method that will apply any visual alterations such as moodles onto other paired users.
-    /// <para> Primarily responsible for calling upon the various IPC's we have linked when there is a change to be made and apply them</para>
-    /// <para> THIS IS TO BE CALLED ONLY FROM THE APPLYDATA FUNCTION</para>
+    /// <summary>
+    /// Applies the visible alterations to a character's IPC data.
+    /// This means only IPC related changes should be monitored here. Not anything else.
     /// </summary>
-    /// <param name="applicationId">the ID of the application being made</param>
-    /// <param name="changes">the kinds of changes to be updated onto the paired user</param>
-    /// <param name="charaData">the data the user should have altared onto their apperance.</param>
-    /// <param name="token">the cancelation token.</param>
     private async Task CallAlterationsToIpcAsync(Guid applicationId, HashSet<PlayerChanges> changes, CharacterIPCData charaData, CancellationToken token)
     {
-        // if the player character is zero, return
         if (IPlayerCharacter == nint.Zero) return;
-        // set the pointer to the player character we are updating the information for
+        // pointer address to playerCharacter address, which is equal to the gameobject handlers address.
         var ptr = IPlayerCharacter;
-        // set the handler to the characterData of the paired user
         var handler = _charaHandler!;
-
-        // try and apply the alterations to the character data
         try
         {
-            // if the handler address is zero, return
+            // verify game object address is not zero
             if (handler.Address == nint.Zero) { return; }
 
             // otherwise, log that we are applying the customization data for the handlers
-            Logger.LogDebug("[{applicationId}] Applying Customization Data for {handler}", applicationId, handler);
+            Logger.LogDebug("Applying visual customization changes for {handler} ({appId})", handler, applicationId);
 
             // otherwise, for each change in the changes, apply the changes
             foreach (var change in changes.OrderBy(p => (int)p))
             {
                 // log that we are processing the change for the handler
-                Logger.LogDebug("[{applicationId}] Processing {change} for {handler}", applicationId, change, handler);
+                Logger.LogDebug("Processing {change} for {handler} ({applicationId})", change, handler, applicationId);
                 switch (change)
                 {
-                    case PlayerChanges.Glamourer:
+                    case PlayerChanges.Customize:
+                        // hell nah
                         break;
                     case PlayerChanges.Moodles:
                         await _ipcManager.Moodles.SetStatusAsync(handler.NameWithWorld, charaData.MoodlesData).ConfigureAwait(false);
@@ -321,22 +312,45 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     }
 
 
-    /// <summary> Method responsible for reverting all alteration data for paired users.
-    /// <para> Method is ONLY EVER CALLED IN THE PAIR HANDLERS DISPOSE METHOD </para>
-    /// <para> Method will call the IPC's revert calls so all states are put back to normal.</para>
+    /// <summary> 
+    /// Method responsible for reverting all VISIBLE IPC Changes done to players on disconnect or plugin toggle.
+    /// <para> 
+    /// When reverting, ensure to check against the address so we avoid reverting changes there mare still holds valid.
+    /// </para>
     /// </summary>
     /// <param name="name">the name of the pair to dispose</param>
-    /// <param name="applicationId">the ID of the application</param>
+    /// <param name="applicationId">the ID of the pair Handler</param>
     /// <param name="cancelToken">the CancellationToken</param>
-    /// <returns></returns>
-    private async Task RevertIpcDataAsync(string name, Guid applicationId, CancellationToken cancelToken)
+    private async Task RevertIpcDataAsync(string name, nint address, Guid applicationId, CancellationToken cancelToken)
     {
         // if the address is zero, return
         if (name == string.Empty) return;
 
         Logger.LogDebug("[{applicationId}] Reverting all Customization for {alias}/{name}", applicationId, OnlineUser.User.AliasOrUID, name);
 
-        Logger.LogDebug("[{applicationId}] Restoring Moodles for {alias}/{name}", applicationId, OnlineUser.User.AliasOrUID, name);
-        await _ipcManager.Moodles.ClearStatusAsync(name).ConfigureAwait(false);
+        // first, we should validate if they are a mare player or not.
+        bool isMareUser = await IsMareUser(address).ConfigureAwait(false);
+
+        // Handle C+ Revert if not a mare user (LATER)
+
+        // Handle Moodle Revert
+        if (isMareUser)
+        {
+            Logger.LogDebug("{name} Is a Mare user. Retaining Moodles for {alias}", name, OnlineUser.User.AliasOrUID);
+        }
+        else
+        {
+            Logger.LogDebug("{name} is not a Mare user. Clearing Moodles for {alias}", name, OnlineUser.User.AliasOrUID);
+            await _ipcManager.Moodles.ClearStatusAsync(name).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<bool> IsMareUser(nint address)
+    {
+        var handledMarePlayers = await _ipcManager.Mare.GetHandledMarePlayers().ConfigureAwait(false);
+        // log the mare players.
+        Logger.LogDebug("Mare Players: {players}", string.Join(", ", handledMarePlayers));
+        if (handledMarePlayers == null) return false;
+        return handledMarePlayers.Any(playerAddress => playerAddress == address);
     }
 }

@@ -38,9 +38,9 @@ public class MoodlesService
 
     protected virtual void OnClosePopup() { }
 
-    public bool DrawMoodleStatusComboSearchable(CharacterIPCData ipcData, string comboLabel, ref int selectedIdx, float width, float sizeScaler)
+    public bool DrawMoodleStatusComboSearchable(List<MoodlesStatusInfo> statusList, string comboLabel, ref int selectedIdx, float width, float sizeScaler)
     {
-        DrawComboActual(ipcData, comboLabel, ref selectedIdx, width, sizeScaler);
+        DrawComboActual(statusList, comboLabel, ref selectedIdx, width, sizeScaler);
 
         if (NewSelection == null) return false;
 
@@ -49,21 +49,21 @@ public class MoodlesService
         return true;
     }
 
-    private void DrawComboActual(CharacterIPCData ipcData, string comboLabel, ref int selectedIdx, float width, float sizeScaler)
+    private void DrawComboActual(List<MoodlesStatusInfo> statusList, string comboLabel, ref int selectedIdx, float width, float sizeScaler)
     {
         ImGui.SetNextItemWidth(width);
         // Button to open popup
         var pos = ImGui.GetCursorScreenPos();
         var id = ImGui.GetID(comboLabel);
 
-        using var combo = ImRaii.Combo(comboLabel, ipcData.MoodlesStatuses[selectedIdx].Title, ImGuiComboFlags.HeightLarge);
+        using var combo = ImRaii.Combo(comboLabel, statusList[selectedIdx].Title, ImGuiComboFlags.HeightLarge);
         PostCombo(width);
 
         if (combo)
         {
             _popupState.Add(id);
 
-            DrawStatusComboBox(ipcData, ref selectedIdx, width, sizeScaler);
+            DrawStatusComboBox(statusList, ref selectedIdx, width, sizeScaler);
             ClosePopup(id, comboLabel);
         }
         else if (_popupState.Remove(id))
@@ -90,7 +90,7 @@ public class MoodlesService
         StatusSearchString = string.Empty;
     }
 
-    private void DrawStatusComboBox(CharacterIPCData ipcData, ref int selectedIdx, float width, float sizeScaler)
+    private void DrawStatusComboBox(List<MoodlesStatusInfo> statuses, ref int selectedIdx, float width, float sizeScaler)
     {
         var height = ImGui.GetTextLineHeightWithSpacing() * 10 - ImGui.GetFrameHeight() - ImGui.GetStyle().WindowPadding.Y;
         using var _ = ImRaii.Child("ChildL", new Vector2(width, height), false, ImGuiWindowFlags.NoScrollbar);
@@ -100,8 +100,7 @@ public class MoodlesService
         var searchText = StatusSearchString.ToLowerInvariant();
 
         var filteredItems = string.IsNullOrEmpty(searchText)
-            ? ipcData.MoodlesStatuses
-            : ipcData.MoodlesStatuses.Where(item => item.Title.ToLowerInvariant().Contains(searchText));
+            ? statuses : statuses.Where(item => item.Title.ToLowerInvariant().Contains(searchText));
 
         ImGui.SetWindowFontScale(sizeScaler);
         if (ImGui.BeginTable("TimeDurationTable", 2)) // 2 columns for status name and icon
@@ -117,11 +116,11 @@ public class MoodlesService
                 ImGui.TableNextRow();
                 ImGui.TableNextColumn();
                 ImGui.SetNextItemWidth(width);
-                bool isSelected = item == ipcData.MoodlesStatuses[selectedIdx];
+                bool isSelected = item == statuses[selectedIdx];
 
                 if (ImGui.Selectable(item.Title, isSelected))
                 {
-                    NewSelection = ipcData.MoodlesStatuses.IndexOf(item);
+                    NewSelection = statuses.IndexOf(item);
                     _closePopup = true;
                 }
 

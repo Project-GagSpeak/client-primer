@@ -106,7 +106,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     public void ApplyStatusesByGuid(ApplyMoodlesByGuidDto dto)
     {
-        Logger.LogInformation("Visible Users: {0}", string.Join(", ", _pairManager.GetVisibleUsers().Select(u => u.UID).ToList()));
         if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID))
         {
             Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
@@ -130,7 +129,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     public void RemoveStatusesFromSelf(RemoveMoodlesDto dto)
     {
-        if (!_pairManager.GetVisibleUsers().Contains(dto.User))
+        if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID))
         {
             Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
             return;
@@ -141,7 +140,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     public void ClearStatusesFromSelf(UserDto dto)
     {
-        if (!_pairManager.GetVisibleUsers().Contains(dto.User))
+        if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID))
         {
             Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
             return;

@@ -294,7 +294,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new IpcManager(s.GetRequiredService<ILogger<IpcManager>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<IpcCallerCustomize>(),
             s.GetRequiredService<IpcCallerGlamourer>(), s.GetRequiredService<IpcCallerPenumbra>(),
-            s.GetRequiredService<IpcCallerMoodles>()))
+            s.GetRequiredService<IpcCallerMoodles>(), s.GetRequiredService<IpcCallerMare>()))
 
         .AddSingleton((s) => new IpcProvider(s.GetRequiredService<ILogger<IpcProvider>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PairManager>(), 

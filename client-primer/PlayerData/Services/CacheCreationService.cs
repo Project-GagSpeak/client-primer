@@ -61,7 +61,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             Logger.LogDebug("Received CreateCacheForObject for {handler}, updating", msg.ObjectToCreateFor);
             _cacheCreateLock.Wait();
             if (_ipcManager.Moodles.APIAvailable) await FetchLatestMoodlesDataASync().ConfigureAwait(false);
-            _cacheToCreate = new CacheData(msg.ObjectToCreateFor, DataUpdateKind.None, Guid.Empty);
+            _cacheToCreate = new CacheData(msg.ObjectToCreateFor, DataUpdateKind.IpcUpdateVisible, Guid.Empty);
             _cacheCreateLock.Release();
         });
 
@@ -75,7 +75,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
                 _playerIpcData.MoodlesData = string.Empty;
                 _playerIpcData.MoodlesStatuses.Clear();
                 _playerIpcData.MoodlesPresets.Clear();
-                Logger.LogTrace("Clearing cache for {obj}", msg.ObjectToCreateFor);
+                Logger.LogDebug("Clearing cache for {obj}", msg.ObjectToCreateFor);
                 Mediator.Publish(new CharacterIpcDataCreatedMessage(_playerIpcData, DataUpdateKind.IpcMoodlesCleared));
             });
         });
@@ -83,7 +83,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<MoodlesReady>(this, async (_) =>
         {
             await FetchLatestMoodlesDataASync().ConfigureAwait(false);
-            Logger.LogInformation("Moodles is now ready, fetching latest info and pushing to all visible pairs");
+            Logger.LogDebug("Moodles is now ready, fetching latest info and pushing to all visible pairs");
             Mediator.Publish(new CharacterIpcDataCreatedMessage(_playerIpcData, DataUpdateKind.IpcUpdateVisible));
         });
 
@@ -93,8 +93,8 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             // Assuming _playerObject is now a single GameObjectHandler instance
             if (_playerObject != null && _playerObject.Address == msg.Address)
             {
-                Logger.LogTrace("Updating visible pairs with latest Moodles Data. [Status Manager Changed!]");
-                _ = AddPlayerCacheToCreate(DataUpdateKind.IpcMoodlesStatusesUpdated, Guid.Empty);
+                Logger.LogDebug("Updating visible pairs with latest Moodles Data. [Status Manager Changed!]");
+                _ = AddPlayerCacheToCreate(DataUpdateKind.IpcMoodlesStatusManagerChanged, Guid.Empty);
             }
         });
 
@@ -104,7 +104,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             // Assuming _playerObject is now a single GameObjectHandler instance
             if (_playerObject != null && _playerObject.Address != nint.Zero)
             {
-                Logger.LogTrace("Updating visible pairs with latest Moodles Data. [You Changed Settings of a Status!]");
+                Logger.LogDebug("Updating visible pairs with latest Moodles Data. [You Changed Settings of a Status!]");
                 _ = AddPlayerCacheToCreate(DataUpdateKind.IpcMoodlesStatusesUpdated, msg.Guid);
             }
         });
@@ -125,9 +125,10 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     private async Task FetchLatestMoodlesDataASync()
     {
         _playerIpcData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(_playerObject.NameWithWorld).ConfigureAwait(false) ?? string.Empty;
+        _playerIpcData.MoodlesDataStatuses = await _ipcManager.Moodles.GetStatusInfoAsync(_playerObject.NameWithWorld).ConfigureAwait(false) ?? new();
         _playerIpcData.MoodlesStatuses = await _ipcManager.Moodles.GetMoodlesInfoAsync().ConfigureAwait(false) ?? new();
         _playerIpcData.MoodlesPresets = await _ipcManager.Moodles.GetPresetsInfoAsync().ConfigureAwait(false) ?? new();
-        Logger.LogInformation("Latest Data from Moodles Fetched.");
+        Logger.LogDebug("Latest Data from Moodles Fetched.");
     }
 
     protected override void Dispose(bool disposing)
@@ -196,10 +197,37 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 
             var start = DateTime.UtcNow;
             // Obtain the Status Manager State for the player object.
-            prevData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(playerObjData.GameObj.NameWithWorld).ConfigureAwait(false) ?? string.Empty;
-            prevData.MoodlesStatuses = await _ipcManager.Moodles.GetMoodlesInfoAsync().ConfigureAwait(false) ?? new();
-            prevData.MoodlesPresets = await _ipcManager.Moodles.GetPresetsInfoAsync().ConfigureAwait(false) ?? new();
+            switch (playerObjData.UpdateKind)
+            {
+                case DataUpdateKind.IpcMoodlesStatusesUpdated:
+                    {
+                        await StatusSettingsUpdate(prevData, playerObjData, playerObjData.Guid).ConfigureAwait(false);
+                    }
+                    break;
+                case DataUpdateKind.IpcMoodlesPresetsUpdated:
+                    {
+                        await PresetSettingsUpdate(prevData, playerObjData, playerObjData.Guid).ConfigureAwait(false);
+                    }
+                    break;
+                case DataUpdateKind.None:
+                case DataUpdateKind.IpcUpdateVisible:
+                    {
+                        prevData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(playerObjData.GameObj.NameWithWorld).ConfigureAwait(false) ?? string.Empty;
+                        prevData.MoodlesDataStatuses = await _ipcManager.Moodles.GetStatusInfoAsync(playerObjData.GameObj.NameWithWorld).ConfigureAwait(false) ?? new();
+                        prevData.MoodlesStatuses = await _ipcManager.Moodles.GetMoodlesInfoAsync().ConfigureAwait(false) ?? new();
+                        prevData.MoodlesPresets = await _ipcManager.Moodles.GetPresetsInfoAsync().ConfigureAwait(false) ?? new();
+                    }
+                    break;
+                case DataUpdateKind.IpcMoodlesStatusManagerChanged:
+                    {
+                        await StatusManagerUpdate(prevData, playerObjData).ConfigureAwait(false);
+                    }
+                    break;
+                case DataUpdateKind.IpcMoodlesCleared: Logger.LogTrace("Clearing Moodles Data for {object}", playerObjData); break;
+                default: Logger.LogWarning("Unknown Update Kind for {object}", playerObjData); break;
+            }
             Logger.LogInformation("IPC Update for player object took {time}ms", TimeSpan.FromTicks(DateTime.UtcNow.Ticks - start.Ticks).TotalMilliseconds);
+        
         }
         catch (OperationCanceledException)
         {
@@ -214,6 +242,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     private async Task StatusManagerUpdate(CharacterIPCData data, CacheData playerObjData)
     {
         data.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(playerObjData.GameObj!.NameWithWorld).ConfigureAwait(false) ?? string.Empty;
+        data.MoodlesDataStatuses = await _ipcManager.Moodles.GetStatusInfoAsync(playerObjData.GameObj.NameWithWorld).ConfigureAwait(false) ?? new();
     }
 
     private async Task StatusSettingsUpdate(CharacterIPCData data, CacheData playerObjData, Guid guid)

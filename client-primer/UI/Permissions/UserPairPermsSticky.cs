@@ -24,7 +24,6 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
     private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
     private readonly MoodlesService _moodlesService;
-    private readonly VisiblePairManager _visiblePairManager;
 
     public enum PermissionType { Global, UniquePairPerm, UniquePairPermEditAccess };
 
@@ -32,8 +31,8 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
         OnFrameworkService frameworkUtils, PlayerCharacterManager pcManager, 
         IdDisplayHandler displayHandler, UiSharedService uiSharedService, 
-        ApiController apiController, PairManager pairManager, MoodlesService moodlesService,
-        VisiblePairManager visiblePairManager) : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
+        ApiController apiController, PairManager pairManager, MoodlesService moodlesService) 
+        : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
     {
         _frameworkUtils = frameworkUtils;
         _playerManager = pcManager;
@@ -42,7 +41,6 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         _pairManager = pairManager;
         _moodlesService = moodlesService;
         _displayHandler = displayHandler;
-        _visiblePairManager = visiblePairManager;
 
         UserPairForPerms = pairToDrawFor; // set the pair we're drawing for
         DrawType = drawType; // set the type of window we're drawing
@@ -53,7 +51,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         IsOpen = true; // open the window
     }
 
-    private CharacterIPCData? LastCreatedCharacterData => _visiblePairManager.ClientIpcData;
+    private CharacterIPCData? LastCreatedCharacterData => _playerManager.LastIpcData;
 
 
     public override void OnClose() => Mediator.Publish(new RemoveWindowMessage(this)); // remove window on close.

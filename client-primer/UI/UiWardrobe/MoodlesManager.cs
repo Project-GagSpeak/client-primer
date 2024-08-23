@@ -144,6 +144,8 @@ public class MoodlesManager : MediatorSubscriberBase
         ImGui.Separator();
         var DataToDisplay = (PairToInspect != null && PairToInspect.LastReceivedIpcData != null) ? PairToInspect.LastReceivedIpcData : LastCreatedCharacterData;
 
+        ImGui.Text("LastCreateCharacterData is null: " + (LastCreatedCharacterData == null));
+
         if (CurrentType == InspectType.Status)
         {
             DrawMoodles(DataToDisplay, cellPadding);

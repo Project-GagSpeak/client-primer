@@ -1,4 +1,5 @@
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Interop.IpcHelpers;
@@ -87,7 +88,12 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         Mediator.Subscribe<PlayerCharToyboxChanged>(this, (msg) => PushToyboxDataToAPI(msg));
         // Update the active Gags in the Gag Manager
         Mediator.Publish(new UpdateActiveGags());
+
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastIpcData = msg.CharacterIPCData);
     }
+
+    public CharacterIPCData? LastIpcData = null;
+
 
     // public access definitions.
     public UserGlobalPermissions GlobalPerms => _playerCharGlobalPerms;

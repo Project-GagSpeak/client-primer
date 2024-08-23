@@ -232,6 +232,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         {
             await _frameworkUtil.RunOnFrameworkThread(() => 
                 _applyStatusByGuid.InvokeAction(guid, playerNameWithWorld)).ConfigureAwait(false);
+            _logger.LogDebug("Applied Moodles Status by guid {guid} to {playerNameWithWorld}", guid, playerNameWithWorld);
         }
         catch (Exception e)
         {

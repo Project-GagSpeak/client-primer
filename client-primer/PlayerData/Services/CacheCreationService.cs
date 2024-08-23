@@ -80,13 +80,6 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             });
         });
 
-        Mediator.Subscribe<ConnectedMessage>(this, async (_) =>
-        {
-            await FetchLatestMoodlesDataASync().ConfigureAwait(false);
-            Logger.LogInformation("Moodles is now ready, fetching latest info and pushing to all visible pairs");
-            Mediator.Publish(new CharacterIpcDataCreatedMessage(_playerIpcData, DataUpdateKind.IpcUpdateVisible));
-        });
-
         Mediator.Subscribe<MoodlesReady>(this, async (_) =>
         {
             await FetchLatestMoodlesDataASync().ConfigureAwait(false);

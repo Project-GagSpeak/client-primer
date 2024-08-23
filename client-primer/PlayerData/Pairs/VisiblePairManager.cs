@@ -26,8 +26,6 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
     // stores the set of newly visible players to update with our latest IPC data.
     private readonly HashSet<PairHandler> _newVisiblePlayers = [];
 
-    public CharacterIPCData ClientIpcData => LastIpcData;
-
     public VisiblePairManager(ILogger<VisiblePairManager> logger,
         GagspeakMediator mediator, ApiController apiController,
         OnFrameworkService dalamudUtil, PlayerCharacterManager playerManager,
@@ -72,7 +70,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
 
         // Add pair to list when they become visible.
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, (msg) => _newVisiblePlayers.Add(msg.Player));
-        Mediator.Subscribe<ConnectedMessage>(this, (_) => PushCharacterIpcData(_pairManager.GetVisibleUsers(), DataUpdateKind.IpcUpdateVisible));
+        //Mediator.Subscribe<ConnectedMessage>(this, (_) => PushCharacterIpcData(_pairManager.GetVisibleUsers(), DataUpdateKind.IpcUpdateVisible));
 
     }
 

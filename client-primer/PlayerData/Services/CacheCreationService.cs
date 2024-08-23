@@ -82,6 +82,8 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<MoodlesReady>(this, async (_) =>
         {
+            // run an api check before this to force update 
+            _ipcManager.Moodles.CheckAPI();
             await FetchLatestMoodlesDataASync().ConfigureAwait(false);
             Logger.LogDebug("Moodles is now ready, fetching latest info and pushing to all visible pairs");
             Mediator.Publish(new CharacterIpcDataCreatedMessage(_playerIpcData, DataUpdateKind.IpcUpdateVisible));
@@ -227,7 +229,10 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
                 default: Logger.LogWarning("Unknown Update Kind for {object}", playerObjData); break;
             }
             Logger.LogInformation("IPC Update for player object took {time}ms", TimeSpan.FromTicks(DateTime.UtcNow.Ticks - start.Ticks).TotalMilliseconds);
-        
+            Logger.LogTrace("Data: {data}", prevData.MoodlesData);
+            Logger.LogTrace("StatusManager Statuses: {data}", prevData.MoodlesDataStatuses.Count);
+            Logger.LogTrace("Statuses: {data}", prevData.MoodlesStatuses.Count);
+            Logger.LogTrace("Presets: {data}", prevData.MoodlesPresets.Count);
         }
         catch (OperationCanceledException)
         {

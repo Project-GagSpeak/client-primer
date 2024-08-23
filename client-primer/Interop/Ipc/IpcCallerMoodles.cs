@@ -92,7 +92,10 @@ public sealed class IpcCallerMoodles : IIpcCaller
     }
 
     private void OnMoodlesReady()
-        => _gagspeakMediator.Publish(new MoodlesReady());
+    {
+        _logger.LogWarning("Moodles Ready Invoked!");
+        _gagspeakMediator.Publish(new MoodlesReady());
+    }
 
     /// <summary> This method is called when the moodles change </summary>
     /// <param name="character">The character that had modified moodles.</param>

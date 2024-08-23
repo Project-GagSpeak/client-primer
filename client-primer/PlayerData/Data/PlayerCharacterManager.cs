@@ -89,7 +89,15 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         // Update the active Gags in the Gag Manager
         Mediator.Publish(new UpdateActiveGags());
 
-        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastIpcData = msg.CharacterIPCData);
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) =>
+        {
+            LastIpcData = msg.CharacterIPCData;
+            Logger.LogInformation("Latest Stored IPC Data now set to: " + Environment.NewLine
+                + "MoodlesData: " + msg.CharacterIPCData.MoodlesData + Environment.NewLine
+                + "MoodlesDataStatuses: " + msg.CharacterIPCData.MoodlesDataStatuses.Count + Environment.NewLine
+                + "MoodlesStatuses: " + msg.CharacterIPCData.MoodlesStatuses.Count + Environment.NewLine
+                + "MoodlesPresets: " + msg.CharacterIPCData.MoodlesPresets.Count);
+        });
     }
 
     public CharacterIPCData? LastIpcData = null;

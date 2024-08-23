@@ -1361,46 +1361,61 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.Text(OnFrameworkService.GlamourChangeFinishedDrawing.ToString());
 
         ImGui.Separator();
-        // draw out the tab bar for us.
-        if (ImGui.BeginTabBar("mainTabBar"))
+
+        if (ApiController.ServerState is ServerState.Connected)
         {
-            if (ImGui.BeginTabItem("Global Settings"))
+            // draw out the tab bar for us.
+            if (ImGui.BeginTabBar("mainTabBar"))
             {
-                DrawGlobalSettings();
-                ImGui.EndTabItem();
+                if (ImGui.BeginTabItem("Global Settings"))
+                {
+                    DrawGlobalSettings();
+                    ImGui.EndTabItem();
+                }
+                if (ImGui.BeginTabItem("Preferences"))
+                {
+                    DrawPreferences();
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Account Management"))
+                {
+                    DrawAccountManagement();
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Debug"))
+                {
+                    DrawDebug();
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Player Debug"))
+                {
+                    DrawPlayerCharacterDebug();
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Pairs Debug"))
+                {
+                    DrawPairsDebug();
+                    ImGui.EndTabItem();
+                }
+
+                ImGui.EndTabBar();
             }
-            if (ImGui.BeginTabItem("Preferences"))
+        }
+        else
+        {
+            if (ImGui.BeginTabBar("mainTabBar"))
             {
-                DrawPreferences();
-                ImGui.EndTabItem();
+                if (ImGui.BeginTabItem("Account Management"))
+                {
+                    DrawAccountManagement();
+                    ImGui.EndTabItem();
+                }
+                ImGui.EndTabBar();
             }
-
-            if (ImGui.BeginTabItem("Account Management"))
-            {
-                DrawAccountManagement();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem("Debug"))
-            {
-                DrawDebug();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem("Player Debug"))
-            {
-                DrawPlayerCharacterDebug();
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem("Pairs Debug"))
-            {
-                DrawPairsDebug();
-                ImGui.EndTabItem();
-            }
-
-
-            ImGui.EndTabBar();
         }
     }
 }

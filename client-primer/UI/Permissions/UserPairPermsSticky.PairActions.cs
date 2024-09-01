@@ -59,6 +59,12 @@ public partial class UserPairPermsSticky
                 ImGui.TextUnformatted("Toybox Actions");
                 DrawToyboxActions();
             }
+
+            if (UserPairForPerms.UserPairUniquePairPerms.InHardcore)
+            {
+                ImGui.TextUnformatted("Hardcore Actions");
+                DrawHardcoreActions();
+            }
         }
 
         // individual Menu
@@ -80,7 +86,6 @@ public partial class UserPairPermsSticky
         if (UserPairForPerms.IsPaired)
         {
             var pauseIcon = UserPairForPerms.UserPair!.OwnPairPerms.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
-            var pauseIconSize = _uiShared.GetIconButtonSize(pauseIcon);
             var pauseText = UserPairForPerms.UserPair!.OwnPairPerms.IsPaused ? $"Unpause {UserPairForPerms.UserData.AliasOrUID}" : $"Pause {UserPairForPerms.UserData.AliasOrUID}";
             if (_uiShared.IconTextButton(pauseIcon, pauseText, WindowMenuWidth, true))
             {
@@ -588,6 +593,49 @@ public partial class UserPairPermsSticky
 
 
         ImGui.Separator();
+    }
+
+    private void DrawHardcoreActions()
+    {
+        // conditions for disabled actions
+        bool playerTargeted = _clientState.LocalPlayer != null && _clientState.LocalPlayer.TargetObject != null;
+        bool playerCloseEnough = playerTargeted && Vector3.Distance(_clientState.LocalPlayer?.Position ?? default, _clientState.LocalPlayer?.TargetObject?.Position ?? default) < 3;
+
+        var forceFollowIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToFollow ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.PersonWalkingArrowRight;
+        var forceFollowText = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToFollow ? $"Have {PairNickOrAliasOrUID} stop following you." : $"Make {PairNickOrAliasOrUID} follow you.";
+        bool disableForceFollow = !playerCloseEnough || !playerTargeted || !UserPairForPerms.UserPairUniquePairPerms.AllowForcedFollow || !UserPairForPerms.IsVisible;
+        if (_uiShared.IconTextButton(forceFollowIcon, forceFollowText, WindowMenuWidth, true, disableForceFollow))
+        {
+            var perm = UserPairForPerms.UserPair!.OtherPairPerms;
+            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsForcedToFollow", !perm.IsForcedToFollow)));
+        }
+
+        var forceSitIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToSit ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
+        var forceSitText = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToSit ? $"Let {PairNickOrAliasOrUID} stand again." : $"Let {PairNickOrAliasOrUID} stand again.";
+        bool disableForceSit = !UserPairForPerms.UserPairUniquePairPerms.AllowForcedSit;
+        if (_uiShared.IconTextButton(forceSitIcon, forceSitText, WindowMenuWidth, true, disableForceSit))
+        {
+            var perm = UserPairForPerms.UserPair!.OtherPairPerms;
+            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsForcedToSit", !perm.IsForcedToSit)));
+        }
+
+        var forceToStayIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToStay ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.HouseLock;
+        var forceToStayText = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToStay ? $"Release {PairNickOrAliasOrUID}." : $"Lock away {PairNickOrAliasOrUID}.";
+        bool disableForceToStay = !UserPairForPerms.UserPairUniquePairPerms.AllowForcedToStay;
+        if (_uiShared.IconTextButton(forceToStayIcon, forceToStayText, WindowMenuWidth, true, disableForceToStay))
+        {
+            var perm = UserPairForPerms.UserPair!.OtherPairPerms;
+            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsForcedToStay", !perm.IsForcedToStay)));
+        }
+
+        var toggleBlindfoldIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsBlindfolded ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Mask;
+        var toggleBlindfoldText = UserPairForPerms.UserPair!.OtherPairPerms.IsBlindfolded ? $"Remove {PairNickOrAliasOrUID}'s Blindfold." : $"Blindfold {PairNickOrAliasOrUID}.";
+        bool disableBlindfoldToggle = !UserPairForPerms.UserPairUniquePairPerms.AllowBlindfold;
+        if (_uiShared.IconTextButton(toggleBlindfoldIcon, toggleBlindfoldText, WindowMenuWidth, true, disableBlindfoldToggle))
+        {
+            var perm = UserPairForPerms.UserPair!.OtherPairPerms;
+            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsBlindfolded", !perm.IsForcedToFollow)));
+        }
     }
 
     #endregion ToyboxActions

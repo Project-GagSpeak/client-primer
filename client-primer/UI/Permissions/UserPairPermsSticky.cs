@@ -1,6 +1,7 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Plugin.Services;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
@@ -24,6 +25,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
     private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
     private readonly MoodlesService _moodlesService;
+    private readonly IClientState _clientState;
 
     public enum PermissionType { Global, UniquePairPerm, UniquePairPermEditAccess };
 
@@ -31,8 +33,8 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
         OnFrameworkService frameworkUtils, PlayerCharacterManager pcManager, 
         IdDisplayHandler displayHandler, UiSharedService uiSharedService, 
-        ApiController apiController, PairManager pairManager, MoodlesService moodlesService) 
-        : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
+        ApiController apiController, PairManager pairManager, MoodlesService moodlesService,
+        IClientState clientState) : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
     {
         _frameworkUtils = frameworkUtils;
         _playerManager = pcManager;
@@ -41,6 +43,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         _pairManager = pairManager;
         _moodlesService = moodlesService;
         _displayHandler = displayHandler;
+        _clientState = clientState;
 
         UserPairForPerms = pairToDrawFor; // set the pair we're drawing for
         DrawType = drawType; // set the type of window we're drawing

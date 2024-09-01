@@ -35,7 +35,7 @@ public sealed class CommandManagerService : IDisposable
         // Add handlers to the main commands
         _commands.AddHandler(MainCommand, new CommandInfo(OnGagSpeak)
         {
-            HelpMessage = "Toggles main UI when used without arguements. Use with 'help' or '?' to view sub-commands.",
+            HelpMessage = "Toggles main UI when used without arguments. Use with 'help' or '?' to view sub-commands.",
             ShowInHelp = true
         });
         _commands.AddHandler(SafewordCommand, new CommandInfo(OnSafeword)
@@ -45,7 +45,7 @@ public sealed class CommandManagerService : IDisposable
         });
         _commands.AddHandler(SafewordHardcoreCommand, new CommandInfo(OnSafewordHardcore)
         {
-            HelpMessage = "revert all settings to false and disable any active components. For emergency uses.",
+            HelpMessage = "revert all hardcore settings to false and disable any hardcore predicaments. For emergency uses.",
             ShowInHelp = true
         });
     }
@@ -55,6 +55,7 @@ public sealed class CommandManagerService : IDisposable
         // Remove the handlers from the main commands
         _commands.RemoveHandler(MainCommand);
         _commands.RemoveHandler(SafewordCommand);
+        _commands.RemoveHandler(SafewordHardcoreCommand);
     }
 
     private void OnGagSpeak(string command, string args)
@@ -101,11 +102,8 @@ public sealed class CommandManagerService : IDisposable
 
     private void OnSafewordHardcore(string command, string argument)
     {
-        // fire the event to invoke reverting hardcore actions.
-        if (_mainConfig.Current.Safeword == argument)
-        {
-            _mediator.Publish(new SafewordHardcoreUsedMessage());
-        }
+        _chat.Print("Triggered Hardcore Safeword");
+        _mediator.Publish(new SafewordHardcoreUsedMessage());
     }
 
     private void PrintHelpToChat()
@@ -114,6 +112,7 @@ public sealed class CommandManagerService : IDisposable
         _chat.Print(new SeStringBuilder().AddCommand("/gagspeak", "Toggles the primary UI").BuiltString);
         _chat.Print(new SeStringBuilder().AddCommand("/gagspeak settings", "Toggles the settings UI window.").BuiltString);
         _chat.Print(new SeStringBuilder().AddCommand("/safeword", "Cries out your safeword, disabling any active restrictions.").BuiltString);
+        _chat.Print(new SeStringBuilder().AddCommand("/safewordhardcore", "Cries out your hardcore safeword, disabling any hardcore restrictions.").BuiltString);
     }
 }
 

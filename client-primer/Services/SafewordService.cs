@@ -9,12 +9,13 @@ using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using JetBrains.Annotations;
+using Microsoft.Extensions.Hosting;
 
 namespace GagSpeak.Services;
 
 // The most fundementally important service in the entire application.
 // helps revert any active states applied to the player when used.
-public class SafewordService : DisposableMediatorSubscriberBase
+public class SafewordService : MediatorSubscriberBase, IHostedService
 {
     private readonly ApiController _apiController; // for sending the updates.
     private readonly PlayerCharacterManager _playerManager; // has our global permissions.
@@ -47,7 +48,7 @@ public class SafewordService : DisposableMediatorSubscriberBase
     private DateTime TimeOfLastHardcoreSafewordUsed = DateTime.MinValue;
 
     // May want to set this to true by default so things are disabled? Idk.
-    public bool SafewordUsedState => _playerManager.GlobalPerms == null ? false : _playerManager.GlobalPerms.SafewordUsed;
+    public bool SafewordIsUsed => _playerManager.GlobalPerms == null ? false : _playerManager.GlobalPerms.SafewordUsed;
     public bool HardcoreSafewordIsUsed => _playerManager.GlobalPerms == null ? false : _playerManager.GlobalPerms.HardcoreSafewordUsed;
 
     // READ THE FOLLOWING BELOW WHILE CODING OUT THE LOGIC FOR THIS:
@@ -78,10 +79,15 @@ public class SafewordService : DisposableMediatorSubscriberBase
     private void SafewordUsed()
     {
         // return if it has not yet been 5 minutes since the last use.
-        if (TimeOfLastSafewordUsed.AddMinutes(5) > DateTime.Now) return;
+        if (SafewordIsUsed)
+        {
+            Logger.LogWarning("Hardcore Safeword was used too soon after the last use. Must wait 5 minutes.");
+            return;
+        }
 
         // set the time of the last safeword used.
         TimeOfLastSafewordUsed = DateTime.Now;
+        Logger.LogInformation("Safeword was used.");
 
         // we should normally update these via sends to the server, but in the case things are offline, we should update them on our client,
         // then send those updates to the server, to deal with emergency use cases.
@@ -128,9 +134,14 @@ public class SafewordService : DisposableMediatorSubscriberBase
 
     private void HardcoreSafewordUsed()
     {
-        if(TimeOfLastHardcoreSafewordUsed.AddMinutes(1) > DateTime.Now) return;
+        if (HardcoreSafewordIsUsed)
+        {
+            Logger.LogWarning("Hardcore Safeword was used too soon after the last use Wait 1m before using again.");
+            return;
+        }
         // set the time of the last hardcore safeword used.
         TimeOfLastHardcoreSafewordUsed = DateTime.Now;
+        Logger.LogInformation("Hardcore Safeword was used.");
 
         // push the permission update for the hardcore safeword to the server.
         UserGlobalPermissions newGlobalPerms = _playerManager.GlobalPerms ?? new UserGlobalPermissions();
@@ -138,7 +149,7 @@ public class SafewordService : DisposableMediatorSubscriberBase
         _playerManager.UpdateGlobalPermsInBulk(newGlobalPerms);
         if(_apiController.ServerState is ServerState.Connected)
         {
-            _ = _apiController.UserPushAllGlobalPerms(new(_apiController.PlayerUserData, newGlobalPerms));
+            _ = _apiController.UserUpdateOwnGlobalPerm(new(_apiController.PlayerUserData, new KeyValuePair<string, object>("HardcoreSafewordUsed", true)));
         }
 
         // for each pair in our direct pairs, we should update any and all unique pair permissions to be set regarding Hardcore Status.
@@ -169,19 +180,27 @@ public class SafewordService : DisposableMediatorSubscriberBase
     private void CheckCooldown()
     {
         // check if it has been 5 minutes since the last safeword was used.
-        if (TimeOfLastSafewordUsed.AddMinutes(5) < DateTime.Now)
+        if (SafewordIsUsed && TimeOfLastSafewordUsed.AddMinutes(5) < DateTime.Now)
         {
-            // reset the safeword timer.
-            TimeOfLastSafewordUsed = DateTime.MinValue;
+            if (_playerManager.GlobalPerms != null) _playerManager.GlobalPerms.SafewordUsed = false;
         }
 
         // check if it has been 5 minutes since the last hardcore safeword was used.
-        if (TimeOfLastHardcoreSafewordUsed.AddMinutes(1) < DateTime.Now)
+        if (HardcoreSafewordIsUsed && TimeOfLastHardcoreSafewordUsed.AddMinutes(1) < DateTime.Now)
         {
-            // reset the hardcore safeword timer.
-            TimeOfLastHardcoreSafewordUsed = DateTime.MinValue;
+            if (_playerManager.GlobalPerms != null) _playerManager.GlobalPerms.HardcoreSafewordUsed = false;
         }
+    }
 
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        Logger.LogInformation("Started Safeword Service.");
+        return Task.CompletedTask;
+    }
 
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        Logger.LogInformation("Stopped Safeword Service.");
+        return Task.CompletedTask;
     }
 }

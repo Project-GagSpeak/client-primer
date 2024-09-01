@@ -129,7 +129,7 @@ public sealed class GagSpeak : IDalamudPlugin
             // add the services related to the configs for GagSpeak
             .AddGagSpeakConfigs(pi)
             // add the scoped services for GagSpeak
-            .AddGagSpeakScoped(cm, pi, tp, nm, cg, dm)
+            .AddGagSpeakScoped(cs, cm, pi, tp, nm, cg, dm)
             // add the hosted services for GagSpeak (these should all contain startAsync and stopAsync methods)
             .AddGagSpeakHosted();
     }
@@ -309,6 +309,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<TokenProvider>()
 
         // Service Services
+        .AddSingleton<SafewordService>()
         .AddSingleton<ToyboxVibeService>()
         .AddSingleton<ToyboxRemoteService>()
         .AddSingleton<PatternPlaybackService>()
@@ -375,12 +376,19 @@ public static class GagSpeakServiceExtensions
 
     #endregion ConfigServices
     #region ScopedServices
-    public static IServiceCollection AddGagSpeakScoped(this IServiceCollection services, ICommandManager cm,
-        IDalamudPluginInterface pi, ITextureProvider tp, INotificationManager nm, IChatGui cg, IDataManager dm)
+    public static IServiceCollection AddGagSpeakScoped(this IServiceCollection services, IClientState cs,
+        ICommandManager cm, IDalamudPluginInterface pi, ITextureProvider tp, INotificationManager nm, 
+        IChatGui cg, IDataManager dm)
     => services
         // Service Services
         .AddScoped<DrawEntityFactory>()
-        .AddScoped<UiFactory>()
+        .AddScoped<UiFactory>((s) => new UiFactory(s.GetRequiredService<ILoggerFactory>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
+            s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ToyboxVibeService>(),
+            s.GetRequiredService<IdDisplayHandler>(), s.GetRequiredService<PairManager>(),
+            s.GetRequiredService<PlayerCharacterManager>(), s.GetRequiredService<ToyboxRemoteService>(),
+            s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<ProfileService>(),
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<MoodlesService>(), cs))
         .AddScoped<SelectTagForPairUi>()
         .AddScoped<WindowMediatorSubscriberBase, SettingsUi>()
         .AddScoped<WindowMediatorSubscriberBase, IntroUi>()
@@ -436,6 +444,7 @@ public static class GagSpeakServiceExtensions
         .AddHostedService(p => p.GetRequiredService<OnFrameworkService>())
         .AddHostedService(p => p.GetRequiredService<EventAggregator>())
         .AddHostedService(p => p.GetRequiredService<IpcProvider>())
+        .AddHostedService(p => p.GetRequiredService<SafewordService>())
         // add our main Plugin.cs file as a hosted ;
         .AddHostedService<GagSpeakHost>();
     #endregion HostedServices

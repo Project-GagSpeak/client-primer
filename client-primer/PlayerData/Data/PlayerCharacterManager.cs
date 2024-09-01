@@ -82,8 +82,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         Mediator.Subscribe<PlayerCharWardrobeChanged>(this, (msg) => PushWardrobeDataToAPI(msg));
         Mediator.Subscribe<PlayerCharAliasChanged>(this, (msg) => PushAliasListDataToAPI(msg));
         Mediator.Subscribe<PlayerCharToyboxChanged>(this, (msg) => PushToyboxDataToAPI(msg));
-        // Update the active Gags in the Gag Manager
-        Mediator.Publish(new UpdateActiveGags());
 
         Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) =>
         {

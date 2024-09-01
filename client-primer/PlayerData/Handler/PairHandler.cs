@@ -1,3 +1,4 @@
+using Dalamud.Game.ClientState.Objects.Types;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Factories;
@@ -8,6 +9,7 @@ using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Dto.Connection;
 using Microsoft.Extensions.Hosting;
+using System.Net.Mail;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -78,7 +80,8 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     }
 
     public OnlineUserIdentDto OnlineUser { get; private set; }  // the online user Dto. Set when pairhandler is made for the cached player in the pair object.
-    public nint IPlayerCharacter => _charaHandler?.Address ?? nint.Zero; // the player character object address
+    public nint PairAddress => _charaHandler?.Address ?? nint.Zero; // the player character object address
+    public IGameObject? PairObject => _charaHandler?.PlayerCharacterObjRef; // the player character object
     public string? PlayerName { get; private set; }
     public string PlayerNameWithWorld => _charaHandler?.NameWithWorld ?? string.Empty;
     public string PlayerNameHash => OnlineUser.Ident;
@@ -202,9 +205,9 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// </summary>
     private async Task CallAlterationsToIpcAsync(Guid applicationId, HashSet<PlayerChanges> changes, CharacterIPCData charaData, CancellationToken token)
     {
-        if (IPlayerCharacter == nint.Zero) return;
+        if (PairAddress == nint.Zero) return;
         // pointer address to playerCharacter address, which is equal to the gameobject handlers address.
-        var ptr = IPlayerCharacter;
+        var ptr = PairAddress;
         var handler = _charaHandler!;
         try
         {

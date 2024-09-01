@@ -5,6 +5,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Connection;
+using static PInvoke.User32;
 
 namespace GagSpeak.PlayerData.Handlers;
 /// <summary>
@@ -53,24 +54,12 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
             }
         });
 
-        Mediator.Subscribe<HardcoreForcedToFollowMessage>(this, (msg) => ForcedToFollowPair = msg.Pair);
-        Mediator.Subscribe<HardcoreForcedToSitMessage>(this, (msg) => ForcedToSitPair = msg.Pair);
-        Mediator.Subscribe<HardcoreForcedToStayMessage>(this, (msg) => ForcedToStayPair = msg.Pair);
-        Mediator.Subscribe<HardcoreForcedBlindfoldMessage>(this, (msg) => BlindfoldedByPair = msg.Pair);
-
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => CheckLockedSet());
 
     }
 
     /// <summary> The current restraint set that is active on the client. Null if none. </summary>
     public RestraintSet ActiveSet { get; private set; }
-
-    /// <summary> Store the pairs who are currently triggering our various hardcore states. </summary>
-    public Pair? ForcedToFollowPair { get; private set; }
-    public Pair? ForcedToSitPair { get; private set; }
-    public Pair? ForcedToStayPair { get; private set; }
-    public Pair? BlindfoldedByPair { get; private set; }
-
 
     // Store an accessor of the alarm being edited.
     private RestraintSet? _setBeingEdited;

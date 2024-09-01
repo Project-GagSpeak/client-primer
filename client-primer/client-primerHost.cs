@@ -184,7 +184,10 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<GagManager>()
         .AddSingleton<PadlockHandler>()
         .AddSingleton<PatternHandler>()
-        .AddSingleton<HardcoreHandler>()
+        .AddSingleton((s) => new HardcoreHandler(s.GetRequiredService<ILogger<HardcoreHandler>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(),
+            s.GetRequiredService<PairManager>(), s.GetRequiredService<WardrobeHandler>(),
+            s.GetRequiredService<ApiController>(), tm))
         .AddSingleton<ToyboxHandler>()
         .AddSingleton<RemoteHandler>()
         .AddSingleton<PlayerCharacterManager>()

@@ -10,6 +10,7 @@ using GagspeakAPI.Data.Character;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.UserPair;
 using GagspeakAPI.Data.Permissions;
+using Dalamud.Game.ClientState.Objects.Types;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -79,6 +80,7 @@ public class Pair
     public bool IsPaused => UserPair.OwnPairPerms.IsPaused;
     public bool IsOnline => CachedPlayer != null;                                       // lets us know if the paired user is online. 
     public bool IsVisible => CachedPlayer?.IsVisible ?? false;                          // if the paired user is visible.
+    public IGameObject? VisiblePairGameObject => IsVisible ? (CachedPlayer?.PairObject ?? null) : null; // the visible pair game object.
     public string PlayerName => CachedPlayer?.PlayerName ?? UserData.AliasOrUID ?? string.Empty;  // Name of pair player. If empty, (pair handler) CachedData is not initialized yet.
     public string PlayerNameWithWorld => CachedPlayer?.PlayerNameWithWorld ?? string.Empty;
     public string CachedPlayerString() => CachedPlayer?.ToString() ?? "No Cached Player"; // string representation of the cached player.

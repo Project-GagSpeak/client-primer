@@ -53,8 +53,8 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
 
     }
 
-    public Queue<string> MessageQueue; // the messages to send to the server.
-    public List<string> PlayersToListenFor; // players to listen to messages from. (Format of NameWithWorld)
+    public static Queue<string> MessageQueue; // the messages to send to the server.
+    public static List<string> PlayersToListenFor; // players to listen to messages from. (Format of NameWithWorld)
 
 
 
@@ -64,6 +64,11 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
         base.Dispose(disposing);
 
         _chat.ChatMessage -= Chat_OnChatMessage;
+    }
+
+    public static void EnqueueMessage(string message)
+    {
+        MessageQueue.Enqueue(message);
     }
 
     private void OnUpdateChatListeners()
@@ -93,7 +98,7 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
 
             // enqueue the message and log sucess
             Logger.LogInformation(senderName + " used your global trigger phase to make you exeucte a message!");
-            MessageQueue.Enqueue("/" + msgToSend.TextValue);
+            EnqueueMessage("/" + msgToSend.TextValue);
         }
 
         // check for puppeteer pair triggers
@@ -115,7 +120,7 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
                 {
                     // enqueue the message and log sucess
                     Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!");
-                    MessageQueue.Enqueue("/" + msgToSend.TextValue);
+                    EnqueueMessage("/" + msgToSend.TextValue);
                 }
             }
         }

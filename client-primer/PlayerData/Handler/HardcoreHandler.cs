@@ -1,14 +1,14 @@
-using Dalamud.Plugin;
+using Dalamud.Game.ClientState.Objects;
 using GagSpeak.GagspeakConfiguration;
-using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.Movement;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.UI.MainWindow;
+using GagSpeak.UpdateMonitoring.Chat;
+using GagSpeak.WebAPI;
+using GagspeakAPI.Data;
 using GagspeakAPI.Data.Enum;
 using System.Numerics;
 
@@ -19,22 +19,50 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     private readonly GagspeakConfigService _mainConfig;
     private readonly PairManager _pairManager;
     private readonly WardrobeHandler _outfitHandler;
+    private readonly ApiController _apiController; // for sending the updates.
+    private readonly ITargetManager _targetManager; // for targetting pair on follows.
 
-    // for camera manager
     public unsafe GameCameraManager* cameraManager = GameCameraManager.Instance(); // for the camera manager object
-    public HardcoreHandler(ILogger<GagDataHandler> logger, GagspeakMediator mediator,
-        GagspeakConfigService mainConfig, PairManager pairManager, 
-        WardrobeHandler outfitHandler) : base(logger, mediator)
+    public HardcoreHandler(ILogger<HardcoreHandler> logger, GagspeakMediator mediator,
+        GagspeakConfigService mainConfig, PairManager pairManager,
+        WardrobeHandler outfitHandler, ApiController apiController, 
+        ITargetManager targetManager) : base(logger, mediator)
     {
         _mainConfig = mainConfig;
         _pairManager = pairManager;
         _outfitHandler = outfitHandler;
+        _apiController = apiController;
+        _targetManager = targetManager;
 
-        // update the textfolder
+        // update the text folder
         _mainConfig.Current.StoredEntriesFolder.CheckAndInsertRequired();
         _mainConfig.Current.StoredEntriesFolder.PruneEmpty();
         _mainConfig.Save();
+
+        Mediator.Subscribe<HardcoreForcedToFollowMessage>(this, (msg) =>
+        {
+            if(msg.State == UpdatedNewState.Enabled) SetForcedFollow(true, msg.Pair);
+            else SetForcedFollow(false, msg.Pair);
+        });
+        Mediator.Subscribe<HardcoreForcedToSitMessage>(this, (msg) =>
+        {
+            ForcedToSitPair = msg.Pair;
+        });
+        Mediator.Subscribe<HardcoreForcedToStayMessage>(this, (msg) =>
+        {
+            ForcedToStayPair = msg.Pair;
+        });
+        Mediator.Subscribe<HardcoreForcedBlindfoldMessage>(this, (msg) =>
+        {
+            BlindfoldedByPair = msg.Pair;
+        });
     }
+
+    public Pair? ForcedToFollowPair { get; private set; }
+    public Pair? ForcedToSitPair { get; private set; }
+    public Pair? ForcedToStayPair { get; private set; }
+    public Pair? BlindfoldedByPair { get; private set; }
+
 
     public bool DisablePromptHooks => _mainConfig.Current.DisablePromptHooks;
     public TextFolderNode StoredEntriesFolder => _mainConfig.Current.StoredEntriesFolder;
@@ -48,6 +76,18 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     public DateTimeOffset LastMovementTime { get; set; } = DateTimeOffset.Now;
     public Vector3 LastPosition { get; set; } = Vector3.Zero;
     public double StimulationMultiplier { get; set; } = 1.0;
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+
+        if (_mainConfig.Current.UsingLegacyControls == false && GameConfig.UiControl.GetBool("MoveMode") == true)
+        {
+            // we have legacy on but dont normally have it on, so make sure that we set it back to normal!
+            GameConfig.UiControl.Set("MoveMode", (int)MovementMode.Standard);
+        }
+    }
+
 
     public IEnumerable<ITextNode> GetAllNodes()
     {
@@ -102,9 +142,85 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         _mainConfig.Save();
     }
 
-    // handles the forced follow logic.
-    public void HandleForcedFollow(bool newState)
+    public void SetForcedFollow(bool newState, Pair? pairToFollow = null)
     {
+        /************** WHEN ATTEMPTING TO ENABLE *****************/
+        // if we are not following anyone, and the new state is false, return
+        if (ForcedToFollowPair == null && newState == false)
+        {
+            Logger.LogError("Attempted to disable forced follow while not following anyone.");
+            return;
+        }
+        
+        // if we are not following anyone and the new state is true, but the pairToFollow is null, return
+        if (ForcedToFollowPair == null && newState == true && pairToFollow == null)
+        {
+            Logger.LogError("Attempted to enable forced follow while not following anyone and no pair to follow was provided.");
+            return;
+        }
+
+        // if we are trying to set it to true but a pair is already being set to follow, log the error and return.
+        if (ForcedToFollowPair != null && newState == true && pairToFollow != null)
+        {
+            Logger.LogError("Attempted to set a new pair to follow while a pair is already being followed.");
+            return;
+        }
+
+        // if we are not following anyone and the new state is true, set it to the pair to follow. (THIS WORKS)
+        if (ForcedToFollowPair == null && newState == true && pairToFollow != null)
+        {
+            ForcedToFollowPair = pairToFollow;
+            // if for whatever reason this pair you dont have forced to follow set to true for, set it back to null and return.
+            if (!pairToFollow.UserPairOwnUniquePairPerms.IsForcedToFollow)
+            {
+                ForcedToFollowPair = null;
+                return;
+            }
+            // otherwise, handle the ForcedToFollow.
+            HandleForcedFollow(true, pairToFollow.UserData);
+            Logger.LogDebug("Enabled forced follow for pair.");
+            return;
+        }
+
+        /************** WHEN ATTEMPTING TO DISABLE *****************/
+        // if we are trying to disable the forced follow but the pair to follow is null, return.
+        if (newState == false && ForcedToFollowPair == null)
+        {
+            Logger.LogError("Attempted to disable forced follow while not following anyone.");
+            return;
+        }
+
+        // if we are trying to disable but the pairToFollow is not equal to the pair requesting us to stop following, return.
+        if (newState == false && ForcedToFollowPair != null && pairToFollow != null && pairToFollow.UserData.UID != ForcedToFollowPair?.UserData.UID)
+        {
+            Logger.LogError("Attempted to disable forced follow for a pair that is not the pair we are following.");
+            return;
+        }
+
+        // if we are trying to disable, while the pair is active, but a pair is not provided, we are auto disabling it.
+        if (newState == false && ForcedToFollowPair != null && pairToFollow != null)
+        {
+            var userData = ForcedToFollowPair.UserData;
+            ForcedToFollowPair.UserPairOwnUniquePairPerms.IsForcedToFollow = false;
+            HandleForcedFollow(false, userData);
+            ForcedToFollowPair = null;
+            _ = _apiController.UserUpdateOwnPairPerm(new(userData, new KeyValuePair<string, object>("IsForcedToFollow", false)));
+            Logger.LogDebug("Auto disabled forced follow for pair.");
+            return;
+        }
+    }
+
+    // handles the forced follow logic.
+    public void HandleForcedFollow(bool newState, UserData? pairUserData = null)
+    {
+        if(newState == true)
+        {
+            if(ForcedToFollowPair == null) { Logger.LogError("Somehow you still haven't set the forcedToFollowPair???"); return; }
+            // target our pair and follow them.
+            _targetManager.Target = ForcedToFollowPair.VisiblePairGameObject;
+            ChatBoxMessage.EnqueueMessage("/follow <t>");
+        }
+
         // toggle movement type to legacy if we are not on legacy
         if (_mainConfig.Current.UsingLegacyControls == false)
         {

@@ -1,4 +1,5 @@
 using GagSpeak.Services.Mediator;
+using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using System.Reflection;
@@ -71,20 +72,42 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             || newPerms.AllowRemovingMoodles != oldPerms.AllowRemovingMoodles;
     }
 
+    public void UpdatePairUpdateOwnAllUniquePermissions(UserPairUpdateAllUniqueDto dto)
+    {
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) { throw new InvalidOperationException("No such pair for " + dto); }
+     
+        // fetch the current hardcore states
+        var prevForcedFollowState = pair.UserPair.OwnPairPerms.IsForcedToFollow;
+        var prevForcedSitState = pair.UserPair.OwnPairPerms.IsForcedToSit;
+        var prevForcedStayState = pair.UserPair.OwnPairPerms.IsForcedToStay;
+        var prevBlindfoldState = pair.UserPair.OwnPairPerms.IsBlindfolded;
+
+        // see if the states are different.
+        bool forcedFollowChanged = prevForcedFollowState != dto.UniquePerms.IsForcedToFollow;
+        bool forcedSitChanged = prevForcedSitState != dto.UniquePerms.IsForcedToSit;
+        bool forcedStayChanged = prevForcedStayState != dto.UniquePerms.IsForcedToStay;
+        bool blindfoldChanged = prevBlindfoldState != dto.UniquePerms.IsBlindfolded;
+
+        // update the permissions.
+        pair.UserPair.OwnPairPerms = dto.UniquePerms;
+        pair.UserPair.OwnEditAccessPerms = dto.UniqueAccessPerms;
+
+        // publish the mediator changes.
+        if (forcedFollowChanged) Mediator.Publish(new HardcoreForcedToFollowMessage(pair, dto.UniquePerms.IsForcedToFollow ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+        if (forcedSitChanged) Mediator.Publish(new HardcoreForcedToSitMessage(pair, dto.UniquePerms.IsForcedToSit ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+        if (forcedStayChanged) Mediator.Publish(new HardcoreForcedToStayMessage(pair, dto.UniquePerms.IsForcedToStay ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+        if (blindfoldChanged) Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, dto.UniquePerms.IsBlindfolded ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+
+        Logger.LogDebug($"Updated own unique permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'");
+    }
+
+
     public void UpdatePairUpdateOtherAllGlobalPermissions(UserAllGlobalPermChangeDto dto)
     {
         // update the pairs permissions.
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) { throw new InvalidOperationException("No such pair for " + dto); }
         pair.UserPair.OtherGlobalPerms = dto.GlobalPermissions;
         Logger.LogDebug($"Updated global permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'");
-    }
-
-    public void UpdatePairUpdateOwnAllUniquePermissions(UserPairUpdateAllUniqueDto dto)
-    {
-        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) { throw new InvalidOperationException("No such pair for " + dto); }
-        pair.UserPair.OwnPairPerms = dto.UniquePerms;
-        pair.UserPair.OwnEditAccessPerms = dto.UniqueAccessPerms;
-        Logger.LogDebug($"Updated own unique permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'");
     }
 
     public void UpdatePairUpdateOtherAllUniquePermissions(UserPairUpdateAllUniqueDto dto)
@@ -254,10 +277,29 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         string ChangedPermission = dto.ChangedPermission.Key;
         object ChangedValue = dto.ChangedPermission.Value;
 
-        // has the person just paused us.
-        if (ChangedPermission == "IsPaused" && (pair.UserPair.OwnPairPerms.IsPaused != (bool)ChangedValue))
+        // Handle special cases
+        switch (ChangedPermission)
         {
-            Mediator.Publish(new ClearProfileDataMessage(dto.User));
+            case "IsPaused":
+                if (pair.UserPair.OwnPairPerms.IsPaused != (bool)ChangedValue) 
+                    Mediator.Publish(new ClearProfileDataMessage(dto.User));
+                break;
+            case "IsForcedToFollow":
+                if (pair.UserPair.OwnPairPerms.IsForcedToFollow != (bool)ChangedValue) 
+                    Mediator.Publish(new HardcoreForcedToFollowMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+                break;
+            case "IsForcedToSit":
+                if (pair.UserPair.OwnPairPerms.IsForcedToSit != (bool)ChangedValue) 
+                    Mediator.Publish(new HardcoreForcedToSitMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+                break;
+            case "IsForcedToStay":
+                if (pair.UserPair.OwnPairPerms.IsForcedToStay != (bool)ChangedValue) 
+                    Mediator.Publish(new HardcoreForcedToStayMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+                break;
+            case "IsBlindfolded":
+                if (pair.UserPair.OwnPairPerms.IsBlindfolded != (bool)ChangedValue) 
+                    Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+                break;
         }
 
         PropertyInfo? propertyInfo = typeof(UserPairPermissions).GetProperty(ChangedPermission);

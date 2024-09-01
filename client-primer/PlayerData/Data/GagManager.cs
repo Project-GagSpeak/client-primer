@@ -24,9 +24,13 @@ public class GagManager : DisposableMediatorSubscriberBase
         _IPAParser = IPAParser;
 
         // Called by callback forced update, meant to not trigger endless feedback loop.
-        Mediator.Subscribe<UpdateActiveGags>(this, (msg) =>
+        Mediator.Subscribe<UpdateActiveGags>(this, async (msg) =>
         {
-            UpdateActiveGags();
+            await UpdateActiveGags();
+            if (msg.CompletionTaskSource != null)
+            {
+                msg.CompletionTaskSource.SetResult(true);
+            }
         });
 
         // Triggered whenever the client updated the gagType from the dropdown menus in the UI
@@ -54,7 +58,7 @@ public class GagManager : DisposableMediatorSubscriberBase
     /// <summary>
     /// Updates the list of active gags based on the character's appearance data.
     /// </summary>
-    public void UpdateActiveGags()
+    public Task UpdateActiveGags()
     {
         Logger.LogTrace("GagTypeOne: {0}, GagTypeTwo: {1}, GagTypeThree: {2}",
             _characterManager.AppearanceData.SlotOneGagType,
@@ -73,6 +77,7 @@ public class GagManager : DisposableMediatorSubscriberBase
         .ToList();
 
         Mediator.Publish(new ActiveGagsUpdated());
+        return Task.CompletedTask;
     }
 
     /// <summary>

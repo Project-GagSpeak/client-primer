@@ -32,7 +32,7 @@ public class MoveController : IDisposable
     private static Hook<MoveOnMousePreventorDelegate>? MovementUpdateHook { get; set; } = null!;
     [return: MarshalAs(UnmanagedType.U1)]
     public unsafe byte MovementUpdate(MoveControllerSubMemberForMine* thisx)
-    { // was static before.
+    {
         // get the current mouse button hole state, note that because we are doing this during the move update,
         // we are getting and updating the mouse state PRIOR to the game doing so, allowing us to change it
         MButtonHoldState* hold = InputManager.GetMouseButtonHoldState();
@@ -42,7 +42,7 @@ public class MoveController : IDisposable
         {
             *hold = 0;
         }
-        // _logger.LogDebug($"{((IntPtr)hold).ToString("X")}");
+        //_logger.LogDebug($"Move movement is active for {((IntPtr)hold).ToString("X")}");
         // update the original
         byte ret = MovementUpdateHook.Original(thisx);
         // restore the original
@@ -51,16 +51,16 @@ public class MoveController : IDisposable
         return ret;
     }
 
-    public unsafe delegate void TestDelegate(UnkTargetFollowStruct* unk1, IntPtr unk2);
-    [Signature("48 89 5c 24 08 48 89 74 24 10 57 48 83 ec 20 48 8b d9 48 8b fa 0f b6 89 59 05 00 00 be 00 00 00 e0", DetourName = nameof(TestUpdate), Fallibility = Fallibility.Auto)]
+    public unsafe delegate void TestDelegate(UnkTargetFollowStruct* unk1);
+    [Signature("48 89 5c 24 ?? 48 89 74 24 ?? 57 48 83 ec ?? 48 8b d9 48 8b fa 0f b6 89 ?? ?? 00 00 be 00 00 00 e0", DetourName = nameof(TestUpdate), Fallibility = Fallibility.Auto)]
     private static Hook<TestDelegate>? UnfollowHook { get; set; }
 
     [return: MarshalAs(UnmanagedType.U1)]
-    public unsafe void TestUpdate(UnkTargetFollowStruct* unk1, IntPtr unk2)
+    public unsafe void TestUpdate(UnkTargetFollowStruct* unk1)
     {
         UnkTargetFollowStruct* temp = unk1;
-        /*
-        targetFollowVar = unk1;
+        
+        var targetFollowVar = unk1;
         _logger.LogDebug($"PRE:       UnkTargetFollowStruct: {((IntPtr)unk1).ToString("X")}");
         _logger.LogDebug($"---------------------------------");
         _logger.LogDebug($"PRE: Unk_0x450.Unk_GameObjectID0: {unk1->Unk_0x450.Unk_GameObjectID0.ToString("X")};");
@@ -72,7 +72,7 @@ public class MoveController : IDisposable
         }
         _logger.LogDebug($"PRE:             FollowingTarget: {unk1->FollowingTarget.ToString("X")}");
         _logger.LogDebug($"PRE:                 Follow Type: {unk1->FollowType.ToString("X")}");
-        */
+        
         foreach (Dalamud.Game.ClientState.Objects.Types.IGameObject obj in _objectTable)
         {
             if (obj.GameObjectId == unk1->GameObjectIDToFollow)
@@ -84,15 +84,16 @@ public class MoveController : IDisposable
         // if this condition it true, it means that the function is attempting to call a cancelation 
         if (DisablingMouseMovement && unk1->Unk_0x450.Unk_0x54 == 256)
         {
-            _logger.LogTrace($"Early escaping to prevent canceling follow!");
+            _logger.LogDebug($"Early escaping to prevent canceling follow!");
             return; // do an early return to prevent processing
         }
         else
         {
+            _logger.LogDebug($"DisablingMouseMovement was {DisablingMouseMovement}, Unk_0x450.Unk_0x54 was {unk1->Unk_0x450.Unk_0x54}. Performing early return of original.");
             // output the original
-            UnfollowHook.Original(unk1, unk2);
+            UnfollowHook.Original(unk1);
         }
-        /*
+        
         try {
             _logger.LogDebug($"POST       UnkTargetFollowStruct: {((IntPtr)unk1).ToString("X")}");
             _logger.LogDebug($"---------------------------------");
@@ -103,7 +104,7 @@ public class MoveController : IDisposable
         } catch (Exception ex) {
             _logger.LogError($"Error {ex}");
         }
-        */
+        
         foreach (Dalamud.Game.ClientState.Objects.Types.IGameObject obj in _objectTable)
         {
             if (obj.GameObjectId == unk1->GameObjectIDToFollow)
@@ -130,6 +131,8 @@ public class MoveController : IDisposable
     {
         MovementUpdateHook?.Enable(); // for enabling the prevention of LMB+RMB movement
         UnfollowHook?.Enable(); // makes it so you cant unfollow the target
+        if (UnfollowHook != null && UnfollowHook.IsEnabled)
+            _logger.LogDebug($"UnfollowHook is enabled: {UnfollowHook.IsEnabled}");
     }
 
     // Hook disablers
@@ -337,7 +340,7 @@ public class MoveController : IDisposable
         [FieldOffset(0x550)] public float Unk_0x550;
         [FieldOffset(0x554)] public int Unk_0x554; // seems to be some sort of counter or timer
         [FieldOffset(0x558)] public byte Unk_0x558; // used as an index (?)
-        [FieldOffset(0x559)] public byte FollowType; // 2 faces the player away, 3 runs away, 4 runs towards, 0 is none
+        [FieldOffset(0x561)] public byte FollowType; // 2 faces the player away, 3 runs away, 4 runs towards, 0 is none
                                                      // unknown but known possible values: 1, 5
         [FieldOffset(0x55B)] public byte Unk_0x55B;
         [FieldOffset(0x55C)] public byte Unk_0x55C;

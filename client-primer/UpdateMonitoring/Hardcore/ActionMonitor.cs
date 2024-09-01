@@ -330,7 +330,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
             if (AllowFrameworkHardcoreUpdates())
             {
                 // If someone is forcing us to stay, we should block access to teleports and other methods of death.
-                if (_hardcoreHandler.ForcedToStayPair != null)
+                if (_hardcoreHandler.IsForcedStay)
                 {
                     // check if we are trying to hit teleport or return from hotbars /  menus
                     if (type == ActionType.GeneralAction && (acId == 7 || acId == 8))

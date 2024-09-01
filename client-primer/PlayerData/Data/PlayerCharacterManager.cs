@@ -322,7 +322,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         }
     }
 
-    public void UpdateAppearanceFromCallback(OnlineUserCharaAppearanceDataDto callbackDto, bool callbackWasFromSelf)
+    public async void UpdateAppearanceFromCallback(OnlineUserCharaAppearanceDataDto callbackDto, bool callbackWasFromSelf)
     {
         // handle the cases where we get a callback from ourselves to log successful interactions with the server.
         if (callbackWasFromSelf)
@@ -350,25 +350,109 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         else
         {
             // One of our pairs has just forced us to change a setting (we know it is because the server-side validates this)
+            GagList.GagType prevGagType = GagList.GagType.None;
+            var gagUpdateOnRemovalCompletion = new TaskCompletionSource<bool>();
+            var gagGlamourUpdateOnRemovalCompletion = new TaskCompletionSource<bool>();
+
             switch (callbackDto.UpdateKind)
             {
+                // we must account for the fact that a active, unlocked gag can be replaced.
                 case DataUpdateKind.AppearanceGagAppliedLayerOne:
-                    _playerCharAppearance.SlotOneGagType = callbackDto.AppearanceData.SlotOneGagType;
-                    Mediator.Publish(new UpdateActiveGags());
-                    Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Enabled, GagLayer.UnderLayer,
-                        callbackDto.AppearanceData.SlotOneGagType.GetGagFromAlias(), callbackDto.User.UID));
+                    if(_playerCharAppearance.SlotOneGagPadlock == "None")
+                    {
+                        // if it was previously none, we are just applying.
+                        if(_playerCharAppearance.SlotOneGagType != "None")
+                        {
+                            _playerCharAppearance.SlotOneGagType = callbackDto.AppearanceData.SlotOneGagType;
+                            Mediator.Publish(new UpdateActiveGags());
+                            Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Enabled, GagLayer.UnderLayer,
+                                callbackDto.AppearanceData.SlotOneGagType.GetGagFromAlias(), callbackDto.User.UID));
+                        }
+                        else // otherwise, we are replacing, so we must await in order.
+                        {
+                            // call the removals first
+                            prevGagType = _playerCharAppearance.SlotOneGagType.GetGagFromAlias();
+                            _playerCharAppearance.SlotOneGagType = "None";
+                            Mediator.Publish(new UpdateActiveGags(gagUpdateOnRemovalCompletion));
+                            // await for the removal to complete
+                            await gagUpdateOnRemovalCompletion.Task;
+                            // remove the gag glamour
+                            Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Disabled, GagLayer.UnderLayer, 
+                                prevGagType, callbackDto.User.UID, gagGlamourUpdateOnRemovalCompletion));
+                            // await for the glamour removal to complete
+                            await gagGlamourUpdateOnRemovalCompletion.Task;
+
+                            // Now we can do the applications.
+                            _playerCharAppearance.SlotOneGagType = callbackDto.AppearanceData.SlotOneGagType;
+                            Mediator.Publish(new UpdateActiveGags());
+                            Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Enabled, GagLayer.UnderLayer,
+                                callbackDto.AppearanceData.SlotOneGagType.GetGagFromAlias(), callbackDto.User.UID));
+                        }
+                    }
                     break;
                 case DataUpdateKind.AppearanceGagAppliedLayerTwo:
-                    _playerCharAppearance.SlotTwoGagType = callbackDto.AppearanceData.SlotTwoGagType;
-                    Mediator.Publish(new UpdateActiveGags());
-                    Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Enabled, GagLayer.MiddleLayer,
-                        callbackDto.AppearanceData.SlotTwoGagType.GetGagFromAlias(), callbackDto.User.UID));
+                    if (_playerCharAppearance.SlotTwoGagPadlock == "None")
+                    {
+                        if (_playerCharAppearance.SlotTwoGagType != "None")
+                        {
+                            _playerCharAppearance.SlotTwoGagType = callbackDto.AppearanceData.SlotTwoGagType;
+                            Mediator.Publish(new UpdateActiveGags());
+                            Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Enabled, GagLayer.MiddleLayer,
+                                callbackDto.AppearanceData.SlotTwoGagType.GetGagFromAlias(), callbackDto.User.UID));
+                        }
+                        else
+                        {
+                            // call the removals first
+                            prevGagType = _playerCharAppearance.SlotTwoGagType.GetGagFromAlias();
+                            _playerCharAppearance.SlotTwoGagType = "None";
+                            Mediator.Publish(new UpdateActiveGags(gagUpdateOnRemovalCompletion));
+                            // await for the removal to complete
+                            await gagUpdateOnRemovalCompletion.Task;
+                            // remove the gag glamour
+                            Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Disabled, GagLayer.MiddleLayer,
+                                prevGagType, callbackDto.User.UID, gagGlamourUpdateOnRemovalCompletion));
+                            // await for the glamour removal to complete
+                            await gagGlamourUpdateOnRemovalCompletion.Task;
+
+                            // Now we can do the applications.
+                            _playerCharAppearance.SlotTwoGagType = callbackDto.AppearanceData.SlotTwoGagType;
+                            Mediator.Publish(new UpdateActiveGags());
+                            Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Enabled, GagLayer.MiddleLayer,
+                                callbackDto.AppearanceData.SlotTwoGagType.GetGagFromAlias(), callbackDto.User.UID));
+                        }
+                    }
                     break;
                 case DataUpdateKind.AppearanceGagAppliedLayerThree:
-                    _playerCharAppearance.SlotThreeGagType = callbackDto.AppearanceData.SlotThreeGagType;
-                    Mediator.Publish(new UpdateActiveGags());
-                    Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Enabled, GagLayer.TopLayer,
-                        callbackDto.AppearanceData.SlotThreeGagType.GetGagFromAlias(), callbackDto.User.UID));
+                    if (_playerCharAppearance.SlotThreeGagPadlock == "None")
+                    {
+                        if (_playerCharAppearance.SlotThreeGagType != "None")
+                        {
+                            _playerCharAppearance.SlotThreeGagType = callbackDto.AppearanceData.SlotThreeGagType;
+                            Mediator.Publish(new UpdateActiveGags());
+                            Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Enabled, GagLayer.TopLayer,
+                                callbackDto.AppearanceData.SlotThreeGagType.GetGagFromAlias(), callbackDto.User.UID));
+                        }
+                        else
+                        {
+                            // call the removals first
+                            prevGagType = _playerCharAppearance.SlotThreeGagType.GetGagFromAlias();
+                            _playerCharAppearance.SlotThreeGagType = "None";
+                            Mediator.Publish(new UpdateActiveGags(gagUpdateOnRemovalCompletion));
+                            // await for the removal to complete
+                            await gagUpdateOnRemovalCompletion.Task;
+                            // remove the gag glamour
+                            Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Disabled, GagLayer.TopLayer,
+                                prevGagType, callbackDto.User.UID, gagGlamourUpdateOnRemovalCompletion));
+                            // await for the glamour removal to complete
+                            await gagGlamourUpdateOnRemovalCompletion.Task;
+
+                            // Now we can do the applications.
+                            _playerCharAppearance.SlotThreeGagType = callbackDto.AppearanceData.SlotThreeGagType;
+                            Mediator.Publish(new UpdateActiveGags());
+                            Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Enabled, GagLayer.TopLayer,
+                                callbackDto.AppearanceData.SlotThreeGagType.GetGagFromAlias(), callbackDto.User.UID));
+                        }
+                    }
                     break;
                 case DataUpdateKind.AppearanceGagLockedLayerOne:
                     Enum.TryParse<Padlocks>(callbackDto.AppearanceData.SlotOneGagPadlock, out var lockType);
@@ -408,22 +492,22 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                     break;
 
                 case DataUpdateKind.AppearanceGagRemovedLayerOne:
+                    prevGagType = _playerCharAppearance.SlotOneGagType.GetGagFromAlias();
                     _playerCharAppearance.SlotOneGagType = "None";
                     Mediator.Publish(new UpdateActiveGags());
-                    Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Disabled, GagLayer.UnderLayer,
-                        GagList.GagType.None, callbackDto.User.UID));
+                    Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Disabled, GagLayer.UnderLayer, prevGagType, callbackDto.User.UID));
                     break;
                 case DataUpdateKind.AppearanceGagRemovedLayerTwo:
+                    prevGagType = _playerCharAppearance.SlotTwoGagType.GetGagFromAlias();
                     _playerCharAppearance.SlotTwoGagType = "None";
                     Mediator.Publish(new UpdateActiveGags());
-                    Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Disabled, GagLayer.MiddleLayer,
-                        GagList.GagType.None, callbackDto.User.UID));
+                    Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Disabled, GagLayer.MiddleLayer, prevGagType, callbackDto.User.UID));
                     break;
                 case DataUpdateKind.AppearanceGagRemovedLayerThree:
+                    prevGagType = _playerCharAppearance.SlotThreeGagType.GetGagFromAlias();
                     _playerCharAppearance.SlotThreeGagType = "None";
                     Mediator.Publish(new UpdateActiveGags());
-                    Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Disabled, GagLayer.TopLayer,
-                        GagList.GagType.None, callbackDto.User.UID));
+                    Mediator.Publish(new UpdateGlamourGagsMessage(UpdatedNewState.Disabled, GagLayer.TopLayer, prevGagType, callbackDto.User.UID));
                     break;
             }
         }

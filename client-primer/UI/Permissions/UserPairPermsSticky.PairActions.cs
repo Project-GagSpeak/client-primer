@@ -611,12 +611,21 @@ public partial class UserPairPermsSticky
         }
 
         var forceSitIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToSit ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
-        var forceSitText = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToSit ? $"Let {PairNickOrAliasOrUID} stand again." : $"Let {PairNickOrAliasOrUID} stand again.";
-        bool disableForceSit = !UserPairForPerms.UserPairUniquePairPerms.AllowForcedSit;
+        var forceSitText = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToSit ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to sit.";
+        bool disableForceSit = !UserPairForPerms.UserPairUniquePairPerms.AllowForcedSit || UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToGroundSit;
         if (_uiShared.IconTextButton(forceSitIcon, forceSitText, WindowMenuWidth, true, disableForceSit))
         {
             var perm = UserPairForPerms.UserPair!.OtherPairPerms;
             _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsForcedToSit", !perm.IsForcedToSit)));
+        }
+
+        var forceGroundSitIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToGroundSit ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
+        var forceGroundSitText = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToGroundSit ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to their knees.";
+        bool disableForceGroundSit = !UserPairForPerms.UserPairUniquePairPerms.AllowForcedSit || UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToSit;
+        if (_uiShared.IconTextButton(forceGroundSitIcon, forceGroundSitText, WindowMenuWidth, true, disableForceGroundSit))
+        {
+            var perm = UserPairForPerms.UserPair!.OtherPairPerms;
+            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsForcedToGroundSit", !perm.IsForcedToGroundSit)));
         }
 
         var forceToStayIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToStay ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.HouseLock;
@@ -634,7 +643,7 @@ public partial class UserPairPermsSticky
         if (_uiShared.IconTextButton(toggleBlindfoldIcon, toggleBlindfoldText, WindowMenuWidth, true, disableBlindfoldToggle))
         {
             var perm = UserPairForPerms.UserPair!.OtherPairPerms;
-            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsBlindfolded", !perm.IsForcedToFollow)));
+            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsBlindfolded", !perm.IsBlindfolded)));
         }
     }
 

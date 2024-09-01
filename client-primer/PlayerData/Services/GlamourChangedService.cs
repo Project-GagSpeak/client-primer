@@ -80,7 +80,6 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         {
             semaphore.Release();
             OnFrameworkService.GlamourChangeFinishedDrawing = true;
-
         }
     }
 
@@ -129,8 +128,9 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
     }
 
 
-    public async void UpdateGagsAppearance(UpdateGlamourGagsMessage msg)
+    public async Task UpdateGagsAppearance(UpdateGlamourGagsMessage msg)
     {
+        // reference the completion source.
         await ExecuteWithSemaphore(async () =>
         {
             // do not accept if we have enable wardrobe turned off.
@@ -173,6 +173,12 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                 {
                     await EquipBlindfold();
                 }
+            }
+
+            // let the completion source know we are done.
+            if (msg.CompletionTaskSource != null)
+            {
+                msg.CompletionTaskSource.SetResult(true);
             }
         });
     }
@@ -239,10 +245,16 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                     await EquipBlindfold();
                 }
             }
+
+            // let the completion source know we are done.
+            if (msg.CompletionTaskSource != null)
+            {
+                msg.CompletionTaskSource.SetResult(true);
+            }
         });
     }
 
-    // there was a semiphore slim here before, but dont worry about it now.
+    // there was a semaphore slim here before, but don't worry about it now.
     public async void UpdateGlamourerBlindfoldAppearance(UpdateGlamourBlindfoldMessage msg)
     {
         await ExecuteWithSemaphore(async () =>

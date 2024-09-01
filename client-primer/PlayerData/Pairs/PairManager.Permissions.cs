@@ -79,12 +79,14 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // fetch the current hardcore states
         var prevForcedFollowState = pair.UserPair.OwnPairPerms.IsForcedToFollow;
         var prevForcedSitState = pair.UserPair.OwnPairPerms.IsForcedToSit;
+        var prevForcedGroundSitState = pair.UserPair.OwnPairPerms.IsForcedToGroundSit;
         var prevForcedStayState = pair.UserPair.OwnPairPerms.IsForcedToStay;
         var prevBlindfoldState = pair.UserPair.OwnPairPerms.IsBlindfolded;
 
         // see if the states are different.
         bool forcedFollowChanged = prevForcedFollowState != dto.UniquePerms.IsForcedToFollow;
         bool forcedSitChanged = prevForcedSitState != dto.UniquePerms.IsForcedToSit;
+        bool forcedGroundSitChanged = prevForcedGroundSitState != dto.UniquePerms.IsForcedToGroundSit;
         bool forcedStayChanged = prevForcedStayState != dto.UniquePerms.IsForcedToStay;
         bool blindfoldChanged = prevBlindfoldState != dto.UniquePerms.IsBlindfolded;
 
@@ -95,6 +97,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // publish the mediator changes.
         if (forcedFollowChanged) Mediator.Publish(new HardcoreForcedToFollowMessage(pair, dto.UniquePerms.IsForcedToFollow ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
         if (forcedSitChanged) Mediator.Publish(new HardcoreForcedToSitMessage(pair, dto.UniquePerms.IsForcedToSit ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+        if (forcedGroundSitChanged) Mediator.Publish(new HardcoreForcedToKneelMessage(pair, dto.UniquePerms.IsForcedToGroundSit ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
         if (forcedStayChanged) Mediator.Publish(new HardcoreForcedToStayMessage(pair, dto.UniquePerms.IsForcedToStay ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
         if (blindfoldChanged) Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, dto.UniquePerms.IsBlindfolded ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
 
@@ -277,30 +280,20 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         string ChangedPermission = dto.ChangedPermission.Key;
         object ChangedValue = dto.ChangedPermission.Value;
 
-        // Handle special cases
-        switch (ChangedPermission)
-        {
-            case "IsPaused":
-                if (pair.UserPair.OwnPairPerms.IsPaused != (bool)ChangedValue) 
-                    Mediator.Publish(new ClearProfileDataMessage(dto.User));
-                break;
-            case "IsForcedToFollow":
-                if (pair.UserPair.OwnPairPerms.IsForcedToFollow != (bool)ChangedValue) 
-                    Mediator.Publish(new HardcoreForcedToFollowMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
-                break;
-            case "IsForcedToSit":
-                if (pair.UserPair.OwnPairPerms.IsForcedToSit != (bool)ChangedValue) 
-                    Mediator.Publish(new HardcoreForcedToSitMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
-                break;
-            case "IsForcedToStay":
-                if (pair.UserPair.OwnPairPerms.IsForcedToStay != (bool)ChangedValue) 
-                    Mediator.Publish(new HardcoreForcedToStayMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
-                break;
-            case "IsBlindfolded":
-                if (pair.UserPair.OwnPairPerms.IsBlindfolded != (bool)ChangedValue) 
-                    Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
-                break;
-        }
+        if (pair.UserPair.OwnPairPerms.IsPaused != (bool)ChangedValue) 
+            Mediator.Publish(new ClearProfileDataMessage(dto.User));
+
+        // store changes preapply.
+        bool forcedFollowChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToFollow)
+            && (pair.UserPair.OwnPairPerms.IsForcedToFollow != (bool)ChangedValue);
+        bool forcedSitChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToSit)
+            && (pair.UserPair.OwnPairPerms.IsForcedToSit != (bool)ChangedValue);
+        bool forcedGroundSitChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToGroundSit) 
+            && (pair.UserPair.OwnPairPerms.IsForcedToGroundSit != (bool)ChangedValue);
+        bool forcedStayChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToStay)
+            && (pair.UserPair.OwnPairPerms.IsForcedToStay != (bool)ChangedValue);
+        bool blindfoldChanged = ChangedPermission == nameof(UserPairPermissions.IsBlindfolded)
+            && (pair.UserPair.OwnPairPerms.IsBlindfolded != (bool)ChangedValue);
 
         PropertyInfo? propertyInfo = typeof(UserPairPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)
@@ -327,6 +320,34 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 Logger.LogError($"Property '{ChangedPermission}' not found or cannot be updated.");
             }
         }
+
+        // Handle special cases AFTER the change was made.
+        if (forcedFollowChanged)
+        {
+            Logger.LogWarning("Forced follow changed");
+            Mediator.Publish(new HardcoreForcedToFollowMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+        }
+        if (forcedSitChanged)
+        {
+            Logger.LogWarning("Forced sit changed");
+            Mediator.Publish(new HardcoreForcedToSitMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+        }
+        if (forcedGroundSitChanged)
+        {
+            Logger.LogWarning("Forced ground sit changed");
+            Mediator.Publish(new HardcoreForcedToKneelMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+        }
+        if (forcedStayChanged)
+        {
+            Logger.LogWarning("Forced stay changed");
+            Mediator.Publish(new HardcoreForcedToStayMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+        }
+        if (blindfoldChanged)
+        {
+            Logger.LogWarning("Blindfold changed");
+            Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+        }
+
         RecreateLazy(false);
 
         // push notify after recreating lazy.

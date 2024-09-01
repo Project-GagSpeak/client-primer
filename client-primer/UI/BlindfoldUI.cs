@@ -81,6 +81,8 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
         });
     }
 
+    private bool ThemePushed = false;
+
     public static bool IsWindowOpen;
 
     public void ToggleWindow(object? sender, ElapsedEventArgs e)
@@ -149,13 +151,21 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
     {
         ImGui.SetNextWindowPos(Vector2.Zero); // start at top left of the screen
         ImGui.SetNextWindowSize(ImGuiHelpers.MainViewport.Size); // draw across the whole screen
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero); // set the padding to 0
-        ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0.0f); // set the border size to 0
+        if (!ThemePushed)
+        {
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, Vector2.Zero); // set the padding to 0
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0.0f); // set the border size to 0
+            ThemePushed = true;
+        }
     }
     protected override void PostDrawInternal()
     {
-        ImGui.PopStyleVar(2);
-        base.PostDraw();
+        // include our personalized theme for this window here if we have themes enabled.
+        if (ThemePushed)
+        {
+            ImGui.PopStyleVar(2);
+            ThemePushed = false;
+        }
     }
 
     protected override void DrawInternal()

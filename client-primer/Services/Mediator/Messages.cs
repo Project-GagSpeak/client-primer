@@ -79,7 +79,7 @@ public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : 
 public record MufflerLanguageChanged : MessageBase; // called whenever the client language changes to a new language.
 
 /* ------------- PLAYER DATA MODULE INTERACTIONS --------- */
-public record UpdateActiveGags : MessageBase;
+public record UpdateActiveGags(TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase;
 public record ActiveGagsUpdated : MessageBase;
 public record ActiveLocksUpdated : MessageBase;
 public record GagTypeChanged(GagList.GagType NewGagType, GagLayer Layer) : MessageBase; // called whenever the client changes their gag type.
@@ -91,8 +91,10 @@ public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item
 public record RestraintSetToggledMessage(int SetIdx, string AssignerUID, UpdatedNewState State, bool isHardcoreSet, bool pushChanges) : MessageBase; // whenever the restraint set is toggled.
 public record HardcoreForcedToFollowMessage(Pair Pair, UpdatedNewState State) : MessageBase;
 public record HardcoreForcedToSitMessage(Pair Pair, UpdatedNewState State) : MessageBase; 
+public record HardcoreForcedToKneelMessage(Pair Pair, UpdatedNewState State) : MessageBase;
 public record HardcoreForcedToStayMessage(Pair Pair, UpdatedNewState State) : MessageBase;
 public record HardcoreForcedBlindfoldMessage(Pair Pair, UpdatedNewState State) : MessageBase;
+public record MovementRestrictionChangedMessage(MovementRestrictionType Type, UpdatedNewState NewState) : MessageBase;
 public record MoodlesPermissionsUpdated(string NameWithWorld) : MessageBase;
 #endregion PLAYERDATA WARDROBE HANDLER RECORDS
 
@@ -131,8 +133,8 @@ public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PenumbraInitializedMessage : MessageBase;
 public record PenumbraDisposedMessage : MessageBase;
 public record UpdateGlamourMessage(GlamourUpdateType GenericUpdateType) : MessageBase; // for full refreshes on states.
-public record UpdateGlamourGagsMessage(UpdatedNewState NewState, GagLayer Layer, GagList.GagType GagType, string AssignerName) : MessageBase; // client side notifier for visual changes.
-public record UpdateGlamourRestraintsMessage(UpdatedNewState NewState) : MessageBase; // Restraint set updates.
+public record UpdateGlamourGagsMessage(UpdatedNewState NewState, GagLayer Layer, GagList.GagType GagType, string AssignerName, TaskCompletionSource<bool>? CompletionTaskSource = null): MessageBase;
+public record UpdateGlamourRestraintsMessage(UpdatedNewState NewState, TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase; // Restraint set updates.
 public record UpdateGlamourBlindfoldMessage(UpdatedNewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
 public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
 public record MoodlesReady : MessageBase;

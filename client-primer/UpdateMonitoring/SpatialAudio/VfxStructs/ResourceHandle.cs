@@ -1,9 +1,10 @@
 using FFXIVClientStructs.FFXIV.Client.System.Resource;
+using GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
 using Penumbra.String;
 using Penumbra.String.Classes;
 using System.Runtime.InteropServices;
 
-namespace GagSpeak.ResourceManager.VfxStructs;
+namespace GagSpeak.UpdateMonitoring.SpatialAudio.Structs;
 public enum LoadState : byte
 {
     Success = 0x07,

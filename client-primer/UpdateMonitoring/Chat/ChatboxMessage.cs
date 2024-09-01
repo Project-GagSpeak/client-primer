@@ -13,12 +13,6 @@ using GagSpeak.UpdateMonitoring.Chat.ChatMonitors;
 
 namespace GagSpeak.UpdateMonitoring.Chat;
 
-public struct ChatListener
-{
-    public string PlayerName;
-    public string WorldName;
-}
-
 /// <summary>
 /// This class handles incoming chat messages, combat messages, and other related Messages we care about. 
 /// It will then trigger the appropriate chat classes to handle the message.
@@ -33,7 +27,7 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
     private readonly ChatSender _chatSender;
     private readonly IChatGui _chat;
     private readonly IClientState _clientState;
-    private Stopwatch messageTimer; // Stopwatch Timer for time between messages sent
+    private Stopwatch messageTimer; // Stopwatch Timer for time between messages sent (should no longer be needed since we are not sending chained messages)
 
     /// <summary> This is the constructor for the OnChatMsgManager class. </summary>
     public ChatBoxMessage(ILogger<ChatBoxMessage> logger, GagspeakMediator mediator,
@@ -60,7 +54,7 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
     }
 
     public Queue<string> MessageQueue; // the messages to send to the server.
-    public List<ChatListener> PlayersToListenFor; // the players to listen for messages from.
+    public List<string> PlayersToListenFor; // players to listen to messages from. (Format of NameWithWorld)
 
 
 
@@ -75,13 +69,12 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
     private void OnUpdateChatListeners()
     {
         Logger.LogDebug("Updating Chat Listeners");
-        var listeners = _puppeteerHandler.GetPlayersToListenFor();
-        PlayersToListenFor = listeners.Select(x => new ChatListener { PlayerName = x.Item1, WorldName = x.Item2 }).ToList();
+        PlayersToListenFor = _puppeteerHandler.GetPlayersToListenFor();
     }
 
     private void Chat_OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        // if the sender name is ourself, ignore the message.
+        // if the sender name is ourselves, ignore the message.
         if (sender.TextValue == _clientState.LocalPlayer?.Name.TextValue) return;
 
         // grab the senders player payload so we can know their name and world.
@@ -109,7 +102,7 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
             // obtain the trigger phrases for this sender
             var triggerPhrases = matchedPair.UserPairOwnUniquePairPerms.TriggerPhrase.Split('|').ToList();
 
-            // see if valid pair triggerphrase was used
+            // see if valid pair trigger-phrase was used
             if (_puppeteerHandler.IsValidPuppeteerTriggerWord(triggerPhrases, message))
             {
                 // get the new message to send
@@ -131,8 +124,9 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
     private bool SenderIsInPuppeteerListeners(string name, string world, out Pair? matchedPair)
     {
         matchedPair = null;
+        string nameWithWorld = name + "@" + world;
         // make sure we are listening for this player.
-        if (!PlayersToListenFor.Any(listener => listener.PlayerName == name && listener.WorldName == world)) return false;
+        if (!PlayersToListenFor.Contains(nameWithWorld)) return false;
         // make sure they exist in our alias list config
         var uidOfSender = _puppeteerHandler.GetUIDMatchingSender(name, world);
         if (uidOfSender.IsNullOrEmpty()) return false;
@@ -176,7 +170,7 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
                 }
                 else
                 {
-                    if (messageTimer.ElapsedMilliseconds > 1500)
+                    if (messageTimer.ElapsedMilliseconds > 500)
                     {
                         try
                         {

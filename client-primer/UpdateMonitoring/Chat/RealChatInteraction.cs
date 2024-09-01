@@ -1,11 +1,8 @@
-using System;
-using System.Diagnostics.CodeAnalysis;
-using System.Runtime.InteropServices;
-using System.Text;
 using Dalamud.Game;
 using FFXIVClientStructs.FFXIV.Client.System.Memory;
 using FFXIVClientStructs.FFXIV.Client.System.String;
-using static FFXIVClientStructs.FFXIV.Client.System.String.Utf8String.Delegates;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using Framework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
 
@@ -112,9 +109,9 @@ public class ChatSender
             throw new ArgumentException("message contained invalid characters", nameof(message));
         }
 
-        #pragma warning disable CS0618 // Type or member is obsolete
+#pragma warning disable CS0618 // Type or member is obsolete
         SendMessageUnsafe(bytes);
-        #pragma warning restore CS0618 // Type or member is obsolete
+#pragma warning restore CS0618 // Type or member is obsolete
     }
 
     /// <summary>

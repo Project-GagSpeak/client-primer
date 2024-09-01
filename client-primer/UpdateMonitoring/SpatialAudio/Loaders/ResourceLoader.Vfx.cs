@@ -1,7 +1,7 @@
 using Dalamud.Hooking;
 using GagSpeak.Services.Mediator;
 
-namespace GagSpeak.ResourceManager.Loaders;
+namespace GagSpeak.UpdateMonitoring.SpatialAudio.Loaders;
 public unsafe partial class ResourceLoader
 {
     // ======== ACTOR =============

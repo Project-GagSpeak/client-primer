@@ -88,9 +88,6 @@ public class PatternHandler : MediatorSubscriberBase
     public PatternData GetPattern(int index) 
         => _clientConfigs.FetchPattern(index);
 
-    public void UpdatePatternStatesFromCallback(List<PatternInfo> PatternInfoList)
-        => _clientConfigs.UpdatePatternStatesFromCallback(PatternInfoList);
-
     // Called by the AlarmManager. Scans if index of active pattern is in bounds of list.
     public bool IsIndexInBounds(int idx) => _clientConfigs.IsIndexInBounds(idx);
 

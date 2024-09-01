@@ -173,12 +173,41 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
+    public Task Client_UserUpdateSelfAllGlobalPerms(UserAllGlobalPermChangeDto dto)
+    {
+        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: {dto}", dto);
+        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogInformation("Updating all global permissions in bulk for self.");
+            ExecuteSafely(() => _playerCharManager.UpdateGlobalPermsInBulk(dto.GlobalPermissions));
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogError("Don't try updating someone else's global permissions with a self global update call!");
+            return Task.CompletedTask;
+        }
+    }
+
+    public Task Client_UserUpdateSelfAllUniquePerms(UserPairUpdateAllUniqueDto dto)
+    {
+        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: {dto}", dto);
+        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.");
+            ExecuteSafely(() => _pairManager.UpdatePairUpdateOwnAllUniquePermissions(dto));
+            return Task.CompletedTask;
+        }
+    }
+
     /// <summary> 
-    /// 
     /// Sent to client from server informing them to update their own global permissions
-    /// 
     /// Status should be updated in the pair manager.
-    /// 
     /// </summary>
     public Task Client_UserUpdateSelfPairPermsGlobal(UserGlobalPermChangeDto dto)
     {
@@ -197,11 +226,8 @@ public partial class ApiController // Partial class for MainHub Callbacks
     }
 
     /// <summary> 
-    /// 
     /// Sent to client from server informing them to update their own permissions for a pair.
-    /// 
     /// the dto's UserData object should be the user pair that we are updating our own pair permissions for.
-    /// 
     /// </summary>
     public Task Client_UserUpdateSelfPairPerms(UserPairPermChangeDto dto)
     {
@@ -211,11 +237,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
 
     }
 
-    /// <summary> 
-    /// 
-    /// Sent to client from server informing them to update their own permission edit access settings
-    /// 
-    /// </summary>
+    /// <summary> Sent to client from server informing them to update their own permission edit access settings </summary>
     public Task Client_UserUpdateSelfPairPermAccess(UserPairAccessChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfPairPermAccess: {dto}", dto);
@@ -224,10 +246,8 @@ public partial class ApiController // Partial class for MainHub Callbacks
     }
 
     /// <summary> 
-    /// 
     /// Sent to client from server informing them to update their ALL permissions of a paired user.
     /// This should only be called once during the initial adding of a pair and never again.
-    /// 
     /// </summary>
     public Task Client_UserUpdateOtherAllPairPerms(UserPairUpdateAllPermsDto dto)
     {
@@ -245,10 +265,40 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
     }
 
+    public Task Client_UserUpdateOtherAllGlobalPerms(UserAllGlobalPermChangeDto dto)
+    {
+        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: {dto}", dto);
+        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.");
+            ExecuteSafely(() => _pairManager.UpdatePairUpdateOtherAllGlobalPermissions(dto));
+            return Task.CompletedTask;
+        }
+    }
+
+    public Task Client_UserUpdateOtherAllUniquePerms(UserPairUpdateAllUniqueDto dto)
+    {
+        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: {dto}", dto);
+        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        {
+            Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
+            return Task.CompletedTask;
+        }
+        else
+        {
+            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.");
+            ExecuteSafely(() => _pairManager.UpdatePairUpdateOtherAllUniquePermissions(dto));
+            return Task.CompletedTask;
+        }
+    }
+
     /// <summary> 
-    /// 
     /// Sent to client from server informing them to update a user pair's global permission.
-    /// 
     /// </summary>
     public Task Client_UserUpdateOtherPairPermsGlobal(UserGlobalPermChangeDto dto)
     {
@@ -267,9 +317,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     }
 
     /// <summary> 
-    /// 
     /// Sent to client from server informing them to update a user pair's permission option.
-    /// 
     /// </summary>
     public Task Client_UserUpdateOtherPairPerms(UserPairPermChangeDto dto)
     {
@@ -288,15 +336,12 @@ public partial class ApiController // Partial class for MainHub Callbacks
     }
 
     /// <summary> 
-    /// 
     /// Sent to client from server informing them to update the new edit access permissions the user pair has.
     /// Status should be updated in the pair manager.
     /// 
     /// <para>
-    /// 
     /// (This should be called upon only when the other client pair needs to send the updated permission access
     /// into to the client. The client themselves should never be allowed to modify other user pairs edit access)
-    /// 
     /// </para>
     /// </summary>
     public Task Client_UserUpdateOtherPairPermAccess(UserPairAccessChangeDto dto)
@@ -544,6 +589,18 @@ public partial class ApiController // Partial class for MainHub Callbacks
         _gagspeakHub!.On(nameof(Client_UpdateUserIndividualPairStatusDto), action);
     }
 
+    public void OnUserUpdateSelfAllGlobalPerms(Action<UserAllGlobalPermChangeDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserUpdateSelfAllGlobalPerms), act);
+    }
+
+    public void OnUserUpdateSelfAllUniquePerms(Action<UserPairUpdateAllUniqueDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserUpdateSelfAllUniquePerms), act);
+    }
+
     public void OnUserUpdateSelfPairPermsGlobal(Action<UserGlobalPermChangeDto> act)
     {
         if (_initialized) return;
@@ -566,6 +623,18 @@ public partial class ApiController // Partial class for MainHub Callbacks
     {
         if (_initialized) return;
         _gagspeakHub!.On(nameof(Client_UserUpdateOtherAllPairPerms), act);
+    }
+
+    public void OnUserUpdateOtherAllGlobalPerms(Action<UserAllGlobalPermChangeDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserUpdateOtherAllGlobalPerms), act);
+    }
+
+    public void OnUserUpdateOtherAllUniquePerms(Action<UserPairUpdateAllUniqueDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserUpdateOtherAllUniquePerms), act);
     }
 
     public void OnUserUpdateOtherPairPermsGlobal(Action<UserGlobalPermChangeDto> act)

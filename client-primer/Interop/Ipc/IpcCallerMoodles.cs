@@ -57,7 +57,6 @@ public sealed class IpcCallerMoodles : IIpcCaller
         _moodlesApiVersion = pi.GetIpcSubscriber<int>("Moodles.Version");
         _moodlesReady = pi.GetIpcSubscriber<object>("Moodles.Ready");
 
-        // TODO: Change nint to name@world later.
         // API Getter Functions
         _getMoodleInfo = pi.GetIpcSubscriber<Guid, MoodlesStatusInfo>("Moodles.GetRegisteredMoodleInfo");
         _getMoodlesInfo = pi.GetIpcSubscriber<List<MoodlesStatusInfo>>("Moodles.GetRegisteredMoodlesInfo");

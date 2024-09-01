@@ -1,7 +1,7 @@
-using GagSpeak.ResourceManager.VfxStructs;
+using GagSpeak.UpdateMonitoring.SpatialAudio.Structs;
 using Penumbra.String;
 
-namespace GagSpeak.ResourceManager;
+namespace GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
 
 public static unsafe class ResourceUtils
 {

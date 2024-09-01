@@ -10,22 +10,22 @@ namespace GagSpeak.PlayerData.Handlers;
 /// <summary>
 /// handles the connected devices and the socket connection to the Intiface server.
 /// </summary>
-public class DeviceHandler : DisposableMediatorSubscriberBase
+public class DeviceController : DisposableMediatorSubscriberBase
 {
-    // likely will include API controller and other things later. Otherwise they will be in ToyboxHandler.
-    private readonly ClientConfigurationManager _clientConfigs;
-    private readonly DeviceFactory _deviceFactory;
-
     private ButtplugClient ButtplugClient;
     public ButtplugWebsocketConnector WebsocketConnector;
     private CancellationTokenSource? BatteryCheckCTS = new();
+
+    // likely will include API controller and other things later. Otherwise they will be in ToyboxHandler.
+    private readonly ClientConfigurationManager _clientConfigs;
+    private readonly DeviceFactory _deviceFactory;
 
     private readonly List<ConnectedDevice> Devices = new List<ConnectedDevice>();
     private readonly Dictionary<string, int> ActiveDeviceAndMotors = new Dictionary<string, int>();
 
     // maybe store triggers here in the future, or in the trigger handler, but not now.
 
-    public DeviceHandler(ILogger<DeviceHandler> logger, GagspeakMediator mediator,
+    public DeviceController(ILogger<DeviceController> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfiguration, DeviceFactory deviceFactory)
         : base(logger, mediator)
     {

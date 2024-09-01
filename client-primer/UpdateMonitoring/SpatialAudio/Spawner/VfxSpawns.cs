@@ -1,13 +1,14 @@
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
-using GagSpeak.ResourceManager.Loaders;
-using GagSpeak.ResourceManager.VfxStructs;
+using GagSpeak.UpdateMonitoring.SpatialAudio.Loaders;
 using GagSpeak.Services.Mediator;
 using ImGuiNET;
 using OtterGui;
+using GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
+using GagSpeak.UpdateMonitoring.SpatialAudio.Structs;
 
-namespace GagSpeak.ResourceManager.ResourceSpawn;
+namespace GagSpeak.UpdateMonitoring.SpatialAudio.Spawner;
 
 // Grabbed from VFXEditor
 public enum SpawnType { None, Self, Target }
@@ -83,16 +84,16 @@ public unsafe class VfxSpawns : DisposableMediatorSubscriberBase
         try
         {
             // attmept to fetch the replacement file from the input path, if we cannot, throw an exception.
-            if(path.EndsWith(".avfx"))
+            if (path.EndsWith(".avfx"))
             {
-                if(!AvfxManager.PathMappings.TryGetValue(path, out var newVfxPath))
+                if (!AvfxManager.PathMappings.TryGetValue(path, out var newVfxPath))
                 {
                     throw new Exception("Failed to find replacement path for VFX");
                 }
             }
-            else if(path.EndsWith(".scd"))
+            else if (path.EndsWith(".scd"))
             {
-                if(!ScdManager.PathMappings.TryGetValue(path, out var newScdPath))
+                if (!ScdManager.PathMappings.TryGetValue(path, out var newScdPath))
                 {
                     throw new Exception("Failed to find replacement path for VFX");
                 }
@@ -103,7 +104,7 @@ public unsafe class VfxSpawns : DisposableMediatorSubscriberBase
             }
 
             // construct the actorVfx from the given objects and paths.
-            VfxStruct* createdVfx = (VfxStruct*)_resourceLoader.ActorVfxCreate
+            var createdVfx = (VfxStruct*)_resourceLoader.ActorVfxCreate
                 (path, playerObject.Address, playerObject.Address, -1, (char)0, 0, (char)0);
 
             // create the actor for it & add it.
@@ -117,7 +118,7 @@ public unsafe class VfxSpawns : DisposableMediatorSubscriberBase
 
     public void OnTarget(string path, bool canLoop)
     {
-        IGameObject? targetObject = _targets?.Target;
+        var targetObject = _targets?.Target;
         if (targetObject == null) return;
 
         try
@@ -137,13 +138,13 @@ public unsafe class VfxSpawns : DisposableMediatorSubscriberBase
                     throw new Exception("Failed to find replacement path for VFX");
                 }
             }
-            else if(!path.EndsWith(".avfx") && !path.EndsWith(".scd"))
+            else if (!path.EndsWith(".avfx") && !path.EndsWith(".scd"))
             {
                 throw new Exception("Invalid Path");
             }
 
             // construct the actorVfx from the given objects and paths.
-            VfxStruct* createdVfx = (VfxStruct*)_resourceLoader.ActorVfxCreate
+            var createdVfx = (VfxStruct*)_resourceLoader.ActorVfxCreate
                 (path, targetObject.Address, targetObject.Address, -1, (char)0, 0, (char)0);
 
             // create the actor for it & add it.
@@ -182,15 +183,15 @@ public unsafe class VfxSpawns : DisposableMediatorSubscriberBase
         foreach (var vfx in Vfxs)
         {
             // calls the actual remove function sig, which then calls the interop removed.
-            if(vfx.Key == null) continue;
+            if (vfx.Key == null) continue;
 
-            _resourceLoader.ActorVfxRemove((IntPtr)vfx.Key.Vfx, (char)1);
+            _resourceLoader.ActorVfxRemove((nint)vfx.Key.Vfx, (char)1);
         }
         Vfxs.Clear();
         ToLoop.Clear();
     }
 
-    public void InteropRemoved(IntPtr data)
+    public void InteropRemoved(nint data)
     {
         if (!GetVfx(data, out var vfx)) return;
         var item = Vfxs[vfx];
@@ -201,11 +202,11 @@ public unsafe class VfxSpawns : DisposableMediatorSubscriberBase
         Vfxs.Remove(vfx); // Simply removes it from the list, not calls the remove actorVfx
     }
 
-    public bool GetVfx(IntPtr data, out ActorVfx vfx)
+    public bool GetVfx(nint data, out ActorVfx vfx)
     {
         vfx = null!;
-        if (data == IntPtr.Zero || Vfxs.Count == 0) return false;
-        return Vfxs.Keys.FindFirst(x => data == (IntPtr)x.Vfx, out vfx!);
+        if (data == nint.Zero || Vfxs.Count == 0) return false;
+        return Vfxs.Keys.FindFirst(x => data == (nint)x.Vfx, out vfx!);
     }
 
     protected override void Dispose(bool disposing)

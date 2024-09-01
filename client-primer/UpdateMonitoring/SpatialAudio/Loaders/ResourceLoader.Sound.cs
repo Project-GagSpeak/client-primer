@@ -1,7 +1,7 @@
 using Dalamud.Hooking;
 using System.Runtime.InteropServices;
 
-namespace GagSpeak.ResourceManager.Loaders;
+namespace GagSpeak.UpdateMonitoring.SpatialAudio.Loaders;
 public unsafe partial class ResourceLoader
 {
     private IntPtr OverriddenSound = IntPtr.Zero;

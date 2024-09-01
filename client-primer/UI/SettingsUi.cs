@@ -9,11 +9,11 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.ResourceManager;
-using GagSpeak.ResourceManager.ResourceSpawn;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
+using GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
+using GagSpeak.UpdateMonitoring.SpatialAudio.Spawner;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
@@ -36,6 +36,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly ServerConfigurationManager _serverConfigs;
+    private readonly SettingsHardcore _hardcoreSettingsUI;
     private readonly UiSharedService _uiShared;
     private readonly AvfxManager _avfxManager;
     private readonly VfxSpawns _vfxSpawns;
@@ -55,7 +56,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         PairManager pairManager, PlayerCharacterManager playerCharacterManager,
         ClientConfigurationManager clientConfigs, AvfxManager avfxManager,
         VfxSpawns vfxSpawns, ServerConfigurationManager serverConfigs,
-        GagspeakMediator mediator, IpcManager ipcManager,
+        GagspeakMediator mediator, IpcManager ipcManager, SettingsHardcore hardcoreSettingsUI,
         OnFrameworkService frameworkUtil) : base(logger, mediator, "GagSpeak Settings")
     {
         _apiController = apiController;
@@ -68,6 +69,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _serverConfigs = serverConfigs;
         _ipcManager = ipcManager;
         _frameworkUtil = frameworkUtil;
+        _hardcoreSettingsUI = hardcoreSettingsUI;
         _uiShared = uiShared;
         AllowClickthrough = false;
         AllowPinning = false;
@@ -163,7 +165,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     private void DrawGlobalSettings()
     {
-        _lastTab = "Global Settings";
+        _lastTab = "Global";
 
         bool cmdsFromFriends = PlayerGlobalPerms.CommandsFromFriends;
         bool cmdsFromParty = PlayerGlobalPerms.CommandsFromParty;
@@ -904,6 +906,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }, _configService.Current.LogLevel);
 
         bool logResourceManagement = _configService.Current.LogResourceManagement;
+        bool logActionEffects = _configService.Current.LogActionEffects;
         bool logServerHealth = _configService.Current.LogServerConnectionHealth;
 
         if (ImGui.Checkbox("Log Resource Management", ref logResourceManagement))
@@ -912,6 +915,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
         _uiShared.DrawHelpText("Log vibrator audio source management to the debug log.");
+
+        if (ImGui.Checkbox("Log Action Effect", ref logActionEffects))
+        {
+            _configService.Current.LogActionEffects = logActionEffects;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText("Log the action effects received to your client from yourself or other players actions.");
 
         if (ImGui.Checkbox("Log Server Health", ref logServerHealth))
         {
@@ -1235,9 +1245,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     }
                 }
 
-
-
-
                 if (clientPair.HasCachedPlayer)
                 {
                     ImGui.Text($"OnlineUser UID: {clientPair.CachedPlayerOnlineDto.User.UID}");
@@ -1367,9 +1374,16 @@ public class SettingsUi : WindowMediatorSubscriberBase
             // draw out the tab bar for us.
             if (ImGui.BeginTabBar("mainTabBar"))
             {
-                if (ImGui.BeginTabItem("Global Settings"))
+                if (ImGui.BeginTabItem("Global"))
                 {
                     DrawGlobalSettings();
+                    ImGui.EndTabItem();
+                }
+                if (ImGui.BeginTabItem("Hardcore"))
+                {
+                    _lastTab = "Hardcore";
+
+                    _hardcoreSettingsUI.DrawHardcoreSettings();
                     ImGui.EndTabItem();
                 }
                 if (ImGui.BeginTabItem("Preferences"))

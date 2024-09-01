@@ -1,18 +1,7 @@
-using Dalamud.Interface.ImGuiNotification;
-using GagSpeak.GagspeakConfiguration;
-using GagSpeak.PlayerData.Factories;
-using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
-using GagspeakAPI.Data;
-using GagspeakAPI.Data.Comparer;
-using GagspeakAPI.Dto.User;
 using GagspeakAPI.Data.Permissions;
-using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
-using GagspeakAPI.Dto.UserPair;
 using System.Reflection;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
-using ImGuiNET;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -25,11 +14,8 @@ namespace GagSpeak.PlayerData.Pairs;
 public sealed partial class PairManager : DisposableMediatorSubscriberBase
 {
     /// <summary>
-    /// 
     /// Updates all permissions of a client pair user.
-    /// 
     /// Edit access is checked server-side to prevent abuse, so these should be all accurate
-    /// 
     /// </summary>
     public void UpdateOtherPairAllPermissions(UserPairUpdateAllPermsDto dto)
     {
@@ -85,12 +71,33 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             || newPerms.AllowRemovingMoodles != oldPerms.AllowRemovingMoodles;
     }
 
+    public void UpdatePairUpdateOtherAllGlobalPermissions(UserAllGlobalPermChangeDto dto)
+    {
+        // update the pairs permissions.
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) { throw new InvalidOperationException("No such pair for " + dto); }
+        pair.UserPair.OtherGlobalPerms = dto.GlobalPermissions;
+        Logger.LogDebug($"Updated global permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'");
+    }
+
+    public void UpdatePairUpdateOwnAllUniquePermissions(UserPairUpdateAllUniqueDto dto)
+    {
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) { throw new InvalidOperationException("No such pair for " + dto); }
+        pair.UserPair.OwnPairPerms = dto.UniquePerms;
+        pair.UserPair.OwnEditAccessPerms = dto.UniqueAccessPerms;
+        Logger.LogDebug($"Updated own unique permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'");
+    }
+
+    public void UpdatePairUpdateOtherAllUniquePermissions(UserPairUpdateAllUniqueDto dto)
+    {
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) { throw new InvalidOperationException("No such pair for " + dto); }
+        pair.UserPair.OtherPairPerms = dto.UniquePerms;
+        pair.UserPair.OtherEditAccessPerms = dto.UniqueAccessPerms;
+        Logger.LogDebug($"Updated pairs unique permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'");
+    }
+
     /// <summary>
-    /// 
     /// Updates a global permission of a client pair user.
-    /// 
     /// Edit access is checked server-side to prevent abuse, so these should be all accurate.
-    /// 
     /// </summary>>
     public void UpdateOtherPairGlobalPermission(UserGlobalPermChangeDto dto)
     {
@@ -189,7 +196,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (IsMoodlePermission(ChangedPermission))
         {
             // only push the notification if they are online.
-            if(GetVisibleUsers().Contains(pair.UserData))
+            if (GetVisibleUsers().Contains(pair.UserData))
             {
                 // Handle Moodle permission change
                 Logger.LogTrace($"Moodle permission '{ChangedPermission}' was changed to '{ChangedValue}', pushing change to provider!");

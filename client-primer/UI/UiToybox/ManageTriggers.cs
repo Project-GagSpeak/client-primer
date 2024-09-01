@@ -510,7 +510,7 @@ public class ToyboxTriggerManager
         string refActionNamesStr = spellActionTrigger.ActionSpellNames;
         if (ImGui.InputTextWithHint("##ActionSpellNames", "Action Name", ref refActionNamesStr, 255))
         {
-            spellActionTrigger.ActionSpellNames = spellActionTrigger.ActionSpellNames.Replace(" ", string.Empty);
+            spellActionTrigger.ActionSpellNames = refActionNamesStr;
         }
 
         UiSharedService.ColorText("Direction: ", ImGuiColors.ParsedGold);
@@ -691,7 +691,7 @@ public class ToyboxTriggerManager
 
                 ImGui.TableNextColumn();
                 // display nothing if they are not in the list, otherwise display a check
-                var canSeeIcon = TriggerToCreate.CanTrigger.Contains(pair.UserData.UID) ? FontAwesomeIcon.Check : FontAwesomeIcon.Times;
+                var canSeeIcon = TriggerToCreate.CanToggleTrigger.Contains(pair.UserData.UID) ? FontAwesomeIcon.Check : FontAwesomeIcon.Times;
                 using (ImRaii.PushColor(ImGuiCol.Button, ImGui.ColorConvertFloat4ToU32(new(0, 0, 0, 0))))
                 {
                     if (ImGuiUtil.DrawDisabledButton(canSeeIcon.ToIconString(), new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()),
@@ -699,11 +699,11 @@ public class ToyboxTriggerManager
                     {
                         if (canSeeIcon == FontAwesomeIcon.Times)
                         {
-                            TriggerToCreate.CanTrigger.Add(pair.UserData.UID);
+                            TriggerToCreate.CanToggleTrigger.Add(pair.UserData.UID);
                         }
                         else
                         {
-                            TriggerToCreate.CanTrigger.Remove(pair.UserData.UID);
+                            TriggerToCreate.CanToggleTrigger.Remove(pair.UserData.UID);
                         }
                     }
                 }

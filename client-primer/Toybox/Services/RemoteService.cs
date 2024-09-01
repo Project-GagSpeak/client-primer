@@ -9,9 +9,6 @@ public class ToyboxRemoteService
     private readonly ILogger<ToyboxRemoteService> _logger;
     private readonly GagspeakMediator _mediator;
 
-    // try and prevent race conditions, might not need?
-    public bool RemoteActive = false;
-
     public ToyboxRemoteService(ILogger<ToyboxRemoteService> logger,
         GagspeakMediator mediator)
     {

@@ -177,19 +177,9 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             ImGui.TextWrapped($"Select the Customize+ Preset you want to keep applied while the gag is worn:");
 
             // attached audio when worn
-            _uiShared.BigText("Spacial Audio");
+            _uiShared.BigText("Applied Moodles");
 
-            ImGui.TextWrapped($"Select the kind of gagged audio you want to play while gagged:");
-
-            // draw debug metrics
-            ImGui.NewLine();
-            ImGui.Text($"Gag Name: {SelectedGag.GetGagAlias()}");
-            ImGui.Text($"IsEnabled: {UnsavedDrawData.IsEnabled}");
-            ImGui.Text($"Slot: {UnsavedDrawData.Slot}");
-            ImGui.Text($"GameItem: {UnsavedDrawData.GameItem}");
-            ImGui.Text($"GameItemID: {UnsavedDrawData.GameItem.ItemId}");
-            ImGui.Text($"GameStain: {UnsavedDrawData.GameStain}");
-            ImGui.Text($"ActiveSlotListId: {UnsavedDrawData.ActiveSlotId}");
+            ImGui.TextWrapped($"The Moodles to be applied / removed as this gag is toggled");
         }
     }
     #region GagSelector

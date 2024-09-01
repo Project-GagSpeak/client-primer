@@ -1,14 +1,11 @@
 using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
-using GagSpeak.Interop.IpcHelpers;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
-using GagSpeak.UI;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
@@ -18,7 +15,6 @@ using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.IPC;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.User;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkCounterNode.Delegates;
 
 namespace GagSpeak.PlayerData.Data;
 
@@ -57,8 +53,8 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private CharacterAppearanceData _playerCharAppearance { get; set; }
     public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger,
         GagspeakMediator mediator, PairManager pairManager,
-        WardrobeHandler wardrobeHandler, PatternPlaybackService playbackService, 
-        AlarmHandler alarmHandler, TriggerHandler triggerHandler, 
+        WardrobeHandler wardrobeHandler, PatternPlaybackService playbackService,
+        AlarmHandler alarmHandler, TriggerHandler triggerHandler,
         ClientConfigurationManager clientConfiguration,
         IpcCallerMoodles ipcCallerMoodles) : base(logger, mediator)
     {
@@ -92,11 +88,11 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) =>
         {
             LastIpcData = msg.CharacterIPCData;
-            Logger.LogTrace("Latest Stored IPC Data now set to: " + Environment.NewLine
+            /*Logger.LogTrace("Latest Stored IPC Data now set to: " + Environment.NewLine
                 + "MoodlesData: " + msg.CharacterIPCData.MoodlesData + Environment.NewLine
                 + "MoodlesDataStatuses: " + msg.CharacterIPCData.MoodlesDataStatuses.Count + Environment.NewLine
                 + "MoodlesStatuses: " + msg.CharacterIPCData.MoodlesStatuses.Count + Environment.NewLine
-                + "MoodlesPresets: " + msg.CharacterIPCData.MoodlesPresets.Count);
+                + "MoodlesPresets: " + msg.CharacterIPCData.MoodlesPresets.Count);*/
         });
     }
 
@@ -104,13 +100,13 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
 
     // public access definitions.
-    public UserGlobalPermissions GlobalPerms => _playerCharGlobalPerms;
-    public CharacterAppearanceData AppearanceData => _playerCharAppearance;
+    public UserGlobalPermissions? GlobalPerms => _playerCharGlobalPerms ?? null;
+    public CharacterAppearanceData? AppearanceData => _playerCharAppearance ?? null;
     public bool ShouldRemoveGagUponLockExpiration => _clientConfigManager.GagspeakConfig.RemoveGagUponLockExpiration;
     public bool ShouldDisableSetUponUnlock => _clientConfigManager.GagspeakConfig.DisableSetUponUnlock;
 
-    public bool IsPlayerGagged() => AppearanceData.SlotOneGagType != "None"
-        || AppearanceData.SlotTwoGagType != "None" || AppearanceData.SlotThreeGagType != "None";
+    public bool IsPlayerGagged() => AppearanceData?.SlotOneGagType != "None" || AppearanceData.SlotTwoGagType != "None" || AppearanceData.SlotThreeGagType != "None";
+    public void UpdateGlobalPermsInBulk(UserGlobalPermissions newGlobalPerms) => _playerCharGlobalPerms = newGlobalPerms;
 
     public void ApplyStatusesByGuid(ApplyMoodlesByGuidDto dto)
     {
@@ -339,14 +335,14 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             // otherwise, remove the respective gag at the layer.
             switch (callbackDto.UpdateKind)
             {
-                case DataUpdateKind.AppearanceGagUnlockedLayerOne: 
-                    Mediator.Publish(new GagTypeChanged(GagList.GagType.None, GagLayer.UnderLayer)); 
+                case DataUpdateKind.AppearanceGagUnlockedLayerOne:
+                    Mediator.Publish(new GagTypeChanged(GagList.GagType.None, GagLayer.UnderLayer));
                     return;
-                case DataUpdateKind.AppearanceGagUnlockedLayerTwo: 
-                    Mediator.Publish(new GagTypeChanged(GagList.GagType.None, GagLayer.MiddleLayer)); 
+                case DataUpdateKind.AppearanceGagUnlockedLayerTwo:
+                    Mediator.Publish(new GagTypeChanged(GagList.GagType.None, GagLayer.MiddleLayer));
                     return;
-                case DataUpdateKind.AppearanceGagUnlockedLayerThree: 
-                    Mediator.Publish(new GagTypeChanged(GagList.GagType.None, GagLayer.TopLayer)); 
+                case DataUpdateKind.AppearanceGagUnlockedLayerThree:
+                    Mediator.Publish(new GagTypeChanged(GagList.GagType.None, GagLayer.TopLayer));
                     return;
             }
             // if any other callback, log to trace that we got the callback
@@ -378,7 +374,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                     break;
                 case DataUpdateKind.AppearanceGagLockedLayerOne:
                     Enum.TryParse<Padlocks>(callbackDto.AppearanceData.SlotOneGagPadlock, out var lockType);
-                    Mediator.Publish(new GagLockToggle(new PadlockData(GagLayer.UnderLayer, lockType, 
+                    Mediator.Publish(new GagLockToggle(new PadlockData(GagLayer.UnderLayer, lockType,
                         callbackDto.AppearanceData.SlotOneGagPassword, callbackDto.AppearanceData.SlotOneGagTimer,
                         callbackDto.AppearanceData.SlotOneGagAssigner), false, false));
                     break;
@@ -435,7 +431,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         }
     }
 
-    public void UpdateWardrobeFromCallback(OnlineUserCharaWardrobeDataDto callbackDto,  bool callbackWasFromSelf)
+    public void UpdateWardrobeFromCallback(OnlineUserCharaWardrobeDataDto callbackDto, bool callbackWasFromSelf)
     {
         // handle the cases where another pair has updated our data:
         if (!callbackWasFromSelf)
@@ -453,7 +449,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
 
         // Handle the cases in where we updated our own data.
-        switch(callbackDto.UpdateKind)
+        switch (callbackDto.UpdateKind)
         {
             case DataUpdateKind.WardrobeRestraintOutfitsUpdated: Logger.LogDebug("ListUpdate Successfully processed by Server!"); break;
             case DataUpdateKind.WardrobeRestraintApplied: Logger.LogDebug("Restraint Set Apply Successfully processed by Server!"); break;
@@ -461,7 +457,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             case DataUpdateKind.WardrobeRestraintUnlocked:
                 {
                     // for unlock, if we have enabled the setting for automatically removing unlocked sets, do so.
-                    if(ShouldDisableSetUponUnlock)
+                    if (ShouldDisableSetUponUnlock)
                     {
                         int activeSetIdx = _wardrobeHandler.GetRestraintSetIndexByName(callbackDto.WardrobeData.ActiveSetName);
                         _wardrobeHandler.DisableRestraintSet(activeSetIdx);
@@ -478,7 +474,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         // this call should only ever be used for updating the registered name of a pair. if used for any other purpose, log error.
         if (callbackDto.UpdateKind == DataUpdateKind.PuppeteerPlayerNameRegistered)
         {
-            // do the update for name registeration of this pair.
+            // do the update for name registration of this pair.
             Mediator.Publish(new UpdateCharacterListenerForUid(callbackDto.User.UID, callbackDto.AliasData.CharacterName, callbackDto.AliasData.CharacterWorld));
             Logger.LogDebug("Player Name Registered Successfully processed by Server!");
         }

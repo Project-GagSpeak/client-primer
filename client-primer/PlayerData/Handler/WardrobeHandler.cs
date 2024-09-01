@@ -214,7 +214,6 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public void SetBlindfoldDrawData(EquipDrawData drawData)
         => _clientConfigs.SetBlindfoldItem(drawData);
 
-
     /// <summary>
     /// On each delayed framework check, verifies if the active restraint set has had its lock expire, and if so to unlock it.
     /// </summary>

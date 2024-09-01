@@ -721,10 +721,14 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             OnUserRemoveMoodles(dto => _ = Client_UserRemoveMoodles(dto));
             OnUserClearMoodles(dto => _ = Client_UserClearMoodles(dto));
 
+            OnUserUpdateSelfAllGlobalPerms(dto => _ = Client_UserUpdateSelfAllGlobalPerms(dto));
+            OnUserUpdateSelfAllUniquePerms(dto => _ = Client_UserUpdateSelfAllUniquePerms(dto));
             OnUserUpdateSelfPairPermsGlobal(dto => _ = Client_UserUpdateSelfPairPermsGlobal(dto));
             OnUserUpdateSelfPairPerms(dto => _ = Client_UserUpdateSelfPairPerms(dto));
             OnUserUpdateSelfPairPermAccess(dto => _ = Client_UserUpdateSelfPairPermAccess(dto));
             OnUserUpdateOtherAllPairPerms(dto => _ = Client_UserUpdateOtherAllPairPerms(dto));
+            OnUserUpdateOtherAllGlobalPerms(dto => _ = Client_UserUpdateOtherAllGlobalPerms(dto));
+            OnUserUpdateOtherAllUniquePerms(dto => _ = Client_UserUpdateOtherAllUniquePerms(dto));
             OnUserUpdateOtherPairPermsGlobal(dto => _ = Client_UserUpdateOtherPairPermsGlobal(dto));
             OnUserUpdateOtherPairPerms(dto => _ = Client_UserUpdateOtherPairPerms(dto));
             OnUserUpdateOtherPairPermAccess(dto => _ = Client_UserUpdateOtherPairPermAccess(dto));

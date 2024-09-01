@@ -2,6 +2,8 @@ using ImGuiNET;
 using PInvoke;
 using System.Windows.Forms;
 using Lumina.Misc;
+using FFXIVClientStructs.FFXIV.Component.GUI;
+using System.Runtime.InteropServices;
 
 namespace GagSpeak.Utils;
 
@@ -38,6 +40,44 @@ public static class GenericHelpers
             }
         }
     }
+
+    public unsafe static string DecodeValue(AtkValue a)
+    {
+        var str = new StringBuilder(a.Type.ToString()).Append(": ");
+        switch (a.Type)
+        {
+            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.Int:
+                {
+                    str.Append(a.Int);
+                    break;
+                }
+            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.String8:
+            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.WideString:
+            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.ManagedString:
+            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.String:
+                {
+                    str.Append(Marshal.PtrToStringUTF8(new IntPtr(a.String)));
+                    break;
+                }
+            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.UInt:
+                {
+                    str.Append(a.UInt);
+                    break;
+                }
+            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.Bool:
+                {
+                    str.Append(a.Byte != 0);
+                    break;
+                }
+            default:
+                {
+                    str.Append($"Unknown Type: {a.Int}");
+                    break;
+                }
+        }
+        return str.ToString();
+    }
+
 
     // determines if getkeystate or getkeystateasync is called
     public static bool UseAsyncKeyCheck = false;

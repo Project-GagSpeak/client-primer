@@ -23,7 +23,7 @@ public abstract record Trigger
     public abstract TriggerKind Type { get; }
 
     // List of UID's that are able to Enable/Interact with this trigger.
-    public List<string> CanTrigger { get; set; } = [];
+    public List<string> CanToggleTrigger { get; set; } = [];
 
     /*
      * Here is where we define the kind of execution the trigger will have to the connected devices.

@@ -206,7 +206,7 @@ public class ToyboxOverview
         var windowPadding = ImGui.GetStyle().WindowPadding;
         // push the style var to supress the Y window padding.
         var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
-        var buttplugServerAddr = DeviceHandler.IntifaceClientName;
+        var buttplugServerAddr = DeviceController.IntifaceClientName;
         var addrSize = ImGui.CalcTextSize(buttplugServerAddr);
 
         string intifaceConnectionStr = $"Intiface Central Connection";

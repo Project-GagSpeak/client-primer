@@ -1,9 +1,9 @@
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using GagSpeak.ResourceManager.VfxStructs;
+using GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
 using Penumbra.String;
 using System.Runtime.InteropServices;
 
-namespace GagSpeak.ResourceManager.Loaders;
+namespace GagSpeak.UpdateMonitoring.SpatialAudio.Loaders;
 public unsafe partial class ResourceLoader
 {
     private const int INVIS_FLAG = (1 << 1) | (1 << 11);

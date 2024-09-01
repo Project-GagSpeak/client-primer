@@ -26,7 +26,6 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     private ushort _lastZone = 0;
     public bool _sentBetweenAreas = false;
     public bool IsLoggedIn { get; private set; }
-    public bool IsOnFrameworkThread => _framework.IsInFrameworkUpdateThread;
     private DateTime _delayedFrameworkUpdateCheck = DateTime.Now; // for letting us know if we are in a delayed framework check
 
     // The list of player characters, to associate their hashes with the player character name and addresses. Useful for indicating if they are visible or not.

@@ -49,12 +49,10 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
 
     // Determines if this object is the Player Character or not.
     public readonly bool IsOwnedObject;
-
-    public IntPtr Address { get; private set; } // addr of character
-
-    // TODO: Add functionality for this later. Figure out how to make it work as
-    // its more efficient for the IPC in the long run.
     public string NameWithWorld { get; private set; } // the name of the character
+
+    public IPlayerCharacter? PlayerCharacterObjRef { get; private set; }
+    public IntPtr Address { get; private set; } // addr of character
     private IntPtr DrawObjectAddress { get; set; } // the address of the characters draw object.
 
     public override string ToString()
@@ -90,10 +88,11 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    public void UpdatePlayerNameWithWorld()
+    public void UpdatePlayerCharacterRef()
     {
         if(Address == IntPtr.Zero) return;
-        NameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(Address).GetAwaiter().GetResult().GetNameWithWorld();
+        PlayerCharacterObjRef = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(Address).GetAwaiter().GetResult();
+        NameWithWorld = PlayerCharacterObjRef?.GetNameWithWorld() ?? string.Empty;
     }
 
     /* Performs an operation on each framework update to check and update the owned objects we have. 
@@ -138,7 +137,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
 
             if (addrDiff || drawObjDiff)
             {
-                UpdatePlayerNameWithWorld();
+                UpdatePlayerCharacterRef();
                 Logger.LogDebug("Object Address Changed, updating with name & world {NameWithWorld}", NameWithWorld);
             }
 

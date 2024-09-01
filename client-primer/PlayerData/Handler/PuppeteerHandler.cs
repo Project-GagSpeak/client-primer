@@ -125,7 +125,7 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
     #endregion PuppeteerSettings
     #region PuppeteerTriggerDetection
 
-    public List<(string, string)> GetPlayersToListenFor()
+    public List<string> GetPlayersToListenFor()
         => _clientConfigs.GetPlayersToListenFor();
 
     public Pair? GetPairOfUid(string uid) 

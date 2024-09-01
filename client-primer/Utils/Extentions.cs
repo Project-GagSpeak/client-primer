@@ -1,7 +1,9 @@
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Utility;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using GagSpeak.Services.Textures;
 using GagspeakAPI.Data.VibeServer;
 using ImGuiNET;
@@ -9,6 +11,7 @@ using OtterGui;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using static GagspeakAPI.Data.Enum.GagList;
 
 namespace GagSpeak.Utils;
@@ -78,6 +81,24 @@ public static class UtilsExtensions
         return sb.ToString();
     }
 
+    public unsafe static string Read(this Span<byte> bytes)
+    {
+        for (int i = 0; i < bytes.Length; i++)
+        {
+            if (bytes[i] == 0)
+            {
+                fixed (byte* ptr = bytes)
+                {
+                    return Marshal.PtrToStringUTF8((nint)ptr, i);
+                }
+            }
+        }
+        fixed (byte* ptr = bytes)
+        {
+            return Marshal.PtrToStringUTF8((nint)ptr, bytes.Length);
+        }
+    }
+
     public static TimeSpan GetTimespanFromTimespanString(this string pattern)
     {
         if (string.IsNullOrWhiteSpace(pattern)) return TimeSpan.Zero;
@@ -96,6 +117,8 @@ public static class UtilsExtensions
     public static string GetNameWithWorld(this IPlayerCharacter pc)
         => pc == null ? null : (pc.Name.ToString() + "@" + pc.HomeWorld.GameData.Name);
 
+
+    public static unsafe AtkUnitBase* Base(this AddonArgs args) => (AtkUnitBase*)args.Addon;
 
     /// <summary>
     /// Not my code, pulled from:

@@ -1,6 +1,6 @@
 using Dalamud.Plugin.Services;
 
-namespace GagSpeak.ResourceManager;
+namespace GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
 public class ScdManager
 {
     private readonly ILogger<ScdManager> _logger;
@@ -29,11 +29,11 @@ public class ScdManager
             replacePath = Path.Combine(AudioFilesFolder, "ScdVibeActive.scd").Replace('\\', '/');
             return true;
             // Handle the special case
-/*            if (VibeMappings.TryGetValue(NextVibrationToPlay, out var dynamicVibePath))
-            {
-                replacePath = Path.Combine(AudioFilesFolder, dynamicVibePath).Replace('\\', '/');
-                return true;
-            }*/
+            /*            if (VibeMappings.TryGetValue(NextVibrationToPlay, out var dynamicVibePath))
+                        {
+                            replacePath = Path.Combine(AudioFilesFolder, dynamicVibePath).Replace('\\', '/');
+                            return true;
+                        }*/
         }
         // otherwise, check remaining mappings.
         if (PathMappings.TryGetValue(path, out var mappedPath))

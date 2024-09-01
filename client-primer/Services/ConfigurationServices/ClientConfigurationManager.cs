@@ -149,35 +149,31 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         if (_triggerConfig.Current.TriggerStorage == null) { _triggerConfig.Current.TriggerStorage = new(); }
 
     }
-
-    #region ConnectionDto Update Methods
     private void SyncDataWithConnectionDto(ConnectionDto dto)
     {
         // TODO: Update this after we turn the activestate into an object from its raw values.
-        string assigner = (dto.WardrobeActiveSetAssigner == string.Empty) ? "SelfApplied" : dto.WardrobeActiveSetAssigner;
+        string assigner = (dto.CharacterActiveStateData.WardrobeActiveSetAssigner == string.Empty) ? "SelfApplied" : dto.CharacterActiveStateData.WardrobeActiveSetAssigner;
         // if the active set is not string.Empty, we should update our active sets.
-        if (dto.WardrobeActiveSetName != string.Empty)
+        if (dto.CharacterActiveStateData.WardrobeActiveSetName != string.Empty)
         {
-            SetRestraintSetState(GetRestraintSetIdxByName(dto.WardrobeActiveSetName), assigner, UpdatedNewState.Enabled, false);
+            SetRestraintSetState(GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName), assigner, UpdatedNewState.Enabled, false);
         }
 
         // if the set was locked, we should lock it with the appropriate time.
-        if (dto.WardrobeActiveSetLocked)
+        if (dto.CharacterActiveStateData.WardrobeActiveSetLocked)
         {
-            LockRestraintSet(GetRestraintSetIdxByName(dto.WardrobeActiveSetName), assigner, dto.WardrobeActiveSetLockTime, false);
+            LockRestraintSet(GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName), assigner, dto.CharacterActiveStateData.WardrobeActiveSetLockTime, false);
         }
     }
 
-    // TODO: Add the triggers to this too.
-    public List<(string, string)> GetPlayersToListenFor()
+    public List<string> GetPlayersToListenFor()
     {
         // select from the aliasStorages, the character name and world where the values are not string.empty.
-        return AliasConfig.AliasStorage.Select(x => (x.Value.CharacterName, x.Value.CharacterWorld))
-            .Where(x => x.Item1 != string.Empty && x.Item2 != string.Empty).ToList();
+        return AliasConfig.AliasStorage
+            .Where(x => x.Value.CharacterName != string.Empty && x.Value.CharacterWorld != string.Empty)
+            .Select(x => x.Value.NameWithWorld)
+            .ToList();
     }
-
-
-    #endregion ConnectionDto Update Methods
 
     /* --------------------- Gag Storage Config Methods --------------------- */
     #region Gag Storage Methods
@@ -251,6 +247,21 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal RestraintSet GetActiveSet() => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.Enabled)!; // this can be null.
     internal RestraintSet GetRestraintSet(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
     internal int GetRestraintSetIdxByName(string name) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Name == name);
+
+    internal void DisableActiveSetDueToSafeword()
+    {
+        // unlock and disable the currently active restraint set due to us using the safeword command.
+        var activeSetIdx = GetActiveSetIdx();
+        if (activeSetIdx != -1)
+        {
+            // unlock
+            UnlockRestraintSet(activeSetIdx, WardrobeConfig.WardrobeStorage.RestraintSets[activeSetIdx].LockedBy, false);
+            // remove.
+            SetRestraintSetState(activeSetIdx, WardrobeConfig.WardrobeStorage.RestraintSets[activeSetIdx].EnabledBy, UpdatedNewState.Disabled, false);
+            // push mediator for compile.
+            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.Safeword));
+        }
+    }
 
     internal void AddNewRestraintSet(RestraintSet newSet)
     {
@@ -509,29 +520,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         }
     }
 
-    public void UpdatePatternStatesFromCallback(List<PatternInfo> callbackPatternList)
-    {
-        // iterate over each alarmInfo in the alarmInfo list. If any of the AlarmStorages alarms have a different enabled state than the alarm info's, change it.
-        /*        foreach (AlarmInfo alarmInfo in callbackAlarmList)
-                {
-                    // if the alarm is found in the list,
-                    if (AlarmConfig.AlarmStorage.Alarms.Any(x => x.Name == alarmInfo.Name))
-                    {
-                        // grab the alarm reference
-                        var alarmRef = AlarmConfig.AlarmStorage.Alarms.FirstOrDefault(x => x.Name == alarmInfo.Name);
-                        // update the enabled state if the values are different.
-                        if (alarmRef != null && alarmRef.Enabled != alarmInfo.Enabled)
-                        {
-                            alarmRef.Enabled = alarmInfo.Enabled;
-                        }
-                    }
-                    else
-                    {
-                        Logger.LogWarning("Failed to match an Alarm in your list with an alarm in the callbacks list. This shouldnt be possible?");
-                    }
-                } DO NOTHING FOR NOW */
-    }
-
     public void UpdatePattern(PatternData pattern, int idx)
     {
         PatternConfig.PatternStorage.Patterns[idx] = pattern;
@@ -556,6 +544,20 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public List<Alarm> AlarmsRef => AlarmConfig.AlarmStorage.Alarms; // readonly accessor
     public Alarm FetchAlarm(int idx) => AlarmConfig.AlarmStorage.Alarms[idx];
     public int FetchAlarmCount() => AlarmConfig.AlarmStorage.Alarms.Count;
+
+    internal void DisableAllActiveAlarmsDueToSafeword()
+    {
+        // disable all active triggers due to us using the safeword command.
+        for (int i = 0; i < TriggerConfig.TriggerStorage.Triggers.Count; i++)
+        {
+            if (TriggerConfig.TriggerStorage.Triggers[i].Enabled)
+            {
+                SetTriggerState(i, false, false);
+            }
+        }
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.Safeword));
+    }
+
     public void RemovePatternNameFromAlarms(string patternName)
     {
         for (int i = 0; i < AlarmConfig.AlarmStorage.Alarms.Count; i++)
@@ -644,10 +646,23 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     /* --------------------- Toybox Trigger Configs --------------------- */
     #region Trigger Config Methods
-
+    public List<Trigger> GetActiveTriggers() => TriggerConfig.TriggerStorage.Triggers.Where(x => x.Enabled).ToList();
     public List<Trigger> GetTriggersForSearch() => TriggerConfig.TriggerStorage.Triggers; // readonly accessor
     public Trigger FetchTrigger(int idx) => TriggerConfig.TriggerStorage.Triggers[idx];
     public int FetchTriggerCount() => TriggerConfig.TriggerStorage.Triggers.Count;
+
+    internal void DisableAllTriggersDueToSafeword()
+    {
+        // disable all active triggers due to us using the safeword command.
+        for (int i = 0; i < TriggerConfig.TriggerStorage.Triggers.Count; i++)
+        {
+            if (TriggerConfig.TriggerStorage.Triggers[i].Enabled)
+            {
+                SetTriggerState(i, false, false);
+            }
+        }
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.Safeword));
+    }
 
     public void AddNewTrigger(Trigger alarm)
     {
@@ -747,7 +762,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
                 Name = trigger.Name,
                 Description = trigger.Description,
                 Type = trigger.Type,
-                CanViewAndToggleTrigger = trigger.CanTrigger,
+                CanViewAndToggleTrigger = trigger.CanToggleTrigger,
             });
         }
 

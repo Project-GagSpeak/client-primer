@@ -1,4 +1,5 @@
 using GagSpeak.GagspeakConfiguration;
+using GagSpeak.Hardcore;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.Services;
@@ -9,9 +10,11 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.UpdateMonitoring.Chat.ChatMonitors;
+using GagSpeak.UpdateMonitoring.Triggers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Reflection;
+using UpdateMonitoring;
 
 namespace GagSpeak;
 /// <summary> The main class for the GagSpeak plugin.
@@ -158,10 +161,16 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<VisiblePairManager>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<NotificationService>();
 
-            // boot up our chat services.
+            // boot up our chat services. (this don't work as hosted services because they are unsafe)
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatBoxMessage>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatSender>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatInputDetour>();
+
+            // boot up update monitoring services (this don't work as hosted services because they are unsafe)
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<ActionMonitor>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<MovementMonitor>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<ActionEffectMonitor>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<OptionPromptListeners>();
         }
         catch (Exception ex)
         {

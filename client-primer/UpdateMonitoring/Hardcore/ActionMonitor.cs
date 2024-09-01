@@ -1,6 +1,7 @@
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
@@ -17,23 +18,20 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Enum;
 using System.Collections.Immutable;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 
 namespace UpdateMonitoring;
 public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
 {
     #region ClassIncludes
-    private readonly IClientState _clientState;
-    private readonly IGameInteropProvider _gameInteropProvider;
-    private readonly IDataManager _dataManager;
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
-    private readonly PairManager _pairManager;
+    private readonly HotbarLocker _hotbarLocker;
     private readonly HardcoreHandler _hardcoreHandler;
     private readonly WardrobeHandler _wardrobeHandler;
-    private readonly HotbarLocker _hotbarLocker;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly GlamourFastUpdate _glamourFastEvent;
-    // for direct access inspection
+    private readonly IClientState _clientState;
+    private readonly IDataManager _dataManager;
 
     public Control* gameControl = Control.Instance(); // instance to have control over our walking
 
@@ -51,26 +49,23 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     public Dictionary<int, Tuple<float, DateTime>> CooldownList = new Dictionary<int, Tuple<float, DateTime>>(); // stores the recast timers for each action
 
     public unsafe ActionMonitor(ILogger<ActionMonitor> logger, GagspeakMediator mediator,
-        IClientState clientState, IGameInteropProvider interop, IDataManager dataManager,
-        ClientConfigurationManager clientConfigs, PlayerCharacterManager manager,
-        HotbarLocker hotbarLocker, HardcoreHandler handler, PairManager pairManager,
-        WardrobeHandler wardrobeHandler, OnFrameworkService frameworkUtils,
-        GlamourFastUpdate fastUpdate) : base(logger, mediator)
+        ClientConfigurationManager clientConfigs, HotbarLocker hotbarLocker, 
+        HardcoreHandler handler, WardrobeHandler wardrobeHandler, 
+        OnFrameworkService frameworkUtils, GlamourFastUpdate fastUpdate, 
+        IClientState clientState, IDataManager dataManager, 
+        IGameInteropProvider interop) : base(logger, mediator)
     {
-        _clientState = clientState;
-        _gameInteropProvider = interop;
-        _dataManager = dataManager;
         _clientConfigs = clientConfigs;
-        _playerManager = manager;
-        _hardcoreHandler = handler;
         _hotbarLocker = hotbarLocker;
-        _pairManager = pairManager;
+        _hardcoreHandler = handler;
         _wardrobeHandler = wardrobeHandler;
         _frameworkUtils = frameworkUtils;
         _glamourFastEvent = fastUpdate;
+        _clientState = clientState;
+        _dataManager = dataManager;
 
         // set up a hook to fire every time the address signature is detected in our game.
-        UseActionHook = _gameInteropProvider.HookFromAddress<UseActionDelegate>((nint)ActionManager.MemberFunctionPointers.UseAction, UseActionDetour);
+        UseActionHook = interop.HookFromAddress<UseActionDelegate>((nint)ActionManager.MemberFunctionPointers.UseAction, UseActionDetour);
         UseActionHook.Enable();
 
         // initialize
@@ -281,7 +276,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
                         var recastTime = ActionManager.GetAdjustedRecastTime(ActionType.Action, adjustedId);
                         recastTime = (int)(recastTime * _hardcoreHandler.StimulationMultiplier);
                         // if it is an action or general action, append it
-                        Logger.LogTrace($" SlotID {slot->CommandId} Cooldown group {cooldownGroup} with recast time {recastTime}");
+                        // Logger.LogTrace($" SlotID {slot->CommandId} Cooldown group {cooldownGroup} with recast time {recastTime}");
                         if (!CooldownList.ContainsKey(cooldownGroup))
                         {
                             CooldownList.Add(cooldownGroup, new Tuple<float, DateTime>(recastTime, DateTime.MinValue));

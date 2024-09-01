@@ -1,6 +1,6 @@
 using Dalamud.Plugin.Services;
 
-namespace GagSpeak.ResourceManager;
+namespace GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
 
 public class AvfxManager
 {

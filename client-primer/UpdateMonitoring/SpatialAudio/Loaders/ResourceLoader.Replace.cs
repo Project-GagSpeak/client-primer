@@ -1,12 +1,12 @@
 using Dalamud.Hooking;
-using GagSpeak.ResourceManager.VfxStructs;
-using Penumbra.Api.Enums;
+using GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
+using GagSpeak.UpdateMonitoring.SpatialAudio.Structs;
 using Penumbra.String;
 using Penumbra.String.Classes;
 using System.Runtime.InteropServices;
-using FileMode = GagSpeak.ResourceManager.VfxStructs.FileMode;
+using FileMode = GagSpeak.UpdateMonitoring.SpatialAudio.Structs.FileMode;
 
-namespace GagSpeak.ResourceManager.Loaders;
+namespace GagSpeak.UpdateMonitoring.SpatialAudio.Loaders;
 
 public unsafe partial class ResourceLoader
 {

@@ -1,5 +1,3 @@
-/*using System;
-using System.Runtime.InteropServices;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
@@ -7,146 +5,112 @@ using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Utils;
-using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
 
 namespace GagSpeak.Hardcore.BaseListener;
 
 public abstract class OnSetupSelectListFeature : BaseFeature, IDisposable
 {
-    private readonly ILogger<OnSetupSelectListFeature> _logger;
-    private Hook<OnItemSelectedDelegate>? onItemSelectedHook = null;
+    private readonly ILogger _logger;
+    private readonly HardcoreHandler _handler;
     private readonly ITargetManager _targetManager;
     private readonly IGameInteropProvider _gameInteropProvider;
-    private readonly HardcoreHandler _handler;
-    protected OnSetupSelectListFeature(ILogger logger, ITargetManager targetManager, 
-        IGameInteropProvider gameInteropProvider, HardcoreHandler handler)
+    protected OnSetupSelectListFeature(ILogger logger, HardcoreHandler handler,
+        ITargetManager targetManager, IGameInteropProvider gameInteropProvider)
     {
+        _logger = logger;
+        _handler = handler;
         _targetManager = targetManager;
         _gameInteropProvider = gameInteropProvider;
-        _handler = handler;
     }
 
-    private delegate byte OnItemSelectedDelegate(IntPtr popupMenu, uint index, IntPtr a3, IntPtr a4);
-
-    public void Dispose() {
+    public Hook<AddonReceiveEventDelegate>? onItemSelectedHook = null;
+    public unsafe delegate nint AddonReceiveEventDelegate(AtkEventListener* self, AtkEventType eventType, uint eventParam, AtkEvent* eventData, ulong* inputData);
+    public void Dispose()
+    {
         Dispose(true);
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing) {
-        if (disposing) {
+    protected virtual void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
             _logger.LogDebug("OnSetupSelectListFeature: Dispose");
-            this.onItemSelectedHook?.Disable();
-            this.onItemSelectedHook?.Dispose();
+            onItemSelectedHook?.Disable();
+            onItemSelectedHook?.Dispose();
         }
     }
 
-    protected unsafe void CompareNodesToEntryTexts(IntPtr addon, PopupMenu* popupMenu) {
+    protected unsafe int? GetMatchingIndex(string[] entries)
+    {
         _logger.LogDebug("CompareNodesToEntryTexts");
         var target = _targetManager.Target;
-        var targetName = target != null
-            ? GS_GetSeString.GetSeStringText(target.Name)
-            : string.Empty;
+        var targetName = target != null ? target.Name.ExtractText() : string.Empty;
 
-        var texts = this.GetEntryTexts(popupMenu);
+        var nodes = _handler.GetAllNodes().OfType<TextEntryNode>();
+        foreach (var node in nodes)
+        {
+            if (!node.Enabled || string.IsNullOrEmpty(node.Text))
+                continue;
+
+            var (matched, index) = EntryMatchesTexts(node, entries);
+            if (!matched)
+                continue;
+
+            _logger.LogDebug($"OnSetupSelectListFeature: Matched on {node.Text}");
+            return index;
+        }
+        return null;
     }
+
+    protected unsafe void SetupOnItemSelectedHook(PopupMenu* popupMenu)
+    {
+        if (onItemSelectedHook != null) return;
+
+        var onItemSelectedAddress = (nint)popupMenu->VirtualTable->ReceiveEvent;
+        onItemSelectedHook = _gameInteropProvider.HookFromAddress<AddonReceiveEventDelegate>(onItemSelectedAddress, OnItemSelectedDetour);
+        onItemSelectedHook.Enable();
+    }
+
+
+    private static (bool Matched, int Index) EntryMatchesTexts(TextEntryNode node, string?[] texts)
+    {
+        for (var i = 0; i < texts.Length; i++)
+        {
+            var text = texts[i];
+            if (text == null)
+                continue;
+
+            if (EntryMatchesText(node, text))
+                return (true, i);
+        }
+
+        return (false, -1);
+    }
+
+    private static bool EntryMatchesText(TextEntryNode node, string text)
+    => node.IsTextRegex && (node.TextRegex?.IsMatch(text) ?? false) || !node.IsTextRegex && text.Contains(node.Text);
 
     protected abstract void SelectItemExecute(IntPtr addon, int index);
 
-    public unsafe void Fire(AtkUnitBase* Base, bool updateState, params object[] values)
+    private unsafe nint OnItemSelectedDetour(AtkEventListener* self, AtkEventType eventType, uint eventParam, AtkEvent* eventData, ulong* inputData)
     {
-        if (Base == null) throw new Exception("Null UnitBase");
-        var atkValues = (AtkValue*)Marshal.AllocHGlobal(values.Length * sizeof(AtkValue));
-        if (atkValues == null) return;
+        _logger.LogDebug($"PopupMenu RCV: listener={onItemSelectedHook.Address} {(nint)self:X}, type={eventType}, param={eventParam}, input={inputData[0]:X16} {inputData[1]:X16} {inputData[2]:X16} {(int)inputData[2]}");
         try
         {
-            for (var i = 0; i < values.Length; i++)
-            {
-                var v = values[i];
-                switch (v)
-                {
-                    case uint uintValue:
-                        atkValues[i].Type = ValueType.UInt;
-                        atkValues[i].UInt = uintValue;
-                        break;
-                    case int intValue:
-                        atkValues[i].Type = ValueType.Int;
-                        atkValues[i].Int = intValue;
-                        break;
-                    case float floatValue:
-                        atkValues[i].Type = ValueType.Float;
-                        atkValues[i].Float = floatValue;
-                        break;
-                    case bool boolValue:
-                        atkValues[i].Type = ValueType.Bool;
-                        atkValues[i].Byte = (byte)(boolValue ? 1 : 0);
-                        break;
-                    case string stringValue:
-                        {
-                            atkValues[i].Type = ValueType.String;
-                            var stringBytes = Encoding.UTF8.GetBytes(stringValue);
-                            var stringAlloc = Marshal.AllocHGlobal(stringBytes.Length + 1);
-                            Marshal.Copy(stringBytes, 0, stringAlloc, stringBytes.Length);
-                            Marshal.WriteByte(stringAlloc, stringBytes.Length, 0);
-                            atkValues[i].String = (byte*)stringAlloc;
-                            break;
-                        }
-                    case AtkValue rawValue:
-                        {
-                            atkValues[i] = rawValue;
-                            break;
-                        }
-                    default:
-                        throw new ArgumentException($"Unable to convert type {v.GetType()} to AtkValue");
-                }
-            }
-            List<string> CallbackValues = [];
-            for (var i = 0; i < values.Length; i++)
-            {
-                CallbackValues.Add($"    Value {i}: [input: {values[i]}/{values[i]?.GetType().Name}] -> {DecodeValue(atkValues[i])})");
-            }
-            _logger.LogTrace($"Firing callback: {Base->Name.Read()}, valueCount = {values.Length}, updateStatte = {updateState}, values:\n");
-            FireRaw(Base, values.Length, atkValues, (byte)(updateState ? 1 : 0));
+            var target = _targetManager.Target;
+            var targetName = _handler.LastSeenListTarget = target != null ? target.Name.ExtractText() : string.Empty;
+            _handler.LastSeenListSelection = _handler.LastSeenListEntries[(int)inputData[2]].Text;
         }
-        finally
+        catch (Exception ex)
         {
-            for (var i = 0; i < values.Length; i++)
-            {
-                if (atkValues[i].Type == ValueType.String)
-                {
-                    Marshal.FreeHGlobal(new IntPtr(atkValues[i].String));
-                }
-            }
-            Marshal.FreeHGlobal(new IntPtr(atkValues));
+            _logger.LogError(ex, "Don't crash the game.");
         }
+        return onItemSelectedHook.Original(self, eventType, eventParam, eventData, inputData);
     }
 
-    private unsafe byte OnItemSelectedDetour(IntPtr popupMenu, uint index, IntPtr a3, IntPtr a4) {
-        if (popupMenu == IntPtr.Zero)
-            return this.onItemSelectedHook!.Original(popupMenu, index, a3, a4);
-
-        try {
-            var popupMenuPtr = (PopupMenu*)popupMenu;
-            if (index < popupMenuPtr->EntryCount) {
-                var entryPtr = popupMenuPtr->EntryNames[index];
-                var entryText = _handler.LastSeenListSelection = entryPtr != null
-                    ? GS_GetSeString.GetSeStringText(entryPtr)
-                    : string.Empty;
-
-                var target = _targetManager.Target;
-                var targetName = _handler.LastSeenListTarget = target != null
-                    ? GS_GetSeString.GetSeStringText(target.Name)
-                    : string.Empty;
-
-                _logger.LogDebug($"ItemSelected: target={targetName} text={entryText}");
-            }
-        } catch (Exception ex) {
-            _logger.LogError($"Don't crash the game, please: {ex}");
-        }
-        return this.onItemSelectedHook!.Original(popupMenu, index, a3, a4);
-    }
-
-    public unsafe string?[] GetEntryTexts(PopupMenu* popupMenu) {
+    public unsafe string?[] GetEntryTexts(PopupMenu* popupMenu)
+    {
         var count = popupMenu->EntryCount;
         var entryTexts = new string?[count];
 
@@ -154,19 +118,10 @@ public abstract class OnSetupSelectListFeature : BaseFeature, IDisposable
         for (var i = 0; i < count; i++)
         {
             var textPtr = popupMenu->EntryNames[i];
-            entryTexts[i] = textPtr != null
-                ? GS_GetSeString.GetSeStringText(textPtr)
-                : null;
-
-            // Print out the string it finds
-            if (entryTexts[i] != null)
-            {
-                _logger.LogDebug($"Found string: {entryTexts[i]}");
-            }
-
+            entryTexts[i] = textPtr != null ? new string((char*)*textPtr) : string.Empty;
         }
 
         return entryTexts;
     }
 }
-*/
+

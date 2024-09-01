@@ -102,7 +102,22 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 ShowTooltip = () =>
                 {
                     ImGui.BeginTooltip();
-                    ImGui.Text("Migrations & Event Viewer");
+                    ImGui.Text("Event Viewer");
+                    ImGui.EndTooltip();
+                }
+            },
+            new TitleBarButton()
+            {
+                Icon = FontAwesomeIcon.QuestionCircle,
+                Click = (msg) =>
+                {
+                    Mediator.Publish(new UiToggleMessage(typeof(EventViewerUI)));
+                },
+                IconOffset = new(2,1),
+                ShowTooltip = () =>
+                {
+                    ImGui.BeginTooltip();
+                    ImGui.Text("Changelog (Not yet Available)");
                     ImGui.EndTooltip();
                 }
             }

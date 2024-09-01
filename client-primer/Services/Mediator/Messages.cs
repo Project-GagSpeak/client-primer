@@ -23,8 +23,7 @@ using GagspeakAPI.Data.Permissions;
 
 namespace GagSpeak.Services.Mediator;
 
-#pragma warning disable MA0048 // File name must match type name
-#pragma warning disable S2094
+#pragma warning disable MA0048, S2094
 
 /* ------------------ MESSAGE RELATED RECORDS ------------------ */
 public record NotificationMessage // the record indicating a notification message that should be send to the client.
@@ -52,6 +51,8 @@ public record ToyboxHubClosedMessage(Exception? Exception) : SameThreadMessage;
 public record ToyboxConnectedMessage(ToyboxConnectionDto Connection) : MessageBase;
 public record ToyboxPrivateRoomJoined(string RoomName) : MessageBase; // when our player joins a private room.
 public record ToyboxPrivateRoomLeft(string RoomName) : MessageBase; // when our player leaves a private room.
+public record OpenPrivateRoomRemote(PrivateRoom PrivateRoom) : MessageBase; // unique for each private room.
+
 
 /* ------------- DALAMUD FRAMEWORK UPDATE RECORDS ------------- */
 public record DalamudLoginMessage : MessageBase; // record indicating the moment the client logs into the game instance.
@@ -119,6 +120,12 @@ public record ClientOwnPairPermissionChanged(Pair Pair, string Permission, objec
 public record ClientOwnPairPermissionAccessChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed.
 public record ClientOtherPairPermissionChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed
 public record ClientOtherPairPermissionAccessChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed
+public record PlayerCharIpcChanged(DataUpdateKind UpdateKind) : MessageBase;
+public record PlayerCharAppearanceChanged(DataUpdateKind UpdateKind) : MessageBase;
+public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase;
+public record PlayerCharAliasChanged(string UpdatedPairUID, DataUpdateKind UpdateKind) : MessageBase;
+public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
+
 
 /* ------------------ IPC HANDLER RECORDS------------------ */
 public record PenumbraInitializedMessage : MessageBase;
@@ -128,40 +135,35 @@ public record UpdateGlamourGagsMessage(UpdatedNewState NewState, GagLayer Layer,
 public record UpdateGlamourRestraintsMessage(UpdatedNewState NewState) : MessageBase; // Restraint set updates.
 public record UpdateGlamourBlindfoldMessage(UpdatedNewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
 public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
-
-// Whenever we update our own data (callbacks from server are updated separately to avoid loops)
 public record MoodlesReady : MessageBase;
 public record MoodlesStatusManagerChangedMessage(IntPtr Address) : MessageBase; // when our status manager changes.
 public record MoodlesStatusModified(Guid Guid) : MessageBase; // when we change one of our moodles settings.
 public record MoodlesPresetModified(Guid Guid) : MessageBase; // when we change one of our moodles presets.
 public record MoodlesApplyStatusToPair(ApplyMoodlesByStatusDto StatusDto) : MessageBase;
 public record MoodlesUpdateNotifyMessage : MessageBase; // for pinging the moodles.
-public record PlayerCharIpcChanged(DataUpdateKind UpdateKind) : MessageBase;
-public record PlayerCharAppearanceChanged(DataUpdateKind UpdateKind) : MessageBase;
-public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase;
-public record PlayerCharAliasChanged(string UpdatedPairUID, DataUpdateKind UpdateKind) : MessageBase;
-public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
 
+
+/* ----------------- Character Cache Creation Records ----------------- */
 public record CharacterDataCreatedMessage(CharacterIPCData CharacterData) : MessageBase; // TODO: See how to remove this?
 public record CharacterIpcDataCreatedMessage(CharacterIPCData CharacterIPCData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterAppearanceDataCreatedMessage(CharacterAppearanceData CharacterAppearanceData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterWardrobeDataCreatedMessage(CharacterWardrobeData CharacterWardrobeData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterAliasDataCreatedMessage(CharacterAliasData CharacterAliasData, UserData userData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterToyboxDataCreatedMessage(CharacterToyboxData CharacterToyboxData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record GameObjectHandlerCreatedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
+public record GameObjectHandlerDestroyedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
 
 
 /* ------------------ USER INTERFACE (UI) RECORDS------------------ */
+public enum ToggleType { Toggle, Show, Hide }
 public record RefreshUiMessage : MessageBase; // a message indicating the need to refresh the UI.
-public record UiToggleMessage(Type UiType) : MessageBase; // For toggling the UI.
+public record UiToggleMessage(Type UiType, ToggleType ToggleType = ToggleType.Toggle) : MessageBase; // For toggling the UI.
 public record SwitchToIntroUiMessage : MessageBase; // indicates that we are in the introduction UI.
 public record SwitchToMainUiMessage : MessageBase; // indicates we are in the main UI.
 public record OpenSettingsUiMessage : MessageBase; // indicates we are in the settings UI.
 public record ClosedMainUiMessage : MessageBase; // indicates the main UI has been closed.
 public record RemoveWindowMessage(WindowMediatorSubscriberBase Window) : MessageBase; // fired upon request to remove a window from the UI service.
 public record CompactUiChange(Vector2 Size, Vector2 Position) : MessageBase; // fired whenever we change the window size or position
-
-public record GlobalChatMessage(GlobalChatMessageDto ChatMessage, bool FromSelf) : MessageBase;
-public record OpenPrivateRoomRemote(PrivateRoom PrivateRoom) : MessageBase; // unique for each private room.
 public record ProfileOpenStandaloneMessage(Pair Pair) : MessageBase; // for opening the profile standlone window.
 public record ProfilePopoutToggle(Pair? Pair) : MessageBase; // toggles the profile popout window for a paired client.
 public record ClearProfileDataMessage(UserData? UserData = null) : MessageBase; // a message indicating the need to clear profile data.
@@ -169,11 +171,9 @@ public record VerificationPopupMessage(VerificationDto VerificationCode) : Messa
 public record PatternSavePromptMessage(List<byte> StoredData, TimeSpan Duration) : MessageBase; // prompts the popup and passes in savedata
 public record BlindfoldUiTypeChange(BlindfoldType NewType) : MessageBase; // for changing blindfold type.
 
+/* -------------------- DISCOVER TAB RECORDS -------------------- */
+public record GlobalChatMessage(GlobalChatMessageDto ChatMessage, bool FromSelf) : MessageBase;
 public record SafewordUsedMessage : MessageBase; // for when the safeword is used.
+public record SafewordHardcoreUsedMessage : MessageBase; // for when the hardcore safeword is used.
 
-/* ------------------ GAGSPEAK IPC RECORDS ------------------ */
-public record GameObjectHandlerCreatedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
-public record GameObjectHandlerDestroyedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
-
-#pragma warning restore S2094
-#pragma warning restore MA0048 // File name must match type name
+#pragma warning restore S2094, MA0048

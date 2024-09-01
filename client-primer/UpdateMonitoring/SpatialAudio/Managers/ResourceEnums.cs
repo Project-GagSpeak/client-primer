@@ -1,5 +1,6 @@
-namespace GagSpeak.ResourceManager;
-public enum ResourceType : uint {
+namespace GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
+public enum ResourceType : uint
+{
     Unknown = 0,
     Aet = 0x00616574,
     Amb = 0x00616D62,

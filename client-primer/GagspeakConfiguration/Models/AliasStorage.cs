@@ -1,4 +1,5 @@
 using GagspeakAPI.Data;
+using Newtonsoft.Json;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
 
@@ -12,4 +13,7 @@ public class AliasStorage
     public string CharacterName { get; set; } = string.Empty;
     public string CharacterWorld { get; set; } = string.Empty;
     public List<AliasTrigger> AliasList { get; set; } = [];
+
+    [JsonIgnore]
+    public string NameWithWorld => CharacterName+"@"+CharacterWorld;
 }

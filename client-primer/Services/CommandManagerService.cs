@@ -15,6 +15,7 @@ public sealed class CommandManagerService : IDisposable
 {
     private const string MainCommand = "/gagspeak";
     private const string SafewordCommand = "/safeword";
+    private const string SafewordHardcoreCommand = "/safewordhardcore";
     private readonly GagspeakMediator _mediator;
     private readonly GagspeakConfigService _mainConfig;
     private readonly ServerConfigurationManager _serverConfigs;
@@ -38,6 +39,11 @@ public sealed class CommandManagerService : IDisposable
             ShowInHelp = true
         });
         _commands.AddHandler(SafewordCommand, new CommandInfo(OnSafeword)
+        {
+            HelpMessage = "revert all settings to false and disable any active components. For emergency uses.",
+            ShowInHelp = true
+        });
+        _commands.AddHandler(SafewordHardcoreCommand, new CommandInfo(OnSafewordHardcore)
         {
             HelpMessage = "revert all settings to false and disable any active components. For emergency uses.",
             ShowInHelp = true
@@ -87,9 +93,18 @@ public sealed class CommandManagerService : IDisposable
         }
 
         // If safeword matches, invoke the safeword mediator
-        if (_mainConfig.Current.Safeword == argument)
+        if (string.Equals(_mainConfig.Current.Safeword, argument, StringComparison.OrdinalIgnoreCase))
         {
             _mediator.Publish(new SafewordUsedMessage());
+        }
+    }
+
+    private void OnSafewordHardcore(string command, string argument)
+    {
+        // fire the event to invoke reverting hardcore actions.
+        if (_mainConfig.Current.Safeword == argument)
+        {
+            _mediator.Publish(new SafewordHardcoreUsedMessage());
         }
     }
 

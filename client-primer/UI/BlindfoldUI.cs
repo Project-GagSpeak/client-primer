@@ -18,10 +18,11 @@ public enum BlindfoldType { Light, Sensual }
 
 public class BlindfoldUI : WindowMediatorSubscriberBase
 {
-    private readonly IDalamudPluginInterface _pi;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly UiSharedService _uiSharedService;
+    private readonly IDalamudPluginInterface _pi;
     private ITextureProvider _textureProvider;
+
     // our stored images.
     private ISharedImmediateTexture _sharedBlindfoldLightTexture;
     private ISharedImmediateTexture _sharedBlindfoldSensualTexture;
@@ -51,6 +52,7 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
 
         // set isopen to false
         IsOpen = false;
+        IsWindowOpen = false;
         // do not respect close hotkey
         RespectCloseHotkey = false;
         // disable ability for client to hide UI when hideUI hotkey is pressed
@@ -79,6 +81,8 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
         });
     }
 
+    public static bool IsWindowOpen;
+
     public void ToggleWindow(object? sender, ElapsedEventArgs e)
     {
         if (IsOpen && !isShowing)
@@ -94,7 +98,7 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
         }
     }
 
-    public void ActivateWindow()
+    public override void OnOpen()
     {
         // if an active timer is running
         if (_TimerRecorder.IsRunning)
@@ -117,9 +121,12 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
         isShowing = true;
         // Start the stopwatch when the window starts showing
         _TimerRecorder.Start();
+        base.OnOpen();
+        IsWindowOpen = true;
+
     }
 
-    public void DeactivateWindow()
+    public override void OnClose()
     {
         // if an active timer is running
         if (_TimerRecorder.IsRunning)
@@ -133,6 +140,9 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
         alpha = 1.0f;
         imageAlpha = 1.0f;
         isShowing = false;
+
+        base.OnClose();
+        IsWindowOpen = false;
     }
 
     protected override void PreDrawInternal()

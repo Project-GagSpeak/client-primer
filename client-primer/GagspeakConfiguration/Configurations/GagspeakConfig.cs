@@ -5,6 +5,7 @@ using GagSpeak.UI;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.ChatMessages;
 using GagspeakAPI.Data.VibeServer;
+using GagSpeak.Hardcore;
 
 namespace GagSpeak.GagspeakConfiguration.Configurations;
 
@@ -34,6 +35,7 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool ShowOnlineNotificationsOnlyForNamedPairs { get; set; } = false; // only do it for the people you have paired and nicknamed
     public LogLevel LogLevel { get; set; } = LogLevel.Trace;            // the log level we want to see in /xllog
     public bool LogResourceManagement { get; set; } = false;            // if we should log the management of vibration audio on players
+    public bool LogActionEffects { get; set; } = false;                 // if we should log the action effects of players
     public bool LogServerConnectionHealth { get; set; } = false;        // if we should log the health of the server connection
     public NotificationLocation InfoNotification { get; set; } = NotificationLocation.Both;
     public NotificationLocation WarningNotification { get; set; } = NotificationLocation.Both;
@@ -44,7 +46,6 @@ public class GagspeakConfig : IGagspeakConfiguration
     // migrated from gagspeak information for client user. (stuff unnecessary to be in the DB)
     public string Safeword { get; set; } = "";                               // the safeword the user has set
     public bool LiveGarblerZoneChangeWarn { get; set; } = false;                // if user wants to be warned about the live chat garbler on zone change
-    public BlindfoldType BlindfoldStyle { get; set; } = BlindfoldType.Sensual;  // the blindfold style the user is using
     public RevertStyle RevertStyle { get; set; } = RevertStyle.ToGameOnly;      // how the user wants to revert their settings (can store locally?)
     public bool DisableSetUponUnlock { get; set; } = false;                     // If we should remove a set whenever it is unlocked.
     public bool RemoveGagUponLockExpiration { get; set; } = false;              // If we should remove a gag upon lock expiration.
@@ -52,7 +53,13 @@ public class GagspeakConfig : IGagspeakConfiguration
     public VibeSimType VibeSimAudio { get; set; } = VibeSimType.Quiet;          // the audio settings for the simulated vibrator
     public string Language { get; set; } = "English";                           // the language the user is using for MufflerCore
     public string LanguageDialect { get; set; } = "IPA_US";                     // the language dialect the user is using for MufflerCore
-    public bool UsingLegacyControls { get; set; } = GameConfig.UiControl.GetBool("MoveMode"); // grabs our movement mode for the game.
     public string IntifaceConnectionSocket { get; set; } = "ws://localhost:12345"; // connection link from plugin to intiface
+
+    // hardcore stuff:
+    public bool UsingLegacyControls { get; set; } = GameConfig.UiControl.GetBool("MoveMode"); // grabs our movement mode for the game.
+    public BlindfoldType BlindfoldStyle { get; set; } = BlindfoldType.Sensual;  // the blindfold style the user is using
+    public bool DisablePromptHooks { get; set; } = false;
+    public TextFolderNode StoredEntriesFolder { get; private set; } = new TextFolderNode { Name = "ForcedDeclineList" };
+
 }
 

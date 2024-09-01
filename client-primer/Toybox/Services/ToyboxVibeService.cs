@@ -11,12 +11,12 @@ namespace GagSpeak.Toybox.Services;
 public class ToyboxVibeService : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly DeviceHandler _deviceHandler; // handles the actual connected devices.
+    private readonly DeviceController _deviceHandler; // handles the actual connected devices.
     private readonly VibeSimAudio _vibeSimAudio; // handles the simulated vibrator
 
     public ToyboxVibeService(ILogger<ToyboxVibeService> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        DeviceHandler deviceHandler, VibeSimAudio vibeSimAudio) : base(logger, mediator)
+        DeviceController deviceHandler, VibeSimAudio vibeSimAudio) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _deviceHandler = deviceHandler;
@@ -33,11 +33,7 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
     public VibratorMode CurrentVibratorModeUsed => _clientConfigs.GagspeakConfig.VibratorMode;
     public bool UsingSimulatedVibe => CurrentVibratorModeUsed == VibratorMode.Simulated;
     public bool UsingRealVibe => CurrentVibratorModeUsed == VibratorMode.Actual;
-    public bool ConnectedToyActive => (CurrentVibratorModeUsed == VibratorMode.Actual)
-        ? _deviceHandler.ConnectedToIntiface && _deviceHandler.AnyDeviceConnected
-        : VibeSimAudioPlaying;
-
-
+    public bool ConnectedToyActive => (CurrentVibratorModeUsed == VibratorMode.Actual) ? _deviceHandler.ConnectedToIntiface && _deviceHandler.AnyDeviceConnected : VibeSimAudioPlaying;
     public bool IntifaceConnected => _deviceHandler.ConnectedToIntiface;
     public bool ScanningForDevices => _deviceHandler.ScanningForDevices;
 
@@ -49,7 +45,7 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
 
 
     // Grab device handler via toyboxvibeService.
-    public DeviceHandler DeviceHandler => _deviceHandler;
+    public DeviceController DeviceHandler => _deviceHandler;
     public VibeSimAudio VibeSimAudio => _vibeSimAudio;
 
     protected override void Dispose(bool disposing)

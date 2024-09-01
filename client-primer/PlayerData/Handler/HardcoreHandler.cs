@@ -1,4 +1,5 @@
 using Dalamud.Plugin;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.Movement;
@@ -7,6 +8,7 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
+using GagSpeak.UI.MainWindow;
 using GagspeakAPI.Data.Enum;
 using System.Numerics;
 
@@ -14,36 +16,38 @@ namespace GagSpeak.PlayerData.Handlers;
 /// <summary> Responsible for handling hardcore communication from stored data & ui to core logic. </summary>
 public class HardcoreHandler : DisposableMediatorSubscriberBase
 {
-    private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly GagspeakConfigService _mainConfig;
+    private readonly PairManager _pairManager;
     private readonly WardrobeHandler _outfitHandler;
 
     // for camera manager
     public unsafe GameCameraManager* cameraManager = GameCameraManager.Instance(); // for the camera manager object
-    private readonly BlindfoldUI _blindfoldWindowRef;
     public HardcoreHandler(ILogger<GagDataHandler> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, 
-        PlayerCharacterManager playerManager, WardrobeHandler outfitHandler, 
-        BlindfoldUI blindfoldRef) : base(logger, mediator)
+        GagspeakConfigService mainConfig, PairManager pairManager, 
+        WardrobeHandler outfitHandler) : base(logger, mediator)
     {
-        _clientConfigs = clientConfiguration;
-        _playerManager = playerManager;
+        _mainConfig = mainConfig;
+        _pairManager = pairManager;
         _outfitHandler = outfitHandler;
-        _blindfoldWindowRef = blindfoldRef;
+
+        // update the textfolder
+        _mainConfig.Current.StoredEntriesFolder.CheckAndInsertRequired();
+        _mainConfig.Current.StoredEntriesFolder.PruneEmpty();
+        _mainConfig.Save();
     }
 
-    // our publicly accessible variables.
+    public bool DisablePromptHooks => _mainConfig.Current.DisablePromptHooks;
+    public TextFolderNode StoredEntriesFolder => _mainConfig.Current.StoredEntriesFolder;
+
     public Tuple<string, List<string>> LastSeenDialogText { get; set; }
-    public bool DisablePromptHooks { get; set; } = false;
-    public TextFolderNode StoredEntriesFolder { get; private set; } = new TextFolderNode { Name = "ForcedDeclineList" };
-    public double StimulationMultiplier = 1.0;
+    public TextEntryNode? LastSelectedListNode { get; set; } = null;
     public string LastSeenListTarget { get; set; } = string.Empty;
     public string LastSeenListSelection { get; set; } = string.Empty;
+    public (int Index, string Text)[] LastSeenListEntries { get; set; } = [];
+    public int LastSeenListIndex { get; set; } = -1;
     public DateTimeOffset LastMovementTime { get; set; } = DateTimeOffset.Now;
     public Vector3 LastPosition { get; set; } = Vector3.Zero;
-
-    // Diversify this handler so that it can store many public access variables that help prevent us
-    // from needing to iterate over pair manager every time something happens or is checked upon.
+    public double StimulationMultiplier { get; set; } = 1.0;
 
     public IEnumerable<ITextNode> GetAllNodes()
     {
@@ -92,11 +96,17 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         folder.Children.Add(newNode);
     }
 
+    public void SetPromptHooksState(bool newState)
+    {
+        _mainConfig.Current.DisablePromptHooks = newState;
+        _mainConfig.Save();
+    }
+
     // handles the forced follow logic.
     public void HandleForcedFollow(bool newState)
     {
         // toggle movement type to legacy if we are not on legacy
-        if (_clientConfigs.GagspeakConfig.UsingLegacyControls == false)
+        if (_mainConfig.Current.UsingLegacyControls == false)
         {
             // if forced follow is still on, dont switch it back to false
             uint mode = newState ? (uint)MovementMode.Legacy : (uint)MovementMode.Standard;
@@ -104,16 +114,27 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         }
     }
 
+    public bool IsCurrentlyForcedToFollow() // return if we are currently forced to follow by anyone
+        => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
+
+    public bool IsCurrentlyForcedToSit() // return if we are currently forced to move by anyone
+        => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToSit);
+
+    public bool IsCurrentlyForcedToStay() // return if we are currently forced to stay by anyone
+        => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay);
+
+
+
     public async Task HandleBlindfoldLogic(UpdatedNewState newState, string applierUID)
     {
         // toggle our window based on conditions
-        if (newState == UpdatedNewState.Enabled && !_blindfoldWindowRef.IsOpen)
+        if (newState == UpdatedNewState.Enabled && !BlindfoldUI.IsWindowOpen)
         {
-            _blindfoldWindowRef.ActivateWindow();
+            Mediator.Publish(new UiToggleMessage(typeof(BlindfoldUI), ToggleType.Show));
         }
-        if (newState == UpdatedNewState.Disabled && _blindfoldWindowRef.IsOpen)
+        if (newState == UpdatedNewState.Disabled && BlindfoldUI.IsWindowOpen)
         {
-            _blindfoldWindowRef.DeactivateWindow();
+            Mediator.Publish(new UiToggleMessage(typeof(MainWindowUI), ToggleType.Hide));
         }
         if (UpdatedNewState.Enabled == newState)
         {

@@ -256,7 +256,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             Logger.LogDebug("One-Time Initializing {this}", this);
             // initialize the player character
             Initialize(pc.Name);
-            if (_charaHandler != null) _charaHandler.UpdatePlayerNameWithWorld();
+            if (_charaHandler != null) _charaHandler.UpdatePlayerCharacterRef();
             Logger.LogDebug("One-Time Initialized {this}", this);
             // publish an event message to the mediator for logging purposes
             Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational,
@@ -270,7 +270,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             Guid appData = Guid.NewGuid();
             // and update their visibility to true
             IsVisible = true;
-            if(_charaHandler != null) _charaHandler.UpdatePlayerNameWithWorld();
+            if(_charaHandler != null) _charaHandler.UpdatePlayerCharacterRef();
             // publish the pairHandlerVisible message to the mediator, passing in this pair handler object
             Mediator.Publish(new PairHandlerVisibleMessage(this));
             // if the pairs cachedData is not null

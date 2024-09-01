@@ -2,6 +2,7 @@ using Dalamud.Game.ClientState.Keys;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
@@ -19,20 +20,16 @@ using XivControl = FFXIVClientStructs.FFXIV.Client.Game.Control;
 namespace GagSpeak.UpdateMonitoring;
 public class MovementMonitor : DisposableMediatorSubscriberBase
 {
-    private readonly ICondition _condition;
-    private readonly IClientState _clientState;
-    private readonly IFramework _framework;
-    private readonly IKeyState _keyState;
-    private readonly IObjectTable _objectTable;   // object table
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
     private readonly HardcoreHandler _handler;
     private readonly WardrobeHandler _outfitHandler;
-    //private readonly OptionPromptListeners _autoDialogSelect;
+    private readonly OptionPromptListeners _autoDialogSelect;
     private readonly OnFrameworkService _frameworkUtils;
-
-    // for having the movement memory -- was originally private static, revert back if it causes issues.
-    private MoveController _MoveController;
+    private readonly MoveController _MoveController;
+    private readonly ICondition _condition;
+    private readonly IClientState _clientState;
+    private readonly IKeyState _keyState;
+    private readonly IObjectTable _objectTable;
 
     // for controlling walking speed, follow movement manager, and sitting/standing.
     public unsafe GameCameraManager* cameraManager = GameCameraManager.Instance(); // for the camera manager object
@@ -45,21 +42,21 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
 
     // the list of keys that are blocked while movement is disabled. Req. to be static, must be set here.
     public MovementMonitor(ILogger<MovementMonitor> logger, GagspeakMediator mediator,
-        ICondition condition, IClientState clientState, MoveController MoveController,
-        IFramework framework, IKeyState keyState, IObjectTable objectTable,
-        WardrobeHandler outfitHandler, ClientConfigurationManager clientConfigs, HardcoreHandler handler,
-        OnFrameworkService onFrameworkService) : base(logger, mediator)
+        HardcoreHandler hardcoreHandler, WardrobeHandler outfitHandler,
+        ClientConfigurationManager clientConfigs, OptionPromptListeners autoDialogSelect,
+        OnFrameworkService frameworkUtils, MoveController moveController, ICondition condition,
+        IClientState clientState, IKeyState keyState, IObjectTable objectTable) : base(logger, mediator)
     {
+        _clientConfigs = clientConfigs;
+        _handler = hardcoreHandler;
+        _outfitHandler = outfitHandler;
+        _autoDialogSelect = autoDialogSelect;
+        _frameworkUtils = frameworkUtils;
+        _MoveController = moveController;
         _condition = condition;
         _clientState = clientState;
-        _clientConfigs = clientConfigs;
-        _framework = framework;
         _keyState = keyState;
         _objectTable = objectTable;
-        _MoveController = MoveController;
-        _outfitHandler = outfitHandler;
-        _handler = handler;
-        _frameworkUtils = onFrameworkService;
 
         // attempt to set the value safely
         GenericHelpers.Safe(delegate
@@ -91,9 +88,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         // subscribe to the mediator events
         Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
         {
-            if(msg.isHardcoreSet
-            && msg.State == UpdatedNewState.Disabled
-            && msg.AssignerUID != "SelfAssigned")
+            if (msg.isHardcoreSet && msg.State == UpdatedNewState.Disabled && msg.AssignerUID != "SelfAssigned")
             {
                 // might need to add back in another variable to pass through that references if it had weighty or not?
                 Logger.LogDebug($"[Action Manager]: Letting you run again");
@@ -194,9 +189,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                     if ((DateTimeOffset.Now - _handler.LastMovementTime).TotalMilliseconds > 6000)
                     {
                         // set the forced follow to false
-
-                        // PAIR SETTER FOUND TODO FIX
-                        /*_handler.SetForcedFollow(index, false);*/
+                        _handler.HandleForcedFollow(false);
                         Logger.LogDebug($"[MovementManager]: Player has been standing still for too long, forcing them to move again");
                     }
                 }
@@ -206,7 +199,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             if (EnableOptionPromptHooks())
             {
                 // enable the hooks for the option prompts
-                /*_autoDialogSelect.Enable();*/
+                _autoDialogSelect.Enable();
                 // while they are active, if we are not in a dialog prompt option, scan to see if we are by an estate enterance
                 if (_outfitHandler.ForcedToStayPair != null && !_condition[Condition.OccupiedInQuestEvent] && !_frameworkUtils._sentBetweenAreas)
                 {
@@ -228,7 +221,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             // otherwise, disable the hooks if it is inactive
             else
             {
-                /*_autoDialogSelect.Disable(); // disable the hooks for prompt selection*/
+                _autoDialogSelect.Disable(); // disable the hooks for prompt selection
             }
 
             // if we are blindfolded and have forced first-person to true, force first person

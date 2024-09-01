@@ -21,14 +21,14 @@ public class MoveController : IDisposable
 
     // controls the complete blockage of movement from the player (Blocks /follow movement)
 #pragma warning disable CS0649
-    [Signature("F3 0F 10 05 ?? ?? ?? ?? 0F 2E C6 0F 8A", ScanType = ScanType.StaticAddress, Fallibility = Fallibility.Infallible)]
+    [Signature("F3 0F 10 05 ?? ?? ?? ?? 0F 2E C7", ScanType = ScanType.StaticAddress, Fallibility = Fallibility.Infallible)]
     private nint forceDisableMovementPtr;
     private unsafe ref int ForceDisableMovement => ref *(int*)(forceDisableMovementPtr + 4);
 #pragma warning restore CS0649
 
     // prevents LMB+RMB moving by processing it prior to the games update movement check.
     public unsafe delegate byte MoveOnMousePreventorDelegate(MoveControllerSubMemberForMine* thisx);
-    [Signature("40 55 53 48 8d 6c 24 c8 48 81 ec 38 01 00 00", DetourName = nameof(MovementUpdate), Fallibility = Fallibility.Auto)]
+    [Signature("40 55 53 48 8D 6C 24 ?? 48 81 EC ?? ?? ?? ?? 48 83 79", DetourName = nameof(MovementUpdate), Fallibility = Fallibility.Auto)]
     private static Hook<MoveOnMousePreventorDelegate>? MovementUpdateHook { get; set; } = null!;
     [return: MarshalAs(UnmanagedType.U1)]
     public unsafe byte MovementUpdate(MoveControllerSubMemberForMine* thisx)

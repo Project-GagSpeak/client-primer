@@ -239,18 +239,31 @@ public partial class ApiController // Partial class for MainHub User Functions.
         }
     }
 
-    public async Task UserPushAllPerms(UserPairUpdateAllPermsDto userPermissions)
+    public async Task UserPushAllGlobalPerms(UserAllGlobalPermChangeDto allGlobalPerms)
     {
+        CheckConnection();
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushAllPerms), userPermissions).ConfigureAwait(false);
+            await _gagspeakHub!.InvokeAsync(nameof(UserPushAllGlobalPerms), allGlobalPerms).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Failed to set own global permission");
+            Logger.LogWarning(ex, "Failed to push all Global Permissions");
         }
     }
 
+    public async Task UserPushAllUniquePerms(UserPairUpdateAllUniqueDto allUniquePermsForPair)
+    {
+        CheckConnection();
+        try
+        {
+            await _gagspeakHub!.InvokeAsync(nameof(UserPushAllUniquePerms), allUniquePermsForPair).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to push all Unique Permissions for a Pair.");
+        }
+    }
 
     /// <summary> Pushes to server a request to modify a global permissions of the client. </summary>
     public async Task UserUpdateOwnGlobalPerm(UserGlobalPermChangeDto userPermissions)

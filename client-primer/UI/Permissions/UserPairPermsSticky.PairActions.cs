@@ -142,7 +142,7 @@ public partial class UserPairPermsSticky
 
         // button for applying a gag (will display the dropdown of the gag list to apply when pressed.
         if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, ("Apply a Gag to " + PairUID),
-            WindowMenuWidth, true, disableCondition || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures))
+            WindowMenuWidth, true, !lockDisableCondition || !UserPairForPerms.UserPairUniquePairPerms.GagFeatures))
         {
             ShowGagList = !ShowGagList;
         }

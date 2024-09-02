@@ -361,7 +361,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                     if(_playerCharAppearance.SlotOneGagPadlock == "None")
                     {
                         // if it was previously none, we are just applying.
-                        if(_playerCharAppearance.SlotOneGagType != "None")
+                        if(_playerCharAppearance.SlotOneGagType == "None")
                         {
                             _playerCharAppearance.SlotOneGagType = callbackDto.AppearanceData.SlotOneGagType;
                             Mediator.Publish(new UpdateActiveGags());
@@ -393,7 +393,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                 case DataUpdateKind.AppearanceGagAppliedLayerTwo:
                     if (_playerCharAppearance.SlotTwoGagPadlock == "None")
                     {
-                        if (_playerCharAppearance.SlotTwoGagType != "None")
+                        if (_playerCharAppearance.SlotTwoGagType == "None")
                         {
                             _playerCharAppearance.SlotTwoGagType = callbackDto.AppearanceData.SlotTwoGagType;
                             Mediator.Publish(new UpdateActiveGags());
@@ -425,7 +425,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                 case DataUpdateKind.AppearanceGagAppliedLayerThree:
                     if (_playerCharAppearance.SlotThreeGagPadlock == "None")
                     {
-                        if (_playerCharAppearance.SlotThreeGagType != "None")
+                        if (_playerCharAppearance.SlotThreeGagType == "None")
                         {
                             _playerCharAppearance.SlotThreeGagType = callbackDto.AppearanceData.SlotThreeGagType;
                             Mediator.Publish(new UpdateActiveGags());

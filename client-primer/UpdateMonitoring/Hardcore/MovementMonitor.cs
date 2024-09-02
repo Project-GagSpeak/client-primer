@@ -230,7 +230,9 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
     }
 
     private bool isImmobile() 
-        => _outfitHandler.ActiveSet != null && _outfitHandler.ActiveSet.SetProperties[_outfitHandler.ActiveSet.EnabledBy].Immobile;
+        => _outfitHandler.ActiveSet != null 
+        && _outfitHandler.ActiveSet.SetProperties.ContainsKey(_outfitHandler.ActiveSet.EnabledBy)
+        && _outfitHandler.ActiveSet.SetProperties[_outfitHandler.ActiveSet.EnabledBy].Immobile;
 
     private bool AllowFrameworkHardcoreUpdates()
     {

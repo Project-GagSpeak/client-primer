@@ -141,31 +141,26 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
     /// <summary> Pushes the character wardrobe data to the server for the visible players </summary>
     private void PushCharacterAppearanceData(List<UserData> onlinePlayers, DataUpdateKind updateKind)
     {
-        if (onlinePlayers.Any() && _lastAppearanceData != null)
+        if (_lastAppearanceData != null)
         {
             _ = Task.Run(async () =>
             {
-                Logger.LogTrace("Pushing new Appearance data to all visible players"); // RECOMMENDATION: Toggle off when not debugging
                 await _apiController.PushCharacterAppearanceData(_lastAppearanceData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }
         else
         {
-            if (!onlinePlayers.Any())
-                Logger.LogWarning("No online players to push Appearance data to");
-            else
-                Logger.LogWarning("No Appearance data to push to online players");
+            Logger.LogWarning("No Appearance data to push to online players");
         }
     }
 
     /// <summary> Pushes the character wardrobe data to the server for the visible players </summary>
     private void PushCharacterWardrobeData(List<UserData> onlinePlayers, DataUpdateKind updateKind)
     {
-        if (onlinePlayers.Any() && _lastWardrobeData != null)
+        if (_lastWardrobeData != null)
         {
             _ = Task.Run(async () =>
             {
-                Logger.LogTrace("Pushing new Wardrobe data to all visible players"); // RECOMMENDATION: Toggle off when not debugging
                 await _apiController.PushCharacterWardrobeData(_lastWardrobeData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }
@@ -178,7 +173,6 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         {
             _ = Task.Run(async () =>
             {
-                Logger.LogTrace("Pushing new Alias data to visible player"); // RECOMMENDATION: Toggle off when not debugging
                 await _apiController.PushCharacterAliasListData(_lastAliasData, onlinePairToPushTo, DataUpdateKind.PuppeteerAliasListUpdated).ConfigureAwait(false);
             });
         }
@@ -187,11 +181,10 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
     /// <summary> Pushes the character toybox data to the server for the visible players </summary>
     private void PushCharacterToyboxData(List<UserData> onlinePlayers, DataUpdateKind updateKind)
     {
-        if (onlinePlayers.Any() && _lastToyboxData != null)
+        if (_lastToyboxData != null)
         {
             _ = Task.Run(async () =>
             {
-                Logger.LogTrace("Pushing new Toybox data to all visible players"); // RECOMMENDATION: Toggle off when not debugging
                 await _apiController.PushCharacterToyboxDataData(_lastToyboxData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }

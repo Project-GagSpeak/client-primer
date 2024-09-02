@@ -88,9 +88,9 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         // subscribe to events.
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
 
-        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
+        Mediator.Subscribe<RestraintSetToggleHardcoreTraitsMessage>(this, (msg) =>
         {
-            if(msg.isHardcoreSet && msg.AssignerUID != "SelfAssigned" && msg.State == UpdatedNewState.Enabled)
+            if(msg.AssignerUID != "SelfAssigned" && msg.State == NewState.Enabled)
             {
                 // apply stimulation modifier, if any (TODO)
                 _hardcoreHandler.ApplyMultiplier();
@@ -99,11 +99,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
                 // begin allowing monitoring of properties
                 MonitorHardcoreRestraintSetProperties = true;
             }
-        });
-
-        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
-        {
-            if( msg.isHardcoreSet && msg.AssignerUID != "SelfAssigned" && msg.State == UpdatedNewState.Disabled)
+            if(msg.AssignerUID != "SelfAssigned" && msg.State == NewState.Disabled)
             {
                 // reset multiplier
                 _hardcoreHandler.StimulationMultiplier = 1.0;
@@ -113,6 +109,11 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
                 _hotbarLocker.SetHotbarLockState(false);
                 // halt monitoring of properties
                 MonitorHardcoreRestraintSetProperties = false;
+            }
+
+            if(msg.HardcoreTraitsTask != null)
+            {
+                msg.HardcoreTraitsTask.SetResult(true);
             }
         });
     }

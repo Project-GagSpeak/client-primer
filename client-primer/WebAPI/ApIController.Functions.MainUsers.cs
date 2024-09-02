@@ -389,7 +389,8 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
         try // if connected, try to push the data to the server
         {
-            Logger.LogDebug("Pushing Character Appearance data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
+            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character Appearance data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
+            else Logger.LogDebug("Updating AppearanceData to stored ActiveStateData");
             await UserPushDataAppearance(new(onlineCharacters, data, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
@@ -408,7 +409,8 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
         try // if connected, try to push the data to the server
         {
-            Logger.LogDebug("Pushing Character Wardrobe data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
+            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character Wardrobe data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
+            else Logger.LogDebug("Updating WardrobeData to stored ActiveStateData");
             await UserPushDataWardrobe(new(onlineCharacters, data, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
@@ -445,7 +447,8 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
         try // if connected, try to push the data to the server
         {
-            Logger.LogDebug("Pushing Character PatternInfo to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
+            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character PatternInfo to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
+            else Logger.LogDebug("Updating ToyboxData to stored ActiveStateData");
             await UserPushDataToybox(new(onlineCharacters, data, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }

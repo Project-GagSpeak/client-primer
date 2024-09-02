@@ -81,21 +81,21 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             // if we are blindfolded by anyone, we should apply that as well
             if (_handler.IsBlindfolded && _handler.BlindfoldPair != null)
             {
-                await _handler.HandleBlindfoldLogic(UpdatedNewState.Enabled, _handler.BlindfoldPair.UserData.UID);
+                await _handler.HandleBlindfoldLogic(NewState.Enabled, _handler.BlindfoldPair.UserData.UID);
             }
         });
 
         // subscribe to the mediator events
-        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
+        Mediator.Subscribe<RestraintSetToggleHardcoreTraitsMessage>(this, (msg) =>
         {
-            if (msg.isHardcoreSet && msg.State == UpdatedNewState.Disabled && msg.AssignerUID != "SelfAssigned")
+            if (msg.State == NewState.Disabled && msg.AssignerUID != "SelfAssigned")
             {
                 // might need to add back in another variable to pass through that references if it had weighty or not?
                 Logger.LogDebug($"[Action Manager]: Letting you run again");
                 Task.Delay(200);
                 unsafe // temp fix to larger issue, if experiencing problems, refer to old code.
                 {
-                    Marshal.WriteByte((nint)gameControl, 23163, 0x0);
+                    Marshal.WriteByte((nint)gameControl, 24131, 0x0);
                 }
             }
         });
@@ -103,7 +103,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         Mediator.Subscribe<MovementRestrictionChangedMessage>(this, (msg) =>
         {
             // if the new state type is not disabled, we do not care about it.
-            if (msg.NewState != UpdatedNewState.Disabled) return;
+            if (msg.NewState != NewState.Disabled) return;
 
             // Movement type shouldnt madder here since its's handled by the framework right away afterward?
 
@@ -167,7 +167,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                     if ((DateTimeOffset.Now - _handler.LastMovementTime).TotalMilliseconds > 6000)
                     {
                         // set the forced follow to false
-                        _handler.SetForcedFollow(UpdatedNewState.Disabled, _handler.ForceFollowedPair);
+                        _handler.SetForcedFollow(NewState.Disabled, _handler.ForceFollowedPair);
                         Logger.LogDebug($"[MovementManager]: Player has been standing still for too long, forcing them to move again");
                     }
                 }

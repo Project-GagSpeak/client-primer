@@ -119,7 +119,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
         _logger.LogDebug($"YesNo Prompt Text => {text}");
 
         var nodes = _handler.GetAllNodes().OfType<TextEntryNode>();
-        _logger.LogDebug($"AddonSelectYesNo: Checking {nodes.Count()} nodes");
+        _logger.LogDebug($"AddonSelectYesNo: Checking Existing AutoSelect Nodes ({nodes.Count()})");
         foreach (var node in nodes)
         {
             if (!node.Enabled || string.IsNullOrEmpty(node.Text))

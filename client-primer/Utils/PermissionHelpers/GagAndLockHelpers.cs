@@ -89,22 +89,20 @@ public static class GagAndLockPairkHelpers
 
             try
             {
+                newAppearance.GagSlots[state.SelectedLayer].GagType = state.SelectedGag.GetGagAlias();
                 switch (state.SelectedLayer)
                 {
                     case 0:
-                        newAppearance.SlotOneGagType = state.SelectedGag.GetGagAlias();
                         _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                             (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagAppliedLayerOne));
                         success = true;
                         break;
                     case 1:
-                        newAppearance.SlotTwoGagType = state.SelectedGag.GetGagAlias();
                         _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                             (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagAppliedLayerTwo));
                         success = true;
                         break;
                     case 2:
-                        newAppearance.SlotThreeGagType = state.SelectedGag.GetGagAlias();
                         _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                             (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagAppliedLayerThree));
                         success = true;
@@ -146,7 +144,6 @@ public static class GagAndLockPairkHelpers
             success = false;
             if (uiShared.IconTextButton(FontAwesomeIcon.Lock, "Lock"))
             {
-                // apply the selected gag. (POSSIBLY TODO: Rework the PushApperance Data to only push a single property to avoid conflicts.)
                 var newAppearance = userPairForPerms.LastReceivedAppearanceData.DeepClone();
                 if (newAppearance == null) throw new Exception("Appearance data is null or lock is invalid., not sending");
 
@@ -156,31 +153,23 @@ public static class GagAndLockPairkHelpers
 
                     try
                     {
+                        newAppearance.GagSlots[state.SelectedLayer].Padlock = state.SelectedPadlock.ToString();
+                        newAppearance.GagSlots[state.SelectedLayer].Password = state.Password;
+                        newAppearance.GagSlots[state.SelectedLayer].Timer = UiSharedService.GetEndTimeUTC(state.Timer);
+                        newAppearance.GagSlots[state.SelectedLayer].Assigner = apiController.UID;
                         switch (state.SelectedLayer)
                         {
                             case 0:
-                                newAppearance.SlotOneGagPadlock = state.SelectedPadlock.ToString();
-                                newAppearance.SlotOneGagPassword = state.Password;
-                                newAppearance.SlotOneGagTimer = UiSharedService.GetEndTimeUTC(state.Timer);
-                                newAppearance.SlotOneGagAssigner = apiController.UID;
                                 _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                                     (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagLockedLayerOne));
                                 success = true;
                                 break;
                             case 1:
-                                newAppearance.SlotTwoGagPadlock = state.SelectedPadlock.ToString();
-                                newAppearance.SlotTwoGagPassword = state.Password;
-                                newAppearance.SlotTwoGagTimer = UiSharedService.GetEndTimeUTC(state.Timer);
-                                newAppearance.SlotTwoGagAssigner = apiController.UID;
                                 _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                                     (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagLockedLayerTwo));
                                 success = true;
                                 break;
                             case 2:
-                                newAppearance.SlotThreeGagPadlock = state.SelectedPadlock.ToString();
-                                newAppearance.SlotThreeGagPassword = state.Password;
-                                newAppearance.SlotThreeGagTimer = UiSharedService.GetEndTimeUTC(state.Timer);
-                                newAppearance.SlotThreeGagAssigner = apiController.UID;
                                 _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                                     (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagLockedLayerThree));
                                 success = true;
@@ -189,7 +178,8 @@ public static class GagAndLockPairkHelpers
                                 logger.LogWarning("Invalid layer selected: {SelectedLayer}", state.SelectedLayer);
                                 break;
                         }
-                        logger.LogTrace("Applied Lock to {0}'s layer {1} [{2}] with password [{3}]", pairAliasUID, state.SelectedLayer, newAppearance.SlotOneGagType, state.Password);
+                        logger.LogTrace("Applied Lock to {0}'s layer {1} [{2}] with password [{3}]", pairAliasUID, state.SelectedLayer, 
+                            newAppearance.GagSlots[state.SelectedLayer].GagType, state.Password);
                     }
                     catch (Exception e)
                     {
@@ -198,9 +188,8 @@ public static class GagAndLockPairkHelpers
                 }
                 else
                 {
-                    if (state.SelectedLayer == 0) logger.LogWarning("Failed to apply lock to {0}'s layer {1} [{2}] with locktype {3} and password [{4}]", pairAliasUID, state.SelectedLayer, newAppearance.SlotOneGagType, state.SelectedPadlock, state.Password);
-                    if (state.SelectedLayer == 1) logger.LogWarning("Failed to apply lock to {0}'s layer {1} [{2}] with locktype {3} and password [{4}]", pairAliasUID, state.SelectedLayer, newAppearance.SlotTwoGagType, state.SelectedPadlock, state.Password);
-                    if (state.SelectedLayer == 2) logger.LogWarning("Failed to apply lock to {0}'s layer {1} [{2}] with locktype {3} and password [{4}]", pairAliasUID, state.SelectedLayer, newAppearance.SlotThreeGagType, state.SelectedPadlock, state.Password);
+                    logger.LogWarning("Failed to apply lock to {0}'s layer {1} [{2}] with locktype {3} and password [{4}]", pairAliasUID, state.SelectedLayer, 
+                        newAppearance.GagSlots[state.SelectedLayer].GagType, state.SelectedPadlock, state.Password);
                 }
                 // reset the password and timer
                 state.SelectedPadlock = Padlocks.None;
@@ -248,33 +237,25 @@ public static class GagAndLockPairkHelpers
 
                     try // The padlocks, passwords, and assigners are required for validation server-side, and set to none afterward.
                     {
+                        newAppearance.GagSlots[state.SelectedLayer].Padlock = state.SelectedPadlock.ToString();
+                        newAppearance.GagSlots[state.SelectedLayer].Password = state.Password;
+                        newAppearance.GagSlots[state.SelectedLayer].Timer = DateTimeOffset.UtcNow;
+                        newAppearance.GagSlots[state.SelectedLayer].Assigner = apiController.UID;
                         switch (state.SelectedLayer)
                         {
                             case 0:
-                                newAppearance.SlotOneGagPadlock = state.SelectedPadlock.ToString();
-                                newAppearance.SlotOneGagPassword = state.Password;
-                                newAppearance.SlotOneGagTimer = DateTimeOffset.UtcNow;
-                                newAppearance.SlotOneGagAssigner = apiController.UID;
                                 _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                                     (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagUnlockedLayerOne));
                                 logger.LogTrace("Applied Lock to {0}'s underlayer [{1}] with password [{2}]", pairAliasUID, state.SelectedGag, state.Password);
                                 success = true;
                                 break;
                             case 1:
-                                newAppearance.SlotTwoGagPadlock = state.SelectedPadlock.ToString();
-                                newAppearance.SlotTwoGagPassword = state.Password;
-                                newAppearance.SlotTwoGagTimer = DateTimeOffset.UtcNow;
-                                newAppearance.SlotTwoGagAssigner = apiController.UID;
                                 _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                                     (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagUnlockedLayerTwo));
                                 logger.LogTrace("Applied Lock to {0}'s central layer [{1}] with password [{2}]", pairAliasUID, state.SelectedGag, state.Password);
                                 success = true;
                                 break;
                             case 2:
-                                newAppearance.SlotThreeGagPadlock = state.SelectedPadlock.ToString();
-                                newAppearance.SlotThreeGagPassword = state.Password;
-                                newAppearance.SlotThreeGagTimer = DateTimeOffset.UtcNow;
-                                newAppearance.SlotThreeGagAssigner = apiController.UID;
                                 _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                                     (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagUnlockedLayerThree));
                                 logger.LogTrace("Applied Lock to {0}'s outermost layer [{1}] with password [{2}]", pairAliasUID, state.SelectedGag, state.Password);
@@ -329,22 +310,20 @@ public static class GagAndLockPairkHelpers
 
             try
             {
+                newAppearance.GagSlots[state.SelectedLayer].GagType = GagType.None.GetGagAlias();
                 switch (state.SelectedLayer)
                 {
                     case 0:
-                        newAppearance.SlotOneGagType = GagType.None.GetGagAlias();
                         _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                             (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagRemovedLayerOne));
                         success = true;
                         break;
                     case 1:
-                        newAppearance.SlotTwoGagType = GagType.None.GetGagAlias();
                         _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                             (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagRemovedLayerTwo));
                         success = true;
                         break;
                     case 2:
-                        newAppearance.SlotThreeGagType = GagType.None.GetGagAlias();
                         _ = apiController.UserPushPairDataAppearanceUpdate(new OnlineUserCharaAppearanceDataDto
                             (userPairForPerms.UserData, newAppearance, DataUpdateKind.AppearanceGagRemovedLayerThree));
                         success = true;
@@ -449,31 +428,13 @@ public static class GagAndLockPairkHelpers
             case Padlocks.FiveMinutesPadlock:
                 return true;
             case Padlocks.CombinationPadlock:
-                switch (state.SelectedLayer)
-                {
-                    case 0: return uiShared.ValidateCombination(state.Password) && state.Password == userPairForPerms.LastReceivedAppearanceData.SlotOneGagPassword;
-                    case 1: return uiShared.ValidateCombination(state.Password) && state.Password == userPairForPerms.LastReceivedAppearanceData.SlotTwoGagPassword;
-                    case 2: return uiShared.ValidateCombination(state.Password) && state.Password == userPairForPerms.LastReceivedAppearanceData.SlotThreeGagPassword;
-                }
-                break;
+                return uiShared.ValidateCombination(state.Password) && state.Password == userPairForPerms.LastReceivedAppearanceData!.GagSlots[state.SelectedLayer].Password;
             case Padlocks.PasswordPadlock:
             case Padlocks.TimerPasswordPadlock:
-                switch (state.SelectedLayer)
-                {
-                    case 0: return uiShared.ValidatePassword(state.Password) && state.Password == userPairForPerms.LastReceivedAppearanceData.SlotOneGagPassword;
-                    case 1: return uiShared.ValidatePassword(state.Password) && state.Password == userPairForPerms.LastReceivedAppearanceData.SlotTwoGagPassword;
-                    case 2: return uiShared.ValidatePassword(state.Password) && state.Password == userPairForPerms.LastReceivedAppearanceData.SlotThreeGagPassword;
-                }
-                break;
+                return uiShared.ValidatePassword(state.Password) && state.Password == userPairForPerms.LastReceivedAppearanceData!.GagSlots[state.SelectedLayer].Password;
             case Padlocks.OwnerPadlock:
             case Padlocks.OwnerTimerPadlock:
-                switch (state.SelectedLayer)
-                {
-                    case 0: return userPairForPerms.UserPairUniquePairPerms.OwnerLocks && apiController.UID == userPairForPerms.LastReceivedAppearanceData.SlotOneGagAssigner;
-                    case 1: return userPairForPerms.UserPairUniquePairPerms.OwnerLocks && apiController.UID == userPairForPerms.LastReceivedAppearanceData.SlotTwoGagAssigner;
-                    case 2: return userPairForPerms.UserPairUniquePairPerms.OwnerLocks && apiController.UID == userPairForPerms.LastReceivedAppearanceData.SlotThreeGagAssigner;
-                }
-                break;
+                return userPairForPerms.UserPairUniquePairPerms.OwnerLocks && apiController.UID == userPairForPerms.LastReceivedAppearanceData!.GagSlots[state.SelectedLayer].Assigner;
         }
         return false;
     }

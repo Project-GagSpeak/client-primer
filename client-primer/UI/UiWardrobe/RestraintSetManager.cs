@@ -3,11 +3,13 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components.Combos;
 using GagSpeak.Utils;
+using GagspeakAPI.Data.Enum;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Classes;
@@ -15,39 +17,48 @@ using OtterGui.Text;
 using OtterGui.Widgets;
 using Penumbra.GameData.DataContainers;
 using Penumbra.GameData.Enums;
-using Penumbra.GameData.Interop;
-using System;
-using System.Globalization;
 using System.Numerics;
-using static PInvoke.User32;
 
 namespace GagSpeak.UI.UiWardrobe;
 
-public class RestraintSetManager
+public class RestraintSetManager : DisposableMediatorSubscriberBase
 {
-    private readonly ILogger<RestraintSetManager> _logger;
-    private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiShared;
     private readonly RestraintSetEditor _editor;
     private readonly WardrobeHandler _handler;
     private readonly TextureService _textures;
     private readonly DictStain _stainDictionary;
+    private readonly PadlockHandler _padlockHandler;
 
     public RestraintSetManager(ILogger<RestraintSetManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        RestraintSetEditor editor, WardrobeHandler handler, 
-        TextureService textureService, DictStain stainDictionary)
+        RestraintSetEditor editor, WardrobeHandler handler,
+        TextureService textureService, DictStain stainDictionary,
+        PadlockHandler padlockHandler) : base(logger, mediator)
     {
-        _logger = logger;
-        _mediator = mediator;
         _uiShared = uiSharedService;
         _editor = editor;
         _handler = handler;
         _textures = textureService;
         _stainDictionary = stainDictionary;
+        _padlockHandler = padlockHandler;
 
         GameIconSize = new Vector2(2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y);
         StainColorCombos = new StainColorCombo(0, _stainDictionary, logger);
+
+
+        Mediator.Subscribe<TooltipSetItemToRestraintSetMessage>(this, (msg) =>
+        {
+            if (!_handler.EditingSetNull)
+            {
+                _handler.SetBeingEdited.DrawData[msg.Slot].GameItem = msg.Item;
+                Logger.LogDebug($"Set {msg.Slot} to {msg.Item.Name}");
+            }
+            else
+            {
+                Logger.LogError("No Restraint Set is currently being edited.");
+            }
+        });
     }
 
     private Vector2 GameIconSize;
@@ -259,7 +270,7 @@ public class RestraintSetManager
             }
 
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X*2 - ImGui.GetStyle().ItemSpacing.X*2);
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X * 2 - ImGui.GetStyle().ItemSpacing.X * 2);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             var currentYpos = ImGui.GetCursorPosY();
             // for saving contents
@@ -342,7 +353,7 @@ public class RestraintSetManager
         var isLockedSet = (set.Locked == true);
 
         using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
-        using (ImRaii.Child($"##EditRestraintSetHeader{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetFrameHeight()*2)))
+        using (ImRaii.Child($"##EditRestraintSetHeader{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetFrameHeight() * 2)))
         {
             // create a group for the bounding area
             using (var group = ImRaii.Group())
@@ -379,7 +390,7 @@ public class RestraintSetManager
             {
                 using (var disableSetToggleButton = ImRaii.Disabled(set.Locked))
                 {
-                    if (_uiShared.IconButton(set.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff))
+                    if (_uiShared.IconButton(set.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff, null, set.Name))
                     {
                         // set the enabled state of the restraintSet based on its current state so that we toggle it
                         if (set.Enabled)
@@ -403,46 +414,45 @@ public class RestraintSetManager
             TimeSpan remainingTime = (set.LockedUntil - DateTimeOffset.UtcNow);
             string remainingTimeStr = $"{remainingTime.Days}d{remainingTime.Hours}h{remainingTime.Minutes}m{remainingTime.Seconds}s";
             var lockedDescription = set.Locked ? $"Locked for {remainingTimeStr}" : "Self-lock: XdXhXmXs format..";
-            // display a third row for an input text field for the self-lock time
-            var iconLock = isActiveSet ? FontAwesomeIcon.Lock : FontAwesomeIcon.LockOpen;
-            var displayText = isLockedSet ? "Unlock Set" : "Lock Set";
-            var width = ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(iconLock, displayText) - ImGui.GetStyle().ItemInnerSpacing.X;
-            ImGui.SetNextItemWidth(width);
-            using (var disableTimeInput = ImRaii.Disabled(isLockedSet))
+            // draw the padlock dropdown
+            var padlockType = _uiShared.GetPadlock(set.LockType) != Padlocks.None ? _uiShared.GetPadlock(set.LockType) : _padlockHandler.PadlockPrevs[3];
+            using (ImRaii.Disabled(set.Locked || set.LockType != "None"))
             {
-                ImGui.InputTextWithHint($"##{name}TimerLockField", lockedDescription, ref LockTimerInputString, 24);
+                _uiShared.DrawCombo($"RestraintSetLock {set.Name}", (248 - _uiShared.GetIconButtonSize(FontAwesomeIcon.Lock).X),
+                    Enum.GetValues<Padlocks>().Cast<Padlocks>().Where(p => p != Padlocks.OwnerPadlock && p != Padlocks.OwnerTimerPadlock).ToArray(),
+                    (padlock) => padlock.ToString(),
+                (i) =>
+                {
+                    _padlockHandler.PadlockPrevs[3] = i;
+                }, padlockType, false);
             }
-            // in the same line draw a button to toggle the lock.
-            ImUtf8.SameLineInner();
+            ImGui.SameLine(0, 2);
 
-            // the condition for the icon text button to be disabled, is if the set is locked, and the enabled by != "SelfApplied"
-            var disabled = isLockedSet && lockedBy != "SelfApplied";
-
-            if (_uiShared.IconTextButton(iconLock, displayText, null, false, disabled))
+            using (var padlockDisabled = ImRaii.Disabled(padlockType == Padlocks.None))
             {
-                // when we try to unlock, ONLY allow unlock if you are the one who locked it.
-                if (isLockedSet && set.LockedBy == "SelfApplied")
+                // draw the lock button
+                if (_uiShared.IconButton(set.Locked ? FontAwesomeIcon.Unlock : FontAwesomeIcon.Lock, null, set.Name.ToString()))
                 {
-                    _handler.UnlockRestraintSet(_handler.GetRestraintSetIndexByName(name), "SelfApplied");
-                }
-                // if trying to lock it, allow this to happen.
-                else
-                {
-                    // if the time we input is valid, do not clear it.
-                    if (_uiShared.TryParseTimeSpan(LockTimerInputString, out var timeSpan))
+                    if (_padlockHandler.RestraintPasswordValidate(_handler.GetRestraintSetIndexByName(set.Name), set.Locked))
                     {
-                        // parse the timespan to the new offset and lock the set.
-                        var endTimeUTC = DateTimeOffset.UtcNow.Add(timeSpan);
-                        _handler.LockRestraintSet(_handler.GetRestraintSetIndexByName(name), "SelfApplied", endTimeUTC);
+                        if (set.Locked)
+                        {
+                            _handler.UnlockRestraintSet(_handler.GetRestraintSetIndexByName(set.Name), "SelfApplied");
+                        }
+                        else
+                        {
+                            _handler.LockRestraintSet(_handler.GetRestraintSetIndexByName(set.Name), _padlockHandler.PadlockPrevs[3].ToString(),
+                                _padlockHandler.Passwords[3], UiSharedService.GetEndTimeUTC(_padlockHandler.Timers[3]), "SelfApplied");
+                        }
                     }
-                    else
-                    {
-                        LockTimerInputString = "Invalid: use (XdXhXmXs)";
-                    }
+                    // reset the password and timer
+                    _padlockHandler.Passwords[3] = string.Empty;
+                    _padlockHandler.Timers[3] = string.Empty;
                 }
+                UiSharedService.AttachToolTip(set.LockedBy != "SelfApplied" ? "Only" + set.LockedBy + "can unlock your set." : set.Locked ? "Unlock this set." : "Lock this set.");
             }
-            UiSharedService.AttachToolTip(disabled ? "Only" + set.LockedBy + "can unlock your set." 
-                                                   : set.Locked ? "Unlock this set." : "Lock this set.");
+            // display associated password field for padlock type.
+            _padlockHandler.DisplayPasswordField(3, set.Locked);
             ImGui.Separator();
         }
     }

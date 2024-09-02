@@ -1,3 +1,4 @@
+using Dalamud.Utility;
 using GagSpeak.Utils;
 using ImGuiNET;
 using Newtonsoft.Json;
@@ -20,16 +21,16 @@ public record RestraintSet
 
     /// <summary> The description of the pattern </summary>
     public string Description { get; set; } = "Enter Description Here...";
-
     public bool Enabled { get; set; } = false;
-
-    public bool Locked { get; set; } = false;
-
     public string EnabledBy { get; set; } = string.Empty;
-
-    public string LockedBy { get; set; } = string.Empty;
-
+    
+    [JsonIgnore]
+    public bool Locked => LockType != "None";
+    
+    public string LockType { get; set; } = "None";
+    public string LockPassword { get; set; } = string.Empty;
     public DateTimeOffset LockedUntil { get; set; } = DateTimeOffset.MinValue;
+    public string LockedBy { get; set; } = string.Empty;
 
     public Dictionary<EquipSlot, EquipDrawData> DrawData { get; set; } = new Dictionary<EquipSlot, EquipDrawData>(
         // handler for the creation of new draw data on set creation.
@@ -124,10 +125,12 @@ public record RestraintSet
             ["Name"] = Name,
             ["Description"] = Description,
             ["Enabled"] = Enabled,
-            ["Locked"] = Locked,
             ["EnabledBy"] = EnabledBy,
-            ["LockedBy"] = LockedBy,
+            ["Locked"] = Locked,
+            ["LockType"] = LockType,
+            ["LockPassword"] = LockPassword,
             ["LockedUntil"] = LockedUntil.UtcDateTime.ToString("o"),
+            ["LockedBy"] = LockedBy,
             ["DrawData"] = drawDataArray,
             ["BonusDrawData"] = bonusDrawDataArray,
             ["AssociatedMods"] = associatedModsArray,
@@ -142,9 +145,9 @@ public record RestraintSet
         Name = jsonObject["Name"]?.Value<string>() ?? string.Empty;
         Description = jsonObject["Description"]?.Value<string>() ?? string.Empty;
         Enabled = jsonObject["Enabled"]?.Value<bool>() ?? false;
-        Locked = jsonObject["Locked"]?.Value<bool>() ?? false;
         EnabledBy = jsonObject["EnabledBy"]?.Value<string>() ?? string.Empty;
-        LockedBy = jsonObject["LockedBy"]?.Value<string>() ?? string.Empty;
+        LockType = jsonObject["LockType"]?.Value<string>() ?? "None";
+        LockPassword = jsonObject["LockPassword"]?.Value<string>() ?? string.Empty;
         if (jsonObject["LockedUntil"]?.Type == JTokenType.String)
         {
             string lockedUntilStr = jsonObject["LockedUntil"].Value<string>();
@@ -161,6 +164,8 @@ public record RestraintSet
         {
             LockedUntil = DateTimeOffset.MinValue; // Default or error value if the token is not a string
         }
+        LockedBy = jsonObject["LockedBy"]?.Value<string>() ?? string.Empty;
+        if(LockType.IsNullOrEmpty()) LockType = "None";
 
         try
         {

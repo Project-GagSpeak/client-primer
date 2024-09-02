@@ -142,15 +142,15 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
 
     // when called for an enable, it will already be set to enabled, so we just need to update the state.
     // for disable, it can be auto, so we have to call it.
-    public void SetForcedFollow(UpdatedNewState newState, Pair? pairToFollow = null)
+    public void SetForcedFollow(NewState newState, Pair? pairToFollow = null)
     {
         // if the new state is true and we are already following any pairs, return.
-        if (IsForcedFollow && newState == UpdatedNewState.Enabled) { Logger.LogError("Already Following Someone, Cannot Enable!"); return; }
+        if (IsForcedFollow && newState == NewState.Enabled) { Logger.LogError("Already Following Someone, Cannot Enable!"); return; }
         // if the new state is false and we are not following anyone, return.
-        if (!IsForcedFollow && newState == UpdatedNewState.Disabled) { Logger.LogError("Not Following Anyone, Cannot Disable!"); return; }
+        if (!IsForcedFollow && newState == NewState.Disabled) { Logger.LogError("Not Following Anyone, Cannot Disable!"); return; }
 
         // if forced to follow is false, and we are setting it to true, begin setting.
-        if (newState == UpdatedNewState.Enabled && !IsForcedFollow)
+        if (newState == NewState.Enabled && !IsForcedFollow)
         {
             if (pairToFollow == null) { Logger.LogError("Cannot follow nothing."); return; }
             // update the isFollowingForAnyPair to true. This should always be true since its switched to enabled from the call.
@@ -161,14 +161,14 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         }
 
         // if forced to follow is true, and we are setting it to false, begin setting.
-        if (newState == UpdatedNewState.Disabled && IsForcedFollow)
+        if (newState == NewState.Disabled && IsForcedFollow)
         {
             if (pairToFollow == null)
             {
                 Logger.LogWarning("ForceFollow Disable was triggered manually before it naturally disabled. Forcibly shutting down.");
                 _isFollowingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
                 HandleForcedFollow(false);
-                Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedFollow, UpdatedNewState.Disabled));
+                Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedFollow, NewState.Disabled));
                 Logger.LogDebug("Disabled forced follow for pair.");
                 return;
             }
@@ -183,20 +183,20 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             _isFollowingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
             _ = _apiController.UserUpdateOwnPairPerm(new(pairToFollow.UserData, new KeyValuePair<string, object>("IsForcedToFollow", false)));
             HandleForcedFollow(false, pairToFollow);
-            Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedFollow, UpdatedNewState.Disabled));
+            Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedFollow, NewState.Disabled));
             // log success.
             Logger.LogDebug("Disabled forced follow for pair.");
             return;
         }
     }
 
-    public void SetForcedSitState(UpdatedNewState newState, bool isGroundsit, Pair? pairToSitFor = null)
+    public void SetForcedSitState(NewState newState, bool isGroundsit, Pair? pairToSitFor = null)
     {
-        if (IsForcedSit && newState == UpdatedNewState.Enabled) { Logger.LogError("Already Forced to Sit by someone else, Cannot Enable!"); return; }
-        if (!IsForcedSit && newState == UpdatedNewState.Disabled) { Logger.LogError("Not sitting for anyone. Cannot Disable!"); return; }
+        if (IsForcedSit && newState == NewState.Enabled) { Logger.LogError("Already Forced to Sit by someone else, Cannot Enable!"); return; }
+        if (!IsForcedSit && newState == NewState.Disabled) { Logger.LogError("Not sitting for anyone. Cannot Disable!"); return; }
         if (pairToSitFor == null) { Logger.LogError("Cannot update forced sit status when pair is nothing."); return; }
 
-        if (newState == UpdatedNewState.Enabled && !IsForcedSit)
+        if (newState == NewState.Enabled && !IsForcedSit)
         {
             if (isGroundsit)
             {
@@ -214,7 +214,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             return;
         }
 
-        if (newState == UpdatedNewState.Disabled && IsForcedSit)
+        if (newState == NewState.Disabled && IsForcedSit)
         {
             if (pairToSitFor.UserData.UID != ForceSitPair?.UserData.UID)
             {
@@ -225,12 +225,12 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             if (isGroundsit)
             {
                 _isSittingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToGroundSit);
-                Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedGroundSit, UpdatedNewState.Disabled));
+                Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedGroundSit, NewState.Disabled));
             }
             else
             {
                 _isSittingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToSit);
-                Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedSit, UpdatedNewState.Disabled));
+                Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedSit, NewState.Disabled));
             }
             // log success.
             Logger.LogDebug("Enabled forced follow for pair.");
@@ -238,21 +238,21 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    public void SetForcedStayState(UpdatedNewState newState, Pair? pairToStayFor = null)
+    public void SetForcedStayState(NewState newState, Pair? pairToStayFor = null)
     {
-        if (IsForcedStay && newState == UpdatedNewState.Enabled) { Logger.LogError("Already Forced to Stay by someone else. Cannot Enable!"); return; }
-        if (!IsForcedStay && newState == UpdatedNewState.Disabled) { Logger.LogError("Not Forced to Stay by Anyone, Cannot Disable!"); return; }
+        if (IsForcedStay && newState == NewState.Enabled) { Logger.LogError("Already Forced to Stay by someone else. Cannot Enable!"); return; }
+        if (!IsForcedStay && newState == NewState.Disabled) { Logger.LogError("Not Forced to Stay by Anyone, Cannot Disable!"); return; }
         if (pairToStayFor == null) { Logger.LogError("Cannot follow nothing."); return; }
 
         // updates in either state are already set for the pair before its called, so we just need to update the boolean.
-        if (newState == UpdatedNewState.Enabled && !IsForcedFollow)
+        if (newState == NewState.Enabled && !IsForcedFollow)
         {
             _isStayingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay);
             Logger.LogDebug("Enabled forced follow for pair.");
             return;
         }
 
-        if (newState == UpdatedNewState.Disabled && IsForcedFollow)
+        if (newState == NewState.Disabled && IsForcedFollow)
         {
             if (pairToStayFor.UserData.UID != ForceStayPair?.UserData.UID)
             {
@@ -265,21 +265,21 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    public async void SetBlindfoldState(UpdatedNewState newState, Pair? pairBlindfolding = null)
+    public async void SetBlindfoldState(NewState newState, Pair? pairBlindfolding = null)
     {
-        if (IsBlindfolded && newState == UpdatedNewState.Enabled) { Logger.LogError("Already Blindfolded by someone else. Cannot Enable!"); return; }
-        if (!IsBlindfolded && newState == UpdatedNewState.Disabled) { Logger.LogError("Not Blindfolded by Anyone, Cannot Disable!"); return; }
+        if (IsBlindfolded && newState == NewState.Enabled) { Logger.LogError("Already Blindfolded by someone else. Cannot Enable!"); return; }
+        if (!IsBlindfolded && newState == NewState.Disabled) { Logger.LogError("Not Blindfolded by Anyone, Cannot Disable!"); return; }
         if (pairBlindfolding == null) { Logger.LogError("Cannot follow nothing."); return; }
 
-        if (newState == UpdatedNewState.Enabled && !IsBlindfolded)
+        if (newState == NewState.Enabled && !IsBlindfolded)
         {
             _isBlindfoldedByAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded);
-            await HandleBlindfoldLogic(UpdatedNewState.Enabled, pairBlindfolding.UserData.UID);
+            await HandleBlindfoldLogic(NewState.Enabled, pairBlindfolding.UserData.UID);
             Logger.LogDebug("Enabled forced follow for pair.");
             return;
         }
 
-        if (newState == UpdatedNewState.Disabled && IsForcedFollow)
+        if (newState == NewState.Disabled && IsForcedFollow)
         {
             if (pairBlindfolding.UserData.UID != BlindfoldPair?.UserData.UID)
             {
@@ -287,7 +287,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
                 return;
             }
             _isBlindfoldedByAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded);
-            await HandleBlindfoldLogic(UpdatedNewState.Disabled, pairBlindfolding.UserData.UID);
+            await HandleBlindfoldLogic(NewState.Disabled, pairBlindfolding.UserData.UID);
             Logger.LogDebug("Disabled forced follow for pair.");
             return;
         }
@@ -313,23 +313,23 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    public async Task HandleBlindfoldLogic(UpdatedNewState newState, string applierUID)
+    public async Task HandleBlindfoldLogic(NewState newState, string applierUID)
     {
         // toggle our window based on conditions
-        if (newState == UpdatedNewState.Enabled && !BlindfoldUI.IsWindowOpen)
+        if (newState == NewState.Enabled && !BlindfoldUI.IsWindowOpen)
         {
             Mediator.Publish(new UiToggleMessage(typeof(BlindfoldUI), ToggleType.Show));
         }
-        if (newState == UpdatedNewState.Disabled && BlindfoldUI.IsWindowOpen)
+        if (newState == NewState.Disabled && BlindfoldUI.IsWindowOpen)
         {
             Mediator.Publish(new UiToggleMessage(typeof(MainWindowUI), ToggleType.Hide));
         }
-        if (UpdatedNewState.Enabled == newState)
+        if (NewState.Enabled == newState)
         {
             // go in right away
             DoCameraVoodoo(newState);
             // apply the blindfold
-            Mediator.Publish(new UpdateGlamourBlindfoldMessage(UpdatedNewState.Enabled, applierUID));
+            Mediator.Publish(new UpdateGlamourBlindfoldMessage(NewState.Enabled, applierUID));
 
         }
         else
@@ -338,14 +338,14 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             await Task.Delay(2000);
             DoCameraVoodoo(newState);
             // call a refresh all
-            Mediator.Publish(new UpdateGlamourBlindfoldMessage(UpdatedNewState.Disabled, applierUID));
+            Mediator.Publish(new UpdateGlamourBlindfoldMessage(NewState.Disabled, applierUID));
         }
     }
 
-    private unsafe void DoCameraVoodoo(UpdatedNewState newValue)
+    private unsafe void DoCameraVoodoo(NewState newValue)
     {
         // force the camera to first person, but dont loop the force
-        if (UpdatedNewState.Enabled == newValue)
+        if (NewState.Enabled == newValue)
         {
             if (cameraManager != null && cameraManager->Camera != null
             && cameraManager->Camera->Mode != (int)CameraControlMode.FirstPerson)

@@ -499,10 +499,14 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                     return;
 
                 }
+                Logger.LogInformation("Loading inital pairs for client");
                 // load the initial pairs for our client
                 await LoadIninitialPairs().ConfigureAwait(false);
+                Logger.LogInformation("Initial pairs loaded for client");
+                Logger.LogInformation("Loading Online Pairs for client");
                 // load in the online pairs for our client
                 await LoadOnlinePairs().ConfigureAwait(false);
+                Logger.LogInformation("Online pairs loaded for client");
             }
             catch (OperationCanceledException)
             {

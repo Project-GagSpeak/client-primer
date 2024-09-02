@@ -120,25 +120,9 @@ public partial class UserPairPermsSticky
         // draw the layer
         GagAndLockPairkHelpers.DrawGagLayerSelection(ImGui.GetContentRegionAvail().X, UserPairForPerms.UserData.UID);
 
-        // fetch it for ref
         var layerSelected = GagAndLockPairkHelpers.GetSelectedLayer(UserPairForPerms.UserData.UID);
-
-        var disableCondition = layerSelected switch
-        {
-            0 => UserPairForPerms.LastReceivedAppearanceData!.SlotOneGagType != GagType.None.GetGagAlias(),
-            1 => UserPairForPerms.LastReceivedAppearanceData!.SlotTwoGagType != GagType.None.GetGagAlias(),
-            2 => UserPairForPerms.LastReceivedAppearanceData!.SlotThreeGagType != GagType.None.GetGagAlias(),
-            _ => true // Default to true if an invalid layer is selected
-        };
-
-        var lockDisableCondition = layerSelected switch
-        {
-            0 => UserPairForPerms.LastReceivedAppearanceData!.SlotOneGagPadlock == Padlocks.None.ToString(),
-            1 => UserPairForPerms.LastReceivedAppearanceData!.SlotTwoGagPadlock == Padlocks.None.ToString(),
-            2 => UserPairForPerms.LastReceivedAppearanceData!.SlotThreeGagPadlock == Padlocks.None.ToString(),
-            _ => true // Default to true if an invalid layer is selected
-        };
-
+        var disableCondition = UserPairForPerms.LastReceivedAppearanceData!.GagSlots[layerSelected].GagType != GagType.None.GetGagAlias();
+        var lockDisableCondition = UserPairForPerms.LastReceivedAppearanceData!.GagSlots[layerSelected].Padlock == Padlocks.None.ToString();
 
         // button for applying a gag (will display the dropdown of the gag list to apply when pressed.
         if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, ("Apply a Gag to " + PairUID),
@@ -256,7 +240,7 @@ public partial class UserPairPermsSticky
     {
         bool applyButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.ApplyRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.OutfitNames.Count <= 0;
         bool lockButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
-        bool unlockButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets || !UserPairForPerms.LastReceivedWardrobeData!.ActiveSetIsLocked;
+        bool unlockButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.WardrobeActiveSetPadLock == "None";
         bool removeButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.RemoveRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
 
         // draw the apply-restraint-set button.

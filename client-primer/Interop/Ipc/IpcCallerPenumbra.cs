@@ -75,6 +75,7 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         _frameworkService = frameworkService;
         _mediator = mediator;
 
+
         _penumbraInitialized = Initialized.Subscriber(pi, PenumbraInitialized);
         _penumbraDisposed = Disposed.Subscriber(pi, PenumbraDisposed);
         
@@ -233,13 +234,6 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
                 Debug.Assert(errorCode is PenumbraApiEc.Success or PenumbraApiEc.NothingChanged, "Setting Priority should not be able to fail.");
             }
 
-            // finally, if we asked to redraw after toggle, redraw
-            if (AssociatedMod.RedrawAfterToggle == true)
-            {
-                // redraw the object
-                RedrawObject(_frameworkService._playerAddr, RedrawType.Redraw);
-            }
-
             // get the recieved message
             switch (errorCode)
             {
@@ -260,12 +254,10 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
     /// We force this method to trigger a immediate redraw from Mare, so it can redraw a player the moment their changes are applied.
     /// This allows animation mods to be updated instantly.
     /// </summary>
-    public void RedrawObject(nint playerCharObjPtr, RedrawType settings)
+    public void RedrawObject(int objectIndex, RedrawType settings)
     {
-        IGameObject playerCharObj = _frameworkService.CreateGameObject(playerCharObjPtr) 
-            ?? throw new InvalidOperationException("Player object not found.");
-
-        _redrawSubscriber!.Invoke(playerCharObj.ObjectIndex, settings);
+        Logger.LogDebug($"Redrawing object {objectIndex} due to set toggle!");
+        _redrawSubscriber!.Invoke(objectIndex, settings);
     }
 
     /// <summary> Reattach to the currently running Penumbra IPC provider. Unattaches before if necessary. </summary>

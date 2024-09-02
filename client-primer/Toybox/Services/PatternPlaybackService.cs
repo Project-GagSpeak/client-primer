@@ -78,7 +78,7 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
         PlaybackActive = ShouldRunPlayback;
 
         // publish the toggle to the mediator for the playback to recieve its update notif. (because playback uses this service)
-        Mediator.Publish(new PlaybackStateToggled(patternIdx, UpdatedNewState.Enabled));
+        Mediator.Publish(new PlaybackStateToggled(patternIdx, NewState.Enabled));
     }
 
     public void StopPattern(int patternIdx, bool publishToMediator)
@@ -99,7 +99,7 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
         PlaybackByteRange = [];
 
         // publish the toggle to the mediator (if we should)
-        Mediator.Publish(new PlaybackStateToggled(patternIdx, UpdatedNewState.Disabled));
+        Mediator.Publish(new PlaybackStateToggled(patternIdx, NewState.Disabled));
     }
 
     public string GetPatternNameFromIdx(int patternIdx)

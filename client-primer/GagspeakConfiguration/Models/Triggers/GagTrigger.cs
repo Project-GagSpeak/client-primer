@@ -15,5 +15,5 @@ public record GagTrigger : Trigger
     public GagList.GagType Gag { get; set; } = GagList.GagType.None;
     
     // the state of the gag that invokes it.
-    public UpdatedNewState GagState { get; set; } = UpdatedNewState.Enabled;
+    public NewState GagState { get; set; } = NewState.Enabled;
 }

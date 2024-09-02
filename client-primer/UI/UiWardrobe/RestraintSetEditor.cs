@@ -24,8 +24,9 @@ using Dalamud.Interface.Colors;
 
 namespace GagSpeak.UI.UiWardrobe;
 
-public class RestraintSetEditor : DisposableMediatorSubscriberBase
+public class RestraintSetEditor
 {
+    private readonly ILogger<RestraintSetEditor> Logger;
     private readonly UiSharedService _uiShared;
     private readonly WardrobeHandler _handler;
     private readonly DictStain _stainDictionary;
@@ -37,12 +38,13 @@ public class RestraintSetEditor : DisposableMediatorSubscriberBase
     private readonly IDataManager _gameData;
 
     public RestraintSetEditor(ILogger<RestraintSetEditor> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
+        UiSharedService uiSharedService,
         WardrobeHandler handler, DictStain stains, ItemData items,
         DictBonusItems bonusItemsDictionary, TextureService textures,
         ModAssociations relatedMods, PairManager pairManager,
-        IDataManager gameData) : base(logger, mediator)
+        IDataManager gameData)
     {
+        Logger = logger;
         _uiShared = uiSharedService;
         _handler = handler;
         _stainDictionary = stains;

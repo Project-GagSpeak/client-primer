@@ -7,6 +7,7 @@ using GagSpeak.UI.MainWindow;
 using Dalamud.Interface.ImGuiFileDialog;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.UI.Permissions;
+using GagSpeak.Interop.IpcHelpers.Penumbra;
 
 namespace GagSpeak.Services;
 
@@ -20,11 +21,13 @@ public sealed class UiService : DisposableMediatorSubscriberBase
     private readonly GagspeakConfigService _gagspeakConfigService;              // our configuration service for the gagspeak plugin
     private readonly WindowSystem _windowSystem;                                // the window system for our dalamud plugin.
     private readonly UiFactory _uiFactory;                                      // the factory for the UI window creation.
+    private readonly PenumbraChangedItemTooltip _penumbraChangedItemTooltip;    // the penumbra changed item tooltip for the plugin.
 
     public UiService(ILogger<UiService> logger, IUiBuilder uiBuilder,
         GagspeakConfigService gagspeakConfigService, WindowSystem windowSystem,
         IEnumerable<WindowMediatorSubscriberBase> windows, UiFactory uiFactory,
-        GagspeakMediator gagspeakMediator, FileDialogManager fileDialogManager) : base(logger, gagspeakMediator)
+        GagspeakMediator gagspeakMediator, FileDialogManager fileDialogManager,
+        PenumbraChangedItemTooltip penumbraChangedItemTooltip) : base(logger, gagspeakMediator)
     {
         _logger = logger;
         _logger.LogTrace("Creating {type}", GetType().Name);
@@ -33,6 +36,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         _windowSystem = windowSystem;
         _uiFactory = uiFactory;
         _fileDialogManager = fileDialogManager;
+        _penumbraChangedItemTooltip = penumbraChangedItemTooltip;
 
         // disable the UI builder while in gpose 
         _uiBuilder.DisableGposeUiHide = true;

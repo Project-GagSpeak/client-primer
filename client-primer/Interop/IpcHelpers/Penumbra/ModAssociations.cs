@@ -1,3 +1,4 @@
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Utility;
@@ -5,10 +6,12 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Enum;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Raii;
+using Penumbra.Api.Enums;
 using System.Numerics;
 
 namespace GagSpeak.Interop.IpcHelpers.Penumbra;
@@ -17,33 +20,74 @@ public class ModAssociations : DisposableMediatorSubscriberBase
     private readonly WardrobeHandler _handler;
     private readonly IpcCallerPenumbra _penumbra;
     private readonly CustomModCombo _modCombo;
+    private readonly OnFrameworkService _frameworkUtils;
 
     public ModAssociations(ILogger<ModAssociations> logger,
         GagspeakMediator mediator, WardrobeHandler handler,
-        IpcCallerPenumbra penumbra) : base(logger, mediator)
+        IpcCallerPenumbra penumbra, OnFrameworkService frameworkUtils)
+        : base(logger, mediator)
     {
         _handler = handler;
         _penumbra = penumbra;
+        _frameworkUtils = frameworkUtils;
         _modCombo = new CustomModCombo(penumbra, logger);
 
-        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) => ApplyModsOnSetToggle(msg));
+        Mediator.Subscribe<RestraintSetToggleModsMessage>(this, (msg) => ApplyModsOnSetToggle(msg));
     }
 
     /// <summary> Applies associated mods to the client when a restraint set is toggled. </summary>
-    private void ApplyModsOnSetToggle(RestraintSetToggledMessage msg)
+    private async void ApplyModsOnSetToggle(RestraintSetToggleModsMessage msg)
     {
-        // if the set is being enabled, we should toggle on the mods
-        if (msg.State == UpdatedNewState.Enabled)
+        try
         {
-            // enable the mods.
-            foreach (var associatedMod in _handler.GetAssociatedMods(msg.SetIdx))
-                _penumbra.SetMod(associatedMod, true);
+            // if the set is being enabled, we should toggle on the mods
+            if (msg.State == NewState.Enabled)
+            {
+                // enable the mods.
+                foreach (var associatedMod in _handler.GetAssociatedMods(msg.SetIdx))
+                    _penumbra.SetMod(associatedMod, true);
+                // if any of them wanted a redraw, do so.
+                if (_handler.GetAssociatedMods(msg.SetIdx).Any(x => x.RedrawAfterToggle))
+                {
+                    IGameObject? playerCharObj = await _frameworkUtils.CreateGameObjectAsync(_frameworkUtils._playerAddr).ConfigureAwait(false) ?? null;
+                    if (playerCharObj == null)
+                    {
+                        Logger.LogError("Could not find player object. This only happens when you are loading between zones! If it isn't Report this!");
+                    }
+                    else
+                    {
+                        _penumbra.RedrawObject(playerCharObj.ObjectIndex, RedrawType.Redraw);
+                    }
+                }
+            }
+            // otherwise, new set state is false, so toggle off the mods
+            else
+            {
+                foreach (var associatedMod in _handler.GetAssociatedMods(msg.SetIdx))
+                    _penumbra.SetMod(associatedMod, false);
+                // if any of them wanted a redraw, do so.
+                if (_handler.GetAssociatedMods(msg.SetIdx).Any(x => x.RedrawAfterToggle))
+                {
+                    IGameObject? playerCharObj = await _frameworkUtils.CreateGameObjectAsync(_frameworkUtils._playerAddr).ConfigureAwait(false) ?? null;
+                    if (playerCharObj == null)
+                    {
+                        Logger.LogError("Could not find player object. This only happens when you are loading between zones! If it isn't Report this!");
+                    }
+                    else
+                    {
+                        _penumbra.RedrawObject(playerCharObj.ObjectIndex, RedrawType.Redraw);
+                    }
+                }
+            }
         }
-        // otherwise, new set state is false, so toggle off the mods
-        else
+        catch (Exception e)
         {
-            foreach (var associatedMod in _handler.GetAssociatedMods(msg.SetIdx))
-                _penumbra.SetMod(associatedMod, false);
+            Logger.LogError(e, "Error applying mods on set toggle.");
+        }
+
+        if(msg.ModToggleTask != null)
+        {
+            msg.ModToggleTask.SetResult(true);
         }
     }
 

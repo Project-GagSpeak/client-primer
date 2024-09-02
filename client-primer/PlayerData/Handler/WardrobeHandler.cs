@@ -28,17 +28,24 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
         {
             // handle changes
-            if (msg.State == UpdatedNewState.Enabled)
+            if (msg.State == NewState.Enabled)
             {
                 Logger.LogInformation("ActiveSet Enabled at index {0}", msg.SetIdx);
                 ActiveSet = _clientConfigs.GetActiveSet();
-                Mediator.Publish(new UpdateGlamourRestraintsMessage(UpdatedNewState.Enabled));
+                Mediator.Publish(new UpdateGlamourRestraintsMessage(NewState.Enabled));
             }
 
-            if (msg.State == UpdatedNewState.Disabled)
+            if (msg.State == NewState.Disabled)
             {
-                Mediator.Publish(new UpdateGlamourRestraintsMessage(UpdatedNewState.Disabled));
+                Logger.LogInformation("ActiveSet Disabled at index {0}", msg.SetIdx);
+                Mediator.Publish(new UpdateGlamourRestraintsMessage(NewState.Disabled));
                 ActiveSet = null!;
+            }
+
+            if (msg.GlamourChangeTask != null)
+            {
+                Logger.LogInformation("GlamourChangeTask SetResult(true)");
+                msg.GlamourChangeTask.SetResult(true);
             }
 
             // handle the updates if we should
@@ -47,10 +54,10 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
             // push the wardrobe change
             switch (msg.State)
             {
-                case UpdatedNewState.Enabled: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied)); break;
-                case UpdatedNewState.Locked: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked)); break;
-                case UpdatedNewState.Unlocked: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked)); break;
-                case UpdatedNewState.Disabled: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintDisabled)); break;
+                case NewState.Enabled: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied)); break;
+                case NewState.Locked: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked)); break;
+                case NewState.Unlocked: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked)); break;
+                case NewState.Disabled: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintDisabled)); break;
             }
         });
 
@@ -115,16 +122,16 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public RestraintSet GetRestraintSet(int idx)
         => _clientConfigs.GetRestraintSet(idx);
 
-    public void EnableRestraintSet(int idx, string AssignerUID = "SelfApplied") // a self-enable
-        => _clientConfigs.SetRestraintSetState(idx, AssignerUID, UpdatedNewState.Enabled, true);
+    public async void EnableRestraintSet(int idx, string AssignerUID = "SelfApplied") // a self-enable
+        => await _clientConfigs.SetRestraintSetState(idx, AssignerUID, NewState.Enabled, true);
 
-    public void DisableRestraintSet(int idx, string AssignerUID = "SelfApplied") // a self-disable
-        => _clientConfigs.SetRestraintSetState(idx, AssignerUID, UpdatedNewState.Disabled, true);
-    public void LockRestraintSet(int index, string assignerUID, DateTimeOffset endLockTimeUTC)
-        => _clientConfigs.LockRestraintSet(index, assignerUID, endLockTimeUTC, true);
+    public async void DisableRestraintSet(int idx, string AssignerUID = "SelfApplied") // a self-disable
+        => await _clientConfigs.SetRestraintSetState(idx, AssignerUID, NewState.Disabled, true);
+    public void LockRestraintSet(int idx, string lockType, string password, DateTimeOffset endLockTimeUTC, string AssignerUID)
+        => _clientConfigs.LockRestraintSet(idx, lockType, password, endLockTimeUTC, AssignerUID, true);
 
-    public void UnlockRestraintSet(int index, string assignerUID)
-        => _clientConfigs.UnlockRestraintSet(index, assignerUID, true);
+    public void UnlockRestraintSet(int idx, string AssignerUID)
+        => _clientConfigs.UnlockRestraintSet(idx, AssignerUID, true);
 
     public int GetActiveSetIndex() 
         => _clientConfigs.GetActiveSetIdx();
@@ -142,7 +149,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         => _clientConfigs.UpdateRestraintSet(index, set);
 
     // Callback related forced restraint set updates.
-    public void CallbackForceEnableRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)
+    public async void CallbackForceEnableRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)
     {
         // Update the reference for the pair who enabled it.
         var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
@@ -150,7 +157,8 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
         Logger.LogInformation($"{callbackDto.User.UID} has forced you to enable your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
         int idx = GetRestraintSetIndexByName(callbackDto.WardrobeData.ActiveSetName);
-        _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, UpdatedNewState.Enabled, false);
+        // This might need to be merged and always callback because of how we switch sets?
+        await _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, NewState.Enabled, false);
     }
 
     public void CallbackForceLockRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)
@@ -161,7 +169,9 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
         Logger.LogInformation($"{callbackDto.User.UID} has locked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
         int idx = GetRestraintSetIndexByName(callbackDto.WardrobeData.ActiveSetName);
-        _clientConfigs.LockRestraintSet(idx, callbackDto.User.UID, callbackDto.WardrobeData.ActiveSetLockTime, false);
+        _clientConfigs.LockRestraintSet(idx, callbackDto.WardrobeData.WardrobeActiveSetPadLock,
+            callbackDto.WardrobeData.WardrobeActiveSetPassword,
+            callbackDto.WardrobeData.WardrobeActiveSetLockTime, callbackDto.User.UID, false);
     }
 
     public void CallbackForceUnlockRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)
@@ -175,7 +185,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         _clientConfigs.UnlockRestraintSet(idx, callbackDto.User.UID, false);
     }
 
-    public void CallbackForceDisableRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)
+    public async void CallbackForceDisableRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)
     {
         // Update the reference for the pair who enabled it.
         var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
@@ -183,7 +193,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
         Logger.LogInformation($"{callbackDto.User.UID} has disabled your Active restraint set!");
         int idx = GetActiveSetIndex();
-        _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, UpdatedNewState.Disabled, false);
+        await _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, NewState.Disabled, false);
     }
 
     public List<AssociatedMod> GetAssociatedMods(int setIndex)

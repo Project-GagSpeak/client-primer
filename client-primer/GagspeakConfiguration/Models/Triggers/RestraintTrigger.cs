@@ -15,5 +15,5 @@ public record RestraintTrigger : Trigger
     public string RestraintSetName { get; set; } = string.Empty;
 
     // the new state of it that will trigger the execution
-    public UpdatedNewState RestraintState { get; set; } = UpdatedNewState.Enabled;
+    public NewState RestraintState { get; set; } = NewState.Enabled;
 }

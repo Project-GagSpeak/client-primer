@@ -602,7 +602,7 @@ public class ToyboxTriggerManager
         _uiShared.DrawHelpText("The Restraint Set to listen to for this trigger.");
 
         UiSharedService.ColorText("Restraint Set State: ", ImGuiColors.ParsedGold);
-        _uiShared.DrawCombo("##RestraintStateCombo", 200f, Enum.GetValues<UpdatedNewState>(), (state) => state.ToString(),
+        _uiShared.DrawCombo("##RestraintStateCombo", 200f, Enum.GetValues<NewState>(), (state) => state.ToString(),
             (i) => restraintTrigger.RestraintState = i, restraintTrigger.RestraintState);
         _uiShared.DrawHelpText("Trigger should be fired when the restraint set changes to this state.");
     }
@@ -618,7 +618,7 @@ public class ToyboxTriggerManager
 
         UiSharedService.ColorText("Gag State: ", ImGuiColors.ParsedGold);
         ImGui.SetNextItemWidth(200f);
-        _uiShared.DrawCombo("##GagStateCombo", 200f, Enum.GetValues<UpdatedNewState>(), (state) => state.ToString(),
+        _uiShared.DrawCombo("##GagStateCombo", 200f, Enum.GetValues<NewState>(), (state) => state.ToString(),
             (i) => gagTrigger.GagState = i, gagTrigger.GagState);
         _uiShared.DrawHelpText("Trigger should be fired when the gag state changes to this.");
     }

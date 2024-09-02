@@ -143,7 +143,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
             }
 
             // For GagEquip
-            if (msg.NewState == UpdatedNewState.Enabled && _playerManager.GlobalPerms.ItemAutoEquip)
+            if (msg.NewState == NewState.Enabled && _playerManager.GlobalPerms.ItemAutoEquip)
             {
                 Logger.LogDebug($"Processing Gag Equipped");
                 // see if the gag we are equipping is not none
@@ -159,7 +159,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
             }
 
             // For Gag Unequip
-            if (msg.NewState == UpdatedNewState.Disabled && _playerManager.GlobalPerms.ItemAutoEquip)
+            if (msg.NewState == NewState.Disabled && _playerManager.GlobalPerms.ItemAutoEquip)
             {
                 Logger.LogDebug($"Processing Gag UnEquip");
                 var gagType = Enum.GetValues(typeof(GagList.GagType)).Cast<GagList.GagType>().First(g => g.GetGagAlias() == msg.GagType.GetGagAlias());
@@ -197,7 +197,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                 return;
             }
 
-            if (msg.NewState == UpdatedNewState.Enabled)
+            if (msg.NewState == NewState.Enabled)
             {
                 Logger.LogDebug($"Processing Restraint Set Update");
                 // apply restraint set data to character.
@@ -216,7 +216,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                     await EquipBlindfold();
                 }
             }
-            else if (msg.NewState == UpdatedNewState.Disabled)
+            else if (msg.NewState == NewState.Disabled)
             {
                 // now perform a revert based on our customization option
                 switch (_clientConfigs.GagspeakConfig.RevertStyle)
@@ -268,7 +268,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                 return;
             }
 
-            if (msg.NewState == UpdatedNewState.Enabled)
+            if (msg.NewState == NewState.Enabled)
             {
                 Logger.LogDebug($"Processing Blindfold Equipped");
                 // get the index of the person who equipped it onto you (FIXLOGIC TODO)
@@ -282,7 +282,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                 }
             }
 
-            if (msg.NewState == UpdatedNewState.Disabled)
+            if (msg.NewState == NewState.Disabled)
             {
                 Logger.LogDebug($"Processing Blindfold UnEquip");
                 // get the index of the person who equipped it onto you (FIXLOGIC TODO)
@@ -389,11 +389,16 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
     /// <summary> Applies the gag items to the cached character data. </summary>
     public async Task ApplyGagItemsToCachedCharacterData()
     {
+        if(_playerManager.AppearanceData == null)
+        {
+            Logger.LogError($"Appearance Data is null, so not applying Gag Items");
+            return;
+        }
         Logger.LogDebug($"Applying Gag Items to Cached Character Data");
         // temporary code until glamourer update's its IPC changes
-        await EquipWithSetItem(GagLayer.UnderLayer, _playerManager.AppearanceData.SlotOneGagType, "SelfApplied");
-        await EquipWithSetItem(GagLayer.MiddleLayer, _playerManager.AppearanceData.SlotTwoGagType, "SelfApplied");
-        await EquipWithSetItem(GagLayer.TopLayer, _playerManager.AppearanceData.SlotThreeGagType, "SelfApplied");
+        await EquipWithSetItem(GagLayer.UnderLayer, _playerManager.AppearanceData.GagSlots[0].GagType, "SelfApplied");
+        await EquipWithSetItem(GagLayer.MiddleLayer, _playerManager.AppearanceData.GagSlots[1].GagType, "SelfApplied");
+        await EquipWithSetItem(GagLayer.TopLayer, _playerManager.AppearanceData.GagSlots[2].GagType, "SelfApplied");
     }
 
     /// <summary> Equips a gag by the defined gag name </summary>

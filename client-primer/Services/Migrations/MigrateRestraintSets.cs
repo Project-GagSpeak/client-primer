@@ -1,21 +1,11 @@
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.Services.Mediator;
-using GagSpeak.UI.UiWardrobe;
 using GagSpeak.Utils;
-using GagSpeak.Utils.ChatLog;
 using GagspeakAPI.Data.Enum;
-using ImGuiNET;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
-using GagSpeak.Interop.IpcHelpers.GameData;
-
-using System.Text.RegularExpressions;
-using System.Xml.Linq;
-using GagSpeak.Services.Migrations;
 
 namespace GagSpeak.Services;
 
@@ -25,7 +15,7 @@ public class MigrateRestraintSets
     private readonly ILogger<MigrateRestraintSets> _logger;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly string _oldRestraintSetsDirectory;
-    public MigrateRestraintSets(ILogger<MigrateRestraintSets> logger, 
+    public MigrateRestraintSets(ILogger<MigrateRestraintSets> logger,
         ClientConfigurationManager clientConfigs, string configDirectory)
     {
         _logger = logger;
@@ -103,10 +93,11 @@ public class MigrateRestraintSets
             Name = oldSet.Name,
             Description = oldSet.Description,
             Enabled = oldSet.Enabled,
-            Locked = oldSet.Locked,
             EnabledBy = oldSet.WasEnabledBy,
-            LockedBy = oldSet.WasLockedBy,
-            LockedUntil = DateTimeOffset.UtcNow,
+            LockType = Padlocks.None.ToString(),
+            LockPassword = string.Empty,
+            LockedUntil = DateTimeOffset.MinValue,
+            LockedBy = string.Empty,
             DrawData = oldSet.DrawData.ToDictionary(kvp => kvp.Key, kvp => new EquipDrawData(kvp.Value.GameItem)
             {
                 IsEnabled = kvp.Value.IsEnabled,
@@ -141,10 +132,11 @@ public class MigrateRestraintSets
                 Name = oldSet.Name,
                 Description = oldSet.Description,
                 Enabled = oldSet.Enabled,
-                Locked = oldSet.Locked,
                 EnabledBy = oldSet.WasEnabledBy,
-                LockedBy = oldSet.WasLockedBy,
-                LockedUntil = DateTimeOffset.UtcNow,
+                LockType = Padlocks.None.ToString(),
+                LockPassword = string.Empty,
+                LockedUntil = DateTimeOffset.MinValue,
+                LockedBy = string.Empty,
                 DrawData = oldSet.DrawData.ToDictionary(kvp => kvp.Key, kvp => new EquipDrawData(kvp.Value.GameItem)
                 {
                     IsEnabled = kvp.Value.IsEnabled,

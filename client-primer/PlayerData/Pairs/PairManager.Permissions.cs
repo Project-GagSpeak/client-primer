@@ -95,11 +95,11 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         pair.UserPair.OwnEditAccessPerms = dto.UniqueAccessPerms;
 
         // publish the mediator changes.
-        if (forcedFollowChanged) Mediator.Publish(new HardcoreForcedToFollowMessage(pair, dto.UniquePerms.IsForcedToFollow ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
-        if (forcedSitChanged) Mediator.Publish(new HardcoreForcedToSitMessage(pair, dto.UniquePerms.IsForcedToSit ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
-        if (forcedGroundSitChanged) Mediator.Publish(new HardcoreForcedToKneelMessage(pair, dto.UniquePerms.IsForcedToGroundSit ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
-        if (forcedStayChanged) Mediator.Publish(new HardcoreForcedToStayMessage(pair, dto.UniquePerms.IsForcedToStay ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
-        if (blindfoldChanged) Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, dto.UniquePerms.IsBlindfolded ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+        if (forcedFollowChanged) Mediator.Publish(new HardcoreForcedToFollowMessage(pair, dto.UniquePerms.IsForcedToFollow ? NewState.Enabled : NewState.Disabled));
+        if (forcedSitChanged) Mediator.Publish(new HardcoreForcedToSitMessage(pair, dto.UniquePerms.IsForcedToSit ? NewState.Enabled : NewState.Disabled));
+        if (forcedGroundSitChanged) Mediator.Publish(new HardcoreForcedToKneelMessage(pair, dto.UniquePerms.IsForcedToGroundSit ? NewState.Enabled : NewState.Disabled));
+        if (forcedStayChanged) Mediator.Publish(new HardcoreForcedToStayMessage(pair, dto.UniquePerms.IsForcedToStay ? NewState.Enabled : NewState.Disabled));
+        if (blindfoldChanged) Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, dto.UniquePerms.IsBlindfolded ? NewState.Enabled : NewState.Disabled));
 
         Logger.LogDebug($"Updated own unique permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'");
     }
@@ -325,27 +325,27 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (forcedFollowChanged)
         {
             Logger.LogWarning("Forced follow changed");
-            Mediator.Publish(new HardcoreForcedToFollowMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+            Mediator.Publish(new HardcoreForcedToFollowMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
         }
         if (forcedSitChanged)
         {
             Logger.LogWarning("Forced sit changed");
-            Mediator.Publish(new HardcoreForcedToSitMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+            Mediator.Publish(new HardcoreForcedToSitMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
         }
         if (forcedGroundSitChanged)
         {
             Logger.LogWarning("Forced ground sit changed");
-            Mediator.Publish(new HardcoreForcedToKneelMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+            Mediator.Publish(new HardcoreForcedToKneelMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
         }
         if (forcedStayChanged)
         {
             Logger.LogWarning("Forced stay changed");
-            Mediator.Publish(new HardcoreForcedToStayMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+            Mediator.Publish(new HardcoreForcedToStayMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
         }
         if (blindfoldChanged)
         {
             Logger.LogWarning("Blindfold changed");
-            Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, (bool)ChangedValue ? UpdatedNewState.Enabled : UpdatedNewState.Disabled));
+            Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
         }
 
         RecreateLazy(false);

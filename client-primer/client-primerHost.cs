@@ -265,11 +265,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new MoodlesService(s.GetRequiredService<ILogger<MoodlesService>>(), s.GetRequiredService<UiSharedService>(), dm))
         .AddSingleton<MoodlesManager>()
         .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
-            s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<DictStain>(),
-            s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(),
-            s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(),
-            s.GetRequiredService<PairManager>(), dm))
+            s.GetRequiredService<UiSharedService>(), s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<DictStain>(),
+            s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(), s.GetRequiredService<TextureService>(), 
+            s.GetRequiredService<ModAssociations>(), s.GetRequiredService<PairManager>(), dm))
         .AddSingleton<RestraintCosmetics>()
         .AddSingleton<WardrobeHandler>()
 
@@ -350,7 +348,10 @@ public static class GagSpeakServiceExtensions
 
         .AddSingleton((s) => new IpcProvider(s.GetRequiredService<ILogger<IpcProvider>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PairManager>(),
-            s.GetRequiredService<OnFrameworkService>(), pi));
+            s.GetRequiredService<OnFrameworkService>(), pi))
+        .AddSingleton((s) => new PenumbraChangedItemTooltip(s.GetRequiredService<ILogger<PenumbraChangedItemTooltip>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<IpcCallerPenumbra>(), cs,
+            s.GetRequiredService<ItemData>()));
 
     #endregion IpcServices
     #region ConfigServices
@@ -427,8 +428,8 @@ public static class GagSpeakServiceExtensions
         .AddScoped<VisiblePairManager>()
         .AddScoped((s) => new TextureService(pi.UiBuilder, dm, tp))
         .AddScoped((s) => new UiService(s.GetRequiredService<ILogger<UiService>>(), pi.UiBuilder, s.GetRequiredService<GagspeakConfigService>(),
-            s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(),
-            s.GetRequiredService<UiFactory>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<FileDialogManager>()))
+            s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(), s.GetRequiredService<UiFactory>(), 
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<FileDialogManager>(), s.GetRequiredService<PenumbraChangedItemTooltip>()))
         .AddScoped((s) => new CommandManagerService(s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<ServerConfigurationManager>(), cg, cm))
         .AddScoped((s) => new NotificationService(s.GetRequiredService<ILogger<NotificationService>>(),

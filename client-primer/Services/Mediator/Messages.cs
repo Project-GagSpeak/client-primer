@@ -88,13 +88,16 @@ public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item
 
 
 #region PLAYERDATA WARDROBE HANDLER RECORDS
-public record RestraintSetToggledMessage(int SetIdx, string AssignerUID, UpdatedNewState State, bool isHardcoreSet, bool pushChanges) : MessageBase; // whenever the restraint set is toggled.
-public record HardcoreForcedToFollowMessage(Pair Pair, UpdatedNewState State) : MessageBase;
-public record HardcoreForcedToSitMessage(Pair Pair, UpdatedNewState State) : MessageBase; 
-public record HardcoreForcedToKneelMessage(Pair Pair, UpdatedNewState State) : MessageBase;
-public record HardcoreForcedToStayMessage(Pair Pair, UpdatedNewState State) : MessageBase;
-public record HardcoreForcedBlindfoldMessage(Pair Pair, UpdatedNewState State) : MessageBase;
-public record MovementRestrictionChangedMessage(MovementRestrictionType Type, UpdatedNewState NewState) : MessageBase;
+// Toggle mods in a separate awaiting task so any applied mods have the animations/vfx the mods contained on the first redraw we see.
+public record RestraintSetToggleModsMessage(int SetIdx, NewState State, TaskCompletionSource<bool>? ModToggleTask = null) : MessageBase; 
+public record RestraintSetToggleHardcoreTraitsMessage(int SetIdx, string AssignerUID, NewState State, TaskCompletionSource<bool>? HardcoreTraitsTask = null) : MessageBase;
+public record RestraintSetToggledMessage(int SetIdx, string AssignerUID, NewState State, bool pushChanges, TaskCompletionSource<bool>? GlamourChangeTask = null) : MessageBase; 
+public record HardcoreForcedToFollowMessage(Pair Pair, NewState State) : MessageBase;
+public record HardcoreForcedToSitMessage(Pair Pair, NewState State) : MessageBase; 
+public record HardcoreForcedToKneelMessage(Pair Pair, NewState State) : MessageBase;
+public record HardcoreForcedToStayMessage(Pair Pair, NewState State) : MessageBase;
+public record HardcoreForcedBlindfoldMessage(Pair Pair, NewState State) : MessageBase;
+public record MovementRestrictionChangedMessage(MovementRestrictionType Type, NewState NewState) : MessageBase;
 public record MoodlesPermissionsUpdated(string NameWithWorld) : MessageBase;
 #endregion PLAYERDATA WARDROBE HANDLER RECORDS
 
@@ -112,7 +115,7 @@ public record ToyDeviceAdded(ButtplugClientDevice Device) : MessageBase; // for 
 public record ToyDeviceRemoved(ButtplugClientDevice Device) : MessageBase; // for when a device is removed.
 public record ButtplugClientDisconnected : MessageBase; // for when the buttplug client disconnects.
 public record ToyboxActiveDeviceChangedMessage(int DeviceIndex) : MessageBase; 
-public record PlaybackStateToggled(int PatternIndex, UpdatedNewState NewState) : MessageBase; // for when a pattern is activated.
+public record PlaybackStateToggled(int PatternIndex, NewState NewState) : MessageBase; // for when a pattern is activated.
 public record PatternRemovedMessage(PatternData pattern) : MessageBase; // for when a pattern is removed.
 #endregion PLAYERDATA TOYBOX HANDLER RECORDS
 
@@ -133,9 +136,9 @@ public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PenumbraInitializedMessage : MessageBase;
 public record PenumbraDisposedMessage : MessageBase;
 public record UpdateGlamourMessage(GlamourUpdateType GenericUpdateType) : MessageBase; // for full refreshes on states.
-public record UpdateGlamourGagsMessage(UpdatedNewState NewState, GagLayer Layer, GagList.GagType GagType, string AssignerName, TaskCompletionSource<bool>? CompletionTaskSource = null): MessageBase;
-public record UpdateGlamourRestraintsMessage(UpdatedNewState NewState, TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase; // Restraint set updates.
-public record UpdateGlamourBlindfoldMessage(UpdatedNewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
+public record UpdateGlamourGagsMessage(NewState NewState, GagLayer Layer, GagList.GagType GagType, string AssignerName, TaskCompletionSource<bool>? CompletionTaskSource = null): MessageBase;
+public record UpdateGlamourRestraintsMessage(NewState NewState, TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase; // Restraint set updates.
+public record UpdateGlamourBlindfoldMessage(NewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
 public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
 public record MoodlesReady : MessageBase;
 public record MoodlesStatusManagerChangedMessage(IntPtr Address) : MessageBase; // when our status manager changes.

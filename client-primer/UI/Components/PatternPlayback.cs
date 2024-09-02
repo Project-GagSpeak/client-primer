@@ -41,11 +41,11 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<PlaybackStateToggled>(this, (msg) =>
         {
-            if(msg.NewState == UpdatedNewState.Enabled)
+            if(msg.NewState == NewState.Enabled)
             {
                 StartPlayback();
             }
-            if(msg.NewState == UpdatedNewState.Disabled)
+            if(msg.NewState == NewState.Disabled)
             {
                 StopPlayback(msg.PatternIndex);
             }

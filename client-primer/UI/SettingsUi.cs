@@ -1177,23 +1177,15 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Appearance Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
-                        ImGui.Text($"SlotOneGagType: {clientPair.LastReceivedAppearanceData.SlotOneGagType}");
-                        ImGui.Text($"SlotOneGagPadlock: {clientPair.LastReceivedAppearanceData.SlotOneGagPadlock}");
-                        ImGui.Text($"SlotOneGagPassword: {clientPair.LastReceivedAppearanceData.SlotOneGagPassword}");
-                        ImGui.Text($"SlotOneGagTimer: {clientPair.LastReceivedAppearanceData.SlotOneGagTimer}");
-                        ImGui.Text($"SlotOneGagAssigner: {clientPair.LastReceivedAppearanceData.SlotOneGagAssigner}");
-                        ImGui.Separator();
-                        ImGui.Text($"SlotTwoGagType: {clientPair.LastReceivedAppearanceData.SlotTwoGagType}");
-                        ImGui.Text($"SlotTwoGagPadlock: {clientPair.LastReceivedAppearanceData.SlotTwoGagPadlock}");
-                        ImGui.Text($"SlotTwoGagPassword: {clientPair.LastReceivedAppearanceData.SlotTwoGagPassword}");
-                        ImGui.Text($"SlotTwoGagTimer: {clientPair.LastReceivedAppearanceData.SlotTwoGagTimer}");
-                        ImGui.Text($"SlotTwoGagAssigner: {clientPair.LastReceivedAppearanceData.SlotTwoGagAssigner}");
-                        ImGui.Separator();
-                        ImGui.Text($"SlotThreeGagType: {clientPair.LastReceivedAppearanceData.SlotThreeGagType}");
-                        ImGui.Text($"SlotThreeGagPadlock: {clientPair.LastReceivedAppearanceData.SlotThreeGagPadlock}");
-                        ImGui.Text($"SlotThreeGagPassword: {clientPair.LastReceivedAppearanceData.SlotThreeGagPassword}");
-                        ImGui.Text($"SlotThreeGagTimer: {clientPair.LastReceivedAppearanceData.SlotThreeGagTimer}");
-                        ImGui.Text($"SlotThreeGagAssigner: {clientPair.LastReceivedAppearanceData.SlotThreeGagAssigner}");
+                        for (int i = 0; i < 3; i++)
+                        {
+                            ImGui.Text($"Slot{i}GagType: {clientPair.LastReceivedAppearanceData.GagSlots[i].GagType}");
+                            ImGui.Text($"Slot{i}GagPadlock: {clientPair.LastReceivedAppearanceData.GagSlots[i].Padlock}");
+                            ImGui.Text($"Slot{i}GagPassword: {clientPair.LastReceivedAppearanceData.GagSlots[i].Password}");
+                            ImGui.Text($"Slot{i}GagTimer: {clientPair.LastReceivedAppearanceData.GagSlots[i].Timer}");
+                            ImGui.Text($"Slot{i}GagAssigner: {clientPair.LastReceivedAppearanceData.GagSlots[i].Assigner}");
+                            ImGui.Separator();
+                        }
                     }
                 }
                 if (clientPair.LastReceivedWardrobeData != null)
@@ -1210,9 +1202,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"ActiveSetName: {clientPair.LastReceivedWardrobeData.ActiveSetName}");
                         ImGui.Text($"ActiveSetDescription: {clientPair.LastReceivedWardrobeData.ActiveSetDescription}");
                         ImGui.Text($"ActiveSetEnabledBy: {clientPair.LastReceivedWardrobeData.ActiveSetEnabledBy}");
-                        ImGui.Text($"ActiveSetIsLocked: {clientPair.LastReceivedWardrobeData.ActiveSetIsLocked}");
-                        ImGui.Text($"ActiveSetLockedBy: {clientPair.LastReceivedWardrobeData.ActiveSetLockedBy}");
-                        ImGui.Text($"ActiveSetLockTime: {clientPair.LastReceivedWardrobeData.ActiveSetLockTime}");
+                        ImGui.Text($"ActiveSetLockType: {clientPair.LastReceivedWardrobeData.WardrobeActiveSetPadLock}");
+                        ImGui.Text($"ActiveSetLockPassword: {clientPair.LastReceivedWardrobeData.WardrobeActiveSetPassword}");
+                        ImGui.Text($"ActiveSetLockTime: {clientPair.LastReceivedWardrobeData.WardrobeActiveSetLockTime}");
+                        ImGui.Text($"ActiveSetLockedBy: {clientPair.LastReceivedWardrobeData.WardrobeActiveSetLockAssigner}");
                     }
                 }
                 if (clientPair.LastReceivedAliasData != null)
@@ -1297,32 +1290,15 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawAppearanceInfo()
     {
         var appearanceData = _playerCharacterManager.AppearanceData;
-        ImGui.Text("Underlayer Gag:");
-        ImGui.Indent();
-        ImGui.Text($"Gag Type: {appearanceData.SlotOneGagType}");
-        ImGui.Text($"Gag Padlock: {appearanceData.SlotOneGagPadlock}");
-        ImGui.Text($"Gag Password: {appearanceData.SlotOneGagPassword}");
-        ImGui.Text($"Gag Expiration Timer: {appearanceData.SlotOneGagTimer}");
-        ImGui.Text($"Gag Assigner: {appearanceData.SlotOneGagAssigner}");
-        ImGui.Unindent();
-        ImGui.Separator();
-        ImGui.Text("Middle Gag:");
-        ImGui.Indent();
-        ImGui.Text($"Gag Type: {appearanceData.SlotTwoGagType}");
-        ImGui.Text($"Gag Padlock: {appearanceData.SlotTwoGagPadlock}");
-        ImGui.Text($"Gag Password: {appearanceData.SlotTwoGagPassword}");
-        ImGui.Text($"Gag Expiration Timer: {appearanceData.SlotTwoGagTimer}");
-        ImGui.Text($"Gag Assigner: {appearanceData.SlotTwoGagAssigner}");
-        ImGui.Unindent();
-        ImGui.Separator();
-        ImGui.Text("Overlayer Gag:");
-        ImGui.Indent();
-        ImGui.Text($"Gag Type: {appearanceData.SlotThreeGagType}");
-        ImGui.Text($"Gag Padlock: {appearanceData.SlotThreeGagPadlock}");
-        ImGui.Text($"Gag Password: {appearanceData.SlotThreeGagPassword}");
-        ImGui.Text($"Gag Expiration Timer: {appearanceData.SlotThreeGagTimer}");
-        ImGui.Text($"Gag Assigner: {appearanceData.SlotThreeGagAssigner}");
-        ImGui.Unindent();
+        for (int i = 0; i < 3; i++)
+        {
+            ImGui.Text($"Slot{i}GagType: {appearanceData!.GagSlots[i].GagType}");
+            ImGui.Text($"Slot{i}GagPadlock: {appearanceData.GagSlots[i].Padlock}");
+            ImGui.Text($"Slot{i}GagPassword: {appearanceData.GagSlots[i].Password}");
+            ImGui.Text($"Slot{i}GagTimer: {appearanceData.GagSlots[i].Timer}");
+            ImGui.Text($"Slot{i}GagAssigner: {appearanceData.GagSlots[i].Assigner}");
+            ImGui.Separator();
+        }
     }
 
     /// <summary>

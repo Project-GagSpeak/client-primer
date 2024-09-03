@@ -249,7 +249,12 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
             // let the completion source know we are done.
             if (msg.CompletionTaskSource != null)
             {
-                msg.CompletionTaskSource.SetResult(true);
+
+                if (msg.CompletionTaskSource != null)
+                {
+                    Logger.LogInformation("Restraint Set GlamourChangeTask completed.");
+                    msg.CompletionTaskSource.SetResult(true);
+                }
             }
         });
     }

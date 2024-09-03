@@ -162,8 +162,13 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             set.LockedUntil = DateTimeOffset.MinValue;
             set.LockedBy = string.Empty;
             _wardrobeConfig.Save();
+            // this may cause some bugs down the line, so keep an eye on it. (Not syncing with server userActiveStateData)
         }
-        if(anySetIsBeingFixed) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+        if (anySetIsBeingFixed)
+        {
+            Logger.LogWarning("A set is out of sync and has been fixed");
+            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+        }
 
         try
         {
@@ -171,23 +176,43 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             // if the active set is not string.Empty, we should update our active sets.
             if (dto.CharacterActiveStateData.WardrobeActiveSetName != string.Empty)
             {
-                await SetRestraintSetState(
-                    GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
-                    dto.CharacterActiveStateData.WardrobeActiveSetAssigner, 
-                    NewState.Enabled, 
-                    false);
-            }
+                Logger.LogInformation("Located a stored active Restraint Set from the last connection's Data.");
 
-            // if the set was locked, we should lock it with the appropriate time.
-            if (dto.CharacterActiveStateData.WardrobeActiveSetPadLock != "None")
-            {
-                LockRestraintSet(
-                    GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
-                    dto.CharacterActiveStateData.WardrobeActiveSetPadLock,
-                    dto.CharacterActiveStateData.WardrobeActiveSetPassword,
-                    dto.CharacterActiveStateData.WardrobeActiveSetLockTime,
-                    dto.CharacterActiveStateData.WardrobeActiveSetLockAssigner, 
-                    false);
+                // see if the lock expired while we were disconnected.
+                if (GenericHelpers.TimerPadlocks.Contains(dto.CharacterActiveStateData.WardrobeActiveSetPadLock)
+                && dto.CharacterActiveStateData.WardrobeActiveSetLockTime < DateTimeOffset.UtcNow)
+                {
+                    Logger.LogInformation("The lock on the actively stored set expired while you were disconnected. Unlocking Set");
+                    UnlockRestraintSet(GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
+                        dto.CharacterActiveStateData.WardrobeActiveSetLockAssigner);
+
+                    // if we have it set to remove sets that are unlocked automatically, do so.
+                    if (GagspeakConfig.DisableSetUponUnlock)
+                    {
+                        Logger.LogInformation("Disabling Unlocked Set due to Config Setting.");
+                        await SetRestraintSetState(
+                            GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
+                            dto.CharacterActiveStateData.WardrobeActiveSetAssigner,
+                            NewState.Disabled);
+                    }
+                }
+                // if it is not a set that had its time expired, then we should re-enable it, and re-lock it if it was locked.
+                else
+                {
+                    Logger.LogInformation("Re-Enabling the stored active Restraint Set");
+                    await SetRestraintSetState(
+                        GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
+                        dto.CharacterActiveStateData.WardrobeActiveSetAssigner, NewState.Enabled);
+                    // relock it if it had a timer.
+                    if (dto.CharacterActiveStateData.WardrobeActiveSetPadLock != Padlocks.None.ToString())
+                    {
+                        Logger.LogInformation("Re-Locking the stored active Restraint Set");
+                        LockRestraintSet(
+                            GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
+                            dto.CharacterActiveStateData.WardrobeActiveSetPadLock, dto.CharacterActiveStateData.WardrobeActiveSetPassword,
+                            dto.CharacterActiveStateData.WardrobeActiveSetLockTime, dto.CharacterActiveStateData.WardrobeActiveSetLockAssigner);
+                    }
+                }
             }
         }
         catch (Exception e)
@@ -354,127 +379,131 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             || setProperties.Weighty || setProperties.LightStimulation || setProperties.MildStimulation || setProperties.HeavyStimulation;
     }
 
+    private async Task DisableRestraintSetHelper(int setIndex, bool pushToServer = true)
+    {
+        var set = WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
+        Logger.LogInformation("----- Disabling [{setName}] Begin -----", set.Name);
+        if (!set.Enabled || set.Locked) { Logger.LogWarning("Set {setIndex} is already disabled or is locked. Skipping disabling", setIndex); return; }
+
+        set.Enabled = false;
+        set.EnabledBy = string.Empty;
+        _wardrobeConfig.Save();
+
+        TaskCompletionSource<bool>? disableModsTask = null;
+        TaskCompletionSource<bool>? disableHardcorePropertiesTask = null;
+
+        // Check if any mod associations have DisableWhenInactive set to true
+        if (set.AssociatedMods.Any(mod => mod.DisableWhenInactive))
+        {
+            Logger.LogTrace($"{set.Name} contains at least one mod with DisableWhenInactive.");
+            disableModsTask = new TaskCompletionSource<bool>();
+        }
+
+        // Check if the set has any hardcore properties active for the user
+        if (set.SetProperties.ContainsKey(set.EnabledBy) && PropertiesEnabledForSet(GetRestraintSetIdxByName(set.Name), set.EnabledBy))
+        {
+            Logger.LogTrace($"{set.Name} contains hardcore properties for the set enabler {set.EnabledBy}");
+            disableHardcorePropertiesTask = new TaskCompletionSource<bool>();
+        }
+
+        // disable hardcore properties first
+        if (disableHardcorePropertiesTask != null)
+        {
+            Logger.LogTrace($"Disabling Hardcore Properties for {set.Name} for {set.EnabledBy}");
+            Mediator.Publish(new RestraintSetToggleHardcoreTraitsMessage(setIndex, set.EnabledBy, NewState.Disabled, disableHardcorePropertiesTask));
+            await disableHardcorePropertiesTask.Task;
+        }
+
+        // we don't care who the UIDis that is 
+        if (disableModsTask != null)
+        {
+            Logger.LogTrace("Disabling Mods for {set.Name}", set.Name);
+            Mediator.Publish(new RestraintSetToggleModsMessage(setIndex, NewState.Disabled, disableModsTask));
+            await disableModsTask.Task;
+        }
+
+        // The glamour task always must fire
+        var disableRestraintGlamourTask = new TaskCompletionSource<bool>();
+        Mediator.Publish(new RestraintSetToggledMessage(setIndex, set.EnabledBy, NewState.Disabled, pushToServer, disableRestraintGlamourTask));
+        await disableRestraintGlamourTask.Task;
+
+        set.Enabled = false;
+        set.EnabledBy = string.Empty;
+        Logger.LogInformation("----- Disabling [{setName}] End -----", set.Name);
+    }
+
+    private async Task EnableRestraintSetHelper(int setIndex, string AssignerUid, bool pushToServer = true)
+    {
+        var set = WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
+        Logger.LogInformation("----- Enabling [{setName}] Begin -----", set.Name);
+        Logger.LogInformation("Enabling: {setName}, Assigner: {UIDofPair}, NewState: Enabled, PushToServer: {pushToServer}", set.Name, AssignerUid, pushToServer);
+
+        set.Enabled = true;
+        set.EnabledBy = AssignerUid;
+        _wardrobeConfig.Save();
+
+        TaskCompletionSource<bool>? enableModsTask = null;
+        TaskCompletionSource<bool>? enableHardcorePropertiesTask = null;
+
+        // Check if any mod associations have DisableWhenInactive set to true
+        if (set.AssociatedMods.Any(mod => mod.DisableWhenInactive))
+        {
+            Logger.LogTrace($"{set.Name} contains at least one mod with DisableWhenInactive.");
+            enableModsTask = new TaskCompletionSource<bool>();
+        }
+
+        // Check if the set has any hardcore properties active for the user
+        if (set.SetProperties.ContainsKey(set.EnabledBy) && PropertiesEnabledForSet(GetRestraintSetIdxByName(set.Name), set.EnabledBy))
+        {
+            Logger.LogTrace($"{set.Name} contains hardcore properties for the set enabler {set.EnabledBy}");
+            enableHardcorePropertiesTask = new TaskCompletionSource<bool>();
+        }
+
+        // disable hardcore properties first
+        if (enableHardcorePropertiesTask != null)
+        {
+            Logger.LogTrace($"Enabling Hardcore Properties for {set.Name} for {set.EnabledBy}");
+            Mediator.Publish(new RestraintSetToggleHardcoreTraitsMessage(setIndex, set.EnabledBy, NewState.Enabled, enableHardcorePropertiesTask));
+            await enableHardcorePropertiesTask.Task;
+        }
+
+        // we don't care who the UIDis that is 
+        if (enableModsTask != null)
+        {
+            Logger.LogTrace("Enabling Mods for {set.Name}", set.Name);
+            Mediator.Publish(new RestraintSetToggleModsMessage(setIndex, NewState.Enabled, enableModsTask));
+            await enableModsTask.Task;
+        }
+
+        // The glamour task always must fire
+        var enableRestraintGlamourTask = new TaskCompletionSource<bool>();
+        Mediator.Publish(new RestraintSetToggledMessage(setIndex, set.EnabledBy, NewState.Enabled, pushToServer, enableRestraintGlamourTask));
+        await enableRestraintGlamourTask.Task;
+        Logger.LogInformation("----- Enabling [{setName}] End -----", set.Name);
+    }
     internal async Task SetRestraintSetState(int setIndex, string UIDofPair, NewState newState, bool pushToServer = true)
     {
-        Logger.LogInformation("SetRestraintSetState called with setIndex: {setIndex}, UIDofPair: {UIDofPair}, newState: {newState}, pushToServer: {pushToServer}", setIndex, UIDofPair, newState, pushToServer);
+        Logger.LogInformation("---------------- Restraint Set State Start ---------------");
+
         // lets us know when we have finished toggling the restraint set.
         if (newState == NewState.Disabled)
         {
-            Logger.LogInformation("Disabling restraint set {setIndex}", setIndex);
-            WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Enabled = false;
-            WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = string.Empty;
-            _wardrobeConfig.Save();
-            Logger.LogInformation("Restraint set {setIndex} disabled and saved", setIndex);
-
-            // remove the mods we had toggles for.
-            TaskCompletionSource<bool>? disableModsTask = null;
-            // Check if any mod associations have ToggleModsWhenToggled set to true
-            if (WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods.Any(mod => mod.DisableWhenInactive))
-            {
-                Logger.LogTrace("Found associated mod with ToggleModsWhenToggled for set {set.Name}", WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Name);
-                disableModsTask = new TaskCompletionSource<bool>();
-            }
-
-            if (disableModsTask != null)
-            {
-                Mediator.Publish(new RestraintSetToggleModsMessage(setIndex, NewState.Disabled, disableModsTask));
-                await disableModsTask.Task;
-            }
-
-
-            var pairHasHardcoreSetForUID = WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].SetProperties.ContainsKey(UIDofPair);
-            Logger.LogInformation("Checking if restraint set {setIndex} has hardcore properties for UID: {UIDofPair}", setIndex, UIDofPair);
-
-            // see if the properties are enabled for this set for this user
-            if (pairHasHardcoreSetForUID && PropertiesEnabledForSet(setIndex, UIDofPair))
-            {
-                Logger.LogInformation("Publishing RestraintSetToggledMessage with hardcore properties enabled");
-                Mediator.Publish(new RestraintSetToggleHardcoreTraitsMessage(setIndex, UIDofPair, newState));
-                Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, pushToServer));
-            }
-            else
-            {
-                Logger.LogInformation("Publishing RestraintSetToggledMessage with hardcore properties disabled");
-                Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, pushToServer));
-            }
+            await DisableRestraintSetHelper(setIndex, pushToServer);
         }
         else
         {
-            Logger.LogInformation("Enabling restraint set {setIndex}", setIndex);
-
-            // disable all other restraint sets first (only one should ever be active at a time)
-            // do this as a set of tasks, where we await for them all to be completed.
-            foreach (var set in WardrobeConfig.WardrobeStorage.RestraintSets.Where(set => set.Enabled))
+            // if a restraint set is currently active, disable it first.
+            var activeSetIdx = GetActiveSetIdx();
+            if (activeSetIdx != -1)
             {
-                Logger.LogInformation("Disabling currently enabled set {set.Name}", set.Name);
-                TaskCompletionSource<bool>? disableModsTask = null;
-                TaskCompletionSource<bool>? disableHardcorePropertiesTask = null;
-
-                // Check if any mod associations have DisableWhenInactive set to true
-                if (set.AssociatedMods.Any(mod => mod.DisableWhenInactive))
-                {
-                    Logger.LogTrace("Found associated mod with DisableWhenInactive for set {set.Name}", set.Name);
-                    disableModsTask = new TaskCompletionSource<bool>();
-                }
-
-                // Check if the set has any hardcore properties active for the user
-                if (set.SetProperties.ContainsKey(set.EnabledBy) && PropertiesEnabledForSet(GetRestraintSetIdxByName(set.Name), set.EnabledBy))
-                {
-                    Logger.LogTrace("Found hardcore properties enabled for set {set.Name} by user {set.EnabledBy}", set.Name, set.EnabledBy);
-                    disableHardcorePropertiesTask = new TaskCompletionSource<bool>();
-                }
-
-                // disable hardcore properties first
-                if (disableHardcorePropertiesTask != null)
-                {
-                    Mediator.Publish(new RestraintSetToggledMessage(setIndex, set.EnabledBy, NewState.Disabled, false, disableHardcorePropertiesTask));
-                    await disableHardcorePropertiesTask.Task;
-                }
-
-                // we don't care who the UIDis that is 
-                if (disableModsTask != null)
-                {
-                    Mediator.Publish(new RestraintSetToggleModsMessage(setIndex, NewState.Disabled, disableModsTask));
-                    await disableModsTask.Task;
-                }
-
-                // The glamour task always must fire
-                var disableRestraintGlamourTask = new TaskCompletionSource<bool>();
-                Mediator.Publish(new RestraintSetToggledMessage(setIndex, set.EnabledBy, NewState.Disabled, pushToServer, disableRestraintGlamourTask));
-                await disableRestraintGlamourTask.Task;
-
-                set.Enabled = false;
-                set.EnabledBy = string.Empty;
-                Logger.LogTrace("Restraint Set {set.Name} Disabled", set.Name);
+                Logger.LogTrace("Another set was found to be active when attempting to enabling this set. Disabling other active sets first.");
+                await DisableRestraintSetHelper(activeSetIdx, false);
             }
-            Logger.LogDebug("All ActiveSets Have Been Disabled For Replacement");
 
-            // then enable our set.
-            WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Enabled = true;
-            WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].EnabledBy = UIDofPair;
-            _wardrobeConfig.Save();
-
-            Logger.LogInformation("Applying Mods for restraint set being enabled");
-            // apply the mods for the set we are applying.
-            var enableModsTask = new TaskCompletionSource<bool>();
-            Mediator.Publish(new RestraintSetToggleModsMessage(setIndex, newState, enableModsTask));
-            await enableModsTask.Task;
-            Logger.LogInformation("Mods Applied for restraint set being enabled");
-            // check for the new set we are enabling.
-            var pairHasHardcoreSetForUID = WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].SetProperties.ContainsKey(UIDofPair);
-            // see if the properties are enabled for this set for this user
-            Logger.LogInformation("Checking for Hardcore Properties for {UIDofPair} in {setIndex}", UIDofPair, setIndex);
-            if (pairHasHardcoreSetForUID && PropertiesEnabledForSet(setIndex, UIDofPair))
-            {
-                Mediator.Publish(new RestraintSetToggleHardcoreTraitsMessage(setIndex, UIDofPair, newState));
-                Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, pushToServer));
-            }
-            else
-            {
-                Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, newState, pushToServer));
-            }
-            Logger.LogInformation("Restraint Set {set.Name} Enabled", WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].Name);
+            // enable the restraint set.
+            await EnableRestraintSetHelper(setIndex, UIDofPair, pushToServer);
         }
+        Logger.LogInformation("---------------- Restraint Set State Finish ---------------");
     }
 
     internal void LockRestraintSet(int setIndex, string lockType, string password,

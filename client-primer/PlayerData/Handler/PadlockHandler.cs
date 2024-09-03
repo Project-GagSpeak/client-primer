@@ -3,6 +3,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.UI;
 using GagspeakAPI.Data.Enum;
 using ImGuiNET;
+using OtterGui.Text;
 
 namespace GagSpeak.PlayerData.Handlers;
 /// <summary> Handles how the information stored in padlock spaces are contained.. </summary>
@@ -28,42 +29,43 @@ public class PadlockHandler
     public string[] Passwords = new string[4] { "", "", "", "" }; // when they enter password prior to locking. 
     public string[] Timers = new string[4] { "", "", "", "" }; // when they enter a timer prior to locking.
 
-    public bool DisplayPasswordField(int slot, bool isLocked)
+    public bool DisplayPasswordField(int slot, bool isLocked, float totalWidth = 250)
     {
         switch (PadlockPrevs[slot])
         {
             case Padlocks.CombinationPadlock:
-                Passwords[slot] = DisplayInputField($"##Combination_Input{slot}", "Enter 4 digit combination...", Passwords[slot], 4);
+                Passwords[slot] = DisplayInputField($"##Combination_Input{slot}", "Enter 4 digit combination...", Passwords[slot], 4, 1f, totalWidth);
                 return true;
             case Padlocks.PasswordPadlock:
-                Passwords[slot] = DisplayInputField($"##Password_Input{slot}", "Enter password", Passwords[slot], 20);
+                Passwords[slot] = DisplayInputField($"##Password_Input{slot}", "Enter password", Passwords[slot], 20, 1f, totalWidth);
                 return true;
             case Padlocks.TimerPasswordPadlock:
                 if (isLocked)
                 {
-                    Passwords[slot] = DisplayInputField($"##Password_Input{slot}", "Enter password", Passwords[slot], 20);
+                    Passwords[slot] = DisplayInputField($"##Password_Input{slot}", "Enter password", Passwords[slot], 20, 1f, totalWidth);
                 }
                 else
                 {
-                    Passwords[slot] = DisplayInputField($"##Password_Input{slot}", "Enter password", Passwords[slot], 20, 2 / 3f);
-                    ImGui.SameLine(0, 3);
-                    Timers[slot] = DisplayInputField($"##Timer_Input{slot}", "Ex: 0h2m7s", Timers[slot], 12, .325f);
+                    Passwords[slot] = DisplayInputField($"##Password_Input{slot}", "Enter password", Passwords[slot], 20, 2 / 3f, totalWidth);
+                    ImUtf8.SameLineInner();
+                    float timerWidth = totalWidth - (totalWidth*2/3f) - ImGui.GetStyle().ItemInnerSpacing.X;
+                    Timers[slot] = DisplayInputField($"##Timer_Input{slot}", "Ex: 0h2m7s", Timers[slot], 12, timerWidth / totalWidth, totalWidth);
                 }
                 return true;
             case Padlocks.OwnerTimerPadlock:
-                Timers[slot] = DisplayInputField($"##Timer_Input{slot}", "Ex: 0h2m7s", Timers[slot], 12);
+                Timers[slot] = DisplayInputField($"##Timer_Input{slot}", "Ex: 0h2m7s", Timers[slot], 12, totalWidth);
                 return true;
             default:
                 return false;
         }
     }
 
-    private string DisplayInputField(string id, string hint, string value, uint maxLength, float widthRatio = 1f)
+    private string DisplayInputField(string id, string hint, string value, uint maxLength, float widthRatio = 1f, float totalWidth = 250)
     {
         // set the result to the value
         string result = value;
         // set the width of the input field
-        ImGui.SetNextItemWidth(250 * widthRatio);
+        ImGui.SetNextItemWidth(totalWidth * widthRatio);
         // display the input field
         if (ImGui.InputTextWithHint(id, hint, ref result, maxLength, ImGuiInputTextFlags.None))
             return result;
@@ -134,7 +136,8 @@ public class PadlockHandler
                 {
                     if (currentlyLocked)
                     {
-                        return Passwords[3] == set.LockPassword;
+                        _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
+                        return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
                     }
                     else
                     {
@@ -145,7 +148,8 @@ public class PadlockHandler
                 {
                     if (currentlyLocked)
                     {
-                        return Passwords[3] == set.LockPassword;
+                        _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
+                        return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
                     }
                     else
                     {
@@ -156,7 +160,8 @@ public class PadlockHandler
                 {
                     if (currentlyLocked)
                     {
-                        return Passwords[3] == set.LockPassword;
+                        _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
+                        return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
                     }
                     else
                     {

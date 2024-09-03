@@ -1,6 +1,7 @@
 using GagSpeak.MufflerCore.Handler;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
 
 namespace GagSpeak.PlayerData.Data;
@@ -327,13 +328,6 @@ public class GagManager : DisposableMediatorSubscriberBase
         return result;
     }
 
-    private static readonly HashSet<string> TimerPadlocks = new HashSet<string>
-    {
-        nameof(Padlocks.FiveMinutesPadlock),
-        nameof(Padlocks.TimerPasswordPadlock),
-        nameof(Padlocks.OwnerTimerPadlock)
-    };
-
     private void UnlockGagSlot(int slotIndex)
     {
         var gagSlot = _characterManager.AppearanceData!.GagSlots[slotIndex];
@@ -369,7 +363,7 @@ public class GagManager : DisposableMediatorSubscriberBase
         for (int i = 0; i < _characterManager.AppearanceData.GagSlots.Length; i++)
         {
             var gagSlot = _characterManager.AppearanceData.GagSlots[i];
-            if (TimerPadlocks.Contains(gagSlot.Padlock) && gagSlot.Timer - DateTimeOffset.UtcNow <= TimeSpan.Zero)
+            if (GenericHelpers.TimerPadlocks.Contains(gagSlot.Padlock) && gagSlot.Timer - DateTimeOffset.UtcNow <= TimeSpan.Zero)
             {
                 UnlockGagSlot(i);
             }

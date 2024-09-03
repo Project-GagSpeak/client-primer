@@ -3,6 +3,8 @@ using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
+using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Connection;
 using static PInvoke.User32;
@@ -32,20 +34,14 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
             {
                 Logger.LogInformation("ActiveSet Enabled at index {0}", msg.SetIdx);
                 ActiveSet = _clientConfigs.GetActiveSet();
-                Mediator.Publish(new UpdateGlamourRestraintsMessage(NewState.Enabled));
+                Mediator.Publish(new UpdateGlamourRestraintsMessage(NewState.Enabled, msg.GlamourChangeTask));
             }
 
             if (msg.State == NewState.Disabled)
             {
                 Logger.LogInformation("ActiveSet Disabled at index {0}", msg.SetIdx);
-                Mediator.Publish(new UpdateGlamourRestraintsMessage(NewState.Disabled));
+                Mediator.Publish(new UpdateGlamourRestraintsMessage(NewState.Disabled, msg.GlamourChangeTask));
                 ActiveSet = null!;
-            }
-
-            if (msg.GlamourChangeTask != null)
-            {
-                Logger.LogInformation("GlamourChangeTask SetResult(true)");
-                msg.GlamourChangeTask.SetResult(true);
             }
 
             // handle the updates if we should
@@ -227,10 +223,8 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         try
         {
             // check if the locked time minus the current time in UTC is less than timespan.Zero ... if it is, we should push an unlock set update.
-            if (ActiveSet.LockedUntil - DateTimeOffset.UtcNow < TimeSpan.Zero)
+            if (GenericHelpers.TimerPadlocks.Contains(ActiveSet.LockType) && ActiveSet.LockedUntil - DateTimeOffset.UtcNow <= TimeSpan.Zero)
             {
-                // wont madder if we use LockedBy for name when pushing own update because we don't
-                // ensure they match server-side for self owned validation.
                 UnlockRestraintSet(GetActiveSetIndex(), ActiveSet.LockedBy);
                 Logger.LogInformation("Active Set [{0}] has expired its lock, unlocking and removing restraint set.", ActiveSet.Name);
             }

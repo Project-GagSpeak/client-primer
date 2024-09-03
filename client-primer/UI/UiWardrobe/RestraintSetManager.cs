@@ -18,6 +18,7 @@ using OtterGui.Widgets;
 using Penumbra.GameData.DataContainers;
 using Penumbra.GameData.Enums;
 using System.Numerics;
+using static FFXIVClientStructs.FFXIV.Client.UI.Misc.AozNoteModule;
 
 namespace GagSpeak.UI.UiWardrobe;
 
@@ -46,6 +47,11 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         GameIconSize = new Vector2(2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y);
         StainColorCombos = new StainColorCombo(0, _stainDictionary, logger);
 
+        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
+        {
+            // recalculate the list selection based on the order.
+            UpdateItemHoveredList();
+        });
 
         Mediator.Subscribe<TooltipSetItemToRestraintSetMessage>(this, (msg) =>
         {
@@ -71,8 +77,15 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
     private LowerString RestraintSetSearchString = LowerString.Empty;
     private List<RestraintSet> FilteredSetList
         => _handler.GetAllSetsForSearch()
-            .Where(set => set.Name.Contains(RestraintSetSearchString, StringComparison.OrdinalIgnoreCase))
+            // Find the enabled set and put it in a list (or an empty list if none are enabled)
+            .Where(set => set.Enabled)
+            .Concat(
+                // Append the other sets that match the search filter, excluding the already included enabled set
+                _handler.GetAllSetsForSearch()
+                    .Where(set => !set.Enabled && set.Name.Contains(RestraintSetSearchString, StringComparison.OrdinalIgnoreCase))
+            )
             .ToList();
+
     private List<bool> ListItemHovered = new List<bool>();
 
 
@@ -139,7 +152,14 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             // grab the index in the highlighted set that is true
             var highlightedIndex = ListItemHovered.FindIndex(x => x.Equals(true));
             // if non are, return
-            if (highlightedIndex == -1) return;
+            if (highlightedIndex == -1)
+            {
+                if (_handler.ActiveSet != null)
+                {
+                    DrawRestraintSetPreview(_handler.ActiveSet);
+                }
+                return;
+            }
 
             // otherwise, draw.
             if (FilteredSetList.Count > 0)
@@ -314,14 +334,22 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         }
     }
 
+    private void UpdateItemHoveredList()
+    {
+        ListItemHovered.Clear();
+        ListItemHovered.AddRange(Enumerable.Repeat(false, FilteredSetList.Count));
+    }
+
     private void DrawRestraintSetSelectableMenu()
     {
         // if list size has changed, refresh the list of hovered items
         if (ListItemHovered.Count != FilteredSetList.Count)
         {
-            ListItemHovered.Clear();
-            ListItemHovered.AddRange(Enumerable.Repeat(false, FilteredSetList.Count));
+            UpdateItemHoveredList();
         }
+
+        // Find the active set
+        var activeSet = FilteredSetList.FirstOrDefault(set => set.Enabled);
 
         // display the selectable for each restraintSet using a for loop to keep track of the index
         for (int i = 0; i < FilteredSetList.Count; i++)
@@ -352,15 +380,38 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         var isActiveSet = (set.Enabled == true);
         var isLockedSet = (set.Locked == true);
 
-        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
-        using (ImRaii.Child($"##EditRestraintSetHeader{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetFrameHeight() * 2)))
+        // if it is the active set, dont push the color, otherwise push the color
+        
+        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), !isActiveSet && ListItemHovered[idx]);
+        using (ImRaii.Child($"##EditRestraintSetHeader{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetFrameHeight() * 2 - 5f)))
         {
+            var maxAllowedWidth = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - toggleSize.X - ImGui.GetStyle().ItemSpacing.X * 3;
             // create a group for the bounding area
             using (var group = ImRaii.Group())
             {
                 // scooch over a bit like 5f
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
+                var originalCursorPos = ImGui.GetCursorPos();
+                // Move the Y pos down a bit, only for drawing this text
+                ImGui.SetCursorPosY(originalCursorPos.Y + 2.5f);
+                // Draw the text with the desired color
                 UiSharedService.ColorText(name, ImGuiColors.DalamudWhite2);
+                if(GenericHelpers.TimerPadlocks.Contains(set.LockType))
+                {
+                    ImGui.SameLine();
+                    TimeSpan remainingTime = (set.LockedUntil - DateTimeOffset.UtcNow);
+                    var sb = new StringBuilder();
+                    if (remainingTime.Days > 0) sb.Append($"{remainingTime.Days}d ");
+                    if (remainingTime.Hours > 0) sb.Append($"{remainingTime.Hours}h ");
+                    if (remainingTime.Minutes > 0) sb.Append($"{remainingTime.Minutes}m ");
+                    if (remainingTime.Seconds > 0 || sb.Length == 0) sb.Append($"{remainingTime.Seconds}s ");
+                    string remainingTimeStr = sb.ToString().Trim();
+
+                    UiSharedService.ColorText(remainingTimeStr +" left..", ImGuiColors.ParsedPink);
+                }
+                // Restore the original cursor position
+                ImGui.SetCursorPos(originalCursorPos);
+
             }
 
             // now draw the lower section out.
@@ -370,89 +421,117 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
                 if (isLockedSet)
                 {
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2.5f);
                     UiSharedService.ColorText("Locked By:", ImGuiColors.DalamudGrey2);
                     ImGui.SameLine();
                     UiSharedService.ColorText(lockedBy, ImGuiColors.DalamudGrey3);
                 }
                 else
                 {
-                    // trim the description to the first 50 characters, then add ... at the end
-                    var trimmedDescription = description.Length > 50 ? description.Substring(0, 30) + "..." : description;
+                    // if the trimmed descriptions ImGui.CalcTextSize() is larger than the maxAllowedWidth, then trim it.
+                    var trimmedDescription = description.Length > 50 ? description.Substring(0, 50) + "..." : description;
+                    // Measure the text size
+                    var textSize = ImGui.CalcTextSize(trimmedDescription).X;
+
+                    // If the text size exceeds the maximum allowed width, trim it further
+                    while (textSize > maxAllowedWidth && trimmedDescription.Length > 3)
+                    {
+                        trimmedDescription = trimmedDescription.Substring(0, trimmedDescription.Length - 4) + "...";
+                        textSize = ImGui.CalcTextSize(trimmedDescription).X;
+                    }
+                    // move the Y pos up a bit.
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2.5f);
                     UiSharedService.ColorText(trimmedDescription, ImGuiColors.DalamudGrey2);
                 }
             }
             // now, head to the sameline of the full width minus the width of the button
             ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - toggleSize.X - ImGui.GetStyle().ItemSpacing.X);
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (ImGui.GetFrameHeight() * 2 - toggleSize.Y) / 2);
+            ImGui.SetCursorPosY((ImGui.GetCursorPosY() - (ImGui.GetFrameHeight() * 2 - toggleSize.Y) / 2) - 2.5f);
             // draw out the icon button
             var currentYpos = ImGui.GetCursorPosY();
             using (var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f))
             {
-                using (var disableSetToggleButton = ImRaii.Disabled(set.Locked))
+                bool disabled = FilteredSetList.Any(x => x.Locked);
+                string ttText = set.Enabled ? (set.Locked ? "Cannot Disable a Locked Set!" : "Disable Active Restraint Set") 
+                                            : (disabled ? "Can't Enable another Set while active Set is Locked!" : "Enable Restraint Set");
+                if (_uiShared.IconButton(set.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff, null, set.Name, disabled))
                 {
-                    if (_uiShared.IconButton(set.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff, null, set.Name))
-                    {
-                        // set the enabled state of the restraintSet based on its current state so that we toggle it
-                        if (set.Enabled)
-                            _handler.DisableRestraintSet(idx);
-                        else
-                            _handler.EnableRestraintSet(idx);
-                        // toggle the state & early return so we dont access the child clicked button
-                        return;
-                    }
+                    // set the enabled state of the restraintSet based on its current state so that we toggle it
+                    if (set.Enabled)
+                        _handler.DisableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name));
+                    else
+                        _handler.EnableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name));
+                    // toggle the state & early return so we dont access the child clicked button
+                    return;
                 }
+                UiSharedService.AttachToolTip(ttText);
             }
         }
-        ListItemHovered[idx] = ImGui.IsItemHovered();
-        if (ImGui.IsItemClicked())
+        if (!isActiveSet)
         {
-            _handler.SetEditingRestraintSet(set);
+            ListItemHovered[idx] = ImGui.IsItemHovered();
+            if (ImGui.IsItemClicked())
+            {
+                _handler.SetEditingRestraintSet(set);
+            }
         }
         // if this is the active set, draw a seperator below it
         if (isActiveSet)
         {
-            TimeSpan remainingTime = (set.LockedUntil - DateTimeOffset.UtcNow);
-            string remainingTimeStr = $"{remainingTime.Days}d{remainingTime.Hours}h{remainingTime.Minutes}m{remainingTime.Seconds}s";
-            var lockedDescription = set.Locked ? $"Locked for {remainingTimeStr}" : "Self-lock: XdXhXmXs format..";
-            // draw the padlock dropdown
-            var padlockType = _uiShared.GetPadlock(set.LockType) != Padlocks.None ? _uiShared.GetPadlock(set.LockType) : _padlockHandler.PadlockPrevs[3];
-            using (ImRaii.Disabled(set.Locked || set.LockType != "None"))
+            // obtain the width to use.
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetStyle().ItemInnerSpacing.X);
+            using (var group = ImRaii.Group())
             {
-                _uiShared.DrawCombo($"RestraintSetLock {set.Name}", (248 - _uiShared.GetIconButtonSize(FontAwesomeIcon.Lock).X),
-                    Enum.GetValues<Padlocks>().Cast<Padlocks>().Where(p => p != Padlocks.OwnerPadlock && p != Padlocks.OwnerTimerPadlock).ToArray(),
-                    (padlock) => padlock.ToString(),
-                (i) =>
-                {
-                    _padlockHandler.PadlockPrevs[3] = i;
-                }, padlockType, false);
-            }
-            ImGui.SameLine(0, 2);
+                var width = ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X;
 
-            using (var padlockDisabled = ImRaii.Disabled(padlockType == Padlocks.None))
-            {
+                TimeSpan remainingTime = (set.LockedUntil - DateTimeOffset.UtcNow);
+                string remainingTimeStr = $"{remainingTime.Days}d{remainingTime.Hours}h{remainingTime.Minutes}m{remainingTime.Seconds}s";
+                var lockedDescription = set.Locked ? $"Locked for {remainingTimeStr}" : "Self-lock: XdXhXmXs format..";
+                // draw the padlock dropdown
+                var padlockType = _uiShared.GetPadlock(set.LockType) != Padlocks.None ? _uiShared.GetPadlock(set.LockType) : _padlockHandler.PadlockPrevs[3];
+                using (ImRaii.Disabled(set.Locked || set.LockType != "None"))
+                {
+                    _uiShared.DrawCombo($"RestraintSetLock {set.Name}", (width - 1 - _uiShared.GetIconButtonSize(FontAwesomeIcon.Lock).X - ImGui.GetStyle().ItemInnerSpacing.X),
+                        Enum.GetValues<Padlocks>().Cast<Padlocks>().Where(p => p != Padlocks.OwnerPadlock && p != Padlocks.OwnerTimerPadlock).ToArray(),
+                        (padlock) => padlock.ToString(),
+                    (i) =>
+                    {
+                        _padlockHandler.PadlockPrevs[3] = i;
+                    }, padlockType, false);
+                }
+                ImUtf8.SameLineInner();
                 // draw the lock button
-                if (_uiShared.IconButton(set.Locked ? FontAwesomeIcon.Unlock : FontAwesomeIcon.Lock, null, set.Name.ToString()))
+                if (_uiShared.IconButton(set.Locked ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock, null, set.Name.ToString(), padlockType == Padlocks.None))
                 {
                     if (_padlockHandler.RestraintPasswordValidate(_handler.GetRestraintSetIndexByName(set.Name), set.Locked))
                     {
                         if (set.Locked)
                         {
-                            _handler.UnlockRestraintSet(_handler.GetRestraintSetIndexByName(set.Name), "SelfApplied");
+                            Logger.LogTrace($"Unlocking Restraint Set {set.Name}");
+                            // allow using set.EnabledBy here because it will check against the assigner when unlocking.
+                            _handler.UnlockRestraintSet(_handler.GetRestraintSetIndexByName(set.Name), set.EnabledBy);
                         }
                         else
                         {
+                            Logger.LogTrace($"Locking Restraint Set {set.Name}");
                             _handler.LockRestraintSet(_handler.GetRestraintSetIndexByName(set.Name), _padlockHandler.PadlockPrevs[3].ToString(),
                                 _padlockHandler.Passwords[3], UiSharedService.GetEndTimeUTC(_padlockHandler.Timers[3]), "SelfApplied");
                         }
+                    }
+                    else
+                    {
+                        Logger.LogDebug($"Failed to validate password for Restraint Set {set.Name}");
                     }
                     // reset the password and timer
                     _padlockHandler.Passwords[3] = string.Empty;
                     _padlockHandler.Timers[3] = string.Empty;
                 }
-                UiSharedService.AttachToolTip(set.LockedBy != "SelfApplied" ? "Only" + set.LockedBy + "can unlock your set." : set.Locked ? "Unlock this set." : "Lock this set.");
+                UiSharedService.AttachToolTip(_padlockHandler.PadlockPrevs[3] == Padlocks.None ? "Select a padlock type before locking" :
+                    set.Locked == false ? "Self-Lock this Restraint Set" : 
+                    set.LockedBy != "SelfApplied" ? "Only" + set.LockedBy + "can unlock your set." : "Unlock this set.");
+                // display associated password field for padlock type.
+                _padlockHandler.DisplayPasswordField(3, set.Locked, width);
             }
-            // display associated password field for padlock type.
-            _padlockHandler.DisplayPasswordField(3, set.Locked);
             ImGui.Separator();
         }
     }

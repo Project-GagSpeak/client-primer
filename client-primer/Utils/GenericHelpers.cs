@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using Lumina.Misc;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using System.Runtime.InteropServices;
+using GagspeakAPI.Data.Enum;
 
 namespace GagSpeak.Utils;
 
@@ -77,6 +78,13 @@ public static class GenericHelpers
         }
         return str.ToString();
     }
+
+    public static readonly HashSet<string> TimerPadlocks = new HashSet<string>
+    {
+        nameof(Padlocks.FiveMinutesPadlock),
+        nameof(Padlocks.TimerPasswordPadlock),
+        nameof(Padlocks.OwnerTimerPadlock)
+    };
 
 
     // determines if getkeystate or getkeystateasync is called

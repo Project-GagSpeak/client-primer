@@ -57,7 +57,11 @@ public record GagDrawData
         IsEnabled = jsonObject["IsEnabled"]?.Value<bool>() ?? false;
         ForceHeadgearOnEnable = jsonObject["ForceHeadgearOnEnable"]?.Value<bool>() ?? false;
         ForceVisorOnEnable = jsonObject["ForceVisorOnEnable"]?.Value<bool>() ?? false;
-        GagMoodles = jsonObject["GagMoodles"]?.Values<Guid>().ToList() ?? new List<Guid>();
+        // Deserialize the AssociatedMoodles
+        if (jsonObject["GagMoodles"] is JArray associatedMoodlesArray)
+        {
+            GagMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
+        }
         Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
         ulong customItemId = jsonObject["CustomItemId"]?.Value<ulong>() ?? 4294967164;
         GameItem = _itemHelpers.Resolve(Slot, new CustomItemId(customItemId));

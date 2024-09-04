@@ -65,7 +65,6 @@ public class DtrBarService : DisposableMediatorSubscriberBase
         => _objectTable.OfType<IPlayerCharacter>().ToList();
 
     // Alarm == BitmapIcon for notifications.
-
     private void UpdateDtrBar()
     {
         if(PrivacyEntry.Shown == true)
@@ -77,17 +76,21 @@ public class DtrBarService : DisposableMediatorSubscriberBase
                 .Where(player => player != _clientState.LocalPlayer && !visiblePairGameObjects.Contains(player))
                 .ToList();
 
+            var displayedPlayers = playersNotInPairs.Take(10).ToList();
+            var remainingCount = playersNotInPairs.Count;
+
             // set the text based on if privacy was breeched or not.
             BitmapFontIcon DisplayIcon = playersNotInPairs.Any() ? BitmapFontIcon.Warning : BitmapFontIcon.Recording;
-            string TextDisplay = playersNotInPairs.Any() ? "Other Players Visible" : "Only Pairs Visible";
-            string TooltipDisplay = playersNotInPairs.Any() ? "Non-GagSpeak Players:\n" + 
-                string.Join("\n", playersNotInPairs.Select(player => player.GetNameWithWorld())) : "Only GagSpeak Pairs Visible";
+            string TextDisplay = playersNotInPairs.Any() ? (remainingCount+" Others Visible") : "Only Pairs Visible";
+            // Limit to 10 players and indicate if there are more
+            string TooltipDisplay = playersNotInPairs.Any()
+                ? "Non-GagSpeak Players:\n" + string.Join("\n", displayedPlayers.Select(player => player.Name.ToString() + "  " + player.HomeWorld.GameData!.Name)) +
+                  (remainingCount > 0 ? $"\nand {remainingCount} others..." : string.Empty)
+                : "Only GagSpeak Pairs Visible";
             // pair display string for tooltip.
             PrivacyEntry.Text = new SeString(new IconPayload(DisplayIcon),new TextPayload(TextDisplay));
             PrivacyEntry.Tooltip = new SeString(new TextPayload(TooltipDisplay));
         }
-
-
     }
 }
 

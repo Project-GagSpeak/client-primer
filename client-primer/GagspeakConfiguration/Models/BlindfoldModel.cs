@@ -37,7 +37,10 @@ public class BlindfoldModel
     {
         ForceHeadgearOnEnable = jsonObject["ForceHeadgearOnEnable"]?.Value<bool>() ?? false;
         ForceVisorOnEnable = jsonObject["ForceVisorOnEnable"]?.Value<bool>() ?? false;
-        BlindfoldMoodles = jsonObject["BlindfoldMoodles"]?.Values<Guid>().ToList() ?? new List<Guid>();
+        if (jsonObject["BlindfoldMoodles"] is JArray associatedMoodlesArray)
+        {
+            BlindfoldMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
+        }
         BlindfoldItem.Deserialize((JObject)jsonObject["BlindfoldItem"]);
     }
 }

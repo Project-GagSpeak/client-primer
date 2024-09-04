@@ -250,7 +250,7 @@ public record RestraintSet
             // Deserialize the AssociatedMoodles
             if (jsonObject["AssociatedMoodles"] is JArray associatedMoodlesArray)
             {
-                AssociatedMoodles = associatedMoodlesArray.Select(moodle => moodle.Value<Guid>()).ToList();
+                AssociatedMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
             }
 
             // Deserialize the AssociatedMoodlePresets

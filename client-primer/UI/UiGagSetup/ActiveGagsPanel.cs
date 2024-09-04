@@ -166,10 +166,18 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                     {
                         // locate the GagData that matches the alias of i
                         var SelectedGag = GagList.AliasToGagTypeMap[i.GetGagAlias()];
+                        // obtain the previous gag prior to changing.
+                        var PreviousGag = _playerManager.AppearanceData!.GagSlots[slotNumber].GagType.GetGagFromAlias();
                         Mediator.Publish(new GagTypeChanged(SelectedGag, (GagLayer)slotNumber));
-                        Mediator.Publish(new UpdateGlamourGagsMessage(SelectedGag == GagList.GagType.None ? NewState.Disabled : NewState.Enabled,
-                            (GagLayer)slotNumber, SelectedGag, "SelfApplied"));
-                        // Update gag type based on selection
+                        // determine which glamour change to fire:
+                        if(SelectedGag == GagList.GagType.None)
+                        {
+                            Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Disabled, (GagLayer)slotNumber, PreviousGag, "SelfApplied"));
+                        }
+                        else
+                        {
+                            Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, (GagLayer)slotNumber, SelectedGag, "SelfApplied"));
+                        }
                     }, gagType);
                 }
 

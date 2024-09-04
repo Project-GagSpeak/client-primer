@@ -77,11 +77,11 @@ public class DtrBarService : DisposableMediatorSubscriberBase
                 .ToList();
 
             var displayedPlayers = playersNotInPairs.Take(10).ToList();
-            var remainingCount = playersNotInPairs.Count;
+            var remainingCount = playersNotInPairs.Count - displayedPlayers.Count;
 
             // set the text based on if privacy was breeched or not.
             BitmapFontIcon DisplayIcon = playersNotInPairs.Any() ? BitmapFontIcon.Warning : BitmapFontIcon.Recording;
-            string TextDisplay = playersNotInPairs.Any() ? (remainingCount+" Others Visible") : "Only Pairs Visible";
+            string TextDisplay = playersNotInPairs.Any() ? (playersNotInPairs.Count + " Others Visible") : "Only Pairs Visible";
             // Limit to 10 players and indicate if there are more
             string TooltipDisplay = playersNotInPairs.Any()
                 ? "Non-GagSpeak Players:\n" + string.Join("\n", displayedPlayers.Select(player => player.Name.ToString() + "  " + player.HomeWorld.GameData!.Name)) +

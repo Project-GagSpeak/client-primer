@@ -139,7 +139,7 @@ public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PenumbraInitializedMessage : MessageBase;
 public record PenumbraDisposedMessage : MessageBase;
 public record UpdateGlamourMessage(GlamourUpdateType GenericUpdateType) : MessageBase; // for full refreshes on states.
-public record UpdateGlamourGagsMessage(NewState NewState, GagLayer Layer, GagList.GagType GagType, string AssignerName, TaskCompletionSource<bool>? GagToggleTask = null): MessageBase;
+public record UpdateGlamourGagsMessage(NewState NewState, GagLayer Layer, GagList.GagType NewGag, string AssignerName, TaskCompletionSource<bool>? GagToggleTask = null): MessageBase;
 public record UpdateGlamourRestraintsMessage(NewState NewState, TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase; // Restraint set updates.
 public record UpdateGlamourBlindfoldMessage(NewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
 public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+

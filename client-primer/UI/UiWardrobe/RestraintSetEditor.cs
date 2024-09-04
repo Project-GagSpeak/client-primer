@@ -290,56 +290,63 @@ public class RestraintSetEditor : IMediatorSubscriber
             return;
         }
 
-        using var table = ImRaii.Table("MoodlesSelections", 2, ImGuiTableFlags.BordersInnerV);
-        if (!table) return;
-
-        ImGui.TableSetupColumn("MoodleSelection", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("FinalizedPreviewList", ImGuiTableColumnFlags.WidthFixed, 200f);
-
-        ImGui.TableNextRow(); ImGui.TableNextColumn();
-
-        using (var child = ImRaii.Child("##RestraintMoodleStatusSelection", new(ImGui.GetContentRegionAvail().X - 1f, ImGui.GetContentRegionAvail().Y / 2), false))
+        try
         {
-            if (!child) return;
-            _relatedMoodles.DrawMoodlesStatusesListForSet(refRestraintSet, LastCreatedCharacterData, cellPaddingY, false);
-        }
-        ImGui.Separator();
-        using (var child2 = ImRaii.Child("##RestraintMoodlePresetSelection", -Vector2.One, false))
-        {
-            if (!child2) return;
-            _relatedMoodles.DrawMoodlesStatusesListForSet(refRestraintSet, LastCreatedCharacterData, cellPaddingY, true);
-        }
+            using var table = ImRaii.Table("MoodlesSelections", 2, ImGuiTableFlags.BordersInnerV);
+            if (!table) return;
 
+            ImGui.TableSetupColumn("MoodleSelection", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("FinalizedPreviewList", ImGuiTableColumnFlags.WidthFixed, 200f);
 
-        ImGui.TableNextColumn();
-        // Filter the MoodlesStatuses list to get only the moodles that are in AssociatedMoodles
-        var associatedMoodles = LastCreatedCharacterData.MoodlesStatuses
-            .Where(moodle => refRestraintSet.AssociatedMoodles.Contains(moodle.GUID))
-            .ToList();
-        // draw out all the active associated moodles in the restraint set with thier icon beside them.
-        UiSharedService.ColorText("Moodles Applied with Set:", ImGuiColors.ParsedPink);
-        ImGui.Separator();
-        foreach (var moodle in associatedMoodles)
-        {
-            using (var group = ImRaii.Group())
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+
+            using (var child = ImRaii.Child("##RestraintMoodleStatusSelection", new(ImGui.GetContentRegionAvail().X - 1f, ImGui.GetContentRegionAvail().Y / 2), false))
             {
-
-                var currentPos = ImGui.GetCursorPos();
-                if (moodle.IconID != 0 && currentPos != Vector2.Zero)
-                {
-                    var statusIcon = _uiShared.GetGameStatusIcon((uint)((uint)moodle.IconID + moodle.Stacks - 1));
-
-                    if (statusIcon is { } wrap)
-                    {
-                        ImGui.SetCursorPos(currentPos);
-                        ImGui.Image(statusIcon.ImGuiHandle, MoodlesService.StatusSize);
-                    }
-                }
-                ImGui.SameLine();
-                float shiftAmmount = (MoodlesService.StatusSize.Y - ImGui.GetTextLineHeight())/ 2;
-                ImGui.SetCursorPosY(currentPos.Y+shiftAmmount);
-                ImGui.Text(moodle.Title);
+                if (!child) return;
+                _relatedMoodles.DrawMoodlesStatusesListForSet(refRestraintSet, LastCreatedCharacterData, cellPaddingY, false);
             }
+            ImGui.Separator();
+            using (var child2 = ImRaii.Child("##RestraintMoodlePresetSelection", -Vector2.One, false))
+            {
+                if (!child2) return;
+                _relatedMoodles.DrawMoodlesStatusesListForSet(refRestraintSet, LastCreatedCharacterData, cellPaddingY, true);
+            }
+
+
+            ImGui.TableNextColumn();
+            // Filter the MoodlesStatuses list to get only the moodles that are in AssociatedMoodles
+            var associatedMoodles = LastCreatedCharacterData.MoodlesStatuses
+                .Where(moodle => refRestraintSet.AssociatedMoodles.Contains(moodle.GUID))
+                .ToList();
+            // draw out all the active associated moodles in the restraint set with thier icon beside them.
+            UiSharedService.ColorText("Moodles Applied with Set:", ImGuiColors.ParsedPink);
+            ImGui.Separator();
+            foreach (var moodle in associatedMoodles)
+            {
+                using (var group = ImRaii.Group())
+                {
+
+                    var currentPos = ImGui.GetCursorPos();
+                    if (moodle.IconID != 0 && currentPos != Vector2.Zero)
+                    {
+                        var statusIcon = _uiShared.GetGameStatusIcon((uint)((uint)moodle.IconID + moodle.Stacks - 1));
+
+                        if (statusIcon is { } wrap)
+                        {
+                            ImGui.SetCursorPos(currentPos);
+                            ImGui.Image(statusIcon.ImGuiHandle, MoodlesService.StatusSize);
+                        }
+                    }
+                    ImGui.SameLine();
+                    float shiftAmmount = (MoodlesService.StatusSize.Y - ImGui.GetTextLineHeight()) / 2;
+                    ImGui.SetCursorPosY(currentPos.Y + shiftAmmount);
+                    ImGui.Text(moodle.Title);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Error Drawing Moodles Options for Restraint Set.");
         }
     }
 

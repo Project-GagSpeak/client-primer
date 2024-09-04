@@ -53,7 +53,7 @@ public class MigrateRestraintSets
             {
                 foreach (var item in restraintSetsArray)
                 {
-                    var restraintSet = new OldRestraintSet();
+                    var restraintSet = new OldRestraintSet(_itemHelper);
                     var itemValue = item.Value<JObject>();
                     if (itemValue != null)
                     {
@@ -156,7 +156,6 @@ public class MigrateRestraintSets
     }
 }
 
-
 // For storing the imported old data.
 public class OldRestraintSetStorage
 {
@@ -165,6 +164,13 @@ public class OldRestraintSetStorage
 
 public class OldRestraintSet
 {
+    private readonly ItemIdVars _itemHelper;
+
+    public OldRestraintSet(ItemIdVars itemHelper)
+    {
+        _itemHelper = itemHelper;
+    }
+
     public string Name { get; set; }
     public string Description { get; set; }
     public bool Enabled { get; set; }
@@ -193,7 +199,7 @@ public class OldRestraintSet
                 if (itemObject != null)
                 {
                     var equipmentSlot = (EquipSlot)Enum.Parse(typeof(EquipSlot), itemObject["EquipmentSlot"]?.Value<string>() ?? string.Empty);
-                    var drawData = new OldEquipDrawData(ItemIdVars.NothingItem(equipmentSlot));
+                    var drawData = new OldEquipDrawData(_itemHelper, ItemIdVars.NothingItem(equipmentSlot));
                     drawData.Deserialize(itemObject["DrawData"]?.Value<JObject>());
                     DrawData.Add(equipmentSlot, drawData);
                 }
@@ -204,6 +210,7 @@ public class OldRestraintSet
 
 public class OldEquipDrawData
 {
+    private readonly ItemIdVars _itemHelper;
     public bool IsEnabled { get; set; }
     public string WasEquippedBy { get; set; }
     public bool Locked { get; set; }
@@ -212,8 +219,9 @@ public class OldEquipDrawData
     public EquipItem GameItem { get; set; }
     public StainId GameStain { get; set; }
 
-    public OldEquipDrawData(EquipItem item)
+    public OldEquipDrawData(ItemIdVars itemHelper, EquipItem item)
     {
+        _itemHelper = itemHelper;
         GameItem = item;
     }
 
@@ -224,9 +232,8 @@ public class OldEquipDrawData
         Locked = false;
         ActiveSlotListIdx = jsonObject["ActiveSlotListIdx"]?.Value<int>() ?? 0;
         Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
-        var serializer = new JsonSerializer();
-        serializer.Converters.Add(new EquipItemConverter());
-        GameItem = jsonObject["GameItem"] != null ? jsonObject["GameItem"].ToObject<EquipItem>(serializer) : new EquipItem();
+        ulong customItemId = jsonObject["GameItem"]!["Id"]?.Value<ulong>() ?? 4294967164;
+        GameItem = _itemHelper.Resolve(Slot, new CustomItemId(customItemId));
         // Parse the StainId
         if (byte.TryParse(jsonObject["GameStain"]?.Value<string>(), out var stainIdByte))
         {

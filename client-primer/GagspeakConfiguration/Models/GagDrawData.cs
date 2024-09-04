@@ -14,7 +14,7 @@ public record GagDrawData
     [JsonIgnore]
     private readonly ItemIdVars _itemHelpers;
 
-    public bool IsEnabled { get; set; } = false;
+    public bool IsEnabled { get; set; } = true;
     public EquipSlot Slot { get; set; } = EquipSlot.Head;
     public EquipItem GameItem { get; set; }
     public StainIds GameStain { get; set; } = StainIds.None;
@@ -39,7 +39,6 @@ public record GagDrawData
     // In EquipDrawData
     public JObject Serialize()
     {
-        var serializer = new JsonSerializer();
         return new JObject()
         {
             ["IsEnabled"] = IsEnabled,

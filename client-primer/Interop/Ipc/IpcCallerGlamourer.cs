@@ -1,23 +1,20 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using Glamourer.Api.Enums;
-using Glamourer.Api.IpcSubscribers;
-using GagSpeak.Services;
-using GagSpeak.Services.Mediator;
-using GagSpeak.Interop.Ipc;
-using GagSpeak.UpdateMonitoring;
-using Glamourer.Api.Helpers;
-using Dalamud.Interface.ImGuiNotification;
 using GagSpeak.PlayerData.Services;
-using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
+using GagSpeak.Services.Mediator;
+using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Enum;
+using Glamourer.Api.Enums;
+using Glamourer.Api.Helpers;
+using Glamourer.Api.IpcSubscribers;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
 
-namespace Interop.Ipc;
+namespace GagSpeak.Interop.Ipc;
 
 /// <summary>
 /// Create a sealed class for our interop manager.
@@ -36,7 +33,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     /* ---------- Glamourer API IPC Subscribers --------- */
     private readonly ApiVersion _ApiVersion; // the API version of glamourer
-    private readonly GetState _GetState; // get the JObject of the character
+    private readonly Glamourer.Api.IpcSubscribers.GetState _glamourerGetState;
     private readonly ApplyState _ApplyState; // apply a state to the character using JObject
     private readonly GetDesignList _GetDesignList; // get lists of designs from player's Glamourer.
     private readonly ApplyDesignName _ApplyCustomizationsFromDesignName; // apply customization data from a design.
@@ -45,25 +42,25 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private readonly RevertToAutomation _RevertToAutomation; // for reverting the character to automation
 
     public IpcCallerGlamourer(ILogger<IpcCallerGlamourer> logger,
-        IDalamudPluginInterface pluginInterface, IClientState clientState, 
-        OnFrameworkService OnFrameworkService, GagspeakMediator mediator, 
+        IDalamudPluginInterface pluginInterface, IClientState clientState,
+        OnFrameworkService OnFrameworkService, GagspeakMediator mediator,
         GlamourFastUpdate fastUpdates) : base(logger, mediator)
     {
-        _pi = pluginInterface; 
+        _pi = pluginInterface;
         _onFrameworkService = OnFrameworkService;
         _clientState = clientState;
         _fastUpdates = fastUpdates;
 
         // set IPC callers
         _ApiVersion = new ApiVersion(_pi);
-        _GetState = new GetState(_pi);
+        _glamourerGetState = new Glamourer.Api.IpcSubscribers.GetState(pluginInterface);
         _ApplyState = new ApplyState(_pi);
         _GetDesignList = new GetDesignList(_pi);
         _ApplyCustomizationsFromDesignName = new ApplyDesignName(_pi);
         _SetItem = new SetItem(_pi);
         _RevertCharacter = new RevertState(_pi);
         _RevertToAutomation = new RevertToAutomation(_pi);
-    
+
         // check API status.
         CheckAPI();
 
@@ -121,7 +118,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     /// <summary> ========== BEGIN OUR IPC CALL MANAGEMENT UNDER ASYNC TASKS ========== </summary>
     public async Task SetItemToCharacterAsync(ApiEquipSlot slot, ulong item, IReadOnlyList<byte> dye, uint variant)
     {
-        // if the glamourerApi is not active, then return an empty string for the customization
+/*        // if the glamourerApi is not active, then return an empty string for the customization
         if (!APIAvailable || _onFrameworkService.IsZoning) return;
         try
         {
@@ -144,8 +141,29 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             // if at any point this errors, return an empty string as well.
             Logger.LogWarning($"Failed to set item to character with slot {slot}, item {item}, dye {dye.ToArray().ToString()}, and key {variant}, {ex}");
             return;
+        }*/
+    }
+
+    private GlamourerApiEc _lastError;
+    private JObject? _state;
+    private string? _stateString;
+
+    public Newtonsoft.Json.Linq.JObject? GetState()
+    {
+        try
+        {
+            var success = _glamourerGetState.Invoke(_clientState.LocalPlayer!.ObjectIndex);
+            _stateString = _state?.ToString(Newtonsoft.Json.Formatting.Indented) ?? "No State Available";
+            return _state;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning($"Error during GetState: {ex}");
+            return null;
         }
     }
+
+
 
     public async Task<bool> ForceSetMetaData(MetaData metaData, bool? forcedState = null)
     {
@@ -164,25 +182,19 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
                 {
                     var objectIndex = c.ObjectIndex;
                     // grab the JObject of the character state.
-                    (GlamourerApiEc returnCode, JObject? stateJObject) = _GetState.Invoke(gameObj.ObjectIndex);
-                    if (stateJObject == null || returnCode != GlamourerApiEc.Success)
-                    {
-                        Logger.LogWarning($"Failed to get state for character {character}");
-                        return false;
-                    }
-                    
+                    var playerState = GetState();
 
                     // determine the metadata field we are editing.
                     var metaDataFieldToFind = (metaData == MetaData.Hat) ? "Show" : "IsToggled";
                     // if we are forcing the state, set the newvalue to the forced state. Otherwise, grab the opposite of current state value.
-                    var newValue = forcedState ?? !(((bool?)stateJObject?["Equipment"]?[metaData.ToString()]?[metaDataFieldToFind]) ?? false);
+                    var newValue = forcedState ?? !(((bool?)playerState?["Equipment"]?[metaData.ToString()]?[metaDataFieldToFind]) ?? false);
 
                     // set the new properties in the JObject.
-                    stateJObject!["Equipment"]![metaData.ToString()]![metaDataFieldToFind] = newValue;
-                    stateJObject!["Equipment"]![metaData.ToString()]!["Apply"] = true;
+                    playerState!["Equipment"]![metaData.ToString()]![metaDataFieldToFind] = newValue;
+                    playerState!["Equipment"]![metaData.ToString()]!["Apply"] = true;
 
-                    var ret = _ApplyState.Invoke(stateJObject, objectIndex);
-                    return ret==GlamourerApiEc.Success;
+                    var ret = _ApplyState.Invoke(playerState, objectIndex);
+                    return ret == GlamourerApiEc.Success;
                 }
                 return false;
             }).ConfigureAwait(false);
@@ -197,7 +209,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public async Task GlamourerRevertCharacterToAutomation(nint character)
     {
-        // if the glamourerApi is not active, then return an empty string for the customization
+/*        // if the glamourerApi is not active, then return an empty string for the customization
         if (!APIAvailable || _onFrameworkService.IsZoning) return;
         try
         {
@@ -231,12 +243,12 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         catch (Exception ex)
         {
             Logger.LogWarning($"Error during GlamourerRevert: {ex}");
-        }
+        }*/
     }
 
     public async Task GlamourerRevertCharacter(nint character)
     {
-        // if the glamourerApi is not active, then return an empty string for the customization
+/*        // if the glamourerApi is not active, then return an empty string for the customization
         if (!APIAvailable || _onFrameworkService.IsZoning) return;
         try
         {
@@ -262,7 +274,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         catch (Exception ex)
         {
             Logger.LogWarning($"Error during GlamourerRevert: {ex}");
-        }
+        }*/
     }
 
     /// <summary> Fired upon by the IPC event subscriber when the glamourer changes. </summary>
@@ -270,7 +282,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     /// <param name="changeType"> The type of change that occurred. </param>"
     private void GlamourerChanged(nint address, StateChangeType changeType)
     {
-        // do not accept if coming from other player besides us.
+/*        // do not accept if coming from other player besides us.
         if (address != _onFrameworkService._playerAddr) return;
 
         // block if we are not desiring to listen to changes yet.
@@ -296,7 +308,6 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         {
             Logger.LogTrace($"GlamourerChanged event was not a type we care about, " +
                 $"so skipping (Type was: {changeType})");
-        }
+        }*/
     }
-
 }

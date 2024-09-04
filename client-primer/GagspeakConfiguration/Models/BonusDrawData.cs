@@ -22,12 +22,6 @@ public record BonusDrawData
     // In EquipDrawData
     public JObject Serialize()
     {
-        // Create a Json with the EquipItemConverter
-        var serializer = new JsonSerializer();
-        serializer.Converters.Add(new EquipItemConverter());
-        // Serialize _gameItem and _gameStain as JObjects
-        JObject gameItemObj = JObject.FromObject(GameItem, serializer);
-
         // Include gameItemObj and gameStainObj in the serialized object
         return new JObject()
         {
@@ -35,7 +29,7 @@ public record BonusDrawData
             ["EquippedBy"] = EquippedBy,
             ["Locked"] = Locked,
             ["Slot"] = Slot.ToString(),
-            ["GameItem"] = gameItemObj,
+            ["GameItem"] = JObject.FromObject(GameItem),
         };
     }
 
@@ -45,10 +39,6 @@ public record BonusDrawData
         EquippedBy = jsonObject["EquippedBy"]?.Value<string>() ?? string.Empty;
         Locked = jsonObject["Locked"]?.Value<bool>() ?? false;
         Slot = (BonusItemFlag)Enum.Parse(typeof(BonusItemFlag), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
-        var serializer = new JsonSerializer();
-        serializer.Converters.Add(new EquipItemConverter());
-        GameItem = jsonObject["GameItem"] != null ? jsonObject["GameItem"].ToObject<BonusItem>(serializer) : new BonusItem();
+        GameItem = jsonObject["GameItem"] != null ? jsonObject["GameItem"].ToObject<BonusItem>() : new BonusItem();
     }
-
-
 }

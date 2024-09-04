@@ -58,7 +58,7 @@ public class MigrateGagStorage
                     {
                         string slotString = itemObject["Slot"]?.Value<string>() ?? string.Empty;
                         EquipSlot slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), slotString);
-                        var drawData = new OldEquipDrawData(ItemIdVars.NothingItem(slot));
+                        var drawData = new OldEquipDrawData(_ItemHelper, ItemIdVars.NothingItem(slot));
                         drawData.Deserialize(itemObject);
                         oldGagStorageFetched.OldGagEquipData.Add(gagType, drawData);
                     }

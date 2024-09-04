@@ -54,13 +54,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
     }
     protected virtual JObject MigrateConfig(JObject oldConfigJson, int readVersion) { return oldConfigJson; }
     protected virtual T DeserializeConfig(JObject configJson)
-    {
-        var settings = new JsonSerializerSettings
-        {
-            Converters = new List<JsonConverter> { new EquipItemConverter() }
-        };
-        return JsonConvert.DeserializeObject<T>(configJson.ToString(), settings)!;
-    }
+        => JsonConvert.DeserializeObject<T>(configJson.ToString())!;
 
     protected int GetCurrentVersion()
     {
@@ -164,12 +158,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
     }
 
     protected virtual string SerializeConfig(T config)
-    {
-        return JsonConvert.SerializeObject(config, Formatting.Indented, new JsonSerializerSettings
-        {
-            Converters = new List<JsonConverter> { new EquipItemConverter() }
-        });
-    }
+        => JsonConvert.SerializeObject(config, Formatting.Indented);
 
 
     private async Task CheckForConfigUpdatesInternal()

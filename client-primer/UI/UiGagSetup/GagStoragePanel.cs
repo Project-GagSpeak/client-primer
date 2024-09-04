@@ -1,8 +1,10 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
@@ -24,7 +26,7 @@ namespace GagSpeak.UI.Tabs.WardrobeTab;
 /// <summary> This class is used to handle the ConfigSettings Tab. </summary>
 public class GagStoragePanel : DisposableMediatorSubscriberBase
 {
-    private const float ComboWidth = 200;
+    private const float ComboWidth = 175f;
 
     private readonly IDataManager _gameData;
     private readonly TextureService _textures;
@@ -33,16 +35,12 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     private readonly DictStain StainData;
     private readonly ItemData ItemData;
 
-    private GagDrawData UnsavedDrawData = null!;
-    private GagList.GagType SelectedGag;
     private LowerString GagSearchString = LowerString.Empty;
     private Vector2 IconSize;
     private float ComboLength;
     private Vector2 DefaultItemSpacing;
     private readonly GameItemCombo[] GameItemCombo;
     private readonly StainColorCombo StainCombo;
-
-    private bool hasShown = false;
 
     public GagStoragePanel(ILogger<GagStoragePanel> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, UiSharedService uiSharedService,
@@ -61,172 +59,175 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         StainCombo = new StainColorCombo(ComboWidth - 20, StainData, Logger);
     }
 
+    private string GagFilterSearchString = string.Empty;
+    private GagDrawData UnsavedDrawData = null!;
+    private GagList.GagType SelectedGag = GagList.GagType.BallGag;
+
+    private void DrawGagStorageHeader()
+    {
+        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
+        var startYpos = ImGui.GetCursorPosY();
+        Vector2 textSize;
+        using (_uiShared.UidFont.Push()) { textSize = ImGui.CalcTextSize("Select Gag Type"); }
+        var saveSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Save, "Save");
+        var centerYpos = (textSize.Y - ImGui.GetFrameHeight());
+
+        using (ImRaii.Child("MoodlesManagerHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetFrameHeight() + (centerYpos - startYpos) * 2)))
+        {
+            // now next to it we need to draw the header text
+            ImGui.SameLine(ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(startYpos);
+            using (_uiShared.UidFont.Push())
+            {
+                UiSharedService.ColorText("Select Gag Type", ImGuiColors.ParsedPink);
+            }
+
+            // now calculate it so that the cursors Yposition centers the button in the middle height of the text
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - saveSize - 175f - ImGui.GetStyle().ItemSpacing.X * 2);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
+            _uiShared.DrawComboSearchable("GagStorage Gag Type", 175f, ref GagFilterSearchString,
+            Enum.GetValues<GagList.GagType>().Where(gag => gag != GagList.GagType.None), (gag) => gag.GetGagAlias(), false, 
+            (i) => 
+            { 
+                // grab the new gag info.
+                SelectedGag = GagList.AliasToGagTypeMap[i.GetGagAlias()];
+                UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
+            }, SelectedGag);
+
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - saveSize - ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
+            var currentYpos = ImGui.GetCursorPosY();
+            // draw revert button at the same location but right below that button
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Save, "Save"))
+            {
+                _clientConfigs.UpdateGagItem(SelectedGag, UnsavedDrawData!);
+            }
+            UiSharedService.AttachToolTip("View the list of Moodles Statuses");
+        }
+    }
+
     public void DrawGagStoragePanel()
     {
-        try
+        DrawGagStorageHeader();
+        ImGui.Separator();
+
+        using var tabBar = ImRaii.TabBar("GagStorageEditor");
+
+        if (tabBar)
         {
-            if (UnsavedDrawData == null && !hasShown)
+            var gagGlamour = ImRaii.TabItem("Gag Glamour");
+            if (gagGlamour)
             {
-                SelectedGag = GagList.GagType.BallGag;
-                UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
+                DrawGagGlamour();
             }
+            gagGlamour.Dispose();
+
+            var gagMoodles = ImRaii.TabItem("Moodles");
+            if (gagMoodles)
+            {
+                DrawGagMoodles();
+            }
+            gagMoodles.Dispose();
+
+            var gagAudio = ImRaii.TabItem("Audio");
+            if (gagAudio)
+            {
+                _uiShared.BigText("Audio WIP");
+            }
+            gagAudio.Dispose();
         }
-        catch (Exception e)
+
+    }
+
+    private void DrawGagMoodles()
+    {
+
+    }
+
+    private void DrawGagAudio()
+    {
+
+    }
+
+    private void DrawGagGlamour()
+    {
+        if (UnsavedDrawData == null)
         {
-            hasShown = true;
-            Logger.LogError(e, "Failed to get gag data.");
-            // print the details of the current dictionary to the logger.
-            foreach (var gag in _clientConfigs.GagStorageConfig.GagStorage.GagEquipData)
-            {
-                Logger.LogDebug($"Gag: {gag.Key}");
-                Logger.LogDebug($"Item: {gag.Value.IsEnabled}");
-                Logger.LogDebug($"Slot: {gag.Value.Slot}");
-                Logger.LogDebug($"GameItem: {gag.Value.GameItem}");
-                Logger.LogDebug($"GameStain: {gag.Value.GameStain}");
-            }
-            return;
+            SelectedGag = GagList.GagType.BallGag;
+            UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
         }
         // define icon size and combo length
         IconSize = new Vector2(3 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y*2);
         ComboLength = ComboWidth * ImGuiHelpers.GlobalScale;
 
-        // create a secondary table in this for prettiness
-        using (var table2 = ImRaii.Table("GagDrawerCustomizerHeader", 2))
+        // on the new line, lets draw out a group, containing the image, and the slot, item, and stain listings.
+        using (var gagStorage = ImRaii.Group())
         {
-            // do not continue if table not valid
-            if (!table2) return;
-
-            // setup columns.
-            ImGui.TableSetupColumn("##StorageFilterList", ImGuiTableColumnFlags.WidthFixed, 160 * ImGuiHelpers.GlobalScale);
-            ImGui.TableSetupColumn("##GagItemConfig", ImGuiTableColumnFlags.WidthStretch);
-
-            ImGui.TableNextRow(); ImGui.TableNextColumn();
-            // draw out the filter list
-            DrawGagFilterList(160f);
-
-            ImGui.TableNextColumn();
-
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5);
-
-            // draw out the configuration
-            _uiShared.BigText("Gag Glamour");
-
-            ImGui.SameLine();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 7.5f);
-            ImGui.AlignTextToFramePadding();
-            if (_uiShared.IconButton(FontAwesomeIcon.Save))
+            try
             {
-                _clientConfigs.UpdateGagItem(SelectedGag, UnsavedDrawData!);
-            }
-            // next line
-            ImGui.AlignTextToFramePadding();
-            ImGui.TextUnformatted($"Enable Configuration for {SelectedGag.GetGagAlias()}");
-            ImGui.SameLine();
-            var refEnabled = UnsavedDrawData!.IsEnabled;
-            if (ImGui.Checkbox($"##EnableGag{SelectedGag}", ref refEnabled))
-            {
-                UnsavedDrawData.IsEnabled = refEnabled;
-                Logger.LogTrace($"Gag {SelectedGag.GetGagAlias()} is now {(UnsavedDrawData.IsEnabled ? "enabled" : "disabled")}");
-            }
-
-            // on the new line, lets draw out a group, containing the image, and the slot, item, and stain listings.
-            using (var gagStorage = ImRaii.Group())
-            {
-
-                // draw out the listing for the slot, item, and stain(s). Also make sure that the bigtext it centered with the displayitem
-                try
+                UnsavedDrawData.GameItem.DrawIcon(_textures, IconSize, UnsavedDrawData.Slot);
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
-                    UnsavedDrawData.GameItem.DrawIcon(_textures, IconSize, UnsavedDrawData.Slot);
-                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                    {
-                        Logger.LogTrace($"Item changed to {ItemIdVars.NothingItem(UnsavedDrawData.Slot)} [{ItemIdVars.NothingItem(UnsavedDrawData.Slot).ItemId}] " +
-                            $"from {UnsavedDrawData.GameItem} [{UnsavedDrawData.GameItem.ItemId}]");
-                        UnsavedDrawData.GameItem = ItemIdVars.NothingItem(UnsavedDrawData.Slot);
-                    }
-                }
-                catch (Exception e)
-                {
-                    Logger.LogError(e, "Failed to draw gag icon.");
-                }
-                // right beside it, draw a secondary group of 3
-                ImGui.SameLine(0, 6);
-                using (var group = ImRaii.Group())
-                {
-                    // display the wardrobe slot for this gag
-                    var refValue = UnsavedDrawData.ActiveSlotId;
-                    ImGui.SetNextItemWidth(ComboLength);
-                    if (ImGui.Combo(" Slot##WardrobeEquipSlot", ref refValue,
-                        EquipSlotExtensions.EqdpSlots.Select(slot => slot.ToName()).ToArray(), EquipSlotExtensions.EqdpSlots.Count))
-                    {
-                        // Update the selected slot when the combo box selection changes
-                        UnsavedDrawData.Slot = EquipSlotExtensions.EqdpSlots[refValue];
-                        // reset display and/or selected item to none.
-                        UnsavedDrawData.GameItem = ItemIdVars.NothingItem(UnsavedDrawData.Slot);
-                    }
-
-                    DrawEquip(GameItemCombo, StainCombo, StainData, ComboLength);
+                    Logger.LogTrace($"Item changed to {ItemIdVars.NothingItem(UnsavedDrawData.Slot)} [{ItemIdVars.NothingItem(UnsavedDrawData.Slot).ItemId}] " +
+                        $"from {UnsavedDrawData.GameItem} [{UnsavedDrawData.GameItem.ItemId}]");
+                    UnsavedDrawData.GameItem = ItemIdVars.NothingItem(UnsavedDrawData.Slot);
                 }
             }
-
-            // draw out the configuration
-            _uiShared.BigText("Customize+ Preset");
-
-            ImGui.NewLine();
-            ImGui.TextWrapped($"Select the Customize+ Preset you want to keep applied while the gag is worn:");
-
-            // attached audio when worn
-            _uiShared.BigText("Applied Moodles");
-
-            ImGui.TextWrapped($"The Moodles to be applied / removed as this gag is toggled");
-        }
-    }
-    #region GagSelector
-    public void DrawGagFilterList(float width)
-    {
-        using var group = ImRaii.Group();
-        DefaultItemSpacing = ImGui.GetStyle().ItemSpacing;
-        using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, Vector2.Zero).Push(ImGuiStyleVar.FrameRounding, 0);
-        ImGui.SetNextItemWidth(width);
-        LowerString.InputWithHint("##gagFilter", "Filter Gags...", ref GagSearchString, 64);
-
-        DrawGagSelector(width);
-    }
-
-    private void DrawGagSelector(float width)
-    {
-        using var child = ImRaii.Child("##GagSelector", new Vector2(width, ImGui.GetContentRegionAvail().Y), true, ImGuiWindowFlags.NoScrollbar);
-        if (!child)
-            return;
-
-        using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, DefaultItemSpacing);
-        bool itemSelected = false; // Flag to check if an item has been selected
-        GagList.GagType? newlySelectedGag = null; // Temporarily store the newly selected gag
-
-        foreach (var gag in Enum.GetValues(typeof(GagList.GagType)).Cast<GagList.GagType>())
-        {
-            if (gag == GagList.GagType.None) continue;
-            // Determine if the gag should be shown based on the search string
-            bool showGag = GagSearchString.IsEmpty || gag.ToString().Contains(GagSearchString.Lower, StringComparison.OrdinalIgnoreCase);
-
-            if (showGag)
+            catch (Exception e)
             {
-                bool isSelected = SelectedGag.Equals(gag);
-                if (ImGui.Selectable(gag.ToString(), isSelected))
+                Logger.LogError(e, "Failed to draw gag icon.");
+            }
+            // right beside it, draw a secondary group of 3
+            ImGui.SameLine(0, 6);
+            using (var group = ImRaii.Group())
+            {
+                // display the wardrobe slot for this gag
+                var refValue = UnsavedDrawData.ActiveSlotId;
+                ImGui.SetNextItemWidth(ComboLength);
+                if (ImGui.Combo(" Equipment Slot##WardrobeEquipSlot", ref refValue,
+                    EquipSlotExtensions.EqdpSlots.Select(slot => slot.ToName()).ToArray(), EquipSlotExtensions.EqdpSlots.Count))
                 {
-                    newlySelectedGag = gag; // Update the temporary selection
-                    itemSelected = true; // Mark that an item has been selected
+                    // Update the selected slot when the combo box selection changes
+                    UnsavedDrawData.Slot = EquipSlotExtensions.EqdpSlots[refValue];
+                    // reset display and/or selected item to none.
+                    UnsavedDrawData.GameItem = ItemIdVars.NothingItem(UnsavedDrawData.Slot);
                 }
+
+                DrawEquip(GameItemCombo, StainCombo, StainData, ComboLength);
             }
         }
 
-        // If an item was selected during this ImGui frame, update the SelectedGag
-        if (itemSelected && newlySelectedGag.HasValue)
+        ImGui.Separator();
+        _uiShared.BigText("Adjustments");
+
+        var refEnabled = UnsavedDrawData!.IsEnabled;
+        if (ImGui.Checkbox("Enable "+SelectedGag.GetGagAlias(), ref refEnabled))
         {
-            SelectedGag = newlySelectedGag.Value;
-            UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
+            UnsavedDrawData.IsEnabled = refEnabled;
+            Logger.LogTrace($"Gag {SelectedGag.GetGagAlias()} is now {(UnsavedDrawData.IsEnabled ? "enabled" : "disabled")}");
         }
+        _uiShared.DrawHelpText("When enabled, allows Item-AutoEquip to function with this Gag."+Environment.NewLine
+            + "When disabled, this Gag Glamour will not be auto equipped, even with Item Auto-Equip on.");
+
+        var refHelmetForced = UnsavedDrawData.ForceHeadgearOnEnable;
+        if (ImGui.Checkbox($"Force Headgear", ref refHelmetForced))
+        {
+            UnsavedDrawData.ForceHeadgearOnEnable = refHelmetForced;
+            Logger.LogTrace($"Gag {SelectedGag.GetGagAlias()} will now {(UnsavedDrawData.ForceHeadgearOnEnable ? "force headgear on" : "not force headgear on")} when enabled");
+        }
+        _uiShared.DrawHelpText("When enabled, your [Hat Visible] property in Glamourer will be set to enabled. Making headgear visible.");
+
+        var refVisorForced = UnsavedDrawData.ForceVisorOnEnable;
+        if (ImGui.Checkbox($"Force Visor", ref refVisorForced))
+        {
+            UnsavedDrawData.ForceVisorOnEnable = refVisorForced;
+            Logger.LogTrace($"Gag {SelectedGag.GetGagAlias()} will now {(UnsavedDrawData.ForceVisorOnEnable ? "force visor on" : "not force visor on")} when enabled");
+        }
+        _uiShared.DrawHelpText("When enabled, your [Visor Visible] property in Glamourer will be set to enabled. Making visor visible.");
+
+        ImGui.Spacing();
+        ImGui.TextUnformatted("Customize+ Preset selection added here once posing is less of a pain in the ass.");
     }
-    #endregion GagSelector
 
     public void DrawEquip(GameItemCombo[] _gameItemCombo, StainColorCombo _stainCombo, DictStain _stainData, float _comboLength)
     {
@@ -254,7 +255,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             Logger.LogTrace($"{combo.Label} Toggled");
         }
         // draw the combo
-        var change = combo.Draw(UnsavedDrawData.GameItem.Name, UnsavedDrawData.GameItem.ItemId, width, ComboWidth, " Item");
+        var change = combo.Draw(UnsavedDrawData.GameItem.Name, UnsavedDrawData.GameItem.ItemId, width, ComboWidth, " Gag Glamour Item");
 
         // conditionals to detect for changes in the combo's
         if (change && !UnsavedDrawData.GameItem.Equals(combo.CurrentSelection))
@@ -308,6 +309,6 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             }
         }
         ImUtf8.SameLineInner();
-        ImGui.Text(" Dyes");
+        ImGui.Text(" Applied Dyes");
     }
 }

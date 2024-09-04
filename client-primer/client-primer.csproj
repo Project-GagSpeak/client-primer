@@ -6,7 +6,7 @@
     <PropertyGroup>
         <TargetFramework>net8.0-windows</TargetFramework>
         <Copyright>Copyright © 2024</Copyright>
-        <LangVersion>latest</LangVersion>
+        <LangVersion>preview</LangVersion>
         <Version>0.7.1.2</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -38,14 +38,6 @@
         <DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
         <OutputType>Library</OutputType>
     </PropertyGroup>
-    <ItemGroup>
-      <None Remove="Services\ConfigurationServices\EquipItemConverter.cs.bak" />
-      <None Remove="Services\ConfigurationServices\EquipItemSurrogate.cs.bak" />
-    </ItemGroup>
-    <ItemGroup>
-      <Compile Include="Services\ConfigurationServices\EquipItemConverter.cs.bak" />
-      <Compile Include="Services\ConfigurationServices\EquipItemSurrogate.cs.bak" />
-    </ItemGroup>
 
     <!--Other DLL's for dalamud supporting module/components-->
     <ItemGroup>
@@ -132,7 +124,6 @@
         <!--Handles our own plugin hosting methods for dependency injection and service management-->
         <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
         
         <!--Adds support for our simulated vibrator (potentially replace with better audio option for more sound quality.-->
         <PackageReference Include="NAudio" Version="2.2.1" />
@@ -160,86 +151,3 @@
       <Folder Include="Hardcore\PromptHandler\NewFolder\" />
     </ItemGroup>
 </Project>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

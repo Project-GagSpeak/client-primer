@@ -26,6 +26,7 @@ namespace GagSpeak.Services.ConfigurationServices;
 /// </summary>
 public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 {
+    private readonly ItemIdVars _itemHelper;
     private readonly OnFrameworkService _frameworkUtils;            // a utilities class with methods that work with the Dalamud framework
     private readonly GagspeakConfigService _configService;          // the primary gagspeak config service.
     private readonly GagStorageConfigService _gagStorageConfig;     // the config for the gag storage service (toybox gag storage)
@@ -36,12 +37,17 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     private readonly TriggerConfigService _triggerConfig;          // the config for the triggers service (toybox triggers storage)
 
     public ClientConfigurationManager(ILogger<ClientConfigurationManager> logger,
-        GagspeakMediator GagspeakMediator, OnFrameworkService onFrameworkService,
-        GagspeakConfigService configService, GagStorageConfigService gagStorageConfig,
-        WardrobeConfigService wardrobeConfig, AliasConfigService aliasConfig,
-        PatternConfigService patternConfig, AlarmConfigService alarmConfig,
-        TriggerConfigService triggersConfig) : base(logger, GagspeakMediator)
+        GagspeakMediator GagspeakMediator, ItemIdVars itemHelper,
+        OnFrameworkService onFrameworkService, GagspeakConfigService configService, 
+        GagStorageConfigService gagStorageConfig, WardrobeConfigService wardrobeConfig, 
+        AliasConfigService aliasConfig, PatternConfigService patternConfig, 
+        AlarmConfigService alarmConfig, TriggerConfigService triggersConfig) : base(logger, GagspeakMediator)
     {
+        // create a new instance of the static universal logger that pulls from the client logger.
+        // because this loads our configs before the logger initialized, we use a simply hack to set the static logger to the clientConfigManager logger.
+        // its not ideal, but it works. If there is a better way please tell me.
+        StaticLogger.Logger = logger; 
+        _itemHelper = itemHelper;
         _frameworkUtils = onFrameworkService;
         _configService = configService;
         _gagStorageConfig = gagStorageConfig;
@@ -50,7 +56,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _patternConfig = patternConfig;
         _alarmConfig = alarmConfig;
         _triggerConfig = triggersConfig;
-
         InitConfigs();
 
         // Subscribe to the connected message update so we know when to update our global permissions
@@ -126,7 +131,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             try
             {
                 _gagStorageConfig.Current.GagStorage.GagEquipData = Enum.GetValues(typeof(GagList.GagType))
-                    .Cast<GagList.GagType>().ToDictionary(gagType => gagType, gagType => new GagDrawData(ItemIdVars.NothingItem(EquipSlot.Head)));
+                    .Cast<GagList.GagType>().ToDictionary(gagType => gagType, gagType => new GagDrawData(_itemHelper, ItemIdVars.NothingItem(EquipSlot.Head)));
                 // print the keys in the dictionary
                 Logger.LogInformation("Gag Storage Config Created with {count} keys", _gagStorageConfig.Current.GagStorage.GagEquipData.Count);
                 _gagStorageConfig.Save();
@@ -137,7 +142,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             }
         }
 
-        if (_wardrobeConfig.Current.WardrobeStorage == null) { _wardrobeConfig.Current.WardrobeStorage = new(); }
+        if (_wardrobeConfig.Current.WardrobeStorage == null) { _wardrobeConfig.Current.WardrobeStorage = new WardrobeStorage(_itemHelper); }
 
         if (_aliasConfig.Current.AliasStorage == null) { _aliasConfig.Current.AliasStorage = new(); }
 
@@ -236,8 +241,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal GagDrawData GetDrawData(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData[gagType];
     internal EquipSlot GetGagTypeEquipSlot(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot;
     internal EquipItem GetGagTypeEquipItem(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem;
-    internal StainIds GetGagTypeStain(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameStain;
-
     internal void UpdateGagStorageDictionary(Dictionary<GagType, GagDrawData> newGagStorage)
     {
         _gagStorageConfig.Current.GagStorage.GagEquipData = newGagStorage;
@@ -245,43 +248,10 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Logger.LogInformation("GagStorage Config Saved");
     }
 
-
     internal IReadOnlyList<byte> GetGagTypeStainIds(GagType gagType)
     {
         var GameStains = _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameStain;
         return [GameStains.Stain1.Id, GameStains.Stain2.Id];
-    }
-
-    internal int GetGagTypeSlotId(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.ActiveSlotId;
-
-    internal void SetGagEnabled(GagType gagType, bool isEnabled)
-    {
-        _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.IsEnabled = isEnabled;
-        _gagStorageConfig.Save();
-    }
-
-    internal void SetGagTypeEquipSlot(GagType gagType, EquipSlot slot)
-    {
-        _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot = slot;
-        _gagStorageConfig.Save();
-    }
-
-    internal void SetGagTypeEquipItem(GagType gagType, EquipItem item)
-    {
-        _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem = item;
-        _gagStorageConfig.Save();
-    }
-
-    internal void SetGagTypeStain(GagType gagType, StainId stain)
-    {
-        _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameStain = stain;
-        _gagStorageConfig.Save();
-    }
-
-    internal void SetGagTypeSlotId(GagType gagType, int slotId)
-    {
-        _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.ActiveSlotId = slotId;
-        _gagStorageConfig.Save();
     }
 
     internal void UpdateGagItem(GagType gagType, GagDrawData newData)
@@ -303,7 +273,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal RestraintSet GetRestraintSet(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
     internal int GetRestraintSetIdxByName(string name) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Name == name);
 
-    internal void DisableActiveSetDueToSafeword()
+    internal async Task DisableActiveSetDueToSafeword()
     {
         // unlock and disable the currently active restraint set due to us using the safeword command.
         var activeSetIdx = GetActiveSetIdx();
@@ -312,8 +282,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             // unlock
             UnlockRestraintSet(activeSetIdx, WardrobeConfig.WardrobeStorage.RestraintSets[activeSetIdx].LockedBy, false);
             // remove.
-            SetRestraintSetState(activeSetIdx, WardrobeConfig.WardrobeStorage.RestraintSets[activeSetIdx].EnabledBy, 
-                NewState.Disabled, false).GetAwaiter().GetResult();
+            await SetRestraintSetState(activeSetIdx, WardrobeConfig.WardrobeStorage.RestraintSets[activeSetIdx].EnabledBy, 
+                NewState.Disabled, false).ConfigureAwait(false);
             // push mediator for compile.
             Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.Safeword));
         }
@@ -390,6 +360,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _wardrobeConfig.Save();
 
         TaskCompletionSource<bool>? disableModsTask = null;
+        TaskCompletionSource<bool>? disableMoodlesTask = null;
         TaskCompletionSource<bool>? disableHardcorePropertiesTask = null;
 
         // Check if any mod associations have DisableWhenInactive set to true
@@ -397,6 +368,12 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         {
             Logger.LogTrace($"{set.Name} contains at least one mod with DisableWhenInactive.");
             disableModsTask = new TaskCompletionSource<bool>();
+        }
+
+        if (set.AssociatedMoodles.Any())
+        {
+            Logger.LogTrace($"{set.Name} contains at least one moodle association.");
+            disableMoodlesTask = new TaskCompletionSource<bool>();
         }
 
         // Check if the set has any hardcore properties active for the user
@@ -422,6 +399,13 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             await disableModsTask.Task;
         }
 
+        if (disableMoodlesTask != null)
+        {
+            Logger.LogTrace("Disabling Moodles for {set.Name}", set.Name);
+            Mediator.Publish(new RestraintSetToggleMoodlesMessage(setIndex, NewState.Disabled, disableMoodlesTask));
+            await disableMoodlesTask.Task;
+        }
+
         // The glamour task always must fire
         var disableRestraintGlamourTask = new TaskCompletionSource<bool>();
         Mediator.Publish(new RestraintSetToggledMessage(setIndex, set.EnabledBy, NewState.Disabled, pushToServer, disableRestraintGlamourTask));
@@ -443,6 +427,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _wardrobeConfig.Save();
 
         TaskCompletionSource<bool>? enableModsTask = null;
+        TaskCompletionSource<bool>? enableMoodlesTask = null;
         TaskCompletionSource<bool>? enableHardcorePropertiesTask = null;
 
         // Check if any mod associations have DisableWhenInactive set to true
@@ -450,6 +435,12 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         {
             Logger.LogTrace($"{set.Name} contains at least one mod with DisableWhenInactive.");
             enableModsTask = new TaskCompletionSource<bool>();
+        }
+
+        if (set.AssociatedMoodles.Any())
+        {
+            Logger.LogTrace($"{set.Name} contains at least one moodle association.");
+            enableMoodlesTask = new TaskCompletionSource<bool>();
         }
 
         // Check if the set has any hardcore properties active for the user
@@ -473,6 +464,13 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             Logger.LogTrace("Enabling Mods for {set.Name}", set.Name);
             Mediator.Publish(new RestraintSetToggleModsMessage(setIndex, NewState.Enabled, enableModsTask));
             await enableModsTask.Task;
+        }
+
+        if (enableMoodlesTask != null)
+        {
+            Logger.LogTrace("Enabling Moodles for {set.Name}", set.Name);
+            Mediator.Publish(new RestraintSetToggleMoodlesMessage(setIndex, NewState.Enabled, enableMoodlesTask));
+            await enableMoodlesTask.Task;
         }
 
         // The glamour task always must fire
@@ -531,22 +529,9 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Unlocked, pushToServer));
     }
 
-
-
     internal int GetRestraintSetCount() => WardrobeConfig.WardrobeStorage.RestraintSets.Count;
     internal List<AssociatedMod> GetAssociatedMods(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods;
-    internal bool IsBlindfoldActive() => WardrobeConfig.WardrobeStorage.BlindfoldInfo.IsActive;
-
-    internal void SetBlindfoldState(bool newState, string applierUID)
-    {
-        WardrobeConfig.WardrobeStorage.BlindfoldInfo.IsActive = newState;
-        WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldedBy = applierUID;
-        _wardrobeConfig.Save();
-    }
-
-    // TODO this logic is flawed, and so is above, as this should not be manipulated by the client.
-    // rework later to fix and make it scan against pair list.
-    internal string GetBlindfoldedBy() => WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldedBy;
+    internal List<Guid> GetAssociatedMoodles(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMoodles;
     internal EquipDrawData GetBlindfoldItem() => WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldItem;
     internal void SetBlindfoldItem(EquipDrawData drawData)
     {

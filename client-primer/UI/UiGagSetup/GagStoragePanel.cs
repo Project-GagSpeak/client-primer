@@ -160,8 +160,6 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
                     {
                         // Update the selected slot when the combo box selection changes
                         UnsavedDrawData.Slot = EquipSlotExtensions.EqdpSlots[refValue];
-                        UnsavedDrawData.ActiveSlotId = EquipSlotExtensions.EqdpSlots.Select((s, i) => new { s, i })
-                                        .FirstOrDefault(x => x.s == UnsavedDrawData.Slot)?.i ?? -1;
                         // reset display and/or selected item to none.
                         UnsavedDrawData.GameItem = ItemIdVars.NothingItem(UnsavedDrawData.Slot);
                     }

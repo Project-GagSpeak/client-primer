@@ -14,6 +14,8 @@ using GagspeakAPI.Dto.UserPair;
 using System.Reflection;
 using Penumbra.GameData;
 using GagspeakAPI.Data.Character;
+using Dalamud.Game.ClientState.Objects.Types;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -146,6 +148,10 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
     /// <summary> Fetches the list of userData UIDS for the pairs that are currently visible to the client.</summary>
     public List<UserData> GetVisibleUsers() => _allClientPairs.Where(p => p.Value.IsVisible).Select(p => p.Key).ToList();
+
+    /// <summary> Gets all pairs where IsVisible is true and returns their game objects in a list form, excluding null values. </summary>
+    public List<IGameObject> GetVisiblePairGameObjects()
+        => _allClientPairs.Select(p => p.Value.VisiblePairGameObject).Where(gameObject => gameObject != null).ToList()!;    
 
     /// <summary> Fetch the list of userData UID's for all pairs who have OnlineToyboxUser to true.</summary>
     public List<Pair> GetOnlineToyboxUsers() => _allClientPairs.Where(p => p.Value.OnlineToyboxUser).Select(p => p.Value).ToList();

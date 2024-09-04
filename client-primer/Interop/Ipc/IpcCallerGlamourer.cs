@@ -15,6 +15,7 @@ using Dalamud.Interface.ImGuiNotification;
 using GagSpeak.PlayerData.Services;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 using GagspeakAPI.Data.Enum;
+using Newtonsoft.Json.Linq;
 
 namespace Interop.Ipc;
 
@@ -35,8 +36,11 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     /* ---------- Glamourer API IPC Subscribers --------- */
     private readonly ApiVersion _ApiVersion; // the API version of glamourer
-    // private readonly ApplyState? _ApplyOnlyEquipment; // for applying equipment to player
-    private readonly SetItem _SetItem; // for setting an item to the character (not once by default, must setup with flags)
+    private readonly GetState _GetState; // get the JObject of the character
+    private readonly ApplyState _ApplyState; // apply a state to the character using JObject
+    private readonly GetDesignList _GetDesignList; // get lists of designs from player's Glamourer.
+    private readonly ApplyDesignName _ApplyCustomizationsFromDesignName; // apply customization data from a design.
+    private readonly SetItem _SetItem; // for setting an item to the character
     private readonly RevertState _RevertCharacter; // for reverting the character
     private readonly RevertToAutomation _RevertToAutomation; // for reverting the character to automation
 
@@ -52,7 +56,10 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
         // set IPC callers
         _ApiVersion = new ApiVersion(_pi);
-        // _ApplyOnlyEquipment = new ApplyState(_pi);
+        _GetState = new GetState(_pi);
+        _ApplyState = new ApplyState(_pi);
+        _GetDesignList = new GetDesignList(_pi);
+        _ApplyCustomizationsFromDesignName = new ApplyDesignName(_pi);
         _SetItem = new SetItem(_pi);
         _RevertCharacter = new RevertState(_pi);
         _RevertToAutomation = new RevertToAutomation(_pi);
@@ -64,6 +71,8 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         _glamourChanged = StateChangedWithType.Subscriber(_pi, GlamourerChanged);
         _glamourChanged.Enable();
     }
+
+    public enum MetaData { Hat, Visor }
     public bool APIAvailable { get; private set; }
 
     public void CheckAPI()
@@ -90,11 +99,15 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
     }
 
+    private void OnGlamourerReady()
+    {
+        Logger.LogWarning("Glamourer is now Ready!");
+        Mediator.Publish(new GlamourerReady());
+    }
+
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-
-
 
         _glamourChanged.Disable();
         _glamourChanged?.Dispose();
@@ -105,12 +118,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
     }
 
-
-
     /// <summary> ========== BEGIN OUR IPC CALL MANAGEMENT UNDER ASYNC TASKS ========== </summary>
-    // A note: ApplyAll and Customizations have been removed, as applyEquipmentOnly does not work
-    // as intended and is more difficult to achieve with the way glamourer's API is structured.
-
     public async Task SetItemToCharacterAsync(ApiEquipSlot slot, ulong item, IReadOnlyList<byte> dye, uint variant)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
@@ -138,6 +146,54 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             return;
         }
     }
+
+    public async Task<bool> ForceSetMetaData(MetaData metaData, bool? forcedState = null)
+    {
+        // if the glamourerApi is not active, then return an empty string for the customization
+        if (!APIAvailable || _onFrameworkService.IsZoning) return false;
+        try
+        {
+            return await _onFrameworkService.RunOnFrameworkThread(() =>
+            {
+                // grab character pointer (do this here so we do it inside the framework thread)
+                var character = _onFrameworkService._playerAddr;
+                // set the game object to the character
+                var gameObj = _onFrameworkService.CreateGameObject(character);
+                // if the game object is the character, then get the customization for it.
+                if (gameObj is ICharacter c)
+                {
+                    var objectIndex = c.ObjectIndex;
+                    // grab the JObject of the character state.
+                    (GlamourerApiEc returnCode, JObject? stateJObject) = _GetState.Invoke(gameObj.ObjectIndex);
+                    if (stateJObject == null || returnCode != GlamourerApiEc.Success)
+                    {
+                        Logger.LogWarning($"Failed to get state for character {character}");
+                        return false;
+                    }
+                    
+
+                    // determine the metadata field we are editing.
+                    var metaDataFieldToFind = (metaData == MetaData.Hat) ? "Show" : "IsToggled";
+                    // if we are forcing the state, set the newvalue to the forced state. Otherwise, grab the opposite of current state value.
+                    var newValue = forcedState ?? !(((bool?)stateJObject?["Equipment"]?[metaData.ToString()]?[metaDataFieldToFind]) ?? false);
+
+                    // set the new properties in the JObject.
+                    stateJObject!["Equipment"]![metaData.ToString()]![metaDataFieldToFind] = newValue;
+                    stateJObject!["Equipment"]![metaData.ToString()]!["Apply"] = true;
+
+                    var ret = _ApplyState.Invoke(stateJObject, objectIndex);
+                    return ret==GlamourerApiEc.Success;
+                }
+                return false;
+            }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning($"Error during SetMetaData: {ex}");
+            return false;
+        }
+    }
+
 
     public async Task GlamourerRevertCharacterToAutomation(nint character)
     {

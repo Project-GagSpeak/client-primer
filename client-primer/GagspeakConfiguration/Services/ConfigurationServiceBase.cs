@@ -107,16 +107,8 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
                 }
 
                 // and deserialize the json into the config object
-                try
-                {
-                    config = DeserializeConfig(configJson);
-                    Save();
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception($"Failed to load {ConfigurationName} configuration. {ex.StackTrace}");
-                    config = default;
-                }
+                config = DeserializeConfig(configJson);
+                Save();
             }
             catch(Exception ex)
             {

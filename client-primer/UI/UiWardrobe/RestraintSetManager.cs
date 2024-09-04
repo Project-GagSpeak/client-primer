@@ -29,20 +29,24 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
     private readonly WardrobeHandler _handler;
     private readonly TextureService _textures;
     private readonly DictStain _stainDictionary;
+    private readonly ItemIdVars _itemHelper;
     private readonly PadlockHandler _padlockHandler;
 
     public RestraintSetManager(ILogger<RestraintSetManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         RestraintSetEditor editor, WardrobeHandler handler,
         TextureService textureService, DictStain stainDictionary,
-        PadlockHandler padlockHandler) : base(logger, mediator)
+        ItemIdVars itemHelper, PadlockHandler padlockHandler) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
         _editor = editor;
         _handler = handler;
         _textures = textureService;
         _stainDictionary = stainDictionary;
+        _itemHelper = itemHelper;
         _padlockHandler = padlockHandler;
+
+        CreatedRestraintSet = new RestraintSet(_itemHelper);
 
         GameIconSize = new Vector2(2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y);
         StainColorCombos = new StainColorCombo(0, _stainDictionary, logger);
@@ -70,7 +74,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
     private Vector2 GameIconSize;
     private readonly StainColorCombo StainColorCombos;
 
-    private RestraintSet CreatedRestraintSet = new RestraintSet();
+    private RestraintSet CreatedRestraintSet;
     public bool CreatingRestraintSet = false;
     private string LockTimerInputString = string.Empty;
 
@@ -191,7 +195,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             if (_uiShared.IconButton(FontAwesomeIcon.Plus))
             {
                 // reset the createdRestraintSet to a new restraintSet, and set editing restraintSet to true
-                CreatedRestraintSet = new RestraintSet();
+                CreatedRestraintSet = new RestraintSet(_itemHelper);
                 CreatingRestraintSet = true;
             }
             UiSharedService.AttachToolTip("Create a new Restraint Set");
@@ -224,7 +228,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             if (_uiShared.IconButton(FontAwesomeIcon.ArrowLeft))
             {
                 // reset the createdRestraintSet to a new restraintSet, and set editing restraintSet to true
-                CreatedRestraintSet = new RestraintSet();
+                CreatedRestraintSet = new RestraintSet(_itemHelper);
                 CreatingRestraintSet = false;
             }
             UiSharedService.AttachToolTip("Exit to Restraint Set List");
@@ -247,7 +251,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                     // add the newly created restraintSet to the list of restraintSets
                     _handler.AddNewRestraintSet(CreatedRestraintSet);
                     // reset to default and turn off creating status.
-                    CreatedRestraintSet = new RestraintSet();
+                    CreatedRestraintSet = new RestraintSet(_itemHelper);
                     CreatingRestraintSet = false;
                 }
                 UiSharedService.AttachToolTip("Save and Create Restraint Set");

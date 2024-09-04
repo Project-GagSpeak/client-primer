@@ -916,10 +916,17 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public T? DrawComboSearchable<T>(string comboName, float width, ref string searchString, IEnumerable<T> comboItems,
-        Func<T, string> toName, bool showLabel = true, Action<T?>? onSelected = null, T? initialSelectedItem = default)
+        Func<T, string> toName, bool showLabel = true, Action<T?>? onSelected = null, T? initialSelectedItem = default,
+        string defaultPreviewText = "No Items Available...")
     {
         // Return default if there are no items to display in the combo box.
-        if (!comboItems.Any()) return default;
+        if (!comboItems.Any())
+        {
+            ImGui.SetNextItemWidth(width);
+            ImGui.BeginCombo(comboName, defaultPreviewText);
+            ImGui.EndCombo();
+            return default;
+        }
 
         // try to get currently selected item from a dictionary storing selections for each combo box.
         if (!_selectedComboItems.TryGetValue(comboName, out var selectedItem) && selectedItem == null)

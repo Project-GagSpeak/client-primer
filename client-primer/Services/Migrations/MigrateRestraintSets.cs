@@ -14,12 +14,15 @@ public class MigrateRestraintSets
 {
     private readonly ILogger<MigrateRestraintSets> _logger;
     private readonly ClientConfigurationManager _clientConfigs;
+    private readonly ItemIdVars _itemHelper;
     private readonly string _oldRestraintSetsDirectory;
     public MigrateRestraintSets(ILogger<MigrateRestraintSets> logger,
-        ClientConfigurationManager clientConfigs, string configDirectory)
+        ClientConfigurationManager clientConfigs, ItemIdVars itemHelper,
+        string configDirectory)
     {
         _logger = logger;
         _clientConfigs = clientConfigs;
+        _itemHelper = itemHelper;
         _oldRestraintSetsDirectory = Path.Combine(configDirectory, "..", "GagSpeak", "RestraintSets.json");
     }
 
@@ -88,7 +91,7 @@ public class MigrateRestraintSets
         oldSet.Description = oldSet.Description.Replace("\n", "").Replace("\\", "");
 
         // construct a new RestraintSet object from the old one.
-        RestraintSet newSet = new RestraintSet
+        RestraintSet newSet = new RestraintSet(_itemHelper)
         {
             Name = oldSet.Name,
             Description = oldSet.Description,
@@ -98,11 +101,9 @@ public class MigrateRestraintSets
             LockPassword = string.Empty,
             LockedUntil = DateTimeOffset.MinValue,
             LockedBy = string.Empty,
-            DrawData = oldSet.DrawData.ToDictionary(kvp => kvp.Key, kvp => new EquipDrawData(kvp.Value.GameItem)
+            DrawData = oldSet.DrawData.ToDictionary(kvp => kvp.Key, kvp => new EquipDrawData(_itemHelper, kvp.Value.GameItem)
             {
                 IsEnabled = kvp.Value.IsEnabled,
-                EquippedBy = kvp.Value.WasEquippedBy,
-                Locked = kvp.Value.Locked,
                 Slot = kvp.Value.Slot,
                 GameItem = kvp.Value.GameItem,
                 GameStain = kvp.Value.GameStain
@@ -127,7 +128,7 @@ public class MigrateRestraintSets
             oldSet.Description = oldSet.Description.Replace("\n", "").Replace("\\", "");
 
             // construct a new RestraintSet object from the old one.
-            RestraintSet newSet = new RestraintSet
+            RestraintSet newSet = new RestraintSet(_itemHelper)
             {
                 Name = oldSet.Name,
                 Description = oldSet.Description,
@@ -137,11 +138,9 @@ public class MigrateRestraintSets
                 LockPassword = string.Empty,
                 LockedUntil = DateTimeOffset.MinValue,
                 LockedBy = string.Empty,
-                DrawData = oldSet.DrawData.ToDictionary(kvp => kvp.Key, kvp => new EquipDrawData(kvp.Value.GameItem)
+                DrawData = oldSet.DrawData.ToDictionary(kvp => kvp.Key, kvp => new EquipDrawData(_itemHelper, kvp.Value.GameItem)
                 {
                     IsEnabled = kvp.Value.IsEnabled,
-                    EquippedBy = kvp.Value.WasEquippedBy,
-                    Locked = kvp.Value.Locked,
                     Slot = kvp.Value.Slot,
                     GameItem = kvp.Value.GameItem,
                     GameStain = kvp.Value.GameStain

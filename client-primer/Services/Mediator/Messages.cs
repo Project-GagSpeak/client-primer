@@ -84,12 +84,15 @@ public record ActiveGagsUpdated : MessageBase;
 public record ActiveLocksUpdated : MessageBase;
 public record GagTypeChanged(GagList.GagType NewGagType, GagLayer Layer) : MessageBase; // called whenever the client changes their gag type.
 public record GagLockToggle(PadlockData PadlockInfo, bool Unlocking, bool pushChanges) : MessageBase; // called whenever the client changes their padlock.
-public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase; // TODO: ADD implementation for this.
+public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase;
+public record HelmetStateChangedMessage(bool ChangedState) : MessageBase; // called whenever the client changes their helmet state.
+public record VisorStateChangedMessage(bool ChangedState) : MessageBase; // called whenever the client changes their visor state.
 
 
 #region PLAYERDATA WARDROBE HANDLER RECORDS
 // Toggle mods in a separate awaiting task so any applied mods have the animations/vfx the mods contained on the first redraw we see.
 public record RestraintSetToggleModsMessage(int SetIdx, NewState State, TaskCompletionSource<bool>? ModToggleTask = null) : MessageBase; 
+public record RestraintSetToggleMoodlesMessage(int SetIdx, NewState State, TaskCompletionSource<bool>? MoodlesTask = null) : MessageBase;
 public record RestraintSetToggleHardcoreTraitsMessage(int SetIdx, string AssignerUID, NewState State, TaskCompletionSource<bool>? HardcoreTraitsTask = null) : MessageBase;
 public record RestraintSetToggledMessage(int SetIdx, string AssignerUID, NewState State, bool pushChanges, TaskCompletionSource<bool>? GlamourChangeTask = null) : MessageBase; 
 public record HardcoreForcedToFollowMessage(Pair Pair, NewState State) : MessageBase;
@@ -136,11 +139,12 @@ public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PenumbraInitializedMessage : MessageBase;
 public record PenumbraDisposedMessage : MessageBase;
 public record UpdateGlamourMessage(GlamourUpdateType GenericUpdateType) : MessageBase; // for full refreshes on states.
-public record UpdateGlamourGagsMessage(NewState NewState, GagLayer Layer, GagList.GagType GagType, string AssignerName, TaskCompletionSource<bool>? CompletionTaskSource = null): MessageBase;
+public record UpdateGlamourGagsMessage(NewState NewState, GagLayer Layer, GagList.GagType GagType, string AssignerName, TaskCompletionSource<bool>? GagToggleTask = null): MessageBase;
 public record UpdateGlamourRestraintsMessage(NewState NewState, TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase; // Restraint set updates.
 public record UpdateGlamourBlindfoldMessage(NewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
 public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
 public record MoodlesReady : MessageBase;
+public record GlamourerReady : MessageBase;
 public record MoodlesStatusManagerChangedMessage(IntPtr Address) : MessageBase; // when our status manager changes.
 public record MoodlesStatusModified(Guid Guid) : MessageBase; // when we change one of our moodles settings.
 public record MoodlesPresetModified(Guid Guid) : MessageBase; // when we change one of our moodles presets.
@@ -175,6 +179,7 @@ public record ClearProfileDataMessage(UserData? UserData = null) : MessageBase; 
 public record VerificationPopupMessage(VerificationDto VerificationCode) : MessageBase; // indicating that we have received a verification code popup.
 public record PatternSavePromptMessage(List<byte> StoredData, TimeSpan Duration) : MessageBase; // prompts the popup and passes in savedata
 public record BlindfoldUiTypeChange(BlindfoldType NewType) : MessageBase; // for changing blindfold type.
+public record ToggleDtrBarMessage : MessageBase;
 
 /* -------------------- DISCOVER TAB RECORDS -------------------- */
 public record GlobalChatMessage(GlobalChatMessageDto ChatMessage, bool FromSelf) : MessageBase;

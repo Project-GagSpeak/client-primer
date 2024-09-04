@@ -1,19 +1,14 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Plugin.Services;
-using Dalamud.Utility;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Utils;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.IPC;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
 using System.Numerics;
-using System.Xml.Linq;
 
 namespace GagSpeak.UI.UiWardrobe;
 
@@ -44,6 +39,7 @@ public class MoodlesManager : MediatorSubscriberBase
     private CharacterIPCData LastCreatedCharacterData = null!;
     private string PairSearchString = string.Empty;
     private Pair? PairToInspect = null;
+    private int SelectedExamineIndex = 0;
     private int SelectedStatusIndex = 0;
     private int SelectedPresetIndex = 0;
     private string PresetSearchString = string.Empty;
@@ -96,20 +92,23 @@ public class MoodlesManager : MediatorSubscriberBase
                 (pair) => pair == null ? "Examine Self" : pair.GetNickname() ?? pair.UserData.AliasOrUID, false,
                 (pair) =>
                 {
+                    int idxOfSelected;
                     if (pair == null)
                     {
-                        PairToInspect = null;
+                        idxOfSelected = 0;
                         // reset the indexes
                         SelectedStatusIndex = 0;
                         SelectedPresetIndex = 0;
                     }
                     else
                     {
+                        idxOfSelected = PairList.IndexOf(pair);
                         PairToInspect = pair;
                         // reset the indexes
                         SelectedStatusIndex = 0;
                         SelectedPresetIndex = 0;
                     }
+                    SelectedExamineIndex = idxOfSelected;
                 });
 
             ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - statusesSize - presetsSize - ImGui.GetStyle().ItemSpacing.X * 3);
@@ -142,9 +141,7 @@ public class MoodlesManager : MediatorSubscriberBase
     {
         MoodlesHeader();
         ImGui.Separator();
-        var DataToDisplay = (PairToInspect != null && PairToInspect.LastReceivedIpcData != null) ? PairToInspect.LastReceivedIpcData : LastCreatedCharacterData;
-
-        ImGui.Text("LastCreateCharacterData is null: " + (LastCreatedCharacterData == null));
+        var DataToDisplay = SelectedExamineIndex == 0 ? LastCreatedCharacterData : PairToInspect?.LastReceivedIpcData;
 
         if (CurrentType == InspectType.Status)
         {
@@ -156,17 +153,28 @@ public class MoodlesManager : MediatorSubscriberBase
         }
     }
 
-    private void DrawMoodles(CharacterIPCData DataToDisplay, Vector2 cellPadding)
+    private void DrawMoodles(CharacterIPCData? DataToDisplay, Vector2 cellPadding)
     {
+        if (_ipcCallerMoodles.APIAvailable == false)
+        {
+            _uiShared.BigText("You do not Currently have Moodles enabled!");
+            _uiShared.BigText("Enable Moodles to view own Statuses");
+            return;
+        }
+        if (DataToDisplay == null)
+        {
+            _uiShared.BigText("The IPC Data is currently Null!");
+            return;
+        }
         // if they player has no presets, print they do not and return.
         if (DataToDisplay.MoodlesStatuses.Count == 0)
         {
-            _uiShared.BigText("Pair has no Statuses set.");
+            _uiShared.BigText(SelectedExamineIndex == 0 ? "You have no Statuses Set yet" : "Pair has no Statuses set.");
             return;
         }
 
         var length = ImGui.GetContentRegionAvail().X;
-        _moodlesService.DrawMoodleStatusComboSearchable(DataToDisplay.MoodlesStatuses, DataToDisplay.MoodlesStatuses[SelectedStatusIndex].Title + "##StatusSelector", 
+        _moodlesService.DrawMoodleStatusComboSearchable(DataToDisplay.MoodlesStatuses, DataToDisplay.MoodlesStatuses[SelectedStatusIndex].Title + "##StatusSelector",
             ref SelectedStatusIndex, length, 1.25f);
         ImGui.Separator();
 
@@ -180,12 +188,23 @@ public class MoodlesManager : MediatorSubscriberBase
         PrintMoodleInfoExtended(DataToDisplay!.MoodlesStatuses[SelectedStatusIndex], cellPadding, cursorPos);
     }
 
-    private void DrawPresets(CharacterIPCData DataToDisplay, Vector2 cellPadding)
+    private void DrawPresets(CharacterIPCData? DataToDisplay, Vector2 cellPadding)
     {
-        // if they player has no presets, print they do not and return.
-        if(DataToDisplay.MoodlesPresets.Count == 0)
+        if (_ipcCallerMoodles.APIAvailable == false)
         {
-            _uiShared.BigText("Pair has no Presets set.");
+            _uiShared.BigText("You do not Currently have Moodles enabled!");
+            _uiShared.BigText("Enable Moodles to view own Presets");
+            return;
+        }
+        if (DataToDisplay == null)
+        {
+            _uiShared.BigText("The IPC Data is currently Null!");
+            return;
+        }
+        // if they player has no presets, print they do not and return.
+        if (DataToDisplay.MoodlesPresets.Count == 0)
+        {
+            _uiShared.BigText(SelectedExamineIndex == 0 ? "You have no Presets yet" : "Pair has no Presets set.");
             return;
         }
 

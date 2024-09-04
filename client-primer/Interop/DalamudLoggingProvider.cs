@@ -41,7 +41,6 @@ public sealed class DalamudLoggingProvider : ILoggerProvider
         {
             catName = string.Join("", Enumerable.Range(0, 19 - catName.Length).Select(_ => " ")) + catName;
         }
-
         // now that we have the name properly, get/add it to our logger for dalamud
         return _loggers.GetOrAdd(catName, name => new DalamudLogger(name, _gagspeakConfigService, _pluginLog));
     }

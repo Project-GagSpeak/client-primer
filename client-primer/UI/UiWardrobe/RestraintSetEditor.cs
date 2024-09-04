@@ -21,10 +21,14 @@ using System.Numerics;
 using GagSpeak.WebAPI.Utils;
 using System.Windows.Forms.VisualStyles;
 using Dalamud.Interface.Colors;
+using GagspeakAPI.Data.Character;
+using static System.ComponentModel.Design.ObjectSelectorEditor;
+using GagSpeak.Interop.IpcHelpers.Moodles;
+using GagSpeak.Services;
 
 namespace GagSpeak.UI.UiWardrobe;
 
-public class RestraintSetEditor
+public class RestraintSetEditor : IMediatorSubscriber
 {
     private readonly ILogger<RestraintSetEditor> Logger;
     private readonly UiSharedService _uiShared;
@@ -34,17 +38,20 @@ public class RestraintSetEditor
     private readonly DictBonusItems _bonusItemsDictionary;
     private readonly TextureService _textures;
     private readonly ModAssociations _relatedMods;
+    private readonly MoodlesAssociations _relatedMoodles;
     private readonly PairManager _pairManager;
     private readonly IDataManager _gameData;
+    public GagspeakMediator Mediator { get; init; }
 
     public RestraintSetEditor(ILogger<RestraintSetEditor> logger,
-        UiSharedService uiSharedService,
+        GagspeakMediator mediator, UiSharedService uiSharedService,
         WardrobeHandler handler, DictStain stains, ItemData items,
         DictBonusItems bonusItemsDictionary, TextureService textures,
-        ModAssociations relatedMods, PairManager pairManager,
-        IDataManager gameData)
+        ModAssociations relatedMods, MoodlesAssociations relatedMoodles,
+        PairManager pairManager, IDataManager gameData)
     {
         Logger = logger;
+        Mediator = mediator;
         _uiShared = uiSharedService;
         _handler = handler;
         _stainDictionary = stains;
@@ -53,6 +60,7 @@ public class RestraintSetEditor
         _textures = textures;
         _gameData = gameData;
         _relatedMods = relatedMods;
+        _relatedMoodles = relatedMoodles;
         _pairManager = pairManager;
 
         // create a fresh instance of the restraint set 
@@ -68,8 +76,13 @@ public class RestraintSetEditor
         BonusItemCombos = BonusExtensions.AllFlags
             .Select(f => new BonusItemCombo(_gameData, f, _bonusItemsDictionary, logger))
             .ToArray();
+
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
     }
 
+
+    // Info related to the person we are inspecting.
+    private CharacterIPCData LastCreatedCharacterData = null!;
     private readonly GameItemCombo[] ItemCombos;
     private readonly StainColorCombo StainColorCombos;
     private readonly BonusItemCombo[] BonusItemCombos; // future proofing for potential multiples
@@ -89,26 +102,7 @@ public class RestraintSetEditor
             var infoTab = ImRaii.TabItem("Info");
             if (infoTab)
             {
-                string refName = refRestraint.Name;
-                var width = ImGui.GetContentRegionAvail().X * 0.7f;
-
-                ImGui.Text("Restraint Set Name:");
-                ImGui.SetNextItemWidth(width);
-                if (ImGui.InputTextWithHint($"##NameText", "Restraint Set Name...", ref refName, 48, ImGuiInputTextFlags.EnterReturnsTrue))
-                {
-                    refRestraint.Name = refName;
-                }
-                UiSharedService.AttachToolTip($"Gives the Restraint Set a name!");
-
-                ImGui.Text("Restraint Set Description:");
-                string descriptiontext = refRestraint.Description;
-                using (var descColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey2))
-                {
-                    if (ImGui.InputTextMultiline("##InputSetDesc", ref descriptiontext, 150, ImGuiHelpers.ScaledVector2(width, GameIconSize.Y)))
-                    {
-                        refRestraint.Description = descriptiontext;
-                    }
-                }
+                DrawInfo(refRestraint);
             }
             infoTab.Dispose();
 
@@ -116,16 +110,37 @@ public class RestraintSetEditor
             var glamourTab = ImRaii.TabItem("Appearance");
             if (glamourTab)
             {
-                DrawAppearance(ref refRestraint);
+                DrawAppearance(refRestraint);
             }
             glamourTab.Dispose();
 
-            var associatedMods = ImRaii.TabItem("Mods / Moodles / C+");
+            var associatedMods = ImRaii.TabItem("Mods");
             if (associatedMods)
             {
-                _relatedMods.DrawUnstoredSetTable(ref refRestraint, cellPadding.Y);
+                _relatedMods.DrawUnstoredSetTable(refRestraint, cellPadding.Y);
             }
             associatedMods.Dispose();
+
+            var associatedMoodles = ImRaii.TabItem("Moodles");
+            if (associatedMoodles)
+            {
+                DrawMoodlesOptions(refRestraint, cellPadding.Y);
+            }
+            associatedMoodles.Dispose();
+
+            var associatedCustomizePreset = ImRaii.TabItem("C+ Preset");
+            if (associatedCustomizePreset)
+            {
+                DrawCustomizePlusOptions(refRestraint, cellPadding.Y);
+            }
+            associatedCustomizePreset.Dispose();
+
+            var associatedSpatialAudioType = ImRaii.TabItem("Sounds");
+            if (associatedSpatialAudioType)
+            {
+                DrawSpatialAudioOptions(refRestraint, cellPadding.Y);
+            }
+            associatedSpatialAudioType.Dispose();
 
             // store the current style for cell padding
             var cellPaddingCurrent = ImGui.GetStyle().CellPadding;
@@ -142,7 +157,31 @@ public class RestraintSetEditor
         }
     }
 
-    private void DrawAppearance(ref RestraintSet refRestraintSet)
+    private void DrawInfo(RestraintSet refRestraintSet)
+    {
+        string refName = refRestraintSet.Name;
+        var width = ImGui.GetContentRegionAvail().X * 0.7f;
+
+        ImGui.Text("Restraint Set Name:");
+        ImGui.SetNextItemWidth(width);
+        if (ImGui.InputTextWithHint($"##NameText", "Restraint Set Name...", ref refName, 48, ImGuiInputTextFlags.EnterReturnsTrue))
+        {
+            refRestraintSet.Name = refName;
+        }
+        UiSharedService.AttachToolTip($"Gives the Restraint Set a name!");
+
+        ImGui.Text("Restraint Set Description:");
+        string descriptiontext = refRestraintSet.Description;
+        using (var descColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey2))
+        {
+            if (UiSharedService.InputTextWrapMultiline("##InputSetDesc", ref descriptiontext, 150, 4, width))
+            {
+                refRestraintSet.Description = descriptiontext;
+            }
+        }
+    }
+
+    private void DrawAppearance(RestraintSet refRestraintSet)
     {
         ItemComboLength = ComboWidth * ImGuiHelpers.GlobalScale;
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
@@ -222,8 +261,99 @@ public class RestraintSetEditor
                     Environment.NewLine + "EYE Icon (Apply Mode) applies regardless of selected item. (nothing slots make the slot nothing)" +
                     Environment.NewLine + "EYE SLASH Icon (Overlay Mode) means that it only will apply the item if it is NOT an nothing slot.");
             }
+            // move to the next column.
+            ImGui.TableNextColumn();
+            // draw the checkbox options.
+            // preset some variables to grab from our config service.
+            bool forceHelmetOnEnable = refRestraintSet.ForceHeadgearOnEnable;
+            bool forceVisorOnEnable = refRestraintSet.ForceVisorOnEnable;
+
+            if (ImGui.Checkbox("Force-Enable Headgear", ref forceHelmetOnEnable))
+            {
+                refRestraintSet.ForceHeadgearOnEnable = forceHelmetOnEnable;
+            }
+            _uiShared.DrawHelpText("Will force your headgear to become visible when the set is applied. (Via Glamourer State)");
+
+            if (ImGui.Checkbox("Force-Enable Visor", ref forceVisorOnEnable))
+            {
+                refRestraintSet.ForceVisorOnEnable = forceVisorOnEnable;
+            }
+            _uiShared.DrawHelpText("Will force your visor to become visible when the set is applied. (Via Glamourer State)");
         }
     }
+
+    private void DrawMoodlesOptions(RestraintSet refRestraintSet, float cellPaddingY)
+    {
+        if(LastCreatedCharacterData == null)
+        {
+            ImGui.TextWrapped("No Character Data Found. Please select a character to edit.");
+            return;
+        }
+
+        using var table = ImRaii.Table("MoodlesSelections", 2, ImGuiTableFlags.BordersInnerV);
+        if (!table) return;
+
+        ImGui.TableSetupColumn("MoodleSelection", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn("FinalizedPreviewList", ImGuiTableColumnFlags.WidthFixed, 200f);
+
+        ImGui.TableNextRow(); ImGui.TableNextColumn();
+
+        using (var child = ImRaii.Child("##RestraintMoodleStatusSelection", new(ImGui.GetContentRegionAvail().X - 1f, ImGui.GetContentRegionAvail().Y / 2), false))
+        {
+            if (!child) return;
+            _relatedMoodles.DrawMoodlesStatusesListForSet(refRestraintSet, LastCreatedCharacterData, cellPaddingY, false);
+        }
+        ImGui.Separator();
+        using (var child2 = ImRaii.Child("##RestraintMoodlePresetSelection", -Vector2.One, false))
+        {
+            if (!child2) return;
+            _relatedMoodles.DrawMoodlesStatusesListForSet(refRestraintSet, LastCreatedCharacterData, cellPaddingY, true);
+        }
+
+
+        ImGui.TableNextColumn();
+        // Filter the MoodlesStatuses list to get only the moodles that are in AssociatedMoodles
+        var associatedMoodles = LastCreatedCharacterData.MoodlesStatuses
+            .Where(moodle => refRestraintSet.AssociatedMoodles.Contains(moodle.GUID))
+            .ToList();
+        // draw out all the active associated moodles in the restraint set with thier icon beside them.
+        UiSharedService.ColorText("Moodles Applied with Set:", ImGuiColors.ParsedPink);
+        ImGui.Separator();
+        foreach (var moodle in associatedMoodles)
+        {
+            using (var group = ImRaii.Group())
+            {
+
+                var currentPos = ImGui.GetCursorPos();
+                if (moodle.IconID != 0 && currentPos != Vector2.Zero)
+                {
+                    var statusIcon = _uiShared.GetGameStatusIcon((uint)((uint)moodle.IconID + moodle.Stacks - 1));
+
+                    if (statusIcon is { } wrap)
+                    {
+                        ImGui.SetCursorPos(currentPos);
+                        ImGui.Image(statusIcon.ImGuiHandle, MoodlesService.StatusSize);
+                    }
+                }
+                ImGui.SameLine();
+                float shiftAmmount = (MoodlesService.StatusSize.Y - ImGui.GetTextLineHeight())/ 2;
+                ImGui.SetCursorPosY(currentPos.Y+shiftAmmount);
+                ImGui.Text(moodle.Title);
+            }
+        }
+    }
+
+    private void DrawCustomizePlusOptions(RestraintSet refRestraintSet, float cellPaddingY)
+    {
+        ImGui.TextWrapped("Not dealing with this crap until C+ pulls itself together. Too much a drain on my sanity and posing it too much of a bitch right now.");
+    }
+
+    private void DrawSpatialAudioOptions(RestraintSet refRestraintSet, float cellPaddingY)
+    {
+        _uiShared.BigText("Select if Restraint Set Uses:\nRopes, Chains, Leather, Latex, ext* here.");
+        ImGui.Text("They will then play immersive spatial audio on queue.");
+    }
+
 
     public enum StimulationDegree { No, Light, Mild, Heavy }
 

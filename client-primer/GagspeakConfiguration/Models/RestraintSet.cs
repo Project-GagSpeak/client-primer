@@ -1,4 +1,5 @@
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using GagSpeak.Utils;
 using ImGuiNET;
 using Newtonsoft.Json;
@@ -16,6 +17,35 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 [Serializable]
 public record RestraintSet
 {
+    [JsonIgnore]
+    private readonly ItemIdVars _itemIdVars;
+
+    public RestraintSet(ItemIdVars itemHelpers) 
+    {
+        _itemIdVars = itemHelpers;
+
+        // Initialize DrawData in the constructor
+        DrawData = EquipSlotExtensions.EqdpSlots.ToDictionary(
+            slot => slot,
+            slot => new EquipDrawData(_itemIdVars, ItemIdVars.NothingItem(slot))
+            {
+                Slot = slot,
+                IsEnabled = false,
+            }
+        );
+
+        // Initialize BonusDrawData in the constructor
+        BonusDrawData = BonusExtensions.AllFlags.ToDictionary(
+            slot => slot,
+            slot => new BonusDrawData(BonusItem.Empty(slot))
+            {
+                Slot = slot,
+                IsEnabled = false,
+            }
+        );
+    }
+
+
     /// <summary> The name of the pattern </summary>
     public string Name { get; set; } = "New Restraint Set";
 
@@ -31,35 +61,25 @@ public record RestraintSet
     public string LockPassword { get; set; } = string.Empty;
     public DateTimeOffset LockedUntil { get; set; } = DateTimeOffset.MinValue;
     public string LockedBy { get; set; } = string.Empty;
+    public bool ForceHeadgearOnEnable { get; set; } = false;
+    public bool ForceVisorOnEnable { get; set; } = false;
+    public Dictionary<EquipSlot, EquipDrawData> DrawData { get; set; } = [];
+    public Dictionary<BonusItemFlag, BonusDrawData> BonusDrawData { get; set; } = [];
 
-    public Dictionary<EquipSlot, EquipDrawData> DrawData { get; set; } = new Dictionary<EquipSlot, EquipDrawData>(
-        // handler for the creation of new draw data on set creation.
-            EquipSlotExtensions.EqdpSlots.Select(slot => new KeyValuePair<EquipSlot, EquipDrawData>(
-            slot,
-            new EquipDrawData(ItemIdVars.NothingItem(slot))
-            {
-                Slot = slot,
-                IsEnabled = false,
-            }
-        ))
-    );
+    // any Mods to apply with this set, and their respective settings.
+    public List<AssociatedMod> AssociatedMods { get; private set; } = new List<AssociatedMod>();
+    
+    // the list of Moodles to apply when the set is active, and remove when inactive.
+    public List<Guid> AssociatedMoodles { get; private set; } = new List<Guid>();
+    public List<Guid> AssociatedMoodlePresets { get; private set; } = new List<Guid>();
 
-    public Dictionary<BonusItemFlag, BonusDrawData> BonusDrawData { get; set; } = new Dictionary<BonusItemFlag, BonusDrawData>(
-            // handler for the creation of new draw data on set creation.
-            BonusExtensions.AllFlags.Select(slot => new KeyValuePair<BonusItemFlag, BonusDrawData>(
-            slot,
-            new BonusDrawData(BonusItem.Empty(slot))
-            {
-                Slot = slot,
-                IsEnabled = false,
-            }
-        ))
-    );
+    // Customize+ preset to activate here soon when it stops being a bitch.
 
-    public List<AssociatedMod> AssociatedMods { get; private set; } = new();
+    // Spatial Audio Sound Type to use while this restraint set is active. [WIP]
+
 
     /// <summary> Controls which UID's are able to see this restraint set. </summary>
-    public List<string> ViewAccess { get; private set; } = new();
+    public List<string> ViewAccess { get; private set; } = new List<string>();
 
     /// <summary> 
     /// The Hardcore Set Properties to apply when restraint set is toggled.
@@ -68,24 +88,21 @@ public record RestraintSet
     public Dictionary<string, HardcoreSetProperties> SetProperties { get; set; } = new();
 
     // parameterless constructor for serialization
-    public RestraintSet() { }
-
     public JObject Serialize()
     {
         var serializer = new JsonSerializer();
-        serializer.Converters.Add(new EquipItemConverter());
-        // serizlie the data
-
         // for the DrawData dictionary.
-        var drawDataArray = new JArray();
+        JObject drawDataEquipmentObject = new JObject();
         // serialize each item in it
         foreach (var pair in DrawData)
         {
-            drawDataArray.Add(new JObject()
-            {
-                ["EquipmentSlot"] = pair.Key.ToString(),
-                ["DrawData"] = pair.Value.Serialize()
-            });
+            drawDataEquipmentObject[pair.Key.ToString()] = new JObject()
+            { 
+                ["Slot"] = pair.Value.Slot.ToString(),
+                ["IsEnabled"] = pair.Value.IsEnabled,
+                ["CustomItemId"] = pair.Value.GameItem.Id.ToString(),
+                ["GameStain"] = pair.Value.GameStain.ToString(), 
+            };
         }
 
         // for the BonusDrawData dictionary.
@@ -131,9 +148,13 @@ public record RestraintSet
             ["LockPassword"] = LockPassword,
             ["LockedUntil"] = LockedUntil.UtcDateTime.ToString("o"),
             ["LockedBy"] = LockedBy,
-            ["DrawData"] = drawDataArray,
+            ["ForceHeadgearOnEnable"] = ForceHeadgearOnEnable,
+            ["ForceVisorOnEnable"] = ForceVisorOnEnable,
+            ["DrawData"] = drawDataEquipmentObject,
             ["BonusDrawData"] = bonusDrawDataArray,
             ["AssociatedMods"] = associatedModsArray,
+            ["AssociatedMoodles"] = new JArray(AssociatedMoodles),
+            ["AssociatedMoodlePresets"] = new JArray(AssociatedMoodlePresets),
             ["ViewAccess"] = new JArray(ViewAccess),
             ["SetProperties"] = setPropertiesArray
         };
@@ -147,6 +168,7 @@ public record RestraintSet
         Enabled = jsonObject["Enabled"]?.Value<bool>() ?? false;
         EnabledBy = jsonObject["EnabledBy"]?.Value<string>() ?? string.Empty;
         LockType = jsonObject["LockType"]?.Value<string>() ?? "None";
+        if (LockType.IsNullOrEmpty()) LockType = "None"; // correct lockType if it is null or empty
         LockPassword = jsonObject["LockPassword"]?.Value<string>() ?? string.Empty;
         if (jsonObject["LockedUntil"]?.Type == JTokenType.String)
         {
@@ -165,22 +187,41 @@ public record RestraintSet
             LockedUntil = DateTimeOffset.MinValue; // Default or error value if the token is not a string
         }
         LockedBy = jsonObject["LockedBy"]?.Value<string>() ?? string.Empty;
-        if(LockType.IsNullOrEmpty()) LockType = "None";
-
+        ForceHeadgearOnEnable = jsonObject["ForceHeadgearOnEnable"]?.Value<bool>() ?? false;
+        ForceVisorOnEnable = jsonObject["ForceVisorOnEnable"]?.Value<bool>() ?? false;
         try
         {
-            var drawDataArray = jsonObject["DrawData"]?.Value<JArray>();
-            if (drawDataArray != null)
+            var drawDataObject = jsonObject["DrawData"]?.Value<JObject>();
+            if (drawDataObject != null)
             {
-                foreach (var item in drawDataArray)
+                foreach (var property in drawDataObject.Properties())
                 {
-                    var itemObject = item.Value<JObject>();
+                    var equipmentSlot = (EquipSlot)Enum.Parse(typeof(EquipSlot), property.Name);
+                    var itemObject = property.Value.Value<JObject>();
                     if (itemObject != null)
                     {
-                        var equipmentSlot = (EquipSlot)Enum.Parse(typeof(EquipSlot), itemObject["EquipmentSlot"]?.Value<string>() ?? string.Empty);
-                        var drawData = new EquipDrawData(ItemIdVars.NothingItem(equipmentSlot));
-                        drawData.Deserialize(itemObject["DrawData"]?.Value<JObject>());
-                        // Use the indexer to add or replace the entry
+                        ulong customItemId = itemObject["CustomItemId"]?.Value<ulong>() ?? 4294967164;
+                        var gameStainString = itemObject["GameStain"]?.Value<string>() ?? "0,0";
+                        var stainParts = gameStainString.Split(',');
+
+                        StainIds gameStain;
+                        if (stainParts.Length == 2 && int.TryParse(stainParts[0], out int stain1) && int.TryParse(stainParts[1], out int stain2))
+                        {
+                            gameStain = new StainIds((StainId)stain1, (StainId)stain2);
+                        }
+                        else
+                        {
+                            gameStain = StainIds.None;
+                        }
+
+                        var drawData = new EquipDrawData(_itemIdVars, ItemIdVars.NothingItem(equipmentSlot))
+                        {
+                            Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), itemObject["Slot"]?.Value<string>() ?? string.Empty),
+                            IsEnabled = itemObject["IsEnabled"]?.Value<bool>() ?? false,
+                            GameItem = _itemIdVars.Resolve(equipmentSlot, new CustomItemId(customItemId)),
+                            GameStain = gameStain
+                        };
+
                         DrawData[equipmentSlot] = drawData;
                     }
                 }
@@ -206,6 +247,18 @@ public record RestraintSet
                 AssociatedMods = associatedModsArray.Select(mod => mod.ToObject<AssociatedMod>()).ToList();
             }
 
+            // Deserialize the AssociatedMoodles
+            if (jsonObject["AssociatedMoodles"] is JArray associatedMoodlesArray)
+            {
+                AssociatedMoodles = associatedMoodlesArray.Select(moodle => moodle.Value<Guid>()).ToList();
+            }
+
+            // Deserialize the AssociatedMoodlePresets
+            if (jsonObject["AssociatedMoodlePresets"] is JArray associatedMoodlePresetsArray)
+            {
+                AssociatedMoodlePresets = associatedMoodlePresetsArray.Select(preset => preset.Value<Guid>()).ToList();
+            }
+
             // Deserialize the ViewAccess
             if (jsonObject["ViewAccess"] is JArray viewAccessArray)
             {
@@ -228,6 +281,7 @@ public record RestraintSet
         }
         catch (Exception e)
         {
+            StaticLogger.Logger.LogError($"Failed to deserialize RestraintSet {Name} {e}");
             throw new Exception($"Failed to deserialize RestraintSet {Name} {e}");
         }
     }

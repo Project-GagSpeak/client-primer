@@ -11,6 +11,7 @@ using GagSpeak.Hardcore.Hotbar;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
+using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.Interop.IpcHelpers.Penumbra;
 using GagSpeak.MufflerCore.Handler;
 using GagSpeak.PlayerData.Data;
@@ -72,6 +73,7 @@ public sealed class GagSpeak : IDalamudPlugin
         IObjectTable objectTable, IPluginLog pluginLog, ISigScanner sigScanner, 
         ITargetManager targetManager, ITextureProvider textureProvider)
     {
+
         // create the host builder for the plugin
         _host = ConstructHostBuilder(pi, pluginLog, addonLifecycle, commandManager, dataManager, framework, keyState,
             objectTable, clientState, condition, chatGui, gameGui, gameInteropProvider, dtrBar, 
@@ -94,7 +96,7 @@ public sealed class GagSpeak : IDalamudPlugin
             .ConfigureLogging((hostContext, loggingBuilder) => GetPluginLogConfiguration(loggingBuilder, pl))
             // get the plugin service collection for our plugin
             .ConfigureServices((hostContext, serviceCollection)
-                => GetPluginServices(serviceCollection, pi, pl, alc, cm, dm, fw, ks, ot, cs, con, cg, gg, gip, bar, ss, tm, nm, tp))
+                => GetPluginServices(serviceCollection, pi, pl, alc, cm, dm,  fw, ks, ot, cs, con, cg, gg, gip, bar, ss, tm, nm, tp))
             // Build the host builder so it becomes an IHost object.
             .Build();
     }
@@ -113,9 +115,10 @@ public sealed class GagSpeak : IDalamudPlugin
 
     /// <summary> Gets the plugin services for the GagSpeak plugin. </summary>
     private IServiceCollection GetPluginServices(IServiceCollection collection, IDalamudPluginInterface pi,
-        IPluginLog pl, IAddonLifecycle alc, ICommandManager cm, IDataManager dm, IFramework fw, IKeyState ks, IObjectTable ot, 
-        IClientState cs, ICondition con, IChatGui cg, IGameGui gg, IGameInteropProvider gip, IDtrBar bar, 
-        ISigScanner ss, ITargetManager tm, INotificationManager nm, ITextureProvider tp)
+        IPluginLog pl, IAddonLifecycle alc, ICommandManager cm, IDataManager dm, IFramework fw, 
+        IKeyState ks, IObjectTable ot, IClientState cs, ICondition con, IChatGui cg, IGameGui gg, 
+        IGameInteropProvider gip, IDtrBar bar, ISigScanner ss, ITargetManager tm, INotificationManager nm, 
+        ITextureProvider tp)
     {
         return collection
             // add the general services to the collection
@@ -123,7 +126,7 @@ public sealed class GagSpeak : IDalamudPlugin
             .AddSingleton<FileDialogManager>()
             .AddSingleton(new Dalamud.Localization("GagSpeak.Localization.", "", useEmbedded: true))
             // add the generic services for GagSpeak
-            .AddGagSpeakGeneric(pi, alc, cs, cg, con, dm, fw, ks, gg, gip, ot, ss, tm, tp)
+            .AddGagSpeakGeneric(pi, alc, cs, cg, con, dm, bar, fw, ks, gg, gip, ot, ss, tm, tp)
             // add the services related to the IPC calls for GagSpeak
             .AddGagSpeakIPC(pi, cs)
             // add the services related to the configs for GagSpeak
@@ -145,9 +148,9 @@ public static class GagSpeakServiceExtensions
 {
     #region GenericServices
     public static IServiceCollection AddGagSpeakGeneric(this IServiceCollection services,
-        IDalamudPluginInterface pi, IAddonLifecycle alc, IClientState cs, IChatGui cg, ICondition con, IDataManager dm, 
-        IFramework fw, IKeyState ks, IGameGui gg, IGameInteropProvider gip, IObjectTable ot, 
-        ISigScanner ss, ITargetManager tm, ITextureProvider tp)
+        IDalamudPluginInterface pi, IAddonLifecycle alc, IClientState cs, IChatGui cg, ICondition con, 
+        IDataManager dm, IDtrBar dtr, IFramework fw, IKeyState ks, IGameGui gg, IGameInteropProvider gip, 
+        IObjectTable ot, ISigScanner ss, ITargetManager tm, ITextureProvider tp)
     => services
         // Events Services
         .AddSingleton((s) => new EventAggregator(pi.ConfigDirectory.FullName,
@@ -173,9 +176,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<HotbarLocker>()
         .AddSingleton((s) => new AtkHelpers(gg))
         .AddSingleton((s) => new SettingsHardcore(s.GetRequiredService<ILogger<SettingsHardcore>>(),
-            s.GetRequiredService<ApiController>(), s.GetRequiredService<UiSharedService>(), 
+            s.GetRequiredService<ApiController>(), s.GetRequiredService<UiSharedService>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<HardcoreHandler>(),
-            s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<PairManager>(), 
+            s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<PairManager>(),
             s.GetRequiredService<TextureService>(), s.GetRequiredService<DictStain>(),
             s.GetRequiredService<ItemData>(), dm))
 
@@ -214,7 +217,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GlamourFastUpdate>(), cs, dm, gip))
 
         .AddSingleton((s) => new MovementMonitor(s.GetRequiredService<ILogger<MovementMonitor>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<HardcoreHandler>(), 
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<HardcoreHandler>(),
             s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<OptionPromptListeners>(), s.GetRequiredService<OnFrameworkService>(),
             s.GetRequiredService<MoveController>(), con, cs, ks, ot))
@@ -223,7 +226,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new OptionPromptListeners(s.GetRequiredService<ILogger<OptionPromptListeners>>(),
             s.GetRequiredService<HardcoreHandler>(), tm, gip, alc))
 
-        
+
         .AddSingleton((s) => new ResourceLoader(s.GetRequiredService<ILogger<ResourceLoader>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<AvfxManager>(), s.GetRequiredService<ScdManager>(), dm, ss, gip))
@@ -234,12 +237,19 @@ public static class GagSpeakServiceExtensions
 
         .AddSingleton((s) => new ActionEffectMonitor(s.GetRequiredService<ILogger<ActionEffectMonitor>>(),
             s.GetRequiredService<GagspeakConfigService>(), ss, gip))
+        .AddSingleton((s) => new DtrBarService(s.GetRequiredService<ILogger<DtrBarService>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PairManager>(), cs, dtr, ot))
 
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
         .AddSingleton<GagSpeakHost>()
         .AddSingleton<ModAssociations>()
+        .AddSingleton<MoodlesAssociations>()
         .AddSingleton<ProfileFactory>()
+        // Register ObjectIdentification and ItemData
+        .AddSingleton<ObjectIdentification>()
+        .AddSingleton<ItemData>()
+        .AddSingleton<ItemIdVars>()
 
         // UI Helpers
         .AddSingleton((s) => new DictBonusItems(pi, new Logger(), dm))
@@ -265,9 +275,10 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new MoodlesService(s.GetRequiredService<ILogger<MoodlesService>>(), s.GetRequiredService<UiSharedService>(), dm))
         .AddSingleton<MoodlesManager>()
         .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
-            s.GetRequiredService<UiSharedService>(), s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<DictStain>(),
-            s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(), s.GetRequiredService<TextureService>(), 
-            s.GetRequiredService<ModAssociations>(), s.GetRequiredService<PairManager>(), dm))
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<WardrobeHandler>(), 
+            s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(), 
+            s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(), s.GetRequiredService<MoodlesAssociations>(),
+            s.GetRequiredService<PairManager>(), dm))
         .AddSingleton<RestraintCosmetics>()
         .AddSingleton<WardrobeHandler>()
 
@@ -359,8 +370,8 @@ public static class GagSpeakServiceExtensions
     => services
         // client-end configs
         .AddSingleton((s) => new GagspeakConfigService(pi.ConfigDirectory.FullName))
-        .AddSingleton((s) => new GagStorageConfigService(pi.ConfigDirectory.FullName))
-        .AddSingleton((s) => new WardrobeConfigService(pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new GagStorageConfigService(s.GetRequiredService<ItemIdVars>(), pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new WardrobeConfigService(s.GetRequiredService<ItemIdVars>(), pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new AliasConfigService(pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new PatternConfigService(pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new AlarmConfigService(pi.ConfigDirectory.FullName))
@@ -372,9 +383,9 @@ public static class GagSpeakServiceExtensions
 
         // Configuration Migrators
         .AddSingleton((s) => new MigrateGagStorage(s.GetRequiredService<ILogger<MigrateGagStorage>>(),
-            s.GetRequiredService<ClientConfigurationManager>(), pi.ConfigDirectory.FullName))
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ItemIdVars>(), pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new MigrateRestraintSets(s.GetRequiredService<ILogger<MigrateRestraintSets>>(),
-            s.GetRequiredService<ClientConfigurationManager>(), pi.ConfigDirectory.FullName))
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ItemIdVars>(), pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new MigratePatterns(s.GetRequiredService<ILogger<MigratePatterns>>(),
             s.GetRequiredService<ClientConfigurationManager>(), pi.ConfigDirectory.FullName));
 

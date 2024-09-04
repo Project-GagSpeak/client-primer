@@ -97,7 +97,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
         DrawTable();
     }
 
-    public void DrawUnstoredSetTable(ref RestraintSet unstoredSet, float paddingHeight)
+    public void DrawUnstoredSetTable(RestraintSet unstoredSet, float paddingHeight)
     {
         using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, paddingHeight));
         using var table = ImRaii.Table("UnstoredSetMods", 5, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY);

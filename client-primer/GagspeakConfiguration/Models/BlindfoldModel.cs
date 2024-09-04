@@ -1,44 +1,43 @@
+using FFXIVClientStructs.FFXIV.Client.Game;
 using GagSpeak.Utils;
 using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Enums;
+using System.Text.Json.Serialization;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
 
 [Serializable]
 public class BlindfoldModel
 {
-    /// <summary> If you are currently blindfolded. </summary>
-    public bool IsActive { get; set; } = false;
-    
-    /// <summary> The UID of the player who blindfolded you, if any </summary>
-    public string BlindfoldedBy { get; set; } = string.Empty;
-
-    /// <summary> The DrawData for the Hardcore Blindfold Item </summary>
-    public EquipDrawData BlindfoldItem { get; set; } = new EquipDrawData(
-        ItemIdVars.NothingItem(EquipSlot.Head)) { Slot = EquipSlot.Head, IsEnabled = false };
-
-    // Blank constructor to help with deserialization
-    public BlindfoldModel()
+    [JsonIgnore]
+    private readonly ItemIdVars _itemHelper;
+    public BlindfoldModel(ItemIdVars itemHelper)
     {
-        // 
+        _itemHelper = itemHelper;
+        BlindfoldItem = new EquipDrawData(_itemHelper, (ItemIdVars.NothingItem(EquipSlot.Head))) { Slot = EquipSlot.Head, IsEnabled = false };
     }
 
-    // serializer
+    public bool ForceHeadgearOnEnable { get; set; } = false;
+    public bool ForceVisorOnEnable { get; set; } = false;
+    public List<Guid> BlindfoldMoodles { get; set; } = new List<Guid>();
+    public EquipDrawData BlindfoldItem { get; set; }
+
     public JObject Serialize()
     {
         return new JObject
         {
-            ["IsActive"] = IsActive,
-            ["BlindfoldedBy"] = BlindfoldedBy,
+            ["ForceHeadgearOnEnable"] = ForceHeadgearOnEnable,
+            ["ForceVisorOnEnable"] = ForceVisorOnEnable,
+            ["BlindfoldMoodles"] = new JArray(BlindfoldMoodles),
             ["BlindfoldItem"] = BlindfoldItem.Serialize()
         };
     }
 
-    // deserializer
     public void Deserialize(JObject jsonObject)
     {
-        IsActive = (bool)jsonObject["IsActive"];
-        BlindfoldedBy = (string)jsonObject["BlindfoldedBy"];
+        ForceHeadgearOnEnable = jsonObject["ForceHeadgearOnEnable"]?.Value<bool>() ?? false;
+        ForceVisorOnEnable = jsonObject["ForceVisorOnEnable"]?.Value<bool>() ?? false;
+        BlindfoldMoodles = jsonObject["BlindfoldMoodles"]?.Values<Guid>().ToList() ?? new List<Guid>();
         BlindfoldItem.Deserialize((JObject)jsonObject["BlindfoldItem"]);
     }
 }

@@ -1,3 +1,4 @@
+using GagSpeak.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Enums;
@@ -10,42 +11,57 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 [Serializable]
 public record GagDrawData
 {
+    [JsonIgnore]
+    private readonly ItemIdVars _itemHelpers;
+
     public bool IsEnabled { get; set; } = false;
     public EquipSlot Slot { get; set; } = EquipSlot.Head;
     public EquipItem GameItem { get; set; }
     public StainIds GameStain { get; set; } = StainIds.None;
-    public int ActiveSlotId { get; set; } = 0;
+    public bool ForceHeadgearOnEnable { get; set; } = false;
+    public bool ForceVisorOnEnable { get; set; } = false;
+    
+    // List of Moodles to apply while Gagged.
+    public List<Guid> GagMoodles { get; set; } = new List<Guid>();
+    
+    // C+ Preset when its not a bitch anymore
 
-    public GagDrawData(EquipItem gameItem) => GameItem = gameItem;
-
+    // Spatial Audio type to use while gagged. (May not use since will just have one type?)
+    
+    [JsonIgnore]
+    public int ActiveSlotId => Array.IndexOf(EquipSlotExtensions.EqdpSlots.ToArray(), Slot);
+    public GagDrawData(ItemIdVars itemHelper, EquipItem gameItem)
+    {
+        _itemHelpers = itemHelper;
+        GameItem = gameItem;
+    }
 
     // In EquipDrawData
     public JObject Serialize()
     {
-        // Create a Json with the EquipItemConverter
         var serializer = new JsonSerializer();
-        serializer.Converters.Add(new EquipItemConverter());
-        // Serialize _gameItem and _gameStain as JObjects
-        JObject gameItemObj = JObject.FromObject(GameItem, serializer);
-
-        // Include gameItemObj and gameStainObj in the serialized object
         return new JObject()
         {
             ["IsEnabled"] = IsEnabled,
+            ["ForceHeadgearOnEnable"] = ForceHeadgearOnEnable,
+            ["ForceVisorOnEnable"] = ForceVisorOnEnable,
+            ["GagMoodles"] = new JArray(GagMoodles),
             ["Slot"] = Slot.ToString(),
-            ["GameItem"] = gameItemObj,
+            ["CustomItemId"] = GameItem.Id.ToString(),
             ["GameStain"] = GameStain.ToString(),
-            ["ActiveSlotListIdx"] = ActiveSlotId,
         };
     }
 
     public void Deserialize(JObject jsonObject)
     {
         IsEnabled = jsonObject["IsEnabled"]?.Value<bool>() ?? false;
+        ForceHeadgearOnEnable = jsonObject["ForceHeadgearOnEnable"]?.Value<bool>() ?? false;
+        ForceVisorOnEnable = jsonObject["ForceVisorOnEnable"]?.Value<bool>() ?? false;
+        GagMoodles = jsonObject["GagMoodles"]?.Values<Guid>().ToList() ?? new List<Guid>();
         Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
-        var serializer = new JsonSerializer();
-        serializer.Converters.Add(new EquipItemConverter());
-        GameItem = jsonObject["GameItem"] != null ? jsonObject["GameItem"].ToObject<EquipItem>(serializer) : new EquipItem();
+        ulong customItemId = jsonObject["CustomItemId"]?.Value<ulong>() ?? 4294967164;
+        GameItem = _itemHelpers.Resolve(Slot, new CustomItemId(customItemId));
+
         // Parse the StainId
         var gameStainString = jsonObject["GameStain"]?.Value<string>() ?? "0,0";
         var stainParts = gameStainString.Split(',');
@@ -57,7 +73,6 @@ public record GagDrawData
         {
             GameStain = StainIds.None;
         }
-        ActiveSlotId = jsonObject["ActiveSlotListIdx"]?.Value<int>() ?? 0;
     }
 }
 

@@ -7,6 +7,6 @@ public class WardrobeConfig : IGagspeakConfiguration
     /// <summary> The GagSpeak Clients Pattern Storage </summary>
     public WardrobeStorage WardrobeStorage { get; set; }
     // Using Static to view version during initial load for migrations.
-    public static int CurrentVersion => 2;
+    public static int CurrentVersion => 3;
     public int Version { get; set; } = CurrentVersion;
 }

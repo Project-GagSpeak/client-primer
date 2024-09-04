@@ -132,17 +132,11 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public int GetActiveSetIndex() 
         => _clientConfigs.GetActiveSetIdx();
 
-    public bool IsBlindfoldActive()
-        => _clientConfigs.IsBlindfoldActive();
-
     public List<string> GetRestraintSetsByName() 
         => _clientConfigs.GetRestraintSetNames();
 
     public int GetRestraintSetIndexByName(string setName)
         => _clientConfigs.GetRestraintSetIdxByName(setName);
-
-    public void UpdateRestraintSet(int index, RestraintSet set)
-        => _clientConfigs.UpdateRestraintSet(index, set);
 
     // Callback related forced restraint set updates.
     public async void CallbackForceEnableRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)
@@ -195,14 +189,9 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public List<AssociatedMod> GetAssociatedMods(int setIndex)
         => _clientConfigs.GetAssociatedMods(setIndex);
 
-
-    // Replace these with the same edit & save approach as the others.
-    public void EnableBlindfold(string ApplierUID)
-        => _clientConfigs.SetBlindfoldState(true, ApplierUID);
-
-    public void DisableBlindfold(string ApplierUID)
-        => _clientConfigs.SetBlindfoldState(false, "");
-
+    public List<Guid> GetAssociatedMoodles(int setIndex)
+        => _clientConfigs.GetAssociatedMoodles(setIndex);
+    
     public EquipDrawData GetBlindfoldDrawData()
         => _clientConfigs.GetBlindfoldItem();
 

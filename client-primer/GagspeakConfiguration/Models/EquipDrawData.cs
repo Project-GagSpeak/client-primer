@@ -1,3 +1,4 @@
+using GagSpeak.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Enums;
@@ -5,41 +6,32 @@ using Penumbra.GameData.Structs;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
 
-// PERSONAL NOTE:
-// tried to stick with [JsonIgnore] and [JsonProperty("some_name")] 
-
-
 /// <summary> Model for the draw data of a players equipment slot </summary>
 /// <param name="gameItem"> the game item we are storing the drawdata of.</param>
 [Serializable]
 public record EquipDrawData
 {
+    [JsonIgnore]
+    private readonly ItemIdVars _itemHelpers;
+
     public bool IsEnabled { get; set; } = false; // determines if it will be applied during event handling.
-    public string EquippedBy { get; set; } = string.Empty; // remove if no use
-    public bool Locked { get; set; } = false; // remove if no use
     public EquipSlot Slot { get; set; } = EquipSlot.Head;
     public EquipItem GameItem { get; set; } = new EquipItem();
     public StainIds GameStain { get; set; } = StainIds.None;
 
-    public EquipDrawData(EquipItem gameItem) => GameItem = gameItem;
+    public EquipDrawData(ItemIdVars itemHelper, EquipItem gameItem)
+    {
+        _itemHelpers = itemHelper;
+        GameItem = gameItem;
+    }
 
-    // In EquipDrawData
     public JObject Serialize()
     {
-        // Create a Json with the EquipItemConverter
-        var serializer = new JsonSerializer();
-        serializer.Converters.Add(new EquipItemConverter());
-        // Serialize _gameItem and _gameStain as JObjects
-        JObject gameItemObj = JObject.FromObject(GameItem, serializer);
-
-        // Include gameItemObj and gameStainObj in the serialized object
-        return new JObject()
+        return new JObject
         {
             ["IsEnabled"] = IsEnabled,
-            ["EquippedBy"] = EquippedBy,
-            ["Locked"] = Locked,
             ["Slot"] = Slot.ToString(),
-            ["GameItem"] = gameItemObj,
+            ["CustomItemId"] = GameItem.Id.ToString(),
             ["GameStain"] = GameStain.ToString(),
         };
     }
@@ -47,12 +39,9 @@ public record EquipDrawData
     public void Deserialize(JObject jsonObject)
     {
         IsEnabled = jsonObject["IsEnabled"]?.Value<bool>() ?? false;
-        EquippedBy = jsonObject["EquippedBy"]?.Value<string>() ?? string.Empty;
-        Locked = jsonObject["Locked"]?.Value<bool>() ?? false;
         Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
-        var serializer = new JsonSerializer();
-        serializer.Converters.Add(new EquipItemConverter());
-        GameItem = jsonObject["GameItem"] != null ? jsonObject["GameItem"].ToObject<EquipItem>(serializer) : new EquipItem();
+        ulong customItemId = jsonObject["CustomItemId"]?.Value<ulong>() ?? 4294967164;
+        GameItem = _itemHelpers.Resolve(Slot, new CustomItemId(customItemId));
         // Parse the StainId
         var gameStainString = jsonObject["GameStain"]?.Value<string>() ?? "0,0";
         var stainParts = gameStainString.Split(',');

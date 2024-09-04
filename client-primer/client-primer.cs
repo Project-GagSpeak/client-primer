@@ -11,6 +11,7 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.UpdateMonitoring.Chat.ChatMonitors;
 using GagSpeak.UpdateMonitoring.Triggers;
+using GagSpeak.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Reflection;
@@ -24,9 +25,9 @@ namespace GagSpeak;
 /// interfaces and scoped services and hosted services.
 /// </para>
 /// </summary>
-public static class LoggingProvider
+public static class StaticLogger
 {
-    public static ILogger UniversalLogger { get; set; }
+    public static ILogger Logger { get; set; }
 }
 
 public class GagSpeakHost : MediatorSubscriberBase, IHostedService
@@ -44,7 +45,6 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
         // set the services
         _frameworkUtil = frameworkUtil;
         _serviceScopeFactory = serviceScopeFactory;
-        LoggingProvider.UniversalLogger = logger;
         _clientConfigurationManager = clientConfigurationManager;
         _serverConfigurationManager = serverConfigurationManager;
     }
@@ -74,9 +74,6 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
 
         // start processing the mediator queue.
         Mediator.StartQueueProcessing();
-
-        // Assign the resolved logger to the static logger provider
-        LoggingProvider.UniversalLogger = _serviceScopeFactory.CreateScope().ServiceProvider.GetRequiredService<ILogger<GagSpeak>>();
 
         // return that the startAsync has been completed.
         return Task.CompletedTask;
@@ -171,6 +168,9 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<MovementMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ActionEffectMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<OptionPromptListeners>();
+
+            // stuff that should probably be a hosted service but isnt yet.
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<DtrBarService>();
         }
         catch (Exception ex)
         {

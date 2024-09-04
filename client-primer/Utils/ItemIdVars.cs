@@ -5,13 +5,10 @@ using Penumbra.GameData.Structs;
 namespace GagSpeak.Utils;
 public class ItemIdVars
 {
-    private readonly ObjectIdentification _objectIdentification;
-    private readonly ItemData _itemData;
+    private ItemData _itemData;
 
-    public ItemIdVars(ObjectIdentification objectIdentification,
-        ItemData itemData)
+    public ItemIdVars(ItemData itemData)
     {
-        _objectIdentification = objectIdentification;
         _itemData = itemData;
     }
 
@@ -44,9 +41,6 @@ public class ItemIdVars
         if (!itemId.IsItem)
         {
             var item = EquipItem.FromId(itemId);
-            item = slot is EquipSlot.MainHand or EquipSlot.OffHand
-                ? Identify(slot, item.PrimaryId, item.SecondaryId, item.Variant)
-                : Identify(slot, item.PrimaryId, item.Variant);
             return item;
         }
         else if (!_itemData.TryGetValue(itemId.Item, slot, out var item))
@@ -61,35 +55,5 @@ public class ItemIdVars
 
             return item;
         }
-    }
-
-    public EquipItem Identify(EquipSlot slot, PrimaryId id, Variant variant)
-    {
-        slot = slot.ToSlot();
-        if (slot.ToIndex() == uint.MaxValue)
-            return new EquipItem($"Invalid ({id.Id}-{variant})", 0, 0, id, 0, variant, 0, 0, 0, 0);
-
-        switch (id.Id)
-        {
-            case 0: return NothingItem(slot);
-            case 9903: return SmallClothesItem(slot);
-            default:
-                var item = _objectIdentification.Identify(id, 0, variant, slot).FirstOrDefault();
-                return item.Valid
-                    ? item 
-                    : EquipItem.FromIds(0, 0, id, 0, variant, slot.ToEquipType());
-        }
-    }
-
-    public EquipItem Identify(EquipSlot slot, PrimaryId id, SecondaryId type, Variant variant,
-        FullEquipType mainhandType = FullEquipType.Unknown)
-    {
-        if (slot is not EquipSlot.MainHand and not EquipSlot.OffHand)
-            return new EquipItem($"Invalid ({id.Id}-{type.Id}-{variant})", 0, 0, id, type, variant, 0, 0, 0, 0);
-
-        var item = _objectIdentification.Identify(id, type, variant, slot).FirstOrDefault(i => i.Type.ToSlot() == slot);
-        return item.Valid
-            ? item
-            : EquipItem.FromIds(0, 0, id, type, variant, slot.ToEquipType());
     }
 }

@@ -76,7 +76,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
     // - Any Active Blindfolds.
     // - Hardcore mode for every pair.
 
-    private void SafewordUsed()
+    private async void SafewordUsed()
     {
         // return if it has not yet been 5 minutes since the last use.
         if (SafewordIsUsed)
@@ -112,7 +112,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
         _gagManager.SafewordWasUsed();
 
         // disable any active restraints.
-        _clientConfigs.DisableActiveSetDueToSafeword();
+        await _clientConfigs.DisableActiveSetDueToSafeword();
 
         // disable any active patterns.
         if (_clientConfigs.IsAnyPatternPlaying())

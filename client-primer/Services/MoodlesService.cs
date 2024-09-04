@@ -6,8 +6,10 @@ using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.IPC;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
+using Microsoft.IdentityModel.Tokens;
 using OtterGui.Raii;
 using System.Numerics;
+using System.Security.AccessControl;
 namespace GagSpeak.Services;
 
 // helps out with locating and parsing moodles icons and drawing custom dropdowns.
@@ -29,15 +31,76 @@ public class MoodlesService
         _logger = logger;
         _uiShared = uiShared;
         _dataManager = dataManager;
+        SelectedPresetComboGuids = new Dictionary<string, Guid>();
     }
 
     public static readonly Vector2 StatusSize = new(24, 32);
-    private string StatusSearchString = string.Empty;
+    public Dictionary<string, Guid> SelectedPresetComboGuids;    // the selected combo items
 
+    public bool DrawMoodlesPresetComboSearchable(string comboLabel, ref int selectedIdx, ref string searchString, 
+        List<(Guid, List<Guid>)> MoodlesPresets, List<MoodlesStatusInfo> MoodlesStatuses, float width)
+    {
+        bool itemSelected = false;
+        // Return if there are no items to display in the combo box.
+        if (!MoodlesPresets.Any())
+        {
+            ImGui.SetNextItemWidth(width);
+            ImGui.BeginCombo("##"+comboLabel, "No Presets Available...");
+            ImGui.EndCombo();
+            return false;
+        }
+        // Get the currently selected item from the dictionary storing selections for each combo box.
+        if (!SelectedPresetComboGuids.TryGetValue(comboLabel, out var selectedItem) || selectedItem == Guid.Empty)
+        {
+            selectedItem = MoodlesPresets.First().Item1;
+            SelectedPresetComboGuids[comboLabel] = selectedItem!;
+        }
+
+        // If the selected item is not in the list of items being passed in, update it to the first item in the comboItems list.
+        if (!MoodlesPresets.Any(item => item.Equals((Guid)selectedItem!)))
+        {
+            selectedItem = MoodlesPresets.First().Item1;
+            SelectedPresetComboGuids[comboLabel] = selectedItem!;
+        }
+
+        ImGui.SetNextItemWidth(width);
+        if (ImGui.BeginCombo(comboLabel, selectedItem.ToString()))
+        {
+            // Display filtered content.
+            foreach (var item in MoodlesPresets)
+            {
+                bool isSelected = item.Equals((Guid)selectedItem!);
+                if (ImGui.Selectable(item.Item1.ToString(), isSelected))
+                {
+                    SelectedPresetComboGuids[comboLabel] = item.Item1;
+                    selectedIdx = MoodlesPresets.IndexOf(item);
+                    itemSelected = true;
+                }
+                if (ImGui.IsItemHovered())
+                {
+                    var moodleNames = MoodlesStatuses
+                        .Where(x => item.Item2.Contains(x.GUID))
+                        .Select(x => x.Title)
+                        .ToList();
+                    ImGui.SetTooltip($"This Preset Enables the Following Moodles:\n" + string.Join(Environment.NewLine, moodleNames));
+                }
+
+                // Show tooltip with corresponding moodles when hovered.
+                if (ImGui.IsItemHovered())
+                {
+                    ImGui.SetTooltip($"This Preset Enables the Following Moodles:\n{string.Join("\n", item.Item2)}");
+                }
+            }
+            ImGui.EndCombo();
+        }
+        return itemSelected;
+    }
+
+    #region MoodlesStatusCombo
+    private string StatusSearchString = string.Empty;
     protected virtual void PostCombo(float previewWidth) { }
 
     protected virtual void OnClosePopup() { }
-
     public bool DrawMoodleStatusComboSearchable(List<MoodlesStatusInfo> statusList, string comboLabel, ref int selectedIdx, float width, float sizeScaler)
     {
         DrawComboActual(statusList, comboLabel, ref selectedIdx, width, sizeScaler);
@@ -153,6 +216,7 @@ public class MoodlesService
         }
         ImGui.SetWindowFontScale(1f);
     }
+    #endregion MoodlesStatusCombo
 
     public IconInfo? GetIconInfo(uint iconID)
     {

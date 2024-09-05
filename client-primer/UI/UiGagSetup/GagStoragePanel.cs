@@ -147,7 +147,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             }
             gagAudio.Dispose();
 
-            if(DateTime.UtcNow - _lastSaveTime < TimeSpan.FromSeconds(5))
+            if(DateTime.UtcNow - _lastSaveTime < TimeSpan.FromSeconds(3))
             {
                 using (var disabled = ImRaii.Disabled())
                 {

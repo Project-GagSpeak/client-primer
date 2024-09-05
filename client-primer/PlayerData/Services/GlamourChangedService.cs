@@ -13,6 +13,7 @@ using GagSpeak.Utils;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using Glamourer.Api.Enums;
+using ImGuiNET;
 using Interop.Ipc;
 using System.Reflection;
 
@@ -165,6 +166,14 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                     if (drawData.ForceHeadgearOnEnable) await _Interop.Glamourer.ForceSetMetaData(IpcCallerGlamourer.MetaData.Hat, true);
 
                     if (drawData.ForceVisorOnEnable) await _Interop.Glamourer.ForceSetMetaData(IpcCallerGlamourer.MetaData.Visor, true);
+
+                    if (drawData.AssociatedMoodles.Any())
+                    {
+                        // create new task source
+                        var taskSource = new TaskCompletionSource<bool>();
+                        _moodlesAssociations.ToggleMoodlesOnAction(drawData.AssociatedMoodles, NewState.Enabled, taskSource);
+                        await taskSource.Task;
+                    }
                 }
                 // otherwise, do the same as the unequip function
                 else
@@ -176,11 +185,23 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
             // For Gag Unequip
             if (msg.NewState == NewState.Disabled && _playerManager.GlobalPerms.ItemAutoEquip)
             {
+                // get the draw data for the gag
+                var drawData = _clientConfigs.GetDrawData(msg.GagType);
+
                 Logger.LogDebug($"Processing Gag UnEquip");
                 var gagType = Enum.GetValues(typeof(GagList.GagType)).Cast<GagList.GagType>().First(g => g.GetGagAlias() == msg.GagType.GetGagAlias());
                 // this should replace it with nothing
                 await _Interop.Glamourer.SetItemToCharacterAsync((ApiEquipSlot)_clientConfigs.GetGagTypeEquipSlot(gagType),
                     ItemIdVars.NothingItem(_clientConfigs.GetGagTypeEquipSlot(gagType)).Id.Id, [0, 0], 0);
+                // disable moodles if any
+                if (drawData.AssociatedMoodles.Any())
+                {
+                    // create new task source
+                    var taskSource = new TaskCompletionSource<bool>();
+                    _moodlesAssociations.ToggleMoodlesOnAction(drawData.AssociatedMoodles, NewState.Disabled, taskSource);
+                    await taskSource.Task;
+                }
+
                 // reapply any restraints hiding under them, if any
                 await ApplyRestrainSetToCachedCharacterData();
                 // update blindfold (TODO)

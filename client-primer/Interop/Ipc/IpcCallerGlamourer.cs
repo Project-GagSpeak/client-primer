@@ -33,7 +33,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     /* ---------- Glamourer API IPC Subscribers --------- */
     private readonly ApiVersion _ApiVersion; // the API version of glamourer
-    private readonly Glamourer.Api.IpcSubscribers.GetState _glamourerGetState;
+    private readonly GetState _glamourerGetState;
     private readonly ApplyState _ApplyState; // apply a state to the character using JObject
     private readonly GetDesignList _GetDesignList; // get lists of designs from player's Glamourer.
     private readonly ApplyDesignName _ApplyCustomizationsFromDesignName; // apply customization data from a design.
@@ -53,7 +53,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
         // set IPC callers
         _ApiVersion = new ApiVersion(_pi);
-        _glamourerGetState = new Glamourer.Api.IpcSubscribers.GetState(pluginInterface);
+        _glamourerGetState = new GetState(_pi);
         _ApplyState = new ApplyState(_pi);
         _GetDesignList = new GetDesignList(_pi);
         _ApplyCustomizationsFromDesignName = new ApplyDesignName(_pi);
@@ -118,7 +118,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     /// <summary> ========== BEGIN OUR IPC CALL MANAGEMENT UNDER ASYNC TASKS ========== </summary>
     public async Task SetItemToCharacterAsync(ApiEquipSlot slot, ulong item, IReadOnlyList<byte> dye, uint variant)
     {
-/*        // if the glamourerApi is not active, then return an empty string for the customization
+        // if the glamourerApi is not active, then return an empty string for the customization
         if (!APIAvailable || _onFrameworkService.IsZoning) return;
         try
         {
@@ -141,7 +141,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             // if at any point this errors, return an empty string as well.
             Logger.LogWarning($"Failed to set item to character with slot {slot}, item {item}, dye {dye.ToArray().ToString()}, and key {variant}, {ex}");
             return;
-        }*/
+        }
     }
 
     private GlamourerApiEc _lastError;
@@ -209,7 +209,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public async Task GlamourerRevertCharacterToAutomation(nint character)
     {
-/*        // if the glamourerApi is not active, then return an empty string for the customization
+        // if the glamourerApi is not active, then return an empty string for the customization
         if (!APIAvailable || _onFrameworkService.IsZoning) return;
         try
         {
@@ -243,12 +243,12 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         catch (Exception ex)
         {
             Logger.LogWarning($"Error during GlamourerRevert: {ex}");
-        }*/
+        }
     }
 
     public async Task GlamourerRevertCharacter(nint character)
     {
-/*        // if the glamourerApi is not active, then return an empty string for the customization
+        // if the glamourerApi is not active, then return an empty string for the customization
         if (!APIAvailable || _onFrameworkService.IsZoning) return;
         try
         {
@@ -274,7 +274,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         catch (Exception ex)
         {
             Logger.LogWarning($"Error during GlamourerRevert: {ex}");
-        }*/
+        }
     }
 
     /// <summary> Fired upon by the IPC event subscriber when the glamourer changes. </summary>
@@ -282,7 +282,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     /// <param name="changeType"> The type of change that occurred. </param>"
     private void GlamourerChanged(nint address, StateChangeType changeType)
     {
-/*        // do not accept if coming from other player besides us.
+        // do not accept if coming from other player besides us.
         if (address != _onFrameworkService._playerAddr) return;
 
         // block if we are not desiring to listen to changes yet.
@@ -308,6 +308,6 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         {
             Logger.LogTrace($"GlamourerChanged event was not a type we care about, " +
                 $"so skipping (Type was: {changeType})");
-        }*/
+        }
     }
 }

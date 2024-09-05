@@ -105,7 +105,7 @@ internal class ChangelogUI : WindowMediatorSubscriberBase
                 .OrderBy(v => v.Build)
                 .ThenBy(v => v.Fix);
 
-            foreach (var entry in sortedVersions)
+            foreach (var entry in sortedVersions.Reverse())
             {
                 using (var id = ImRaii.PushId(entry.VersionString))
                 {
@@ -116,6 +116,7 @@ internal class ChangelogUI : WindowMediatorSubscriberBase
                         {
                             selectedVersion = entry;
                         }
+                        ImGui.TreePop(); 
                     }
                 }
             }
@@ -145,6 +146,8 @@ internal class ChangelogUI : WindowMediatorSubscriberBase
 
         foreach (var category in selectedVersion.CategorizedEntries)
         {
+            // if the catagory has no entries, continue
+            if (category.Value.Count == 0) continue;
             ImGui.Text(GetCategoryHeader(category.Key));
             foreach (var entry in category.Value)
             {

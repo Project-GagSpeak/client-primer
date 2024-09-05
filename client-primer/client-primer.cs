@@ -15,6 +15,7 @@ using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
 using System.Reflection;
 using UpdateMonitoring;
 
@@ -62,16 +63,6 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
         // publish an event message to the mediator that we have started the plugin
         Mediator.Publish(new EventMessage(new Event(nameof(GagSpeak), EventSeverity.Informational,
             $"Starting Gagspeak{version.Major}.{version.Minor}.{version.Build}")));
-
-        // boot up the changelog if we are loading a version different from our last version.
-        if(_clientConfigurationManager.GagspeakConfig.LastRunVersion != version)
-        {
-            var changelogUI = _serviceScopeFactory.CreateScope().ServiceProvider.GetRequiredService<ChangelogUI>();
-            // update the version and toggle the UI.
-            Logger.LogInformation("Version was different, displaying UI");
-            _clientConfigurationManager.GagspeakConfig.LastRunVersion = version;
-            Mediator.Publish(new UiToggleMessage(typeof(ChangelogUI)));
-        }
 
         // subscribe to the main UI message window for making the primary UI be the main UI interface.
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (msg) =>
@@ -160,6 +151,15 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
                 // publish the switch to intro ui message to the mediator
                 Mediator.Publish(new SwitchToIntroUiMessage());
                 return;
+            }
+
+            // display changelog if we should.
+            if (_clientConfigurationManager.GagspeakConfig.LastRunVersion != Assembly.GetExecutingAssembly().GetName().Version!)
+            {
+                // update the version and toggle the UI.
+                Logger?.LogInformation("Version was different, displaying UI");
+                _clientConfigurationManager.GagspeakConfig.LastRunVersion = Assembly.GetExecutingAssembly().GetName().Version!;
+                Mediator.Publish(new UiToggleMessage(typeof(ChangelogUI)));
             }
 
             // get the required service for the online player manager (and notification service if we add it)

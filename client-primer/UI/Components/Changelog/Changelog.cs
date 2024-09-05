@@ -24,6 +24,9 @@ public class Changelog
     private void AddVersionData()
     {
         // Add Version Data here.
+        VersionEntry(0, 7, 2, 3)
+            .RegisterMain("Im a silly goober and tried to open the changelog before it was registered.");
+
         VersionEntry(0, 7, 2, 2)
             .RegisterMain("Added Changelog Window")
             .RegisterFeature("New PatternHub tab is available in the main window. (Currently has no functionality)")

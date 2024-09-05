@@ -1,7 +1,6 @@
 using Dalamud.Plugin;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Utils;
-using Newtonsoft.Json;
 using System.Text.RegularExpressions;
 
 

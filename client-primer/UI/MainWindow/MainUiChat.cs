@@ -13,13 +13,13 @@ using System.Numerics;
 namespace GagSpeak.UI.MainWindow;
 
 // this can easily become the "contact list" tab of the "main UI" window.
-public class MainUiDiscover : DisposableMediatorSubscriberBase
+public class MainUiChat : DisposableMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
     private readonly UiSharedService _uiSharedService;
     private readonly DiscoverService _discoveryService;
 
-    public MainUiDiscover(ILogger<MainUiDiscover> logger,
+    public MainUiChat(ILogger<MainUiChat> logger,
         GagspeakMediator mediator, ApiController apiController,
         UiSharedService uiSharedService,
         DiscoverService discoverService) : base(logger, mediator)

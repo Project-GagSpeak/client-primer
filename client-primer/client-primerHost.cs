@@ -310,7 +310,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<UserPairListHandler>()
         .AddSingleton<MainUiHomepage>()
         .AddSingleton<MainUiWhitelist>()
-        .AddSingleton<MainUiDiscover>()
+        .AddSingleton<MainUiPatternHub>()
+        .AddSingleton<MainUiChat>()
         .AddSingleton((s) => new MainUiAccount(s.GetRequiredService<ILogger<MainUiAccount>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
             s.GetRequiredService<UiSharedService>(), s.GetRequiredService<OnFrameworkService>(),
@@ -413,10 +414,11 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ApiController>(), s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<PairManager>(), s.GetRequiredService<ServerConfigurationManager>(),
             s.GetRequiredService<MainUiHomepage>(), s.GetRequiredService<MainUiWhitelist>(),
-            s.GetRequiredService<MainUiDiscover>(), s.GetRequiredService<MainUiAccount>(),
+            s.GetRequiredService<MainUiPatternHub>(), s.GetRequiredService<MainUiChat>(), s.GetRequiredService<MainUiAccount>(),
             s.GetRequiredService<DrawEntityFactory>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
+        .AddScoped<WindowMediatorSubscriberBase, ChangelogUI>()
         .AddScoped<WindowMediatorSubscriberBase, MigrationsUI>()
         .AddScoped<WindowMediatorSubscriberBase, RemotePersonal>()
         .AddScoped<WindowMediatorSubscriberBase, RemotePatternMaker>()

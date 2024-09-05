@@ -1528,7 +1528,7 @@
         "type": "Project",
         "dependencies": {
           "OtterGui": "[1.0.0, )",
-          "Penumbra.Api": "[5.2.0, )",
+          "Penumbra.Api": "[5.3.0, )",
           "Penumbra.String": "[1.0.4, )"
         }
       },

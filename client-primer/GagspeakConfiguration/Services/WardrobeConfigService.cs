@@ -1,8 +1,6 @@
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Utils;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 #nullable disable
 namespace GagSpeak.GagspeakConfiguration;
 

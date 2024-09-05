@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-
 namespace GagSpeak.PlayerData.Data;
 
 public class GagData

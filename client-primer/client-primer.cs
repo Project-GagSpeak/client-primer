@@ -7,6 +7,7 @@ using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.UpdateMonitoring.Chat.ChatMonitors;
@@ -61,6 +62,16 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
         // publish an event message to the mediator that we have started the plugin
         Mediator.Publish(new EventMessage(new Event(nameof(GagSpeak), EventSeverity.Informational,
             $"Starting Gagspeak{version.Major}.{version.Minor}.{version.Build}")));
+
+        // boot up the changelog if we are loading a version different from our last version.
+        if(_clientConfigurationManager.GagspeakConfig.LastRunVersion != version)
+        {
+            var changelogUI = _serviceScopeFactory.CreateScope().ServiceProvider.GetRequiredService<ChangelogUI>();
+            // update the version and toggle the UI.
+            Logger.LogInformation("Version was different, displaying UI");
+            _clientConfigurationManager.GagspeakConfig.LastRunVersion = version;
+            Mediator.Publish(new UiToggleMessage(typeof(ChangelogUI)));
+        }
 
         // subscribe to the main UI message window for making the primary UI be the main UI interface.
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (msg) =>

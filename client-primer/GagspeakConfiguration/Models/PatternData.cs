@@ -1,6 +1,3 @@
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using Newtonsoft.Json.Linq;
-
 namespace GagSpeak.GagspeakConfiguration.Models;
 
 /// <summary>

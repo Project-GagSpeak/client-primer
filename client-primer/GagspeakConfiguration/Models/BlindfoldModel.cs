@@ -1,8 +1,6 @@
-using FFXIVClientStructs.FFXIV.Client.Game;
+
 using GagSpeak.Utils;
-using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Enums;
-using System.Text.Json.Serialization;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
 

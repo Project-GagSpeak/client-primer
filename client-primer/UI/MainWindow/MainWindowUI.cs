@@ -1,30 +1,19 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Plugin;
 using Dalamud.Utility;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.WebAPI.Utils;
+using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
-using GagSpeak.UI.Handlers;
+using GagSpeak.WebAPI;
+using GagspeakAPI.Data.Enum;
 using ImGuiNET;
-using System.Collections.Immutable;
 using System.Globalization;
 using System.Numerics;
 using System.Reflection;
-using OtterGuiInternal.Structs;
-using GagSpeak.UI.Permissions;
-using GagspeakAPI.Data.Enum;
-using GagSpeak.GagspeakConfiguration;
-using GagSpeak;
-using GagSpeak.UI;
-using GagSpeak.WebAPI;
-using Lumina.Excel.GeneratedSheets;
-using Dalamud.Plugin;
-using GagSpeak.GagspeakConfiguration.Configurations;
-using Microsoft.VisualBasic.ApplicationServices;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -39,7 +28,8 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private readonly MainTabMenu _tabMenu;
     private readonly MainUiHomepage _homepage;
     private readonly MainUiWhitelist _whitelist;
-    private readonly MainUiDiscover _discover;
+    private readonly MainUiPatternHub _patternHub;
+    private readonly MainUiChat _globalChat;
     private readonly MainUiAccount _account;
     private readonly IDalamudPluginInterface _pi;
     private int _secretKeyIdx = -1;
@@ -50,11 +40,12 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     public bool ThemePushed = false;
 
     public MainWindowUI(ILogger<MainWindowUI> logger, GagspeakMediator mediator,
-        UiSharedService uiShared, ApiController apiController, 
-        GagspeakConfigService configService, PairManager pairManager, 
-        ServerConfigurationManager serverManager, MainUiHomepage homepage, 
-        MainUiWhitelist whitelist, MainUiDiscover discover, MainUiAccount account,
-        DrawEntityFactory drawEntityFactory, IDalamudPluginInterface pi) 
+        UiSharedService uiShared, ApiController apiController,
+        GagspeakConfigService configService, PairManager pairManager,
+        ServerConfigurationManager serverManager, MainUiHomepage homepage,
+        MainUiWhitelist whitelist, MainUiPatternHub patternHub,
+        MainUiChat globalChat, MainUiAccount account,
+        DrawEntityFactory drawEntityFactory, IDalamudPluginInterface pi)
         : base(logger, mediator, "###GagSpeakMainUI")
     {
         _apiController = apiController;
@@ -63,7 +54,8 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         _serverManager = serverManager;
         _homepage = homepage;
         _whitelist = whitelist;
-        _discover = discover;
+        _patternHub = patternHub;
+        _globalChat = globalChat;
         _account = account;
         _pi = pi;
         _uiShared = uiShared;
@@ -82,7 +74,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 {
                     Mediator.Publish(new UiToggleMessage(typeof(SettingsUi)));
                 },
-                
+
                 IconOffset = new(2,1),
                 ShowTooltip = () =>
                 {
@@ -93,7 +85,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             },
             new TitleBarButton()
             {
-                Icon = FontAwesomeIcon.Book,
+                Icon = FontAwesomeIcon.Bell,
                 Click = (msg) =>
                 {
                     Mediator.Publish(new UiToggleMessage(typeof(EventViewerUI)));
@@ -108,10 +100,10 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             },
             new TitleBarButton()
             {
-                Icon = FontAwesomeIcon.QuestionCircle,
+                Icon = FontAwesomeIcon.Book,
                 Click = (msg) =>
                 {
-                    Mediator.Publish(new UiToggleMessage(typeof(EventViewerUI)));
+                    Mediator.Publish(new UiToggleMessage(typeof(ChangelogUI)));
                 },
                 IconOffset = new(2,1),
                 ShowTooltip = () =>
@@ -145,7 +137,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     protected override void PreDrawInternal()
     {
         // no config option yet, so it will always be active. When one is added, append "&& !_configOption.useTheme" to the if statement.
-        if(!ThemePushed)
+        if (!ThemePushed)
         {
             ImGui.PushStyleColor(ImGuiCol.TitleBg, new Vector4(0.01f, 0.07f, 0.01f, 1f));
             ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0, 0.56f, 0.09f, 0.51f));
@@ -186,7 +178,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 $"It is highly recommended to keep GagSpeak up to date. Open /xlplugins and update the plugin.", ImGuiColors.DalamudRed);
         }
 
-        if(_apiController.ServerState is ServerState.NoSecretKey || _apiController.ServerState is ServerState.VersionMisMatch)
+        if (_apiController.ServerState is ServerState.NoSecretKey || _apiController.ServerState is ServerState.VersionMisMatch)
         {
             using (ImRaii.PushId("header")) DrawUIDHeader();
         }
@@ -204,7 +196,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         // if we are connected to the server
         if (_apiController.ServerState is ServerState.Connected)
         {
-            if(_addingNewUser)
+            if (_addingNewUser)
             {
                 using (ImRaii.PushId("AddPair")) DrawAddPair(_windowContentWidth, ImGui.GetStyle().ItemSpacing.X);
             }
@@ -220,8 +212,11 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 case MainTabMenu.SelectedTab.Whitelist:
                     using (ImRaii.PushId("whitelistComponent")) _whitelist.DrawWhitelistSection();
                     break;
-                case MainTabMenu.SelectedTab.Discover:
-                    using (ImRaii.PushId("discoverComponent")) _discover.DrawDiscoverySection();
+                case MainTabMenu.SelectedTab.PatternHub:
+                    using (ImRaii.PushId("patternHubComponent")) _patternHub.DrawPatternHub();
+                    break;
+                case MainTabMenu.SelectedTab.GlobalChat:
+                    using (ImRaii.PushId("globalChatComponent")) _globalChat.DrawDiscoverySection();
                     break;
                 case MainTabMenu.SelectedTab.MySettings:
                     using (ImRaii.PushId("accountSettingsComponent")) _account.DrawAccountSection();

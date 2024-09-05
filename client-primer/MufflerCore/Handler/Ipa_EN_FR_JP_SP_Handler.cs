@@ -1,9 +1,7 @@
 using Dalamud.Plugin;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Utils;
-using Newtonsoft.Json;
 using System.Text.RegularExpressions;
-using GagSpeak.Utils;
 
 namespace GagSpeak.MufflerCore.Handler;
 

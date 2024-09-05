@@ -2,8 +2,6 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 

@@ -88,6 +88,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public IDalamudTextureWrap GetSupporterTierFour() => GetImageFromDirectoryFile(OwnerT4);
     public IDalamudTextureWrap? RentSupporterTierFour() => RentImageFromFile(OwnerT4);
 
+    // a rented version of the gagspeak logo cached throughout the instance.
+    // ONLY TO BE USED IN PLUGIN WHERE IT MUST SERVE AS A REPLACEMENT FOR LOADED PROFILE IMAGES.
+    private IDalamudTextureWrap? GagSpeakLogoNoRadial = null;
+
     public UiSharedService(ILogger<UiSharedService> logger, GagspeakMediator mediator,
         Dalamud.Localization localization, ApiController apiController,
         ClientConfigurationManager clientConfigurationManager,
@@ -130,6 +134,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         GameFont = _pi.UiBuilder.FontAtlas.NewGameFontHandle(new(GameFontFamilyAndSize.Axis12));
         // the font atlas for our icon font
         IconFont = _pi.UiBuilder.IconFontFixedWidthHandle;
+
+        // load the image on startup, so it always appears while we load other profiles. Ensure we dispose of it upon plugin close.
+        Logger.LogDebug("Fetching Logo");
+        Task.Run(async () => await frameworkUtil.RunOnFrameworkThread(() => { GagSpeakLogoNoRadial = RentImageFromFile(Logo256bgPath); }));
     }
 
     public ApiController ApiController => _apiController;   // a public accessible api controller for the plugin, pulled from the private field
@@ -152,7 +160,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         if (!disposing) return;
 
         base.Dispose(disposing);
-
+        GagSpeakLogoNoRadial?.Dispose();
+        GagSpeakLogoNoRadial = null;
         UidFont.Dispose();
         GameFont.Dispose();
     }

@@ -1,6 +1,3 @@
-using Newtonsoft.Json.Linq;
-using Penumbra.GameData.Enums;
-
 namespace GagSpeak.GagspeakConfiguration.Models;
 
 /// <summary>

@@ -1,14 +1,8 @@
 using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Client.Game;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
-using ImGuiNET;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
-using System.Text.Json.Nodes;
-using System.Xml.Linq;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
 
@@ -21,7 +15,7 @@ public record RestraintSet : IMoodlesAssociable
     [JsonIgnore]
     private readonly ItemIdVars _itemIdVars;
 
-    public RestraintSet(ItemIdVars itemHelpers) 
+    public RestraintSet(ItemIdVars itemHelpers)
     {
         _itemIdVars = itemHelpers;
 
@@ -54,10 +48,10 @@ public record RestraintSet : IMoodlesAssociable
     public string Description { get; set; } = "Enter Description Here...";
     public bool Enabled { get; set; } = false;
     public string EnabledBy { get; set; } = string.Empty;
-    
+
     [JsonIgnore]
     public bool Locked => LockType != "None";
-    
+
     public string LockType { get; set; } = "None";
     public string LockPassword { get; set; } = string.Empty;
     public DateTimeOffset LockedUntil { get; set; } = DateTimeOffset.MinValue;
@@ -69,7 +63,7 @@ public record RestraintSet : IMoodlesAssociable
 
     // any Mods to apply with this set, and their respective settings.
     public List<AssociatedMod> AssociatedMods { get; private set; } = new List<AssociatedMod>();
-    
+
     // the list of Moodles to apply when the set is active, and remove when inactive.
     public List<Guid> AssociatedMoodles { get; private set; } = new List<Guid>();
     public List<Guid> AssociatedMoodlePresets { get; private set; } = new List<Guid>();
@@ -98,11 +92,11 @@ public record RestraintSet : IMoodlesAssociable
         foreach (var pair in DrawData)
         {
             drawDataEquipmentObject[pair.Key.ToString()] = new JObject()
-            { 
+            {
                 ["Slot"] = pair.Value.Slot.ToString(),
                 ["IsEnabled"] = pair.Value.IsEnabled,
                 ["CustomItemId"] = pair.Value.GameItem.Id.ToString(),
-                ["GameStain"] = pair.Value.GameStain.ToString(), 
+                ["GameStain"] = pair.Value.GameStain.ToString(),
             };
         }
 

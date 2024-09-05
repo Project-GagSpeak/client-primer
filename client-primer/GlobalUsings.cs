@@ -2,6 +2,9 @@
  * A Simple file for storing global using variables 
  * so I don't need to be redundant all the time in headers. 
  */
+
+global using Newtonsoft.Json;
+global using Newtonsoft.Json.Linq;
 global using Microsoft.Extensions.Logging;
 global using System;
 global using System.Collections.Concurrent;

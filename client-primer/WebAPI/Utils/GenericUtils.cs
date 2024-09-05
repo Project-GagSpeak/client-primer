@@ -3,9 +3,6 @@ using GagSpeak.Interop.IpcHelpers.GameData;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagspeakAPI.Data.Character;
-using Newtonsoft.Json;
-using Penumbra.GameData.Structs;
-using System.Text.Json;
 
 namespace GagSpeak.WebAPI.Utils;
 
@@ -57,7 +54,7 @@ public static class GenericUtils
         {
             TypeNameHandling = TypeNameHandling.Auto,
             PreserveReferencesHandling = PreserveReferencesHandling.Objects,
-            Converters = new List<JsonConverter> { new EquipItemConverter(), new GameStainConverter() },
+            Converters = new List<JsonConverter> { new GameStainConverter() },
         };
 
         var jsonString = JsonConvert.SerializeObject(obj, settings);

@@ -1,8 +1,4 @@
 using GagSpeak.GagspeakConfiguration.Configurations;
-using GagSpeak.Services.ConfigurationServices;
-using System.CodeDom;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace GagSpeak.GagspeakConfiguration;
 /// <summary>
@@ -104,7 +100,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
                 config = DeserializeConfig(configJson);
                 Save();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 throw new Exception($"Failed to load {ConfigurationName} configuration. {ex.StackTrace}");
                 config = default;

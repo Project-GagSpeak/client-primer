@@ -3,7 +3,6 @@ using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
-using Newtonsoft.Json;
 
 namespace GagSpeak.PlayerData.Handlers;
 /// <summary> Service for managing the gags. </summary>

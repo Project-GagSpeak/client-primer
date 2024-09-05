@@ -1,7 +1,5 @@
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 
@@ -21,7 +19,7 @@ public record GagDrawData : IMoodlesAssociable
     public StainIds GameStain { get; set; } = StainIds.None;
     public bool ForceHeadgearOnEnable { get; set; } = false;
     public bool ForceVisorOnEnable { get; set; } = false;
-    
+
     // List of Moodles to apply while Gagged.
     public List<Guid> AssociatedMoodles { get; set; } = new List<Guid>();
     public List<Guid> AssociatedMoodlePresets { get; set; } = new List<Guid>();

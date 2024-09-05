@@ -10,8 +10,6 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagSpeak.UI.UiRemote;
 using ImGuiNET;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
-using Newtonsoft.Json;
 using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Text;
@@ -30,7 +28,7 @@ public class ToyboxPatterns
 
     public ToyboxPatterns(ILogger<ToyboxPatterns> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        PatternHandler patternHandler, PatternPlaybackService playbackService, 
+        PatternHandler patternHandler, PatternPlaybackService playbackService,
         PairManager pairManager)
     {
         _logger = logger;
@@ -343,7 +341,7 @@ public class ToyboxPatterns
                 ImGui.TextUnformatted("Duration: ");
             }
             ImGui.SameLine();
-            ImGui.TextUnformatted(patternToEdit.Duration.Hours > 0 
+            ImGui.TextUnformatted(patternToEdit.Duration.Hours > 0
                 ? patternToEdit.Duration.ToString("hh\\:mm\\:ss") : patternToEdit.Duration.ToString("mm\\:ss"));
         }
 
@@ -354,7 +352,7 @@ public class ToyboxPatterns
                 ImGui.TextUnformatted("Looping: ");
             }
             ImGui.SameLine();
-            if(_uiShared.IconTextButton(FontAwesomeIcon.Repeat, patternToEdit.ShouldLoop ? "Looping" : "Not Looping", null, true))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Repeat, patternToEdit.ShouldLoop ? "Looping" : "Not Looping", null, true))
             {
                 // change state
                 patternToEdit.ShouldLoop = !patternToEdit.ShouldLoop;

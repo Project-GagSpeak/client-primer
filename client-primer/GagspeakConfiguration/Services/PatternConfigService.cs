@@ -1,10 +1,5 @@
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Utils;
-using GagspeakAPI.Data.Enum;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Penumbra.GameData.Enums;
 
 namespace GagSpeak.GagspeakConfiguration;
 
@@ -62,11 +57,11 @@ public class PatternConfigService : ConfigurationServiceBase<PatternConfig>
         config.PatternStorage = new PatternStorage();
         // create a new list of patternData inside it
         config.PatternStorage.Patterns = new List<PatternData>();
-                
+
         // read in the pattern data from the config file
         var PatternsList = configJson["PatternStorage"]["Patterns"].Value<JArray>();
         // if the patterns list had data
-        if(PatternsList != null)
+        if (PatternsList != null)
         {
             // then for each pattern in the list
             foreach (var pattern in PatternsList)

@@ -1,9 +1,7 @@
 using Dalamud.Plugin;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Utils;
-using Newtonsoft.Json;
 using System.Text.RegularExpressions;
-using GagSpeak.Utils;
 
 // This file has no current use, but is here for any potential future implementations of the IPA parser.
 

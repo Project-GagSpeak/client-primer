@@ -20,7 +20,6 @@ using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
-using Newtonsoft.Json;
 using System.Globalization;
 using System.Numerics;
 

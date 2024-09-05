@@ -13,7 +13,8 @@ namespace GagSpeak.GagspeakConfiguration.Configurations;
 public class GagspeakConfig : IGagspeakConfiguration
 {
     public static int CurrentVersion => 2;
-    public int Version { get; set; } = CurrentVersion;
+    public int Version { get; set; } = CurrentVersion;                  // Current Version of the GagSpeakConfig file.
+    public Version? LastRunVersion { get; set; } = null;                // Tracks the last run assembly build of GagSpeak. Updated on each startup.
 
     public string LastUidLoggedIn { get; set; } = "";                   // the last UID the user logged in with
     

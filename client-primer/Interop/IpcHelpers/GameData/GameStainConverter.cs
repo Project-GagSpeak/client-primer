@@ -1,5 +1,3 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Structs;
 
 namespace GagSpeak.Interop.IpcHelpers.GameData;

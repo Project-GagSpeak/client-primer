@@ -1,13 +1,7 @@
-using GagSpeak.GagspeakConfiguration;
-using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
-using GagSpeak.Utils.ChatLog;
 using GagspeakAPI.Data.Enum;
-using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Enums;
 
 namespace GagSpeak.Services;
@@ -81,8 +75,8 @@ public class MigrateGagStorage
         newGagStoragetorageAll.GagEquipData = Enum.GetValues(typeof(GagList.GagType))
             .Cast<GagList.GagType>()
             .ToDictionary(gagType => gagType, gagType => new GagDrawData(_ItemHelper, ItemIdVars.NothingItem(EquipSlot.Head)));
-       
-        foreach(var (gagType, oldDrawData) in OldGagStorage.OldGagEquipData)
+
+        foreach (var (gagType, oldDrawData) in OldGagStorage.OldGagEquipData)
         {
             if (newGagStoragetorageAll.GagEquipData.ContainsKey(gagType))
             {

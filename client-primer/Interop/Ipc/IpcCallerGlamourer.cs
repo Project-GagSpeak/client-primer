@@ -9,9 +9,6 @@ using GagspeakAPI.Data.Enum;
 using Glamourer.Api.Enums;
 using Glamourer.Api.Helpers;
 using Glamourer.Api.IpcSubscribers;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 
 namespace GagSpeak.Interop.Ipc;
@@ -144,17 +141,12 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
     }
 
-    private GlamourerApiEc _lastError;
-    private JObject? _state;
-    private string? _stateString;
-
-    public Newtonsoft.Json.Linq.JObject? GetState()
+    public JObject? GetState()
     {
         try
         {
             var success = _glamourerGetState.Invoke(_clientState.LocalPlayer!.ObjectIndex);
-            _stateString = _state?.ToString(Newtonsoft.Json.Formatting.Indented) ?? "No State Available";
-            return _state;
+            return success.Item2;
         }
         catch (Exception ex)
         {
@@ -167,7 +159,9 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public async Task<bool> ForceSetMetaData(MetaData metaData, bool? forcedState = null)
     {
-        // if the glamourerApi is not active, then return an empty string for the customization
+        Logger.LogDebug("This function is not currently added yet, (SetState) And will be when ButtPlug updates to 3.0.2!");
+        return true;
+/*        // if the glamourerApi is not active, then return an empty string for the customization
         if (!APIAvailable || _onFrameworkService.IsZoning) return false;
         try
         {
@@ -203,7 +197,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         {
             Logger.LogWarning($"Error during SetMetaData: {ex}");
             return false;
-        }
+        }*/
     }
 
 

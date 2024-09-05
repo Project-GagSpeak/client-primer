@@ -39,7 +39,8 @@ public class MainTabMenu
         None,
         Homepage,
         Whitelist,
-        Discover,
+        PatternHub,
+        GlobalChat,
         MySettings,
     }
 
@@ -60,7 +61,7 @@ public class MainTabMenu
         // store information about the bottom bar, to draw our buttons at appropriate sizes
         var availableWidth = ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
         var spacing = ImGui.GetStyle().ItemSpacing;
-        var buttonX = (availableWidth - (spacing.X * 4)) / 4f;
+        var buttonX = (availableWidth - (spacing.X * 4)) / 5f;
         var buttonY = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Pause).Y;
         var buttonSize = new Vector2(buttonX, buttonY);
         var drawList = ImGui.GetWindowDrawList();
@@ -116,24 +117,43 @@ public class MainTabMenu
         }
         UiSharedService.AttachToolTip("Whitelist");
 
-        // draw the discoveries button
+        // draw the pattern hub button
         ImGui.SameLine();
         using (ImRaii.PushFont(UiBuilder.IconFont))
         {
             var x = ImGui.GetCursorScreenPos();
             if (ImGui.Button(FontAwesomeIcon.Compass.ToIconString(), buttonSize))
             {
-                TabSelection = SelectedTab.Discover;
+                TabSelection = SelectedTab.PatternHub;
             }
 
             ImGui.SameLine();
             var xAfter = ImGui.GetCursorScreenPos();
-            if (TabSelection == SelectedTab.Discover)
+            if (TabSelection == SelectedTab.PatternHub)
                 drawList.AddLine(x with { Y = x.Y + buttonSize.Y + spacing.Y },
                     xAfter with { Y = xAfter.Y + buttonSize.Y + spacing.Y, X = xAfter.X - spacing.X },
                     underlineColor, 2);
         }
-        UiSharedService.AttachToolTip("Discover & Explore new opportunities!");
+        UiSharedService.AttachToolTip("Discover Patterns from the community!");
+
+        // draw the global chat button
+        ImGui.SameLine();
+        using (ImRaii.PushFont(UiBuilder.IconFont))
+        {
+            var x = ImGui.GetCursorScreenPos();
+            if (ImGui.Button(FontAwesomeIcon.Comments.ToIconString(), buttonSize))
+            {
+                TabSelection = SelectedTab.GlobalChat;
+            }
+
+            ImGui.SameLine();
+            var xAfter = ImGui.GetCursorScreenPos();
+            if (TabSelection == SelectedTab.GlobalChat)
+                drawList.AddLine(x with { Y = x.Y + buttonSize.Y + spacing.Y },
+                    xAfter with { Y = xAfter.Y + buttonSize.Y + spacing.Y, X = xAfter.X - spacing.X },
+                    underlineColor, 2);
+        }
+        UiSharedService.AttachToolTip("Meet & Chat with others in a cross-region chat!");
 
         // draw the discoveries button
         ImGui.SameLine();

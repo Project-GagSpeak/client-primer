@@ -1,10 +1,7 @@
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Enums;
 
 namespace GagSpeak.GagspeakConfiguration;
@@ -103,7 +100,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
 
         JObject gagEquipDataObject = configJson["GagStorage"]["GagEquipData"].Value<JObject>();
         if (gagEquipDataObject == null) return config;
-        
+
         foreach (var gagData in gagEquipDataObject)
         {
             var gagType = (GagList.GagType)Enum.Parse(typeof(GagList.GagType), gagData.Key);
@@ -113,7 +110,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
                 EquipSlot slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), slotString);
                 var gagDrawData = new GagDrawData(_itemHelper, ItemIdVars.NothingItem(slot));
                 gagDrawData.Deserialize(itemObject);
-                config.GagStorage.GagEquipData.Add(gagType,gagDrawData);
+                config.GagStorage.GagEquipData.Add(gagType, gagDrawData);
             }
         }
         return config;

@@ -4,12 +4,15 @@ using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components.Combos;
 using GagSpeak.Utils;
+using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using ImGuiNET;
 using OtterGui;
@@ -34,6 +37,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     private readonly UiSharedService _uiShared;
     private readonly DictStain StainData;
     private readonly ItemData ItemData;
+    private readonly MoodlesAssociations _relatedMoodles;
 
     private LowerString GagSearchString = LowerString.Empty;
     private Vector2 IconSize;
@@ -45,7 +49,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     public GagStoragePanel(ILogger<GagStoragePanel> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, UiSharedService uiSharedService,
         DictStain stainData, ItemData itemData, TextureService textures,
-        IDataManager gameData) : base(logger, mediator)
+        MoodlesAssociations relatedMoodles, IDataManager gameData) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _uiShared = uiSharedService;
@@ -53,11 +57,17 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         _gameData = gameData;
         StainData = stainData;
         ItemData = itemData;
+        _relatedMoodles = relatedMoodles;
 
         // create a new gameItemCombo for each equipment piece type, then store them into the array.
         GameItemCombo = EquipSlotExtensions.EqdpSlots.Select(e => new GameItemCombo(_gameData, e, ItemData, Logger)).ToArray();
         StainCombo = new StainColorCombo(ComboWidth - 20, StainData, Logger);
+
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
     }
+
+    // Info related to the person we are inspecting.
+    private CharacterIPCData LastCreatedCharacterData = null!;
 
     private string GagFilterSearchString = string.Empty;
     private GagDrawData UnsavedDrawData = null!;
@@ -101,6 +111,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             if (_uiShared.IconTextButton(FontAwesomeIcon.Save, "Save"))
             {
                 _clientConfigs.UpdateGagItem(SelectedGag, UnsavedDrawData!);
+                _lastSaveTime = DateTime.UtcNow;
             }
             UiSharedService.AttachToolTip("View the list of Moodles Statuses");
         }
@@ -110,7 +121,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     {
         DrawGagStorageHeader();
         ImGui.Separator();
-
+        var cellPadding = ImGui.GetStyle().CellPadding;
         using var tabBar = ImRaii.TabBar("GagStorageEditor");
 
         if (tabBar)
@@ -125,7 +136,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             var gagMoodles = ImRaii.TabItem("Moodles");
             if (gagMoodles)
             {
-                DrawGagMoodles();
+                DrawGagMoodles(cellPadding.Y);
             }
             gagMoodles.Dispose();
 
@@ -135,13 +146,110 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
                 _uiShared.BigText("Audio WIP");
             }
             gagAudio.Dispose();
+
+            if(DateTime.UtcNow - _lastSaveTime < TimeSpan.FromSeconds(5))
+            {
+                using (var disabled = ImRaii.Disabled())
+                {
+                    using (var style = ImRaii.PushColor(ImGuiCol.Text, new Vector4(0, 1, 0, 1)))
+                    {
+                        var gagSaved = ImRaii.TabItem("GagData Saved Successfully!");
+                        gagSaved.Dispose();
+                    }
+                }
+            }
         }
 
     }
 
-    private void DrawGagMoodles()
+    DateTime _lastSaveTime = DateTime.MinValue;
+    private void DrawSavedNotification()
     {
+        using var tabBar = ImRaii.TabBar("GagStorageEditor");
+        if (tabBar)
+        {
+            var gagSaved = ImRaii.TabItem("Saved");
+            if (gagSaved)
+            {
+                ImGui.Text("Data Saved");
+            }
+            gagSaved.Dispose();
+        }
+    }
 
+
+    private void DrawGagMoodles(float cellPaddingY)
+    {
+        if (LastCreatedCharacterData == null)
+        {
+            ImGui.TextWrapped("No Character Data Found. Please select a character to edit.");
+            return;
+        }
+
+        if (UnsavedDrawData == null)
+        {
+            SelectedGag = GagList.GagType.BallGag;
+            UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
+        }
+
+        try
+        {
+            using var table = ImRaii.Table("MoodlesSelections", 2, ImGuiTableFlags.BordersInnerV);
+            if (!table) return;
+
+            ImGui.TableSetupColumn("MoodleSelection", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("FinalizedPreviewList", ImGuiTableColumnFlags.WidthFixed, 200f);
+
+            ImGui.TableNextRow(); ImGui.TableNextColumn();
+
+            using (var child = ImRaii.Child("##RestraintMoodleStatusSelection", new(ImGui.GetContentRegionAvail().X - 1f, ImGui.GetContentRegionAvail().Y / 2), false))
+            {
+                if (!child) return;
+                _relatedMoodles.DrawMoodlesStatusesListForItem(UnsavedDrawData, LastCreatedCharacterData, cellPaddingY, false);
+            }
+            ImGui.Separator();
+            using (var child2 = ImRaii.Child("##RestraintMoodlePresetSelection", -Vector2.One, false))
+            {
+                if (!child2) return;
+                _relatedMoodles.DrawMoodlesStatusesListForItem(UnsavedDrawData, LastCreatedCharacterData, cellPaddingY, true);
+            }
+
+
+            ImGui.TableNextColumn();
+            // Filter the MoodlesStatuses list to get only the moodles that are in AssociatedMoodles
+            var associatedMoodles = LastCreatedCharacterData.MoodlesStatuses
+                .Where(moodle => UnsavedDrawData.AssociatedMoodles.Contains(moodle.GUID))
+                .ToList();
+            // draw out all the active associated moodles in the restraint set with thier icon beside them.
+            UiSharedService.ColorText("Moodles Applied with Set:", ImGuiColors.ParsedPink);
+            ImGui.Separator();
+            foreach (var moodle in associatedMoodles)
+            {
+                using (var group = ImRaii.Group())
+                {
+
+                    var currentPos = ImGui.GetCursorPos();
+                    if (moodle.IconID != 0 && currentPos != Vector2.Zero)
+                    {
+                        var statusIcon = _uiShared.GetGameStatusIcon((uint)((uint)moodle.IconID + moodle.Stacks - 1));
+
+                        if (statusIcon is { } wrap)
+                        {
+                            ImGui.SetCursorPos(currentPos);
+                            ImGui.Image(statusIcon.ImGuiHandle, MoodlesService.StatusSize);
+                        }
+                    }
+                    ImGui.SameLine();
+                    float shiftAmmount = (MoodlesService.StatusSize.Y - ImGui.GetTextLineHeight()) / 2;
+                    ImGui.SetCursorPosY(currentPos.Y + shiftAmmount);
+                    ImGui.Text(moodle.Title);
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Error Drawing Moodles Options for Restraint Set.");
+        }
     }
 
     private void DrawGagAudio()

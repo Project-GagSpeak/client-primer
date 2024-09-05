@@ -8,6 +8,7 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
+using GagSpeak.UI.Components;
 using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
@@ -74,86 +75,91 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
     private string PresetSearchString = string.Empty;
 
     // main draw function for the mod associations table
-    public void DrawMoodlesStatusesListForSet(RestraintSet refRestraintSet, CharacterIPCData? lastPlayerIpcData, float paddingHeight, bool isPresets)
+    public void DrawMoodlesStatusesListForItem(IMoodlesAssociable associable, CharacterIPCData? lastPlayerIpcData, float paddingHeight, bool isPresets)
     {
         if (lastPlayerIpcData == null) return;
 
         using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, paddingHeight));
-        using var table = ImRaii.Table("RestraintSetMoodlesTable-"+isPresets, 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY);
+        using var table = ImRaii.Table("RestraintSetMoodlesTable-" + isPresets, 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY);
         if (!table) { return; }
 
         string columnTitle = isPresets ? "Moodle Presets" : "Moodle Statuses";
         ImGui.TableSetupColumn("##Delete", ImGuiTableColumnFlags.WidthFixed, ImGui.GetFrameHeight());
-        ImGui.TableSetupColumn(columnTitle+" to enable with set", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn(columnTitle + " to enable with set", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableHeadersRow();
 
         Guid? removedMoodle = null;
         Guid? removedMoodlePreset = null;
 
         // before we fetch the list, first see if any moodles in the list are no longer present in our Moodles List. 
-        if(_moodles.APIAvailable)
+        if (_moodles.APIAvailable)
         {
             var moodlesStatusList = lastPlayerIpcData.MoodlesStatuses;
-            refRestraintSet.AssociatedMoodles.RemoveAll(x => !moodlesStatusList.Any(y => y.GUID == x));
+            associable.AssociatedMoodles.RemoveAll(x => !moodlesStatusList.Any(y => y.GUID == x));
 
             var moodlesPresetList = lastPlayerIpcData.MoodlesPresets;
-            refRestraintSet.AssociatedMoodlePresets.RemoveAll(x => !moodlesPresetList.Any(y => y.Item1 == x));
+            associable.AssociatedMoodlePresets.RemoveAll(preset =>
+                moodlesPresetList.Any(x => x.Item1 == preset && x.Item2.Any(status => !associable.AssociatedMoodles.Any(y => y == status))));
+
         }
 
         // Handle what we are drawing based on what the table is for.
         if (isPresets)
         {
             //////////////////// HANDLE PRESETS ////////////////////
-            foreach (var (associatedPreset, idx) in refRestraintSet.AssociatedMoodlePresets.WithIndex())
+            foreach (var (associatedPreset, idx) in associable.AssociatedMoodlePresets.WithIndex())
             {
                 using var id = ImRaii.PushId(idx + "Presets");
 
                 DrawAssociatedMoodlePresetRow(lastPlayerIpcData, associatedPreset, idx, out var removedPresetTmp);
                 if (removedPresetTmp.HasValue)
                 {
-                    removedMoodle = removedPresetTmp;
+                    removedMoodlePreset = removedPresetTmp;
                 }
             }
 
-            DrawSetNewMoodlePresetRow(refRestraintSet, lastPlayerIpcData);
+            DrawSetNewMoodlePresetRow(associable, lastPlayerIpcData);
 
-            if (removedMoodle.HasValue)
+            if (removedMoodlePreset.HasValue)
             {
-                refRestraintSet.AssociatedMoodles.Remove(removedMoodle.Value);
+                associable.AssociatedMoodlePresets.Remove(removedMoodlePreset.Value);
+                // reset value
+                removedMoodlePreset = null;
             }
         }
         else
         {
             //////////////////// HANDLE STATUSES ////////////////////
-            foreach (var (associatedMoodle, idx) in refRestraintSet.AssociatedMoodles.WithIndex())
+            foreach (var (associatedMoodle, idx) in associable.AssociatedMoodles.WithIndex())
             {
-                using var id = ImRaii.PushId(idx+"Statuses");
+                using var id = ImRaii.PushId(idx + "Statuses");
 
                 DrawAssociatedMoodleRow(lastPlayerIpcData, associatedMoodle, idx, out var removedMoodleTmp);
                 if (removedMoodleTmp.HasValue)
                 {
-                    removedMoodlePreset = removedMoodleTmp;
+                    removedMoodle = removedMoodleTmp;
                 }
             }
 
-            DrawSetNewMoodleRow(refRestraintSet, lastPlayerIpcData);
+            DrawSetNewMoodleRow(associable, lastPlayerIpcData);
 
-            if (removedMoodlePreset.HasValue)
+            if (removedMoodle.HasValue)
             {
-                refRestraintSet.AssociatedMoodlePresets.Remove(removedMoodlePreset.Value);
+                associable.AssociatedMoodles.Remove(removedMoodle.Value);
             }
         }
     }
 
-    private void DrawAssociatedMoodleRow(CharacterIPCData clientIpcData, Guid moodleGuid, int idx, out Guid? removedMoodle)
+
+    private void DrawAssociatedMoodleRow(CharacterIPCData clientIpcData, Guid moodleGuid, int idx, out Guid? removedMoodleTmp)
     {
-        removedMoodle = null;
+        removedMoodleTmp = null;
         ImGui.TableNextColumn();
         // delete icon
         if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), new Vector2(ImGui.GetFrameHeight()),
         "Delete this Moodle from associations (Hold Shift)", !ImGui.GetIO().KeyShift, true))
         {
-            removedMoodle = moodleGuid;
+            removedMoodleTmp = moodleGuid;
         }
 
         // the name of the appended mod
@@ -163,15 +169,15 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
         ImGui.Selectable($" {friendlyName}##name");
     }
 
-    private void DrawAssociatedMoodlePresetRow(CharacterIPCData clientIpcData, Guid presetGuid, int idx, out Guid? removedPreset)
+    private void DrawAssociatedMoodlePresetRow(CharacterIPCData clientIpcData, Guid presetGuid, int idx, out Guid? removedPresetTmp)
     {
-        removedPreset = null;
+        removedPresetTmp = null;
         ImGui.TableNextColumn();
         // delete icon
         if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), new Vector2(ImGui.GetFrameHeight()),
         "Delete this Moodle Preset's Statuses from associations (Hold Shift)", !ImGui.GetIO().KeyShift, true))
         {
-            removedPreset = presetGuid;
+            removedPresetTmp = presetGuid;
         }
 
         // the name of the appended mod
@@ -189,7 +195,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
         }
     }
 
-    private void DrawSetNewMoodleRow(RestraintSet refSet, CharacterIPCData ipcData)
+    private void DrawSetNewMoodleRow(IMoodlesAssociable refSet, CharacterIPCData ipcData)
     {
         var displayList = ipcData.MoodlesStatuses;
 
@@ -211,7 +217,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
             ref SelectedStatusIndex, length, 1.25f);
     }
 
-    private void DrawSetNewMoodlePresetRow(RestraintSet refSet, CharacterIPCData ipcData)
+    private void DrawSetNewMoodlePresetRow(IMoodlesAssociable refSet, CharacterIPCData ipcData)
     {
         var displayList = ipcData.MoodlesPresets;
         // if the size is 0, then make the default preview value "No Presets Available"

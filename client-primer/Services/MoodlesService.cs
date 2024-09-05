@@ -84,12 +84,6 @@ public class MoodlesService
                         .ToList();
                     ImGui.SetTooltip($"This Preset Enables the Following Moodles:\n" + string.Join(Environment.NewLine, moodleNames));
                 }
-
-                // Show tooltip with corresponding moodles when hovered.
-                if (ImGui.IsItemHovered())
-                {
-                    ImGui.SetTooltip($"This Preset Enables the Following Moodles:\n{string.Join("\n", item.Item2)}");
-                }
             }
             ImGui.EndCombo();
         }

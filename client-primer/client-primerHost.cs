@@ -266,7 +266,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new GagStoragePanel(s.GetRequiredService<ILogger<GagStoragePanel>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<UiSharedService>(), s.GetRequiredService<DictStain>(),
-            s.GetRequiredService<ItemData>(), s.GetRequiredService<TextureService>(), dm))
+            s.GetRequiredService<ItemData>(), s.GetRequiredService<TextureService>(),
+            s.GetRequiredService<MoodlesAssociations>(), dm))
 
         // Wardrobe UI
         .AddSingleton<ActiveRestraintSet>()

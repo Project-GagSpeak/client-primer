@@ -1,5 +1,6 @@
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using GagSpeak.UI.Components;
 using GagSpeak.Utils;
 using ImGuiNET;
 using Newtonsoft.Json;
@@ -15,7 +16,7 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 /// A basic authentication class to validate that the information from the client when they attempt to connect is correct.
 /// </summary>
 [Serializable]
-public record RestraintSet
+public record RestraintSet : IMoodlesAssociable
 {
     [JsonIgnore]
     private readonly ItemIdVars _itemIdVars;

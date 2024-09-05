@@ -303,13 +303,13 @@ public class RestraintSetEditor : IMediatorSubscriber
             using (var child = ImRaii.Child("##RestraintMoodleStatusSelection", new(ImGui.GetContentRegionAvail().X - 1f, ImGui.GetContentRegionAvail().Y / 2), false))
             {
                 if (!child) return;
-                _relatedMoodles.DrawMoodlesStatusesListForSet(refRestraintSet, LastCreatedCharacterData, cellPaddingY, false);
+                _relatedMoodles.DrawMoodlesStatusesListForItem(refRestraintSet, LastCreatedCharacterData, cellPaddingY, false);
             }
             ImGui.Separator();
             using (var child2 = ImRaii.Child("##RestraintMoodlePresetSelection", -Vector2.One, false))
             {
                 if (!child2) return;
-                _relatedMoodles.DrawMoodlesStatusesListForSet(refRestraintSet, LastCreatedCharacterData, cellPaddingY, true);
+                _relatedMoodles.DrawMoodlesStatusesListForItem(refRestraintSet, LastCreatedCharacterData, cellPaddingY, true);
             }
 
 

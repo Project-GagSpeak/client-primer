@@ -1,3 +1,4 @@
+using GagSpeak.UI.Components;
 using GagSpeak.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -9,7 +10,7 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 /// <summary> Model for the draw data of a players equipment slot </summary>
 /// <param name="gameItem"> the game item we are storing the drawdata of.</param>
 [Serializable]
-public record GagDrawData
+public record GagDrawData : IMoodlesAssociable
 {
     [JsonIgnore]
     private readonly ItemIdVars _itemHelpers;
@@ -22,12 +23,13 @@ public record GagDrawData
     public bool ForceVisorOnEnable { get; set; } = false;
     
     // List of Moodles to apply while Gagged.
-    public List<Guid> GagMoodles { get; set; } = new List<Guid>();
-    
+    public List<Guid> AssociatedMoodles { get; set; } = new List<Guid>();
+    public List<Guid> AssociatedMoodlePresets { get; set; } = new List<Guid>();
+
     // C+ Preset when its not a bitch anymore
 
     // Spatial Audio type to use while gagged. (May not use since will just have one type?)
-    
+
     [JsonIgnore]
     public int ActiveSlotId => Array.IndexOf(EquipSlotExtensions.EqdpSlots.ToArray(), Slot);
     public GagDrawData(ItemIdVars itemHelper, EquipItem gameItem)
@@ -44,7 +46,8 @@ public record GagDrawData
             ["IsEnabled"] = IsEnabled,
             ["ForceHeadgearOnEnable"] = ForceHeadgearOnEnable,
             ["ForceVisorOnEnable"] = ForceVisorOnEnable,
-            ["GagMoodles"] = new JArray(GagMoodles),
+            ["GagMoodles"] = new JArray(AssociatedMoodles),
+            ["GagMoodlePresets"] = new JArray(AssociatedMoodlePresets),
             ["Slot"] = Slot.ToString(),
             ["CustomItemId"] = GameItem.Id.ToString(),
             ["GameStain"] = GameStain.ToString(),
@@ -59,8 +62,15 @@ public record GagDrawData
         // Deserialize the AssociatedMoodles
         if (jsonObject["GagMoodles"] is JArray associatedMoodlesArray)
         {
-            GagMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
+            AssociatedMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
         }
+
+        // Deserialize the AssociatedMoodlePresets
+        if (jsonObject["GagMoodlePresets"] is JArray associatedMoodlePresetsArray)
+        {
+            AssociatedMoodlePresets = associatedMoodlePresetsArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
+        }
+
         Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
         ulong customItemId = jsonObject["CustomItemId"]?.Value<ulong>() ?? 4294967164;
         GameItem = _itemHelpers.Resolve(Slot, new CustomItemId(customItemId));

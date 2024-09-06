@@ -239,7 +239,8 @@ public partial class UserPairPermsSticky
     private void DrawWardrobeActions()
     {
         bool applyButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.ApplyRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.OutfitNames.Count <= 0;
-        bool lockButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
+        bool lockButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.LockRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty 
+            || UserPairForPerms.LastReceivedWardrobeData!.WardrobeActiveSetPadLock != Padlocks.None.ToString();
         bool unlockButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.UnlockRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.WardrobeActiveSetPadLock == "None";
         bool removeButtonDisabled = !UserPairForPerms.UserPairUniquePairPerms.RemoveRestraintSets || UserPairForPerms.LastReceivedWardrobeData!.ActiveSetName == string.Empty;
 
@@ -260,7 +261,7 @@ public partial class UserPairPermsSticky
                 float buttonWidth = WindowMenuWidth - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Female, "Apply Set") - ImGui.GetStyle().ItemSpacing.X;
 
                 WardrobeHelpers.DrawRestraintSetSelection(UserPairForPerms, buttonWidth, UserPairForPerms.UserData.UID, _uiShared);
-                ImGui.SameLine(0, 2);
+                ImUtf8.SameLineInner();
                 WardrobeHelpers.DrawApplySet(UserPairForPerms, UserPairForPerms.UserData.UID, _logger, _uiShared, _apiController, out bool success);
 
                 if (success) ShowSetApply = false;
@@ -269,9 +270,15 @@ public partial class UserPairPermsSticky
         }
 
         // draw the lock restraint set button.
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, "Lock Restraint Set", WindowMenuWidth, true, lockButtonDisabled))
+        bool SetLocked = UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName != string.Empty && UserPairForPerms.LastReceivedWardrobeData?.WardrobeActiveSetPadLock != Padlocks.None.ToString();
+        string DisplayText = SetLocked ? (UserPairForPerms.LastReceivedWardrobeData?.WardrobeActiveSetPadLock+" on: " + UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName) : "Lock Restraint Set";
+        // push text style
+        using (var color = ImRaii.PushColor(ImGuiCol.Text, SetLocked ? ImGuiColors.DalamudYellow : ImGuiColors.DalamudWhite))
         {
-            ShowSetLock = !ShowSetLock;
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, DisplayText, WindowMenuWidth, true, lockButtonDisabled))
+            {
+                ShowSetLock = !ShowSetLock;
+            }
         }
         UiSharedService.AttachToolTip("Locks the Restraint Set applied to " + UserPairForPerms.UserData.AliasOrUID + ". Click to view options.");
 
@@ -281,15 +288,14 @@ public partial class UserPairPermsSticky
             {
                 if (!frameSetLockChild) return;
 
-                float buttonWidth = ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Lock, "Lock Set") - ImUtf8.ItemInnerSpacing.X;
-
                 using (var restraintSetLockGroup = ImRaii.Group())
                 {
                     using (var disabledSelection = ImRaii.Disabled())
                     {
-                        WardrobeHelpers.DrawRestraintSetSelection(UserPairForPerms, ImGui.GetContentRegionAvail().X, UserPairForPerms.UserData.UID, _uiShared);
+                        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                        if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName ?? "Not Set Active")) { ImGui.EndCombo(); }
                     }
-                    WardrobeHelpers.DrawLockRestraintSet(UserPairForPerms, buttonWidth, UserPairForPerms.UserData.UID, _logger, _uiShared, _apiController, out bool success);
+                    WardrobeHelpers.DrawLockRestraintSet(UserPairForPerms, ImGui.GetContentRegionAvail().X, UserPairForPerms.UserData.UID, _logger, _uiShared, _apiController, out bool success);
 
                     if (success) ShowSetLock = false;
                 }
@@ -310,7 +316,7 @@ public partial class UserPairPermsSticky
             {
                 if (!frameSetUnlockChild) return;
 
-                WardrobeHelpers.DrawUnlockSet(UserPairForPerms, UserPairForPerms.UserData.UID, _logger, _uiShared, _apiController, out bool success);
+                WardrobeHelpers.DrawUnlockSet(UserPairForPerms, ImGui.GetContentRegionAvail().X, UserPairForPerms.UserData.UID, _logger, _uiShared, _apiController, out bool success);
 
                 if (success) ShowSetUnlock = false;
             }

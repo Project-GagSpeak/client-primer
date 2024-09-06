@@ -107,10 +107,10 @@ public static class WardrobeHelpers
 
         using (var gagLockGroup = ImRaii.Group())
         {
-            uiShared.DrawCombo($"##RestraintSetLockType", 248 - uiShared.GetIconTextButtonSize(FontAwesomeIcon.Lock, "Lock"),
+            uiShared.DrawCombo($"##RestraintSetLockType", comboWidth - ImGui.GetStyle().ItemInnerSpacing.X - uiShared.GetIconTextButtonSize(FontAwesomeIcon.Lock, "Lock"),
             Enum.GetValues<Padlocks>(), (padlock) => padlock.ToString(), (i) => { state.SelectedPadlock = i; }, state.SelectedPadlock);
 
-            ImGui.SameLine(0, 2);
+            ImUtf8.SameLineInner();
 
             success = false;
             if (uiShared.IconTextButton(FontAwesomeIcon.Lock, "Lock"))
@@ -150,25 +150,25 @@ public static class WardrobeHelpers
                 state.IsExpanded = false;
             }
         }
-        UiSharedService.AttachToolTip("Lock the selected set for " + pairAliasUID + " for " + (UiSharedService.GetEndTimeUTC(state.Timer) - DateTimeOffset.UtcNow));
+        UiSharedService.AttachToolTip("Lock the selected set for " + pairAliasUID);
     }
 
-    public static void DrawUnlockSet(Pair userPairForPerms, string pairAliasUID, ILogger logger,
+    public static void DrawUnlockSet(Pair userPairForPerms, float comboWidth, string pairAliasUID, ILogger logger,
     UiSharedService uiShared, ApiController apiController, out bool success)
     {
         var state = GetOrCreatePairState(pairAliasUID);
 
         using (var gagUnlockGroup = ImRaii.Group())
         {
-            uiShared.DrawCombo($"##UnlockRestraintSetPadlocks", 248f - uiShared.GetIconTextButtonSize(FontAwesomeIcon.Lock, "Unlock"),
+            uiShared.DrawCombo($"##UnlockRestraintSetPadlocks", comboWidth - ImGui.GetStyle().ItemInnerSpacing.X - uiShared.GetIconTextButtonSize(FontAwesomeIcon.Lock, "Unlock"),
             Enum.GetValues<Padlocks>(), (padlock) => padlock.ToString(), (i) => { state.SelectedPadlock = i; }, state.SelectedPadlock);
 
-            ImGui.SameLine(0, 2);
+            ImUtf8.SameLineInner();
 
             success = false;
             if (uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock"))
             {
-                if (ValidatePasswordUnlock(state, uiShared, userPairForPerms, apiController))
+                if (ValidatePasswordUnlock(state, uiShared, userPairForPerms, apiController, logger))
                 {
                     var newWardrobeData = userPairForPerms.LastReceivedWardrobeData.DeepClone();
                     if (newWardrobeData == null) throw new Exception("Wardrobe data is null, not sending");
@@ -316,7 +316,7 @@ public static class WardrobeHelpers
         return false;
     }
 
-    private static bool ValidatePasswordUnlock(PairState state, UiSharedService uiShared, Pair userPairForPerms, ApiController apiController)
+    private static bool ValidatePasswordUnlock(PairState state, UiSharedService uiShared, Pair userPairForPerms, ApiController apiController, ILogger logger)
     {
         switch (state.SelectedPadlock)
         {
@@ -331,8 +331,8 @@ public static class WardrobeHelpers
             case Padlocks.TimerPasswordPadlock:
                 return uiShared.ValidatePassword(state.Password) && state.Password == userPairForPerms.LastReceivedWardrobeData!.WardrobeActiveSetPassword;
             case Padlocks.OwnerPadlock:
-            case Padlocks.OwnerTimerPadlock:
-                return userPairForPerms.UserPairUniquePairPerms.OwnerLocks && apiController.UID == userPairForPerms.LastReceivedWardrobeData!.WardrobeActiveSetPassword;
+            case Padlocks.OwnerTimerPadlock:               
+                return userPairForPerms.UserPairUniquePairPerms.OwnerLocks && apiController.UID == userPairForPerms.LastReceivedWardrobeData!.WardrobeActiveSetLockAssigner;
         }
         return false;
     }

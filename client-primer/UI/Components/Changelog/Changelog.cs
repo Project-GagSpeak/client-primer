@@ -1,8 +1,3 @@
-using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
-using System.Numerics;
-
 namespace GagSpeak.UI.Components;
 public class Changelog
 {
@@ -21,9 +16,14 @@ public class Changelog
         return entry;
     }
 
+    // Add Version Data here.
     private void AddVersionData()
     {
-        // Add Version Data here.
+        VersionEntry(0, 7, 2, 4)
+            .RegisterQol("Lock and Unlock and Apply action dropdowns now properly disable and enable when they should. Alignment also fixed.")
+            .RegisterQol("Lock Restraint Set action button now displays a persons locked restraint set while they are locked.")
+            .RegisterBugfix("Fixed Owner Padlocks incorrectly checking against submitted passwords over player name matching.");
+
         VersionEntry(0, 7, 2, 3)
             .RegisterMain("Im a silly goober and tried to open the changelog before it was registered.");
 

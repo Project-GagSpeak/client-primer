@@ -1,7 +1,9 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services;
+using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Enum;
@@ -13,13 +15,16 @@ using System.Numerics;
 namespace GagSpeak.UI.MainWindow;
 public class MainUiPatternHub : DisposableMediatorSubscriberBase
 {
-    private readonly UiSharedService _uiSharedService;
+    private readonly ClientConfigurationManager _clientConfigs;
     private readonly PatternHubService _patternHubService;
+    private readonly UiSharedService _uiSharedService;
 
     public MainUiPatternHub(ILogger<MainUiPatternHub> logger,
-        GagspeakMediator mediator, PatternHubService patternHubService,
-        UiSharedService uiSharedService) : base(logger, mediator)
+        GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
+        PatternHubService patternHubService, UiSharedService uiSharedService) 
+        : base(logger, mediator)
     {
+        _clientConfigs = clientConfigs;
         _patternHubService = patternHubService;
         _uiSharedService = uiSharedService;
     }
@@ -39,6 +44,7 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
         }
         else
         {
+            _patternHubService.DisplayPendingMessages();
             ImGui.Spacing();
             ImGuiUtil.Center("Search something to find results!");
         }
@@ -50,7 +56,7 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
         _patternHubService.DisplayPendingMessages();
 
         // create a child window here. It will allow us to scroll up and dont in our pattern results search.
-        using var patternResultChild = ImRaii.Child("##PatternResultChild", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoScrollbar);
+        using var patternResultChild = ImRaii.Child("##PatternResultChild", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.AlwaysVerticalScrollbar);
         // display a custom box icon for each search result obtained.
         foreach (var pattern in _patternHubService.SearchResults)
         {
@@ -62,64 +68,89 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
     private void DrawPatternResultBox(ServerPatternInfo patternInfo)
     {
         // push rounding window corners
-        using var windowRounding = ImRaii.PushStyle(ImGuiStyleVar.WindowRounding, 5f);
+        using var windowRounding = ImRaii.PushStyle(ImGuiStyleVar.ChildRounding, 5f);
         // push a pink border color for the window border.
         using var borderColor = ImRaii.PushStyle(ImGuiStyleVar.WindowBorderSize, 1f);
         using var borderCol = ImRaii.PushColor(ImGuiCol.Border, ImGuiColors.ParsedPink);
         // push a less transparent very dark grey background color.
-        using var bgColor = ImRaii.PushColor(ImGuiCol.WindowBg, new Vector4(0.25f, 0.2f, 0.2f, 0.9f));
+        using var bgColor = ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.25f, 0.2f, 0.2f, 0.4f));
         // create the child window.
-        using (var patternResChild = ImRaii.Child($"##PatternResult_{patternInfo.Identifier}", new Vector2(ImGui.GetContentRegionAvail().X, 100), true, ImGuiWindowFlags.ChildWindow))
+
+        float height = ImGui.GetFrameHeight()*3 +ImGui.GetStyle().ItemSpacing.Y*2 + ImGui.GetStyle().WindowPadding.Y*2;
+        using (var patternResChild = ImRaii.Child($"##PatternResult_{patternInfo.Identifier}", new Vector2(ImGui.GetContentRegionAvail().X, height), true, ImGuiWindowFlags.ChildWindow))
         {
+            if(!patternResChild) return;
+
             using (var group = ImRaii.Group())
             {
+                // display name, then display the downloads and likes on the other side.
                 UiSharedService.ColorText(patternInfo.Name, ImGuiColors.DalamudWhite);
-                ImGui.SameLine();
+                UiSharedService.AttachToolTip(patternInfo.Description);
+
+                ImGui.SameLine(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X
+                    - _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.Heart, patternInfo.Likes.ToString()) 
+                    - _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.Download, patternInfo.Downloads.ToString()));
                 using (var color = ImRaii.PushColor(ImGuiCol.Text, patternInfo.HasLiked ? ImGuiColors.ParsedPink : ImGuiColors.DalamudGrey))
                 {
-                    if (_uiSharedService.IconButton(FontAwesomeIcon.Heart))
+                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.Heart, patternInfo.Likes.ToString(), null, true))
                     {
                         _patternHubService.RatePattern(patternInfo.Identifier);
                     }
+                    UiSharedService.AttachToolTip(patternInfo.HasLiked ? "Remove Like from this pattern." : "Like this pattern!");
                 }
-                ImGui.SameLine();
-                UiSharedService.ColorText(patternInfo.Likes.ToString(), ImGuiColors.DalamudGrey);
                 ImGui.SameLine();
                 using (var color = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudWhite2))
                 {
-                    if(_uiSharedService.IconTextButton(FontAwesomeIcon.Download, patternInfo.Downloads.ToString()))
+                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.Download, patternInfo.Downloads.ToString(), null, true, _clientConfigs.PatternExists(patternInfo.Identifier)))
                     {
                         _patternHubService.DownloadPatternFromServer(patternInfo.Identifier);
                     }
+                    UiSharedService.AttachToolTip("Download this pattern!");
                 }
             }
             // next line:
-            _uiSharedService.IconText(FontAwesomeIcon.Portrait);
-            ImGui.SameLine();
-            UiSharedService.ColorText(patternInfo.Author, ImGuiColors.DalamudGrey);
-            ImGui.SameLine();
-            _uiSharedService.IconText(FontAwesomeIcon.Stopwatch);
-            ImGui.SameLine();
-            UiSharedService.ColorText(patternInfo.Length.ToString(), ImGuiColors.ParsedPink);
-            var vibeSize = _uiSharedService.GetIconData(FontAwesomeIcon.Water);
-            var rotationSize = _uiSharedService.GetIconData(FontAwesomeIcon.GroupArrowsRotate);
-            var oscillationSize = _uiSharedService.GetIconData(FontAwesomeIcon.WaveSquare);
-            float rightEnd = ImGui.GetWindowContentRegionMax().X - vibeSize.X - rotationSize.X - oscillationSize.X - 3 * ImGui.GetStyle().ItemSpacing.X;
-            ImGui.SameLine(rightEnd);
-            _uiSharedService.BooleanToColoredIcon(patternInfo.UsesVibrations, true, FontAwesomeIcon.Water);
-            ImGui.SameLine();
-            _uiSharedService.BooleanToColoredIcon(patternInfo.UsesRotations, true, FontAwesomeIcon.GroupArrowsRotate);
-            ImGui.SameLine();
-            _uiSharedService.BooleanToColoredIcon(patternInfo.UsesOscillation, true, FontAwesomeIcon.WaveSquare);
+            using (var group2 = ImRaii.Group())
+            {
+                ImGui.AlignTextToFramePadding();
+                _uiSharedService.IconText(FontAwesomeIcon.UserCircle);
+                ImUtf8.SameLineInner();
+                UiSharedService.ColorText(patternInfo.Author, ImGuiColors.DalamudGrey);
+                UiSharedService.AttachToolTip("Publisher of the Pattern");
 
-            // next line for tags
-            _uiSharedService.IconText(FontAwesomeIcon.Tags);
-            ImGui.SameLine();
-            ImGui.TextUnformatted(string.Join(", ", patternInfo.Tags));
+
+                var formatDuration = patternInfo.Length.Hours > 0 ? "hh\\:mm\\:ss" : "mm\\:ss";
+                string timerText = patternInfo.Length.ToString(formatDuration);
+                ImGui.SameLine(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(timerText).X - _uiSharedService.GetIconData(FontAwesomeIcon.Stopwatch).X - ImGui.GetStyle().ItemSpacing.X);
+                _uiSharedService.IconText(FontAwesomeIcon.Stopwatch);
+                UiSharedService.AttachToolTip("Total Pattern Duration");
+                ImUtf8.SameLineInner();
+                ImGui.TextUnformatted(patternInfo.Length.ToString(formatDuration));
+                UiSharedService.AttachToolTip("Total Pattern Duration");
+            }
+
+            // next line:
+            using (var group3 = ImRaii.Group())
+            {
+                ImGui.AlignTextToFramePadding();
+                _uiSharedService.IconText(FontAwesomeIcon.Tags);
+                UiSharedService.AttachToolTip("Tags for the Pattern");
+                ImGui.SameLine();
+                ImGui.TextUnformatted(string.Join(", ", patternInfo.Tags));
+
+                var vibeSize = _uiSharedService.GetIconData(FontAwesomeIcon.Water);
+                var rotationSize = _uiSharedService.GetIconData(FontAwesomeIcon.GroupArrowsRotate);
+                var oscillationSize = _uiSharedService.GetIconData(FontAwesomeIcon.WaveSquare);
+                float rightEnd = ImGui.GetContentRegionAvail().X - vibeSize.X - rotationSize.X - oscillationSize.X - 2*ImGui.GetStyle().ItemSpacing.X;
+                ImGui.SameLine(rightEnd);
+                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesVibrations, false, FontAwesomeIcon.Water, FontAwesomeIcon.Water);
+                UiSharedService.AttachToolTip(patternInfo.UsesVibrations? "Uses Vibrations" : "Does not use Vibrations");
+                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesRotations, true, FontAwesomeIcon.Sync, FontAwesomeIcon.Sync);
+                UiSharedService.AttachToolTip(patternInfo.UsesRotations ? "Uses Rotations" : "Does not use Rotations");
+                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesOscillation, true, FontAwesomeIcon.WaveSquare, FontAwesomeIcon.WaveSquare);
+                UiSharedService.AttachToolTip(patternInfo.UsesOscillation ? "Uses Oscillation" : "Does not use Oscillation");
+            }
         }
-        UiSharedService.AttachToolTip("Additional Information:" + Environment.NewLine
-            + "Description: " + patternInfo.Description + Environment.NewLine
-            + "Published On: " + patternInfo.UploadedDate);
+
     }
 
     /// <summary> Draws the search filter for our user pair list (whitelist) </summary>

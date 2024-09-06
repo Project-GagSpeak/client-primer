@@ -19,6 +19,17 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 7, 3, 0)
+            .RegisterMain("PatternHub Tab is now functional!")
+            .RegisterMain("Toybox Patterns Tab now allows you to publish and unpublish patterns to the PatternHub.")
+            .RegisterMain("PatternHub Likes, Downloads, and display boxes have been introduced.")
+            .RegisterFeature("Upload up to a maximum of 10 patterns a week. (up to 20 for supporters)")
+            .RegisterFeature("Like other users patterns and download them to your pattern library.")
+            .RegisterFeature("Search for patterns based on various filters, and sort styles.")
+            .RegisterQol("Patterns in the toybox tab now display a globe if they are published. (This can be a bit buggy if you remove them from your config, so until i add a new thing for that hang in there and deal with it i guess.")
+            .RegisterQol("Popup buttons now have actual transparency, instead of faked transparency.")
+            .RegisterBugfix("Fixed incorrect alignment in some parts throughout the plugin.");
+
         VersionEntry(0, 7, 2, 4)
             .RegisterQol("Lock and Unlock and Apply action dropdowns now properly disable and enable when they should. Alignment also fixed.")
             .RegisterQol("Lock Restraint Set action button now displays a persons locked restraint set while they are locked.")

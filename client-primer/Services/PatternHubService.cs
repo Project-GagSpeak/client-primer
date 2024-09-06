@@ -10,6 +10,7 @@ using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Patterns;
+using ImGuiNET;
 using System.Numerics;
 
 namespace GagSpeak.Services;
@@ -22,9 +23,13 @@ public class PatternHubService : DisposableMediatorSubscriberBase
     private readonly PairManager _pairManager;
 
     private Task<bool>? UploadPatternTask = null;
+    private Task<bool>? RemovePatternTask = null;
     private Task<bool>? LikePatternTask = null;
     private Task<string>? DownloadPatternTask = null;
     private Task<List<ServerPatternInfo>>? SearchPatternsTask = null;
+
+    private bool InitialSearchMade = false;
+
     public PatternHubService(ILogger<PatternHubService> logger, GagspeakMediator mediator,
         ApiController apiController, ClientConfigurationManager clientConfigs,
         PairManager pairManager) : base(logger, mediator)
@@ -48,10 +53,14 @@ public class PatternHubService : DisposableMediatorSubscriberBase
     // Should be run in the drawloop to check if any tasks have completed.
     public void DisplayPendingMessages()
     {
+        if(!InitialSearchMade && _apiController.IsConnected && _apiController.ServerState == ServerState.Connected)
+        { InitialSearchMade = true; SearchPatterns(SearchQuery); }
+
         DisplayTaskStatus(UploadPatternTask, "Uploading Pattern to Servers...", "Pattern uploaded to servers!", "Failed to upload pattern to servers.", ImGuiColors.DalamudGrey, ImGuiColors.HealerGreen, ImGuiColors.DalamudRed);
+        DisplayTaskStatus(RemovePatternTask, "Removing pattern...", "Pattern removed successfully.", "Failed to remove pattern.", ImGuiColors.DalamudGrey, ImGuiColors.HealerGreen, ImGuiColors.DalamudRed);
         DisplayTaskStatus(LikePatternTask, "Liking pattern...", "Like interaction successful", "Like interaction failed.", ImGuiColors.DalamudGrey, ImGuiColors.HealerGreen, ImGuiColors.DalamudRed);
         DisplayTaskStatus(DownloadPatternTask, "Downloading pattern...", "Pattern download successful!", "Failed to download pattern.", ImGuiColors.DalamudGrey, ImGuiColors.HealerGreen, ImGuiColors.DalamudRed);
-        DisplayTaskStatus(SearchPatternsTask, "Searching for patterns...", "Failed to retrieve patterns.", string.Empty, ImGuiColors.DalamudGrey, ImGuiColors.DalamudGrey, ImGuiColors.DalamudGrey);
+        DisplayTaskStatus(SearchPatternsTask, "Searching for patterns...", "Patterns Fetched!", "Failed to retrieve patterns.", ImGuiColors.DalamudGrey, ImGuiColors.HealerGreen, ImGuiColors.DalamudRed);
     }
 
     private void DisplayTaskStatus<T>(Task<T>? task, string inProgressMessage, string successMessage,
@@ -67,6 +76,13 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 message = inProgressMessage;
                 color = inProgressColor;
             }
+            else if (task.IsFaulted)
+            {
+                // throw a failure message and set the task to null.
+                message = failureMessage;
+                color = failureColor;
+                task = null;
+            }
             else
             {
                 if (task is Task<bool> boolTask)
@@ -79,10 +95,10 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                     message = stringTask.Result != null ? successMessage : failureMessage;
                     color = stringTask.Result != null ? successColor : failureColor;
                 }
-                else if (task is Task<List<ServerPatternInfo>>)
+                else if (task is Task<List<ServerPatternInfo>> listTask)
                 {
-                    message = inProgressMessage;
-                    color = inProgressColor;
+                    message = listTask.Result.Count != 0 ? successMessage : failureMessage;
+                    color = listTask.Result.Count != 0 ? successColor : failureColor;
                 }
                 else { return; } // Unsupported task type
             }
@@ -91,18 +107,15 @@ public class PatternHubService : DisposableMediatorSubscriberBase
         }
     }
 
-    private async Task ClearTaskInFiveSeconds(Func<Task?> getTask, Action clearTask)
+    private async Task ClearTaskInThreeSeconds(Func<Task?> getTask, Action clearTask)
     {
-        await Task.Delay(5000);
+        await Task.Delay(3000);
         if (getTask() != null)
         {
             clearTask();
         }
     }
-    public void UpdateResults()
-    {
-        SearchPatternsTask = _apiController.SearchPatterns(new(SearchQuery, new List<string>(), CurrentFilter, CurrentSort));
-    }
+    public void UpdateResults() => SearchPatterns(SearchQuery);
     public void SearchPatterns(string searchQuery)
     {
         SearchPatternsTask = _apiController.SearchPatterns(new(SearchQuery, new List<string>(), CurrentFilter, CurrentSort));
@@ -112,13 +125,15 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             if (task.Result.Count == 0)
             {
                 Logger.LogError("Failed to retrieve patterns from servers.");
+                // clean up the search results
+                SearchResults.Clear();
             }
             else
             {
                 Logger.LogInformation("Retrieved patterns from servers.");
                 SearchResults = SearchPatternsTask.Result;
             }
-            _ = ClearTaskInFiveSeconds(() => SearchPatternsTask, () => SearchPatternsTask = null);
+            _ = ClearTaskInThreeSeconds(() => SearchPatternsTask, () => SearchPatternsTask = null);
         }, TaskScheduler.Default);
     }
     public void DownloadPatternFromServer(Guid patternIdentifier)
@@ -133,6 +148,8 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             else
             {
                 Mediator.Publish(new NotificationMessage("Pattern Download", "finished downloading Pattern from servers.", NotificationType.Info));
+                // add one download count to the pattern.
+                SearchResults.FirstOrDefault(x => x.Identifier == patternIdentifier)!.Downloads++;
                 var bytes = Convert.FromBase64String(DownloadPatternTask.Result);
                 // Decode the base64 string back to a regular string
                 var version = bytes[0];
@@ -144,7 +161,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 // Set the active pattern
                 _clientConfigs.AddNewPattern(pattern);
             }
-            _ = ClearTaskInFiveSeconds(() => DownloadPatternTask, () => DownloadPatternTask = null);
+            _ = ClearTaskInThreeSeconds(() => DownloadPatternTask, () => DownloadPatternTask = null);
         }, TaskScheduler.Default);
     }
 
@@ -164,6 +181,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 var pattern = SearchResults.FirstOrDefault(x => x.Identifier == PatternInteractingWith);
                 if (pattern != null)
                 {
+                    pattern.Likes += pattern.HasLiked ? -1 : 1;
                     pattern.HasLiked = !pattern.HasLiked;
                 }
             }
@@ -172,7 +190,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 Logger.LogError("LikePatternTask failed.");
             }
             // clear the task.
-            _ = ClearTaskInFiveSeconds(() => LikePatternTask, () => LikePatternTask = null);
+            _ = ClearTaskInThreeSeconds(() => LikePatternTask, () => LikePatternTask = null);
         }, TaskScheduler.Default);
     }
     public void UploadPatternToServer(int patternIdx)
@@ -200,21 +218,53 @@ public class PatternHubService : DisposableMediatorSubscriberBase
         };
         // construct the dto for the upload.
         PatternUploadDto patternDto = new(_apiController.PlayerUserData, patternInfo, base64Pattern);
-        // perform the apicall for the upload.
+        // perform the api call for the upload.
         UploadPatternTask = _apiController.UploadPattern(patternDto);
         UploadPatternTask.ContinueWith(task =>
         {
             if (task.Result)
             {
                 Mediator.Publish(new NotificationMessage("Pattern Upload", "uploaded successful!", NotificationType.Info));
-
+                // update the published state.
+                patternToUpload.IsPublished = true;
+                _clientConfigs.UpdatePattern(patternToUpload, patternIdx);
             }
             else
             {
                 Mediator.Publish(new NotificationMessage("Pattern Upload", "upload failed!", NotificationType.Error));
             }
-            _ = ClearTaskInFiveSeconds(() => UploadPatternTask, () => UploadPatternTask = null);
+            _ = ClearTaskInThreeSeconds(() => UploadPatternTask, () => UploadPatternTask = null);
         }, TaskScheduler.Default);
+    }
+
+    public void RemovePatternFromServer(int patternIdx)
+    {
+        // fetch the pattern by the guid
+        PatternData? patternToRemove = _clientConfigs.FetchPattern(patternIdx);
+        if (patternToRemove == null || patternToRemove.UniqueIdentifier == Guid.Empty)
+        {
+            Logger.LogWarning("Pattern Does not exist in your storage by this GUID"); 
+            return;
+        }
+        // perform the api call for the removal.
+        RemovePatternTask = _apiController.RemovePattern(patternToRemove.UniqueIdentifier);
+        RemovePatternTask.ContinueWith(task =>
+        {
+            if (task.Result)
+            {
+                // if successful. Notify the success.
+                Mediator.Publish(new NotificationMessage("Pattern Removal", "removed successful!", NotificationType.Info));
+                patternToRemove.IsPublished = false;
+                _clientConfigs.UpdatePattern(patternToRemove, patternIdx);
+            }
+            else
+            {
+                Mediator.Publish(new NotificationMessage("Pattern Removal", "removal failed!", NotificationType.Error));
+            }
+            _ = ClearTaskInThreeSeconds(() => RemovePatternTask, () => RemovePatternTask = null);
+        }, TaskScheduler.Default);
+
+
     }
 
     public string FilterToName(SearchFilter filter)

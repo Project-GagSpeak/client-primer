@@ -98,6 +98,13 @@ public partial class ApiController // Partial class for MainHub User Functions.
         return await _gagspeakHub!.InvokeAsync<bool>(nameof(UploadPattern), dto).ConfigureAwait(false);
     }
 
+    /// <summary> Deletes a pattern from the server. </summary>
+    public async Task<bool> RemovePattern(Guid patternId)
+    {
+        if (!IsConnected) return false;
+        return await _gagspeakHub!.InvokeAsync<bool>(nameof(RemovePattern), patternId).ConfigureAwait(false);
+    }
+
     /// <summary>
     /// Sends a message to the gagspeak Global chat.
     /// </summary>

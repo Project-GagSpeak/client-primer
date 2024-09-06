@@ -486,7 +486,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public bool IconTextButton(FontAwesomeIcon icon, string text, float? width = null, bool isInPopup = false, bool disabled = false)
     {
         return IconTextButtonInternal(icon, text,
-            isInPopup ? ColorHelpers.RgbaUintToVector4(ImGui.GetColorU32(ImGuiCol.PopupBg)) : null,
+            isInPopup ? new Vector4(1.0f, 1.0f, 1.0f, 0.0f) : null,
             width <= 0 ? null : width,
             disabled);
     }

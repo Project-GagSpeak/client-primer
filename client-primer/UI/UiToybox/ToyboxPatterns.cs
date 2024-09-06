@@ -131,7 +131,9 @@ public class ToyboxPatterns
         // use button rounding
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
-        var uploadSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Upload, "Upload");
+        FontAwesomeIcon publishOrTakedownIcon = _handler.PatternBeingEdited.IsPublished ? FontAwesomeIcon.Ban : FontAwesomeIcon.Upload;
+        string publishOrTakedownText = _handler.PatternBeingEdited.IsPublished ? "Unpublish" : "Publish";
+        var publishOrTakedownSize = _uiShared.GetIconTextButtonSize(publishOrTakedownIcon, publishOrTakedownText);
         var iconSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus);
         Vector2 textSize;
         using (_uiShared.UidFont.Push())
@@ -162,12 +164,13 @@ public class ToyboxPatterns
             }
 
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() -uploadSize - iconSize.X * 2 - ImGui.GetStyle().ItemSpacing.X*3);
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() 
+                - publishOrTakedownSize - iconSize.X * 2 - ImGui.GetStyle().ItemSpacing.X*3);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             var currentYpos = ImGui.GetCursorPosY();
 
             // draw out the icon button
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Upload, "Upload"))
+            if (_uiShared.IconTextButton(publishOrTakedownIcon, publishOrTakedownText))
             {
                 ImGui.OpenPopup("UploadPopup");
                 var buttonPos = ImGui.GetItemRectMin();
@@ -202,11 +205,19 @@ public class ToyboxPatterns
             {
                 if (ImGui.BeginPopup("UploadPopup"))
                 {
-                    ImGuiUtil.Center("Proceed with Upload to Server?");
+                    string text = _handler.PatternBeingEdited.IsPublished ? "Upload Pattern to Server?" : "Remove Pattern from Server?";
+                    ImGuiUtil.Center(text);
                     var width = (ImGui.GetContentRegionAvail().X / 2) - ImGui.GetStyle().ItemInnerSpacing.X;
                     if (ImGui.Button("Yes, I'm Sure", new Vector2(width, 25f)))
                     {
-                        _patternHubService.UploadPatternToServer(_handler.EditingPatternIndex);
+                        if(_handler.PatternBeingEdited.IsPublished)
+                        {
+                            _patternHubService.RemovePatternFromServer(_handler.EditingPatternIndex);
+                        }
+                        else
+                        {
+                            _patternHubService.UploadPatternToServer(_handler.EditingPatternIndex);
+                        }
                         ImGui.CloseCurrentPopup();
                     }
                     ImUtf8.SameLineInner();
@@ -270,20 +281,21 @@ public class ToyboxPatterns
         // fetch the name of the pattern, and its text size
         var name = pattern.Name;
         Vector2 tmpAlarmTextSize;
+        using (_uiShared.UidFont.Push()) { tmpAlarmTextSize = ImGui.CalcTextSize(name); }
 
-        var nameTextSize = ImGui.CalcTextSize(name);
-        // fetch the author name (should only ever be UID, Alias, or Anonymous)
         var author = pattern.Author;
         var authorTextSize = ImGui.CalcTextSize(author);
+        
         // fetch the duration of the pattern
         var duration = pattern.Duration.Hours > 0 ? pattern.Duration.ToString("hh\\:mm\\:ss") : pattern.Duration.ToString("mm\\:ss");
         var durationTextSize = ImGui.CalcTextSize(duration);
+        
         // fetch the list of tags.
         var tags = pattern.Tags;
-        using (_uiShared.UidFont.Push())
-        {
-            tmpAlarmTextSize = ImGui.CalcTextSize($"{name}");
-        }
+
+        // get loop icon size
+        var loopIconSize = _uiShared.GetIconData(FontAwesomeIcon.Repeat);
+
         // Get Style sizes
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
@@ -299,18 +311,21 @@ public class ToyboxPatterns
             {
                 // scooch over a bit like 5f
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
-                _uiShared.BigText($"{name}");
+                // get Y pos
+                var currentYpos = ImGui.GetCursorPosY();
+                _uiShared.BigText(name);
                 ImGui.SameLine();
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((tmpAlarmTextSize.Y - nameTextSize.Y) / 2));
+                ImGui.SetCursorPosY(currentYpos + ((tmpAlarmTextSize.Y - loopIconSize.Y)/1.5f));
+
                 if (pattern.ShouldLoop)
                 {
-                    using (var loopColor = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.ParsedPink))
-                    {
-                        using (var font = ImRaii.PushFont(UiBuilder.IconFont))
-                        {
-                            ImGui.TextUnformatted(FontAwesomeIcon.Repeat.ToIconString());
-                        }
-                    }
+                    _uiShared.IconText(FontAwesomeIcon.Repeat, ImGuiColors.ParsedPink);
+                }
+                if (pattern.IsPublished)
+                {
+                    ImGui.SameLine();
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((tmpAlarmTextSize.Y - loopIconSize.Y)/1.5f));
+                    _uiShared.IconText(FontAwesomeIcon.Globe, ImGuiColors.ParsedPink);
                 }
             }
 

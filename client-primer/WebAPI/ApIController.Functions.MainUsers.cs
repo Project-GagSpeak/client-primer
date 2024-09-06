@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.IPC;
+using GagspeakAPI.Dto.Patterns;
 
 namespace GagSpeak.WebAPI;
 
@@ -68,6 +69,34 @@ public partial class ApiController // Partial class for MainHub User Functions.
         return await _gagspeakHub!.InvokeAsync<List<UserPairDto>>(nameof(UserGetPairedClients)).ConfigureAwait(false);
     }
 
+
+    /// <summary> Grabs the search result of your specified query to the server. </summary>
+    public async Task<List<ServerPatternInfo>> SearchPatterns(PatternSearchDto patternSearchDto)
+    {
+        if (!IsConnected) return new List<ServerPatternInfo>();
+        return await _gagspeakHub!.InvokeAsync<List<ServerPatternInfo>>(nameof(SearchPatterns), patternSearchDto).ConfigureAwait(false);
+    }
+
+    /// <summary> Likes a pattern you see on the server. AddingLike==true means we liked it, false means we un-liked it. </summary>
+    public async Task<bool> LikePattern(Guid patternId)
+    {
+        if (!IsConnected) return false;
+        return await _gagspeakHub!.InvokeAsync<bool>(nameof(LikePattern), patternId).ConfigureAwait(false);
+    }
+
+    /// <summary> Downloads a pattern from the server. </summary>
+    public async Task<string> DownloadPattern(Guid patternId)
+    {
+        if (!IsConnected) return string.Empty;
+        return await _gagspeakHub!.InvokeAsync<string>(nameof(DownloadPattern), patternId).ConfigureAwait(false);
+    }
+
+    /// <summary> Uploads your pattern to the server. </summary>
+    public async Task<bool> UploadPattern(PatternUploadDto dto)
+    {
+        if (!IsConnected) return false;
+        return await _gagspeakHub!.InvokeAsync<bool>(nameof(UploadPattern), dto).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Sends a message to the gagspeak Global chat.

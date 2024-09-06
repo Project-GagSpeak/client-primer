@@ -134,8 +134,7 @@ public class UserPairListHandler
             Filter = filter;
         }
         ImUtf8.SameLineInner();
-        using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(Filter));
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Ban, "Clear", null, false, string.IsNullOrEmpty(Filter)))
         {
             Filter = string.Empty;
         }

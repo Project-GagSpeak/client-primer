@@ -6,6 +6,7 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 [Serializable]
 public record PatternData
 {
+    public Guid UniqueIdentifier { get; set; } = Guid.Empty;
     /// <summary> The name of the pattern </summary>
     public string Name { get; set; } = string.Empty;
 
@@ -33,6 +34,9 @@ public record PatternData
     /// <summary> If the pattern should loop </summary>
     public bool ShouldLoop { get; set; } = false;
 
+    /// <summary> If the pattern is uploaded to the server. </summary>
+    public bool IsPublished { get; set; } = false;
+
     /// <summary> The list of allowed users who can view this pattern </summary>
     public List<string> AllowedUsers { get; set; } = new();
 
@@ -46,6 +50,7 @@ public record PatternData
 
         return new JObject()
         {
+            ["UniqueIdentifier"] = UniqueIdentifier,
             ["Name"] = Name,
             ["Description"] = Description,
             ["Author"] = Author,
@@ -55,8 +60,9 @@ public record PatternData
             ["PlaybackDuration"] = PlaybackDuration,
             ["IsActive"] = IsActive,
             ["ShouldLoop"] = ShouldLoop,
+            ["IsPublished"] = IsPublished,
             ["AllowedUsers"] = new JArray(AllowedUsers),
-            ["PatternByteData"] = patternDataString
+            ["PatternByteData"] = patternDataString,
         };
     }
 
@@ -64,6 +70,7 @@ public record PatternData
     {
         try
         {
+            UniqueIdentifier = Guid.TryParse(jsonObject["UniqueIdentifier"]?.Value<string>(), out var guid) ? guid : Guid.Empty;
             Name = jsonObject["Name"]?.Value<string>() ?? string.Empty;
             Description = jsonObject["Description"]?.Value<string>() ?? string.Empty;
             Author = jsonObject["Author"]?.Value<string>() ?? "Anon. Kinkster";
@@ -80,6 +87,7 @@ public record PatternData
 
             IsActive = jsonObject["IsActive"]?.Value<bool>() ?? false;
             ShouldLoop = jsonObject["ShouldLoop"]?.Value<bool>() ?? false;
+            IsPublished = jsonObject["IsPublished"]?.Value<bool>() ?? false;
 
             // Deserialize the AllowedUsers
             if (jsonObject["AllowedUsers"] is JArray allowedUsersArray)

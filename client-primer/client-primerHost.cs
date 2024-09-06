@@ -332,6 +332,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ServerConfigurationManager>()
         .AddSingleton<GagspeakMediator>()
         .AddSingleton<DiscoverService>()
+        .AddSingleton<PatternHubService>()
         .AddSingleton((s) => new ProfileService(s.GetRequiredService<ILogger<ProfileService>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
             s.GetRequiredService<ProfileFactory>()))

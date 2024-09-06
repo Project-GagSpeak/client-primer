@@ -1,13 +1,12 @@
-using System.IO;
-using System.IO.Compression;
-using System.Text;
 using Penumbra.String.Functions;
-// ripped from sebastina's glamoureripc
-namespace GagSpeak.Interop.IpcHelpers.GameData;
+using System.IO.Compression;
 
-public static class CompressExtensions {
+namespace GagSpeak.Utils;
+public static class Compressions
+{
     /// <summary> Compress a byte array with a prepended version. </summary>
-    public static unsafe byte[] Compress(this byte[] data, byte version) {
+    public static unsafe byte[] Compress(this byte[] data, byte version)
+    {
         using var compressedStream = new MemoryStream();
         using var zipStream = new GZipStream(compressedStream, CompressionMode.Compress);
         zipStream.Write(data, 0, data.Length);
@@ -15,7 +14,8 @@ public static class CompressExtensions {
 
         var ret = new byte[compressedStream.Length + 1];
         ret[0] = version;
-        fixed (byte* ptr1 = compressedStream.GetBuffer(), ptr2 = ret) {
+        fixed (byte* ptr1 = compressedStream.GetBuffer(), ptr2 = ret)
+        {
             MemoryUtility.MemCpyUnchecked(ptr2 + 1, ptr1, (int)compressedStream.Length);
         }
 
@@ -23,13 +23,15 @@ public static class CompressExtensions {
     }
 
     /// <summary> Compress a string with a prepended version. </summary>
-    public static byte[] Compress(this string data, byte version) {
+    public static byte[] Compress(this string data, byte version)
+    {
         var bytes = Encoding.UTF8.GetBytes(data);
         return bytes.Compress(version);
     }
 
     /// <summary> Decompress a byte array into a returned version byte and an array of the remaining bytes. </summary>
-    public static byte Decompress(this byte[] compressed, out byte[] decompressed) {
+    public static byte Decompress(this byte[] compressed, out byte[] decompressed)
+    {
         var ret = compressed[0];
         using var compressedStream = new MemoryStream(compressed, 1, compressed.Length - 1);
         using var zipStream = new GZipStream(compressedStream, CompressionMode.Decompress);
@@ -40,7 +42,8 @@ public static class CompressExtensions {
     }
 
     /// <summary> Decompress a byte array into a returned version byte and a string of the remaining bytes as UTF8. </summary>
-    public static byte DecompressToString(this byte[] compressed, out string decompressed) {
+    public static byte DecompressToString(this byte[] compressed, out string decompressed)
+    {
         var ret = compressed.Decompress(out var bytes);
         decompressed = Encoding.UTF8.GetString(bytes);
         return ret;

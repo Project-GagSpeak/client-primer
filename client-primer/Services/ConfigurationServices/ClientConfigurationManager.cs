@@ -148,6 +148,16 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
         if (_patternConfig.Current.PatternStorage == null) { _patternConfig.Current.PatternStorage = new(); }
 
+        if (_patternConfig.Current.PatternStorage.Patterns.Any(x => x.UniqueIdentifier == Guid.Empty))
+        {
+            Logger.LogWarning("Pattern Storage Config has a pattern with an empty GUID. Creating a new GUID for it.");
+            foreach (var pattern in _patternConfig.Current.PatternStorage.Patterns.Where(x => x.UniqueIdentifier == Guid.Empty))
+            {
+                pattern.UniqueIdentifier = Guid.NewGuid();
+            }
+            _patternConfig.Save();
+        }
+
         if (_alarmConfig.Current.AlarmStorage == null) { _alarmConfig.Current.AlarmStorage = new(); }
         // check to see if any loaded alarms contain a pattern no longer present.
 

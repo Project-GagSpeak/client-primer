@@ -268,6 +268,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.TextUnformatted(text);
     }
 
+    public static void ColorTextCentered(string text, Vector4 color)
+    {
+        float offset = (ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(text).X) / 2;
+        ImGui.SetCursorPosX(ImGui.GetCursorPosX() + offset);
+        ColorText(text, color);
+    }
+
     /// <summary>
     /// A helper function for wrapped text that is colored.  Keep in mind that this already exists in ottergui and we likely dont need it.
     /// </summary>
@@ -696,36 +703,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public void ForceSendEnterPress() => User32.keybd_event(0x0D, 0, 0, 0);
 
-    public void EditableTextFieldWithPopup(string popupId, ref string text, uint maxLength, string helpText)
-    {
-        ImGui.TextWrapped(text);
-        if (ImGui.IsItemHovered() && ImGui.IsItemClicked(ImGuiMouseButton.Right))
-        {
-            ImGui.OpenPopup(popupId);
-        }
-
-        // open the popup if we satisfy that criteria
-        if (ImGui.BeginPopup(popupId))
-        {
-            // store our text from when we open it
-            string currentText = text;
-            var oldText = currentText;
-            // set keyboard focus to the text box
-            if (ImGui.IsWindowAppearing()) { ImGui.SetKeyboardFocusHere(0); }
-            // pompt the user to enter a new name
-            ImGui.TextUnformatted(helpText);
-            if (ImGui.InputText("##Rename", ref currentText, maxLength, ImGuiInputTextFlags.EnterReturnsTrue))
-            {
-                // if our text is updated, send the updated text to the output result as an action string
-                if (currentText != oldText)
-                    text = currentText;
-                // close the popup
-                ImGui.CloseCurrentPopup();
-            }
-            ImGui.EndPopup();
-        }
-    }
-
     public static void CopyableDisplayText(string text, string tooltip = "Click to copy")
     {
         // then when the item is clicked, copy it to clipboard so we can share with others
@@ -877,7 +854,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public T? DrawCombo<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName,
-        Action<T?>? onSelected = null, T? initialSelectedItem = default, bool shouldShowLabel = true)
+        Action<T?>? onSelected = null, T? initialSelectedItem = default, bool shouldShowLabel = true, ImGuiComboFlags flags = ImGuiComboFlags.None)
     {
         if (!comboItems.Any()) return default;
 
@@ -899,7 +876,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         ImGui.SetNextItemWidth(width);
         string comboLabel = shouldShowLabel ? $"{comboName}##{comboName}" : $"##{comboName}";
-        if (ImGui.BeginCombo(comboLabel, toName((T)selectedItem!)))
+        if (ImGui.BeginCombo(comboLabel, toName((T)selectedItem!), flags))
         {
             foreach (var item in comboItems)
             {

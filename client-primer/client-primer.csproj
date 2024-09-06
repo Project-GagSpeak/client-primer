@@ -149,7 +149,6 @@
     </ItemGroup>
     <ItemGroup>
       <Folder Include="Hardcore\PromptHandler\NewFolder\" />
-      <Folder Include="UI\Components\PatternHubItems\" />
     </ItemGroup>
 </Project>
 

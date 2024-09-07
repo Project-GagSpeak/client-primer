@@ -170,7 +170,7 @@ public class ToyboxPatterns
             var currentYpos = ImGui.GetCursorPosY();
 
             // draw out the icon button
-            if (_uiShared.IconTextButton(publishOrTakedownIcon, publishOrTakedownText))
+            if (_uiShared.IconTextButton(publishOrTakedownIcon, publishOrTakedownText, null, false, !_handler.PatternBeingEdited.CreatedByClient))
             {
                 ImGui.OpenPopup("UploadPopup");
                 var buttonPos = ImGui.GetItemRectMin();
@@ -205,7 +205,7 @@ public class ToyboxPatterns
             {
                 if (ImGui.BeginPopup("UploadPopup"))
                 {
-                    string text = _handler.PatternBeingEdited.IsPublished ? "Upload Pattern to Server?" : "Remove Pattern from Server?";
+                    string text = _handler.PatternBeingEdited.IsPublished ? "Remove Pattern from Server?" : "Upload Pattern to Server?";
                     ImGuiUtil.Center(text);
                     var width = (ImGui.GetContentRegionAvail().X / 2) - ImGui.GetStyle().ItemInnerSpacing.X;
                     if (ImGui.Button("Yes, I'm Sure", new Vector2(width, 25f)))
@@ -410,10 +410,13 @@ public class ToyboxPatterns
         // author
         var refAuthor = pattern.Author;
         UiSharedService.ColorText("Author", ImGuiColors.ParsedGold);
-        ImGui.SetNextItemWidth(200f);
-        if (ImGui.InputTextWithHint("##PatternAuthor", "Author Here...", ref refAuthor, 25))
+        using (var disableAuthor = ImRaii.Disabled(!pattern.CreatedByClient))
         {
-            pattern.Author = refAuthor;
+            ImGui.SetNextItemWidth(200f);
+            if (ImGui.InputTextWithHint("##PatternAuthor", "Author Here...", ref refAuthor, 25))
+            {
+                pattern.Author = refAuthor;
+            }
         }
         _uiShared.DrawHelpText("Define the author for the Pattern.\n(Shown as Publisher name if uploaded)");
 

@@ -37,6 +37,9 @@ public record PatternData
     /// <summary> If the pattern is uploaded to the server. </summary>
     public bool IsPublished { get; set; } = false;
 
+    /// <summary> Lets client know if the pattern is ours or theirs. </summary>
+    public bool CreatedByClient { get; set; } = true;
+
     /// <summary> The list of allowed users who can view this pattern </summary>
     public List<string> AllowedUsers { get; set; } = new();
 
@@ -61,6 +64,7 @@ public record PatternData
             ["IsActive"] = IsActive,
             ["ShouldLoop"] = ShouldLoop,
             ["IsPublished"] = IsPublished,
+            ["CreatedByClient"] = CreatedByClient,
             ["AllowedUsers"] = new JArray(AllowedUsers),
             ["PatternByteData"] = patternDataString,
         };
@@ -88,6 +92,7 @@ public record PatternData
             IsActive = jsonObject["IsActive"]?.Value<bool>() ?? false;
             ShouldLoop = jsonObject["ShouldLoop"]?.Value<bool>() ?? false;
             IsPublished = jsonObject["IsPublished"]?.Value<bool>() ?? false;
+            CreatedByClient = jsonObject["CreatedByClient"]?.Value<bool>() ?? true; // prevent uploading if not failed.
 
             // Deserialize the AllowedUsers
             if (jsonObject["AllowedUsers"] is JArray allowedUsersArray)

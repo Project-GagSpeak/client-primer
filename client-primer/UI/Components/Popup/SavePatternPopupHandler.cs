@@ -102,7 +102,7 @@ public class SavePatternPopupHandler : IPopupHandler
         _size = _size with { Y = height };
     }
 
-    private int IndexToRemote = -1; 
+    private int IndexToRemote = -1;
     private float TagWidth = 0f;
     private void DrawTagField()
     {
@@ -196,9 +196,12 @@ public class SavePatternPopupHandler : IPopupHandler
     {
         // compile a fresh pattern object
         CompiledPatternData = new PatternData();
+        // create new GUID for it
+        CompiledPatternData.UniqueIdentifier = Guid.NewGuid();
         // set the duration
         CompiledPatternData.Duration = message.Duration;
         // set the pattern data
         CompiledPatternData.PatternByteData = message.StoredData;
+        // set vibration data
     }
 }

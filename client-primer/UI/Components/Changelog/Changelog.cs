@@ -19,6 +19,13 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 7, 3, 1)
+            .RegisterFeature("Please refer to 0.7.3.0 for full major changes.")
+            .RegisterQol("Author fields of downloaded patterns can no longer be edited.")
+            .RegisterQol("Downloaded patterns publish buttons are disabled.")
+            .RegisterBugfix("Fixed download button issue.")
+            .RegisterBugfix("Fixed other minor bugs.");
+
         VersionEntry(0, 7, 3, 0)
             .RegisterMain("PatternHub Tab is now functional!")
             .RegisterMain("Toybox Patterns Tab now allows you to publish and unpublish patterns to the PatternHub.")

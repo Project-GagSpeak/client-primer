@@ -101,7 +101,8 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
                 ImGui.SameLine();
                 using (var color = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudWhite2))
                 {
-                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.Download, patternInfo.Downloads.ToString(), null, true, _clientConfigs.PatternExists(patternInfo.Identifier)))
+                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.Download, patternInfo.Downloads.ToString(), null, true, 
+                        _clientConfigs.PatternExists(patternInfo.Identifier), "DownloadPattern"+patternInfo.Identifier))
                     {
                         _patternHubService.DownloadPatternFromServer(patternInfo.Identifier);
                     }
@@ -142,11 +143,11 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
                 var oscillationSize = _uiSharedService.GetIconData(FontAwesomeIcon.WaveSquare);
                 float rightEnd = ImGui.GetContentRegionAvail().X - vibeSize.X - rotationSize.X - oscillationSize.X - 2*ImGui.GetStyle().ItemSpacing.X;
                 ImGui.SameLine(rightEnd);
-                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesVibrations, false, FontAwesomeIcon.Water, FontAwesomeIcon.Water);
+                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesVibrations, false, FontAwesomeIcon.Water, FontAwesomeIcon.Water, ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
                 UiSharedService.AttachToolTip(patternInfo.UsesVibrations? "Uses Vibrations" : "Does not use Vibrations");
-                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesRotations, true, FontAwesomeIcon.Sync, FontAwesomeIcon.Sync);
+                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesRotations, true, FontAwesomeIcon.Sync, FontAwesomeIcon.Sync, ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
                 UiSharedService.AttachToolTip(patternInfo.UsesRotations ? "Uses Rotations" : "Does not use Rotations");
-                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesOscillation, true, FontAwesomeIcon.WaveSquare, FontAwesomeIcon.WaveSquare);
+                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesOscillation, true, FontAwesomeIcon.WaveSquare, FontAwesomeIcon.WaveSquare, ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
                 UiSharedService.AttachToolTip(patternInfo.UsesOscillation ? "Uses Oscillation" : "Does not use Oscillation");
             }
         }

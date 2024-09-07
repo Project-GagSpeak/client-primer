@@ -7,6 +7,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
+using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Patterns;
@@ -118,6 +119,11 @@ public class PatternHubService : DisposableMediatorSubscriberBase
     public void UpdateResults() => SearchPatterns(SearchQuery);
     public void SearchPatterns(string searchQuery)
     {
+        if (SearchPatternsTask != null)
+        {
+            Logger.LogWarning("SearchPatternsTask already in progress.");
+            return;
+        }
         SearchPatternsTask = _apiController.SearchPatterns(new(SearchQuery, new List<string>(), CurrentFilter, CurrentSort));
         SearchPatternsTask.ContinueWith(task =>
         {
@@ -138,6 +144,12 @@ public class PatternHubService : DisposableMediatorSubscriberBase
     }
     public void DownloadPatternFromServer(Guid patternIdentifier)
     {
+        if (DownloadPatternTask != null)
+        {
+            Logger.LogWarning("DownloadPatternTask already in progress.");
+            return;
+        }
+        Logger.LogTrace("Downloading Pattern from server.");
         DownloadPatternTask = _apiController.DownloadPattern(patternIdentifier);
         DownloadPatternTask.ContinueWith(task =>
         {
@@ -150,12 +162,16 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 Mediator.Publish(new NotificationMessage("Pattern Download", "finished downloading Pattern from servers.", NotificationType.Info));
                 // add one download count to the pattern.
                 SearchResults.FirstOrDefault(x => x.Identifier == patternIdentifier)!.Downloads++;
+                // grab the result and deserialize to base64
                 var bytes = Convert.FromBase64String(DownloadPatternTask.Result);
-                // Decode the base64 string back to a regular string
                 var version = bytes[0];
                 version = bytes.DecompressToString(out var decompressed);
                 // Deserialize the string back to pattern data
                 PatternData pattern = JsonConvert.DeserializeObject<PatternData>(decompressed) ?? new PatternData();
+                // if the pattern for whatever reason is enabled, set it to false, and also set appropriate download variables.
+                pattern.IsActive = false;
+                pattern.IsPublished = false;
+                pattern.CreatedByClient = false;
                 // Ensure the pattern has a unique name
                 string baseName = _clientConfigs.EnsureUniqueName(pattern.Name);
                 // Set the active pattern
@@ -168,7 +184,11 @@ public class PatternHubService : DisposableMediatorSubscriberBase
     // Toggles the rating you set for this pattern.
     public void RatePattern(Guid patternIdentifier)
     {
-        if (LikePatternTask != null) return;
+        if (LikePatternTask != null)
+        {
+            Logger.LogWarning("LikePatternTask already in progress.");
+            return;
+        }
         // only allow one like at a time.
         PatternInteractingWith = patternIdentifier;
         LikePatternTask = _apiController.LikePattern(patternIdentifier);
@@ -195,8 +215,15 @@ public class PatternHubService : DisposableMediatorSubscriberBase
     }
     public void UploadPatternToServer(int patternIdx)
     {
+        if (UploadPatternTask != null)
+        {
+            Logger.LogWarning("UploadPatternTask already in progress.");
+            return;
+        }
         // fetch the pattern at the index
-        PatternData patternToUpload = _clientConfigs.FetchPattern(patternIdx);
+        PatternData patternToUpload = _clientConfigs.FetchPattern(patternIdx).DeepClone();
+        // disable pattern and save before uploading.
+        patternToUpload.IsActive = false;
         // compress the pattern into base64.
         string json = JsonConvert.SerializeObject(patternToUpload);
         // Encode the string to a base64 string
@@ -239,6 +266,12 @@ public class PatternHubService : DisposableMediatorSubscriberBase
 
     public void RemovePatternFromServer(int patternIdx)
     {
+        if (RemovePatternTask != null)
+        {
+            Logger.LogWarning("RemovePatternTask already in progress.");
+            return;
+        }
+
         // fetch the pattern by the guid
         PatternData? patternToRemove = _clientConfigs.FetchPattern(patternIdx);
         if (patternToRemove == null || patternToRemove.UniqueIdentifier == Guid.Empty)

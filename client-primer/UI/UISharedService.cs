@@ -447,7 +447,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return result && !disabled;
     }
 
-    private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null, bool disabled = false)
+    private bool IconTextButtonInternal(FontAwesomeIcon icon, string text, Vector4? defaultColor = null, float? width = null, bool disabled = false, string id = "")
     {
         using var dis = ImRaii.PushStyle(ImGuiStyleVar.Alpha, disabled ? 0.5f : 1f);
         int num = 0;
@@ -457,7 +457,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             num++;
         }
 
-        ImGui.PushID(text);
+        ImGui.PushID(text+"##"+id);
         Vector2 vector;
         using (IconFont.Push())
             vector = ImGui.CalcTextSize(icon.ToIconString());
@@ -483,12 +483,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return result && !disabled;
     }
 
-    public bool IconTextButton(FontAwesomeIcon icon, string text, float? width = null, bool isInPopup = false, bool disabled = false)
+    public bool IconTextButton(FontAwesomeIcon icon, string text, float? width = null, bool isInPopup = false, bool disabled = false, string id = "Identifier")
     {
         return IconTextButtonInternal(icon, text,
             isInPopup ? new Vector4(1.0f, 1.0f, 1.0f, 0.0f) : null,
             width <= 0 ? null : width,
-            disabled);
+            disabled, id);
     }
 
 
@@ -836,10 +836,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public void BooleanToColoredIcon(bool value, bool inline = true,
-        FontAwesomeIcon trueIcon = FontAwesomeIcon.Check, FontAwesomeIcon falseIcon = FontAwesomeIcon.Times)
+        FontAwesomeIcon trueIcon = FontAwesomeIcon.Check, FontAwesomeIcon falseIcon = FontAwesomeIcon.Times, Vector4 colorTrue = default, Vector4 colorFalse = default)
     {
-        using var colorgreen = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.HealerGreen, value);
-        using var colorred = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed, !value);
+        using var colorgreen = ImRaii.PushColor(ImGuiCol.Text, (colorTrue == default) ? ImGuiColors.HealerGreen : colorTrue, value);
+        using var colorred = ImRaii.PushColor(ImGuiCol.Text, (colorFalse == default) ? ImGuiColors.DalamudRed : colorFalse, !value);
 
         if (inline) ImGui.SameLine();
 

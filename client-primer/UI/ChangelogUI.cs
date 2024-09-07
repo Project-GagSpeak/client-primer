@@ -85,7 +85,7 @@ internal class ChangelogUI : WindowMediatorSubscriberBase
             .GroupBy(v => (v.Major, v.Minor, v.Build))
             .OrderBy(g => g.Key.Major)
             .ThenBy(g => g.Key.Minor)
-            .ThenBy(g => g.Key.Build);
+            .ThenBy(g => g.Key.Build).Reverse();
 
         var i = 0;
         foreach (var group in groupedVersions)

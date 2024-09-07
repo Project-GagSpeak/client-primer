@@ -490,7 +490,7 @@ public class RestraintSetEditor : IMediatorSubscriber
                     UiSharedService.AttachToolTip("Enables the Blinded property for this set." +
                         Environment.NewLine + "Restricts use of any actions which rely on your sight to execute.");
                     ImGui.SameLine(0, 2);
-                    _uiShared.BooleanToColoredIcon(properties.LegsRestrained, false);
+                    _uiShared.BooleanToColoredIcon(properties.Blindfolded, false);
 
                     using (ImRaii.Disabled(!pair.UserPairOwnUniquePairPerms.InHardcore))
                     {

@@ -20,6 +20,7 @@ public class Changelog
     private void AddVersionData()
     {
         VersionEntry(0, 7, 4, 0)
+            .RegisterMain("Updated Buttplug Package to v4.0")
             .RegisterFeature("Added a new preset dropdown to bulk set permissions for pairs.")
             .RegisterFeature("DO NOT TEST THIS FEATURE YET, IT IS UNTESTED");
         VersionEntry(0, 7, 3, 3)

@@ -141,27 +141,22 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
     }
 
-    public JObject? GetState()
+    public Newtonsoft.Json.Linq.JObject? GetState()
     {
-        try
-        {
-            var success = _glamourerGetState.Invoke(_clientState.LocalPlayer!.ObjectIndex);
-            return success.Item2;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning($"Error during GetState: {ex}");
-            return null;
-        }
+        var index = _clientState.LocalPlayer?.ObjectIndex;
+        if (index == null) return null;
+
+        (GlamourerApiEc response, Newtonsoft.Json.Linq.JObject? charaState) result = _glamourerGetState.Invoke((int)index);
+        if (result.response != GlamourerApiEc.Success) return null;
+
+        return result.charaState;
     }
 
 
 
     public async Task<bool> ForceSetMetaData(MetaData metaData, bool? forcedState = null)
     {
-        Logger.LogDebug("This function is not currently added yet, (SetState) And will be when ButtPlug updates to 3.0.2!");
-        return true;
-/*        // if the glamourerApi is not active, then return an empty string for the customization
+        // if the glamourerApi is not active, then return an empty string for the customization
         if (!APIAvailable || _onFrameworkService.IsZoning) return false;
         try
         {
@@ -197,7 +192,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         {
             Logger.LogWarning($"Error during SetMetaData: {ex}");
             return false;
-        }*/
+        }
     }
 
 

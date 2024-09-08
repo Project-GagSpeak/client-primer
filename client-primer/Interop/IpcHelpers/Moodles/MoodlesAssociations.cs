@@ -17,6 +17,7 @@ using OtterGui;
 using OtterGui.Raii;
 using Penumbra.Api.Enums;
 using System.Numerics;
+using System.Xml.Linq;
 
 namespace GagSpeak.Interop.IpcHelpers.Moodles;
 public class MoodlesAssociations : DisposableMediatorSubscriberBase
@@ -100,8 +101,11 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
             var moodlesPresetList = lastPlayerIpcData.MoodlesPresets;
             associable.AssociatedMoodlePresets.RemoveAll(preset =>
                 moodlesPresetList.Any(x => x.Item1 == preset && x.Item2.Any(status => !associable.AssociatedMoodles.Any(y => y == status))));
-
         }
+
+        // correct the selected index's if they are out of bounds.
+        if (SelectedStatusIndex < 0 || SelectedStatusIndex >= lastPlayerIpcData.MoodlesStatuses.Count) SelectedStatusIndex = 0;
+        if (SelectedPresetIndex < 0 || SelectedPresetIndex >= lastPlayerIpcData.MoodlesPresets.Count) SelectedPresetIndex = 0;
 
         // Handle what we are drawing based on what the table is for.
         if (isPresets)

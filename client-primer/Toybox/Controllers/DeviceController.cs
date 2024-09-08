@@ -1,5 +1,4 @@
 using Buttplug.Client;
-using Buttplug.Client.Connectors.WebsocketConnector;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Data;
 using GagSpeak.Services.Mediator;

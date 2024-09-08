@@ -7,7 +7,7 @@
         <TargetFramework>net8.0-windows</TargetFramework>
         <Copyright>Copyright © 2024</Copyright>
         <LangVersion>preview</LangVersion>
-        <Version>0.7.3.3</Version>
+        <Version>0.7.4.0</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
@@ -132,8 +132,7 @@
         <PackageReference Include="DebounceThrottle" Version="3.0.1" />
         
         <!-- Toybox Lovense Compatibility. (According to docs possibly estim too) -->
-        <PackageReference Include="Buttplug" Version="3.0.1" />
-        <PackageReference Include="Buttplug.Client.Connectors.WebsocketConnector" Version="3.0.1" />
+        <PackageReference Include="Buttplug" Version="4.0.0" />
         
         <!--For image processing and manipulation beyond dalamuds textureprovider capabilities..-->
         <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />

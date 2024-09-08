@@ -263,7 +263,8 @@ public class ConnectedDevice
     /// <summary> Send a rotation command. </summary>
     public void SendRotate(byte intensity, bool clockwise = true, int motorIndex = -1)
     {
-        if (ClientDevice == null || !CanRotate || !IsConnected)
+        _logger.LogDebug("Rotation Disabled Currently");
+/*        if (ClientDevice == null || !CanRotate || !IsConnected)
         {
             _logger.LogError("Cannot send rotation command, device is not connected or does not support rotation.");
             return;
@@ -301,7 +302,7 @@ public class ConnectedDevice
         catch (Exception ex)
         {
             _logger.LogError($"Error Sending Rotation: {ex.Message}");
-        }
+        }*/
     }
 
     /// <summary>
@@ -312,7 +313,8 @@ public class ConnectedDevice
     /// <param name="motorIndex"> The motor on the device to execute the command on. </param>
     public void SendLinear(byte intensity, int period = 500, int motorIndex = -1)
     {
-        if (ClientDevice == null || !CanLinear || !IsConnected)
+        _logger.LogDebug("Linear Disabled Currently");
+/*        if (ClientDevice == null || !CanLinear || !IsConnected)
         {
             _logger.LogError("Cannot send linear command, device is not connected or does not support linear.");
             return;
@@ -350,7 +352,7 @@ public class ConnectedDevice
         catch (Exception ex)
         {
             _logger.LogError($"Error Sending Linear: {ex.Message}");
-        }
+        }*/
     }
 
     /// <summary>
@@ -361,7 +363,8 @@ public class ConnectedDevice
     /// <param name="motorIndex"> The motor on the device to execute the command on. </param>
     public void SendOscillate(byte intensity, int period = 500, int motorIndex = -1)
     {
-        if (ClientDevice == null || !CanOscillate || !IsConnected)
+        _logger.LogDebug("Oscillation Disabled Currently");
+/*        if (ClientDevice == null || !CanOscillate || !IsConnected)
         {
             _logger.LogError("Cannot send oscillation command, device is not connected or does not support oscillation.");
             return;
@@ -399,7 +402,7 @@ public class ConnectedDevice
         catch (Exception ex)
         {
             _logger.LogError($"Error Sending Oscillation: {ex.Message}");
-        }
+        }*/
     }
 
 }

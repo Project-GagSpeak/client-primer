@@ -4,6 +4,7 @@ using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Interop.Ipc;
 using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
@@ -30,14 +31,14 @@ namespace GagSpeak.UI.Tabs.WardrobeTab;
 public class GagStoragePanel : DisposableMediatorSubscriberBase
 {
     private const float ComboWidth = 175f;
-
-    private readonly IDataManager _gameData;
     private readonly TextureService _textures;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly UiSharedService _uiShared;
     private readonly DictStain StainData;
     private readonly ItemData ItemData;
+    private readonly IpcCallerMoodles _moodlesCaller;
     private readonly MoodlesAssociations _relatedMoodles;
+    private readonly IDataManager _gameData;
 
     private LowerString GagSearchString = LowerString.Empty;
     private Vector2 IconSize;
@@ -49,7 +50,8 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     public GagStoragePanel(ILogger<GagStoragePanel> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, UiSharedService uiSharedService,
         DictStain stainData, ItemData itemData, TextureService textures,
-        MoodlesAssociations relatedMoodles, IDataManager gameData) : base(logger, mediator)
+        IpcCallerMoodles moodles, MoodlesAssociations relatedMoodles, 
+        IDataManager gameData) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _uiShared = uiSharedService;
@@ -57,6 +59,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         _gameData = gameData;
         StainData = stainData;
         ItemData = itemData;
+        _moodlesCaller = moodles;
         _relatedMoodles = relatedMoodles;
 
         // create a new gameItemCombo for each equipment piece type, then store them into the array.
@@ -180,6 +183,11 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
 
     private void DrawGagMoodles(float cellPaddingY)
     {
+        if(!_moodlesCaller.APIAvailable)
+        {
+            UiSharedService.ColorText("Moodles not Enabled. Please enable to view Moodles options.", ImGuiColors.DalamudRed);
+            return;
+        }
         if (LastCreatedCharacterData == null)
         {
             ImGui.TextWrapped("No Character Data Found. Please select a character to edit.");
@@ -248,7 +256,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Error Drawing Moodles Options for Restraint Set.");
+            Logger.LogError(e, "Error Drawing Moodles Options for Selected Gag.");
         }
     }
 

@@ -1,30 +1,19 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
-using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Services;
-using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Profile;
 using GagSpeak.UpdateMonitoring;
-using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Enum;
-using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
-using ImGuiScene;
-using OtterGui;
-using Penumbra.GameData.Interop;
 using System.Numerics;
-using System.Reflection.Metadata;
-using static FFXIVClientStructs.FFXIV.Client.UI.Misc.GroupPoseModule;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -103,7 +92,7 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
                     var currentPosition = ImGui.GetCursorPos();
 
                     var pos = ImGui.GetCursorScreenPos();
-                    ImGui.GetWindowDrawList().AddImageRounded(wrap.ImGuiHandle, pos, pos + imgSize, Vector2.Zero, Vector2.One, 
+                    ImGui.GetWindowDrawList().AddImageRounded(wrap.ImGuiHandle, pos, pos + imgSize, Vector2.Zero, Vector2.One,
                         ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)), 90f);
                     ImGui.SetCursorPos(new Vector2(currentPosition.X, currentPosition.Y + imgSize.Y));
 
@@ -113,7 +102,7 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
             {
                 Logger.LogError($"Error: {ex}");
             }
-            
+
             // draw the UID header below this.
             DrawUIDHeader();
             // below this, draw a separator. (temp)
@@ -153,8 +142,8 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
                 });
 
             ImGui.AlignTextToFramePadding();
-            DrawAccountSettingChild(FontAwesomeIcon.Pray, "Support via Patreon", "This plugin took a massive toll on my life as a solo dev."+
-                Environment.NewLine + "As happy as I am to make this free for all of you to enjoy, "+
+            DrawAccountSettingChild(FontAwesomeIcon.Pray, "Support via Patreon", "This plugin took a massive toll on my life as a solo dev." +
+                Environment.NewLine + "As happy as I am to make this free for all of you to enjoy, " +
                 Environment.NewLine + "any support / tips are much appreciated ♥", () =>
             {
                 try { Process.Start(new ProcessStartInfo { FileName = "https://www.patreon.com/CordeliaMist", UseShellExecute = true }); }
@@ -231,9 +220,9 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
         }
         var iconSize = _uiShared.GetIconData(FontAwesomeIcon.ExclamationTriangle);
         var editButtonSize = _uiShared.GetIconData(FontAwesomeIcon.Edit);
-        var bigTextPaddingDistance = ((height - textSize.Y)/2);
+        var bigTextPaddingDistance = ((height - textSize.Y) / 2);
         var iconFontCenterY = (height - iconSize.Y) / 2;
-        var editButtonCenterY = (height - editButtonSize.Y)/ 2;
+        var editButtonCenterY = (height - editButtonSize.Y) / 2;
 
         using (ImRaii.Child($"##DrawSafewordChild", new Vector2(UiSharedService.GetWindowContentRegionWidth(), height), false))
         {
@@ -247,7 +236,7 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
             var safewordText = _config.Current.Safeword == "" ? "No Safeword Set" : _config.Current.Safeword;
             if (EditingSafeword)
             {
-                ImGui.SetCursorPosY(childStartYpos + ((height-23)/2) +0.5f); // 23 is the input text box height
+                ImGui.SetCursorPosY(childStartYpos + ((height - 23) / 2) + 0.5f); // 23 is the input text box height
                 ImGui.SetNextItemWidth(225 * ImGuiHelpers.GlobalScale);
                 var safeword = _config.Current.Safeword;
                 if (ImGui.InputTextWithHint("##Your Safeword", "Enter Safeword", ref safeword, 30, ImGuiInputTextFlags.EnterReturnsTrue))
@@ -258,7 +247,7 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
                 }
                 // now, head to the same line of the full width minus the width of the button
                 ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - editButtonSize.X - ImGui.GetStyle().ItemSpacing.X);
-                ImGui.SetCursorPosY(childStartYpos + ((height - editButtonSize.Y) / 2) -2f);
+                ImGui.SetCursorPosY(childStartYpos + ((height - editButtonSize.Y) / 2) - 2f);
             }
             else
             {

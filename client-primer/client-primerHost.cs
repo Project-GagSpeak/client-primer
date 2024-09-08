@@ -237,6 +237,11 @@ public static class GagSpeakServiceExtensions
 
         .AddSingleton((s) => new ActionEffectMonitor(s.GetRequiredService<ILogger<ActionEffectMonitor>>(),
             s.GetRequiredService<GagspeakConfigService>(), ss, gip))
+        .AddSingleton((s) => new TriggerController(s.GetRequiredService<ILogger<TriggerController>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
+            s.GetRequiredService<PairManager>(), s.GetRequiredService<ActionEffectMonitor>(),
+            s.GetRequiredService<OnFrameworkService>(), dm))
+
         .AddSingleton((s) => new DtrBarService(s.GetRequiredService<ILogger<DtrBarService>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PairManager>(), cs, dtr, ot))
 
@@ -327,6 +332,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ToyboxVibeService>()
         .AddSingleton<ToyboxRemoteService>()
         .AddSingleton<PatternPlaybackService>()
+        .AddSingleton((s) => new TriggerService(s.GetRequiredService<ILogger<TriggerService>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
+            s.GetRequiredService<TriggerController>(), s.GetRequiredService<ToyboxVibeService>(), cs, dm))
         .AddSingleton<GlamourChangedService>()
         .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()

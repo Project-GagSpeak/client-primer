@@ -4,7 +4,9 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using GagSpeak.GagspeakConfiguration;
 using GagspeakAPI.Data.Enum;
+using Microsoft.Extensions.Logging;
 using System.Numerics;
+using static FFXIVClientStructs.FFXIV.Client.Game.Character.ActionEffectHandler;
 using ActionEffectHandler = FFXIVClientStructs.FFXIV.Client.Game.Character.ActionEffectHandler;
 
 // References for Knowledge
@@ -75,9 +77,11 @@ public unsafe class ActionEffectMonitor : IDisposable
 
     private void ProcessActionEffectDetour(uint sourceID, Character* sourceCharacter, Vector3* pos, ActionEffectHandler.Header* effectHeader, EffectEntry* effectArray, ulong* effectTail)
     {
+        // return original if not a type we care for.
+
         try
         {
-            if (_mainConfig.Current.LogActionEffects) _logger.LogTrace(
+            if (_mainConfig.Current.LogActionEffects) _logger.LogDebug(
                 $"--- source actor: {sourceCharacter->GameObject.EntityId}, action id {effectHeader->ActionId}, numTargets: {effectHeader->NumTargets} ---");
 
             var TargetEffects = new TargetEffect[effectHeader->NumTargets];
@@ -91,8 +95,14 @@ public unsafe class ActionEffectMonitor : IDisposable
             {
                 effect.ForEach(entry =>
                 {
-                    if (!isValidActionEffectType(entry.type)) return;
-                    affectedTargets.Add(new ActionEffectEntry(sourceID, effect.TargetID, entry.type, effectHeader->ActionId, entry.Damage));
+                    if(entry.type == 0) return; // ignore blank entries.
+                    if (!entry.TryGetActionEffectType(out var actionEffectType))
+                    {
+                        if (_mainConfig.Current.LogActionEffects) _logger.LogDebug("EffectType was of type : " + entry.type);
+                        return;
+                    }
+                    // the effect is valid, so add it to targeted effects 
+                    affectedTargets.Add(new ActionEffectEntry(sourceID, effect.TargetID, actionEffectType, effectHeader->ActionId, entry.Damage));
                 });
             }
 
@@ -120,11 +130,11 @@ public struct ActionEffectEntry
 {
     public uint SourceID { get; }
     public ulong TargetID { get; }
-    public ActionEffectType Type { get; }
+    public LimitedActionEffectType Type { get; } // make this use a byte over ActionEffectType, so we fetch the type even if its not one we care about, and only accept it if it is one we care about.
     public uint ActionID { get; }
     public uint Damage { get; }
 
-    public ActionEffectEntry(uint sourceID, ulong targetID, ActionEffectType type, uint actionID, uint damage)
+    public ActionEffectEntry(uint sourceID, ulong targetID, LimitedActionEffectType type, uint actionID, uint damage)
     {
         SourceID = sourceID;
         TargetID = targetID;
@@ -146,7 +156,6 @@ public unsafe struct TargetEffect
         _effects = effects;
     }
 
-
     public EffectEntry this[int index]
     {
         get
@@ -154,30 +163,6 @@ public unsafe struct TargetEffect
             if (index < 0 || index > 7) return default;
             return _effects[index];
         }
-    }
-
-    // dont really need to ever use this.
-    public override string ToString()
-    {
-        var str = "";
-        ForEach(e => str += "\n    " + e.ToString());
-        return str;
-    }
-
-    public bool GetSpecificTypeEffect(ActionEffectType type, out EffectEntry effect)
-    {
-        var find = false;
-        EffectEntry result = default;
-        ForEach(e =>
-        {
-            if (!find && e.type == type)
-            {
-                find = true;
-                result = e;
-            }
-        });
-        effect = result;
-        return find;
     }
 
     public void ForEach(Action<EffectEntry> act)
@@ -193,7 +178,7 @@ public unsafe struct TargetEffect
 
 public struct EffectEntry
 {
-    public ActionEffectType type;
+    public byte type;
     public byte param0;
     public byte param1;
     public byte param2;
@@ -204,6 +189,17 @@ public struct EffectEntry
     public byte AttackType => (byte)(param1 & 0xF);
 
     public uint Damage => mult == 0 ? value : value + ((uint)ushort.MaxValue + 1) * mult;
+
+    public bool TryGetActionEffectType(out LimitedActionEffectType effectType)
+    {
+        if (Enum.IsDefined(typeof(LimitedActionEffectType), type))
+        {
+            effectType = (LimitedActionEffectType)type;
+            return true;
+        }
+        effectType = default;
+        return false;
+    }
 
     public override string ToString()
     {

@@ -8,15 +8,18 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Services;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.VibeServer;
 using ImGuiNET;
+using Lumina.Excel.GeneratedSheets;
 using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Text;
-using System.Drawing;
 using System.Numerics;
+using System.Text.Json.Serialization;
+using GameAction = Lumina.Excel.GeneratedSheets.Action;
 namespace GagSpeak.UI.UiToybox;
 
 public class ToyboxTriggerManager
@@ -28,11 +31,13 @@ public class ToyboxTriggerManager
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly TriggerHandler _handler;
     private readonly PatternHandler _patternHandler;
+    private readonly TriggerService _triggerService;
 
     public ToyboxTriggerManager(ILogger<ToyboxTriggerManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         PairManager pairManager, ClientConfigurationManager clientConfigs,
-        TriggerHandler handler, PatternHandler patternHandler)
+        TriggerHandler handler, PatternHandler patternHandler, 
+        TriggerService triggerService)
     {
         _logger = logger;
         _mediator = mediator;
@@ -41,6 +46,7 @@ public class ToyboxTriggerManager
         _clientConfigs = clientConfigs;
         _handler = handler;
         _patternHandler = patternHandler;
+        _triggerService = triggerService;
     }
 
     private List<Trigger> FilteredTriggerList
@@ -388,7 +394,7 @@ public class ToyboxTriggerManager
             switch (triggerToCreate)
             {
                 case ChatTrigger chatTrigger:
-                    if(ImGui.BeginTabItem("ChatText"))
+                    if (ImGui.BeginTabItem("ChatText"))
                     {
                         DrawChatTriggerEditor(chatTrigger);
                         ImGui.EndTabItem();
@@ -495,35 +501,75 @@ public class ToyboxTriggerManager
         DrawChatTriggerChannels(chatTrigger);
     }
 
+    private uint SelectedJobId = uint.MaxValue;
+    private List<GameAction> SelectedActions = new List<GameAction>();
+    private string JobTypeSearchString = string.Empty;
+    private string ActionSearchString = string.Empty;
     private void DrawSpellActionTriggerEditor(SpellActionTrigger spellActionTrigger)
     {
-        UiSharedService.ColorText("Action Type: ", ImGuiColors.ParsedGold);
-        _uiShared.DrawHelpText("The type of action to monitor for." + Environment.NewLine
-            + "Can be listening for different state results of the same action.");
-        _uiShared.DrawCombo("##ActionKindCombo", 150f, Enum.GetValues<ActionType>(), (Actionkind) => Actionkind.ToString(),
-            (i) => spellActionTrigger.ActionKind = i, spellActionTrigger.ActionKind);
+        if (!CanDrawSpellActionTriggerUI()) return;
 
-        UiSharedService.ColorText("Action Name Text: ", ImGuiColors.ParsedGold);
-        _uiShared.DrawHelpText("The name of the action to listen for that causes the effect." + Environment.NewLine
-            + "Can use | to listen for multiple actions.");
-        ImGui.SetNextItemWidth(200f);
-        string refActionNamesStr = spellActionTrigger.ActionSpellNames;
-        if (ImGui.InputTextWithHint("##ActionSpellNames", "Action Name", ref refActionNamesStr, 255))
+        UiSharedService.ColorText("Action Type", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("The type of action to monitor for.");
+
+        _uiShared.DrawCombo("##ActionKindCombo", 150f, Enum.GetValues<LimitedActionEffectType>(), (ActionKind) => ActionKind.EffectTypeToString(),
+        (i) => spellActionTrigger.ActionKind = i, spellActionTrigger.ActionKind);
+
+        // the name of the action to listen to.
+        UiSharedService.ColorText("Action Name", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("Action To listen for." + Environment.NewLine + Environment.NewLine
+            + "NOTE: Effects Divine Benison or regen, that cast no heal value, so not count as heals.");
+
+        _uiShared.DrawComboSearchable("##ActionJobSelectionCombo", 85f, ref JobTypeSearchString, _triggerService.BattleClassJobs,
+            (job) => job.Name, false, (i) =>
+            {
+                _logger.LogTrace($"Selected Job ID for Trigger: {SelectedJobId}");
+                SelectedJobId = i?.RowId ?? uint.MaxValue;
+                _triggerService.CacheJobActionList(SelectedJobId);
+            }, _triggerService.GetClientClassJob() ?? default, "Job..", ImGuiComboFlags.NoArrowButton);
+
+        ImUtf8.SameLineInner();
+        var loadedActions = _triggerService.LoadedActions[SelectedJobId];
+        _uiShared.DrawComboSearchable("##ActionToListenTo", 150f, ref ActionSearchString, loadedActions, (action) => action.Name,
+        false, (i) => spellActionTrigger.ActionID = i?.RowId ?? uint.MaxValue, null, "Select Job Action..");
+
+        // Determine how we draw out the rest of this based on the action type:
+        switch (spellActionTrigger.ActionKind)
         {
-            spellActionTrigger.ActionSpellNames = refActionNamesStr;
+            case LimitedActionEffectType.Miss:
+            case LimitedActionEffectType.Shirk:
+            case LimitedActionEffectType.Interrupt:
+            case LimitedActionEffectType.Attract1:
+            case LimitedActionEffectType.Knockback:
+                DrawDirection(spellActionTrigger);
+                return;
+            case LimitedActionEffectType.BlockedDamage:
+            case LimitedActionEffectType.ParriedDamage:
+            case LimitedActionEffectType.Damage:
+            case LimitedActionEffectType.Heal:
+                DrawDirection(spellActionTrigger);
+                DrawThresholds(spellActionTrigger);
+                return;
+
         }
+    }
 
-        UiSharedService.ColorText("Direction: ", ImGuiColors.ParsedGold);
-        _uiShared.DrawHelpText("If the trigger is invoked when the action hits the client, another object, or either?");
+    private void DrawDirection(SpellActionTrigger spellActionTrigger)
+    {
+        UiSharedService.ColorText("Direction", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("Determines how the trigger is fired.");
         // create a dropdown storing the enum values of TriggerDirection
-        _uiShared.DrawCombo("##DirectionSelector", 200f, Enum.GetValues<TriggerDirection>(), (direction) => direction.ToString(),
-            (i) => spellActionTrigger.Direction = i, spellActionTrigger.Direction);
+        _uiShared.DrawCombo("##DirectionSelector", 100f, Enum.GetValues<TriggerDirection>(), 
+        (direction) => direction.DirectionToString(), (i) => spellActionTrigger.Direction = i, spellActionTrigger.Direction);
+    }
 
+    private void DrawThresholds(SpellActionTrigger spellActionTrigger)
+    {
         UiSharedService.ColorText("Threshold Min Value: ", ImGuiColors.ParsedGold);
         _uiShared.DrawHelpText("Minimum Damage/Heal number to trigger effect.\nLeave -1 for any.");
         var minVal = spellActionTrigger.ThresholdMinValue;
         ImGui.SetNextItemWidth(200f);
-        if(ImGui.InputInt("##ThresholdMinValue", ref minVal))
+        if (ImGui.InputInt("##ThresholdMinValue", ref minVal))
         {
             spellActionTrigger.ThresholdMinValue = minVal;
         }
@@ -551,11 +597,11 @@ public class ToyboxTriggerManager
 
         UiSharedService.ColorText("Use % Threshold: ", ImGuiColors.ParsedGold);
         var usePercentageHealth = healthPercentTrigger.UsePercentageHealth;
-        if(ImGui.Checkbox("##Use Percentage Health", ref usePercentageHealth))
+        if (ImGui.Checkbox("##Use Percentage Health", ref usePercentageHealth))
         {
             healthPercentTrigger.UsePercentageHealth = usePercentageHealth;
         }
-        _uiShared.DrawHelpText("When Enabled, will watch for when health goes above or below a specific %" + 
+        _uiShared.DrawHelpText("When Enabled, will watch for when health goes above or below a specific %" +
             Environment.NewLine + "Otherwise, listens for when it goes above or below a health range.");
 
         UiSharedService.ColorText("Pass Kind: ", ImGuiColors.ParsedGold);
@@ -563,7 +609,7 @@ public class ToyboxTriggerManager
             (i) => healthPercentTrigger.PassKind = i, healthPercentTrigger.PassKind);
         _uiShared.DrawHelpText("If the trigger should fire when the health passes above or below the threshold.");
 
-        if(healthPercentTrigger.UsePercentageHealth)
+        if (healthPercentTrigger.UsePercentageHealth)
         {
             UiSharedService.ColorText("Health % Threshold: ", ImGuiColors.ParsedGold);
             int minHealth = healthPercentTrigger.MinHealthValue;
@@ -627,6 +673,39 @@ public class ToyboxTriggerManager
     {
         UiSharedService.ColorText("Trigger Execution Type: ", ImGuiColors.ParsedGold);
 
+    }
+
+    private bool CanDrawSpellActionTriggerUI()
+    {
+        if (_triggerService.ClassJobs.Count == 0)
+        {
+            _logger.LogTrace("Updating ClassJob list because it was empty!");
+            _triggerService.TryUpdateClassJobList();
+        }
+        // if the selected job id is the max value and the client is logged in, set it to the client class job.
+        if (SelectedJobId == uint.MaxValue)
+        {
+            // try and get the client class job.
+            var clientClassJob = _triggerService.GetClientClassJob();
+            if (clientClassJob == null || clientClassJob == default)
+            {
+                _logger.LogWarning("Client Class Job is null or default. Cannot set SelectedJobId.");
+                return false;
+            }
+            // otherwise, update job ID and cache actions for the job.
+            _logger.LogTrace("Set SelectedJobId to current client jobId.");
+            SelectedJobId = clientClassJob.RowId;
+            _triggerService.CacheJobActionList(SelectedJobId);
+        }
+        if (SelectedJobId != uint.MaxValue && !_triggerService.LoadedActions.ContainsKey(SelectedJobId))
+        {
+            ImGui.Text("SelectedJobID: " + SelectedJobId);
+            ImGui.Text("Loading Actions, please wait.");
+            ImGui.Text("Current ClassJob size: " + _triggerService.ClassJobs.Count);
+            ImGui.Text("If this doesnt go away, its an error. Report it!");
+            return false;
+        }
+        return true;
     }
 
     private void DrawChatTriggerChannels(ChatTrigger chatTrigger)

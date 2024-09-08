@@ -109,7 +109,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 ShowTooltip = () =>
                 {
                     ImGui.BeginTooltip();
-                    ImGui.Text("Changelog (Not yet Available)");
+                    ImGui.Text("Changelog");
                     ImGui.EndTooltip();
                 }
             }

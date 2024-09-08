@@ -5,6 +5,7 @@ using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Utility;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using GagSpeak.Services.Textures;
+using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.VibeServer;
 using ImGuiNET;
 using OtterGui;
@@ -117,7 +118,6 @@ public static class UtilsExtensions
     public static string GetNameWithWorld(this IPlayerCharacter pc)
         => pc == null ? null : (pc.Name.ToString() + "@" + pc.HomeWorld.GameData.Name);
 
-
     public static unsafe AtkUnitBase* Base(this AddonArgs args) => (AtkUnitBase*)args.Addon;
 
     /// <summary>
@@ -147,6 +147,36 @@ public static class UtilsExtensions
             TriggerKind.HealthPercent => "Health% Trigger",
             TriggerKind.RestraintSet => "Restraint Trigger",
             TriggerKind.GagState => "GagState Trigger",
+            _ => "UNK"
+        };
+    }
+
+    public static string DirectionToString(this TriggerDirection type)
+    {
+        return type switch
+        {
+            TriggerDirection.Self => "From Self",
+            TriggerDirection.SelfToOther => "Done onto others",
+            TriggerDirection.Other => "From Others",
+            TriggerDirection.OtherToSelf => "From others onto You",
+            TriggerDirection.Any => "Any Filter",
+            _ => "UNK"
+        };
+    }
+
+    public static string EffectTypeToString(this LimitedActionEffectType type)
+    {
+        return type switch
+        {
+            LimitedActionEffectType.Miss => "Action Missed",
+            LimitedActionEffectType.Damage => "Damage Related",
+            LimitedActionEffectType.Heal => "Heal Related",
+            LimitedActionEffectType.BlockedDamage => "Damage Blocked",
+            LimitedActionEffectType.ParriedDamage => "Damage Parried",
+            LimitedActionEffectType.Attract1 => "Rescue Used",
+            LimitedActionEffectType.Knockback => "Pushed Back",
+            LimitedActionEffectType.Shirk => "Shirk Used",
+            LimitedActionEffectType.Interrupt => "Interrupt Applied",
             _ => "UNK"
         };
     }

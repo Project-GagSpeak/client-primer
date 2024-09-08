@@ -1,6 +1,7 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.ImGuiNotification;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
@@ -21,7 +22,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PairManager _pairManager;
+    private readonly PatternHandler _patternHandler;
 
     private Task<bool>? UploadPatternTask = null;
     private Task<bool>? RemovePatternTask = null;
@@ -33,11 +34,11 @@ public class PatternHubService : DisposableMediatorSubscriberBase
 
     public PatternHubService(ILogger<PatternHubService> logger, GagspeakMediator mediator,
         ApiController apiController, ClientConfigurationManager clientConfigs,
-        PairManager pairManager) : base(logger, mediator)
+        PatternHandler patternHandler) : base(logger, mediator)
     {
         _apiController = apiController;
         _clientConfigs = clientConfigs;
-        _pairManager = pairManager;
+        _patternHandler = patternHandler;
 
     }
 
@@ -108,9 +109,9 @@ public class PatternHubService : DisposableMediatorSubscriberBase
         }
     }
 
-    private async Task ClearTaskInThreeSeconds(Func<Task?> getTask, Action clearTask)
+    private async Task ClearTaskInOneSecond(Func<Task?> getTask, Action clearTask)
     {
-        await Task.Delay(3000);
+        await Task.Delay(1000);
         if (getTask() != null)
         {
             clearTask();
@@ -139,7 +140,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 Logger.LogInformation("Retrieved patterns from servers.");
                 SearchResults = SearchPatternsTask.Result;
             }
-            _ = ClearTaskInThreeSeconds(() => SearchPatternsTask, () => SearchPatternsTask = null);
+            _ = ClearTaskInOneSecond(() => SearchPatternsTask, () => SearchPatternsTask = null);
         }, TaskScheduler.Default);
     }
     public void DownloadPatternFromServer(Guid patternIdentifier)
@@ -177,7 +178,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 // Set the active pattern
                 _clientConfigs.AddNewPattern(pattern);
             }
-            _ = ClearTaskInThreeSeconds(() => DownloadPatternTask, () => DownloadPatternTask = null);
+            _ = ClearTaskInOneSecond(() => DownloadPatternTask, () => DownloadPatternTask = null);
         }, TaskScheduler.Default);
     }
 
@@ -210,7 +211,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 Logger.LogError("LikePatternTask failed.");
             }
             // clear the task.
-            _ = ClearTaskInThreeSeconds(() => LikePatternTask, () => LikePatternTask = null);
+            _ = ClearTaskInOneSecond(() => LikePatternTask, () => LikePatternTask = null);
         }, TaskScheduler.Default);
     }
     public void UploadPatternToServer(int patternIdx)
@@ -255,12 +256,17 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 // update the published state.
                 patternToUpload.IsPublished = true;
                 _clientConfigs.UpdatePattern(patternToUpload, patternIdx);
+                // update the value of the editing pattern if the editing patternIdx is the same as the patternIdx.
+                if (_patternHandler.EditingPatternIndex == patternIdx)
+                {
+                    _patternHandler.PatternBeingEdited.IsPublished = true;
+                }
             }
             else
             {
                 Mediator.Publish(new NotificationMessage("Pattern Upload", "upload failed!", NotificationType.Error));
             }
-            _ = ClearTaskInThreeSeconds(() => UploadPatternTask, () => UploadPatternTask = null);
+            _ = ClearTaskInOneSecond(() => UploadPatternTask, () => UploadPatternTask = null);
         }, TaskScheduler.Default);
     }
 
@@ -294,7 +300,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             {
                 Mediator.Publish(new NotificationMessage("Pattern Removal", "removal failed!", NotificationType.Error));
             }
-            _ = ClearTaskInThreeSeconds(() => RemovePatternTask, () => RemovePatternTask = null);
+            _ = ClearTaskInOneSecond(() => RemovePatternTask, () => RemovePatternTask = null);
         }, TaskScheduler.Default);
 
 

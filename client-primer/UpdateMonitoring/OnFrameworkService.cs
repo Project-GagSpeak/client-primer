@@ -108,6 +108,18 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         return await RunOnFrameworkThread(() => _objectTable.CreateObjectReference(reference)).ConfigureAwait(false);
     }
 
+    public IGameObject? SearchObjectTableById(ulong id)
+    {
+        EnsureIsOnFramework();
+        return _objectTable.SearchById(id);
+    }
+
+    public async Task<IGameObject?> SearchObjectTableByIdAsync(uint id)
+    {
+        return await RunOnFrameworkThread(() => _objectTable.SearchById(id)).ConfigureAwait(false);
+    }
+
+
     /// <summary> Get the player character from the object table based on the pointer address</summary>
     public IPlayerCharacter? GetIPlayerCharacterFromObjectTable(IntPtr address)
     {
@@ -314,10 +326,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     private unsafe void FrameworkOnUpdateInternal()
     {
         // dont do anything if the localplayer is dead.
-        if (_clientState.LocalPlayer?.IsDead ?? false)
-        {
-            return;
-        }
+        if (_clientState.LocalPlayer?.IsDead ?? false) return;
 
         // check glamour change variables.
         if (GlamourChangeFinishedDrawing)
@@ -403,7 +412,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         Mediator.Publish(new PriorityFrameworkUpdateMessage());
 
         // if this is a normal framework update, then return
-        if (isNormalFrameworkUpdate)
+        if (isNormalFrameworkUpdate) 
             return;
 
         // otherwise, if it is abnormal, then try to fetch the local player

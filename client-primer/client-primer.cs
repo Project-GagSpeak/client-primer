@@ -7,6 +7,7 @@ using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Services;
 using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Chat;
@@ -178,6 +179,7 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ActionMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<MovementMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ActionEffectMonitor>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<TriggerService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<OptionPromptListeners>();
 
             // stuff that should probably be a hosted service but isnt yet.

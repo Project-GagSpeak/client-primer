@@ -903,13 +903,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public T? DrawComboSearchable<T>(string comboName, float width, ref string searchString, IEnumerable<T> comboItems,
         Func<T, string> toName, bool showLabel = true, Action<T?>? onSelected = null, T? initialSelectedItem = default,
-        string defaultPreviewText = "No Items Available...")
+        string defaultPreviewText = "No Items Available...", ImGuiComboFlags flags = ImGuiComboFlags.None)
     {
         // Return default if there are no items to display in the combo box.
         if (!comboItems.Any())
         {
             ImGui.SetNextItemWidth(width);
-            ImGui.BeginCombo(comboName, defaultPreviewText);
+            ImGui.BeginCombo(comboName, defaultPreviewText, flags);
             ImGui.EndCombo();
             return default;
         }
@@ -938,7 +938,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         ImGui.SetNextItemWidth(width);
         string comboLabel = showLabel ? $"{comboName}##{comboName}" : $"##{comboName}";
-        if (ImGui.BeginCombo(comboLabel, toName((T)selectedItem!)))
+        if (ImGui.BeginCombo(comboLabel, toName((T)selectedItem!), flags))
         {
             // Search filter
             ImGui.SetNextItemWidth(width);
@@ -1148,9 +1148,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - width / 2);
     }
 
-    public void DrawHelpText(string helpText)
+    public void DrawHelpText(string helpText, bool inner = false)
     {
-        ImGui.SameLine();
+        if (inner) { ImUtf8.SameLineInner(); }
+        else { ImGui.SameLine(); }
         IconText(FontAwesomeIcon.QuestionCircle, ImGui.GetColorU32(ImGuiCol.TextDisabled));
         AttachToolTip(helpText);
     }

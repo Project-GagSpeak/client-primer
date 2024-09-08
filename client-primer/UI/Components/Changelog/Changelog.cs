@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 7, 4, 1)
+            .RegisterMain("Force Headgear and Force Visor on gags now FINALLY WORK.");
         VersionEntry(0, 7, 4, 0)
             .RegisterMain("Updated Buttplug Package to v4.0")
             .RegisterFeature("Added a new preset dropdown to bulk set permissions for pairs.")

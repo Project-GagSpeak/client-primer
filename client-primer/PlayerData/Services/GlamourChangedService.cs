@@ -163,9 +163,13 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                     // equip the gag
                     await EquipWithSetItem(msg.Layer, msg.GagType.GetGagAlias(), msg.AssignerName);
 
-                    if (drawData.ForceHeadgearOnEnable) await _Interop.Glamourer.ForceSetMetaData(IpcCallerGlamourer.MetaData.Hat, true);
-
-                    if (drawData.ForceVisorOnEnable) await _Interop.Glamourer.ForceSetMetaData(IpcCallerGlamourer.MetaData.Visor, true);
+                    if (drawData.ForceHeadgearOnEnable || drawData.ForceVisorOnEnable)
+                    {
+                        IpcCallerGlamourer.MetaData applyType = (drawData.ForceHeadgearOnEnable && drawData.ForceVisorOnEnable)
+                            ? IpcCallerGlamourer.MetaData.Both
+                            : (drawData.ForceHeadgearOnEnable) ? IpcCallerGlamourer.MetaData.Hat : IpcCallerGlamourer.MetaData.Visor;
+                        await _Interop.Glamourer.ForceSetMetaData(applyType, true);
+                    }
 
                     if (drawData.AssociatedMoodles.Any())
                     {

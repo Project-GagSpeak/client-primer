@@ -66,7 +66,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         _glamourChanged.Enable();
     }
 
-    public enum MetaData { Hat, Visor }
+    public enum MetaData { Hat, Visor, Both }
     public bool APIAvailable { get; private set; }
 
     public void CheckAPI()
@@ -141,15 +141,18 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
     }
 
-    public Newtonsoft.Json.Linq.JObject? GetState()
+    public JObject? GetState()
     {
-        var index = _clientState.LocalPlayer?.ObjectIndex;
-        if (index == null) return null;
-
-        (GlamourerApiEc response, Newtonsoft.Json.Linq.JObject? charaState) result = _glamourerGetState.Invoke((int)index);
-        if (result.response != GlamourerApiEc.Success) return null;
-
-        return result.charaState;
+        try
+        {
+            var success = _glamourerGetState.Invoke(_clientState.LocalPlayer!.ObjectIndex);
+            return success.Item2;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning($"Error during GetState: {ex}");
+            return null;
+        }
     }
 
 
@@ -173,14 +176,16 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
                     // grab the JObject of the character state.
                     var playerState = GetState();
 
-                    // determine the metadata field we are editing.
-                    var metaDataFieldToFind = (metaData == MetaData.Hat) ? "Show" : "IsToggled";
-                    // if we are forcing the state, set the newvalue to the forced state. Otherwise, grab the opposite of current state value.
-                    var newValue = forcedState ?? !(((bool?)playerState?["Equipment"]?[metaData.ToString()]?[metaDataFieldToFind]) ?? false);
-
-                    // set the new properties in the JObject.
-                    playerState!["Equipment"]![metaData.ToString()]![metaDataFieldToFind] = newValue;
-                    playerState!["Equipment"]![metaData.ToString()]!["Apply"] = true;
+                    if(metaData == MetaData.Both || metaData == MetaData.Hat)
+                    {
+                        playerState!["Equipment"]!["Hat"]!["Show"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Hat"]?["Show"]) ?? false); ;
+                        playerState!["Equipment"]!["Hat"]!["Apply"] = true;
+                    }
+                    if(metaData == MetaData.Both || metaData == MetaData.Visor)
+                    {
+                        playerState!["Equipment"]!["Visor"]!["IsToggled"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Visor"]?["IsToggled"]) ?? false); ;
+                        playerState!["Equipment"]!["Visor"]!["Apply"] = true;
+                    }
 
                     var ret = _ApplyState.Invoke(playerState, objectIndex);
                     return ret == GlamourerApiEc.Success;

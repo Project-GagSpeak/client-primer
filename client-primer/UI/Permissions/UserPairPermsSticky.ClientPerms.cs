@@ -232,45 +232,44 @@ public partial class UserPairPermsSticky
         /* ----------- TOYBOX PERMISSIONS ----------- */
         ImGui.TextUnformatted("Toybox Permissions");
 
-        DrawOwnSetting("ChangeToyState", "ChangeToyStateAllowed",
-            UserPairForPerms.UserPairOwnUniquePairPerms.ChangeToyState ? "Allow Toggling Vibes" : "Preventing Toggling Vibes",
-            UserPairForPerms.UserPairOwnUniquePairPerms.ChangeToyState ? FontAwesomeIcon.PowerOff : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairOwnUniquePairPerms.ChangeToyState ? $"Prevent {PairNickOrAliasOrUID} from toggling your toys." : $"Allow {PairNickOrAliasOrUID} to toggle your toys.",
+        DrawOwnSetting("CanToggleToyState", "CanToggleToyStateAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleToyState ? "Allow Toggling Vibes" : "Preventing Toggling Vibes",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleToyState ? FontAwesomeIcon.PowerOff : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleToyState ? $"Prevent {PairNickOrAliasOrUID} from toggling your toys." : $"Allow {PairNickOrAliasOrUID} to toggle your toys.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        // this kinda conflicts with the whole visible users permission but maybe rework later idk.
-        DrawOwnSetting("VibratorAlarms", "VibratorAlarmsAllowed",
-            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarms ? "Allow Viewing Alarms" : "Prevent Viewing Alarms ",
-            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarms ? FontAwesomeIcon.Eye : FontAwesomeIcon.EyeSlash,
-            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarms ? $"Prevent {PairNickOrAliasOrUID} from viewing your alarms." : $"Allow {PairNickOrAliasOrUID} to view your alarms.",
+        DrawOwnSetting("CanUseVibeRemote", "CanUseVibeRemoteAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanUseVibeRemote ? "Allow Vibe Control" : "Prevent Vibe Control",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanUseVibeRemote ? FontAwesomeIcon.Mobile : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanUseVibeRemote ? $"Prevent {PairNickOrAliasOrUID} from controlling your Vibe." : $"Allow {PairNickOrAliasOrUID} to control your Vibe.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawOwnSetting("VibratorAlarmsToggle", "VibratorAlarmsToggleAllowed",
-            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarmsToggle ? "Allow Toggling Alarms" : "Prevent Toggling Alarms",
-            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarmsToggle ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock,
-            UserPairForPerms.UserPairOwnUniquePairPerms.VibratorAlarmsToggle ? $"Prevent {PairNickOrAliasOrUID} from toggling your alarms." : $"Allow {PairNickOrAliasOrUID} to toggle your alarms.",
+        DrawOwnSetting("CanToggleAlarms", "CanToggleAlarmsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleAlarms ? "Allow Toggling Alarms" : "Prevent Toggling Alarms",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleAlarms ? FontAwesomeIcon.Bell : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleAlarms ? $"Prevent {PairNickOrAliasOrUID} from toggling your alarms." : $"Allow {PairNickOrAliasOrUID} to toggle your alarms.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOwnSetting("CanExecutePatterns", "CanExecutePatternsAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.CanExecutePatterns ? "Allow Pattern Execution" : "Prevent Pattern Execution",
-            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecutePatterns ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock,
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecutePatterns ? FontAwesomeIcon.LandMineOn : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairOwnUniquePairPerms.CanExecutePatterns ? $"Prevent {PairNickOrAliasOrUID} from executing patterns." : $"Allow {PairNickOrAliasOrUID} to execute patterns.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawOwnSetting("CanExecuteTriggers", "CanExecuteTriggersAllowed",
-            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecuteTriggers ? "Allow Toggling Triggers" : "Prevent Toggling Triggers",
-            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecuteTriggers ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock,
-            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecuteTriggers ? $"Prevent {PairNickOrAliasOrUID} from toggling your triggers." : $"Allow {PairNickOrAliasOrUID} to toggle your triggers.",
+        DrawOwnSetting("CanToggleTriggers", "CanToggleTriggersAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleTriggers ? "Allow Toggling Triggers" : "Prevent Toggling Triggers",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleTriggers ? FontAwesomeIcon.FileMedicalAlt : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleTriggers ? $"Prevent {PairNickOrAliasOrUID} from toggling your triggers." : $"Allow {PairNickOrAliasOrUID} to toggle your triggers.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOwnSetting("CanSendTriggers", "CanSendTriggersAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.CanSendTriggers ? "Allow Sending Triggers" : "Prevent Sending Triggers",
-            UserPairForPerms.UserPairOwnUniquePairPerms.CanSendTriggers ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock,
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanSendTriggers ? FontAwesomeIcon.FileExport : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairOwnUniquePairPerms.CanSendTriggers ? $"Prevent {PairNickOrAliasOrUID} from sending triggers." : $"Allow {PairNickOrAliasOrUID} to send triggers.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
@@ -326,7 +325,6 @@ public partial class UserPairPermsSticky
     /// <param name="tooltipStr"> the tooltip to display when hovered. </param>
     /// <param name="permissionType"> If the permission is a global perm, unique pair perm, or access permission. </param>
     /// <param name="permissionValueType"> what permission type it is (string, char, timespan, boolean) </param>
-    /// <param name="pairPermAccessCurState"> The current state of the unique pair perms respective edit access. </param>
     private void DrawOwnSetting(string permissionName, string permissionAccessName, string textLabel, FontAwesomeIcon icon,
         string tooltipStr, bool canChange, PermissionType permissionType, PermissionValueType permissionValueType)
     {

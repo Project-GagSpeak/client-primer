@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 7, 4, 0)
+            .RegisterFeature("Added a new preset dropdown to bulk set permissions for pairs.")
+            .RegisterFeature("DO NOT TEST THIS FEATURE YET, IT IS UNTESTED");
         VersionEntry(0, 7, 3, 3)
             .RegisterBugfix("I Forgot to update the api lol. Please see version 0.7.3.2 for update details.");
         VersionEntry(0, 7, 3, 2)

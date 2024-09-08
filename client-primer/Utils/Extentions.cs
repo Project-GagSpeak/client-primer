@@ -138,6 +138,25 @@ public static class UtilsExtensions
         ImGui.Dummy(Vector2.Zero);
     }
 
+    public static string ToName(this PresetName preset)
+    {
+        return preset switch
+        {
+            PresetName.NoneSelected => "None",
+            PresetName.Dominant => "Dominant",
+            PresetName.Brat => "Brat",
+            PresetName.RopeBunny => "Rope Bunny",
+            PresetName.Submissive => "Submissive",
+            PresetName.Slut => "Slut",
+            PresetName.Pet => "Pet",
+            PresetName.Slave => "Slave",
+            PresetName.OwnersSlut => "Owner's Slut",
+            PresetName.OwnersPet => "Owner's Pet",
+            PresetName.OwnersSlave => "Owner's Slave",
+            _ => "UNK"
+        };
+    }
+
     public static string TriggerKindToString(this TriggerKind type)
     {
         return type switch

@@ -341,6 +341,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<GagspeakMediator>()
         .AddSingleton<DiscoverService>()
         .AddSingleton<PatternHubService>()
+        .AddSingleton<PermissionPresetService>()
         .AddSingleton((s) => new ProfileService(s.GetRequiredService<ILogger<ProfileService>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
             s.GetRequiredService<ProfileFactory>()))
@@ -408,13 +409,12 @@ public static class GagSpeakServiceExtensions
     => services
         // Service Services
         .AddScoped<DrawEntityFactory>()
-        .AddScoped<UiFactory>((s) => new UiFactory(s.GetRequiredService<ILoggerFactory>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
-            s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ToyboxVibeService>(),
-            s.GetRequiredService<IdDisplayHandler>(), s.GetRequiredService<PairManager>(),
-            s.GetRequiredService<PlayerCharacterManager>(), s.GetRequiredService<ToyboxRemoteService>(),
-            s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<ProfileService>(),
-            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<MoodlesService>(), cs))
+        .AddScoped<UiFactory>((s) => new UiFactory(s.GetRequiredService<ILoggerFactory>(), s.GetRequiredService<GagspeakMediator>(), 
+            s.GetRequiredService<ApiController>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ToyboxVibeService>(),
+            s.GetRequiredService<IdDisplayHandler>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<PlayerCharacterManager>(), 
+            s.GetRequiredService<ToyboxRemoteService>(), s.GetRequiredService<ServerConfigurationManager>(), 
+            s.GetRequiredService<ProfileService>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<MoodlesService>(), 
+            s.GetRequiredService<PermissionPresetService>(), cs))
         .AddScoped<SelectTagForPairUi>()
         .AddScoped<WindowMediatorSubscriberBase, SettingsUi>()
         .AddScoped<WindowMediatorSubscriberBase, IntroUi>()

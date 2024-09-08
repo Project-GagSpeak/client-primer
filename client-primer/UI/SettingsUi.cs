@@ -166,8 +166,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
     {
         _lastTab = "Global";
 
-        bool cmdsFromFriends = PlayerGlobalPerms.CommandsFromFriends;
-        bool cmdsFromParty = PlayerGlobalPerms.CommandsFromParty;
         bool liveChatGarblerActive = PlayerGlobalPerms.LiveChatGarblerActive;
         bool liveChatGarblerLocked = PlayerGlobalPerms.LiveChatGarblerLocked;
         bool removeGagOnLockExpiration = _clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration;
@@ -176,8 +174,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         bool itemAutoEquip = PlayerGlobalPerms.ItemAutoEquip;
         bool restraintSetAutoEquip = PlayerGlobalPerms.RestraintSetAutoEquip;
         bool restraintSetDisableWhenUnlocked = _clientConfigs.GagspeakConfig.DisableSetUponUnlock;
-        var RevertState = _clientConfigs.GagspeakConfig.RevertStyle;
-
+        RevertStyle RevertState = _clientConfigs.GagspeakConfig.RevertStyle;
 
         bool puppeteerEnabled = PlayerGlobalPerms.PuppeteerEnabled;
         string globalTriggerPhrase = PlayerGlobalPerms.GlobalTriggerPhrase;
@@ -189,33 +186,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         bool toyboxEnabled = PlayerGlobalPerms.ToyboxEnabled;
         string intifaceConnectionAddr = _clientConfigs.GagspeakConfig.IntifaceConnectionSocket;
-        /*bool lockToyboxUI = PlayerGlobalPerms.LockToyboxUI; */
         bool spatialVibratorAudio = PlayerGlobalPerms.SpatialVibratorAudio; // set here over client so that other players can reference if they should listen in or not.
-
-
-        // NOTE / TODO : The checkboxes flicker due to the server transfer time. However, we may be able to
-        // directly assign before doing the call because we are going to receive the update which will set it again
-        // anyways after if anything goes wrong. So we can just do it here if we want later to prevent flickering.
-        _uiShared.BigText("Global Settings");
-
-        if (ImGui.Checkbox("Allow GagSpeak Commands from In-Game Friend list", ref cmdsFromFriends))
-        {
-            // Perform a mediator call that we have updated a permission.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
-                new KeyValuePair<string, object>("CommandsFromFriends", cmdsFromFriends)));
-
-        }
-        _uiShared.DrawHelpText("If enabled, GagSpeak commands can be sent from friends in your friend list In-Game. Even if they are not paired.");
-
-        if (ImGui.Checkbox("Allow GagSpeak Commands from In-Game Party list", ref cmdsFromParty))
-        {
-            PlayerGlobalPerms.CommandsFromParty = cmdsFromParty;
-            // Perform a mediator call that we have updated a permission.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
-                new KeyValuePair<string, object>("CommandsFromParty", cmdsFromParty)));
-
-        }
-        _uiShared.DrawHelpText("If enabled, GagSpeak commands can be sent from party members in your party list In-Game. Even if they are not paired.");
 
         using (ImRaii.Disabled(liveChatGarblerLocked))
         {
@@ -1051,8 +1022,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     {
                         ImGui.Text($"Safeword: {clientPair.UserPairGlobalPerms.Safeword}");
                         ImGui.Text($"SafewordUsed: {clientPair.UserPairGlobalPerms.SafewordUsed}");
-                        ImGui.Text($"CommandsFromFriends: {clientPair.UserPairGlobalPerms.CommandsFromFriends}");
-                        ImGui.Text($"CommandsFromParty: {clientPair.UserPairGlobalPerms.CommandsFromParty}");
                         ImGui.Text($"LiveChatGarblerActive: {clientPair.UserPairGlobalPerms.LiveChatGarblerActive}");
                         ImGui.Text($"LiveChatGarblerLocked: {clientPair.UserPairGlobalPerms.LiveChatGarblerLocked}");
                         ImGui.Separator();
@@ -1104,13 +1073,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"MaxMoodleTime: {clientPair.UserPairUniquePairPerms.MaxMoodleTime}");
                         ImGui.Text($"AllowPermanentMoodles: {clientPair.UserPairUniquePairPerms.AllowPermanentMoodles}");
                         ImGui.Separator();
-                        ImGui.Text($"ChangeToyState: {clientPair.UserPairUniquePairPerms.ChangeToyState}");
-                        ImGui.Text($"CanControlIntensity: {clientPair.UserPairUniquePairPerms.CanControlIntensity}");
-                        ImGui.Text($"VibratorAlarms: {clientPair.UserPairUniquePairPerms.VibratorAlarms}");
-                        ImGui.Text($"VibratorAlarmsToggle: {clientPair.UserPairUniquePairPerms.VibratorAlarmsToggle}");
-                        ImGui.Text($"CanUseRealtimeVibeRemote: {clientPair.UserPairUniquePairPerms.CanUseRealtimeVibeRemote}");
+                        ImGui.Text($"ChangeToyState: {clientPair.UserPairUniquePairPerms.CanToggleToyState}");
+                        ImGui.Text($"CanUseVibeRemote: {clientPair.UserPairUniquePairPerms.CanUseVibeRemote}");
+                        ImGui.Text($"VibratorAlarmsToggle: {clientPair.UserPairUniquePairPerms.CanToggleAlarms}");
                         ImGui.Text($"CanExecutePatterns: {clientPair.UserPairUniquePairPerms.CanExecutePatterns}");
-                        ImGui.Text($"CanExecuteTriggers: {clientPair.UserPairUniquePairPerms.CanExecuteTriggers}");
+                        ImGui.Text($"CanToggleTriggers: {clientPair.UserPairUniquePairPerms.CanToggleTriggers}");
                         ImGui.Text($"CanSendTriggers: {clientPair.UserPairUniquePairPerms.CanSendTriggers}");
                         ImGui.Separator();
                         ImGui.Text($"AllowForcedFollow: {clientPair.UserPairUniquePairPerms.AllowForcedFollow}");
@@ -1128,8 +1095,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Edit Access || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
-                        ImGui.Text("Commands From Friends Allowed: " + clientPair.UserPairEditAccess.CommandsFromFriendsAllowed);
-                        ImGui.Text("Commands From Party Allowed: " + clientPair.UserPairEditAccess.CommandsFromPartyAllowed);
                         ImGui.Text("Live Chat Garbler Active Allowed: " + clientPair.UserPairEditAccess.LiveChatGarblerActiveAllowed);
                         ImGui.Text("Live Chat Garbler Locked Allowed: " + clientPair.UserPairEditAccess.LiveChatGarblerLockedAllowed);
                         ImGui.Text("Extended Lock Times Allowed: " + clientPair.UserPairEditAccess.ExtendedLockTimesAllowed);
@@ -1159,16 +1124,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Separator();
                         ImGui.Text("Toybox Enabled Allowed: " + clientPair.UserPairEditAccess.ToyboxEnabledAllowed);
                         ImGui.Text("Lock Toybox UI Allowed: " + clientPair.UserPairEditAccess.LockToyboxUIAllowed);
-                        ImGui.Text("Toy Is Active Allowed: " + clientPair.UserPairEditAccess.ToyIsActiveAllowed);
                         ImGui.Text("Spatial Vibrator Audio Allowed: " + clientPair.UserPairEditAccess.SpatialVibratorAudioAllowed);
                         ImGui.Separator();
-                        ImGui.Text("Change Toy State Allowed: " + clientPair.UserPairEditAccess.ChangeToyStateAllowed);
-                        ImGui.Text("Can Control Intensity Allowed: " + clientPair.UserPairEditAccess.CanControlIntensityAllowed);
-                        ImGui.Text("Vibrator Alarms Allowed: " + clientPair.UserPairEditAccess.VibratorAlarmsAllowed);
-                        ImGui.Text("Can Toggle Alarms: " + clientPair.UserPairEditAccess.VibratorAlarmsToggleAllowed);
-                        ImGui.Text("Can Use Realtime Vibe Remote Allowed: " + clientPair.UserPairEditAccess.CanUseRealtimeVibeRemoteAllowed);
+                        ImGui.Text("Change Toy State Allowed: " + clientPair.UserPairEditAccess.CanToggleToyStateAllowed);
+                        ImGui.Text("Can Use Realtime Vibe Remote Allowed: " + clientPair.UserPairEditAccess.CanUseVibeRemoteAllowed);
+                        ImGui.Text("Can Toggle Alarms: " + clientPair.UserPairEditAccess.CanToggleAlarmsAllowed);
                         ImGui.Text("Can Execute Patterns Allowed: " + clientPair.UserPairEditAccess.CanExecutePatternsAllowed);
-                        ImGui.Text("Can Execute Triggers Allowed: " + clientPair.UserPairEditAccess.CanExecuteTriggersAllowed);
+                        ImGui.Text("Can Toggle Triggers Allowed: " + clientPair.UserPairEditAccess.CanToggleTriggersAllowed);
                         ImGui.Text("Can Send Triggers Allowed: " + clientPair.UserPairEditAccess.CanSendTriggersAllowed);
                     }
                 }
@@ -1260,10 +1222,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawGlobalInfo()
     {
         var globalPerms = _playerCharacterManager.GlobalPerms;
+        if (globalPerms == null)
+        {
+            ImGui.Text("No global permissions available.");
+            return;
+        }
         ImGui.Text($"Safeword: {globalPerms.Safeword}");
         ImGui.Text($"SafewordUsed: {globalPerms.SafewordUsed}");
-        ImGui.Text($"CommandsFromFriends: {globalPerms.CommandsFromFriends}");
-        ImGui.Text($"CommandsFromParty: {globalPerms.CommandsFromParty}");
         ImGui.Text($"LiveChatGarblerActive: {globalPerms.LiveChatGarblerActive}");
         ImGui.Text($"LiveChatGarblerLocked: {globalPerms.LiveChatGarblerLocked}");
         ImGui.Separator();
@@ -1289,6 +1254,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawAppearanceInfo()
     {
         var appearanceData = _playerCharacterManager.AppearanceData;
+        if (appearanceData == null)
+        {
+            ImGui.Text("No appearance data available.");
+            return;
+        }
         for (int i = 0; i < 3; i++)
         {
             ImGui.Text($"Slot{i}GagType: {appearanceData!.GagSlots[i].GagType}");

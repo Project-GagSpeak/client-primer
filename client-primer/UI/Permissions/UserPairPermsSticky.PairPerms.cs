@@ -219,25 +219,25 @@ public partial class UserPairPermsSticky
         /* ----------- TOYBOX PERMISSIONS ----------- */
         ImGui.TextUnformatted("Toybox Permissions");
 
-        DrawOtherPairSetting("ChangeToyState", "ChangeToyStateAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.ChangeToyState ? (PairUID + " allows Toy State Changing") : (PairUID + " prevents Toy State Changing"),
-            UserPairForPerms.UserPairUniquePairPerms.ChangeToyState ? FontAwesomeIcon.PowerOff : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairEditAccess.ChangeToyStateAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
-            UserPairForPerms.UserPairEditAccess.ChangeToyStateAllowed,
+        DrawOtherPairSetting("CanToggleToyState", "CanToggleToyStateAllowed",
+            UserPairForPerms.UserPairUniquePairPerms.CanToggleToyState ? (PairUID + " allows Toy State Changing") : (PairUID + " prevents Toy State Changing"),
+            UserPairForPerms.UserPairUniquePairPerms.CanToggleToyState ? FontAwesomeIcon.PowerOff : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairEditAccess.CanToggleToyStateAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
+            UserPairForPerms.UserPairEditAccess.CanToggleToyStateAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawOtherPairSetting("VibratorAlarms", "VibratorAlarmsAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.VibratorAlarms ? (PairUID + " allows Alarms Viewing") : (PairUID + " prevents Alarm Viewing"),
-            UserPairForPerms.UserPairUniquePairPerms.VibratorAlarms ? FontAwesomeIcon.Clock : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairEditAccess.VibratorAlarmsAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
-            UserPairForPerms.UserPairEditAccess.VibratorAlarmsAllowed,
+        DrawOtherPairSetting("CanUseVibeRemote", "CanUseVibeRemoteAllowed",
+            UserPairForPerms.UserPairUniquePairPerms.CanUseVibeRemote ? (PairUID + " allows Vibe Control") : (PairUID + " prevents Vibe Control"),
+            UserPairForPerms.UserPairUniquePairPerms.CanUseVibeRemote ? FontAwesomeIcon.Mobile : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairEditAccess.CanUseVibeRemoteAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
+            UserPairForPerms.UserPairEditAccess.CanUseVibeRemoteAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawOtherPairSetting("VibratorAlarmsToggle", "VibratorAlarmsToggleAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.VibratorAlarmsToggle ? (PairUID + " allows Alarm Toggling") : (PairUID + " prevents Alarm Toggling"),
-            UserPairForPerms.UserPairUniquePairPerms.VibratorAlarmsToggle ? FontAwesomeIcon.Bell : FontAwesomeIcon.BellSlash,
-            UserPairForPerms.UserPairEditAccess.VibratorAlarmsToggleAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
-            UserPairForPerms.UserPairEditAccess.VibratorAlarmsToggleAllowed,
+        DrawOtherPairSetting("CanToggleAlarms", "CanToggleAlarmsAllowed",
+            UserPairForPerms.UserPairUniquePairPerms.CanToggleAlarms ? (PairUID + " allows Alarm Toggling") : (PairUID + " prevents Alarm Toggling"),
+            UserPairForPerms.UserPairUniquePairPerms.CanToggleAlarms ? FontAwesomeIcon.Bell : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairEditAccess.CanToggleAlarmsAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
+            UserPairForPerms.UserPairEditAccess.CanToggleAlarmsAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("CanExecutePatterns", "CanExecutePatternsAllowed",
@@ -247,16 +247,16 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPairEditAccess.CanExecutePatternsAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawOtherPairSetting("CanExecuteTriggers", "CanExecuteTriggersAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.CanExecuteTriggers ? (PairUID + " allows Toggling Triggers") : (PairUID + " prevents Toggling Triggers"),
-            UserPairForPerms.UserPairUniquePairPerms.CanExecuteTriggers ? FontAwesomeIcon.FileMedicalAlt : FontAwesomeIcon.FileExcel,
-            UserPairForPerms.UserPairEditAccess.CanExecuteTriggersAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
-            UserPairForPerms.UserPairEditAccess.CanExecuteTriggersAllowed,
+        DrawOtherPairSetting("CanToggleTriggers", "CanToggleTriggersAllowed",
+            UserPairForPerms.UserPairUniquePairPerms.CanToggleTriggers ? (PairUID + " allows Toggling Triggers") : (PairUID + " prevents Toggling Triggers"),
+            UserPairForPerms.UserPairUniquePairPerms.CanToggleTriggers ? FontAwesomeIcon.FileMedicalAlt : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairEditAccess.CanToggleTriggersAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
+            UserPairForPerms.UserPairEditAccess.CanToggleTriggersAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOtherPairSetting("CanSendTriggers", "CanSendTriggersAllowed",
             UserPairForPerms.UserPairUniquePairPerms.CanSendTriggers ? (PairUID + " allows sending Triggers") : (PairUID + " prevents sending Triggers"),
-            UserPairForPerms.UserPairUniquePairPerms.CanSendTriggers ? FontAwesomeIcon.FileExport : FontAwesomeIcon.FileExcel,
+            UserPairForPerms.UserPairUniquePairPerms.CanSendTriggers ? FontAwesomeIcon.FileExport : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.CanSendTriggersAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.CanSendTriggersAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);

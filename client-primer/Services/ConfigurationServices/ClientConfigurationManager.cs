@@ -4,6 +4,7 @@ using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;

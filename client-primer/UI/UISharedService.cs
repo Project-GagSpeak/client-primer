@@ -854,9 +854,16 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public T? DrawCombo<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName,
-        Action<T?>? onSelected = null, T? initialSelectedItem = default, bool shouldShowLabel = true, ImGuiComboFlags flags = ImGuiComboFlags.None)
+        Action<T?>? onSelected = null, T? initialSelectedItem = default, bool shouldShowLabel = true, 
+        ImGuiComboFlags flags = ImGuiComboFlags.None, string defaultPreviewText = "No Items Available...")
     {
-        if (!comboItems.Any()) return default;
+        if (!comboItems.Any())
+        {
+            ImGui.SetNextItemWidth(width);
+            ImGui.BeginCombo(comboName, defaultPreviewText, flags);
+            ImGui.EndCombo();
+            return default;
+        }
 
         if (!_selectedComboItems.TryGetValue(comboName, out var selectedItem) && selectedItem == null)
         {

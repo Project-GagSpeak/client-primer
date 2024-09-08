@@ -25,6 +25,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
     private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
     private readonly MoodlesService _moodlesService;
+    private readonly PermissionPresetService _presetService;
     private readonly IClientState _clientState;
 
     public enum PermissionType { Global, UniquePairPerm, UniquePairPermEditAccess };
@@ -33,7 +34,8 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
         OnFrameworkService frameworkUtils, PlayerCharacterManager pcManager, 
         IdDisplayHandler displayHandler, UiSharedService uiSharedService, 
-        ApiController apiController, PairManager pairManager, MoodlesService moodlesService,
+        ApiController apiController, PairManager pairManager, 
+        MoodlesService moodlesService, PermissionPresetService presetService,
         IClientState clientState) : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
     {
         _frameworkUtils = frameworkUtils;
@@ -43,6 +45,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         _pairManager = pairManager;
         _moodlesService = moodlesService;
         _displayHandler = displayHandler;
+        _presetService = presetService;
         _clientState = clientState;
 
         UserPairForPerms = pairToDrawFor; // set the pair we're drawing for
@@ -107,6 +110,11 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         else if (DrawType == StickyWindowType.ClientPermsForPair)
         {
             ImGuiUtil.Center("Your Permissions for " + PairNickOrAliasOrUID);
+            // draw out the permission preset applied.
+            var presetListWidth = 175f;
+            _uiShared.SetCursorXtoCenter(presetListWidth);
+            _presetService.DrawPresetList(UserPairForPerms, presetListWidth);
+
             ImGui.Separator();
 
             // create a new child below with no border that spans the rest of the content region and has no scrollbar

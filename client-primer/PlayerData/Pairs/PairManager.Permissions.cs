@@ -280,10 +280,12 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         string ChangedPermission = dto.ChangedPermission.Key;
         object ChangedValue = dto.ChangedPermission.Value;
 
-        if (pair.UserPair.OwnPairPerms.IsPaused != (bool)ChangedValue) 
+        if (ChangedPermission == "IsPaused" && (pair.UserPair.OwnPairPerms.IsPaused != (bool)ChangedValue))
+        {
             Mediator.Publish(new ClearProfileDataMessage(dto.User));
+        }
 
-        // store changes preapply.
+        // store changes pre-apply.
         bool forcedFollowChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToFollow)
             && (pair.UserPair.OwnPairPerms.IsForcedToFollow != (bool)ChangedValue);
         bool forcedSitChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToSit)
@@ -368,12 +370,6 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
         string ChangedPermission = dto.ChangedAccessPermission.Key;
         object ChangedValue = dto.ChangedAccessPermission.Value;
-
-        // has the person just paused us.
-        if (ChangedPermission == "IsPaused" && (pair.UserPair.OwnPairPerms.IsPaused != (bool)ChangedValue))
-        {
-            Mediator.Publish(new ClearProfileDataMessage(dto.User));
-        }
 
         PropertyInfo? propertyInfo = typeof(UserEditAccessPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)

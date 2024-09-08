@@ -73,9 +73,8 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastIpcData = msg.CharacterIPCData);
     }
-
+    // used to track a reflection of the sealed cache creation service for our player.
     public CharacterIPCData? LastIpcData = null;
-
 
     // public access definitions.
     public UserGlobalPermissions? GlobalPerms => _playerCharGlobalPerms ?? null;
@@ -84,7 +83,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     public bool ShouldDisableSetUponUnlock => _clientConfigManager.GagspeakConfig.DisableSetUponUnlock;
     public bool IsPlayerGagged() => AppearanceData?.GagSlots.Any(x => x.GagType != "None") ?? false;
     public void UpdateGlobalPermsInBulk(UserGlobalPermissions newGlobalPerms) => _playerCharGlobalPerms = newGlobalPerms;
-
     public void ApplyStatusesByGuid(ApplyMoodlesByGuidDto dto)
     {
         if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID))

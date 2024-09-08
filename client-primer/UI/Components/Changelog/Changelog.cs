@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 7, 3, 3)
+            .RegisterBugfix("I Forgot to update the api lol. Please see version 0.7.3.2 for update details.");
         VersionEntry(0, 7, 3, 2)
             .RegisterMain("Added further Preparations for trigger logic implementation on Sunday.")
             .RegisterQol("Optimized the ActionEffectMonitor to only perform logic on action types we care about, and discard the rest instantly. Leading to performance boost.");

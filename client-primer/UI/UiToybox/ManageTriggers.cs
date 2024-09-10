@@ -13,12 +13,10 @@ using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.VibeServer;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
 using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Text;
 using System.Numerics;
-using System.Text.Json.Serialization;
 using GameAction = Lumina.Excel.GeneratedSheets.Action;
 namespace GagSpeak.UI.UiToybox;
 
@@ -36,7 +34,7 @@ public class ToyboxTriggerManager
     public ToyboxTriggerManager(ILogger<ToyboxTriggerManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         PairManager pairManager, ClientConfigurationManager clientConfigs,
-        TriggerHandler handler, PatternHandler patternHandler, 
+        TriggerHandler handler, PatternHandler patternHandler,
         TriggerService triggerService)
     {
         _logger = logger;
@@ -559,7 +557,7 @@ public class ToyboxTriggerManager
         UiSharedService.ColorText("Direction", ImGuiColors.ParsedGold);
         _uiShared.DrawHelpText("Determines how the trigger is fired.");
         // create a dropdown storing the enum values of TriggerDirection
-        _uiShared.DrawCombo("##DirectionSelector", 100f, Enum.GetValues<TriggerDirection>(), 
+        _uiShared.DrawCombo("##DirectionSelector", 100f, Enum.GetValues<TriggerDirection>(),
         (direction) => direction.DirectionToString(), (i) => spellActionTrigger.Direction = i, spellActionTrigger.Direction);
     }
 

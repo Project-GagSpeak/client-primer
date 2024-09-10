@@ -1075,10 +1075,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Separator();
                         ImGui.Text($"ChangeToyState: {clientPair.UserPairUniquePairPerms.CanToggleToyState}");
                         ImGui.Text($"CanUseVibeRemote: {clientPair.UserPairUniquePairPerms.CanUseVibeRemote}");
-                        ImGui.Text($"VibratorAlarmsToggle: {clientPair.UserPairUniquePairPerms.CanToggleAlarms}");
+                        ImGui.Text($"CanToggleAlarms: {clientPair.UserPairUniquePairPerms.CanToggleAlarms}");
+                        ImGui.Text($"CanSendAlarms: {clientPair.UserPairUniquePairPerms.CanSendAlarms}");
                         ImGui.Text($"CanExecutePatterns: {clientPair.UserPairUniquePairPerms.CanExecutePatterns}");
+                        ImGui.Text($"CanStopPatterns: {clientPair.UserPairUniquePairPerms.CanStopPatterns}");
                         ImGui.Text($"CanToggleTriggers: {clientPair.UserPairUniquePairPerms.CanToggleTriggers}");
-                        ImGui.Text($"CanSendTriggers: {clientPair.UserPairUniquePairPerms.CanSendTriggers}");
                         ImGui.Separator();
                         ImGui.Text($"AllowForcedFollow: {clientPair.UserPairUniquePairPerms.AllowForcedFollow}");
                         ImGui.Text($"IsForcedToFollow: {clientPair.UserPairUniquePairPerms.IsForcedToFollow}");
@@ -1125,13 +1126,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text("Toybox Enabled Allowed: " + clientPair.UserPairEditAccess.ToyboxEnabledAllowed);
                         ImGui.Text("Lock Toybox UI Allowed: " + clientPair.UserPairEditAccess.LockToyboxUIAllowed);
                         ImGui.Text("Spatial Vibrator Audio Allowed: " + clientPair.UserPairEditAccess.SpatialVibratorAudioAllowed);
-                        ImGui.Separator();
                         ImGui.Text("Change Toy State Allowed: " + clientPair.UserPairEditAccess.CanToggleToyStateAllowed);
                         ImGui.Text("Can Use Realtime Vibe Remote Allowed: " + clientPair.UserPairEditAccess.CanUseVibeRemoteAllowed);
                         ImGui.Text("Can Toggle Alarms: " + clientPair.UserPairEditAccess.CanToggleAlarmsAllowed);
+                        ImGui.Text("Can Send Alarms Allowed: " + clientPair.UserPairEditAccess.CanSendAlarmsAllowed);
                         ImGui.Text("Can Execute Patterns Allowed: " + clientPair.UserPairEditAccess.CanExecutePatternsAllowed);
+                        ImGui.Text("Can Stop Patterns Allowed: "+ clientPair.UserPairEditAccess.CanStopPatternsAllowed);
                         ImGui.Text("Can Toggle Triggers Allowed: " + clientPair.UserPairEditAccess.CanToggleTriggersAllowed);
-                        ImGui.Text("Can Send Triggers Allowed: " + clientPair.UserPairEditAccess.CanSendTriggersAllowed);
                     }
                 }
                 if (clientPair.LastReceivedAppearanceData != null)
@@ -1163,10 +1164,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"ActiveSetName: {clientPair.LastReceivedWardrobeData.ActiveSetName}");
                         ImGui.Text($"ActiveSetDescription: {clientPair.LastReceivedWardrobeData.ActiveSetDescription}");
                         ImGui.Text($"ActiveSetEnabledBy: {clientPair.LastReceivedWardrobeData.ActiveSetEnabledBy}");
-                        ImGui.Text($"ActiveSetLockType: {clientPair.LastReceivedWardrobeData.WardrobeActiveSetPadLock}");
-                        ImGui.Text($"ActiveSetLockPassword: {clientPair.LastReceivedWardrobeData.WardrobeActiveSetPassword}");
-                        ImGui.Text($"ActiveSetLockTime: {clientPair.LastReceivedWardrobeData.WardrobeActiveSetLockTime}");
-                        ImGui.Text($"ActiveSetLockedBy: {clientPair.LastReceivedWardrobeData.WardrobeActiveSetLockAssigner}");
+                        ImGui.Text($"ActiveSetLockType: {clientPair.LastReceivedWardrobeData.Padlock}");
+                        ImGui.Text($"ActiveSetLockPassword: {clientPair.LastReceivedWardrobeData.Password}");
+                        ImGui.Text($"ActiveSetLockTime: {clientPair.LastReceivedWardrobeData.Timer}");
+                        ImGui.Text($"ActiveSetLockedBy: {clientPair.LastReceivedWardrobeData.Assigner}");
                     }
                 }
                 if (clientPair.LastReceivedAliasData != null)
@@ -1190,12 +1191,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     {
                         foreach (var pattern in clientPair.LastReceivedToyboxData.PatternList)
                         {
+                            ImGui.Text("Identifier:" + pattern.Identifier);
                             ImGui.Text($"Pattern Name: {pattern.Name}");
                             ImGui.Text($"Pattern Description: {pattern.Description}");
                             ImGui.Text($"Pattern Duration: {pattern.Duration}");
-                            ImGui.Text($"Pattern IsActive: {pattern.IsActive}");
                             ImGui.Text($"Pattern ShouldLoop: {pattern.ShouldLoop}");
                         }
+                        ImGui.Text("ActivePatternGUID: " + clientPair.LastReceivedToyboxData.ActivePatternGuid);
                     }
                 }
 

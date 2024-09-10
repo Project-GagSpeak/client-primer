@@ -196,7 +196,7 @@ public class ToyboxPatterns
                 if (_uiShared.IconButton(FontAwesomeIcon.Trash))
                 {
                     // reset the createdPattern to a new pattern, and set editing pattern to true
-                    _handler.RemovePattern(_handler.EditingPatternIndex);
+                    _handler.RemovePattern(_handler.PatternBeingEdited.UniqueIdentifier);
                 }
             }
             UiSharedService.AttachToolTip("Delete this Pattern\n(Must hold CTRL while clicking to delete)");
@@ -304,7 +304,7 @@ public class ToyboxPatterns
 
         // create the selectable
         using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
-        using (ImRaii.Child($"##PatternSelectable{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 65f)))
+        using (ImRaii.Child($"##PatternSelectable{pattern.UniqueIdentifier}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 65f)))
         {
             // create a group for the bounding area
             using (var group = ImRaii.Group())
@@ -349,11 +349,11 @@ public class ToyboxPatterns
                 // set the enabled state of the pattern based on its current state so that we toggle it
                 if (pattern.IsActive)
                 {
-                    _playbackService.StopPattern(idx, true);
+                    _playbackService.StopPattern(pattern.UniqueIdentifier, true);
                 }
                 else
                 {
-                    _playbackService.PlayPattern(idx, pattern.StartPoint, pattern.Duration, true);
+                    _playbackService.PlayPattern(pattern.UniqueIdentifier, pattern.StartPoint, pattern.Duration, true);
                 }
                 // toggle the state & early return so we dont access the childclicked button
                 return;

@@ -25,9 +25,8 @@ public class TriggerService : DisposableMediatorSubscriberBase
     private readonly IDataManager _dataManager;
 
     public List<ClassJob> ClassJobs { get; private set; } = new List<ClassJob>();
-    public Dictionary<uint, List<GameAction>> LoadedActions { get; private set; } = new Dictionary<uint, List<GameAction>>();
-
     public List<ClassJob> BattleClassJobs => ClassJobs.Where(x => x.Role != 0).ToList();
+    public Dictionary<uint, List<GameAction>> LoadedActions { get; private set; } = new Dictionary<uint, List<GameAction>>();
 
     public TriggerService(ILogger<TriggerService> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
@@ -47,18 +46,11 @@ public class TriggerService : DisposableMediatorSubscriberBase
 
     public void TryUpdateClassJobList()
     {
-        // Log the attempt to update the class job list
         Logger.LogDebug("Attempting to update ClassJob list.");
-
-        // Only update if we need to
         if (ClassJobs.Count == 0)
         {
             ClassJobs = _dataManager.GetExcelSheet<ClassJob>()?.ToList() ?? new List<ClassJob>();
             Logger.LogDebug($"ClassJob list updated. Total jobs: {ClassJobs.Count}");
-        }
-        else
-        {
-            Logger.LogDebug("ClassJob list already populated. No update needed.");
         }
     }
 
@@ -70,10 +62,7 @@ public class TriggerService : DisposableMediatorSubscriberBase
 
     public void CacheJobActionList(uint JobId)
     {
-        // Log the attempt to cache job action list
         Logger.LogDebug($"Attempting to cache actions for JobId: {JobId}");
-
-        // If the jobId is uint max value, return an empty list
         if (JobId == uint.MaxValue)
         {
             Logger.LogWarning("Invalid JobId: uint.MaxValue. No actions cached.");

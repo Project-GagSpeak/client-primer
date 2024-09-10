@@ -240,6 +240,13 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPairEditAccess.CanToggleAlarmsAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
+        DrawOtherPairSetting("CanSendAlarms", "CanSendAlarmsAllowed",
+            UserPairForPerms.UserPairUniquePairPerms.CanSendAlarms ? (PairUID + " allows sending Alarms") : (PairUID + " prevents sending Alarms"),
+            UserPairForPerms.UserPairUniquePairPerms.CanSendAlarms ? FontAwesomeIcon.FileExport : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairEditAccess.CanSendAlarmsAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
+            UserPairForPerms.UserPairEditAccess.CanSendAlarmsAllowed,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
         DrawOtherPairSetting("CanExecutePatterns", "CanExecutePatternsAllowed",
             UserPairForPerms.UserPairUniquePairPerms.CanExecutePatterns ? (PairUID + " allows Pattern Execution") : (PairUID + " prevents Pattern Execution"),
             UserPairForPerms.UserPairUniquePairPerms.CanExecutePatterns ? FontAwesomeIcon.LandMineOn : FontAwesomeIcon.Ban,
@@ -247,18 +254,18 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPairEditAccess.CanExecutePatternsAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
+        DrawOtherPairSetting("CanStopPatterns", "CanStopPatternsAllowed",
+            UserPairForPerms.UserPairUniquePairPerms.CanStopPatterns ? (PairUID + " allows stopping Patterns") : (PairUID + " prevents stopping Patterns"),
+            UserPairForPerms.UserPairUniquePairPerms.CanStopPatterns ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairEditAccess.CanStopPatternsAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
+            UserPairForPerms.UserPairEditAccess.CanStopPatternsAllowed,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
         DrawOtherPairSetting("CanToggleTriggers", "CanToggleTriggersAllowed",
             UserPairForPerms.UserPairUniquePairPerms.CanToggleTriggers ? (PairUID + " allows Toggling Triggers") : (PairUID + " prevents Toggling Triggers"),
             UserPairForPerms.UserPairUniquePairPerms.CanToggleTriggers ? FontAwesomeIcon.FileMedicalAlt : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairEditAccess.CanToggleTriggersAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
             UserPairForPerms.UserPairEditAccess.CanToggleTriggersAllowed,
-            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
-
-        DrawOtherPairSetting("CanSendTriggers", "CanSendTriggersAllowed",
-            UserPairForPerms.UserPairUniquePairPerms.CanSendTriggers ? (PairUID + " allows sending Triggers") : (PairUID + " prevents sending Triggers"),
-            UserPairForPerms.UserPairUniquePairPerms.CanSendTriggers ? FontAwesomeIcon.FileExport : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairEditAccess.CanSendTriggersAllowed ? ("Press to Toggle " + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
-            UserPairForPerms.UserPairEditAccess.CanSendTriggersAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
     }
 

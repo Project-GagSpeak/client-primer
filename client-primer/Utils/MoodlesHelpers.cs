@@ -1,25 +1,18 @@
-using Dalamud.Interface;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
-using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
-using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Data.Enum;
-using GagspeakAPI.Dto.Connection;
-using GagspeakAPI.Dto.IPC;
-using System.Numerics;
-using OtterGui.Text;
 using GagspeakAPI.Data.IPC;
-using GagspeakAPI.Data;
-using GagspeakAPI.Dto.User;
 using GagspeakAPI.Data.Permissions;
-using OtterGui;
+using GagspeakAPI.Dto.IPC;
+using GagspeakAPI.Dto.User;
 using ImGuiNET;
+using OtterGui;
+using System.Numerics;
 
-namespace GagSpeak.Utils.PermissionHelpers;
+namespace GagSpeak.Utils;
 
 /// <summary>
 /// Various helper functions for the Permissions window.
@@ -75,7 +68,7 @@ public static class MoodlesHelpers
         DrawStatuses(statusList, width, UID, nickname, moodlesService, logger, ref state.StatusIdxForMoodleDataInfo, ref state.StatusGuidForMoodleDataInfo);
     }
 
-    private static void DrawStatuses(List<MoodlesStatusInfo> statusList, float width, string UID, string nickname, 
+    private static void DrawStatuses(List<MoodlesStatusInfo> statusList, float width, string UID, string nickname,
         MoodlesService moodlesService, ILogger logger, ref int StateIdx, ref Guid SelectedGuid)
     {
         var state = GetOrCreatePairState(UID, nickname);
@@ -85,7 +78,7 @@ public static class MoodlesHelpers
             logger.LogWarning("SelectedStatusIdx was out of bounds. The count was {count} and the selected index was {selectedIdx}", statusList.Count, StateIdx);
             StateIdx = 0;
         }
-            // Draw out the status selector.
+        // Draw out the status selector.
         if (moodlesService.DrawMoodleStatusComboSearchable(statusList, "##Status for " + nickname, ref StateIdx, width, 1.0f))
         {
             logger.LogTrace("SelectedStatusIdx is now {selectedStatusIdx} with GUID {guid}", StateIdx, statusList[StateIdx].GUID);
@@ -105,7 +98,7 @@ public static class MoodlesHelpers
         DrawPresetSelection(ipcData, width, UID, nickname, uiShared, logger, ref state.PresetIdxForPairList, ref state.PresetGuidForPairList);
     }
 
-    private static void DrawPresetSelection(CharacterIPCData ipcData, float width, string UID, string nickname, 
+    private static void DrawPresetSelection(CharacterIPCData ipcData, float width, string UID, string nickname,
         UiSharedService uiShared, ILogger logger, ref int SelectedIdx, ref Guid SelectedGuid)
     {
         var state = GetOrCreatePairState(UID, nickname);
@@ -116,7 +109,7 @@ public static class MoodlesHelpers
         var newIdx = -1;
         // Draw out the status selector.
         uiShared.DrawComboSearchable("##PresetSelector", width, ref MoodlesPresetSearch, ipcData.MoodlesPresets,
-            (preset) => preset.Item1.ToString(), false, 
+            (preset) => preset.Item1.ToString(), false,
             (preset) =>
             {
                 newGuid = preset.Item1;
@@ -197,7 +190,7 @@ public static class MoodlesHelpers
     #endregion ApplyPairsMoodles
 
     #region ApplyOwnMoodles
-    public static void ApplyOwnStatusButton(Pair pairForApplication, ApiController ApiController, ILogger logger, OnFrameworkService frameworkUtils, 
+    public static void ApplyOwnStatusButton(Pair pairForApplication, ApiController ApiController, ILogger logger, OnFrameworkService frameworkUtils,
         UiSharedService uiShared, CharacterIPCData clientPlayerIpc, string pairNickname, out bool success)
     {
         success = false;
@@ -206,7 +199,7 @@ public static class MoodlesHelpers
         if (clientPlayerIpc == null || clientPlayerIpc.MoodlesStatuses.Count <= state.StatusIdxForOwnList) return;
 
         bool disabled = clientPlayerIpc.MoodlesStatuses[state.StatusIdxForOwnList].GUID != state.StatusGuidForOwnList;
-        if (ImGuiUtil.DrawDisabledButton("Apply##ApplyOwnStatus"+pairForApplication.UserData.UID, new Vector2(), string.Empty, disabled))
+        if (ImGuiUtil.DrawDisabledButton("Apply##ApplyOwnStatus" + pairForApplication.UserData.UID, new Vector2(), string.Empty, disabled))
         {
             MoodlesStatusInfo status = clientPlayerIpc.MoodlesStatuses[state.StatusIdxForOwnList];
             // validate permissions
@@ -221,7 +214,7 @@ public static class MoodlesHelpers
         return;
     }
 
-    public static void ApplyOwnPresetButton(Pair pairForApplication, ApiController ApiController, ILogger logger, OnFrameworkService frameworkUtils, 
+    public static void ApplyOwnPresetButton(Pair pairForApplication, ApiController ApiController, ILogger logger, OnFrameworkService frameworkUtils,
         UiSharedService uiShared, CharacterIPCData clientPlayerIpc, string pairNickname, out bool success)
     {
         success = false;
@@ -243,7 +236,7 @@ public static class MoodlesHelpers
             }
 
             // validate permissions
-            if(!ValidatePermissionForApplication(logger, pairForApplication.UserPairUniquePairPerms, statusesToApply)) return;
+            if (!ValidatePermissionForApplication(logger, pairForApplication.UserPairUniquePairPerms, statusesToApply)) return;
 
             _ = ApiController.UserApplyMoodlesByStatus(new ApplyMoodlesByStatusDto(pairForApplication.UserData, statusesToApply, IpcToggleType.MoodlesPreset));
             success = true;
@@ -268,7 +261,7 @@ public static class MoodlesHelpers
         bool disabled = pairToRemoveMoodlesFrom.LastReceivedIpcData.MoodlesDataStatuses[state.StatusIdxForMoodleDataInfo].GUID != state.StatusGuidForMoodleDataInfo
             || pairToRemoveMoodlesFrom.UserPairUniquePairPerms.AllowRemovingMoodles == false;
 
-        if (ImGuiUtil.DrawDisabledButton("Remove##RemoveStatus"+pairToRemoveMoodlesFrom.UserData.UID, new Vector2(), string.Empty, disabled))
+        if (ImGuiUtil.DrawDisabledButton("Remove##RemoveStatus" + pairToRemoveMoodlesFrom.UserData.UID, new Vector2(), string.Empty, disabled))
         {
             Guid statusGuid = state.StatusGuidForMoodleDataInfo;
             _ = apiController.UserRemoveMoodles(new RemoveMoodlesDto(pairToRemoveMoodlesFrom.UserData, new List<Guid> { statusGuid }));

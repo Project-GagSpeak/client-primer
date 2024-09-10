@@ -31,7 +31,7 @@ public class AlarmHandler : MediatorSubscriberBase
         {
             // if msg.Pattern.Name is a patternName in any of our alarms
             // remove the pattern from the alarm
-            _clientConfigs.RemovePatternNameFromAlarms(msg.pattern.Name);
+            _clientConfigs.RemovePatternNameFromAlarms(msg.PatternId);
         });
 
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => DelayedFrameworkAlarmCheck());
@@ -96,14 +96,14 @@ public class AlarmHandler : MediatorSubscriberBase
     public void DisableAlarm(int idx)
         => _clientConfigs.SetAlarmState(idx, false);
 
+    public string GetPatternNameFromId(Guid id)
+        => _clientConfigs.GetAlarmPatternName(id);
+
     public void UpdateAlarmStatesFromCallback(List<AlarmInfo> AlarmInfoList)
         => _clientConfigs.UpdateAlarmStatesFromCallback(AlarmInfoList);
 
-    public TimeSpan GetPatternLength(string name)
-    => (_clientConfigs.GetPatternIdxByName(name) == -1)
-        ? TimeSpan.Zero
-        : _clientConfigs.GetPatternLength(_clientConfigs.GetPatternIdxByName(name));
-
+    public TimeSpan GetPatternLength(Guid guid)
+        => _clientConfigs.GetPatternLength(guid);
 
     public string GetAlarmFrequencyString(List<DayOfWeek> FrequencyOptions)
     {
@@ -162,15 +162,14 @@ public class AlarmHandler : MediatorSubscriberBase
                 continue; // Early return if the current day is not in the frequency options
             }
 
-            // convert execution time from UTC to our localtimezone
+            // convert execution time from UTC to our local timezone
             DateTimeOffset alarmTime = alarm.SetTimeUTC.ToLocalTime();
 
             // check if current time matches execution time and if so play
             if (now.Hour == alarmTime.Hour && now.Minute == alarmTime.Minute)
             {
                 Logger.LogInformation("Playing Pattern : {0}", alarm.PatternToPlay);
-                int alarmPatternIdx = _playbackService.GetPatternIdxFromName(alarm.PatternToPlay);
-                _playbackService.PlayPattern(alarmPatternIdx, alarm.PatternStartPoint, alarm.PatternDuration, true);
+                _playbackService.PlayPattern(alarm.PatternToPlay, alarm.PatternStartPoint, alarm.PatternDuration, true);
             }
         }
     }

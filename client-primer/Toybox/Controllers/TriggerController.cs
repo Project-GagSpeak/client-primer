@@ -56,7 +56,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
     public async void OnActionEffectEvent(List<ActionEffectEntry> actionEffects)
     {
-        Logger.LogInformation("Action Effect Event Triggered");
+        Logger.LogDebug("Action Effect Event Triggered");
         string sourceCharaStr = "";
         string targetCharaStr = "";
         string actionStr = "";

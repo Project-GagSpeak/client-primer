@@ -253,6 +253,13 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
+        DrawOwnSetting("CanSendAlarms", "CanSendAlarmsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanSendAlarms ? "Allow Sending Alarms" : "Prevent Sending Alarms",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanSendAlarms ? FontAwesomeIcon.FileExport : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanSendAlarms ? $"Prevent {PairNickOrAliasOrUID} from sending alarms." : $"Allow {PairNickOrAliasOrUID} to send alarms.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
         DrawOwnSetting("CanExecutePatterns", "CanExecutePatternsAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.CanExecutePatterns ? "Allow Pattern Execution" : "Prevent Pattern Execution",
             UserPairForPerms.UserPairOwnUniquePairPerms.CanExecutePatterns ? FontAwesomeIcon.LandMineOn : FontAwesomeIcon.Ban,
@@ -260,17 +267,17 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
+        DrawOwnSetting("CanStopPatterns", "CanStopPatternsAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanStopPatterns ? "Allow Stopping Patterns" : "Prevent Stopping Patterns",
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanStopPatterns ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.CanExecutePatterns ? $"Prevent {PairNickOrAliasOrUID} from stopping patterns." : $"Allow {PairNickOrAliasOrUID} to stop patterns.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
         DrawOwnSetting("CanToggleTriggers", "CanToggleTriggersAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleTriggers ? "Allow Toggling Triggers" : "Prevent Toggling Triggers",
             UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleTriggers ? FontAwesomeIcon.FileMedicalAlt : FontAwesomeIcon.Ban,
             UserPairForPerms.UserPairOwnUniquePairPerms.CanToggleTriggers ? $"Prevent {PairNickOrAliasOrUID} from toggling your triggers." : $"Allow {PairNickOrAliasOrUID} to toggle your triggers.",
-            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
-            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
-
-        DrawOwnSetting("CanSendTriggers", "CanSendTriggersAllowed",
-            UserPairForPerms.UserPairOwnUniquePairPerms.CanSendTriggers ? "Allow Sending Triggers" : "Prevent Sending Triggers",
-            UserPairForPerms.UserPairOwnUniquePairPerms.CanSendTriggers ? FontAwesomeIcon.FileExport : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairOwnUniquePairPerms.CanSendTriggers ? $"Prevent {PairNickOrAliasOrUID} from sending triggers." : $"Allow {PairNickOrAliasOrUID} to send triggers.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 

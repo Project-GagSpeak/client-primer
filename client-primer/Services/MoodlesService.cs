@@ -2,14 +2,11 @@ using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using GagSpeak.UI;
 using GagSpeak.Utils;
-using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.IPC;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets;
-using Microsoft.IdentityModel.Tokens;
 using OtterGui.Raii;
 using System.Numerics;
-using System.Security.AccessControl;
 namespace GagSpeak.Services;
 
 // helps out with locating and parsing moodles icons and drawing custom dropdowns.
@@ -37,7 +34,7 @@ public class MoodlesService
     public static readonly Vector2 StatusSize = new(24, 32);
     public Dictionary<string, Guid> SelectedPresetComboGuids;    // the selected combo items
 
-    public bool DrawMoodlesPresetComboSearchable(string comboLabel, ref int selectedIdx, ref string searchString, 
+    public bool DrawMoodlesPresetComboSearchable(string comboLabel, ref int selectedIdx, ref string searchString,
         List<(Guid, List<Guid>)> MoodlesPresets, List<MoodlesStatusInfo> MoodlesStatuses, float width)
     {
         bool itemSelected = false;
@@ -45,7 +42,7 @@ public class MoodlesService
         if (!MoodlesPresets.Any())
         {
             ImGui.SetNextItemWidth(width);
-            ImGui.BeginCombo("##"+comboLabel, "No Presets Available...");
+            ImGui.BeginCombo("##" + comboLabel, "No Presets Available...");
             ImGui.EndCombo();
             return false;
         }
@@ -152,7 +149,7 @@ public class MoodlesService
         var height = ImGui.GetTextLineHeightWithSpacing() * 10 - ImGui.GetFrameHeight() - ImGui.GetStyle().WindowPadding.Y;
         using var _ = ImRaii.Child("ChildL", new Vector2(width, height), false, ImGuiWindowFlags.NoScrollbar);
         // Search filter
-        ImGui.SetNextItemWidth(width-5f);
+        ImGui.SetNextItemWidth(width - 5f);
         ImGui.InputTextWithHint("##filter", "Filter...", ref StatusSearchString, 100);
         var searchText = StatusSearchString.ToLowerInvariant();
 
@@ -160,7 +157,7 @@ public class MoodlesService
             ? statuses : statuses.Where(item => item.Title.ToLowerInvariant().Contains(searchText));
 
         ImGui.SetWindowFontScale(sizeScaler);
-        if (ImGui.BeginTable("TimeDurationTable", 2)) // 2 columns for status name and icon
+        if (ImGui.BeginTable("StatusSelectableTable", 2)) // 2 columns for status name and icon
         {
             // Setup columns based on the format
             ImGui.TableSetupColumn("##StatusName", ImGuiTableColumnFlags.WidthFixed, width - StatusSize.X - ImGui.GetStyle().ItemSpacing.X * 2);

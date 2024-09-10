@@ -117,7 +117,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
         // disable any active patterns.
         if (_clientConfigs.IsAnyPatternPlaying())
         {
-            _patternPlaybackService.StopPattern(_clientConfigs.ActivePatternIdx(), false);
+            _patternPlaybackService.StopPattern(_clientConfigs.ActivePatternGuid(), false);
             Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.Safeword));
         }
 

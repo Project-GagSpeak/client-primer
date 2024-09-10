@@ -5,17 +5,21 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Handlers;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data;
+using GagspeakAPI.Data.Character;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Text;
 using System.Drawing;
 using System.Numerics;
+using System.Reflection.Metadata;
 
 namespace GagSpeak.UI.UiPuppeteer;
 
@@ -27,7 +31,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
     private readonly PuppeteerHandler _puppeteerHandler;
     private readonly AliasTable _aliasTable;
     public PuppeteerUI(ILogger<PuppeteerUI> logger, GagspeakMediator mediator,
-        UiSharedService uiSharedService, ClientConfigurationManager clientConfigs, 
+        UiSharedService uiSharedService, ClientConfigurationManager clientConfigs,
         UserPairListHandler userPairListHandler, PuppeteerHandler handler,
         AliasTable aliasTable) : base(logger, mediator, "Puppeteer UI")
     {
@@ -145,7 +149,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         {
             if (_puppeteerHandler.StorageBeingEdited.CharacterName != string.Empty)
             {
-                ImGui.Text("Scanning messages from: ");
+                ImGui.Text("Scanning from: ");
                 ImGui.SameLine();
                 var text = $"{_puppeteerHandler.StorageBeingEdited.CharacterName} @ {_puppeteerHandler.StorageBeingEdited.CharacterWorld}";
                 UiSharedService.ColorText(text, ImGuiColors.ParsedPink);
@@ -159,72 +163,41 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         }
 
         ImGui.Separator();
-        using (var disabledEdited = ImRaii.Disabled(_puppeteerHandler.StorageBeingEdited.CharacterName == string.Empty))
+        
+        // Create a Tab bar for the sub-sections of the puppeteer.
+        using var tabBar = ImRaii.TabBar("Puppeteer Sub-Tabs");
+        if (tabBar)
         {
-            // Create a Tabbar for the sub-sections of the puppeteer.
-            using var tabBar = ImRaii.TabBar("Puppeteer Sub-Tabs");
-
-            if (tabBar)
+            var pairCharaInfo = ImRaii.TabItem("Your Settings");
+            if (pairCharaInfo)
             {
-                var pairCharaInfo = ImRaii.TabItem("Pair Character");
-                if (pairCharaInfo)
+                using (ImRaii.Disabled(_puppeteerHandler.StorageBeingEdited.CharacterName == string.Empty))
                 {
-                    DrawSelectedPairTriggerPhrase(region.X);
-
-                    // draw example usage
-                    if (!string.IsNullOrEmpty(_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase))
-                    {
-                        // if trigger phrase exists, see if it has splits to contain multiple.
-                        bool hasSplits = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase.Contains("|");
-                        var displayText = hasSplits ? _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase.Split('|')[0]
-                                                    : _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase;
-                        // example display
-                        ImGui.Text($"Example Usage from : {_puppeteerHandler.SelectedPair.UserData.AliasOrUID}");
-                        UiSharedService.ColorTextWrapped($"<{_puppeteerHandler.StorageBeingEdited.CharacterName}"
-                           + $"{_puppeteerHandler.StorageBeingEdited.CharacterWorld}> {displayText} {_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.StartChar} " 
-                           + $"glamour apply Hogtied | p | [me] " + $"{_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.EndChar}", ImGuiColors.ParsedPink);
-                        UiSharedService.AttachToolTip($"The spaces between the brackets and commands/trigger phrases are optional.");
-                    }
-
-
-                    bool allowSitRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowSitRequests;
-                    if (ImGui.Checkbox("Allow Sit Commands", ref allowSitRequests))
-                    {
-                        _logger.LogTrace($"Updated own pair permission: AllowSitCommands to {allowSitRequests}");
-                        _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
-                            new KeyValuePair<string, object>("AllowSitRequests", allowSitRequests)));
-                    }
-                    UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform /sit and /groundsit");
-
-                    bool allowMotionRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowMotionRequests;
-                    if (ImGui.Checkbox("Allow Emotes & Expressions", ref allowMotionRequests))
-                    {
-                        _logger.LogTrace($"Updated own pair permission: AllowEmotesExpressions to {allowMotionRequests}");
-                        _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
-                            new KeyValuePair<string, object>("AllowMotionRequests", allowMotionRequests)));
-                    }
-                    UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform emotes and expressions");
-
-                    bool allowAllRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowAllRequests;
-                    if (ImGui.Checkbox("Allow All Commands", ref allowAllRequests))
-                    {
-                        _logger.LogTrace($"Updated own pair permission: AllowAllCommands to {allowAllRequests}");
-                        _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
-                            new KeyValuePair<string, object>("AllowAllRequests", allowAllRequests)));
-                    }
-                    UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform any command");
-
+                    DrawClientSettings(region);
                 }
-                pairCharaInfo.Dispose();
+            }
+            pairCharaInfo.Dispose();
 
-                // create glamour tab (applying the visuals)
-                var aliasList = ImRaii.TabItem("Your Alias List");
-                if (aliasList)
+            // create glamour tab (applying the visuals)
+            var aliasList = ImRaii.TabItem("Your Alias List");
+            if (aliasList)
+            {
+                using (ImRaii.Disabled(_puppeteerHandler.StorageBeingEdited.CharacterName == string.Empty))
                 {
                     _aliasTable.DrawAliasListTable(_puppeteerHandler.SelectedPair.UserData.UID, DefaultCellPadding.Y);
                 }
-                aliasList.Dispose();
             }
+            aliasList.Dispose();
+
+            var aliasList2 = ImRaii.TabItem((_puppeteerHandler.SelectedPair.GetNickname() ?? _puppeteerHandler.SelectedPair.UserData.AliasOrUID) + "'s Alias List");
+            if (aliasList2)
+            {
+                using (ImRaii.Disabled(!_puppeteerHandler.SelectedPair.LastReceivedAliasData!.AliasList.Any()))
+                { 
+                    DrawPairAliasList(_puppeteerHandler.SelectedPair.LastReceivedAliasData); 
+                }
+            }
+            aliasList2.Dispose();
         }
     }
 
@@ -292,7 +265,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
 
         // on the same line inner, draw the start char input directly beside it.
         ImUtf8.SameLineInner();
-        ImGui.SetNextItemWidth(20*ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(20 * ImGuiHelpers.GlobalScale);
         // draw out the start and end characters
         var startChar = _tempStartChar ?? _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.StartChar.ToString();
         if (ImGui.InputText($"##{_puppeteerHandler.SelectedPair.UserData.AliasOrUID}sStarChar", ref startChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
@@ -334,5 +307,96 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         }
         UiSharedService.AttachToolTip($"Custom End Character that replaces the right enclosing bracket.\n" +
             "Replaces the [ ) ] in Ex: [ TriggerPhrase (commandToExecute) ]");
+    }
+
+    private void DrawClientSettings(Vector2 region)
+    {
+        DrawSelectedPairTriggerPhrase(region.X);
+
+        // draw example usage
+        if (!string.IsNullOrEmpty(_puppeteerHandler.SelectedPair!.UserPairOwnUniquePairPerms.TriggerPhrase))
+        {
+            // if trigger phrase exists, see if it has splits to contain multiple.
+            bool hasSplits = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase.Contains("|");
+            var displayText = hasSplits ? _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase.Split('|')[0]
+                                        : _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase;
+            // example display
+            ImGui.Text($"Example Usage from : {_puppeteerHandler.SelectedPair.UserData.AliasOrUID}");
+            UiSharedService.ColorTextWrapped($"<{_puppeteerHandler.StorageBeingEdited.CharacterName}"
+               + $"{_puppeteerHandler.StorageBeingEdited.CharacterWorld}> {displayText} {_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.StartChar} "
+               + $"glamour apply Hogtied | p | [me] " + $"{_puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.EndChar}", ImGuiColors.ParsedPink);
+            UiSharedService.AttachToolTip($"The spaces between the brackets and commands/trigger phrases are optional.");
+        }
+
+
+        bool allowSitRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowSitRequests;
+        if (ImGui.Checkbox("Allow Sit Commands", ref allowSitRequests))
+        {
+            _logger.LogTrace($"Updated own pair permission: AllowSitCommands to {allowSitRequests}");
+            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
+                new KeyValuePair<string, object>("AllowSitRequests", allowSitRequests)));
+        }
+        UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform /sit and /groundsit");
+
+        bool allowMotionRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowMotionRequests;
+        if (ImGui.Checkbox("Allow Emotes & Expressions", ref allowMotionRequests))
+        {
+            _logger.LogTrace($"Updated own pair permission: AllowEmotesExpressions to {allowMotionRequests}");
+            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
+                new KeyValuePair<string, object>("AllowMotionRequests", allowMotionRequests)));
+        }
+        UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform emotes and expressions");
+
+        bool allowAllRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowAllRequests;
+        if (ImGui.Checkbox("Allow All Commands", ref allowAllRequests))
+        {
+            _logger.LogTrace($"Updated own pair permission: AllowAllCommands to {allowAllRequests}");
+            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_puppeteerHandler.SelectedPair.UserData,
+                new KeyValuePair<string, object>("AllowAllRequests", allowAllRequests)));
+        }
+        UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform any command");
+    }
+
+    private void DrawPairAliasList(CharacterAliasData? pairAliasData)
+    {
+        if (pairAliasData == null) return;
+
+        using var pairAliasListChild = ImRaii.Child("##PairAliasListChild", ImGui.GetContentRegionAvail(), false);
+        if (!pairAliasListChild) return;
+        // display a custom box icon for each search result obtained.
+        foreach (var aliasItem in pairAliasData.AliasList)
+            DrawAliasItemBox(aliasItem);
+    }
+
+    private void DrawAliasItemBox(AliasTrigger aliasItem)
+    {
+        // push rounding window corners
+        using var windowRounding = ImRaii.PushStyle(ImGuiStyleVar.ChildRounding, 5f);
+        // push a pink border color for the window border.
+        using var borderColor = ImRaii.PushStyle(ImGuiStyleVar.WindowBorderSize, 1f);
+        using var borderCol = ImRaii.PushColor(ImGuiCol.Border, ImGuiColors.ParsedPink);
+        // push a less transparent very dark grey background color.
+        using var bgColor = ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.25f, 0.2f, 0.2f, 0.4f));
+        // create the child window.
+
+        float height = ImGui.GetFrameHeight() * 3 + ImGui.GetStyle().ItemSpacing.Y * 2 + ImGui.GetStyle().WindowPadding.Y * 2;
+        using (var patternResChild = ImRaii.Child("##PatternResult_" + aliasItem.InputCommand + aliasItem.OutputCommand, new Vector2(ImGui.GetContentRegionAvail().X, height), true, ImGuiWindowFlags.ChildWindow))
+        {
+            if (!patternResChild) return;
+
+            using (ImRaii.Group())
+            {
+                _uiShared.IconText(FontAwesomeIcon.QuoteLeft, ImGuiColors.ParsedPink);
+                ImUtf8.SameLineInner();
+                UiSharedService.ColorText(aliasItem.InputCommand, ImGuiColors.ParsedPink);
+                ImUtf8.SameLineInner();
+                _uiShared.IconText(FontAwesomeIcon.QuoteRight, ImGuiColors.ParsedPink);
+                ImGui.Separator();
+
+                _uiShared.IconText(FontAwesomeIcon.LongArrowAltRight, ImGuiColors.ParsedPink);
+                ImUtf8.SameLineInner();
+                UiSharedService.TextWrapped(aliasItem.OutputCommand);
+            }
+        }
     }
 }

@@ -2,6 +2,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
@@ -229,6 +230,8 @@ public class ToyboxAlarmManager
         //  automatically handle whether to use a 12-hour or 24-hour clock.
         var localTime = tmpAlarm.SetTimeUTC.ToLocalTime().ToString("t", CultureInfo.CurrentCulture);
 
+        string patternName = _handler.GetPatternNameFromId(tmpAlarm.PatternToPlay);
+
         // define our sizes
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
@@ -236,7 +239,8 @@ public class ToyboxAlarmManager
         var nameTextSize = ImGui.CalcTextSize(tmpAlarm.Name);
         Vector2 tmpAlarmTextSize;
         var frequencyTextSize = ImGui.CalcTextSize(_handler.GetAlarmFrequencyString(tmpAlarm.RepeatFrequency));
-        var patternNameSize = ImGui.CalcTextSize(tmpAlarm.PatternToPlay);
+        var patternNameSize = ImGui.CalcTextSize(patternName);
+        string patternToPlayName = _handler.GetPatternNameFromId(tmpAlarm.PatternToPlay);
         using (_uiShared.UidFont.Push())
         {
             tmpAlarmTextSize = ImGui.CalcTextSize($"{localTime}");
@@ -262,7 +266,7 @@ public class ToyboxAlarmManager
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
                 UiSharedService.ColorText(_handler.GetAlarmFrequencyString(tmpAlarm.RepeatFrequency), ImGuiColors.DalamudGrey3);
                 ImGui.SameLine();
-                UiSharedService.ColorText("| " + tmpAlarm.PatternToPlay, ImGuiColors.DalamudGrey3);
+                UiSharedService.ColorText("| " + patternToPlayName, ImGuiColors.DalamudGrey3);
             }
 
             // now, head to the sameline of the full width minus the width of the button
@@ -377,37 +381,32 @@ public class ToyboxAlarmManager
         // Input field for the pattern the alarm will play
         var pattern = alarmToCreate.PatternToPlay;
         var searchString = PatternSearchString.Lower;
-        // store if we have selected a new pattern
-        bool newPatternSelected = false;
         // draw the selector on the left
         _uiShared.DrawComboSearchable("Alarm Pattern", UiSharedService.GetWindowContentRegionWidth() / 2,
-        ref searchString, _patternHandler.PatternNames, (i) => i, true,
+        ref searchString, _patternHandler.GetPatternsForSearch(), (i) => i.Name, true,
         (i) =>
         {
-            var foundMatch = _patternHandler.GetPatternIdxByName(i);
-            if (_patternHandler.IsIndexInBounds(foundMatch))
-            {
-                alarmToCreate.PatternToPlay = i;
-                newPatternSelected = true;
-            }
-        }, alarmToCreate.PatternToPlay ?? default);
+            if(i == null) return;
+            alarmToCreate.PatternToPlay = i.UniqueIdentifier;
+        });
 
         // if the pattern is not the alarmTocreate.PatternToPlay, it has changed, so update newPatternMaxDuration
-        TimeSpan durationTotal = _handler.GetPatternLength(alarmToCreate.PatternToPlay!);
-        var newStartPt = alarmToCreate.PatternStartPoint;
-        _uiShared.DrawTimeSpanCombo("Playback Start-Point", durationTotal, ref newStartPt, UiSharedService.GetWindowContentRegionWidth() / 2);
-        alarmToCreate.PatternStartPoint = newStartPt;
+        TimeSpan durationTotal = _handler.GetPatternLength(alarmToCreate.PatternToPlay);
+        TimeSpan StartPointTimeSpan = alarmToCreate.PatternStartPoint;
+        TimeSpan PlaybackDuration = alarmToCreate.PatternDuration;
 
-        if(newStartPt > durationTotal)
-        {
-            newStartPt = durationTotal;
-        }
-        var maxPlaybackDuration = durationTotal - newStartPt;
+        string formatStart = durationTotal.Hours > 0 ? "hh\\:mm\\:ss" : "mm\\:ss";
+        _uiShared.DrawTimeSpanCombo("Playback Start-Point", durationTotal, ref StartPointTimeSpan, UiSharedService.GetWindowContentRegionWidth()/2, formatStart, true);
+        alarmToCreate.PatternStartPoint = StartPointTimeSpan;
 
-        // define the duration to playback
-        var newDuration = alarmToCreate.PatternDuration;
-        _uiShared.DrawTimeSpanCombo("Playback Duration", maxPlaybackDuration, ref newDuration, UiSharedService.GetWindowContentRegionWidth() / 2);
-        alarmToCreate.PatternDuration = newDuration;
+        // time difference calculation.
+        if (alarmToCreate.PatternStartPoint > durationTotal) alarmToCreate.PatternStartPoint = durationTotal;
+        TimeSpan maxPlaybackDuration = durationTotal - alarmToCreate.PatternStartPoint;
+
+        // playback duration
+        string formatDuration = PlaybackDuration.Hours > 0 ? "hh\\:mm\\:ss" : "mm\\:ss";
+        _uiShared.DrawTimeSpanCombo("Playback Duration", maxPlaybackDuration, ref PlaybackDuration, UiSharedService.GetWindowContentRegionWidth()/2, formatDuration, true);
+        alarmToCreate.PatternDuration = PlaybackDuration;
 
         ImGui.Separator();
 

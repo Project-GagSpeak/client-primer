@@ -357,6 +357,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public float GetFontScalerFloat() => ImGuiHelpers.GlobalScale * (_pi.UiBuilder.DefaultFontSpec.SizePt / 12f);
 
+    public float GetButtonSize(string text)
+    {
+        Vector2 vector2 = ImGui.CalcTextSize(text);
+        return vector2.X + ImGui.GetStyle().FramePadding.X * 2f;
+    }
+
     public float GetIconTextButtonSize(FontAwesomeIcon icon, string text)
     {
         Vector2 vector;

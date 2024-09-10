@@ -46,5 +46,8 @@ global using MoodlesGSpeakPairPerms = (
     bool AllowRemoval
     );
 
+global using IPCProfileDataTuple = (System.Guid UniqueId, string Name, string VirtualPath, string CharacterName, bool IsEnabled);
+
+
 // See later https://github.com/xivdev/Penumbra/blob/5c5e45114f25f9429d8757b6edf852ecc37173c9/Penumbra/UI/LaunchButton.cs#L27
 

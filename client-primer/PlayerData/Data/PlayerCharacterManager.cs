@@ -33,7 +33,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private readonly PatternPlaybackService _playbackService;
     private readonly AlarmHandler _alarmHandler;
     private readonly TriggerHandler _triggerHandler;
-    private readonly ClientConfigurationManager _clientConfigManager;
+    private readonly ClientConfigurationManager _clientConfigs;
 
     private readonly IpcCallerMoodles _ipcCallerMoodles; // used to make moodles calls.
 
@@ -52,7 +52,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         _playbackService = playbackService;
         _alarmHandler = alarmHandler;
         _triggerHandler = triggerHandler;
-        _clientConfigManager = clientConfiguration;
+        _clientConfigs = clientConfiguration;
         _ipcCallerMoodles = ipcCallerMoodles;
 
         // Subscribe to the connected message update so we know when to update our global permissions
@@ -79,8 +79,8 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     // public access definitions.
     public UserGlobalPermissions? GlobalPerms => _playerCharGlobalPerms ?? null;
     public CharacterAppearanceData? AppearanceData => _playerCharAppearance ?? null;
-    public bool ShouldRemoveGagUponLockExpiration => _clientConfigManager.GagspeakConfig.RemoveGagUponLockExpiration;
-    public bool ShouldDisableSetUponUnlock => _clientConfigManager.GagspeakConfig.DisableSetUponUnlock;
+    public bool ShouldRemoveGagUponLockExpiration => _clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration;
+    public bool ShouldDisableSetUponUnlock => _clientConfigs.GagspeakConfig.DisableSetUponUnlock;
     public bool IsPlayerGagged() => AppearanceData?.GagSlots.Any(x => x.GagType != "None") ?? false;
     public void UpdateGlobalPermsInBulk(UserGlobalPermissions newGlobalPerms) => _playerCharGlobalPerms = newGlobalPerms;
     public void ApplyStatusesByGuid(ApplyMoodlesByGuidDto dto)
@@ -222,10 +222,10 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             dataToPush.ActiveSetName = activeSet.Name;
             dataToPush.ActiveSetDescription = activeSet.Description;
             dataToPush.ActiveSetEnabledBy = activeSet.EnabledBy;
-            dataToPush.WardrobeActiveSetPadLock = activeSet.LockType;
-            dataToPush.WardrobeActiveSetPassword = activeSet.LockPassword;
-            dataToPush.WardrobeActiveSetLockTime = activeSet.LockedUntil;
-            dataToPush.WardrobeActiveSetLockAssigner = activeSet.LockedBy;
+            dataToPush.Padlock = activeSet.LockType;
+            dataToPush.Password = activeSet.LockPassword;
+            dataToPush.Timer = activeSet.LockedUntil;
+            dataToPush.Assigner = activeSet.LockedBy;
         }
 
         return dataToPush;
@@ -233,7 +233,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     private CharacterAliasData CompileAliasToAPI(string UserUID)
     {
-        var AliasStoage = _clientConfigManager.FetchAliasStorageForPair(UserUID);
+        var AliasStoage = _clientConfigs.FetchAliasStorageForPair(UserUID);
         CharacterAliasData dataToPush = new CharacterAliasData
         {
             CharacterName = AliasStoage.CharacterName,
@@ -246,7 +246,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     private CharacterToyboxData CompileToyboxToAPI()
     {
-        return _clientConfigManager.CompileToyboxToAPI();
+        return _clientConfigs.CompileToyboxToAPI();
     }
 
     public void PushAppearanceDataToAPI(PlayerCharAppearanceChanged msg)
@@ -276,7 +276,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     public void PushToyboxDataToAPI(PlayerCharToyboxChanged msg)
     {
-        var dataToPush = _clientConfigManager.CompileToyboxToAPI();
+        var dataToPush = _clientConfigs.CompileToyboxToAPI();
         Mediator.Publish(new CharacterToyboxDataCreatedMessage(dataToPush, msg.UpdateKind));
     }
     #endregion Compile & Push Data for Server Transfer
@@ -493,29 +493,28 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         // Update Appearance without calling any events so we don't loop back to the server.
         switch (callbackDto.UpdateKind)
         {
-            case DataUpdateKind.ToyboxPatternActivated:
+            case DataUpdateKind.ToyboxPatternExecuted:
                 {
-                    var pattern = callbackDto.ToyboxInfo.PatternList.Where(p => p.IsActive).Select(p => p.Name).FirstOrDefault();
-                    if (pattern == null)
+                    var patternId = callbackDto.ToyboxInfo.ActivePatternGuid;
+                    var patternData = _clientConfigs.FetchPatternById(patternId);
+                    if (patternData == null)
                     {
                         Logger.LogError("Tried to activate pattern but pattern does not exist? How is this even possible.");
                         return;
                     }
-                    int patternIdx = _clientConfigManager.GetPatternIdxByName(pattern);
-                    var patternData = _clientConfigManager.FetchPattern(patternIdx);
-                    _playbackService.PlayPattern(patternIdx, patternData.StartPoint, patternData.Duration, false);
+                    _playbackService.PlayPattern(patternData.UniqueIdentifier, patternData.StartPoint, patternData.Duration, false);
                 }
                 break;
-            case DataUpdateKind.ToyboxPatternDeactivated:
+            case DataUpdateKind.ToyboxPatternStopped:
                 {
-                    var pattern = callbackDto.ToyboxInfo.PatternList.Where(p => p.IsActive).Select(p => p.Name).FirstOrDefault();
-                    if (pattern == null)
+                    var patternId = callbackDto.ToyboxInfo.ActivePatternGuid;
+                    var patternData = _clientConfigs.FetchPatternById(patternId);
+                    if (patternData == null)
                     {
                         Logger.LogError("Tried to activate pattern but pattern does not exist? How is this even possible.");
                         return;
                     }
-                    int patternIdx = _clientConfigManager.GetPatternIdxByName(pattern);
-                    _playbackService.StopPattern(patternIdx, false);
+                    _playbackService.StopPattern(patternId, false);
                 }
                 break;
             case DataUpdateKind.ToyboxAlarmListUpdated:
@@ -528,9 +527,9 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                 Logger.LogError("Why are you trying to do this, you shouldnt be able to possibly reach here.");
                 // Might be feasible if you are sent a new pattern as well?  Idk. Look into later.
                 break;
-            case DataUpdateKind.ToyboxTriggerActiveStatusChanged:
+            case DataUpdateKind.ToyboxTriggerToggled:
                 // not done yet.
-                //_clientConfigManager.CallbackToggleTrigger(callbackDto.ToyboxData.TriggerName, callbackDto.User.UID);
+                //_clientConfigs.CallbackToggleTrigger(callbackDto.ToyboxData.TriggerName, callbackDto.User.UID);
                 break;
         }
     }

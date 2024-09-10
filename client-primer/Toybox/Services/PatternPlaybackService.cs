@@ -48,21 +48,21 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
         PlaybackByteRange = ActivePattern.PatternByteData.Skip(_startIndex).Take(_endIndex - _startIndex).ToList();
     }
 
-    public void PlayPattern(int patternIdx, TimeSpan patternStartPoint, TimeSpan patternDuration, bool publishToMediator)
+    public void PlayPattern(Guid patternId, TimeSpan patternStartPoint, TimeSpan patternDuration, bool publishToMediator)
     {
         // stop any other active patterns if there are any.
         if (_clientConfigs.IsAnyPatternPlaying())
         {
-            var activeIdx = _clientConfigs.ActivePatternIdx();
-            if (activeIdx != patternIdx)
+            var activeId = _clientConfigs.ActivePatternGuid();
+            if (activeId != patternId)
             {
                 // stop the active pattern (maybe set this to false since we are sending another update right after)
-                StopPattern(activeIdx, true);
+                StopPattern(activeId, true);
             }
         }
 
         // set the pattern state to enabled for this index.
-        _clientConfigs.SetPatternState(patternIdx, true, publishToMediator);
+        _clientConfigs.SetPatternState(patternId, true, publishToMediator);
 
         // afterwards, if no patterns are active, throw a warning and return.
         if (ActivePattern == null)
@@ -78,10 +78,10 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
         PlaybackActive = ShouldRunPlayback;
 
         // publish the toggle to the mediator for the playback to recieve its update notif. (because playback uses this service)
-        Mediator.Publish(new PlaybackStateToggled(patternIdx, NewState.Enabled));
+        Mediator.Publish(new PlaybackStateToggled(patternId, NewState.Enabled));
     }
 
-    public void StopPattern(int patternIdx, bool publishToMediator)
+    public void StopPattern(Guid patternId, bool publishToMediator)
     {
         // if there are no active patterns. throw a warning and return
         if (!_clientConfigs.IsAnyPatternPlaying())
@@ -91,7 +91,7 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
         }
 
         // set the pattern state to disabled for this index.
-        _clientConfigs.SetPatternState(patternIdx, false, publishToMediator);
+        _clientConfigs.SetPatternState(patternId, false, publishToMediator);
 
         // if disabled, void the playback range and stop the playback
         // by deactivating PlaybackActive first, we prevent playback from reading off a empty list, avoiding crashes.
@@ -99,17 +99,17 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
         PlaybackByteRange = [];
 
         // publish the toggle to the mediator (if we should)
-        Mediator.Publish(new PlaybackStateToggled(patternIdx, NewState.Disabled));
+        Mediator.Publish(new PlaybackStateToggled(patternId, NewState.Disabled));
     }
 
-    public string GetPatternNameFromIdx(int patternIdx)
-        => _clientConfigs.FetchPattern(patternIdx).Name ?? "Unknown";
+    public string GetPatternNameFromGuid(Guid patternId)
+        => _clientConfigs.FetchPatternById(patternId)?.Name ?? "Unknown";
 
-    public int GetPatternIdxFromName(string patternName)
-        => _clientConfigs.GetPatternIdxByName(patternName);
+    public Guid GetPatternIdFromName(string patternName)
+        => _clientConfigs.GetPatternGuidByName(patternName);
 
-    public int GetIdxOfActivePattern()
-        => _clientConfigs.ActivePatternIdx();
+    public Guid GetGuidOfActivePattern()
+        => _clientConfigs.ActivePatternGuid();
 
 }
 

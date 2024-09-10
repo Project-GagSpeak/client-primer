@@ -35,6 +35,7 @@ using GagSpeak.UI.Components.Popup;
 using GagSpeak.UI.Components.UserPairList;
 using GagSpeak.UI.Handlers;
 using GagSpeak.UI.MainWindow;
+using GagSpeak.UI.Permissions;
 using GagSpeak.UI.Profile;
 using GagSpeak.UI.Tabs.WardrobeTab;
 using GagSpeak.UI.UiGagSetup;
@@ -308,6 +309,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<OrdersAssigner>()
 
         // UI Components
+        .AddSingleton<PermActionsComponents>()
         .AddSingleton<IdDisplayHandler>()
         .AddSingleton<SelectPairForTagUi>()
         .AddSingleton<TagHandler>()
@@ -413,7 +415,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<IdDisplayHandler>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<PlayerCharacterManager>(), 
             s.GetRequiredService<ToyboxRemoteService>(), s.GetRequiredService<ServerConfigurationManager>(), 
             s.GetRequiredService<ProfileService>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<MoodlesService>(), 
-            s.GetRequiredService<PermissionPresetService>(), cs))
+            s.GetRequiredService<PermissionPresetService>(), s.GetRequiredService<PermActionsComponents>(), cs))
         .AddScoped<SelectTagForPairUi>()
         .AddScoped<WindowMediatorSubscriberBase, SettingsUi>()
         .AddScoped<WindowMediatorSubscriberBase, IntroUi>()

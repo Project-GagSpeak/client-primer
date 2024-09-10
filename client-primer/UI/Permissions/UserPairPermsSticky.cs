@@ -26,6 +26,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly MoodlesService _moodlesService;
     private readonly PermissionPresetService _presetService;
+    private readonly PermActionsComponents _permActions;
     private readonly IClientState _clientState;
 
     public enum PermissionType { Global, UniquePairPerm, UniquePairPermEditAccess };
@@ -36,7 +37,8 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         IdDisplayHandler displayHandler, UiSharedService uiSharedService, 
         ApiController apiController, PairManager pairManager, 
         MoodlesService moodlesService, PermissionPresetService presetService,
-        IClientState clientState) : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
+        PermActionsComponents permActionHelpers, IClientState clientState) 
+        : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
     {
         _frameworkUtils = frameworkUtils;
         _playerManager = pcManager;
@@ -46,6 +48,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
         _moodlesService = moodlesService;
         _displayHandler = displayHandler;
         _presetService = presetService;
+        _permActions = permActionHelpers;
         _clientState = clientState;
 
         UserPairForPerms = pairToDrawFor; // set the pair we're drawing for

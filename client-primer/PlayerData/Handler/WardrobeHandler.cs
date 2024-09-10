@@ -159,9 +159,9 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
         Logger.LogInformation($"{callbackDto.User.UID} has locked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
         int idx = GetRestraintSetIndexByName(callbackDto.WardrobeData.ActiveSetName);
-        _clientConfigs.LockRestraintSet(idx, callbackDto.WardrobeData.WardrobeActiveSetPadLock,
-            callbackDto.WardrobeData.WardrobeActiveSetPassword,
-            callbackDto.WardrobeData.WardrobeActiveSetLockTime, callbackDto.User.UID, false);
+        _clientConfigs.LockRestraintSet(idx, callbackDto.WardrobeData.Padlock,
+            callbackDto.WardrobeData.Password,
+            callbackDto.WardrobeData.Timer, callbackDto.User.UID, false);
     }
 
     public void CallbackForceUnlockRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)

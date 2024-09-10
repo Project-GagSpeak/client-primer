@@ -74,11 +74,13 @@ public class AliasTable : DisposableMediatorSubscriberBase
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
 
                 using (ImRaii.Disabled(!canEdit))
+                { 
                     if (ImGui.InputTextWithHint($"##aliasText{idx}", "Input phrase goes here...", ref aliasInput, 64, ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         // Assuming a method to update an alias directly by index exists
                         _handler.UpdateAliasInput(idx, aliasInput);
                     }
+                }
                 UiSharedService.AttachToolTip($"The string of words that {userID} would have to say to make you execute the output command");
 
                 // next line draw output
@@ -89,11 +91,13 @@ public class AliasTable : DisposableMediatorSubscriberBase
                 string aliasOutput = aliasTrigger.OutputCommand;
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
                 using (ImRaii.Disabled(!canEdit))
+                {
                     if (ImGui.InputTextWithHint($"##command{idx}", "Output command goes here...", ref aliasOutput, 200, ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         // Assuming a method to update an alias directly by index exists
                         _handler.UpdateAliasOutput(idx, aliasOutput);
                     }
+                }
                 UiSharedService.AttachToolTip($"The command that will be executed when the input phrase is said by {userID}");
             }
             ImGui.TableNextColumn();

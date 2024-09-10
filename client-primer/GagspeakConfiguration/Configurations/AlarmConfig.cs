@@ -6,6 +6,6 @@ public class AlarmConfig : IGagspeakConfiguration
 {
     /// <summary> AliasList Storage per-paired user. </summary>
     public AlarmStorage AlarmStorage { get; set; }
-    public static int CurrentVersion => 1;
+    public static int CurrentVersion => 2;
     public int Version { get; set; } = CurrentVersion;
 }

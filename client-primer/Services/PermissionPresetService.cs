@@ -174,9 +174,10 @@ public class PermissionPresetService
             CanToggleToyState = false,
             CanUseVibeRemote = false,
             CanToggleAlarms = false,
+            CanSendAlarms = false,
             CanExecutePatterns = false,
+            CanStopPatterns = false,
             CanToggleTriggers = false,
-            CanSendTriggers = false,
 
             AllowForcedFollow = false,
             IsForcedToFollow = false,
@@ -229,9 +230,10 @@ public class PermissionPresetService
             CanToggleToyState = false,
             CanUseVibeRemote = false,
             CanToggleAlarms = false,
+            CanSendAlarms = false,
             CanExecutePatterns = false,
+            CanStopPatterns = false,
             CanToggleTriggers = false,
-            CanSendTriggers = false,
 
             AllowForcedFollow = false,
             IsForcedToFollow = false,
@@ -284,9 +286,10 @@ public class PermissionPresetService
             CanToggleToyState = false,
             CanUseVibeRemote = false,
             CanToggleAlarms = false,
+            CanSendAlarms = false,
             CanExecutePatterns = false,
+            CanStopPatterns = false,
             CanToggleTriggers = false,
-            CanSendTriggers = false,
 
             AllowForcedFollow = false,
             IsForcedToFollow = false,
@@ -340,9 +343,10 @@ public class PermissionPresetService
             CanToggleToyState = false,
             CanUseVibeRemote = false,
             CanToggleAlarms = false,
+            CanSendAlarms = false,
             CanExecutePatterns = false,
+            CanStopPatterns = false,
             CanToggleTriggers = false,
-            CanSendTriggers = false,
 
             AllowForcedFollow = false,
             IsForcedToFollow = false,
@@ -397,8 +401,8 @@ public class PermissionPresetService
             CanUseVibeRemote = true,
             CanToggleAlarms = false,
             CanExecutePatterns = true,
+            CanStopPatterns = true,
             CanToggleTriggers = false,
-            CanSendTriggers = false,
 
             AllowForcedFollow = false,
             IsForcedToFollow = false,
@@ -452,9 +456,10 @@ public class PermissionPresetService
             CanToggleToyState = true,
             CanUseVibeRemote = true,
             CanToggleAlarms = true,
+            CanSendAlarms = true,
             CanExecutePatterns = true,
+            CanStopPatterns = true,
             CanToggleTriggers = false,
-            CanSendTriggers = false,
 
             AllowForcedFollow = false,
             IsForcedToFollow = false,
@@ -508,9 +513,10 @@ public class PermissionPresetService
             CanToggleToyState = true,
             CanUseVibeRemote = true,
             CanToggleAlarms = true,
+            CanSendAlarms = true,
             CanExecutePatterns = true,
+            CanStopPatterns = true,
             CanToggleTriggers = true,
-            CanSendTriggers = false,
 
             AllowForcedFollow = true,
             IsForcedToFollow = false,
@@ -564,9 +570,10 @@ public class PermissionPresetService
             CanToggleToyState = true,
             CanUseVibeRemote = true,
             CanToggleAlarms = false,
+            CanSendAlarms = true,
             CanExecutePatterns = true,
+            CanStopPatterns = true,
             CanToggleTriggers = false,
-            CanSendTriggers = false,
 
             AllowForcedFollow = false,
             IsForcedToFollow = false,
@@ -618,9 +625,10 @@ public class PermissionPresetService
             CanToggleToyStateAllowed = true,
             CanUseVibeRemoteAllowed = true,
             CanToggleAlarmsAllowed = false,
+            CanSendAlarmsAllowed = false,
             CanExecutePatternsAllowed = true,
+            CanStopPatternsAllowed = false,
             CanToggleTriggersAllowed = false,
-            CanSendTriggersAllowed = false,
         };
         return new(pairPerms, pairAccess);
     }
@@ -661,9 +669,10 @@ public class PermissionPresetService
             CanToggleToyState = true,
             CanUseVibeRemote = true,
             CanToggleAlarms = true,
+            CanSendAlarms = true,
             CanExecutePatterns = true,
+            CanStopPatterns = true,
             CanToggleTriggers = false,
-            CanSendTriggers = false,
 
             AllowForcedFollow = false,
             IsForcedToFollow = false,
@@ -715,9 +724,10 @@ public class PermissionPresetService
             CanToggleToyStateAllowed = true,
             CanUseVibeRemoteAllowed = true,
             CanToggleAlarmsAllowed = true,
+            CanSendAlarmsAllowed = true,
             CanExecutePatternsAllowed = true,
+            CanStopPatternsAllowed = true,
             CanToggleTriggersAllowed = true,
-            CanSendTriggersAllowed = false,
         };
         return new(pairPerms, pairAccess);
     }
@@ -758,9 +768,10 @@ public class PermissionPresetService
             CanToggleToyState = true,
             CanUseVibeRemote = true,
             CanToggleAlarms = true,
+            CanSendAlarms = true,
             CanExecutePatterns = true,
+            CanStopPatterns = true,
             CanToggleTriggers = true,
-            CanSendTriggers = false,
 
             AllowForcedFollow = true,
             IsForcedToFollow = false,
@@ -812,9 +823,10 @@ public class PermissionPresetService
             CanToggleToyStateAllowed = true,
             CanUseVibeRemoteAllowed = true,
             CanToggleAlarmsAllowed = true,
+            CanSendAlarmsAllowed = true,
             CanExecutePatternsAllowed = true,
+            CanStopPatternsAllowed = true,
             CanToggleTriggersAllowed = true,
-            CanSendTriggersAllowed = true,
         };
         return new(pairPerms, pairAccess);
     }

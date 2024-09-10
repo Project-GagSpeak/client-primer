@@ -32,6 +32,7 @@ public class UiFactory
     private readonly OnFrameworkService _frameworkUtils;
     private readonly MoodlesService _moodlesService;
     private readonly PermissionPresetService _presetService;
+    private readonly PermActionsComponents _permActionHelpers;
     private readonly IClientState _clientState;
 
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator,
@@ -41,7 +42,7 @@ public class UiFactory
         ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
         ProfileService profileManager, OnFrameworkService frameworkUtils,
         MoodlesService moodlesService, PermissionPresetService presetService,
-        IClientState clientState)
+        PermActionsComponents permActionHelpers, IClientState clientState)
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;
@@ -57,6 +58,7 @@ public class UiFactory
         _frameworkUtils = frameworkUtils;
         _moodlesService = moodlesService;
         _presetService = presetService;
+        _permActionHelpers = permActionHelpers;
         _clientState = clientState;
     }
 
@@ -77,6 +79,6 @@ public class UiFactory
     {
         return new UserPairPermsSticky(_loggerFactory.CreateLogger<UserPairPermsSticky>(), _gagspeakMediator, pair, 
             drawType, _frameworkUtils, _playerManager, _displayHandler, _uiSharedService, _apiController, _pairManager,
-            _moodlesService, _presetService, _clientState);
+            _moodlesService, _presetService, _permActionHelpers, _clientState);
     }
 }

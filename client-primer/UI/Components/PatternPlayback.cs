@@ -47,7 +47,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
             }
             if(msg.NewState == NewState.Disabled)
             {
-                StopPlayback(msg.PatternIndex);
+                StopPlayback(msg.PatternId);
             }
         });
     }
@@ -169,9 +169,9 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
     }
     private List<float> volumeLevels = new List<float>();
 
-    public void StopPlayback(int PatternIdx)
+    public void StopPlayback(Guid patternIdentifier)
     {
-        Logger.LogDebug($"Stopping playback of pattern {_playbackService.GetPatternNameFromIdx(PatternIdx)}");
+        Logger.LogDebug($"Stopping playback of pattern {_playbackService.GetPatternNameFromGuid(patternIdentifier)}");
         // clear the local variables
         ReadBufferIdx = 0;
         // reset the timers
@@ -202,7 +202,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
             // otherwise, stop.
             else
             {
-                _playbackService.StopPattern(_playbackService.GetIdxOfActivePattern(), true);
+                _playbackService.StopPattern(_playbackService.GetGuidOfActivePattern(), true);
                 return;
             }
         }

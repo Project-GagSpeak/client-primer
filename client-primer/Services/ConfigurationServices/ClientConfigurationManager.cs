@@ -196,12 +196,12 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
                 Logger.LogInformation("Located a stored active Restraint Set from the last connection's Data.");
 
                 // see if the lock expired while we were disconnected.
-                if (GenericHelpers.TimerPadlocks.Contains(dto.CharacterActiveStateData.WardrobeActiveSetPadLock)
-                && dto.CharacterActiveStateData.WardrobeActiveSetLockTime < DateTimeOffset.UtcNow)
+                if (GenericHelpers.TimerPadlocks.Contains(dto.CharacterActiveStateData.Padlock)
+                && dto.CharacterActiveStateData.Timer < DateTimeOffset.UtcNow)
                 {
                     Logger.LogInformation("The lock on the actively stored set expired while you were disconnected. Unlocking Set");
                     UnlockRestraintSet(GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
-                        dto.CharacterActiveStateData.WardrobeActiveSetLockAssigner);
+                        dto.CharacterActiveStateData.Assigner);
 
                     // if we have it set to remove sets that are unlocked automatically, do so.
                     if (GagspeakConfig.DisableSetUponUnlock)
@@ -221,13 +221,13 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
                         GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
                         dto.CharacterActiveStateData.WardrobeActiveSetAssigner, NewState.Enabled);
                     // relock it if it had a timer.
-                    if (dto.CharacterActiveStateData.WardrobeActiveSetPadLock != Padlocks.None.ToString())
+                    if (dto.CharacterActiveStateData.Padlock != Padlocks.None.ToString())
                     {
                         Logger.LogInformation("Re-Locking the stored active Restraint Set");
                         LockRestraintSet(
                             GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
-                            dto.CharacterActiveStateData.WardrobeActiveSetPadLock, dto.CharacterActiveStateData.WardrobeActiveSetPassword,
-                            dto.CharacterActiveStateData.WardrobeActiveSetLockTime, dto.CharacterActiveStateData.WardrobeActiveSetLockAssigner);
+                            dto.CharacterActiveStateData.Padlock, dto.CharacterActiveStateData.Password,
+                            dto.CharacterActiveStateData.Timer, dto.CharacterActiveStateData.Assigner);
                     }
                 }
             }
@@ -596,14 +596,12 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public List<PatternData> GetPatternsForSearch() => PatternConfig.PatternStorage.Patterns;
     public PatternData FetchPattern(int idx) => PatternConfig.PatternStorage.Patterns[idx];
     public PatternData? FetchPatternById(Guid id) => PatternConfig.PatternStorage.Patterns.FirstOrDefault(p => p.UniqueIdentifier == id);
-    public int GetPatternIdxByName(string name) => PatternConfig.PatternStorage.Patterns.FindIndex(p => p.Name == name);
-    public List<string> GetPatternNames() => PatternConfig.PatternStorage.Patterns.Select(set => set.Name).ToList();
-    public bool IsIndexInBounds(int index) => index >= 0 && index < PatternConfig.PatternStorage.Patterns.Count;
+    public Guid GetPatternGuidByName(string name) => PatternConfig.PatternStorage.Patterns.FirstOrDefault(p => p.Name == name)?.UniqueIdentifier ?? Guid.Empty;
     public bool PatternExists(Guid id) => PatternConfig.PatternStorage.Patterns.Any(p => p.UniqueIdentifier == id);
     public bool IsAnyPatternPlaying() => PatternConfig.PatternStorage.Patterns.Any(p => p.IsActive);
-    public int ActivePatternIdx() => PatternConfig.PatternStorage.Patterns.FindIndex(p => p.IsActive);
+    public Guid ActivePatternGuid() => PatternConfig.PatternStorage.Patterns.Where(p => p.IsActive).Select(p => p.UniqueIdentifier).FirstOrDefault();
     public int GetPatternCount() => PatternConfig.PatternStorage.Patterns.Count;
-    public TimeSpan GetPatternLength(int idx) => PatternConfig.PatternStorage.Patterns[idx].Duration;
+    public TimeSpan GetPatternLength(Guid id) => PatternConfig.PatternStorage.Patterns.FirstOrDefault(p => p.UniqueIdentifier == id)?.Duration ?? TimeSpan.Zero;
 
     public void AddNewPattern(PatternData newPattern)
     {
@@ -633,20 +631,21 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
-    public void RemovePattern(int indexToRemove)
+    public void RemovePattern(Guid identifierToRemove)
     {
-        // grab the patternData of the pattern we are removing.
-        var patternToRemove = PatternConfig.PatternStorage.Patterns[indexToRemove];
+        // find the pattern to remove by scanning the storage for the unique identifier.
+        var indexToRemove = PatternConfig.PatternStorage.Patterns.FindIndex(x => x.UniqueIdentifier == identifierToRemove);
         PatternConfig.PatternStorage.Patterns.RemoveAt(indexToRemove);
         _patternConfig.Save();
         // publish to mediator one was removed
-        Mediator.Publish(new PatternRemovedMessage(patternToRemove));
+        Mediator.Publish(new PatternRemovedMessage(identifierToRemove));
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
-    public void SetPatternState(int idx, bool newState, bool shouldPublishToMediator = true)
+    public void SetPatternState(Guid identifier, bool newState, bool shouldPublishToMediator = true)
     {
-        // this updates the active state, allowing our playback service by knowing what pattern to play
+        // find the pattern to remove by scanning the storage for the unique identifier.
+        var idx = PatternConfig.PatternStorage.Patterns.FindIndex(x => x.UniqueIdentifier == identifier);
         PatternConfig.PatternStorage.Patterns[idx].IsActive = newState;
         _patternConfig.Save();
         if (shouldPublishToMediator)
@@ -676,9 +675,9 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     #endregion Pattern Config Methods
     /* --------------------- Toybox Alarm Configs --------------------- */
     #region Alarm Config Methods
-    public List<Alarm> AlarmsRef => AlarmConfig.AlarmStorage.Alarms; // readonly accessor
     public Alarm FetchAlarm(int idx) => AlarmConfig.AlarmStorage.Alarms[idx];
     public int FetchAlarmCount() => AlarmConfig.AlarmStorage.Alarms.Count;
+    public string GetAlarmPatternName(Guid id) => PatternConfig.PatternStorage.Patterns.FirstOrDefault(p => p.UniqueIdentifier == id)?.Name ?? string.Empty;
 
     internal void DisableAllActiveAlarmsDueToSafeword()
     {
@@ -693,14 +692,14 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.Safeword));
     }
 
-    public void RemovePatternNameFromAlarms(string patternName)
+    public void RemovePatternNameFromAlarms(Guid patternIdentifier)
     {
         for (int i = 0; i < AlarmConfig.AlarmStorage.Alarms.Count; i++)
         {
             var alarm = AlarmConfig.AlarmStorage.Alarms[i];
-            if (alarm.PatternToPlay == patternName)
+            if (alarm.PatternToPlay == patternIdentifier)
             {
-                alarm.PatternToPlay = "";
+                alarm.PatternToPlay = Guid.Empty;
                 alarm.PatternDuration = TimeSpan.Zero;
                 _alarmConfig.Save();
                 Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
@@ -833,7 +832,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         // publish the alarm added/removed based on state
         if (shouldPublishToMediator)
         {
-            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerActiveStatusChanged));
+            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerToggled));
         }
     }
 
@@ -879,10 +878,10 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         {
             patternList.Add(new PatternInfo
             {
+                Identifier = pattern.UniqueIdentifier,
                 Name = pattern.Name,
                 Description = pattern.Description,
                 Duration = pattern.Duration,
-                IsActive = pattern.IsActive,
                 ShouldLoop = pattern.ShouldLoop
             });
         }
@@ -893,6 +892,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         {
             triggerList.Add(new TriggerInfo
             {
+                Identifier = trigger.TriggerIdentifier,
                 Enabled = trigger.Enabled,
                 Name = trigger.Name,
                 Description = trigger.Description,
@@ -907,6 +907,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         {
             alarmList.Add(new AlarmInfo
             {
+                Identifier = alarm.Identifier,
                 Enabled = alarm.Enabled,
                 Name = alarm.Name,
                 SetTimeUTC = alarm.SetTimeUTC,

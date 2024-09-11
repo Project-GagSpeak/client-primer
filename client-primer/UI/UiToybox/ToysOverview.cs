@@ -1,4 +1,5 @@
 using Buttplug.Client;
+using Buttplug.Core.Messages;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
@@ -221,6 +222,18 @@ public class ToyboxOverview
         ImGui.Text("Linear Attributes:");
         ImGui.Indent();
         foreach (var attr in Device.LinearAttributes)
+        {
+            ImGui.Text("Feature: " + attr.FeatureDescriptor);
+            ImGui.Text("Actuator Type: " + attr.ActuatorType);
+            ImGui.Text("Step Count: " + attr.StepCount);
+            ImGui.Text("Index: " + attr.Index);
+        }
+        ImGui.Unindent();
+
+        List<GenericDeviceMessageAttributes> ConstrictAttributes = Device.GenericAcutatorAttributes(ActuatorType.Constrict);
+        ImGui.Text("Linear Attributes:");
+        ImGui.Indent();
+        foreach (var attr in ConstrictAttributes)
         {
             ImGui.Text("Feature: " + attr.FeatureDescriptor);
             ImGui.Text("Actuator Type: " + attr.ActuatorType);

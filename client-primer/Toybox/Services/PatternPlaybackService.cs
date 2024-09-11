@@ -7,14 +7,17 @@ using GagSpeak.Utils;
 
 namespace GagSpeak.Toybox.Services;
 // handles the management of the connected devices or simulated vibrator.
-public class PatternPlaybackService : DisposableMediatorSubscriberBase
+public sealed class PatternPlaybackService
 {
+    private readonly ILogger<PatternPlaybackService> _logger;
+    private readonly GagspeakMediator _mediator;
     private readonly ClientConfigurationManager _clientConfigs;
 
     public PatternPlaybackService(ILogger<PatternPlaybackService> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs)
-        : base(logger, mediator)
     {
+        _logger = logger;
+        _mediator = mediator;
         _clientConfigs = clientConfigs;
     }
 
@@ -28,8 +31,8 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
     {
         if (ActivePattern == null) return;
 
-        Logger.LogDebug($"Start point at {startPoint} and duration at {playbackDuration}");
-        Logger.LogDebug("Total byte count of original pattern data: " + ActivePattern.PatternByteData.Count);
+        _logger.LogDebug($"Start point at {startPoint} and duration at {playbackDuration}");
+        _logger.LogDebug("Total byte count of original pattern data: " + ActivePattern.PatternByteData.Count);
 
         // Convert start point and duration to indices
         int _startIndex = (int)(startPoint.TotalSeconds * 50);
@@ -42,7 +45,7 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
         _endIndex = Math.Min(ActivePattern.PatternByteData.Count, _endIndex);
 
         // Log the details
-        Logger.LogDebug($"Calculating subset pattern byte data from {_startIndex} to {_endIndex}");
+        _logger.LogDebug($"Calculating subset pattern byte data from {_startIndex} to {_endIndex}");
 
         // Get the subset of the pattern byte data
         PlaybackByteRange = ActivePattern.PatternByteData.Skip(_startIndex).Take(_endIndex - _startIndex).ToList();
@@ -67,7 +70,7 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
         // afterwards, if no patterns are active, throw a warning and return.
         if (ActivePattern == null)
         {
-            Logger.LogWarning("Cannot play pattern, no active patterns were found.");
+            _logger.LogWarning("Cannot play pattern, no active patterns were found.");
             return;
         }
 
@@ -78,7 +81,7 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
         PlaybackActive = ShouldRunPlayback;
 
         // publish the toggle to the mediator for the playback to recieve its update notif. (because playback uses this service)
-        Mediator.Publish(new PlaybackStateToggled(patternId, NewState.Enabled));
+        _mediator.Publish(new PlaybackStateToggled(patternId, NewState.Enabled));
     }
 
     public void StopPattern(Guid patternId, bool publishToMediator)
@@ -86,7 +89,7 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
         // if there are no active patterns. throw a warning and return
         if (!_clientConfigs.IsAnyPatternPlaying())
         {
-            Logger.LogWarning("Cannot stop pattern, no patterns were set to play.");
+            _logger.LogWarning("Cannot stop pattern, no patterns were set to play.");
             return;
         }
 
@@ -99,7 +102,7 @@ public class PatternPlaybackService : DisposableMediatorSubscriberBase
         PlaybackByteRange = [];
 
         // publish the toggle to the mediator (if we should)
-        Mediator.Publish(new PlaybackStateToggled(patternId, NewState.Disabled));
+        _mediator.Publish(new PlaybackStateToggled(patternId, NewState.Disabled));
     }
 
     public string GetPatternNameFromGuid(Guid patternId)

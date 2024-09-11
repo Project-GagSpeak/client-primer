@@ -68,6 +68,7 @@ public record ResumeScanMessage(string Source) : MessageBase; // know when we sh
 
 
 /* ------------------ PLAYER DATA RELATED RECORDS------------------ */
+public record UpdateAllOnlineWithCompositeMessage : MessageBase; // for updating all online pairs with composite data.
 public record PairWentOnlineMessage(UserData UserData) : MessageBase; // a message indicating a pair has gone online.
 public record PairHandlerVisibleMessage(PairHandler Player) : MessageBase; // a message indicating the visibility of a pair handler.
 public record OpenUserPairPermissions(Pair? Pair, StickyWindowType PermsWindowType) : MessageBase; // fired upon request to open the permissions window for a pair

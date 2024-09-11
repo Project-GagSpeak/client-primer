@@ -1,5 +1,7 @@
 using GagSpeak.PlayerData.Data;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
@@ -23,11 +25,15 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly GagManager _gagManager; // for removing gags.
     private readonly PatternPlaybackService _patternPlaybackService; // for stopping patterns.
+    private readonly WardrobeHandler _wardrobeHandler;
+    private readonly GlamourFastUpdate _glamourFastEvent; // for reverting character.
 
     public SafewordService(ILogger<SafewordService> logger, GagspeakMediator mediator,
         ApiController apiController, PlayerCharacterManager playerManager, 
         PairManager pairManager, ClientConfigurationManager clientConfigs, 
-        GagManager gagManager, PatternPlaybackService playbackService) : base(logger, mediator)
+        GagManager gagManager, PatternPlaybackService playbackService,
+        WardrobeHandler wardrobeHandler, GlamourFastUpdate glamourFastUpdate) 
+        : base(logger, mediator)
     {
         _apiController = apiController;
         _playerManager = playerManager;
@@ -35,6 +41,8 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
         _clientConfigs = clientConfigs;
         _gagManager = gagManager;
         _patternPlaybackService = playbackService;
+        _wardrobeHandler = wardrobeHandler;
+        _glamourFastEvent = glamourFastUpdate;
 
         // set the chat log up.
         Mediator.Subscribe<SafewordUsedMessage>(pairManager, (msg) => SafewordUsed());
@@ -51,84 +59,74 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
     public bool SafewordIsUsed => _playerManager.GlobalPerms == null ? false : _playerManager.GlobalPerms.SafewordUsed;
     public bool HardcoreSafewordIsUsed => _playerManager.GlobalPerms == null ? false : _playerManager.GlobalPerms.HardcoreSafewordUsed;
 
-    // READ THE FOLLOWING BELOW WHILE CODING OUT THE LOGIC FOR THIS:
-    //
-    // The Global permissions of a pair has a <SafewordUsed> variable.
-    // We should use this variable to determine if someone is under the safeword timer or not.
-    //
-    // It should NOT DISABLE any bulk permissions for other pairs. this would be too tedious to do.
-    // 
-    // Instead, this should handle disabling any currently active statuses through various handlers.
-    //
-    // A SAFEWORD COMMAND SHOULD DISABLE:
-    // - Any and all Active Gags
-    // - Any active Restraints
-    // - Any active Toybox Vibrations
-    // - Any Active Triggers
-    // - Any Active Patterns
-    // - Any Active Alarms
-    // - Any Active Orders
-    //
-    // A HARDCORE SAFEWORD COMMAND SHOULD DISABLE:
-    // - Any ForcedToFollow commands.
-    // - Any ForcedToSit commands.
-    // - Any ForcedToStay commands.
-    // - Any Active Blindfolds.
-    // - Hardcore mode for every pair.
-
     private async void SafewordUsed()
     {
-        // return if it has not yet been 5 minutes since the last use.
-        if (SafewordIsUsed)
+        try
         {
-            Logger.LogWarning("Hardcore Safeword was used too soon after the last use. Must wait 5 minutes.");
-            return;
+            // return if it has not yet been 5 minutes since the last use.
+            if (SafewordIsUsed)
+            {
+                Logger.LogWarning("Hardcore Safeword was used too soon after the last use. Must wait 5 minutes.");
+                return;
+            }
+
+            // set the time of the last safeword used.
+            TimeOfLastSafewordUsed = DateTime.Now;
+            Logger.LogInformation("Safeword was used.");
+
+            // disable any active gags and push these updates to the API.
+            Logger.LogInformation("Disabling any active gags.");
+            _gagManager.SafewordWasUsed();
+            Logger.LogInformation("Active gags disabled.");
+
+            // disable any active restraints.
+            Logger.LogInformation("Disabling all stored data and reverting character.");
+
+            // grab active pattern first if any.
+            if (_patternPlaybackService.ActivePattern != null)
+            {
+                Logger.LogInformation("Stopping active pattern.");
+                _patternPlaybackService.StopPattern(_patternPlaybackService.ActivePattern.UniqueIdentifier, false);
+                Logger.LogInformation("Active pattern stopped.");
+            }
+
+            // disable all other active things.
+            await _clientConfigs.DisableEverythingDueToSafeword();
+            _wardrobeHandler.UpdateActiveSet();
+
+            // doesn't madder if we do direct updates, since after the push to the server the callback will set it back accordingly.
+            if (_playerManager.GlobalPerms != null && _apiController.IsConnected)
+            {
+                _playerManager.GlobalPerms.SafewordUsed = true;
+                _playerManager.GlobalPerms.LiveChatGarblerActive = false;
+                _playerManager.GlobalPerms.LiveChatGarblerLocked = false;
+                _playerManager.GlobalPerms.WardrobeEnabled = false;
+                _playerManager.GlobalPerms.ItemAutoEquip = false;
+                _playerManager.GlobalPerms.RestraintSetAutoEquip = false;
+                _playerManager.GlobalPerms.PuppeteerEnabled = false;
+                _playerManager.GlobalPerms.MoodlesEnabled = false;
+                _playerManager.GlobalPerms.ToyboxEnabled = false;
+                _playerManager.GlobalPerms.LockToyboxUI = false;
+                _playerManager.GlobalPerms.ToyIntensity = 0;
+                _playerManager.GlobalPerms.SpatialVibratorAudio = false;
+                // update our global permissions and send the new info to the server.
+                _playerManager.UpdateGlobalPermsInBulk(_playerManager.GlobalPerms); // the api callback will correct these with the same values we set after if any inconsistencies anyways.
+
+                Logger.LogInformation("Pushing Global updates to the server.");
+                _ = _apiController.UserPushAllGlobalPerms(new(_apiController.PlayerUserData, _playerManager.GlobalPerms));
+                Logger.LogInformation("Global updates pushed to the server.");
+            }
+            Logger.LogInformation("Everything Disabled.");
+
+            // reverting character.
+            _glamourFastEvent.Invoke(GlamourUpdateType.Safeword);
+
+            Logger.LogInformation("Character reverted.");
         }
-
-        // set the time of the last safeword used.
-        TimeOfLastSafewordUsed = DateTime.Now;
-        Logger.LogInformation("Safeword was used.");
-
-        // we should normally update these via sends to the server, but in the case things are offline, we should update them on our client,
-        // then send those updates to the server, to deal with emergency use cases.
-        UserGlobalPermissions newGlobalPerms = _playerManager.GlobalPerms ?? new UserGlobalPermissions();
-        // update any permissions that may be active to become inactive due to the safeword.
-        newGlobalPerms.SafewordUsed = true;
-        newGlobalPerms.LiveChatGarblerActive = false;
-        newGlobalPerms.LiveChatGarblerLocked = false;
-        newGlobalPerms.WardrobeEnabled = false;
-        newGlobalPerms.PuppeteerEnabled = false;
-        newGlobalPerms.MoodlesEnabled = false;
-        newGlobalPerms.ToyboxEnabled = false;
-        newGlobalPerms.LockToyboxUI = false;
-        newGlobalPerms.ToyIntensity = 0;
-        newGlobalPerms.SpatialVibratorAudio = false;
-        // update our global permissions and send the new info to the server.
-        _playerManager.UpdateGlobalPermsInBulk(newGlobalPerms); // the api callback will correct these with the same values we set after if any inconsistencies anyways.
-
-        _ = _apiController.UserPushAllGlobalPerms(new(_apiController.PlayerUserData, newGlobalPerms));
-
-        // disable any active gags and push these updates to the API.
-        _gagManager.SafewordWasUsed();
-
-        // disable any active restraints.
-        await _clientConfigs.DisableActiveSetDueToSafeword();
-
-        // disable any active patterns.
-        if (_clientConfigs.IsAnyPatternPlaying())
+        catch (Exception ex)
         {
-            _patternPlaybackService.StopPattern(_clientConfigs.ActivePatternGuid(), false);
-            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.Safeword));
+            Logger.LogError(ex, "An error occurred while trying to process the safeword command.");
         }
-
-        // disable any active triggers.
-        _clientConfigs.DisableAllTriggersDueToSafeword();
-
-        // disable any active alarms.
-        _clientConfigs.DisableAllActiveAlarmsDueToSafeword();
-
-        // disable any active orders.
-        // ADD ONCE ORDERS ARE IMPLEMENTED.
 
     }
 

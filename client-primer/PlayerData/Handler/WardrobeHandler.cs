@@ -1,5 +1,6 @@
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
@@ -18,13 +19,15 @@ namespace GagSpeak.PlayerData.Handlers;
 public class WardrobeHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
+    private readonly PlayerCharacterManager _playerManager;
     private readonly PairManager _pairManager;
 
     public WardrobeHandler(ILogger<WardrobeHandler> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, PairManager pairManager)
-        : base(logger, mediator)
+        ClientConfigurationManager clientConfiguration, PlayerCharacterManager playerManager, 
+        PairManager pairManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfiguration;
+        _playerManager = playerManager;
         _pairManager = pairManager;
 
         Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
@@ -81,6 +84,9 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     }
     public bool EditingSetNull => SetBeingEdited == null;
 
+    public bool WardrobeEnabled => _playerManager.GlobalPerms != null && _playerManager.GlobalPerms.WardrobeEnabled;
+    public bool RestraintSetsEnabled => _playerManager.GlobalPerms != null && _playerManager.GlobalPerms.RestraintSetAutoEquip;
+
     public void SetEditingRestraintSet(RestraintSet set)
     {
         SetBeingEdited = set;
@@ -92,6 +98,9 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         EditingSetIndex = -1;
         SetBeingEdited = null!;
     }
+
+    public void UpdateActiveSet()
+        => ActiveSet = _clientConfigs.GetActiveSet();
 
     public void UpdateEditedRestraintSet()
     {
@@ -118,11 +127,25 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public RestraintSet GetRestraintSet(int idx)
         => _clientConfigs.GetRestraintSet(idx);
 
-    public async void EnableRestraintSet(int idx, string AssignerUID = "SelfApplied") // a self-enable
-        => await _clientConfigs.SetRestraintSetState(idx, AssignerUID, NewState.Enabled, true);
-
-    public async void DisableRestraintSet(int idx, string AssignerUID = "SelfApplied") // a self-disable
-        => await _clientConfigs.SetRestraintSetState(idx, AssignerUID, NewState.Disabled, true);
+    public async void EnableRestraintSet(int idx, string AssignerUID = "SelfApplied")
+    {
+        if(!WardrobeEnabled || !RestraintSetsEnabled)
+        {
+            Logger.LogInformation("Wardrobe or Restraint Sets are disabled, cannot enable restraint set.");
+            return;
+        }
+        await _clientConfigs.SetRestraintSetState(idx, AssignerUID, NewState.Enabled, true);
+    }
+    public async void DisableRestraintSet(int idx, string AssignerUID = "SelfApplied")
+    {
+        if (!WardrobeEnabled || !RestraintSetsEnabled)
+        {
+            Logger.LogInformation("Wardrobe or Restraint Sets are disabled, cannot disable restraint set.");
+            return;
+        }
+        await _clientConfigs.SetRestraintSetState(idx, AssignerUID, NewState.Disabled, true);
+    }
+    
     public void LockRestraintSet(int idx, string lockType, string password, DateTimeOffset endLockTimeUTC, string AssignerUID)
         => _clientConfigs.LockRestraintSet(idx, lockType, password, endLockTimeUTC, AssignerUID, true);
 
@@ -137,54 +160,6 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
     public int GetRestraintSetIndexByName(string setName)
         => _clientConfigs.GetRestraintSetIdxByName(setName);
-
-    // Callback related forced restraint set updates.
-    public async void CallbackForceEnableRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)
-    {
-        // Update the reference for the pair who enabled it.
-        var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
-        if (matchedPair == null) throw new Exception("Pair who enabled the set was not found in the pair list.");
-
-        Logger.LogInformation($"{callbackDto.User.UID} has forced you to enable your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
-        int idx = GetRestraintSetIndexByName(callbackDto.WardrobeData.ActiveSetName);
-        // This might need to be merged and always callback because of how we switch sets?
-        await _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, NewState.Enabled, false);
-    }
-
-    public void CallbackForceLockRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)
-    {
-        // Update the reference for the pair who enabled it.
-        var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
-        if (matchedPair == null) throw new Exception("Pair who enabled the set was not found in the pair list.");
-
-        Logger.LogInformation($"{callbackDto.User.UID} has locked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
-        int idx = GetRestraintSetIndexByName(callbackDto.WardrobeData.ActiveSetName);
-        _clientConfigs.LockRestraintSet(idx, callbackDto.WardrobeData.Padlock,
-            callbackDto.WardrobeData.Password,
-            callbackDto.WardrobeData.Timer, callbackDto.User.UID, false);
-    }
-
-    public void CallbackForceUnlockRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)
-    {
-        // Update the reference for the pair who enabled it.
-        var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
-        if (matchedPair == null) throw new Exception("Pair who enabled the set was not found in the pair list.");
-
-        Logger.LogInformation($"{callbackDto.User.UID} has forced you to unlock your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
-        int idx = GetRestraintSetIndexByName(callbackDto.WardrobeData.ActiveSetName);
-        _clientConfigs.UnlockRestraintSet(idx, callbackDto.User.UID, false);
-    }
-
-    public async void CallbackForceDisableRestraintSet(OnlineUserCharaWardrobeDataDto callbackDto)
-    {
-        // Update the reference for the pair who enabled it.
-        var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
-        if (matchedPair == null) throw new Exception("Pair who enabled the set was not found in the pair list.");
-
-        Logger.LogInformation($"{callbackDto.User.UID} has disabled your Active restraint set!");
-        int idx = GetActiveSetIndex();
-        await _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, NewState.Disabled, false);
-    }
 
     public List<AssociatedMod> GetAssociatedMods(int setIndex)
         => _clientConfigs.GetAssociatedMods(setIndex);

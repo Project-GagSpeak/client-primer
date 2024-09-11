@@ -455,8 +455,9 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             var currentYpos = ImGui.GetCursorPosY();
             using (var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f))
             {
-                bool disabled = FilteredSetList.Any(x => x.Locked);
+                bool disabled = FilteredSetList.Any(x => x.Locked) || !_handler.WardrobeEnabled || !_handler.RestraintSetsEnabled;
                 string ttText = set.Enabled ? (set.Locked ? "Cannot Disable a Locked Set!" : "Disable Active Restraint Set") 
+                                            : (!_handler.WardrobeEnabled || !_handler.RestraintSetsEnabled) ? "Wardrobe / Restraint set Permissions not Active."
                                             : (disabled ? "Can't Enable another Set while active Set is Locked!" : "Enable Restraint Set");
                 if (_uiShared.IconButton(set.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff, null, set.Name, disabled))
                 {

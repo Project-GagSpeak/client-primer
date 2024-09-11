@@ -20,7 +20,7 @@ namespace GagSpeak.PlayerData.Data;
 
 /// <summary>
 /// Handles the player character data.
-/// 
+/// Must not use extra handlers to avoid circular dependancy on the ones that must access player data. 
 /// <para>
 /// Applies callback updates to clientConfig data
 /// Compiles client config data into API format for server transfer.
@@ -29,7 +29,6 @@ namespace GagSpeak.PlayerData.Data;
 public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
-    private readonly WardrobeHandler _wardrobeHandler;
     private readonly PatternPlaybackService _playbackService;
     private readonly AlarmHandler _alarmHandler;
     private readonly TriggerHandler _triggerHandler;
@@ -42,13 +41,11 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private CharacterAppearanceData _playerCharAppearance { get; set; }
     public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger,
         GagspeakMediator mediator, PairManager pairManager,
-        WardrobeHandler wardrobeHandler, PatternPlaybackService playbackService,
-        AlarmHandler alarmHandler, TriggerHandler triggerHandler,
-        ClientConfigurationManager clientConfiguration,
+        PatternPlaybackService playbackService, AlarmHandler alarmHandler, 
+        TriggerHandler triggerHandler, ClientConfigurationManager clientConfiguration,
         IpcCallerMoodles ipcCallerMoodles) : base(logger, mediator)
     {
         _pairManager = pairManager;
-        _wardrobeHandler = wardrobeHandler;
         _playbackService = playbackService;
         _alarmHandler = alarmHandler;
         _triggerHandler = triggerHandler;
@@ -208,17 +205,17 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     {
         CharacterWardrobeData dataToPush = new CharacterWardrobeData
         {
-            OutfitNames = _wardrobeHandler.GetRestraintSetsByName()
+            OutfitNames = _clientConfigs.GetRestraintSetNames()
         };
 
         // attempt to locate the active restraint set
-        var activeSetIdx = _wardrobeHandler.GetActiveSetIndex();
+        var activeSetIdx = _clientConfigs.GetActiveSetIdx();
 
         // make sure the value is not -1, or greater than the outfitNames count. If it is in bounds, assign variables. Otherwise, use the defaults.
         if (activeSetIdx != -1 && activeSetIdx <= dataToPush.OutfitNames.Count)
         {
             // grab the set and set the variables.
-            RestraintSet activeSet = _wardrobeHandler.GetRestraintSet(activeSetIdx);
+            RestraintSet activeSet = _clientConfigs.GetRestraintSet(activeSetIdx);
             dataToPush.ActiveSetName = activeSet.Name;
             dataToPush.ActiveSetDescription = activeSet.Description;
             dataToPush.ActiveSetEnabledBy = activeSet.EnabledBy;
@@ -432,22 +429,47 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         }
     }
 
-    public void UpdateWardrobeFromCallback(OnlineUserCharaWardrobeDataDto callbackDto, bool callbackWasFromSelf)
+    public async void UpdateWardrobeFromCallback(OnlineUserCharaWardrobeDataDto callbackDto, bool callbackWasFromSelf)
     {
         // handle the cases where another pair has updated our data:
         if (!callbackWasFromSelf)
         {
+            var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
+            if (matchedPair == null) return;
             switch (callbackDto.UpdateKind)
             {
                 case DataUpdateKind.WardrobeRestraintOutfitsUpdated: Logger.LogError("You should never reach here. Report if you get this."); break;
-                case DataUpdateKind.WardrobeRestraintApplied: _wardrobeHandler.CallbackForceEnableRestraintSet(callbackDto); break;
-                case DataUpdateKind.WardrobeRestraintLocked: _wardrobeHandler.CallbackForceLockRestraintSet(callbackDto); break;
-                case DataUpdateKind.WardrobeRestraintUnlocked: _wardrobeHandler.CallbackForceUnlockRestraintSet(callbackDto); break;
-                case DataUpdateKind.WardrobeRestraintDisabled: _wardrobeHandler.CallbackForceDisableRestraintSet(callbackDto); break;
+                case DataUpdateKind.WardrobeRestraintApplied:
+                    Logger.LogDebug($"{callbackDto.User.UID} has forced you to enable your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
+                    // make sure they have the permissions to.
+                    if (GlobalPerms == null || !GlobalPerms.WardrobeEnabled || !GlobalPerms.RestraintSetAutoEquip) break;
+                    var idx = _clientConfigs.GetRestraintSetIdxByName(callbackDto.WardrobeData.ActiveSetName);
+                    await _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, NewState.Enabled, false);
+                    break;
+                case DataUpdateKind.WardrobeRestraintLocked:
+                    Logger.LogDebug($"{callbackDto.User.UID} has forced locked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
+                    // make sure they have the permissions to.
+                    if (GlobalPerms == null || !GlobalPerms.WardrobeEnabled || !GlobalPerms.RestraintSetAutoEquip) break;
+                    var idxLock = _clientConfigs.GetRestraintSetIdxByName(callbackDto.WardrobeData.ActiveSetName);
+                    _clientConfigs.LockRestraintSet(idxLock, callbackDto.WardrobeData.Padlock, callbackDto.WardrobeData.Password, callbackDto.WardrobeData.Timer, callbackDto.User.UID, false);
+                    break;
+                case DataUpdateKind.WardrobeRestraintUnlocked:
+                    Logger.LogDebug($"{callbackDto.User.UID} has forced unlocked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
+                    // make sure they have the permissions to.
+                    if (GlobalPerms == null || !GlobalPerms.WardrobeEnabled || !GlobalPerms.RestraintSetAutoEquip) break;
+                    var idxUnlock = _clientConfigs.GetRestraintSetIdxByName(callbackDto.WardrobeData.ActiveSetName);
+                    _clientConfigs.UnlockRestraintSet(idxUnlock, callbackDto.User.UID, false);
+                    break;
+                case DataUpdateKind.WardrobeRestraintDisabled:
+                    Logger.LogDebug($"{callbackDto.User.UID} has force disabled your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
+                    // make sure they have the permissions to.
+                    if (GlobalPerms == null || !GlobalPerms.WardrobeEnabled || !GlobalPerms.RestraintSetAutoEquip) break;
+                    var idxDisable = _clientConfigs.GetActiveSetIdx();
+                    await _clientConfigs.SetRestraintSetState(idxDisable, callbackDto.User.UID, NewState.Disabled, false);
+                    break;
             }
             return; // don't process self callbacks if it was a pair callback.
         }
-
 
         // Handle the cases in where we updated our own data.
         switch (callbackDto.UpdateKind)
@@ -460,8 +482,11 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
                     // for unlock, if we have enabled the setting for automatically removing unlocked sets, do so.
                     if (ShouldDisableSetUponUnlock)
                     {
-                        int activeSetIdx = _wardrobeHandler.GetRestraintSetIndexByName(callbackDto.WardrobeData.ActiveSetName);
-                        _wardrobeHandler.DisableRestraintSet(activeSetIdx);
+                        // make sure they have the permissions to.
+                        if (GlobalPerms == null || !GlobalPerms.RestraintSetAutoEquip) break;
+                        int activeSetIdx = _clientConfigs.GetRestraintSetIdxByName(callbackDto.WardrobeData.ActiveSetName);
+                        await _clientConfigs.SetRestraintSetState(activeSetIdx, "SelfApplied", NewState.Disabled, true);
+
                     }
                     Logger.LogDebug("Restraint Set Unlock Successfully processed by Server!");
                 }

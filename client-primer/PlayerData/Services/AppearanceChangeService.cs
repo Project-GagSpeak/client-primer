@@ -20,7 +20,7 @@ using System.Reflection;
 namespace GagSpeak.PlayerData.Services;
 
 // this is a sealed scoped class meaning the cache service would be unique for every player assigned to it.
-public class GlamourChangedService : DisposableMediatorSubscriberBase
+public class AppearanceChangeService : DisposableMediatorSubscriberBase
 {
     private readonly IpcManager _Interop; // can upgrade this to IpcManager if needed later.
     private readonly MoodlesAssociations _moodlesAssociations;
@@ -30,7 +30,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
     private readonly OnFrameworkService _frameworkUtils;
     private readonly GlamourFastUpdate _glamourFastUpdate;
 
-    public GlamourChangedService(ILogger<GlamourChangedService> logger,
+    public AppearanceChangeService(ILogger<AppearanceChangeService> logger,
         GagspeakMediator mediator, PlayerCharacterManager playerManager,
         PairManager pairManager, ClientConfigurationManager clientConfigs, 
         OnFrameworkService frameworkUtils, IpcManager interop, 
@@ -97,6 +97,25 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
     {
         await ExecuteWithSemaphore(async () =>
         {
+            // Triggered by using safeword, will undo everything.
+            if (msg.GenericUpdateType == GlamourUpdateType.Safeword)
+            {
+                Logger.LogDebug($"Processing Safeword Update");
+                switch (_clientConfigs.GagspeakConfig.RevertStyle)
+                {
+                    case RevertStyle.ToGameOnly:
+                        await _Interop.Glamourer.GlamourerRevertCharacter(_frameworkUtils._playerAddr);
+                        break;
+                    case RevertStyle.ToAutomationOnly:
+                        await _Interop.Glamourer.GlamourerRevertCharacterToAutomation(_frameworkUtils._playerAddr);
+                        break;
+                    case RevertStyle.ToGameThenAutomation:
+                        await _Interop.Glamourer.GlamourerRevertCharacter(_frameworkUtils._playerAddr);
+                        await _Interop.Glamourer.GlamourerRevertCharacterToAutomation(_frameworkUtils._playerAddr);
+                        break;
+                }
+            }
+
             if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
             {
                 Logger.LogDebug("Wardrobe is disabled, so not processing Generic Update");
@@ -126,13 +145,6 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                 // apply all the gags and restraint sets
                 await Task.Run(() => _frameworkUtils.RunOnFrameworkThread(UpdateCachedCharacterData));
             }
-
-            // Triggered by using safeword, will undo everything.
-            if (msg.GenericUpdateType == GlamourUpdateType.Safeword)
-            {
-                Logger.LogDebug($"Processing Safeword Update");
-                await _Interop.Glamourer.GlamourerRevertCharacter(_frameworkUtils._playerAddr);
-            }
         });
     }
 
@@ -143,16 +155,14 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         await ExecuteWithSemaphore(async () =>
         {
             // do not accept if we have enable wardrobe turned off.
-            if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
+            if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.ItemAutoEquip)
             {
-                Logger.LogDebug("Wardrobe is disabled, so not processing Gag Update");
-                OnFrameworkService.GlamourChangeFinishedDrawing = true;
-                semaphore.Release();
+                Logger.LogDebug("Gag AutoEquip is disabled, so not processing Gag Update");
                 return;
             }
 
             // For GagEquip
-            if (msg.NewState == NewState.Enabled && _playerManager.GlobalPerms.ItemAutoEquip)
+            if (msg.NewState == NewState.Enabled)
             {
                 Logger.LogDebug($"Processing Gag Equipped");
                 // see if the gag we are equipping is not none
@@ -161,23 +171,32 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                     // get the draw data for the gag
                     var drawData = _clientConfigs.GetDrawData(msg.GagType);
                     // equip the gag
-                    await EquipWithSetItem(msg.Layer, msg.GagType.GetGagAlias(), msg.AssignerName);
-
-                    if (drawData.ForceHeadgearOnEnable || drawData.ForceVisorOnEnable)
+                    var equipAndMetaTask = Task.Run(async () =>
                     {
-                        IpcCallerGlamourer.MetaData applyType = (drawData.ForceHeadgearOnEnable && drawData.ForceVisorOnEnable)
-                            ? IpcCallerGlamourer.MetaData.Both
-                            : (drawData.ForceHeadgearOnEnable) ? IpcCallerGlamourer.MetaData.Hat : IpcCallerGlamourer.MetaData.Visor;
-                        await _Interop.Glamourer.ForceSetMetaData(applyType, true);
-                    }
+                        // Equip the gag
+                        await EquipWithSetItem(msg.Layer, msg.GagType.GetGagAlias(), msg.AssignerName);
 
+                        // After equip is done, apply ForceSetMetaData if necessary
+                        if (drawData.ForceHeadgearOnEnable || drawData.ForceVisorOnEnable)
+                        {
+                            IpcCallerGlamourer.MetaData applyType = (drawData.ForceHeadgearOnEnable && drawData.ForceVisorOnEnable)
+                                ? IpcCallerGlamourer.MetaData.Both
+                                : (drawData.ForceHeadgearOnEnable) ? IpcCallerGlamourer.MetaData.Hat : IpcCallerGlamourer.MetaData.Visor;
+
+                            await _Interop.Glamourer.ForceSetMetaData(applyType, true);
+                        }
+                    });
+
+                    Task? moodlesTask = null;
                     if (drawData.AssociatedMoodles.Any())
                     {
-                        // create new task source
                         var taskSource = new TaskCompletionSource<bool>();
                         _moodlesAssociations.ToggleMoodlesOnAction(drawData.AssociatedMoodles, NewState.Enabled, taskSource);
-                        await taskSource.Task;
+                        moodlesTask = taskSource.Task;
                     }
+
+                    // Wait for both the combined Equip+Meta task and the Moodles task to complete (if applicable)
+                    await Task.WhenAll(equipAndMetaTask, moodlesTask ?? Task.CompletedTask);
                 }
                 // otherwise, do the same as the unequip function
                 else
@@ -187,7 +206,7 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
             }
 
             // For Gag Unequip
-            if (msg.NewState == NewState.Disabled && _playerManager.GlobalPerms.ItemAutoEquip)
+            if (msg.NewState == NewState.Disabled)
             {
                 // get the draw data for the gag
                 var drawData = _clientConfigs.GetDrawData(msg.GagType);
@@ -195,16 +214,22 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                 Logger.LogDebug($"Processing Gag UnEquip");
                 var gagType = Enum.GetValues(typeof(GagList.GagType)).Cast<GagList.GagType>().First(g => g.GetGagAlias() == msg.GagType.GetGagAlias());
                 // this should replace it with nothing
-                await _Interop.Glamourer.SetItemToCharacterAsync((ApiEquipSlot)_clientConfigs.GetGagTypeEquipSlot(gagType),
+                Task setItemTask = _Interop.Glamourer.SetItemToCharacterAsync((ApiEquipSlot)_clientConfigs.GetGagTypeEquipSlot(gagType),
                     ItemIdVars.NothingItem(_clientConfigs.GetGagTypeEquipSlot(gagType)).Id.Id, [0, 0], 0);
+
                 // disable moodles if any
+                Task? moodlesTask = null;
                 if (drawData.AssociatedMoodles.Any())
                 {
                     // create new task source
                     var taskSource = new TaskCompletionSource<bool>();
                     _moodlesAssociations.ToggleMoodlesOnAction(drawData.AssociatedMoodles, NewState.Disabled, taskSource);
-                    await taskSource.Task;
+                    moodlesTask = taskSource.Task;
                 }
+
+                // Wait for both SetItemToCharacterAsync and Moodles tasks to complete
+                await Task.WhenAll(setItemTask, moodlesTask ?? Task.CompletedTask);
+
 
                 // reapply any restraints hiding under them, if any
                 await ApplyRestrainSetToCachedCharacterData();
@@ -229,11 +254,9 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
         await ExecuteWithSemaphore(async () =>
         {
             // do not accept if we have enable wardrobe turned off.
-            if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
+            if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled || !_playerManager.GlobalPerms.RestraintSetAutoEquip)
             {
-                Logger.LogDebug("Wardrobe is disabled, so not processing Restraint Set Update");
-                OnFrameworkService.GlamourChangeFinishedDrawing = true;
-                semaphore.Release();
+                Logger.LogDebug("Wardrobe is disabled, or Restraint AutoEquip is not allowed, so skipping");
                 return;
             }
 
@@ -309,7 +332,6 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
             if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled)
             {
                 Logger.LogDebug("Wardrobe is disabled, so not processing Blindfold Update");
-                OnFrameworkService.GlamourChangeFinishedDrawing = true;
                 return;
             }
 
@@ -318,7 +340,8 @@ public class GlamourChangedService : DisposableMediatorSubscriberBase
                 Logger.LogDebug($"Processing Blindfold Equipped");
                 // get the index of the person who equipped it onto you (FIXLOGIC TODO)
                 if (_pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded))
-                { 
+                {
+                    Logger.LogWarning("You are blindfolded by :"+ _pairManager.DirectPairs.First(x => x.UserPairOwnUniquePairPerms.IsBlindfolded).UserData.AliasOrUID);
                     await EquipBlindfold();
                 }
                 else

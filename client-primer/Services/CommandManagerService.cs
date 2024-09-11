@@ -98,6 +98,10 @@ public sealed class CommandManagerService : IDisposable
         {
             _mediator.Publish(new SafewordUsedMessage());
         }
+        else
+        {
+            _chat.Print(new SeStringBuilder().AddYellow("Invalid Safeword Provided. Your Safeword is not '"+argument+"'").BuiltString);
+        }
     }
 
     private void OnSafewordHardcore(string command, string argument)

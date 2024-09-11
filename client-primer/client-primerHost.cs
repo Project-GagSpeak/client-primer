@@ -336,7 +336,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new TriggerService(s.GetRequiredService<ILogger<TriggerService>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<TriggerController>(), s.GetRequiredService<ToyboxVibeService>(), cs, dm))
-        .AddSingleton<GlamourChangedService>()
+        .AddSingleton<AppearanceChangeService>()
         .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()
         .AddSingleton<GagspeakMediator>()

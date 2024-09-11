@@ -6,6 +6,8 @@ using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Services;
+using GagSpeak.UI.Components;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
@@ -43,7 +45,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         OnFrameworkService onFrameworkService, GagspeakConfigService configService, 
         GagStorageConfigService gagStorageConfig, WardrobeConfigService wardrobeConfig, 
         AliasConfigService aliasConfig, PatternConfigService patternConfig, 
-        AlarmConfigService alarmConfig, TriggerConfigService triggersConfig) : base(logger, GagspeakMediator)
+        AlarmConfigService alarmConfig, TriggerConfigService triggersConfig) 
+        : base(logger, GagspeakMediator)
     {
         // create a new instance of the static universal logger that pulls from the client logger.
         // because this loads our configs before the logger initialized, we use a simply hack to set the static logger to the clientConfigManager logger.
@@ -194,6 +197,9 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             if (dto.CharacterActiveStateData.WardrobeActiveSetName != string.Empty)
             {
                 Logger.LogInformation("Located a stored active Restraint Set from the last connection's Data.");
+                Logger.LogDebug("Active Set Name: {setName}, Password: {password}, Lock: {lock}, LockBy: {lockBy}, LockUntil: {lockUntil}",
+                    dto.CharacterActiveStateData.WardrobeActiveSetName, dto.CharacterActiveStateData.Password,
+                    dto.CharacterActiveStateData.Padlock, dto.CharacterActiveStateData.Assigner, dto.CharacterActiveStateData.Timer);
 
                 // see if the lock expired while we were disconnected.
                 if (GenericHelpers.TimerPadlocks.Contains(dto.CharacterActiveStateData.Padlock)
@@ -284,23 +290,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal RestraintSet GetActiveSet() => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.Enabled)!; // this can be null.
     internal RestraintSet GetRestraintSet(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
     internal int GetRestraintSetIdxByName(string name) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Name == name);
-
-    internal async Task DisableActiveSetDueToSafeword()
-    {
-        // unlock and disable the currently active restraint set due to us using the safeword command.
-        var activeSetIdx = GetActiveSetIdx();
-        if (activeSetIdx != -1)
-        {
-            // unlock
-            UnlockRestraintSet(activeSetIdx, WardrobeConfig.WardrobeStorage.RestraintSets[activeSetIdx].LockedBy, false);
-            // remove.
-            await SetRestraintSetState(activeSetIdx, WardrobeConfig.WardrobeStorage.RestraintSets[activeSetIdx].EnabledBy, 
-                NewState.Disabled, false).ConfigureAwait(false);
-            // push mediator for compile.
-            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.Safeword));
-        }
-    }
-
     internal void AddNewRestraintSet(RestraintSet newSet)
     {
         // add 1 to the name until it is unique.
@@ -679,19 +668,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public int FetchAlarmCount() => AlarmConfig.AlarmStorage.Alarms.Count;
     public string GetAlarmPatternName(Guid id) => PatternConfig.PatternStorage.Patterns.FirstOrDefault(p => p.UniqueIdentifier == id)?.Name ?? string.Empty;
 
-    internal void DisableAllActiveAlarmsDueToSafeword()
-    {
-        // disable all active triggers due to us using the safeword command.
-        for (int i = 0; i < TriggerConfig.TriggerStorage.Triggers.Count; i++)
-        {
-            if (TriggerConfig.TriggerStorage.Triggers[i].Enabled)
-            {
-                SetTriggerState(i, false, false);
-            }
-        }
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.Safeword));
-    }
-
     public void RemovePatternNameFromAlarms(Guid patternIdentifier)
     {
         for (int i = 0; i < AlarmConfig.AlarmStorage.Alarms.Count; i++)
@@ -785,19 +761,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public Trigger FetchTrigger(int idx) => TriggerConfig.TriggerStorage.Triggers[idx];
     public int FetchTriggerCount() => TriggerConfig.TriggerStorage.Triggers.Count;
 
-    internal void DisableAllTriggersDueToSafeword()
-    {
-        // disable all active triggers due to us using the safeword command.
-        for (int i = 0; i < TriggerConfig.TriggerStorage.Triggers.Count; i++)
-        {
-            if (TriggerConfig.TriggerStorage.Triggers[i].Enabled)
-            {
-                SetTriggerState(i, false, false);
-            }
-        }
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.Safeword));
-    }
-
     public void AddNewTrigger(Trigger alarm)
     {
         // ensure the alarm has a unique name.
@@ -868,6 +831,74 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     }
 
     #endregion Trigger Config Methods
+
+    public async Task DisableEverythingDueToSafeword()
+    {
+        // we need to first turn off any active restraint sets by disabling their active state, removing their locks, and removing any moodles attached to them.
+        var activeSetIdx = GetActiveSetIdx();
+        if (activeSetIdx != -1)
+        {
+            var set = WardrobeConfig.WardrobeStorage.RestraintSets[activeSetIdx];
+            set.LockedBy = string.Empty;
+            set.LockedUntil = DateTimeOffset.MinValue;
+            set.LockPassword = string.Empty;
+            set.LockType = Padlocks.None.ToString();
+            set.EnabledBy = string.Empty;
+            set.Enabled = false;
+
+            TaskCompletionSource<bool>? disableHardcorePropertiesTask = null;
+            TaskCompletionSource<bool>? disableModsTask = null;
+            TaskCompletionSource<bool>? disableMoodlesTask = null;
+
+            // If there are mods to disable
+            if (set.AssociatedMods.Any(mod => mod.DisableWhenInactive))
+            {
+                disableModsTask = new TaskCompletionSource<bool>();
+                Logger.LogTrace("Disabling Mods for {set.Name}", set.Name);
+                Mediator.Publish(new RestraintSetToggleModsMessage(activeSetIdx, NewState.Disabled, disableModsTask));
+            }
+
+            // If there are moodles to disable
+            if (set.AssociatedMoodles.Any())
+            {
+                disableMoodlesTask = new TaskCompletionSource<bool>();
+                Logger.LogTrace("Disabling Moodles for {set.Name}", set.Name);
+                Mediator.Publish(new RestraintSetToggleMoodlesMessage(activeSetIdx, NewState.Disabled, disableMoodlesTask));
+            }
+
+            // If there are hardcore properties to disable
+            if (set.SetProperties.ContainsKey(set.EnabledBy) && PropertiesEnabledForSet(GetRestraintSetIdxByName(set.Name), set.EnabledBy))
+            {
+                disableHardcorePropertiesTask = new TaskCompletionSource<bool>();
+                Logger.LogTrace($"Disabling Hardcore Properties for {set.Name} for {set.EnabledBy}");
+                Mediator.Publish(new RestraintSetToggleHardcoreTraitsMessage(activeSetIdx, set.EnabledBy, NewState.Disabled, disableHardcorePropertiesTask));
+            }
+
+            // Wait for all tasks to complete concurrently
+            await Task.WhenAll(
+                disableHardcorePropertiesTask?.Task ?? Task.CompletedTask,
+                disableModsTask?.Task ?? Task.CompletedTask,
+                disableMoodlesTask?.Task ?? Task.CompletedTask
+            );
+        }
+        _wardrobeConfig.Save();
+        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.Safeword));
+
+
+            // disable any active alarms.
+            foreach (var alarm in AlarmConfig.AlarmStorage.Alarms)
+            alarm.Enabled = false;
+        _alarmConfig.Save();
+        
+        
+        // disable any active triggers.
+        foreach(var trigger in TriggerConfig.TriggerStorage.Triggers)
+            trigger.Enabled = false;
+        _triggerConfig.Save();
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.Safeword));
+
+    }
+
 
     #region API Compilation
     public CharacterToyboxData CompileToyboxToAPI()

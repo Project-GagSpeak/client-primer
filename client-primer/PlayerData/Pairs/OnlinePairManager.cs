@@ -43,6 +43,9 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => FrameworkOnUpdate());
 
+        // Subscriber to update our composite data after a safeword.
+        Mediator.Subscribe<UpdateAllOnlineWithCompositeMessage>(this, (_) => PushCharacterCompositeData(_pairManager.GetOnlineUserDatas()));
+
         // Push Composite data to all online players when connected.
         Mediator.Subscribe<ConnectedMessage>(this, (_) => PushCharacterCompositeData(_pairManager.GetOnlineUserDatas()));
         // Push Composite data to any new pairs that go online.

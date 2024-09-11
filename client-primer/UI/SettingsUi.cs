@@ -188,6 +188,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         string intifaceConnectionAddr = _clientConfigs.GagspeakConfig.IntifaceConnectionSocket;
         bool spatialVibratorAudio = PlayerGlobalPerms.SpatialVibratorAudio; // set here over client so that other players can reference if they should listen in or not.
 
+        _uiShared.BigText("Gags");
         using (ImRaii.Disabled(liveChatGarblerLocked))
         {
             if (ImGui.Checkbox("Enable Live Chat Garbler", ref liveChatGarblerActive))
@@ -199,6 +200,15 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
             _uiShared.DrawHelpText("If enabled, the Live Chat Garbler will garble your chat messages in-game. (This is done server-side, others will see it too)");
         }
+
+        if (ImGui.Checkbox("Allow Gag Glamour's", ref itemAutoEquip))
+        {
+            PlayerGlobalPerms.ItemAutoEquip = itemAutoEquip;
+            // if this creates a race condition down the line remove the above line.
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+            new KeyValuePair<string, object>("ItemAutoEquip", itemAutoEquip)));
+        }
+        _uiShared.DrawHelpText("Allows Glamourer to bind your chosen Gag Glamour's upon becoming gagged!");
 
         if (ImGui.Checkbox("Remove Gag on Timer Padlock expiration.", ref removeGagOnLockExpiration))
         {
@@ -223,16 +233,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         using (ImRaii.Disabled(!wardrobeEnabled))
         {
             using var indent = ImRaii.PushIndent();
-
-            if (ImGui.Checkbox("Allow Items to be Auto-Equipped", ref itemAutoEquip))
-            {
-                PlayerGlobalPerms.ItemAutoEquip = itemAutoEquip; // will be overridden by whatever is returned by the api call so dont worry.
-                // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
-                new KeyValuePair<string, object>("ItemAutoEquip", itemAutoEquip)));
-
-            }
-            _uiShared.DrawHelpText("Allows Glamourer to bind glamours to your character while gagged.\nThese glamour's are defined by the Gag Storage.");
 
             if (ImGui.Checkbox("Allow Restraint Sets to be Auto-Equipped", ref restraintSetAutoEquip))
             {

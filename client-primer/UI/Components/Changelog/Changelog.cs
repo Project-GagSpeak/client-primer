@@ -19,6 +19,10 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 7, 5, 0)
+            .RegisterMain("Full backend restructure to permission Actions. May be buggy, please be patient.")
+            .RegisterMain("Added Toybox interactions (ALL UNTESTED ATM)")
+            .RegisterBugfix("Fixed /safeword sending your plugin state into limbo.");
         VersionEntry(0, 7, 4, 1)
             .RegisterMain("Force Headgear and Force Visor on gags now FINALLY WORK.");
         VersionEntry(0, 7, 4, 0)

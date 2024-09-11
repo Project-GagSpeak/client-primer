@@ -44,6 +44,8 @@ public class ServerConfigurationManager
     public ServerTagStorage TagStorage => _serverTagConfig.Current.ServerTagStorage;
     public ServerNicknamesStorage NicknameStorage => _nicknamesConfig.Current.ServerNicknames;
 
+    public ulong GetLocalContentIdForCharacter() => _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
+
     /// <summary> Retrieves the key for the currently logged in character. Returns null if none found. </summary>
     /// <returns> The Secret Key </returns>
     public string? GetSecretKeyForCharacter()
@@ -55,29 +57,16 @@ public class ServerConfigurationManager
         Authentication? auth = CurrentServer.Authentications.Find(f => f.CharacterPlayerContentId == LocalContentID);
 
         // If the authentication is null, return null.
-        if (auth == null) return null;
+        if (auth == null)
+        {
+            _logger.LogDebug("No authentication found for the current character.");
+            return null;
+        }
 
         UpdateAuthForNameAndWorldChange(LocalContentID);
 
         // finally, return the secret key of this authentication, since we know it to be valid.
         return auth.SecretKey.Key;
-    }
-
-    // TODO: REMOVE THIS METHOD WHEN EXITING OPEN BETA, THIS IS ONLY FOR PROFILE MIGRATION.
-    public void UpdateMatchingCharacterForLocalContentId()
-    {
-        // fetch the players local content ID (matches regardless of name or world change) and the name & worldId.
-        var LocalContentID = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
-        var charaName = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
-        var worldId = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult();
-
-        // locate an authentication where the character name and world match the stored authentication, but have a content ID of 0.
-        Authentication? auth = CurrentServer.Authentications.Find(f => f.CharacterPlayerContentId == 0 && f.CharacterName == charaName && f.WorldId == worldId);
-        if (auth == null) return;
-
-        // update the content id
-        auth.CharacterPlayerContentId = LocalContentID;
-        Save();
     }
 
     public void UpdateAuthForNameAndWorldChange(ulong localContentId)
@@ -111,6 +100,12 @@ public class ServerConfigurationManager
         return CurrentServer.Authentications.Any(a => a.CharacterPlayerContentId == localContentID && !string.IsNullOrEmpty(a.SecretKey.Key));
     }
 
+    public bool AuthExistsForCurrentLocalContentId()
+    {
+        var localContentID = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
+        return CurrentServer.Authentications.Any(a => a.CharacterPlayerContentId == localContentID);
+    }
+
     public void GenerateAuthForCurrentCharacter(bool isPrimary = false)
     {
         // generates a new auth object for the list of authentications with no secret key.
@@ -139,6 +134,17 @@ public class ServerConfigurationManager
         // Update the existing authentication with the new secret key.
         auth.SecretKey = keyToAdd;
         // Save the updated configuration.
+        Save();
+    }
+
+    public void SetSecretKeyAsValid(string secretKey)
+    {
+        // locate the authentication with the matching key.
+        Authentication? auth = CurrentServer.Authentications.Find(f => f.SecretKey.Key == secretKey);
+        if (auth == null) return;
+
+        // set the authentication as having had a successful connection.
+        auth.SecretKey.HasHadSuccessfulConnection = true;
         Save();
     }
 

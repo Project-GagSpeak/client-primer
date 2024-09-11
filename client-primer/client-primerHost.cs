@@ -244,7 +244,8 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<OnFrameworkService>(), dm))
 
         .AddSingleton((s) => new DtrBarService(s.GetRequiredService<ILogger<DtrBarService>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PairManager>(), cs, dtr, ot))
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PairManager>(),
+            s.GetRequiredService<ApiController>(), cs, dtr, ot))
 
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()

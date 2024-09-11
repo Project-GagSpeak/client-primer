@@ -14,14 +14,16 @@ using Microsoft.Extensions.Hosting;
 using System.Formats.Tar;
 using System.Net;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.UpdateMonitoring;
 
 /// <summary>
 /// The service responsible for handling framework updates and other Dalamud related services.
 /// </summary>
-public class DtrBarService : DisposableMediatorSubscriberBase
+public sealed class DtrBarService : DisposableMediatorSubscriberBase
 {
+    private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
     private readonly IClientState _clientState;
     private readonly IDtrBar _dtrBar;
@@ -29,9 +31,10 @@ public class DtrBarService : DisposableMediatorSubscriberBase
 
     public DtrBarService(ILogger<DtrBarService> logger,
         GagspeakMediator mediator, PairManager pairManager,
-        IClientState clientState, IDtrBar dtrBar, 
-        IObjectTable objectTable) : base(logger, mediator)
+        ApiController apiController, IClientState clientState, 
+        IDtrBar dtrBar, IObjectTable objectTable) : base(logger, mediator)
     {
+        _apiController = apiController;
         _pairManager = pairManager;
         _clientState = clientState;
         _dtrBar = dtrBar;
@@ -67,29 +70,36 @@ public class DtrBarService : DisposableMediatorSubscriberBase
     // Alarm == BitmapIcon for notifications.
     private void UpdateDtrBar()
     {
-        if(PrivacyEntry.Shown == true)
+        if(_apiController.ServerAlive)
         {
-            // update the privacy dtr bar
-            var visiblePairGameObjects = _pairManager.GetVisiblePairGameObjects();
-            // get players not included in our gagspeak pairs.
-            var playersNotInPairs = ObjectTablePlayers()
-                .Where(player => player != _clientState.LocalPlayer && !visiblePairGameObjects.Contains(player))
-                .ToList();
+            if (PrivacyEntry.Shown == true)
+            {
+                // update the privacy dtr bar
+                var visiblePairGameObjects = _pairManager.GetVisiblePairGameObjects();
+                // get players not included in our gagspeak pairs.
+                var playersNotInPairs = ObjectTablePlayers()
+                    .Where(player => player != _clientState.LocalPlayer && !visiblePairGameObjects.Contains(player))
+                    .ToList();
 
-            var displayedPlayers = playersNotInPairs.Take(10).ToList();
-            var remainingCount = playersNotInPairs.Count - displayedPlayers.Count;
+                var displayedPlayers = playersNotInPairs.Take(10).ToList();
+                var remainingCount = playersNotInPairs.Count - displayedPlayers.Count;
 
-            // set the text based on if privacy was breeched or not.
-            BitmapFontIcon DisplayIcon = playersNotInPairs.Any() ? BitmapFontIcon.Warning : BitmapFontIcon.Recording;
-            string TextDisplay = playersNotInPairs.Any() ? (playersNotInPairs.Count + " Others Visible") : "Only Pairs Visible";
-            // Limit to 10 players and indicate if there are more
-            string TooltipDisplay = playersNotInPairs.Any()
-                ? "Non-GagSpeak Players:\n" + string.Join("\n", displayedPlayers.Select(player => player.Name.ToString() + "  " + player.HomeWorld.GameData!.Name)) +
-                  (remainingCount > 0 ? $"\nand {remainingCount} others..." : string.Empty)
-                : "Only GagSpeak Pairs Visible";
-            // pair display string for tooltip.
-            PrivacyEntry.Text = new SeString(new IconPayload(DisplayIcon),new TextPayload(TextDisplay));
-            PrivacyEntry.Tooltip = new SeString(new TextPayload(TooltipDisplay));
+                // set the text based on if privacy was breeched or not.
+                BitmapFontIcon DisplayIcon = playersNotInPairs.Any() ? BitmapFontIcon.Warning : BitmapFontIcon.Recording;
+                string TextDisplay = playersNotInPairs.Any() ? (playersNotInPairs.Count + " Others Visible") : "Only Pairs Visible";
+                // Limit to 10 players and indicate if there are more
+                string TooltipDisplay = playersNotInPairs.Any()
+                    ? "Non-GagSpeak Players:\n" + string.Join("\n", displayedPlayers.Select(player => player.Name.ToString() + "  " + player.HomeWorld.GameData!.Name)) +
+                      (remainingCount > 0 ? $"\nand {remainingCount} others..." : string.Empty)
+                    : "Only GagSpeak Pairs Visible";
+                // pair display string for tooltip.
+                PrivacyEntry.Text = new SeString(new IconPayload(DisplayIcon), new TextPayload(TextDisplay));
+                PrivacyEntry.Tooltip = new SeString(new TextPayload(TooltipDisplay));
+            }
+        }
+        else
+        {
+            PrivacyEntry.Shown = false;
         }
     }
 }

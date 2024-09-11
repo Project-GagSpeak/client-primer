@@ -27,6 +27,12 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
             // play it
             _vibeSimAudio.Play();
         }
+
+        Mediator.Subscribe<ConnectedMessage>(this, _ =>
+        {
+            if (_clientConfigs.GagspeakConfig.IntifaceAutoConnect && !_deviceHandler.ConnectedToIntiface)
+                _deviceHandler.ConnectToIntifaceAsync();
+        });
     }
 
     // public accessors here.

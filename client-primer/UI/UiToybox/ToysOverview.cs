@@ -1,8 +1,10 @@
+using Buttplug.Client;
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Client.Graphics.Kernel;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
@@ -140,7 +142,7 @@ public class ToyboxOverview
     public void DrawDevicesTable()
     {
         if (_uiShared.IconTextButton(FontAwesomeIcon.Search, "Device Scanner", null, false, !_vibeService.IntifaceConnected))
-        { 
+        {
             // search scanning if we are not scanning, otherwise stop scanning.
             if (_vibeService.ScanningForDevices)
             {
@@ -161,43 +163,70 @@ public class ToyboxOverview
             ImGui.TextUnformatted(scanText);
         }
 
-        /*        using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, 4));
-                using var table = ImRaii.Table("ConnectedDevices", 7, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY);
-                if (!table) { return; }
+        foreach (var device in _vibeService.DeviceHandler.Devices)
+        {
+            DrawDeviceInfo(device.ClientDevice);
+        }
+    }
 
-                var refX = ImGui.GetCursorPos();
-                ImGui.TableSetupColumn("Device Name", ImGuiTableColumnFlags.WidthFixed, ImGuiHelpers.GlobalScale * 125f);
-                ImGui.TableSetupColumn("Display Name", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableSetupColumn("Vibrates", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Vibrates.").X);
-                ImGui.TableSetupColumn("Rotates", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Rotates.").X);
-                ImGui.TableSetupColumn("Linear", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Linear.").X);
-                ImGui.TableSetupColumn("Oscillates", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Oscillates.").X);
-                ImGui.TableSetupColumn("%##BatteryPercent", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("100%").X);
-                ImGui.TableHeadersRow();        
+    private void DrawDeviceInfo(ButtplugClientDevice? Device)
+    {
+        if (Device == null) { ImGui.Text("Device is null for this index."); return; }
 
-                foreach (var device in Devices)
-                {
-                    ImGui.TableNextColumn();
-                    ImGui.Text(device.DeviceName);
-                    ImGui.TableNextColumn();
-                    var displayName = device.DisplayName;
-                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                    if(ImGui.InputTextWithHint($"##DisplayName{device.DeviceName}", "Public Name..", 
-                        ref displayName, 48, ImGuiInputTextFlags.EnterReturnsTrue))
-                    {
-                        device.DisplayName = displayName;
-                    }
-                    ImGui.TableNextColumn();
-                    _uiShared.BooleanToColoredIcon(device.CanVibrate, false);
-                    ImGui.TableNextColumn();
-                    _uiShared.BooleanToColoredIcon(device.CanRotate, false);
-                    ImGui.TableNextColumn();
-                    _uiShared.BooleanToColoredIcon(device.CanLinear, false);
-                    ImGui.TableNextColumn();
-                    _uiShared.BooleanToColoredIcon(device.CanOscillate, false);
-                    ImGui.TableNextColumn();
-                    ImGui.Text($"{device.BatteryPercentString()}");
-                }*/
+        ImGui.Text("Device Index: " + Device.Index);
+
+        ImGui.Text("Device Name: " + Device.Name);
+
+        ImGui.Text("Device Display Name: " + Device.DisplayName);
+
+        ImGui.Text("MessageTimeGap: " + Device.MessageTimingGap);
+
+        // Draw Vibrate Attributes
+        ImGui.Text("Vibrate Attributes:");
+        ImGui.Indent();
+        foreach (var attr in Device.VibrateAttributes)
+        {
+            ImGui.Text("Feature: " + attr.FeatureDescriptor);
+            ImGui.Text("Actuator Type: " + attr.ActuatorType);
+            ImGui.Text("Step Count: " + attr.StepCount);
+        }
+        ImGui.Unindent();
+
+        // Draw Oscillate Attributes
+        ImGui.Text("Oscillate Attributes:");
+        ImGui.Indent();
+        foreach (var attr in Device.OscillateAttributes)
+        {
+            ImGui.Text("Feature: " + attr.FeatureDescriptor);
+            ImGui.Text("Actuator Type: " + attr.ActuatorType);
+            ImGui.Text("Step Count: " + attr.StepCount);
+        }
+        ImGui.Unindent();
+
+        // Draw Rotate Attributes
+        ImGui.Text("Rotate Attributes:");
+        ImGui.Indent();
+        foreach (var attr in Device.RotateAttributes)
+        {
+            ImGui.Text("Feature: " + attr.FeatureDescriptor);
+            ImGui.Text("Actuator Type: " + attr.ActuatorType);
+            ImGui.Text("Step Count: " + attr.StepCount);
+        }
+        ImGui.Unindent();
+
+        // Draw Linear Attributes
+        ImGui.Text("Linear Attributes:");
+        ImGui.Indent();
+        foreach (var attr in Device.LinearAttributes)
+        {
+            ImGui.Text("Feature: " + attr.FeatureDescriptor);
+            ImGui.Text("Actuator Type: " + attr.ActuatorType);
+            ImGui.Text("Step Count: " + attr.StepCount);
+        }
+        ImGui.Unindent();
+
+        // Check if the device has a battery
+        ImGui.Text("Has Battery: " + Device.HasBattery);
     }
 
 

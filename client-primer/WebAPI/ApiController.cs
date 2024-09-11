@@ -507,6 +507,10 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 // load in the online pairs for our client
                 await LoadOnlinePairs().ConfigureAwait(false);
                 Logger.LogInformation("Online pairs loaded for client");
+                // set the secret keys successful connection
+                _serverConfigs.SetSecretKeyAsValid(secretKey);
+                // auto connect to toybox vibe servers if enabled.
+
             }
             catch (OperationCanceledException)
             {
@@ -680,8 +684,19 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// </summary>
     private void FrameworkUtilOnLogIn()
     {
-        // TODO: REMOVE THIS, ONLY FOR MIGRATING EXISTING PROFILES.
-        _serverConfigs.UpdateMatchingCharacterForLocalContentId();
+        // do an update check on the authentications to check and see if the current players local content ID has no current authentications.
+        if(!_serverConfigs.CharacterHasSecretKey())
+        {
+            // check to see if we have an authentication for this local content ID. If we dont, create a new one.
+            if(!_serverConfigs.AuthExistsForCurrentLocalContentId())
+            {
+                // then we can safely assume this is an alt account character of the Primary account.
+                // so, we can create a empty authentication template by storing ContentID, name, world.
+                Logger.LogDebug("Character has no secret key, generating new auth for current character");
+                _serverConfigs.GenerateAuthForCurrentCharacter();
+            }
+            // otherwise, we can use the existing authentication
+        }
         // would run a create connections upon login
         _ = Task.Run(() => CreateConnections());
     }

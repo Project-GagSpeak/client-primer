@@ -19,7 +19,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly DeviceFactory _deviceFactory;
 
-    private readonly List<ConnectedDevice> Devices = new List<ConnectedDevice>();
+    public readonly List<ConnectedDevice> Devices = new List<ConnectedDevice>();
     private readonly Dictionary<string, int> ActiveDeviceAndMotors = new Dictionary<string, int>();
 
     // maybe store triggers here in the future, or in the trigger handler, but not now.
@@ -53,7 +53,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
     }
 
     // public accessors.
-    public const string IntifaceClientName = "GagSpeak Vibe-Service";
+    public const string IntifaceClientName = "Connected To Intiface";
     public bool ConnectedToIntiface => ButtplugClient != null && ButtplugClient.Connected;
     public bool AnyDeviceConnected => ButtplugClient.Connected && ButtplugClient.Devices.Any();
     public int ConnectedDevicesCount => Devices.Count;
@@ -234,6 +234,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
                 if (!ButtplugClient.Connected)
                 {
                     Logger.LogInformation("Disconnected from Intiface Central");
+                    ScanningForDevices = false;
                     // no need to use handleDisconnect here since we execute that in the subscribed event.
                 }
             }

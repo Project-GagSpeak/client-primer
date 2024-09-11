@@ -9,17 +9,20 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
 using GagSpeak.UpdateMonitoring.SpatialAudio.Spawner;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
+using OtterGui.Text;
 using System.Globalization;
 using System.Numerics;
 
@@ -185,7 +188,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
         bool moodlesEnabled = PlayerGlobalPerms.MoodlesEnabled;
 
         bool toyboxEnabled = PlayerGlobalPerms.ToyboxEnabled;
+        bool intifaceAutoConnect = _clientConfigs.GagspeakConfig.IntifaceAutoConnect;
         string intifaceConnectionAddr = _clientConfigs.GagspeakConfig.IntifaceConnectionSocket;
+        bool vibeServerAutoConnect = _clientConfigs.GagspeakConfig.VibeServerAutoConnect;
         bool spatialVibratorAudio = PlayerGlobalPerms.SpatialVibratorAudio; // set here over client so that other players can reference if they should listen in or not.
 
         _uiShared.BigText("Gags");
@@ -351,6 +356,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         _uiShared.DrawHelpText("If enabled, the toybox component will become functional.");
 
+
+        if (ImGui.Checkbox("Automatically Connect to Intiface Central", ref intifaceAutoConnect))
+        {
+            _clientConfigs.GagspeakConfig.IntifaceAutoConnect = intifaceAutoConnect;
+            _clientConfigs.Save();
+        }
+        _uiShared.DrawHelpText("Automatically connects to intiface central, or at least attempts to. Upon plugin startup.");
+
         ImGui.SetNextItemWidth(200f);
         if (ImGui.InputTextWithHint($"Server Address##ConnectionWSaddr", "Leave blank for default...", ref intifaceConnectionAddr, 100, ImGuiInputTextFlags.EnterReturnsTrue))
         {
@@ -366,6 +379,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         _uiShared.DrawHelpText($"Change the Intiface Server Address to a custom one if you desire!." +
             Environment.NewLine + "Leave blank to use the default address.");
+
+        if (ImGui.Checkbox("Automatically Connect to Vibe Server", ref vibeServerAutoConnect))
+        {
+            _clientConfigs.GagspeakConfig.VibeServerAutoConnect = vibeServerAutoConnect;
+            _clientConfigs.Save();
+        }
+        _uiShared.DrawHelpText("Connects to the Vibe Server automatically upon successful Main Server Connection.");
 
         if (ImGui.Checkbox("Use Spatial Vibrator Audio", ref spatialVibratorAudio))
         {
@@ -681,86 +701,23 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawAccountManagement()
     {
         _lastTab = "Account Management";
-        if (ApiController.ServerAlive)
+
+        // display title for account management
+        _uiShared.BigText("Primary GagSpeak Account");
+
+        // obtain our local content id
+        var localContentId = _uiShared.PlayerLocalContentID;
+
+        // obtain the primary account auth.
+        var primaryAuth = _serverConfigs.CurrentServer.Authentications.FirstOrDefault(c => c.IsPrimary);
+        if (primaryAuth == null)
         {
-            // display title for account management
-            _uiShared.BigText("Primary GagSpeak Account");
-
-            // beside it, allow user to delete their account. Warn them that the action is not irreversible in the configuration window.
-            ImGui.SameLine();
-            if (ImGui.Button("Delete account"))
-            {
-                _deleteAccountPopupModalShown = true;
-                ImGui.OpenPopup("Delete your account?");
-            }
-
-            _uiShared.DrawHelpText("Completely deletes your account and all uploaded files to the service.");
-
-            if (ImGui.BeginPopupModal("Delete your account?", ref _deleteAccountPopupModalShown, UiSharedService.PopupWindowFlags))
-            {
-                UiSharedService.TextWrapped("Be Deleting your primary GagSpeak account, all seconary users below will also be deleted.");
-                UiSharedService.TextWrapped("Your UID will be removed from all pairing lists.");
-                ImGui.TextUnformatted("Are you sure you want to continue?");
-                ImGui.Separator();
-                ImGui.Spacing();
-
-                var buttonSize = (ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X -
-                                  ImGui.GetStyle().ItemSpacing.X) / 2;
-
-                if (ImGui.Button("Delete account", new Vector2(buttonSize, 0)))
-                {
-                    _ = Task.Run(ApiController.UserDelete);
-                    _deleteAccountPopupModalShown = false;
-                    Mediator.Publish(new SwitchToIntroUiMessage());
-                }
-
-                ImGui.SameLine();
-
-                if (ImGui.Button("Cancel##cancelDelete", new Vector2(buttonSize, 0)))
-                {
-                    _deleteAccountPopupModalShown = false;
-                }
-
-                UiSharedService.SetScaledWindowSize(325);
-                ImGui.EndPopup();
-            }
-
-            // display our primary account information
-
-            // display the Character's name linked to the primary account:
-            ImGui.AlignTextToFramePadding();
-            // get the current authentication
-            var PrimaryAuth = _serverConfigs.CurrentServer.Authentications.FirstOrDefault(c => c.IsPrimary);
-            if (PrimaryAuth == null)
-            {
-                ImGui.Text("No primary account linked. Big oopsie!");
-            }
-            else
-            {
-                // display a readonly input text displaying the character name
-                ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted("Character Name: ");
-                ImGui.SameLine();
-                ImGui.TextColored(ImGuiColors.ParsedGold, PrimaryAuth.CharacterName);
-
-                // display the world the player is in.
-                ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted("Character HomeWorld: ");
-                ImGui.SameLine();
-                ImGui.TextColored(ImGuiColors.ParsedGold, _uiShared.WorldData[(ushort)PrimaryAuth.WorldId]);
-
-                // display the secret key of the primary account
-                ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted("Secret Key: ");
-                ImGui.SameLine();
-                ImGui.TextColored(ImGuiColors.ParsedGold, PrimaryAuth.SecretKey.Label);
-                if (ImGui.IsItemClicked())
-                {
-                    ImGui.SetClipboardText(PrimaryAuth.SecretKey.Key);
-                }
-                UiSharedService.AttachToolTip("Click to copy actual secret key");
-            }
-            ImGui.Separator();
+            UiSharedService.ColorText("No primary account setup to display", ImGuiColors.DPSRed);
+            return;
+        }
+        else
+        {
+            DrawAccount(int.MaxValue, primaryAuth, primaryAuth.CharacterPlayerContentId == localContentId);
         }
 
         // display title for account management
@@ -773,7 +730,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             for (int i = 0; i < secondaryAuths.Count; i++)
             {
-                DrawSecondaryAccount(i, secondaryAuths[i]);
+                DrawAccount(i, secondaryAuths[i], secondaryAuths[i].CharacterPlayerContentId == localContentId);
             }
         }
         else
@@ -782,85 +739,153 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
     }
 
-    private void DrawSecondaryAccount(int i, Authentication auth)
+    public bool ShowKeyLabel = true;
+    public int EditingIdx = -1;
+    private void DrawAccount(int idx, Authentication account, bool isOnlineUser = false)
     {
-        // our size samples.
-        Vector2 charaNameSize;
-        Vector2 worldNameSize;
-        Vector2 registerCharIconSize;
+        bool isPrimary = account.IsPrimary;
+        // push rounding window corners
+        using var windowRounding = ImRaii.PushStyle(ImGuiStyleVar.ChildRounding, 5f);
+        // push a pink border color for the window border.
+        using var borderColor = ImRaii.PushStyle(ImGuiStyleVar.WindowBorderSize, 1f);
+        using var borderCol = ImRaii.PushColor(ImGuiCol.Border, isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink);
+        // push a less transparent very dark grey background color.
+        using var bgColor = ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.25f, 0.2f, 0.2f, 0.4f));
+        // create the child window.
 
-        // our actual labels
-        var charaName = auth.CharacterName;
-        var worldName = _uiShared.WorldData[(ushort)auth.WorldId];
-        var secretKey = auth.SecretKey.Label;
+        float height = ImGui.GetFrameHeight() * 3 + ImGui.GetStyle().ItemSpacing.Y * 2 + ImGui.GetStyle().WindowPadding.Y * 2;
+        using var child = ImRaii.Child($"##AuthAccountListing"+idx+ account.CharacterPlayerContentId, new Vector2(ImGui.GetContentRegionAvail().X, height), true, ImGuiWindowFlags.ChildWindow);
+        if (!child) return;
 
-        // get the sizes of the text
-        using (_uiShared.UidFont.Push())
+        using (var group = ImRaii.Group())
         {
-            charaNameSize = ImGui.CalcTextSize(charaName);
-            worldNameSize = ImGui.CalcTextSize(worldName);
-            registerCharIconSize = ImGui.CalcTextSize(FontAwesomeIcon.CheckCircle.ToIconString());
+            ImGui.AlignTextToFramePadding();
+            _uiShared.IconText(FontAwesomeIcon.UserCircle);
+            ImUtf8.SameLineInner();
+            UiSharedService.ColorText(account.CharacterName, isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink);
+            UiSharedService.AttachToolTip("This Character's Name");
+
+            // head over to the end to make the delete button.
+            var isPrimaryIcon = _uiShared.GetIconData(FontAwesomeIcon.Fingerprint);
+
+            ImGui.SameLine(ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Trash, "Delete Account"));
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account", null, true, // yes there must be a lot to determine if you can delete.
+            (!(UiSharedService.CtrlPressed() && UiSharedService.ShiftPressed()) || !(_apiController.ServerAlive && _apiController.IsConnected && isOnlineUser)),
+            "##Trash-" + account.CharacterPlayerContentId.ToString()))
+            {
+                _deleteAccountPopupModalShown = true;
+                ImGui.OpenPopup("Delete your account?");
+            }
+            UiSharedService.AttachToolTip("Permanently remove the use of this secret key and registered account for this character."+Environment.NewLine
+                + "You CANNOT RE-USE THIS SECRET KEY. IT IS BOUND TO THIS UID." + Environment.NewLine
+                + "If you want to create a new account for this login, you must create a new key for it after removing.");
+        }
+        // next line:
+        using (var group2 = ImRaii.Group())
+        {
+            ImGui.AlignTextToFramePadding();
+            _uiShared.IconText(FontAwesomeIcon.Globe);
+            ImUtf8.SameLineInner();
+            UiSharedService.ColorText(_uiShared.WorldData[(ushort)account.WorldId], isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink);
+            UiSharedService.AttachToolTip("The Homeworld of this Character's Account");
+
+            var isPrimaryIcon = _uiShared.GetIconData(FontAwesomeIcon.Fingerprint);
+            var successfulConnection = _uiShared.GetIconData(FontAwesomeIcon.PlugCircleCheck);
+            float rightEnd = ImGui.GetContentRegionAvail().X - successfulConnection.X - isPrimaryIcon.X - 2*ImGui.GetStyle().ItemInnerSpacing.X;
+            ImGui.SameLine(rightEnd);
+            _uiShared.BooleanToColoredIcon(account.IsPrimary, false, FontAwesomeIcon.Fingerprint, FontAwesomeIcon.Fingerprint, isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
+            UiSharedService.AttachToolTip(account.IsPrimary ? "This is your Primary Gagspeak Account" : "This your secondary GagSpeak Account");
+            _uiShared.BooleanToColoredIcon(account.SecretKey.HasHadSuccessfulConnection, true, FontAwesomeIcon.PlugCircleCheck, FontAwesomeIcon.PlugCircleXmark, ImGuiColors.ParsedGreen, ImGuiColors.DalamudGrey3);
+            UiSharedService.AttachToolTip(account.SecretKey.HasHadSuccessfulConnection ? "Has Connected to servers with secret key successfully" : "Has not yet had a successful connection with this Key.");
         }
 
-        // Get Style sizes
-        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
-        var startYpos = ImGui.GetCursorPosY();
-        var addKeyButton = _uiShared.GetIconButtonSize(FontAwesomeIcon.PersonCirclePlus);
-
-        // create the selectable
-        using (ImRaii.Child($"##SecondaryAccountListing{i}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 65f)))
+        // next line:
+        using (var group3 = ImRaii.Group())
         {
-            // create a group for the bounding area
-            using (var group = ImRaii.Group())
+            string keyDisplayText = ShowKeyLabel ? account.SecretKey.Label : account.SecretKey.Key;
+            ImGui.AlignTextToFramePadding();
+            _uiShared.IconText(FontAwesomeIcon.Key);
+            if(ImGui.IsItemClicked())
             {
-                // scooch over a bit like 5f
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
-                using (_uiShared.UidFont.Push())
-                {
-                    ImGui.TextUnformatted(charaName);
-                    ImGui.SameLine();
-                    UiSharedService.ColorText("@", ImGuiColors.DalamudGrey);
-                    ImGui.SameLine();
-                    ImGui.TextUnformatted(worldName);
-                }
-
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((65f - charaNameSize.Y) / 2));
-                _uiShared.BooleanToColoredIcon(auth.SecretKey.Key.IsNullOrEmpty(), false, FontAwesomeIcon.CheckCircle, FontAwesomeIcon.SquareXmark);
+                ShowKeyLabel = !ShowKeyLabel;
             }
-
-            // under it we should draw out the key.
-            using (var group = ImRaii.Group())
+            UiSharedService.AttachToolTip("Secret Key for this account. (Insert by clicking the edit pen icon)");
+            // we shoul draw an inputtext field here if we can edit it, and a text field if we cant.
+            if(EditingIdx == idx)
             {
-                // scooch over a bit like 5f
-                ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
-                UiSharedService.ColorText("Secondary", ImGuiColors.DalamudGrey2);
-                ImGui.SameLine();
-                UiSharedService.ColorText("|", ImGuiColors.DalamudGrey3);
-                ImGui.SameLine();
-                UiSharedService.ColorText(auth.SecretKey.Label, ImGuiColors.DalamudGrey2);
+                ImUtf8.SameLineInner();
+                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - _uiShared.GetIconButtonSize(FontAwesomeIcon.PenSquare).X - ImGui.GetStyle().ItemSpacing.X);
+                string key = account.SecretKey.Key;
+                if (ImGui.InputTextWithHint("##SecondaryAuthKey"+account.CharacterPlayerContentId, "Paste Secret Key Here...", ref key, 64, ImGuiInputTextFlags.EnterReturnsTrue))
+                {
+                    _logger.LogInformation("This would have updated the secret key!");
+                    if(account.SecretKey.Label.IsNullOrEmpty())
+                    {
+                        account.SecretKey.Label = "Alt Character Key for " + account.CharacterName + " on " + _uiShared.WorldData[(ushort)account.WorldId];
+                    }
+                    account.SecretKey.Key = key;
+                    EditingIdx = -1;
+                    _serverConfigs.Save();
+                }
+            }
+            else
+            {
+                ImUtf8.SameLineInner();
+                UiSharedService.ColorText(keyDisplayText, isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink);
                 if (ImGui.IsItemClicked())
                 {
-                    ImGui.SetClipboardText(auth.SecretKey.Key);
+                    ImGui.SetClipboardText(account.SecretKey.Key);
                 }
-                UiSharedService.AttachToolTip("Click to copy actual secret key");
+                UiSharedService.AttachToolTip("Click the friendly label to copy the actual secret key to clipboard");
             }
 
-            // now, head to the same line of the full width minus the width of the button
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - addKeyButton.X - ImGui.GetStyle().ItemSpacing.X);
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - (65f - addKeyButton.Y) / 2);
-            // draw out the icon button
-            using (var disabled = ImRaii.Disabled(!auth.SecretKey.Key.IsNullOrEmpty()))
+            if(idx != int.MaxValue)
             {
-                if (_uiShared.IconButton(FontAwesomeIcon.PersonCirclePlus))
+                var insertKey = _uiShared.GetIconData(FontAwesomeIcon.PenSquare);
+                float rightEnd = ImGui.GetContentRegionAvail().X - insertKey.X;
+                ImGui.SameLine(rightEnd);
+                Vector4 col = account.SecretKey.HasHadSuccessfulConnection ? ImGuiColors.DalamudRed : ImGuiColors.DalamudGrey3;
+                _uiShared.BooleanToColoredIcon(EditingIdx == idx, false, FontAwesomeIcon.PenSquare, FontAwesomeIcon.PenSquare, ImGuiColors.ParsedPink, col);
+                if (ImGui.IsItemClicked() && !account.SecretKey.HasHadSuccessfulConnection)
                 {
-                    // open a popup for setting the key
-                    _logger.LogInformation("This does something now!");
+                    EditingIdx = EditingIdx == idx ? -1 : idx;
                 }
+                UiSharedService.AttachToolTip(account.SecretKey.HasHadSuccessfulConnection
+                    ? "You cannot change a key that has been verified. This is your character's Key now."
+                    : "Click to insert a provided secretKey");
             }
-            UiSharedService.AttachToolTip("Set an obtained key to this character");
         }
-        ImGui.Separator();
+
+        if (ImGui.BeginPopupModal("Delete your account?", ref _deleteAccountPopupModalShown, UiSharedService.PopupWindowFlags))
+        {
+            UiSharedService.TextWrapped("Be Deleting your primary GagSpeak account, all seconary users below will also be deleted.");
+            UiSharedService.TextWrapped("Your UID will be removed from all pairing lists.");
+            ImGui.TextUnformatted("Are you sure you want to continue?");
+            ImGui.Separator();
+            ImGui.Spacing();
+
+            var buttonSize = (ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X -
+                              ImGui.GetStyle().ItemSpacing.X) / 2;
+
+            if (ImGui.Button("Delete account", new Vector2(buttonSize, 0)))
+            {
+                _ = Task.Run(ApiController.UserDelete);
+                _deleteAccountPopupModalShown = false;
+                Mediator.Publish(new SwitchToIntroUiMessage());
+            }
+
+            ImGui.SameLine();
+
+            if (ImGui.Button("Cancel##cancelDelete", new Vector2(buttonSize, 0)))
+            {
+                _deleteAccountPopupModalShown = false;
+            }
+
+            UiSharedService.SetScaledWindowSize(325);
+            ImGui.EndPopup();
+        }
     }
+
     /// <summary> Displays the Debug section within the settings, where we can set our debug level </summary>
     private void DrawDebug()
     {
@@ -1302,19 +1327,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             Util.OpenLink("https://discord.gg/kinkporium");
         }
-        // draw our separator
-        ImGui.Separator();
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("OnFrameworkService.GlamourChangeEventsDisabled:");
-        ImGui.SameLine();
-        ImGui.Text(OnFrameworkService.GlamourChangeEventsDisabled.ToString());
-
-        ImGui.AlignTextToFramePadding();
-        ImGui.Text("OnFrameworkService.GlamourChangeFinishedDrawing:");
-        ImGui.SameLine();
-        ImGui.Text(OnFrameworkService.GlamourChangeFinishedDrawing.ToString());
-
-        ImGui.Separator();
 
         if (ApiController.ServerState is ServerState.Connected)
         {

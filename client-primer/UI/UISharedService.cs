@@ -429,9 +429,15 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     /// <summary> The additional param for an ID is optional. if not provided, the id will be the text. </summary>
-    public bool IconButton(FontAwesomeIcon icon, float? height = null, string? id = null, bool disabled = false)
+    public bool IconButton(FontAwesomeIcon icon, float? height = null, string? id = null, bool disabled = false, bool inPopup = false)
     {
         using var dis = ImRaii.PushStyle(ImGuiStyleVar.Alpha, disabled ? 0.5f : 1f);
+        int num = 0;
+        if (inPopup)
+        {
+            ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(1.0f, 1.0f, 1.0f, 0.0f));
+            num++;
+        }
 
         string text = icon.ToIconString();
 
@@ -450,6 +456,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             windowDrawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), text);
         ImGui.PopID();
 
+        if (num > 0)
+        {
+            ImGui.PopStyleColor(num);
+        }
         return result && !disabled;
     }
 

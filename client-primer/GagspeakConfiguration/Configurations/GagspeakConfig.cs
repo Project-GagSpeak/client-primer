@@ -54,7 +54,9 @@ public class GagspeakConfig : IGagspeakConfiguration
     public VibeSimType VibeSimAudio { get; set; } = VibeSimType.Quiet;          // the audio settings for the simulated vibrator
     public string Language { get; set; } = "English";                           // the language the user is using for MufflerCore
     public string LanguageDialect { get; set; } = "IPA_US";                     // the language dialect the user is using for MufflerCore
+    public bool IntifaceAutoConnect { get; set; } = false;                      // if we should auto-connect to intiface
     public string IntifaceConnectionSocket { get; set; } = "ws://localhost:12345"; // connection link from plugin to intiface
+    public bool VibeServerAutoConnect { get; set; } = false;                    // if we should auto-connect to the vibe server
 
     // hardcore stuff:
     public bool UsingLegacyControls { get; set; } = GameConfig.UiControl.GetBool("MoveMode"); // grabs our movement mode for the game.

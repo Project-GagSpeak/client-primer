@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 7, 5, 1)
+            .RegisterMain("Added Toybox Device Debugger")
+            .RegisterFeature("Additional Buttons in toybox settings to auto connect to intiface & the vibe server upon server connection have been added.");
         VersionEntry(0, 7, 5, 0)
             .RegisterMain("Full backend restructure to permission Actions. May be buggy, please be patient.")
             .RegisterMain("Added Toybox interactions (ALL UNTESTED ATM)")

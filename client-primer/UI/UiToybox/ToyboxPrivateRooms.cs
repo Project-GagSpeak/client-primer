@@ -4,6 +4,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.Services.ConfigurationServices;
@@ -27,19 +28,37 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
     private readonly PrivateRoomManager _roomManager;
     private readonly UiSharedService _uiShared;
     private readonly PairManager _pairManager;
+    private readonly GagspeakConfigService _configService;
     private readonly ServerConfigurationManager _serverConfigs;
 
     public ToyboxPrivateRooms(ILogger<ToyboxPrivateRooms> logger,
         GagspeakMediator mediator, ApiController apiController,
         PrivateRoomManager privateRoomManager, UiSharedService uiShared,
-        PairManager pairManager, ServerConfigurationManager serverConfigs)
-        : base(logger, mediator)
+        PairManager pairManager, GagspeakConfigService mainConfig,
+        ServerConfigurationManager serverConfigs) : base(logger, mediator)
     {
         _apiController = apiController;
         _roomManager = privateRoomManager;
         _uiShared = uiShared;
         _pairManager = pairManager;
+        _configService = mainConfig;
         _serverConfigs = serverConfigs;
+
+        Mediator.Subscribe<ConnectedMessage>(this, _ =>
+        {
+            if(_configService.Current.VibeServerAutoConnect)
+            {
+                // connect to the vibe server
+                ToggleToyboxConnection(false); // make sure to unpause before connection.
+            }
+        });
+    }
+
+    private void ToggleToyboxConnection(bool newState)
+    {
+        _serverConfigs.CurrentServer.ToyboxFullPause = newState;
+        _serverConfigs.Save();
+        _ = _apiController.CreateToyboxConnection();
     }
 
     // local accessors for the private room creation
@@ -134,9 +153,6 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         {
             JoinRoomItemsHovered = new List<bool>(Enumerable.Repeat(false, SizeHoveredItemsShouldBe));
         }
-
-        // log the sizes
-        // DEBUG Logger.LogTrace("JoinRoomItemsHovered Size {size} - Non-HostedRooms Size {nonHostedSize}", JoinRoomItemsHovered.Count, _roomManager.AllPrivateRooms.Count);
     }
 
 
@@ -515,9 +531,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                 {
                     // and toggle the full pause for the current server, save the config, and recreate the connections,
                     // placing it into a disconnected state due to the full pause being active. (maybe change this later)
-                    _serverConfigs.CurrentServer.ToyboxFullPause = !_serverConfigs.CurrentServer.ToyboxFullPause;
-                    _serverConfigs.Save();
-                    _ = _apiController.CreateToyboxConnection();
+                    ToggleToyboxConnection(!_serverConfigs.CurrentServer.ToyboxFullPause);
                 }
             }
             // attach the tooltip for the connection / disconnection button)

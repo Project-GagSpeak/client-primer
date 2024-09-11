@@ -10,7 +10,7 @@ namespace GagSpeak.Services.Data;
 public class ConnectedDevice
 {
     private readonly ILogger<ConnectedDevice> _logger;
-    private readonly ButtplugClientDevice? ClientDevice;
+    public readonly ButtplugClientDevice? ClientDevice;
 
     public ConnectedDevice(ILogger<ConnectedDevice> logger, ButtplugClientDevice? buttplugClientDevice)
     {

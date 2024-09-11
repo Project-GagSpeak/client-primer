@@ -189,6 +189,7 @@ public class ToyboxOverview
             ImGui.Text("Feature: " + attr.FeatureDescriptor);
             ImGui.Text("Actuator Type: " + attr.ActuatorType);
             ImGui.Text("Step Count: " + attr.StepCount);
+            ImGui.Text("Index: " + attr.Index);
         }
         ImGui.Unindent();
 
@@ -200,6 +201,7 @@ public class ToyboxOverview
             ImGui.Text("Feature: " + attr.FeatureDescriptor);
             ImGui.Text("Actuator Type: " + attr.ActuatorType);
             ImGui.Text("Step Count: " + attr.StepCount);
+            ImGui.Text("Index: " + attr.Index);
         }
         ImGui.Unindent();
 
@@ -211,6 +213,7 @@ public class ToyboxOverview
             ImGui.Text("Feature: " + attr.FeatureDescriptor);
             ImGui.Text("Actuator Type: " + attr.ActuatorType);
             ImGui.Text("Step Count: " + attr.StepCount);
+            ImGui.Text("Index: " + attr.Index);
         }
         ImGui.Unindent();
 
@@ -222,6 +225,7 @@ public class ToyboxOverview
             ImGui.Text("Feature: " + attr.FeatureDescriptor);
             ImGui.Text("Actuator Type: " + attr.ActuatorType);
             ImGui.Text("Step Count: " + attr.StepCount);
+            ImGui.Text("Index: " + attr.Index);
         }
         ImGui.Unindent();
 

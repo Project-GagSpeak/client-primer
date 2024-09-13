@@ -319,6 +319,29 @@ public partial class UserPairPermsSticky
             UserPairForPerms.UserPairOwnUniquePairPerms.IsBlindfolded ? $"You are currently blindfolded by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently blindfolding you.",
             true, // do not allow user to change this permission.
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
+        DrawOwnSetting("IsBlindfolded", "AllowBlindfold",
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsBlindfolded ? "Currently Blindfolded" : "Not Blindfolded",
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsBlindfolded ? FontAwesomeIcon.Blind : FontAwesomeIcon.EyeSlash,
+            UserPairForPerms.UserPairOwnUniquePairPerms.IsBlindfolded ? $"You are currently blindfolded by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently blindfolding you.",
+            true, // do not allow user to change this permission.
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
+        DrawOwnSetting("ShockCollarShareCode", string.Empty,
+            "Share Code",
+            FontAwesomeIcon.ShareAlt,
+            $"Unique Share Code for {PairNickOrAliasOrUID}.\nThis code overrides the global Share Code.",
+            true,
+            PermissionType.UniquePairPerm, PermissionValueType.String);
+
+        DrawOwnSetting("MaxVibrateDuration", string.Empty,
+            "Max Vibrate Time",
+            FontAwesomeIcon.HourglassHalf,
+            $"Max time {PairNickOrAliasOrUID} can vibrate your shock collar for.",
+            true,
+            PermissionType.UniquePairPerm, PermissionValueType.TimeSpanSliderInt);
+
+
     }
 
     /// <summary>
@@ -425,7 +448,7 @@ public partial class UserPairPermsSticky
             }
         }
         // next, handle it if it is a timespan value.
-        if (type == PermissionValueType.TimeSpan)
+        else if (type == PermissionValueType.TimeSpan)
         {
             // attempt to parse the timespan value to a string.
             string timeSpanString = _uiShared.TimeSpanToString((TimeSpan)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!) ?? "0d0h0m0s";
@@ -468,6 +491,60 @@ public partial class UserPairPermsSticky
                         : ("Grant " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + " control over this permission, allowing them to change " +
                            "what you've set for them at will.");
                 }
+            }
+        }
+        else if (type == PermissionValueType.String)
+        {
+            string stringState = (string)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!;
+
+            using (var group = ImRaii.Group())
+            {
+                var id = label + "##" + permissionName;
+                // draw the iconTextButton and checkbox beside it. Because we are in control, unless in hardcore, this should never be disabled.
+                if (_uiShared.IconInputText(id, icon, label, "PiShock Share Code...", ref stringState, 40, IconButtonTextWidth * .55f, true, false)) { }
+                // Set the permission once deactivated. If invalid, set to default.
+                if (ImGui.IsItemDeactivatedAfterEdit() && stringState != (string)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!)
+                {
+                    // we can update the string
+                    SetOwnPermission(permissionType, permissionName, stringState);
+                }
+                else
+                {
+                    _logger.LogWarning("string was no different! Not updating permission.");
+                    InteractionSuccessful = false;
+                }
+                UiSharedService.AttachToolTip(tooltip);
+            }
+        }
+        // next, handle it if it is a timespan value.
+        if (type == PermissionValueType.TimeSpanSliderInt)
+        {
+            // attempt to parse the timespan value to a string.
+            TimeSpan timespanValue = (TimeSpan)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!;
+            int seconds = (int)timespanValue.TotalSeconds;
+
+            using (var group = ImRaii.Group())
+            {
+                var id = label + "##" + permissionName;
+
+                _uiShared.IconText(FontAwesomeIcon.Stopwatch);
+                ImGui.SameLine();
+
+                ImGui.DragInt("s##"+id, ref seconds, 1f, 0, 30);
+                if (ImGui.IsItemDeactivatedAfterEdit())
+                {
+                    timespanValue = TimeSpan.FromSeconds(seconds);
+                    if (timespanValue != (TimeSpan)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!)
+                    {
+                        SetOwnPermission(permissionType, permissionName, timespanValue);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Value was no different. Not setting!");
+                        InteractionSuccessful = false;
+                    }
+                }
+                UiSharedService.AttachToolTip(tooltip);
             }
         }
     }

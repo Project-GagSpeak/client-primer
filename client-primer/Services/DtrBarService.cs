@@ -47,6 +47,16 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
         VibratorEntry = _dtrBar.Get("GagSpeakVibrator");
         UpdateMessagesEntry.Shown = false;
 
+        Mediator.Subscribe<ConnectedMessage>(this, _ =>
+        {
+            PrivacyEntry.Shown = true;
+        });
+
+        Mediator.Subscribe<DisconnectedMessage>(this, _ =>
+        {
+            PrivacyEntry.Shown = false;
+        });
+
         //Mediator.Subscribe<ToggleDtrBarMessage>(this, (_) => DtrBarEnabled = !DtrBarEnabled);
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => UpdateDtrBar());
     }
@@ -96,10 +106,6 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
                 PrivacyEntry.Text = new SeString(new IconPayload(DisplayIcon), new TextPayload(TextDisplay));
                 PrivacyEntry.Tooltip = new SeString(new TextPayload(TooltipDisplay));
             }
-        }
-        else
-        {
-            PrivacyEntry.Shown = false;
         }
     }
 }

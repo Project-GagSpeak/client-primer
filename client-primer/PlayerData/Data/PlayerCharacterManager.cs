@@ -7,6 +7,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
@@ -15,6 +16,7 @@ using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.IPC;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.User;
+using static PInvoke.User32;
 
 namespace GagSpeak.PlayerData.Data;
 
@@ -33,6 +35,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private readonly AlarmHandler _alarmHandler;
     private readonly TriggerHandler _triggerHandler;
     private readonly ClientConfigurationManager _clientConfigs;
+    private readonly PiShockProvider _piShockProvider;
 
     private readonly IpcCallerMoodles _ipcCallerMoodles; // used to make moodles calls.
 
@@ -72,6 +75,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     }
     // used to track a reflection of the sealed cache creation service for our player.
     public CharacterIPCData? LastIpcData = null;
+    public PiShockPermissions GlobalPiShockPerms = new(false,false,false,-1,-1);
 
     // public access definitions.
     public UserGlobalPermissions? GlobalPerms => _playerCharGlobalPerms ?? null;
@@ -80,82 +84,99 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     public bool ShouldDisableSetUponUnlock => _clientConfigs.GagspeakConfig.DisableSetUponUnlock;
     public bool IsPlayerGagged() => AppearanceData?.GagSlots.Any(x => x.GagType != "None") ?? false;
     public void UpdateGlobalPermsInBulk(UserGlobalPermissions newGlobalPerms) => _playerCharGlobalPerms = newGlobalPerms;
-    public void ApplyStatusesByGuid(ApplyMoodlesByGuidDto dto)
-    {
-        if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID))
-        {
-            Logger.LogError("Received Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
-            return;
-        }
 
-        _ = _ipcCallerMoodles.ApplyOwnStatusByGUID(dto.Statuses).ConfigureAwait(false);
+
+    private async Task<PiShockPermissions> GetGlobalPiShockPerms()
+    {
+        if (GlobalPiShockPerms != null) return GlobalPiShockPerms;
+
+        GlobalPiShockPerms = await _piShockProvider.GetPermissionsFromCode(_playerCharGlobalPerms.GlobalShockShareCode);
+        return GlobalPiShockPerms;
     }
 
-    public void ApplyStatusesToSelf(ApplyMoodlesByStatusDto dto, string clientPlayerNameWithWorld)
+    private async Task<PiShockPermissions> GetPairPiShockPerms(Pair pair)
     {
-        string nameWithWorldOfApplier = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == dto.User.UID)?.PlayerNameWithWorld ?? string.Empty;
-        if (nameWithWorldOfApplier.IsNullOrEmpty())
+        // Return the permissions as they are already initialized
+        if (pair.LastOwnPiShockPermsForPair.MaxIntensity != -1 && !pair.UserPairOwnUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty())
         {
-            Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
-            return;
+            return pair.LastOwnPiShockPermsForPair;
         }
-
-        _ = _ipcCallerMoodles.ApplyStatusesFromPairToSelf(nameWithWorldOfApplier, clientPlayerNameWithWorld, dto.Statuses).ConfigureAwait(false);
+        // otherwise, if the code is not null or empty but the permissions are not initialized, initialize them.
+        else if (!pair.UserPairOwnUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty())
+        {
+            pair.LastOwnPiShockPermsForPair = 
+                await _piShockProvider.GetPermissionsFromCode(pair.UserPairOwnUniquePairPerms.ShockCollarShareCode);
+            return pair.LastOwnPiShockPermsForPair;
+        }
+        // otherwise, if the code is null or empty, so return default
+        else
+        {
+            return new(false, false, false, -1, -1);
+        }
     }
 
-    public void RemoveStatusesFromSelf(RemoveMoodlesDto dto)
-    {
-        if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID))
-        {
-            Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
-            return;
-        }
-
-        _ = _ipcCallerMoodles.RemoveOwnStatusByGuid(dto.Statuses).ConfigureAwait(false);
-    }
-
-    public void ClearStatusesFromSelf(UserDto dto)
-    {
-        if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID))
-        {
-            Logger.LogError("Recieved Update by player is no longer present. This shouldn't happen unless they left zone while sending it.");
-            return;
-        }
-
-        bool CanClearMoodles = _pairManager.DirectPairs.First(p => p.UserData.UID == dto.User.UID).UserPairUniquePairPerms.AllowRemovingMoodles;
-        if (!CanClearMoodles)
-        {
-            Logger.LogError("Player does not have permission to clear their own moodles.");
-            return;
-        }
-
-        // hack to not wait for this forever or require it to be a task.
-        _ = _ipcCallerMoodles.ClearStatusAsync().ConfigureAwait(false);
-    }
 
     #region Compile & Push Data for Server Transfer
     // helper method to decompile a received composite data message
-    public CharacterCompositeData CompileCompositeDataToSend()
+    public async Task<CharacterCompositeData> CompileCompositeDataToSend()
     {
         // make use of the various compiling methods to construct our composite data.
         CharacterAppearanceData appearanceData = CompileAppearanceToAPI();
         CharacterWardrobeData wardrobeData = CompileWardrobeToAPI();
 
         Dictionary<string, CharacterAliasData> aliasData = new();
-        // Compile the dictionary
-        foreach (var user in _pairManager.GetOnlineUserUids())
+        Dictionary<string, PiShockPermissions> pairShockData = new();
+
+        var userPairs = _pairManager.GetOnlineUserPairs();
+
+        bool hasApiOn = !string.IsNullOrEmpty(_clientConfigs.GagspeakConfig.PiShockApiKey) 
+            && !string.IsNullOrEmpty(_clientConfigs.GagspeakConfig.PiShockUsername)
+            && !string.IsNullOrEmpty(_playerCharGlobalPerms.GlobalShockShareCode);
+
+        List<Task<(string UID, PiShockPermissions)>> getPermissionsTasks = new();
+
+        foreach (var user in userPairs)
         {
-            aliasData[user] = CompileAliasToAPI(user);
+            aliasData[user.UserData.UID] = CompileAliasToAPI(user.UserData.UID);
+
+            // Only fetch permissions if API credentials are available
+            if (hasApiOn) getPermissionsTasks.Add(GetPairPiShockPerms(user).ContinueWith(task => (user.UserData.UID, task.Result)));
+        }
+
+        if (hasApiOn)
+        {
+            // Wait for all tasks to complete if API credentials are available
+            var permissionsResults = await Task.WhenAll(getPermissionsTasks);
+
+            // Populate pairShockData with the results
+            foreach (var result in permissionsResults)
+            {
+                pairShockData[result.UID] = result.Item2 ?? new PiShockPermissions(false, false, false, -1, -1); // Default or null handling
+            }
+        }
+        else
+        {
+            // If no API credentials, populate with default permissions
+            foreach (var user in userPairs)
+            {
+                pairShockData[user.UserData.UID] = new PiShockPermissions(false, false, false, -1, -1); // Default or fallback
+            }
         }
 
         CharacterToyboxData toyboxData = CompileToyboxToAPI();
+
+        PiShockPermissions globalShockPerms = hasApiOn
+                ? await GetGlobalPiShockPerms()
+                : new PiShockPermissions(false, false, false, -1, -1);
 
         return new CharacterCompositeData
         {
             AppearanceData = appearanceData,
             WardrobeData = wardrobeData,
             AliasData = aliasData,
-            ToyboxData = toyboxData
+            ToyboxData = toyboxData,
+            GlobalShockPermissions = globalShockPerms,
+            PairShockPermissions = pairShockData
         };
     }
 
@@ -277,6 +298,39 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new CharacterToyboxDataCreatedMessage(dataToPush, msg.UpdateKind));
     }
     #endregion Compile & Push Data for Server Transfer
+
+    //////////////// Moodles & Statuses ////////////////
+    public void ApplyStatusesByGuid(ApplyMoodlesByGuidDto dto)
+    {
+        if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID)) { Logger.LogError("Received Update by player is no longer present."); return; }
+
+        _ = _ipcCallerMoodles.ApplyOwnStatusByGUID(dto.Statuses).ConfigureAwait(false);
+    }
+
+    public void ApplyStatusesToSelf(ApplyMoodlesByStatusDto dto, string clientPlayerNameWithWorld)
+    {
+        string nameWithWorldOfApplier = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == dto.User.UID)?.PlayerNameWithWorld ?? string.Empty;
+        if (nameWithWorldOfApplier.IsNullOrEmpty()) { Logger.LogError("Received Update by player is no longer present."); return; }
+
+        _ = _ipcCallerMoodles.ApplyStatusesFromPairToSelf(nameWithWorldOfApplier, clientPlayerNameWithWorld, dto.Statuses).ConfigureAwait(false);
+    }
+
+    public void RemoveStatusesFromSelf(RemoveMoodlesDto dto)
+    {
+        if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID)) { Logger.LogError("Received Update by player is no longer present."); return; }
+
+        _ = _ipcCallerMoodles.RemoveOwnStatusByGuid(dto.Statuses).ConfigureAwait(false);
+    }
+
+    public void ClearStatusesFromSelf(UserDto dto)
+    {
+        if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID)) { Logger.LogError("Received Update by player is no longer present."); return; }
+
+        bool CanClearMoodles = _pairManager.DirectPairs.First(p => p.UserData.UID == dto.User.UID).UserPairUniquePairPerms.AllowRemovingMoodles;
+        if (!CanClearMoodles) { Logger.LogError("Player does not have permission to clear their own moodles."); return; }
+
+        _ = _ipcCallerMoodles.ClearStatusAsync().ConfigureAwait(false);
+    }
 
     /// <summary> Updates the changed permission from server callback to global permissions </summary>
     public void ApplyGlobalPermChange(UserGlobalPermChangeDto changeDto)

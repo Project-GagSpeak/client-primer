@@ -8,6 +8,9 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 [Serializable]
 public abstract record Trigger
 {
+    // Define which kind of trigger it is
+    public abstract TriggerKind Type { get; }
+
     // required attributes
     public Guid TriggerIdentifier { get; set; } = Guid.NewGuid();
     public bool Enabled { get; set; } = false;
@@ -19,19 +22,13 @@ public abstract record Trigger
     public TimeSpan StartAfter { get; set; } = TimeSpan.Zero;
     public TimeSpan EndAfter { get; set; } = TimeSpan.Zero;
 
-    // Define which kind of trigger it is
-    public abstract TriggerKind Type { get; }
-
     // List of UID's that are able to Enable/Interact with this trigger.
-    public List<string> CanToggleTrigger { get; set; } = [];
+    public List<string> CanToggleTrigger { get; set; } = new List<string>();
 
-    /*
-     * Here is where we define the kind of execution the trigger will have to the connected devices.
-     * 
-     * Instead of requiring certain types of connected devices, we will instead allow the user to define
-     * Which kind of Generic Vibrator Attribute it is using, and which kind of motor
-     */
-    public List<DeviceAction> Actions { get; set; } = [];
+    // The actions to execute to each motor on the list of appended devices.
+    public TriggerActionKind TriggerActionKind { get; set; } = TriggerActionKind.SexToy;
+    public List<DeviceTriggerAction> TriggerAction { get; set; } = new List<DeviceTriggerAction>();
+    public ShockTriggerAction ShockTriggerAction { get; set; } = new ShockTriggerAction();
 }
 
 

@@ -16,6 +16,7 @@ using Penumbra.GameData;
 using GagspeakAPI.Data.Character;
 using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using GagspeakAPI.Data.Enum;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -308,12 +309,23 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
         else
         {
-            // REVIEW: This might cause issues with any potential desync. If it does look into
             _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, new CharacterAliasData(), dto.UpdateKind));
         }
 
         // apply the pattern data to the pair.
-        _allClientPairs[dto.User].ApplyPatternData(new OnlineUserCharaToyboxDataDto(dto.User, dto.CompositeData.ToyboxData, dto.UpdateKind));
+        _allClientPairs[dto.User].ApplyToyboxData(new OnlineUserCharaToyboxDataDto(dto.User, dto.CompositeData.ToyboxData, dto.UpdateKind));
+
+        // apply the PiShock stuff
+        _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, dto.CompositeData.GlobalShockPermissions, DataUpdateKind.PiShockGlobalUpdated));
+
+        if (!dto.CompositeData.PairShockPermissions.ContainsKey(clientUID))
+        {
+            _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, dto.CompositeData.PairShockPermissions[clientUID], DataUpdateKind.PiShockPairPermsForUserUpdated));
+        }
+        else
+        {
+            _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, new PiShockPermissions(false,false,false,-1,-1), DataUpdateKind.PiShockPairPermsForUserUpdated));
+        }
     }
 
     /// <summary> Method similar to compositeData, but this will only update the IPC data of the user pair. </summary>
@@ -370,7 +382,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     }
 
     /// <summary> Method similar to compositeData, but this will only update the pattern data of the user pair. </summary>
-    public void ReceiveCharaPatternData(OnlineUserCharaToyboxDataDto dto)
+    public void ReceiveCharaToyboxData(OnlineUserCharaToyboxDataDto dto)
     {
         // if the user in the Dto is not in our client's pair list, throw an exception.
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
@@ -379,7 +391,20 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Pattern Data")));
 
         // apply the pattern data to the pair.
-        _allClientPairs[dto.User].ApplyPatternData(dto);
+        _allClientPairs[dto.User].ApplyToyboxData(dto);
+    }
+
+    /// <summary> Method similar to compositeData, but this will only update the shock permissions of the user pair. </summary>
+    public void ReceiveCharaPiShockPermData(OnlineUserCharaPiShockPermDto dto)
+    {
+        // if the user in the Dto is not in our client's pair list, throw an exception.
+        if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
+
+        // if they are found, publish an event message that we have received character data from our paired User
+        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character PiShock Permissions Data")));
+
+        // apply the shock permissions data to the pair.
+        _allClientPairs[dto.User].ApplyPiShockPermData(dto);
     }
 
 

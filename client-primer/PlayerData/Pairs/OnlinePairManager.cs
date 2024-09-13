@@ -129,11 +129,10 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
     {
         if (newOnlinePairs.Any())
         {
-            CharacterCompositeData compiledDataToSend = _playerManager.CompileCompositeDataToSend();
-
             // Send the data to all online players.
             _ = Task.Run(async () =>
             {
+                CharacterCompositeData compiledDataToSend = await _playerManager.CompileCompositeDataToSend();
                 Logger.LogDebug("new Online Pairs Identified, pushing latest Composite data");
                 await _apiController.PushCharacterCompositeData(compiledDataToSend, newOnlinePairs).ConfigureAwait(false);
             });

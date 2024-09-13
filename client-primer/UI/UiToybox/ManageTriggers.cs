@@ -7,11 +7,14 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Data;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Classes;
@@ -27,6 +30,7 @@ public class ToyboxTriggerManager
     private readonly UiSharedService _uiShared;
     private readonly PairManager _pairManager;
     private readonly ClientConfigurationManager _clientConfigs;
+    private readonly DeviceController _deviceController;
     private readonly TriggerHandler _handler;
     private readonly PatternHandler _patternHandler;
     private readonly TriggerService _triggerService;
@@ -34,14 +38,15 @@ public class ToyboxTriggerManager
     public ToyboxTriggerManager(ILogger<ToyboxTriggerManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         PairManager pairManager, ClientConfigurationManager clientConfigs,
-        TriggerHandler handler, PatternHandler patternHandler,
-        TriggerService triggerService)
+        DeviceController deviceController, TriggerHandler handler, 
+        PatternHandler patternHandler, TriggerService triggerService)
     {
         _logger = logger;
         _mediator = mediator;
         _uiShared = uiSharedService;
         _pairManager = pairManager;
         _clientConfigs = clientConfigs;
+        _deviceController = deviceController;
         _handler = handler;
         _patternHandler = patternHandler;
         _triggerService = triggerService;
@@ -57,6 +62,7 @@ public class ToyboxTriggerManager
     private LowerString TriggerSearchString = LowerString.Empty;
     private LowerString PairSearchString = LowerString.Empty;
     private string GagSearchString = LowerString.Empty;
+    private string SelectedDeviceName = LowerString.Empty;
 
 
     public void DrawTriggersPanel()
@@ -312,7 +318,7 @@ public class ToyboxTriggerManager
         string priority = "Priority: " + trigger.Priority.ToString();
 
         // display the intended vibrationtypes.
-        string vibrationTypes = string.Join(", ", trigger.Actions.Select(x => x.RequiredVibratorTypes.ToString()));
+        string devicesUsed = string.Join(", ", trigger.TriggerAction.Select(x => x.DeviceName.ToString()));
 
         // define our sizes
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
@@ -322,7 +328,7 @@ public class ToyboxTriggerManager
         Vector2 triggerTypeTextSize;
         var nameTextSize = ImGui.CalcTextSize(trigger.Name);
         var priorityTextSize = ImGui.CalcTextSize(priority);
-        var requiredVibeTypesTextSize = ImGui.CalcTextSize(vibrationTypes);
+        var devicesUsedTextSize = ImGui.CalcTextSize(devicesUsed);
         using (_uiShared.UidFont.Push()) { triggerTypeTextSize = ImGui.CalcTextSize(triggerType); }
 
         using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
@@ -346,7 +352,7 @@ public class ToyboxTriggerManager
                 ImGui.SetCursorPosX(ImGui.GetCursorPosX() + 5f);
                 UiSharedService.ColorText(priority, ImGuiColors.DalamudGrey3);
                 ImGui.SameLine();
-                UiSharedService.ColorText("| " + vibrationTypes, ImGuiColors.DalamudGrey3);
+                UiSharedService.ColorText("| " + devicesUsed, ImGuiColors.DalamudGrey3);
             }
 
             // now, head to the sameline of the full width minus the width of the button
@@ -360,7 +366,7 @@ public class ToyboxTriggerManager
                     _handler.DisableTrigger(idx);
                 else
                     _handler.EnableTrigger(idx);
-                // toggle the state & early return so we dont access the childclicked button
+                // toggle the state & early return so we dont access the child clicked button
                 return;
             }
         }
@@ -430,7 +436,7 @@ public class ToyboxTriggerManager
 
             if (ImGui.BeginTabItem("Trigger Action"))
             {
-                DrawVibeActionSettings(triggerToCreate);
+                DrawTriggerActions(triggerToCreate);
                 ImGui.EndTabItem();
             }
 
@@ -667,11 +673,214 @@ public class ToyboxTriggerManager
         _uiShared.DrawHelpText("Trigger should be fired when the gag state changes to this.");
     }
 
-    private void DrawVibeActionSettings(Trigger TriggerToCreate)
+    private void DrawTriggerActions(Trigger trigger)
     {
-        UiSharedService.ColorText("Trigger Execution Type: ", ImGuiColors.ParsedGold);
+        UiSharedService.ColorText("Trigger Action Kind", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("The kind of action to perform when the trigger is activated.");
 
+        _uiShared.DrawCombo("##TriggerActionTypeCombo", 175f, Enum.GetValues<TriggerActionKind>(), 
+        (triggerActionKind) => triggerActionKind.ToName(), (i) => trigger.TriggerActionKind = i, 
+        trigger.TriggerActionKind, false);
+        ImGui.Separator();
+
+        if (trigger.TriggerActionKind == TriggerActionKind.ShockCollar)
+        {
+            DrawShockCollarSettings(trigger);
+        }
+        else
+        {
+            DrawVibeActionSettings(trigger);
+        }
     }
+
+    private void DrawShockCollarSettings(Trigger trigger)
+    {
+        // determine the opCode
+        UiSharedService.ColorText("Shock Collar Action", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("What kind of action to inflict on the shock collar.");
+
+        _uiShared.DrawCombo("ShockCollarActionType", 100f, Enum.GetValues<ShockMode>(),
+        (shockMode) => shockMode.ToString(), (i) => trigger.ShockTriggerAction.OpCode = i,
+        trigger.ShockTriggerAction.OpCode, false);
+
+        if(trigger.ShockTriggerAction.OpCode != ShockMode.Beep)
+        {
+            ImGui.Spacing();
+            // draw the intensity slider
+            UiSharedService.ColorText(trigger.ShockTriggerAction.OpCode + " Intensity", ImGuiColors.ParsedGold);
+            _uiShared.DrawHelpText("Adjust the intensity level that will be sent to the shock collar.");
+
+            int intensity = trigger.ShockTriggerAction.Intensity;
+            if (ImGui.SliderInt("##ShockCollarIntensity", ref intensity, 0, 100))
+            {
+                trigger.ShockTriggerAction.Intensity = intensity;
+            }
+        }
+
+        ImGui.Spacing();
+        // draw the duration slider
+        UiSharedService.ColorText(trigger.ShockTriggerAction.OpCode + " Duration", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("Adjust the Duration the action is played for on the shock collar.");
+
+        var duration = trigger.ShockTriggerAction.Duration;
+        float value = (float)duration.TotalSeconds + (float)duration.Milliseconds / 1000;
+        if (ImGui.SliderFloat("##ShockCollarDuration", ref value, 0.016f, 15f))
+        {
+            int seconds = (int)value;
+            int milliseconds = (int)((value - seconds) * 1000);
+            trigger.ShockTriggerAction.Duration = new TimeSpan(0, 0, 0, seconds, milliseconds);
+        }
+
+        ImGui.Text("Current Stored Duration: " + trigger.ShockTriggerAction.Duration.ToString("ss\\:fff"));
+        ImGui.Text("Current Stored Intensity: " + trigger.ShockTriggerAction.Intensity.ToString());
+    }
+
+    private void DrawVibeActionSettings(Trigger trigger)
+    {
+        try
+        {
+            float width = ImGui.GetContentRegionAvail().X - _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus).X - ImGui.GetStyle().ItemInnerSpacing.X;
+            // had to call it this way instead of just via connectedDevices, because otherwise, it would cause a crash due to referencing from values that are null.
+            var deviceNames = _deviceController.ConnectedDevices?
+                .Where(device => device != null && !string.IsNullOrEmpty(device.DeviceName))
+                .Select(device => device.DeviceName)
+                .ToList() ?? new List<string>();
+
+            UiSharedService.ColorText("Select and Add a Device", ImGuiColors.ParsedGold);
+
+            _uiShared.DrawCombo("##VibeDeviceTriggerSelector", width, deviceNames, (device) => device,
+            (i) => { SelectedDeviceName = i ?? string.Empty; }, default, false, ImGuiComboFlags.None, "No Devices Connected");
+            ImUtf8.SameLineInner();
+            if (_uiShared.IconButton(FontAwesomeIcon.Plus, null, null, SelectedDeviceName == string.Empty))
+            {
+                // attempt to find the device by its name.
+                var connectedDevice = _deviceController.GetDeviceByName(SelectedDeviceName);
+                if (connectedDevice == null)
+                {
+                    _logger.LogWarning("Could not find device by name: " + SelectedDeviceName);
+                }
+                else
+                {
+                    trigger.TriggerAction.Add(new(connectedDevice.DeviceName, connectedDevice.VibeMotors, connectedDevice.RotateMotors));
+                }
+            }
+
+            ImGui.Separator();
+            // create a shallow copy of the device trigger list for drawing.
+            var deviceActions = trigger.TriggerAction;
+
+            // early return if no contents are present.
+            if (deviceActions.Count == 0) return;
+
+            // draw a collapsible header for each of the selected devices.
+            for (var i = 0; i < deviceActions.Count; i++)
+            {
+                _logger.LogInformation("Drawing DeviceAction: " + deviceActions[i].DeviceName);
+                if (ImGui.CollapsingHeader("Settings for Device: " + deviceActions[i].DeviceName))
+                {
+                    DrawDeviceActions(deviceActions[i], i);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error drawing VibeActionSettings");
+        }
+    }
+
+    private string patternSearchString = string.Empty;
+    private void DrawDeviceActions(DeviceTriggerAction deviceAction, int idx)
+    {
+        if (deviceAction.VibrateMotorCount == 0) return;
+
+        bool vibrates = deviceAction.Vibrate;
+        if (ImGui.Checkbox("##Vibrate Device" + deviceAction.DeviceName, ref vibrates))
+        {
+            deviceAction.Vibrate = vibrates;
+        }
+        ImUtf8.SameLineInner();
+        UiSharedService.ColorText("Vibrate Device", ImGuiColors.ParsedGold);
+        _uiShared.DrawHelpText("Determines if this device will have its vibration motors activated.");
+
+        using (ImRaii.Disabled(!vibrates))
+        using (var indent = ImRaii.PushIndent())
+        {
+            for (var i = 0; i < deviceAction.VibrateMotorCount; i++)
+            {
+                DrawMotorAction(deviceAction, i);
+            }
+        }
+    }
+
+    private void DrawMotorAction(DeviceTriggerAction deviceAction, int motorIndex)
+    {
+        var motor = deviceAction.VibrateActions.FirstOrDefault(x => x.MotorIndex == motorIndex);
+        bool enabled = motor != null;
+
+        UiSharedService.ColorText("Motor " + (motorIndex + 1), ImGuiColors.ParsedGold);
+        ImGui.SameLine();
+
+        if (ImGui.Checkbox("##Motor" + motorIndex + deviceAction.DeviceName, ref enabled))
+        {
+            if (enabled)
+            {
+                deviceAction.VibrateActions.Add(new MotorAction((uint)motorIndex));
+            }
+            else
+            {
+                deviceAction.VibrateActions.RemoveAll(x => x.MotorIndex == motorIndex);
+            }
+        }
+
+        if (motor == null)
+        {
+            ImGui.SameLine();
+            ImGui.AlignTextToFramePadding();
+            ImGui.Text("Motor not Enabled");
+            return;
+        }
+
+        ImUtf8.SameLineInner();
+        _uiShared.DrawCombo(
+            "##ActionType" + deviceAction.DeviceName + motorIndex,
+            ImGui.CalcTextSize("Vibration  ").X,
+            Enum.GetValues<TriggerActionType>(),
+            type => type.ToString(),
+            i => motor.ExecuteType = i,
+            motor.ExecuteType,
+            false,
+            ImGuiComboFlags.NoArrowButton
+        );
+
+        ImUtf8.SameLineInner();
+        if (motor.ExecuteType == TriggerActionType.Vibration)
+        {
+            int intensity = motor.Intensity;
+            if (ImGui.SliderInt("##MotorSlider" + deviceAction.DeviceName + motorIndex, ref intensity, 0, 100))
+            {
+                motor.Intensity = (byte)intensity;
+            }
+        }
+        else
+        {
+            _uiShared.DrawComboSearchable(
+                "PatternSelector" + deviceAction.DeviceName + motorIndex,
+                200f,
+                ref patternSearchString,
+                _patternHandler.GetPatternsForSearch(),
+                pattern => pattern.Name,
+                false,
+                i =>
+                {
+                    motor.PatternIdentifier = i?.UniqueIdentifier ?? Guid.Empty;
+                    motor.StartPoint = i?.StartPoint ?? TimeSpan.Zero;
+                },
+                default,
+                "No Pattern Selected"
+            );
+        }
+    }
+
 
     private bool CanDrawSpellActionTriggerUI()
     {

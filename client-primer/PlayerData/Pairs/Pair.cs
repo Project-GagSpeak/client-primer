@@ -68,6 +68,9 @@ public class Pair
     public CharacterWardrobeData? LastReceivedWardrobeData { get; set; }
     public CharacterAliasData? LastReceivedAliasData { get; set; }
     public CharacterToyboxData? LastReceivedToyboxData { get; set; }
+    public PiShockPermissions LastOwnPiShockPermsForPair { get; set; } = new(false, false, false, -1, -1);
+    public PiShockPermissions LastPairGlobalShockPerms { get; set; } = new(false, false, false, -1, -1);
+    public PiShockPermissions LastPairPiShockPermsForYou { get; set; } = new(false, false, false, -1, -1);
 
 
     // Most of these attributes should be self explanatory, but they are public methods you can fetch from the pair manager.
@@ -197,7 +200,7 @@ public class Pair
     /// 
     /// Because of this, simply applying the data is enough.
     /// </summary>
-    public void ApplyPatternData(OnlineUserCharaToyboxDataDto data)
+    public void ApplyToyboxData(OnlineUserCharaToyboxDataDto data)
     {
         _logger.LogDebug("Applying updated pattern data for {uid}", data.User.UID);
         // update the full appearance, since we assume this is handled correctly and only called by owner of pair.
@@ -205,7 +208,25 @@ public class Pair
         LastReceivedToyboxData = data.ToyboxInfo;
     }
 
-
+    public void ApplyPiShockPermData(OnlineUserCharaPiShockPermDto data)
+    {
+        if (data.UpdateKind == DataUpdateKind.PiShockGlobalUpdated)
+        {
+            LastPairGlobalShockPerms = data.shockPerms;
+        }
+        else if (data.UpdateKind == DataUpdateKind.PiShockOwnPermsForPairUpdated)
+        {
+            LastOwnPiShockPermsForPair = data.shockPerms;
+        }
+        else if (data.UpdateKind == DataUpdateKind.PiShockPairPermsForUserUpdated)
+        {
+            LastPairPiShockPermsForYou = data.shockPerms;
+        }
+        else
+        {
+            _logger.LogWarning("Failed to apply permission updates");
+        }
+    }
 
     /// <summary> Method that applies the last received data to the cached player.
     /// <para> It does this only if the CachedPlayer is not null, and the LastRecievedCharacterData is not null.</para>

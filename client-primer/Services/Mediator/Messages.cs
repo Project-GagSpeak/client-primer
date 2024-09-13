@@ -160,6 +160,8 @@ public record CharacterAppearanceDataCreatedMessage(CharacterAppearanceData Char
 public record CharacterWardrobeDataCreatedMessage(CharacterWardrobeData CharacterWardrobeData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterAliasDataCreatedMessage(CharacterAliasData CharacterAliasData, UserData userData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterToyboxDataCreatedMessage(CharacterToyboxData CharacterToyboxData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterPiShockPermDataCreatedMessage(PiShockPermissions shockPerms, UserData userData, DataUpdateKind UpdateKind) : SameThreadMessage;
+
 public record GameObjectHandlerCreatedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
 public record GameObjectHandlerDestroyedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
 

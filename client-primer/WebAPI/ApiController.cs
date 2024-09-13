@@ -763,7 +763,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             OnUserReceiveOtherDataAlias(dto => _ = Client_UserReceiveOtherDataAlias(dto));
             OnUserReceiveOwnDataToybox(dto => _ = Client_UserReceiveOwnDataToybox(dto));
             OnUserReceiveOtherDataToybox(dto => _ = Client_UserReceiveOtherDataToybox(dto));
+            OnUserReceiveDataPiShock(dto => _ = Client_UserReceiveDataPiShock(dto));
 
+            OnUserReceiveShockInstruction(dto => _ = Client_UserReceiveShockInstruction(dto));
             OnGlobalChatMessage(dto => _ = Client_GlobalChatMessage(dto));
             OnUserSendOffline(dto => _ = Client_UserSendOffline(dto));
             OnUserSendOnline(dto => _ = Client_UserSendOnline(dto));

@@ -149,8 +149,8 @@ public static class GagSpeakServiceExtensions
 {
     #region GenericServices
     public static IServiceCollection AddGagSpeakGeneric(this IServiceCollection services,
-        IDalamudPluginInterface pi, IAddonLifecycle alc, IClientState cs, IChatGui cg, ICondition con, 
-        IDataManager dm, IDtrBar dtr, IFramework fw, IKeyState ks, IGameGui gg, IGameInteropProvider gip, 
+        IDalamudPluginInterface pi, IAddonLifecycle alc, IClientState cs, IChatGui cg, ICondition con,
+        IDataManager dm, IDtrBar dtr, IFramework fw, IKeyState ks, IGameGui gg, IGameInteropProvider gip,
         IObjectTable ot, ISigScanner ss, ITargetManager tm, ITextureProvider tp)
     => services
         // Events Services
@@ -272,7 +272,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ActiveGagsPanel>()
         .AddSingleton((s) => new GagStoragePanel(s.GetRequiredService<ILogger<GagStoragePanel>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
-            s.GetRequiredService<UiSharedService>(), s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(), 
+            s.GetRequiredService<UiSharedService>(), s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(),
             s.GetRequiredService<TextureService>(), s.GetRequiredService<IpcCallerMoodles>(), s.GetRequiredService<MoodlesAssociations>(), dm))
 
         // Wardrobe UI
@@ -282,8 +282,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new MoodlesService(s.GetRequiredService<ILogger<MoodlesService>>(), s.GetRequiredService<UiSharedService>(), dm))
         .AddSingleton<MoodlesManager>()
         .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<WardrobeHandler>(), 
-            s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(), 
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<WardrobeHandler>(),
+            s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(),
             s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(), s.GetRequiredService<MoodlesAssociations>(),
             s.GetRequiredService<PairManager>(), dm))
         .AddSingleton<RestraintCosmetics>()
@@ -328,6 +328,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ApiController>()
         .AddSingleton<HubFactory>()
         .AddSingleton<TokenProvider>()
+        .AddSingleton<PiShockProvider>()
 
         // Service Services
         .AddSingleton<SafewordService>()

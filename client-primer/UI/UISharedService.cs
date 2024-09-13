@@ -869,16 +869,18 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
     }
 
-    public T? DrawCombo<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName,
+    public void DrawCombo<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName,
         Action<T?>? onSelected = null, T? initialSelectedItem = default, bool shouldShowLabel = true, 
         ImGuiComboFlags flags = ImGuiComboFlags.None, string defaultPreviewText = "No Items Available...")
     {
         if (!comboItems.Any())
         {
             ImGui.SetNextItemWidth(width);
-            ImGui.BeginCombo(comboName, defaultPreviewText, flags);
-            ImGui.EndCombo();
-            return default;
+            if (ImGui.BeginCombo(comboName, defaultPreviewText, flags))
+            {
+                ImGui.EndCombo();
+            }
+            return;
         }
 
         if (!_selectedComboItems.TryGetValue(comboName, out var selectedItem) && selectedItem == null)
@@ -920,8 +922,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             _selectedComboItems[comboName] = selectedItem!;
             onSelected?.Invoke((T)selectedItem!);
         }
-
-        return (T)_selectedComboItems[comboName];
+        return;
     }
 
     public T? DrawComboSearchable<T>(string comboName, float width, ref string searchString, IEnumerable<T> comboItems,

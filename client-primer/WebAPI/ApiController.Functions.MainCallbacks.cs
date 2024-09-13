@@ -462,7 +462,24 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveOtherDataToybox(OnlineUserCharaToyboxDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherDataToybox: {dataDto}", dataDto);
-        ExecuteSafely(() => _pairManager.ReceiveCharaPatternData(dataDto));
+        ExecuteSafely(() => _pairManager.ReceiveCharaToyboxData(dataDto));
+        return Task.CompletedTask;
+    }
+
+    public Task Client_UserReceiveDataPiShock(OnlineUserCharaPiShockPermDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveOwnDataPiShock: {dataDto}", dataDto);
+        // only case that doesn't offer feedback is updating own global, which should have been done before it was even sent out.
+        ExecuteSafely(() => _pairManager.ReceiveCharaPiShockPermData(dataDto));
+        return Task.CompletedTask;
+    }
+
+    /// <summary> Recieve a Shock Instruction from another Pair. </summary>
+    public Task Client_UserReceiveShockInstruction(ShockCollarActionDto dto)
+    {
+        Logger.LogInformation("Received Instruction from: {dto}" + Environment.NewLine
+            + "OpCode: {opcode}, Intensity: {intensity}, Duration Value: {duration}"
+            , dto.user.AliasOrUID, dto.opCode, dto.intensity, dto.duration);
         return Task.CompletedTask;
     }
 
@@ -720,6 +737,17 @@ public partial class ApiController // Partial class for MainHub Callbacks
         _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataToybox), act);
     }
 
+    public void OnUserReceiveDataPiShock(Action<OnlineUserCharaPiShockPermDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveDataPiShock), act);
+    }
+
+    public void OnUserReceiveShockInstruction(Action<ShockCollarActionDto> act)
+    {
+        if (_initialized) return;
+        _gagspeakHub!.On(nameof(Client_UserReceiveShockInstruction), act);
+    }
 
     public void OnGlobalChatMessage(Action<GlobalChatMessageDto> act)
     {

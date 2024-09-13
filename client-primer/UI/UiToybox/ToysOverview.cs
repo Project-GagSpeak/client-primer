@@ -164,9 +164,9 @@ public class ToyboxOverview
             ImGui.TextUnformatted(scanText);
         }
 
-        foreach (var device in _vibeService.DeviceHandler.Devices)
+        foreach (var device in _vibeService.DeviceHandler.ConnectedDevices)
         {
-            DrawDeviceInfo(device.ClientDevice);
+            DrawDeviceInfo(device.SexToyDevice);
         }
     }
 

@@ -19,7 +19,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly DeviceFactory _deviceFactory;
 
-    public readonly List<ConnectedDevice> Devices = new List<ConnectedDevice>();
+    private readonly List<ConnectedDevice> Devices = new List<ConnectedDevice>();
     private readonly Dictionary<string, int> ActiveDeviceAndMotors = new Dictionary<string, int>();
 
     // maybe store triggers here in the future, or in the trigger handler, but not now.
@@ -56,6 +56,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
     public const string IntifaceClientName = "Connected To Intiface";
     public bool ConnectedToIntiface => ButtplugClient != null && ButtplugClient.Connected;
     public bool AnyDeviceConnected => ButtplugClient.Connected && ButtplugClient.Devices.Any();
+    public List<ConnectedDevice> ConnectedDevices => Devices;
     public int ConnectedDevicesCount => Devices.Count;
     public bool ScanningForDevices { get; private set; }
 
@@ -80,6 +81,9 @@ public class DeviceController : DisposableMediatorSubscriberBase
         // cancel the battery check token
         BatteryCheckCTS?.Cancel();
     }
+
+    public ConnectedDevice? GetDeviceByName(string DeviceName)
+        => Devices.FirstOrDefault(x => x.DeviceName == DeviceName); 
 
     private ButtplugWebsocketConnector NewWebsocketConnection()
     {
@@ -111,7 +115,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
         try
         {
             // find the device in the list and remove it
-            int IndexInDeviceListToRemove = Devices.FindIndex((ConnectedDevice device) => device.DeviceId == msg.Device.Index);
+            int IndexInDeviceListToRemove = Devices.FindIndex((ConnectedDevice device) => device.DeviceIdx == msg.Device.Index);
             // see if the index is valid.
             if (IndexInDeviceListToRemove > -1)
             {
@@ -372,12 +376,6 @@ public class DeviceController : DisposableMediatorSubscriberBase
 
             if (device.CanRotate)
                 device.SendRotate(intensity);
-
-            if (device.CanLinear)
-                device.SendLinear(intensity);
-
-            if (device.CanOscillate)
-                device.SendOscillate(intensity);
         }
     }
 
@@ -389,16 +387,6 @@ public class DeviceController : DisposableMediatorSubscriberBase
     public void SendRotateToDevice(ConnectedDevice device, byte intensity, bool clockwise = true, int motorId = -1)
     {
         device.SendRotate(intensity, clockwise, motorId);
-    }
-
-    public void SendLinearToDevice(ConnectedDevice device, byte intensity, int motorId = -1)
-    {
-        device.SendLinear(intensity, motorId);
-    }
-
-    public void SendOscillateToDevice(ConnectedDevice device, byte intensity, int motorId = -1)
-    {
-        device.SendOscillate(intensity, motorId);
     }
 
     public void SendStopRequestToDevice(ConnectedDevice device)

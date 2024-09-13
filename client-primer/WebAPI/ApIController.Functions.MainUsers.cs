@@ -116,6 +116,13 @@ public partial class ApiController // Partial class for MainHub User Functions.
         await _gagspeakHub!.InvokeAsync(nameof(SendGlobalChat), dto).ConfigureAwait(false);
     }
 
+    public async Task UserShockActionOnPair(ShockCollarActionDto dto)
+    {
+        if (!IsConnected) return;
+        await _gagspeakHub!.InvokeAsync(nameof(UserShockActionOnPair), dto).ConfigureAwait(false);
+    }
+
+
     /// <summary> 
     /// Send a request to the server asking it to provide the profile of the user defined in the UserDto.
     /// </summary>
@@ -274,6 +281,19 @@ public partial class ApiController // Partial class for MainHub User Functions.
             Logger.LogWarning(ex, "Failed to Push character data");
         }
     }
+
+    public async Task UserPushPiShockUpdate(UserCharaPiShockPermMessageDto dto)
+    {
+        try
+        {
+            await _gagspeakHub!.InvokeAsync(nameof(UserPushPiShockUpdate), dto).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Failed to Push PiShock update");
+        }
+    }
+
 
     public async Task UserPushAllGlobalPerms(UserAllGlobalPermChangeDto allGlobalPerms)
     {

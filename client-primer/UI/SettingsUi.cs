@@ -446,6 +446,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _lastRefresh = DateTime.UtcNow;
             _playerCharacterManager.UpdateGlobalPiShockPerms();
         }
+        UiSharedService.AttachToolTip("Forces Global PiShock Share Code to grab latest data from the API and push it to other online pairs.");
         ImUtf8.SameLineInner();
         ImGui.TextUnformatted("PiShock Global Share Code");
         _uiShared.DrawHelpText("Global PiShock Share Code used for your connected ShockCollar." + Environment.NewLine + "NOTE:" + Environment.NewLine

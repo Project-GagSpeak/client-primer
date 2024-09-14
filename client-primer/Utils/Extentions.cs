@@ -137,6 +137,16 @@ public static class UtilsExtensions
         CenteredLineWidths[id] = ImGui.GetCursorPosX() - oldCur;
         ImGui.Dummy(Vector2.Zero);
     }
+
+    public static string ToName(this TriggerActionType triggerActionType)
+    {
+        return triggerActionType switch
+        {
+            TriggerActionType.Vibration => "Vibration",
+            TriggerActionType.PatternPlayback => "Pattern",
+            _ => "UNK"
+        };
+    }
     public static string ToName(this TriggerActionKind triggerActionKind)
     {
         return triggerActionKind switch

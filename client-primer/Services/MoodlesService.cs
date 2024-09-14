@@ -42,8 +42,10 @@ public class MoodlesService
         if (!MoodlesPresets.Any())
         {
             ImGui.SetNextItemWidth(width);
-            ImGui.BeginCombo("##" + comboLabel, "No Presets Available...");
-            ImGui.EndCombo();
+            if (ImGui.BeginCombo("##" + comboLabel, "No Presets Available..."))
+            {
+                ImGui.EndCombo();
+            }
             return false;
         }
         // Get the currently selected item from the dictionary storing selections for each combo box.

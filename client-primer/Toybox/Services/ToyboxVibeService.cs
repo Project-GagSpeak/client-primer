@@ -2,6 +2,7 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.SimulatedVibe;
+using GagSpeak.Utils;
 using GagspeakAPI.Data.VibeServer;
 using Microsoft.Extensions.Logging;
 using NAudio.Wave;
@@ -31,7 +32,14 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<ConnectedMessage>(this, _ =>
         {
             if (_clientConfigs.GagspeakConfig.IntifaceAutoConnect && !_deviceHandler.ConnectedToIntiface)
+            {
+                if (IntifaceHelper.AppPath == string.Empty)
+                {
+                    IntifaceHelper.GetApplicationPath();
+                }
+                IntifaceHelper.OpenIntiface(logger, false);
                 _deviceHandler.ConnectToIntifaceAsync();
+            }
         });
     }
 

@@ -117,8 +117,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         // otherwise, if the code is not null or empty but the permissions are not initialized, initialize them.
         else if (!pair.UserPairOwnUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty())
         {
-            pair.LastOwnPiShockPermsForPair =
-                await _piShockProvider.GetPermissionsFromCode(pair.UserPairOwnUniquePairPerms.ShockCollarShareCode);
+            pair.LastOwnPiShockPermsForPair = await _piShockProvider.GetPermissionsFromCode(pair.UserPairOwnUniquePairPerms.ShockCollarShareCode);
             return pair.LastOwnPiShockPermsForPair;
         }
         // otherwise, if the code is null or empty, so return default
@@ -142,9 +141,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
         var userPairs = _pairManager.GetOnlineUserPairs();
 
-        bool hasApiOn = !string.IsNullOrEmpty(_clientConfigs.GagspeakConfig.PiShockApiKey)
-            && !string.IsNullOrEmpty(_clientConfigs.GagspeakConfig.PiShockUsername)
-            && !string.IsNullOrEmpty(_playerCharGlobalPerms.GlobalShockShareCode);
+        bool hasApiOn = !string.IsNullOrEmpty(_clientConfigs.GagspeakConfig.PiShockApiKey) && !string.IsNullOrEmpty(_clientConfigs.GagspeakConfig.PiShockUsername);
 
         List<Task<(string UID, PiShockPermissions)>> getPermissionsTasks = new();
 

@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 1, 3)
+            .RegisterBugfix("Finally fixed the bug where GagSpeak crashed your game when accessing the Moodles page.")
+            .RegisterBugfix("This bug occurred for players who had 0 presets made, and it tried to draw a blank combo box incorrectly.");
         VersionEntry(0, 8, 0, 0)
             .RegisterMain("PiShock Beta Integration is implemented.")
             .RegisterFeature("PiShock Options in the settings window have been appended.")

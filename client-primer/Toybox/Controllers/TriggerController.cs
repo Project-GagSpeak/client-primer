@@ -45,6 +45,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         ActionEffectMonitor.ActionEffectEntryEvent -= OnActionEffectEvent;
         base.Dispose(disposing);
     }
+
     public List<ChatTrigger> CheckActiveChatTriggers(XivChatType chatType, string senderNameWithWorld, string message)
     {
         // return the list of chat triggers whom the triggeredby matches the senderNamewithworld, and the chatmessage is contained in the message string with string comparison ordinal.

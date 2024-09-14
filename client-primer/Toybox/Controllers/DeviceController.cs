@@ -11,7 +11,7 @@ namespace GagSpeak.PlayerData.Handlers;
 /// </summary>
 public class DeviceController : DisposableMediatorSubscriberBase
 {
-    private ButtplugClient ButtplugClient;
+    private ButtplugClient ButtPlugClient;
     public ButtplugWebsocketConnector WebsocketConnector;
     private CancellationTokenSource? BatteryCheckCTS = new();
 
@@ -34,28 +34,19 @@ public class DeviceController : DisposableMediatorSubscriberBase
         // create the websocket connector
         WebsocketConnector = NewWebsocketConnection();
         // initialize the client
-        ButtplugClient = new ButtplugClient(IntifaceClientName);
+        ButtPlugClient = new ButtplugClient(IntifaceClientName);
 
         // subscribe to the events we should subscribe to, and attach them to our mediator subscriber
-        ButtplugClient.DeviceAdded += (sender, args) => Mediator.Publish(new ToyDeviceAdded(args.Device));
-        ButtplugClient.DeviceRemoved += (sender, args) => Mediator.Publish(new ToyDeviceRemoved(args.Device));
-        ButtplugClient.ScanningFinished += (sender, args) => Mediator.Publish(new ToyScanFinished());
-        ButtplugClient.ServerDisconnect += (sender, args) => Mediator.Publish(new ButtplugClientDisconnected());
-
-        // subscribe to our mediator events
-        Mediator.Subscribe<ToyDeviceAdded>(this, (msg) => OnDeviceAdded(msg));
-
-        Mediator.Subscribe<ToyDeviceRemoved>(this, (msg) => OnDeviceRemoved(msg));
-
-        Mediator.Subscribe<ToyScanFinished>(this, (msg) => OnScanningFinished());
-
-        Mediator.Subscribe<ButtplugClientDisconnected>(this, (msg) => OnButtplugClientDisconnected());
+        ButtPlugClient.DeviceAdded += (sender, args) => OnDeviceAdded(args.Device);
+        ButtPlugClient.DeviceRemoved += (sender, args) => OnDeviceRemoved(args.Device);
+        ButtPlugClient.ScanningFinished += (sender, args) => OnScanningFinished();
+        ButtPlugClient.ServerDisconnect += (sender, args) => OnButtplugClientDisconnected();
     }
 
     // public accessors.
     public const string IntifaceClientName = "Connected To Intiface";
-    public bool ConnectedToIntiface => ButtplugClient != null && ButtplugClient.Connected;
-    public bool AnyDeviceConnected => ButtplugClient.Connected && ButtplugClient.Devices.Any();
+    public bool ConnectedToIntiface => ButtPlugClient != null && ButtPlugClient.Connected;
+    public bool AnyDeviceConnected => ButtPlugClient.Connected && ButtPlugClient.Devices.Any();
     public List<ConnectedDevice> ConnectedDevices => Devices;
     public int ConnectedDevicesCount => Devices.Count;
     public bool ScanningForDevices { get; private set; }
@@ -64,17 +55,17 @@ public class DeviceController : DisposableMediatorSubscriberBase
     {
         base.Dispose(disposing);
         // Ensure ButtplugClient is not null before trying to unsubscribe and dispose
-        if (ButtplugClient != null)
+        if (ButtPlugClient != null)
         {
             // Unsubscribe from events
-            ButtplugClient.DeviceAdded -= (sender, args) => Mediator.Publish(new ToyDeviceAdded(args.Device));
-            ButtplugClient.DeviceRemoved -= (sender, args) => Mediator.Publish(new ToyDeviceRemoved(args.Device));
-            ButtplugClient.ScanningFinished -= (sender, args) => Mediator.Publish(new ToyScanFinished());
-            ButtplugClient.ServerDisconnect -= (sender, args) => Mediator.Publish(new ButtplugClientDisconnected());
+            ButtPlugClient.DeviceAdded -= (sender, args) => OnDeviceAdded(args.Device);
+            ButtPlugClient.DeviceRemoved -= (sender, args) => OnDeviceRemoved(args.Device);
+            ButtPlugClient.ScanningFinished -= (sender, args) => OnScanningFinished();
+            ButtPlugClient.ServerDisconnect -= (sender, args) => OnButtplugClientDisconnected();
 
-            // Disconnect and dispose ButtplugClient
-            ButtplugClient.DisconnectAsync().Wait();
-            ButtplugClient.Dispose();
+            // Disconnect and dispose ButtPlugClient
+            ButtPlugClient.DisconnectAsync().Wait();
+            ButtPlugClient.Dispose();
             // dispose the connector
             WebsocketConnector.Dispose();
         }
@@ -94,13 +85,13 @@ public class DeviceController : DisposableMediatorSubscriberBase
 
     #region EventHandling
     // handles event where device is added to Intiface Central
-    private void OnDeviceAdded(ToyDeviceAdded msg)
+    private void OnDeviceAdded(ButtplugClientDevice addedDevice)
     {
         try
         {
             // use our factory to create the new device
-            ConnectedDevice newDevice = _deviceFactory.CreateConnectedDevice(msg.Device);
-            // set that it is sucessfully connected and append it
+            ConnectedDevice newDevice = _deviceFactory.CreateConnectedDevice(addedDevice);
+            // set that it is successfully connected and append it
             newDevice.IsConnected = true;
             Devices.Add(newDevice);
         }
@@ -110,12 +101,12 @@ public class DeviceController : DisposableMediatorSubscriberBase
         }
     }
 
-    private void OnDeviceRemoved(ToyDeviceRemoved msg)
+    private void OnDeviceRemoved(ButtplugClientDevice removedDevice)
     {
         try
         {
             // find the device in the list and remove it
-            int IndexInDeviceListToRemove = Devices.FindIndex((ConnectedDevice device) => device.DeviceIdx == msg.Device.Index);
+            int IndexInDeviceListToRemove = Devices.FindIndex((ConnectedDevice device) => device.DeviceIdx == removedDevice.Index);
             // see if the index is valid.
             if (IndexInDeviceListToRemove > -1)
             {
@@ -159,12 +150,12 @@ public class DeviceController : DisposableMediatorSubscriberBase
         try
         {
             // if we satisfy any conditions to refuse connection, early return
-            if (ButtplugClient == null)
+            if (ButtPlugClient == null)
             {
                 Logger.LogError("ButtplugClient is null. Cannot connect to Intiface Central");
                 return;
             }
-            else if (ButtplugClient.Connected)
+            else if (ButtPlugClient.Connected)
             {
                 Logger.LogInformation("Already connected to Intiface Central");
                 return;
@@ -181,7 +172,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
             }
             // Attempt connection to server
             Logger.LogDebug("Attempting connection to Intiface Central");
-            await ButtplugClient.ConnectAsync(WebsocketConnector);
+            await ButtPlugClient.ConnectAsync(WebsocketConnector);
         }
         catch (ButtplugClientConnectorException socketEx)
         {
@@ -230,12 +221,12 @@ public class DeviceController : DisposableMediatorSubscriberBase
         try
         {
             // see if we are currently conected to the server.
-            if (ButtplugClient.Connected)
+            if (ButtPlugClient.Connected)
             {
                 // if we are, disconnect.
-                await ButtplugClient.DisconnectAsync();
+                await ButtPlugClient.DisconnectAsync();
                 // if the disconnect was sucessful, handle the disconnect.
-                if (!ButtplugClient.Connected)
+                if (!ButtPlugClient.Connected)
                 {
                     Logger.LogInformation("Disconnected from Intiface Central");
                     ScanningForDevices = false;
@@ -303,7 +294,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
     public async Task StartDeviceScanAsync()
     {
         // begin scan if we are connected
-        if (!ButtplugClient.Connected)
+        if (!ButtPlugClient.Connected)
         {
             Logger.LogWarning("Cannot scan for devices if not connected to Intiface Central");
         }
@@ -312,7 +303,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
         try
         {
             ScanningForDevices = true;
-            await ButtplugClient.StartScanningAsync();
+            await ButtPlugClient.StartScanningAsync();
         }
         catch (Exception ex)
         {
@@ -324,7 +315,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
     public async Task StopDeviceScanAsync()
     {
         // stop the scan if we are connected
-        if (!ButtplugClient.Connected)
+        if (!ButtPlugClient.Connected)
         {
             Logger.LogWarning("Cannot stop scanning for devices if not connected to Intiface Central");
         }
@@ -332,7 +323,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
         Logger.LogDebug("Halting the scan for new devices to add");
         try
         {
-            await ButtplugClient.StopScanningAsync();
+            await ButtPlugClient.StopScanningAsync();
             if (ScanningForDevices)
             {
                 ScanningForDevices = false;
@@ -363,7 +354,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
     public void SendVibeToAllDevices(byte intensity)
     {
         // if we are not connected do not allow
-        if (!ConnectedToIntiface || ButtplugClient == null)
+        if (!ConnectedToIntiface || ButtPlugClient == null)
         {
             Logger.LogWarning("Cannot send vibration to devices if not connected to Intiface Central");
             return;

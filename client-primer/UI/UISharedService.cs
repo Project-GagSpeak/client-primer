@@ -529,8 +529,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         float num2 = 3f * ImGuiHelpers.GlobalScale;
         float x = width ?? vector.X + vector2.X + ImGui.GetStyle().FramePadding.X * 2f + num2;
         float frameHeight = ImGui.GetFrameHeight();
-        ImGui.SetCursorPosX(vector.X + ImGui.GetStyle().FramePadding.X * 2f + num2);
-        ImGui.SetNextItemWidth(x - vector.X - num2);
+        ImGui.SetCursorPosX(vector.X + ImGui.GetStyle().FramePadding.X * 2f);
+        ImGui.SetNextItemWidth(x - vector.X - num2 * 4); // idk why this works, it probably doesnt on different scaling. Idfk. Look into later.
         bool result = ImGui.SliderFloat(label+"##"+ id, ref valueRef, min, max, format);
 
         Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
@@ -577,8 +577,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         float num2 = 3f * ImGuiHelpers.GlobalScale;
         float x = width ?? vector.X + vector2.X + ImGui.GetStyle().FramePadding.X * 2f + num2;
         float frameHeight = ImGui.GetFrameHeight();
-        ImGui.SetCursorPosX(vector.X + ImGui.GetStyle().FramePadding.X * 2f + num2);
-        ImGui.SetNextItemWidth(x - vector.X - num2);
+        ImGui.SetCursorPosX(vector.X + ImGui.GetStyle().FramePadding.X * 2f);
+        ImGui.SetNextItemWidth(x - vector.X - num2*4); // idk why this works, it probably doesnt on different scaling. Idfk. Look into later.
         bool result = ImGui.InputTextWithHint(label, hint, ref inputStr, maxLength, ImGuiInputTextFlags.EnterReturnsTrue);
 
         Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);

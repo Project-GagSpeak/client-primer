@@ -678,7 +678,7 @@ public class ToyboxTriggerManager
         UiSharedService.ColorText("Trigger Action Kind", ImGuiColors.ParsedGold);
         _uiShared.DrawHelpText("The kind of action to perform when the trigger is activated.");
 
-        _uiShared.DrawCombo("##TriggerActionTypeCombo", 175f, Enum.GetValues<TriggerActionKind>(), 
+        _uiShared.DrawCombo("##TriggerActionTypeCombo"+trigger.TriggerIdentifier, 175f, Enum.GetValues<TriggerActionKind>(), 
         (triggerActionKind) => triggerActionKind.ToName(), (i) => trigger.TriggerActionKind = i, 
         trigger.TriggerActionKind, false);
         ImGui.Separator();
@@ -699,7 +699,7 @@ public class ToyboxTriggerManager
         UiSharedService.ColorText("Shock Collar Action", ImGuiColors.ParsedGold);
         _uiShared.DrawHelpText("What kind of action to inflict on the shock collar.");
 
-        _uiShared.DrawCombo("ShockCollarActionType", 100f, Enum.GetValues<ShockMode>(),
+        _uiShared.DrawCombo("ShockCollarActionType"+trigger.TriggerIdentifier, 100f, Enum.GetValues<ShockMode>(),
         (shockMode) => shockMode.ToString(), (i) => trigger.ShockTriggerAction.OpCode = i,
         trigger.ShockTriggerAction.OpCode, false);
 
@@ -711,7 +711,7 @@ public class ToyboxTriggerManager
             _uiShared.DrawHelpText("Adjust the intensity level that will be sent to the shock collar.");
 
             int intensity = trigger.ShockTriggerAction.Intensity;
-            if (ImGui.SliderInt("##ShockCollarIntensity", ref intensity, 0, 100))
+            if (ImGui.SliderInt("##ShockCollarIntensity" + trigger.TriggerIdentifier, ref intensity, 0, 100))
             {
                 trigger.ShockTriggerAction.Intensity = intensity;
             }
@@ -724,7 +724,7 @@ public class ToyboxTriggerManager
 
         var duration = trigger.ShockTriggerAction.Duration;
         float value = (float)duration.TotalSeconds + (float)duration.Milliseconds / 1000;
-        if (ImGui.SliderFloat("##ShockCollarDuration", ref value, 0.016f, 15f))
+        if (ImGui.SliderFloat("##ShockCollarDuration" + trigger.TriggerIdentifier, ref value, 0.016f, 15f))
         {
             int seconds = (int)value;
             int milliseconds = (int)((value - seconds) * 1000);
@@ -748,7 +748,7 @@ public class ToyboxTriggerManager
 
             UiSharedService.ColorText("Select and Add a Device", ImGuiColors.ParsedGold);
 
-            _uiShared.DrawCombo("##VibeDeviceTriggerSelector", width, deviceNames, (device) => device,
+            _uiShared.DrawCombo("##VibeDeviceTriggerSelector" + trigger.TriggerIdentifier, width, deviceNames, (device) => device,
             (i) => { SelectedDeviceName = i ?? string.Empty; }, default, false, ImGuiComboFlags.None, "No Devices Connected");
             ImUtf8.SameLineInner();
             if (_uiShared.IconButton(FontAwesomeIcon.Plus, null, null, SelectedDeviceName == string.Empty))
@@ -775,7 +775,6 @@ public class ToyboxTriggerManager
             // draw a collapsible header for each of the selected devices.
             for (var i = 0; i < deviceActions.Count; i++)
             {
-                _logger.LogInformation("Drawing DeviceAction: " + deviceActions[i].DeviceName);
                 if (ImGui.CollapsingHeader("Settings for Device: " + deviceActions[i].DeviceName))
                 {
                     DrawDeviceActions(deviceActions[i], i);
@@ -803,12 +802,9 @@ public class ToyboxTriggerManager
         _uiShared.DrawHelpText("Determines if this device will have its vibration motors activated.");
 
         using (ImRaii.Disabled(!vibrates))
-        using (var indent = ImRaii.PushIndent())
+        for (var i = 0; i < deviceAction.VibrateMotorCount; i++)
         {
-            for (var i = 0; i < deviceAction.VibrateMotorCount; i++)
-            {
-                DrawMotorAction(deviceAction, i);
-            }
+            DrawMotorAction(deviceAction, i);
         }
     }
 
@@ -817,9 +813,11 @@ public class ToyboxTriggerManager
         var motor = deviceAction.VibrateActions.FirstOrDefault(x => x.MotorIndex == motorIndex);
         bool enabled = motor != null;
 
+        ImGui.AlignTextToFramePadding();
         UiSharedService.ColorText("Motor " + (motorIndex + 1), ImGuiColors.ParsedGold);
         ImGui.SameLine();
 
+        ImGui.AlignTextToFramePadding();
         if (ImGui.Checkbox("##Motor" + motorIndex + deviceAction.DeviceName, ref enabled))
         {
             if (enabled)
@@ -831,6 +829,7 @@ public class ToyboxTriggerManager
                 deviceAction.VibrateActions.RemoveAll(x => x.MotorIndex == motorIndex);
             }
         }
+        UiSharedService.AttachToolTip("Enable/Disable Motor Activation on trigger execution");
 
         if (motor == null)
         {
@@ -843,19 +842,22 @@ public class ToyboxTriggerManager
         ImUtf8.SameLineInner();
         _uiShared.DrawCombo(
             "##ActionType" + deviceAction.DeviceName + motorIndex,
-            ImGui.CalcTextSize("Vibration  ").X,
+            ImGui.CalcTextSize("Vibration").X + ImGui.GetStyle().FramePadding.X*2,
             Enum.GetValues<TriggerActionType>(),
-            type => type.ToString(),
+            type => type.ToName(),
             i => motor.ExecuteType = i,
             motor.ExecuteType,
             false,
             ImGuiComboFlags.NoArrowButton
         );
+        UiSharedService.AttachToolTip("What should be played to this motor?");
+
 
         ImUtf8.SameLineInner();
         if (motor.ExecuteType == TriggerActionType.Vibration)
         {
             int intensity = motor.Intensity;
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
             if (ImGui.SliderInt("##MotorSlider" + deviceAction.DeviceName + motorIndex, ref intensity, 0, 100))
             {
                 motor.Intensity = (byte)intensity;
@@ -865,7 +867,7 @@ public class ToyboxTriggerManager
         {
             _uiShared.DrawComboSearchable(
                 "PatternSelector" + deviceAction.DeviceName + motorIndex,
-                200f,
+                ImGui.GetContentRegionAvail().X,
                 ref patternSearchString,
                 _patternHandler.GetPatternsForSearch(),
                 pattern => pattern.Name,

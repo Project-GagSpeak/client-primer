@@ -1,10 +1,12 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets2;
+using OtterGui.Text;
 using System.Security;
 using static FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMJIGatheringHouse;
 using static GagSpeak.UI.Permissions.UserPairPermsSticky;
@@ -323,19 +325,12 @@ public partial class UserPairPermsSticky
             true, // do not allow user to change this permission.
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawOwnSetting("IsBlindfolded", "AllowBlindfold",
-            UserPairForPerms.UserPairOwnUniquePairPerms.IsBlindfolded ? "Currently Blindfolded" : "Not Blindfolded",
-            UserPairForPerms.UserPairOwnUniquePairPerms.IsBlindfolded ? FontAwesomeIcon.Blind : FontAwesomeIcon.EyeSlash,
-            UserPairForPerms.UserPairOwnUniquePairPerms.IsBlindfolded ? $"You are currently blindfolded by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently blindfolding you.",
-            true, // do not allow user to change this permission.
-            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
-
-
         string shockCollarPairShareCode = UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode ?? string.Empty;
         using (var group = ImRaii.Group())
         {
-            if (_uiShared.IconInputText("ShockCollarShareCode"+PairUID, FontAwesomeIcon.ShareAlt, "Share Code", "Unique Share Code...", 
-            ref shockCollarPairShareCode, 40, IconButtonTextWidth * .6f, true, false)) 
+            float width = IconButtonTextWidth - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Sync, "Refresh") + ImGui.GetFrameHeight();
+            if (_uiShared.IconInputText("ShockCollarShareCode"+PairUID, FontAwesomeIcon.ShareAlt, string.Empty, "Unique Share Code...", 
+            ref shockCollarPairShareCode, 40, width, true, false)) 
             {
                 UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode = shockCollarPairShareCode;
             }
@@ -349,6 +344,12 @@ public partial class UserPairPermsSticky
             UiSharedService.AttachToolTip($"Unique Share Code for {PairNickOrAliasOrUID}." + Environment.NewLine
             + "This should be a Separate Share Code from your Global Code." + Environment.NewLine
             + $"Unique Share Codes can have elevated settings higher than the Global Code, that only {PairNickOrAliasOrUID} can use.");
+            ImUtf8.SameLineInner();
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Refresh", null, false, DateTime.UtcNow - LastRefresh < TimeSpan.FromSeconds(15) || !UniqueShockCollarPermsExist()))
+            {
+                LastRefresh = DateTime.UtcNow;
+                Mediator.Publish(new HardcoreUpdatedShareCodeForPair(UserPairForPerms, shockCollarPairShareCode));
+            }
         }
         
         // special case for this.
@@ -356,7 +357,7 @@ public partial class UserPairPermsSticky
         using (var group = ImRaii.Group())
         {
             if (_uiShared.IconSliderFloat("##ClientSetMaxVibeDurationForPair"+PairUID, FontAwesomeIcon.Stopwatch, "Max Vibe Duration",
-                ref seconds, 0.1f, 15f, IconButtonTextWidth * .6f, true, false))
+                ref seconds, 0.1f, 15f, IconButtonTextWidth * .65f, true, !UniqueShockCollarPermsExist()))
             {
                 UserPairForPerms.UserPairOwnUniquePairPerms.MaxVibrateDuration = TimeSpan.FromSeconds(seconds);
             }
@@ -369,6 +370,8 @@ public partial class UserPairPermsSticky
             UiSharedService.AttachToolTip("Sets the Max Duration you allow this pair to vibrate your Shock Collar for.");
         }
     }
+
+    private DateTime LastRefresh = DateTime.MinValue;
 
     /// <summary>
     /// The primary call for displaying a setting for the client permissions.

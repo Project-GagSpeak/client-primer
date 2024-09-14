@@ -29,6 +29,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
     private readonly MoodlesService _moodlesService;
     private readonly PermissionPresetService _presetService;
     private readonly PermActionsComponents _permActions;
+    private readonly PiShockProvider _shockProvider;
     private readonly IClientState _clientState;
 
     public enum PermissionType { Global, UniquePairPerm, UniquePairPermEditAccess };

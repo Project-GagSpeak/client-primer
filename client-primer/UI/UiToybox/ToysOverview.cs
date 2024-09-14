@@ -4,21 +4,16 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Client.Graphics.Kernel;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagSpeak.UI.UiRemote;
+using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.VibeServer;
 using ImGuiNET;
 using OtterGui.Text;
-using PInvoke;
-using System.Media;
-using System.Runtime.InteropServices;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkUnitBase.Delegates;
 
 namespace GagSpeak.UI.UiToybox;
 
@@ -48,11 +43,12 @@ public class ToyboxOverview
         _vibeService = vibeService;
 
         // grab path to the intiface
-        IntifacePath = GetApplicationPath();
+        if (IntifaceHelper.AppPath == string.Empty)
+        {
+            IntifaceHelper.GetApplicationPath();
+        }
     }
 
-
-    private string IntifacePath; // the path to intiface central.exe
     public void DrawOverviewPanel()
     {
         // draw the top display field for Intiface connectivity, similar to our other servers.
@@ -230,18 +226,6 @@ public class ToyboxOverview
         }
         ImGui.Unindent();
 
-        List<GenericDeviceMessageAttributes> ConstrictAttributes = Device.GenericAcutatorAttributes(ActuatorType.Constrict);
-        ImGui.Text("Linear Attributes:");
-        ImGui.Indent();
-        foreach (var attr in ConstrictAttributes)
-        {
-            ImGui.Text("Feature: " + attr.FeatureDescriptor);
-            ImGui.Text("Actuator Type: " + attr.ActuatorType);
-            ImGui.Text("Step Count: " + attr.StepCount);
-            ImGui.Text("Index: " + attr.Index);
-        }
-        ImGui.Unindent();
-
         // Check if the device has a battery
         ImGui.Text("Has Battery: " + Device.HasBattery);
     }
@@ -328,50 +312,11 @@ public class ToyboxOverview
 
         if (_uiShared.IconButton(intifaceOpenIcon))
         {
-            // search for the intiface celtral window
-            IntPtr windowHandle = User32.FindWindow(null, "Intiface\u00AE Central");
-            // if it's present, place it to the foreground
-            if (windowHandle != IntPtr.Zero)
-            {
-                _logger.LogDebug("Intiface Central found, bringing to foreground.");
-                User32.SetForegroundWindow(windowHandle);
-            }
-            // otherwise, start the process to open intiface central
-            else if (!string.IsNullOrEmpty(IntifacePath) && File.Exists(IntifacePath))
-            {
-                _logger.LogInformation("Starting Intiface Central");
-                Process.Start(IntifacePath);
-            }
-            // or just open the installer if it doesnt exist.
-            else
-            {
-                _logger.LogWarning("Application not found, redirecting you to download installer.");
-                Util.OpenLink("https://intiface.com/central/");
-            }
+            IntifaceHelper.OpenIntiface(_logger, true);
         }
         UiSharedService.AttachToolTip("Opens Intiface Central on your PC for connection.\nIf application is not detected, opens a link to installer.");
 
         // draw out the vertical slider.
         ImGui.Separator();
     }
-
-
-    /// <summary> Gets the application running path for Intiface Central.exe if installed.</summary>
-    static string GetApplicationPath()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            string appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            return Path.Combine(appData, "IntifaceCentral", "intiface_central.exe");
-        }
-        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-        {
-            // Adjust the path according to where the application resides on macOS
-            string homePath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-            return Path.Combine(homePath, "Applications", "IntifaceCentral", "intiface_central.app");
-        }
-        // Add more conditions here for other operating systems if necessary
-        return null!;
-    }
-
 }

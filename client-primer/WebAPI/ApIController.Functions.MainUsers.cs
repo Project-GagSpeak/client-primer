@@ -9,6 +9,7 @@ using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.IPC;
 using GagspeakAPI.Dto.Patterns;
+using GagspeakAPI.Data.Permissions;
 
 namespace GagSpeak.WebAPI;
 
@@ -497,7 +498,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// </summary>
     /// <param name="data"> the data to be sent to the list of users </param>
     /// <param name="onlineCharacters"> the online characters the data will be sent to </param>
-    public async Task PushCharacterToyboxDataData(CharacterToyboxData data, List<UserData> onlineCharacters, DataUpdateKind updateKind)
+    public async Task PushCharacterToyboxData(CharacterToyboxData data, List<UserData> onlineCharacters, DataUpdateKind updateKind)
     {
         if (!IsConnected) return;
 
@@ -509,6 +510,19 @@ public partial class ApiController // Partial class for MainHub User Functions.
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Pattern Information"); }
+    }
+
+    public async Task PushCharacterPiShockData(PiShockPermissions perms, UserData userToPushTo, DataUpdateKind updateKind)
+    {
+        if(!IsConnected) return;
+
+        try
+        {
+            Logger.LogDebug("Pushing PiShock Data for unique Pair {uniquePair}", userToPushTo.AliasOrUID);
+            await UserPushPiShockUpdate(new(new List<UserData>() { userToPushTo }, perms, updateKind)).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
+        catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of PiShock Permissions"); }
     }
 
     /// <summary>

@@ -1,6 +1,8 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Utility;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagSpeak.WebAPI.Utils;
@@ -8,9 +10,12 @@ using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Interfaces;
+using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
+using GagspeakAPI.Dto.Toybox;
 using ImGuiNET;
+using OtterGui;
 using OtterGui.Text;
 using ProjectGagspeakAPI.Data.VibeServer;
 using System.Numerics;
@@ -74,12 +79,21 @@ public partial class UserPairPermsSticky
                 ImGui.TextUnformatted("Hardcore Actions");
                 DrawHardcoreActions();
             }
+
+            if (UserPairForPerms.UserPairUniquePairPerms.InHardcore && (UniqueShockCollarPermsExist() || GlobalShockCollarPermsExist()))
+            {
+                ImGui.TextUnformatted("Hardcore Shock Collar Actions.");
+                DrawHardcoreShockCollarActions();
+            }
         }
 
         // individual Menu
         ImGui.TextUnformatted("Individual Pair Functions");
         DrawIndividualMenu();
     }
+
+    private bool UniqueShockCollarPermsExist() => !UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty() && UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1;
+    private bool GlobalShockCollarPermsExist() => !UserPairForPerms.UserPairGlobalPerms.GlobalShockShareCode.IsNullOrEmpty() && UserPairForPerms.LastPairGlobalShockPerms.MaxIntensity != -1;
 
     private void DrawCommonClientMenu()
     {
@@ -970,6 +984,120 @@ public partial class UserPairPermsSticky
             _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsBlindfolded", !perm.IsBlindfolded)));
         }
         ImGui.Separator();
+    }
+
+    private bool ShowShockAction = false;
+    private bool ShowVibrateAction = false;
+    private bool ShowBeepAction = false;
+    private int Intensity = 0;
+    private float Duration = 0;
+    private void DrawHardcoreShockCollarActions()
+    {
+        // the permissions to reference.
+        PiShockPermissions permissions = (UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1) ? UserPairForPerms.LastPairPiShockPermsForYou : UserPairForPerms.LastPairGlobalShockPerms;
+        string piShockShareCodePref = (UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1) ? UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode : UserPairForPerms.UserPairGlobalPerms.GlobalShockShareCode;
+
+        if (_uiShared.IconTextButton(FontAwesomeIcon.BoltLightning, "Shock " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, !permissions.AllowShocks))
+        {
+            ShowShockAction = !ShowShockAction;
+        }
+        UiSharedService.AttachToolTip("Perform a Shock action to " + PairUID + "'s Shock Collar.");
+
+        if (ShowShockAction)
+        {
+            using (var actionChild = ImRaii.Child("ShockCollarActionChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
+            {
+                if (!actionChild) return;
+
+                var width = WindowMenuWidth - ImGuiHelpers.GetButtonSize("Send Shock").X - ImGui.GetStyle().ItemInnerSpacing.X;
+
+                ImGui.SetNextItemWidth(WindowMenuWidth);
+                ImGui.SliderInt("##IntensitySliderRef" + PairNickOrAliasOrUID, ref Intensity, 0, permissions.MaxIntensity, "Intensity: %d", ImGuiSliderFlags.None);
+                ImGui.SetNextItemWidth(width);
+                ImGui.SliderFloat("##DurationSliderRef"+PairNickOrAliasOrUID, ref Duration, 0.1f, permissions.MaxShockDurationFloat, "%.1fs", ImGuiSliderFlags.None);
+                ImUtf8.SameLineInner();
+                try
+                {
+                    if (ImGui.Button("Send Shock##SendShockToShockCollar" + PairNickOrAliasOrUID))
+                    {
+                        int duration = (int)(Duration * 1000);
+                        _logger.LogDebug("Sending Shock to Shock Collar with duration: " + duration + "(milliseconds)");
+                        // _ = _apiController.UserPushPiShockUpdate(new ShockCollarActionDto(UserPairForPerms.UserData, 0, Intensity, Duration));
+                    }
+                }
+                catch (Exception e) { _logger.LogError("Failed to push ShockCollar Shock message: " + e.Message); }
+            }
+            ImGui.Separator();
+        }
+
+        if (_uiShared.IconTextButton(FontAwesomeIcon.WaveSquare, "Vibrate " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, !permissions.AllowVibrations))
+        {
+            ShowVibrateAction = !ShowVibrateAction;
+        }
+        UiSharedService.AttachToolTip("Perform a Vibrate action to " + PairUID + "'s Shock Collar.");
+
+        if (ShowVibrateAction)
+        {
+            using (var actionChild = ImRaii.Child("VibrateCollarActionChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
+            {
+                if (!actionChild) return;
+
+                var width = WindowMenuWidth - ImGuiHelpers.GetButtonSize("Send Vibration").X - ImGui.GetStyle().ItemInnerSpacing.X;
+
+                // draw a slider float that references the duration, going from 0.1f to 15f by a scaler of 0.1f that displays X.Xs
+                ImGui.SetNextItemWidth(WindowMenuWidth);
+                ImGui.SliderInt("##IntensitySliderRef" + PairNickOrAliasOrUID, ref Intensity, 0, permissions.MaxIntensity, "Intensity: %d", ImGuiSliderFlags.None);
+                ImGui.SetNextItemWidth(width);
+                ImGui.SliderFloat("##DurationSliderRef" + PairNickOrAliasOrUID, ref Duration, 0.1f, 15f, "%.1fs", ImGuiSliderFlags.None);
+                ImUtf8.SameLineInner();
+                try
+                {
+                    if (ImGui.Button("Send Vibration##SendVibrationToShockCollar" + PairNickOrAliasOrUID))
+                    {
+                        int duration = (int)(Duration * 1000);
+                        _logger.LogDebug("Sending Vibration to Shock Collar with duration: " + duration + "(milliseconds)");
+                        // _ = _apiController.UserPushPiShockUpdate(new ShockCollarActionDto(UserPairForPerms.UserData, 0, Intensity, Duration));
+                    }
+                }
+                catch (Exception e) { _logger.LogError("Failed to push ShockCollar Vibrate message: " + e.Message); }
+            }
+            ImGui.Separator();
+        }
+
+        if (_uiShared.IconTextButton(FontAwesomeIcon.LandMineOn, "Beep " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, !permissions.AllowBeeps))
+        {
+            ShowBeepAction = !ShowBeepAction;
+        }
+        UiSharedService.AttachToolTip("Beep " + PairUID + "'s Shock Collar.");
+
+        if (ShowBeepAction)
+        {
+            using (var actionChild = ImRaii.Child("BeepCollarActionChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
+            {
+                if (!actionChild) return;
+
+                var width = WindowMenuWidth - ImGuiHelpers.GetButtonSize("Send Beep").X - ImGui.GetStyle().ItemInnerSpacing.X;
+
+                // draw a slider float that references the duration, going from 0.1f to 15f by a scaler of 0.1f that displays X.Xs
+                ImGui.SetNextItemWidth(width);
+                ImGui.SliderFloat("##DurationSliderRef" + PairNickOrAliasOrUID, ref Duration, 0.1f, 15f, "%.1fs", ImGuiSliderFlags.None);
+                ImUtf8.SameLineInner();
+                try
+                {
+                    if (ImGui.Button("Send Beep##SendBeepToShockCollar" + PairNickOrAliasOrUID))
+                    {
+                        int duration = (int)(Duration * 1000);
+                        _logger.LogDebug("Sending Beep to Shock Collar with duration: " + duration + "(milliseconds)");
+                        // _ = _apiController.UserPushPiShockUpdate(new ShockCollarActionDto(UserPairForPerms.UserData, 0, Intensity, Duration));
+                    }
+                }
+                catch (Exception e) { _logger.LogError("Failed to push ShockCollar Beep message: " + e.Message); }
+            }
+            ImGui.Separator();
+        }
+
+
+
     }
 
     #endregion ToyboxActions

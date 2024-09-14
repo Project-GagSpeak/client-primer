@@ -1,6 +1,7 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using GagSpeak.Services.Mediator;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets2;
@@ -329,15 +330,27 @@ public partial class UserPairPermsSticky
             true, // do not allow user to change this permission.
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
-        DrawOwnSetting("ShockCollarShareCode", string.Empty,
-            "Share Code",
-            FontAwesomeIcon.ShareAlt,
-            $"Unique Share Code for {PairNickOrAliasOrUID}."+ Environment.NewLine
-            +"This should be a Separate Share Code from your Global Code."+Environment.NewLine
-            +$"Unique Share Codes can have elevated settings higher than the Global Code, that only {PairNickOrAliasOrUID} can use.",
-            true,
-            PermissionType.UniquePairPerm, PermissionValueType.String);
 
+        string shockCollarPairShareCode = UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode ?? string.Empty;
+        using (var group = ImRaii.Group())
+        {
+            if (_uiShared.IconInputText("ShockCollarShareCode"+PairUID, FontAwesomeIcon.ShareAlt, "Share Code", "Unique Share Code...", 
+            ref shockCollarPairShareCode, 40, IconButtonTextWidth * .6f, true, false)) 
+            {
+                UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode = shockCollarPairShareCode;
+            }
+            // Set the permission once deactivated. If invalid, set to default.
+            if (ImGui.IsItemDeactivatedAfterEdit())
+            {
+                SetOwnPermission(PermissionType.UniquePairPerm, "ShockCollarShareCode", shockCollarPairShareCode);
+                // Send Mediator Event to grab updated settings for pair.
+                Mediator.Publish(new HardcoreUpdatedShareCodeForPair(UserPairForPerms, shockCollarPairShareCode));
+            }
+            UiSharedService.AttachToolTip($"Unique Share Code for {PairNickOrAliasOrUID}." + Environment.NewLine
+            + "This should be a Separate Share Code from your Global Code." + Environment.NewLine
+            + $"Unique Share Codes can have elevated settings higher than the Global Code, that only {PairNickOrAliasOrUID} can use.");
+        }
+        
         // special case for this.
         float seconds = (float)UserPairForPerms.UserPairOwnUniquePairPerms.MaxVibrateDuration.TotalMilliseconds / 1000;
         using (var group = ImRaii.Group())
@@ -505,24 +518,6 @@ public partial class UserPairPermsSticky
                         : ("Grant " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + " control over this permission, allowing them to change " +
                            "what you've set for them at will.");
                 }
-            }
-        }
-        else if (type == PermissionValueType.String)
-        {
-            string stringState = (string)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)! ?? string.Empty;
-
-            using (var group = ImRaii.Group())
-            {
-                var id = label + "##" + permissionName;
-                // draw the iconTextButton and checkbox beside it. Because we are in control, unless in hardcore, this should never be disabled.
-                if (_uiShared.IconInputText(id, icon, label, "Unique Share Code...", ref stringState, 40, IconButtonTextWidth * .6f, true, false)) { }
-                // Set the permission once deactivated. If invalid, set to default.
-                if (ImGui.IsItemDeactivatedAfterEdit() && stringState != (string)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!)
-                {
-                    // we can update the string
-                    SetOwnPermission(permissionType, permissionName, stringState);
-                }
-                UiSharedService.AttachToolTip(tooltip);
             }
         }
     }

@@ -2,6 +2,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin.Services;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
@@ -19,6 +20,7 @@ namespace GagSpeak.UI.Permissions;
 public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
 {
     private readonly OnFrameworkService _frameworkUtils;
+    private readonly GagspeakConfigService _mainConfig;
     private readonly PlayerCharacterManager _playerManager;
     protected readonly IdDisplayHandler _displayHandler;
     private readonly UiSharedService _uiShared;
@@ -33,14 +35,15 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
 
     public UserPairPermsSticky(ILogger<UserPairPermsSticky> logger,
         GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
-        OnFrameworkService frameworkUtils, PlayerCharacterManager pcManager, 
-        IdDisplayHandler displayHandler, UiSharedService uiSharedService, 
-        ApiController apiController, PairManager pairManager, 
-        MoodlesService moodlesService, PermissionPresetService presetService,
-        PermActionsComponents permActionHelpers, IClientState clientState) 
-        : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
+        OnFrameworkService frameworkUtils, GagspeakConfigService mainConfig,
+        PlayerCharacterManager pcManager, IdDisplayHandler displayHandler, 
+        UiSharedService uiSharedService, ApiController apiController, 
+        PairManager pairManager, MoodlesService moodlesService, 
+        PermissionPresetService presetService, PermActionsComponents permActionHelpers, 
+        IClientState clientState) : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
     {
         _frameworkUtils = frameworkUtils;
+        _mainConfig = mainConfig;
         _playerManager = pcManager;
         _uiShared = uiSharedService;
         _apiController = apiController;

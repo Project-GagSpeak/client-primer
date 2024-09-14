@@ -101,6 +101,7 @@ public record HardcoreForcedToSitMessage(Pair Pair, NewState State) : MessageBas
 public record HardcoreForcedToKneelMessage(Pair Pair, NewState State) : MessageBase;
 public record HardcoreForcedToStayMessage(Pair Pair, NewState State) : MessageBase;
 public record HardcoreForcedBlindfoldMessage(Pair Pair, NewState State) : MessageBase;
+public record HardcoreUpdatedShareCodeForPair(Pair pair, string ShareCode) : MessageBase;
 public record MovementRestrictionChangedMessage(MovementRestrictionType Type, NewState NewState) : MessageBase;
 public record MoodlesPermissionsUpdated(string NameWithWorld) : MessageBase;
 #endregion PLAYERDATA WARDROBE HANDLER RECORDS
@@ -160,7 +161,7 @@ public record CharacterAppearanceDataCreatedMessage(CharacterAppearanceData Char
 public record CharacterWardrobeDataCreatedMessage(CharacterWardrobeData CharacterWardrobeData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterAliasDataCreatedMessage(CharacterAliasData CharacterAliasData, UserData userData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterToyboxDataCreatedMessage(CharacterToyboxData CharacterToyboxData, DataUpdateKind UpdateKind) : SameThreadMessage;
-public record CharacterPiShockPermDataCreatedMessage(PiShockPermissions shockPerms, UserData userData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterPiShockPermDataCreatedMessage(string ShareCode, PiShockPermissions ShockPermsForPair, UserData UserData, DataUpdateKind UpdateKind) : SameThreadMessage;
 
 public record GameObjectHandlerCreatedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
 public record GameObjectHandlerDestroyedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;

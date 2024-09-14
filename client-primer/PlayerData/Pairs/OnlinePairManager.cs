@@ -7,6 +7,7 @@ using GagSpeak.WebAPI;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Data.Permissions;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -28,6 +29,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
     private CharacterWardrobeData? _lastWardrobeData;
     private CharacterAliasData? _lastAliasData;
     private CharacterToyboxData? _lastToyboxData;
+    private string _lastShockPermShareCode = string.Empty;
 
     public OnlinePairManager(ILogger<OnlinePairManager> logger,
         ApiController apiController, OnFrameworkService dalamudUtil,
@@ -110,6 +112,21 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
                 Logger.LogDebug("Data was no different. Not sending data");
             }
         });
+
+        // Fired whenever our Alias data updates. We then send this data to all online pairs.
+        Mediator.Subscribe<CharacterPiShockPermDataCreatedMessage>(this, (msg) =>
+        {
+            var newShockPermShareCode = msg.ShareCode;
+            if (_lastShockPermShareCode == null || !Equals(newShockPermShareCode, _lastShockPermShareCode))
+            {
+                _lastShockPermShareCode = newShockPermShareCode;
+                PushCharacterPiShockPerms(msg.UserData, msg.ShockPermsForPair, msg.UpdateKind);
+            }
+            else
+            {
+                Logger.LogDebug("PiShock Data was no different. Not sending data");
+            }
+        });
     }
 
     private void FrameworkOnUpdate()
@@ -187,7 +204,18 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         {
             _ = Task.Run(async () =>
             {
-                await _apiController.PushCharacterToyboxDataData(_lastToyboxData, onlinePlayers, updateKind).ConfigureAwait(false);
+                await _apiController.PushCharacterToyboxData(_lastToyboxData, onlinePlayers, updateKind).ConfigureAwait(false);
+            });
+        }
+    }
+
+    private void PushCharacterPiShockPerms(UserData onlinePairToPushTo, PiShockPermissions perms, DataUpdateKind updateKind)
+    {
+        if (_lastShockPermShareCode != string.Empty)
+        {
+            _ = Task.Run(async () =>
+            {
+                await _apiController.PushCharacterPiShockData(perms, onlinePairToPushTo, updateKind).ConfigureAwait(false);
             });
         }
     }

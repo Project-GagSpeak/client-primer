@@ -1,4 +1,7 @@
 using GagSpeak.GagspeakConfiguration;
+using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services.Mediator;
+using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Routes;
 using System.Net;
@@ -7,22 +10,40 @@ using SysJsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace GagSpeak.WebAPI;
 
-public sealed class PiShockProvider : IDisposable
+public sealed class PiShockProvider : DisposableMediatorSubscriberBase
 {
-    private readonly ILogger<PiShockProvider> _logger;
     private readonly GagspeakConfigService _mainConfig;
+    private readonly PairManager _pairManager;
     private readonly HttpClient _httpClient;
 
-    public PiShockProvider(ILogger<PiShockProvider> logger, GagspeakConfigService mainConfig)
+    public PiShockProvider(ILogger<PiShockProvider> logger, GagspeakMediator mediator, 
+        GagspeakConfigService mainConfig, PairManager pairManager) : base(logger, mediator)
     {
-        _logger = logger;
         _mainConfig = mainConfig;
+        _pairManager = pairManager;
         _httpClient = new HttpClient();
+
+        Mediator.Subscribe<HardcoreUpdatedShareCodeForPair>(this, (msg) => GetPermsFromShareCode(msg));
     }
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
+        base.Dispose(disposing);
         _httpClient.Dispose();
+    }
+
+    private async void GetPermsFromShareCode(HardcoreUpdatedShareCodeForPair msg)
+    {
+        var shareCode = msg.ShareCode;
+        var perms = await GetPermissionsFromCode(shareCode);
+        // apply these permissions to the paired user 
+        var pairMatch = _pairManager.DirectPairs.FirstOrDefault(x => x.UserData.UID == msg.pair.UserData.UID);
+        if(pairMatch != null) 
+        {
+            Logger.LogDebug("Updating PiShock Permissions for Pair: {pair}", pairMatch.UserData.UID);
+            pairMatch.LastOwnPiShockPermsForPair = perms;
+            Mediator.Publish(new CharacterPiShockPermDataCreatedMessage(msg.ShareCode, perms, pairMatch.UserData, DataUpdateKind.PiShockOwnPermsForPairUpdated));
+        }
     }
 
     // grab basic information from shock collar.
@@ -75,12 +96,12 @@ public sealed class PiShockProvider : IDisposable
         {
             var jsonContent = CreateGetInfoContent(shareCode);
 
-            _logger.LogTrace("PiShock Request Info URI Firing: {piShockUri}", GagspeakPiShock.GetInfoPath());
+            Logger.LogTrace("PiShock Request Info URI Firing: {piShockUri}", GagspeakPiShock.GetInfoPath());
             var response = await _httpClient.PostAsync(GagspeakPiShock.GetInfoPath(), jsonContent).ConfigureAwait(false);
 
             if (response.StatusCode == HttpStatusCode.OK)
             {
-                _logger.LogTrace("PiShock Request Info Response: {response}", response);
+                Logger.LogTrace("PiShock Request Info Response: {response}", response);
                 var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var jsonDocument = JsonDocument.Parse(content);
                 var root = jsonDocument.RootElement;
@@ -88,25 +109,25 @@ public sealed class PiShockProvider : IDisposable
                 int maxIntensity = root.GetProperty("maxIntensity").GetInt32();
                 int maxShockDuration = root.GetProperty("maxDuration").GetInt32();
 
-                _logger.LogTrace("Obtaining boolean values by passing dummy requests to share code");
+                Logger.LogTrace("Obtaining boolean values by passing dummy requests to share code");
                 var result = await ConstructPermissionObject(shareCode, maxIntensity, maxShockDuration);
-                _logger.LogTrace("PiShock Permissions obtained: {result}", result);
+                Logger.LogTrace("PiShock Permissions obtained: {result}", result);
                 return result;
             }
             else if(response.StatusCode == HttpStatusCode.InternalServerError)
             {
-                _logger.LogWarning("The Credentials for your API Key and Username do not match any profile in PiShock");
+                Logger.LogWarning("The Credentials for your API Key and Username do not match any profile in PiShock");
                 return new(false, false, false, -1, -1);
             }
             else
             {
-                _logger.LogError("The ShareCode for this profile does not exist, or this is a simple error 404: {statusCode}", response.StatusCode);
+                Logger.LogError("The ShareCode for this profile does not exist, or this is a simple error 404: {statusCode}", response.StatusCode);
                 return new(false, false, false, -1, -1);
             }
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Error getting PiShock permissions from share code");
+            Logger.LogError(ex, "Error getting PiShock permissions from share code");
             return new(false,false,false,-1,-1);
         }
     }
@@ -143,7 +164,7 @@ public sealed class PiShockProvider : IDisposable
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Error executing operation on PiShock");
+            Logger.LogError(ex, "Error executing operation on PiShock");
         }
 
         return new PiShockPermissions(shocks, vibrations, beeps, intensityLimit, durationLimit);
@@ -159,15 +180,15 @@ public sealed class PiShockProvider : IDisposable
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                _logger.LogError("Error executing operation on PiShock. Status returned: " + response.StatusCode);
+                Logger.LogError("Error executing operation on PiShock. Status returned: " + response.StatusCode);
                 return;
             }
             var contentStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            _logger.LogDebug("PiShock Request Sent to Shock Collar Successfully! Content returned was:\n" + contentStr);
+            Logger.LogDebug("PiShock Request Sent to Shock Collar Successfully! Content returned was:\n" + contentStr);
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Error executing operation on PiShock");
+            Logger.LogError(ex, "Error executing operation on PiShock");
         }
     }
 }

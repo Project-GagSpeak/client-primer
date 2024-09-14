@@ -1,4 +1,5 @@
 using Dalamud.Plugin.Services;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
@@ -26,6 +27,7 @@ public class UiFactory
     private readonly IdDisplayHandler _displayHandler;
     private readonly PairManager _pairManager;
     private readonly PlayerCharacterManager _playerManager;
+    private readonly GagspeakConfigService _mainConfig;
     private readonly ToyboxRemoteService _remoteService;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly ProfileService _gagspeakProfileManager;
@@ -41,8 +43,9 @@ public class UiFactory
         PairManager pairManager, PlayerCharacterManager playerManager,
         ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
         ProfileService profileManager, OnFrameworkService frameworkUtils,
-        MoodlesService moodlesService, PermissionPresetService presetService,
-        PermActionsComponents permActionHelpers, IClientState clientState)
+        GagspeakConfigService mainConfig, MoodlesService moodlesService, 
+        PermissionPresetService presetService, PermActionsComponents permActionHelpers, 
+        IClientState clientState)
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;
@@ -56,6 +59,7 @@ public class UiFactory
         _serverConfigs = serverConfigs;
         _gagspeakProfileManager = profileManager;
         _frameworkUtils = frameworkUtils;
+        _mainConfig = mainConfig;
         _moodlesService = moodlesService;
         _presetService = presetService;
         _permActionHelpers = permActionHelpers;
@@ -78,7 +82,7 @@ public class UiFactory
     public UserPairPermsSticky CreateStickyPairPerms(Pair pair, StickyWindowType drawType)
     {
         return new UserPairPermsSticky(_loggerFactory.CreateLogger<UserPairPermsSticky>(), _gagspeakMediator, pair, 
-            drawType, _frameworkUtils, _playerManager, _displayHandler, _uiSharedService, _apiController, _pairManager,
+            drawType, _frameworkUtils, _mainConfig, _playerManager, _displayHandler, _uiSharedService, _apiController, _pairManager,
             _moodlesService, _presetService, _permActionHelpers, _clientState);
     }
 }

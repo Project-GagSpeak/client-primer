@@ -412,6 +412,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         ImGui.Spacing();
 
+
+
+
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputText("PiShock API Key", ref piShockApiKey, 100, ImGuiInputTextFlags.EnterReturnsTrue))
         {
@@ -429,15 +432,23 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared.DrawHelpText("Required PiShock Username to exist for any PiShock related interactions to work.");
 
 
-        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-        if (ImGui.InputText("Global PiShock Share Code", ref globalShockCollarShareCode, 100, ImGuiInputTextFlags.EnterReturnsTrue))
+        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Sync, "Refresh") - ImGui.GetStyle().ItemInnerSpacing.X);
+        if (ImGui.InputText("##Global PiShock Share Code", ref globalShockCollarShareCode, 100, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             PlayerGlobalPerms.GlobalShockShareCode = globalShockCollarShareCode;
 
             _ = _apiController.UserUpdateOwnGlobalPerm(new(_apiController.PlayerUserData,
             new KeyValuePair<string, object>("GlobalShockShareCode", globalShockCollarShareCode)));
         }
-        _uiShared.DrawHelpText("Global PiShock Share Code used for your connected ShockCollar." +Environment.NewLine + "NOTE:" + Environment.NewLine
+        ImUtf8.SameLineInner();
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Refresh", null, false, DateTime.UtcNow - _lastRefresh < TimeSpan.FromSeconds(5)))
+        {
+            _lastRefresh = DateTime.UtcNow;
+            _playerCharacterManager.UpdateGlobalPiShockPerms();
+        }
+        ImUtf8.SameLineInner();
+        ImGui.TextUnformatted("PiShock Global Share Code");
+        _uiShared.DrawHelpText("Global PiShock Share Code used for your connected ShockCollar." + Environment.NewLine + "NOTE:" + Environment.NewLine
             + "While this is a GLOBAL share code, only people you are in Hardcore mode with will have access to it.");
 
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
@@ -475,6 +486,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             UiSharedService.ColorText(maxGlobalShockDuration.Seconds.ToString()+"."+maxGlobalShockDuration.Milliseconds.ToString()+"s", ImGuiColors.ParsedGold);
         }
     }
+    private DateTime _lastRefresh = DateTime.MinValue;
 
     private void DrawPreferences()
     {

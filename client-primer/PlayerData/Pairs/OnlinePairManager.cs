@@ -120,13 +120,16 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             if (_lastShockPermShareCode == null || !Equals(newShockPermShareCode, _lastShockPermShareCode))
             {
                 _lastShockPermShareCode = newShockPermShareCode;
-                PushCharacterPiShockPerms(msg.UserData, msg.ShockPermsForPair, msg.UpdateKind);
+                PushCharacterPiShockPerms(new List<UserData>(){ msg.UserData }, msg.ShockPermsForPair, msg.UpdateKind);
             }
             else
             {
                 Logger.LogDebug("PiShock Data was no different. Not sending data");
             }
         });
+
+        Mediator.Subscribe<CharacterPiShockGlobalPermDataUpdatedMessage>(this, (msg) => 
+            PushCharacterPiShockPerms(_pairManager.GetOnlineUserDatas(), msg.GlobalShockPermissions, msg.UpdateKind));
     }
 
     private void FrameworkOnUpdate()
@@ -209,8 +212,9 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         }
     }
 
-    private void PushCharacterPiShockPerms(UserData onlinePairToPushTo, PiShockPermissions perms, DataUpdateKind updateKind)
+    private void PushCharacterPiShockPerms(List<UserData> onlinePairToPushTo, PiShockPermissions perms, DataUpdateKind updateKind)
     {
+        // Can be used for both global and individual updates.
         if (_lastShockPermShareCode != string.Empty)
         {
             _ = Task.Run(async () =>

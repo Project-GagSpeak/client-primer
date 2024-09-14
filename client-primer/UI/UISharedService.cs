@@ -550,7 +550,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         float min, float max, float? width = null, bool isInPopup = false, bool disabled = false)
     {
         return IconSliderFloatInternal(id, icon, label, ref valueRef, min, max,
-            isInPopup ? new Vector4(1.0f, 1.0f, 1.0f, 0.0f) : null,
+            isInPopup ? new Vector4(1.0f, 1.0f, 1.0f, 0.1f) : null,
             width <= 0 ? null : width,
             disabled);
     }
@@ -598,7 +598,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         uint maxLength, float? width = null, bool isInPopup = false, bool disabled = false)
     {
         return IconInputTextInternal(id, icon, label, hint, ref inputStr, maxLength,
-            isInPopup ? new Vector4(1.0f, 1.0f, 1.0f, 0.0f) : null,
+            isInPopup ? new Vector4(1.0f, 1.0f, 1.0f, 0.1f) : null,
             width <= 0 ? null : width,
             disabled);
     }

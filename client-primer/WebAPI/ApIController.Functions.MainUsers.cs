@@ -512,14 +512,14 @@ public partial class ApiController // Partial class for MainHub User Functions.
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Pattern Information"); }
     }
 
-    public async Task PushCharacterPiShockData(PiShockPermissions perms, UserData userToPushTo, DataUpdateKind updateKind)
+    public async Task PushCharacterPiShockData(PiShockPermissions perms, List<UserData> userToPushTo, DataUpdateKind updateKind)
     {
         if(!IsConnected) return;
 
         try
         {
-            Logger.LogDebug("Pushing PiShock Data for unique Pair {uniquePair}", userToPushTo.AliasOrUID);
-            await UserPushPiShockUpdate(new(new List<UserData>() { userToPushTo }, perms, updateKind)).ConfigureAwait(false);
+            if (userToPushTo.Any()) Logger.LogDebug("Pushing PiShock to {visible}", string.Join(", ", userToPushTo.Select(v => v.AliasOrUID)));
+            await UserPushPiShockUpdate(new(userToPushTo, perms, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of PiShock Permissions"); }

@@ -162,6 +162,7 @@ public record CharacterWardrobeDataCreatedMessage(CharacterWardrobeData Characte
 public record CharacterAliasDataCreatedMessage(CharacterAliasData CharacterAliasData, UserData userData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterToyboxDataCreatedMessage(CharacterToyboxData CharacterToyboxData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterPiShockPermDataCreatedMessage(string ShareCode, PiShockPermissions ShockPermsForPair, UserData UserData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterPiShockGlobalPermDataUpdatedMessage(PiShockPermissions GlobalShockPermissions, DataUpdateKind UpdateKind) : SameThreadMessage;
 
 public record GameObjectHandlerCreatedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
 public record GameObjectHandlerDestroyedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;

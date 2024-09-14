@@ -101,6 +101,12 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         return GlobalPiShockPerms;
     }
 
+    public async void UpdateGlobalPiShockPerms()
+    {
+        GlobalPiShockPerms = await _piShockProvider.GetPermissionsFromCode(_playerCharGlobalPerms.GlobalShockShareCode);
+        Mediator.Publish(new CharacterPiShockGlobalPermDataUpdatedMessage(GlobalPiShockPerms, DataUpdateKind.PiShockGlobalUpdated));
+    }
+
     private async Task<PiShockPermissions> GetPairPiShockPerms(Pair pair)
     {
         // Return the permissions as they are already initialized

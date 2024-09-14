@@ -324,7 +324,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
         else
         {
-            _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, new PiShockPermissions(false,false,false,-1,-1), DataUpdateKind.PiShockPairPermsForUserUpdated));
+            _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, new PiShockPermissions(), DataUpdateKind.PiShockPairPermsForUserUpdated));
         }
     }
 

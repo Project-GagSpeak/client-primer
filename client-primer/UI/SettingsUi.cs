@@ -204,7 +204,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         bool allowGlobalVibrateShockCollar = PlayerGlobalPiShock.AllowVibrations;
         bool allowGlobalBeepShockCollar = PlayerGlobalPiShock.AllowBeeps;
         int maxGlobalShockCollarIntensity = PlayerGlobalPiShock.MaxIntensity;
-        TimeSpan maxGlobalShockDuration = PlayerGlobalPiShock.MaxShockDuration;
+        TimeSpan maxGlobalShockDuration = PlayerGlobalPiShock.GetTimespanFromDuration();
         int maxGlobalVibrateDuration = (int)PlayerGlobalPerms.GlobalShockVibrateDuration.TotalSeconds;
 
         _uiShared.BigText("Gags");

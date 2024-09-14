@@ -68,9 +68,9 @@ public class Pair
     public CharacterWardrobeData? LastReceivedWardrobeData { get; set; }
     public CharacterAliasData? LastReceivedAliasData { get; set; }
     public CharacterToyboxData? LastReceivedToyboxData { get; set; }
-    public PiShockPermissions LastOwnPiShockPermsForPair { get; set; } = new(false, false, false, -1, -1);
-    public PiShockPermissions LastPairGlobalShockPerms { get; set; } = new(false, false, false, -1, -1);
-    public PiShockPermissions LastPairPiShockPermsForYou { get; set; } = new(false, false, false, -1, -1);
+    public PiShockPermissions LastOwnPiShockPermsForPair { get; set; } = new();
+    public PiShockPermissions LastPairGlobalShockPerms { get; set; } = new();
+    public PiShockPermissions LastPairPiShockPermsForYou { get; set; } = new();
 
 
     // Most of these attributes should be self explanatory, but they are public methods you can fetch from the pair manager.

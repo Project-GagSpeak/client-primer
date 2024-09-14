@@ -1014,7 +1014,7 @@ public partial class UserPairPermsSticky
                 ImGui.SetNextItemWidth(WindowMenuWidth);
                 ImGui.SliderInt("##IntensitySliderRef" + PairNickOrAliasOrUID, ref Intensity, 0, permissions.MaxIntensity, "Intensity: %d", ImGuiSliderFlags.None);
                 ImGui.SetNextItemWidth(width);
-                ImGui.SliderFloat("##DurationSliderRef"+PairNickOrAliasOrUID, ref Duration, 0.1f, (float)permissions.MaxShockDuration.TotalMilliseconds, "%.1fs", ImGuiSliderFlags.None);
+                ImGui.SliderFloat("##DurationSliderRef"+PairNickOrAliasOrUID, ref Duration, 0.1f, (float)permissions.GetTimespanFromDuration().TotalMilliseconds, "%.1fs", ImGuiSliderFlags.None);
                 ImUtf8.SameLineInner();
                 try
                 {
@@ -1030,7 +1030,7 @@ public partial class UserPairPermsSticky
             ImGui.Separator();
         }
 
-        if (_uiShared.IconTextButton(FontAwesomeIcon.WaveSquare, "Vibrate " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, !permissions.AllowVibrations))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.WaveSquare, "Vibrate " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, false))
         {
             ShowVibrateAction = !ShowVibrateAction;
         }
@@ -1056,7 +1056,7 @@ public partial class UserPairPermsSticky
                     {
                         int duration = (int)(Duration * 1000);
                         _logger.LogDebug("Sending Vibration to Shock Collar with duration: " + duration + "(milliseconds)");
-                        // _ = _apiController.UserPushPiShockUpdate(new ShockCollarActionDto(UserPairForPerms.UserData, 0, Intensity, Duration));
+                        // _ = _apiController.UserPushPiShockUpdate(new ShockCollarActionDto(UserPairForPerms.UserData, 0, Intensity, duration));
                     }
                 }
                 catch (Exception e) { _logger.LogError("Failed to push ShockCollar Vibrate message: " + e.Message); }

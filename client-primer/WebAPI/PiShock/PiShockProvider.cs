@@ -117,18 +117,18 @@ public sealed class PiShockProvider : DisposableMediatorSubscriberBase
             else if(response.StatusCode == HttpStatusCode.InternalServerError)
             {
                 Logger.LogWarning("The Credentials for your API Key and Username do not match any profile in PiShock");
-                return new(false, false, false, -1, -1);
+                return new();
             }
             else
             {
                 Logger.LogError("The ShareCode for this profile does not exist, or this is a simple error 404: {statusCode}", response.StatusCode);
-                return new(false, false, false, -1, -1);
+                return new();
             }
         }
         catch (HttpRequestException ex)
         {
             Logger.LogError(ex, "Error getting PiShock permissions from share code");
-            return new(false,false,false,-1,-1);
+            return new PiShockPermissions();
         }
     }
 
@@ -167,7 +167,7 @@ public sealed class PiShockProvider : DisposableMediatorSubscriberBase
             Logger.LogError(ex, "Error executing operation on PiShock");
         }
 
-        return new PiShockPermissions(shocks, vibrations, beeps, intensityLimit, durationLimit);
+        return new PiShockPermissions() { AllowShocks = shocks, AllowVibrations = vibrations, AllowBeeps = beeps, MaxIntensity = intensityLimit, MaxDuration = durationLimit };
     }
 
 

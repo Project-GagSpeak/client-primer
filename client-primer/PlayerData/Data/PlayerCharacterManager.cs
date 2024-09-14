@@ -77,7 +77,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     }
     // used to track a reflection of the sealed cache creation service for our player.
     public CharacterIPCData? LastIpcData = null;
-    public PiShockPermissions GlobalPiShockPerms = new(false, false, false, -1, -1);
+    public PiShockPermissions GlobalPiShockPerms = new();
 
     // public access definitions.
     public UserGlobalPermissions? GlobalPerms => _playerCharGlobalPerms ?? null;
@@ -118,7 +118,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         // otherwise, if the code is null or empty, so return default
         else
         {
-            return new(false, false, false, -1, -1);
+            return new();
         }
     }
 
@@ -158,7 +158,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             // Populate pairShockData with the results
             foreach (var result in permissionsResults)
             {
-                pairShockData[result.UID] = result.Item2 ?? new PiShockPermissions(false, false, false, -1, -1); // Default or null handling
+                pairShockData[result.UID] = result.Item2 ?? new PiShockPermissions(); // Default or null handling
             }
         }
         else
@@ -166,15 +166,13 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             // If no API credentials, populate with default permissions
             foreach (var user in userPairs)
             {
-                pairShockData[user.UserData.UID] = new PiShockPermissions(false, false, false, -1, -1); // Default or fallback
+                pairShockData[user.UserData.UID] = new PiShockPermissions(); // Default or fallback
             }
         }
 
         CharacterToyboxData toyboxData = CompileToyboxToAPI();
 
-        PiShockPermissions globalShockPerms = hasApiOn
-                ? await GetGlobalPiShockPerms()
-                : new PiShockPermissions(false, false, false, -1, -1);
+        PiShockPermissions globalShockPerms = hasApiOn ? await GetGlobalPiShockPerms() : new PiShockPermissions();
 
         return new CharacterCompositeData
         {

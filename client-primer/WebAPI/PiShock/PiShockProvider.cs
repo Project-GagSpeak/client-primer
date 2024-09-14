@@ -171,7 +171,7 @@ public sealed class PiShockProvider : DisposableMediatorSubscriberBase
     }
 
 
-    private async void ExecuteOperation(string shareCode, int opCode, int intensity, int duration)
+    public async void ExecuteOperation(string shareCode, int opCode, int intensity, int duration)
     {
         try
         {

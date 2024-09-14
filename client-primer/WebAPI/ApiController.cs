@@ -30,6 +30,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     private readonly PrivateRoomManager _privateRoomManager;        // the private room manager
     private readonly PairManager _pairManager;                      // for managing the clients paired users
     private readonly ServerConfigurationManager _serverConfigs;     // the server configuration manager
+    private readonly PiShockProvider _piShockProvider;              // the PiShock provider
     private readonly TokenProvider _tokenProvider;                  // the token provider for authentications
     private readonly GagspeakConfigService _gagspeakConfigService;  // the Gagspeak configuration service
 
@@ -54,8 +55,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, OnFrameworkService frameworkService,
         PlayerCharacterManager playerCharManager, PrivateRoomManager roomManager, 
         PairManager pairManager, ServerConfigurationManager serverManager,
-        GagspeakMediator gagspeakMediator, TokenProvider tokenProvider,
-        GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
+        GagspeakMediator gagspeakMediator, PiShockProvider piShockProvider, 
+        TokenProvider tokenProvider, GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
     {
         _frameworkUtils = frameworkService;
         _hubFactory = hubFactory;
@@ -63,6 +64,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         _privateRoomManager = roomManager;
         _pairManager = pairManager;
         _serverConfigs = serverManager;
+        _piShockProvider = piShockProvider;
         _tokenProvider = tokenProvider;
         _gagspeakConfigService = gagspeakConfigService;
         _connectionCTS = new CancellationTokenSource();

@@ -9,6 +9,7 @@ using GagSpeak.Services.Mediator;
 using Microsoft.AspNetCore.SignalR.Client;
 using GagspeakAPI.Dto.IPC;
 using GagSpeak.Utils;
+using Dalamud.Utility;
 
 namespace GagSpeak.WebAPI;
 
@@ -480,6 +481,29 @@ public partial class ApiController // Partial class for MainHub Callbacks
         Logger.LogInformation("Received Instruction from: {dto}" + Environment.NewLine
             + "OpCode: {opcode}, Intensity: {intensity}, Duration Value: {duration}"
             , dto.User.AliasOrUID, dto.OpCode, dto.Intensity, dto.Duration);
+        ExecuteSafely(() =>
+        {
+            // figure out who sent the command, and see if we have a unique sharecode setup for them.
+            var pairMatch = _pairManager.DirectPairs.FirstOrDefault(x => x.UserData.UID == dto.User.UID);
+            if (pairMatch != null) 
+            {
+                if (!pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty())
+                {
+                    Logger.LogDebug("Executing Shock Instruction to UniquePair ShareCode");
+                    _piShockProvider.ExecuteOperation(pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode, dto.OpCode, dto.Intensity, dto.Duration);
+                }
+                else if (_playerCharManager.GlobalPerms != null && !_playerCharManager.GlobalPerms.GlobalShockShareCode.IsNullOrEmpty())
+                {
+                    Logger.LogDebug("Executing Shock Instruction to Global ShareCode");
+                    _piShockProvider.ExecuteOperation(_playerCharManager.GlobalPerms.GlobalShockShareCode, dto.OpCode, dto.Intensity, dto.Duration);
+                }
+                else
+                {
+                    Logger.LogWarning("Someone Attempted to execute an instruction to you, but you don't have any sharecodes enabled!");
+                }
+            }
+
+        });
         return Task.CompletedTask;
     }
 

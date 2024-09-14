@@ -1014,7 +1014,7 @@ public partial class UserPairPermsSticky
                 ImGui.SetNextItemWidth(WindowMenuWidth);
                 ImGui.SliderInt("##IntensitySliderRef" + PairNickOrAliasOrUID, ref Intensity, 0, permissions.MaxIntensity, "Intensity: %d", ImGuiSliderFlags.None);
                 ImGui.SetNextItemWidth(width);
-                ImGui.SliderFloat("##DurationSliderRef"+PairNickOrAliasOrUID, ref Duration, 0.1f, permissions.MaxShockDurationFloat, "%.1fs", ImGuiSliderFlags.None);
+                ImGui.SliderFloat("##DurationSliderRef"+PairNickOrAliasOrUID, ref Duration, 0.1f, (float)permissions.MaxShockDuration.TotalMilliseconds, "%.1fs", ImGuiSliderFlags.None);
                 ImUtf8.SameLineInner();
                 try
                 {

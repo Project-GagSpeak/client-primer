@@ -5,6 +5,8 @@ using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 using Lumina.Excel.GeneratedSheets2;
 using System.Security;
+using static FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMJIGatheringHouse;
+using static GagSpeak.UI.Permissions.UserPairPermsSticky;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -330,18 +332,29 @@ public partial class UserPairPermsSticky
         DrawOwnSetting("ShockCollarShareCode", string.Empty,
             "Share Code",
             FontAwesomeIcon.ShareAlt,
-            $"Unique Share Code for {PairNickOrAliasOrUID}.\nThis code overrides the global Share Code.",
+            $"Unique Share Code for {PairNickOrAliasOrUID}."+ Environment.NewLine
+            +"This should be a Separate Share Code from your Global Code."+Environment.NewLine
+            +$"Unique Share Codes can have elevated settings higher than the Global Code, that only {PairNickOrAliasOrUID} can use.",
             true,
             PermissionType.UniquePairPerm, PermissionValueType.String);
 
-        DrawOwnSetting("MaxVibrateDuration", string.Empty,
-            "Max Vibrate Time",
-            FontAwesomeIcon.HourglassHalf,
-            $"Max time {PairNickOrAliasOrUID} can vibrate your shock collar for.",
-            true,
-            PermissionType.UniquePairPerm, PermissionValueType.TimeSpanSliderInt);
-
-
+        // special case for this.
+        float seconds = (float)UserPairForPerms.UserPairOwnUniquePairPerms.MaxVibrateDuration.TotalMilliseconds / 1000;
+        using (var group = ImRaii.Group())
+        {
+            if (_uiShared.IconSliderFloat("##ClientSetMaxVibeDurationForPair"+PairUID, FontAwesomeIcon.Stopwatch, "Max Vibe Duration",
+                ref seconds, 0.1f, 15f, IconButtonTextWidth * .6f, true, false))
+            {
+                UserPairForPerms.UserPairOwnUniquePairPerms.MaxVibrateDuration = TimeSpan.FromSeconds(seconds);
+            }
+            if (ImGui.IsItemDeactivatedAfterEdit())
+            {
+                TimeSpan timespanValue = TimeSpan.FromSeconds(seconds);
+                ulong ticks = (ulong)timespanValue.Ticks;
+                SetOwnPermission(PermissionType.UniquePairPerm, "MaxVibrateDuration", ticks);
+            }
+            UiSharedService.AttachToolTip("Sets the Max Duration you allow this pair to vibrate your Shock Collar for.");
+        }
     }
 
     /// <summary>
@@ -465,7 +478,8 @@ public partial class UserPairPermsSticky
                     // attempt to parse the string back into a valid timespan.
                     if (_uiShared.TryParseTimeSpan(timeSpanString, out TimeSpan result))
                     {
-                        SetOwnPermission(permissionType, permissionName, result);
+                        ulong ticks = (ulong)result.Ticks;
+                        SetOwnPermission(permissionType, permissionName, ticks);
                     }
                     else
                     {
@@ -495,54 +509,18 @@ public partial class UserPairPermsSticky
         }
         else if (type == PermissionValueType.String)
         {
-            string stringState = (string)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!;
+            string stringState = (string)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)! ?? string.Empty;
 
             using (var group = ImRaii.Group())
             {
                 var id = label + "##" + permissionName;
                 // draw the iconTextButton and checkbox beside it. Because we are in control, unless in hardcore, this should never be disabled.
-                if (_uiShared.IconInputText(id, icon, label, "PiShock Share Code...", ref stringState, 40, IconButtonTextWidth * .55f, true, false)) { }
+                if (_uiShared.IconInputText(id, icon, label, "Unique Share Code...", ref stringState, 40, IconButtonTextWidth * .6f, true, false)) { }
                 // Set the permission once deactivated. If invalid, set to default.
                 if (ImGui.IsItemDeactivatedAfterEdit() && stringState != (string)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!)
                 {
                     // we can update the string
                     SetOwnPermission(permissionType, permissionName, stringState);
-                }
-                else
-                {
-                    _logger.LogWarning("string was no different! Not updating permission.");
-                    InteractionSuccessful = false;
-                }
-                UiSharedService.AttachToolTip(tooltip);
-            }
-        }
-        // next, handle it if it is a timespan value.
-        if (type == PermissionValueType.TimeSpanSliderInt)
-        {
-            // attempt to parse the timespan value to a string.
-            TimeSpan timespanValue = (TimeSpan)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!;
-            int seconds = (int)timespanValue.TotalSeconds;
-
-            using (var group = ImRaii.Group())
-            {
-                var id = label + "##" + permissionName;
-
-                _uiShared.IconText(FontAwesomeIcon.Stopwatch);
-                ImGui.SameLine();
-
-                ImGui.DragInt("s##"+id, ref seconds, 1f, 0, 30);
-                if (ImGui.IsItemDeactivatedAfterEdit())
-                {
-                    timespanValue = TimeSpan.FromSeconds(seconds);
-                    if (timespanValue != (TimeSpan)permissionSet.GetType().GetProperty(permissionName)?.GetValue(permissionSet)!)
-                    {
-                        SetOwnPermission(permissionType, permissionName, timespanValue);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Value was no different. Not setting!");
-                        InteractionSuccessful = false;
-                    }
                 }
                 UiSharedService.AttachToolTip(tooltip);
             }

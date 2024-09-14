@@ -3,6 +3,7 @@ using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using System.Reflection;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -75,7 +76,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     public void UpdatePairUpdateOwnAllUniquePermissions(UserPairUpdateAllUniqueDto dto)
     {
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) { throw new InvalidOperationException("No such pair for " + dto); }
-     
+
         // fetch the current hardcore states
         var prevForcedFollowState = pair.UserPair.OwnPairPerms.IsForcedToFollow;
         var prevForcedSitState = pair.UserPair.OwnPairPerms.IsForcedToSit;
@@ -135,10 +136,11 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         PropertyInfo? propertyInfo = typeof(UserGlobalPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)
         {
-            if (ChangedValue.GetType() == typeof(UInt64) && propertyInfo.PropertyType == typeof(TimeSpan))
+            // If the property exists and is found, update its value
+            if (ChangedValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
             {
-                // property should be converted back from its Uint64 [MaxLockTime, 36000000000] to the timespan.
-                propertyInfo.SetValue(pair.UserPair.OtherGlobalPerms, TimeSpan.FromTicks((long)(ulong)ChangedValue));
+                long ticks = (long)(ulong)ChangedValue;
+                propertyInfo.SetValue(pair.UserPair.OtherGlobalPerms, TimeSpan.FromTicks(ticks));
             }
             // char recognition. (these are converted to byte for Dto's instead of char)
             else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
@@ -194,10 +196,11 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         PropertyInfo? propertyInfo = typeof(UserPairPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)
         {
-            if (ChangedValue.GetType() == typeof(UInt64) && propertyInfo.PropertyType == typeof(TimeSpan))
+            // If the property exists and is found, update its value
+            if (ChangedValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
             {
-                // property should be converted back from its Uint64 [MaxLockTime, 36000000000] to the timespan.
-                propertyInfo.SetValue(pair.UserPair.OtherPairPerms, TimeSpan.FromTicks((long)(ulong)ChangedValue));
+                long ticks = (long)(ulong)ChangedValue;
+                propertyInfo.SetValue(pair.UserPair.OtherPairPerms, TimeSpan.FromTicks(ticks));
             }
             // char recognition. (these are converted to byte for Dto's instead of char)
             else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
@@ -244,10 +247,11 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         PropertyInfo? propertyInfo = typeof(UserEditAccessPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)
         {
-            if (ChangedValue.GetType() == typeof(UInt64) && propertyInfo.PropertyType == typeof(TimeSpan))
+            // If the property exists and is found, update its value
+            if (ChangedValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
             {
-                // property should be converted back from its Uint64 [MaxLockTime, 36000000000] to the timespan.
-                propertyInfo.SetValue(pair.UserPair.OtherEditAccessPerms, TimeSpan.FromTicks((long)(ulong)ChangedValue));
+                long ticks = (long)(ulong)ChangedValue;
+                propertyInfo.SetValue(pair.UserPair.OtherEditAccessPerms, TimeSpan.FromTicks(ticks));
             }
             // char recognition. (these are converted to byte for Dto's instead of char)
             else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
@@ -290,7 +294,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             && (pair.UserPair.OwnPairPerms.IsForcedToFollow != (bool)ChangedValue);
         bool forcedSitChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToSit)
             && (pair.UserPair.OwnPairPerms.IsForcedToSit != (bool)ChangedValue);
-        bool forcedGroundSitChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToGroundSit) 
+        bool forcedGroundSitChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToGroundSit)
             && (pair.UserPair.OwnPairPerms.IsForcedToGroundSit != (bool)ChangedValue);
         bool forcedStayChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToStay)
             && (pair.UserPair.OwnPairPerms.IsForcedToStay != (bool)ChangedValue);
@@ -300,10 +304,11 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         PropertyInfo? propertyInfo = typeof(UserPairPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)
         {
-            if (ChangedValue.GetType() == typeof(UInt64) && propertyInfo.PropertyType == typeof(TimeSpan))
+            // If the property exists and is found, update its value
+            if (ChangedValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
             {
-                // property should be converted back from its Uint64 [MaxLockTime, 36000000000] to the timespan.
-                propertyInfo.SetValue(pair.UserPair.OwnPairPerms, TimeSpan.FromTicks((long)(ulong)ChangedValue));
+                long ticks = (long)(ulong)ChangedValue;
+                propertyInfo.SetValue(pair.UserPair.OwnPairPerms, TimeSpan.FromTicks(ticks));
             }
             // char recognition. (these are converted to byte for Dto's instead of char)
             else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))

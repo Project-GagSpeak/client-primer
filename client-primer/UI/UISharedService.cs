@@ -507,6 +507,53 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             disabled, id);
     }
 
+    private bool IconSliderFloatInternal(string id, FontAwesomeIcon icon, string label, ref float valueRef, float min, 
+        float max, Vector4? defaultColor = null, float? width = null, bool disabled = false, string format = "%.1f")
+    {
+        using var dis = ImRaii.PushStyle(ImGuiStyleVar.Alpha, disabled ? 0.5f : 1f);
+        int num = 0;
+        // Disable if issues, tends to be culpret
+        if (defaultColor.HasValue)
+        {
+            ImGui.PushStyleColor(ImGuiCol.FrameBg, defaultColor.Value);
+            num++;
+        }
+
+        ImGui.PushID(id);
+        Vector2 vector;
+        using (IconFont.Push())
+            vector = ImGui.CalcTextSize(icon.ToIconString());
+        Vector2 vector2 = ImGui.CalcTextSize(label);
+        ImDrawListPtr windowDrawList = ImGui.GetWindowDrawList();
+        Vector2 cursorScreenPos = ImGui.GetCursorScreenPos();
+        float num2 = 3f * ImGuiHelpers.GlobalScale;
+        float x = width ?? vector.X + vector2.X + ImGui.GetStyle().FramePadding.X * 2f + num2;
+        float frameHeight = ImGui.GetFrameHeight();
+        ImGui.SetCursorPosX(vector.X + ImGui.GetStyle().FramePadding.X * 2f + num2);
+        ImGui.SetNextItemWidth(x - vector.X - num2);
+        bool result = ImGui.SliderFloat(label+"##"+ id, ref valueRef, min, max, format);
+
+        Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
+        using (IconFont.Push())
+            windowDrawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
+        ImGui.PopID();
+        if (num > 0)
+        {
+            ImGui.PopStyleColor(num);
+        }
+        dis.Pop();
+
+        return result && !disabled;
+    }
+
+    public bool IconSliderFloat(string id, FontAwesomeIcon icon, string label, ref float valueRef,
+        float min, float max, float? width = null, bool isInPopup = false, bool disabled = false)
+    {
+        return IconSliderFloatInternal(id, icon, label, ref valueRef, min, max,
+            isInPopup ? new Vector4(1.0f, 1.0f, 1.0f, 0.0f) : null,
+            width <= 0 ? null : width,
+            disabled);
+    }
 
     private bool IconInputTextInternal(string id, FontAwesomeIcon icon, string label, string hint, ref string inputStr,
         uint maxLength, Vector4? defaultColor = null, float? width = null, bool disabled = false)
@@ -551,7 +598,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         uint maxLength, float? width = null, bool isInPopup = false, bool disabled = false)
     {
         return IconInputTextInternal(id, icon, label, hint, ref inputStr, maxLength,
-            isInPopup ? ColorHelpers.RgbaUintToVector4(ImGui.GetColorU32(ImGuiCol.PopupBg)) : null,
+            isInPopup ? new Vector4(1.0f, 1.0f, 1.0f, 0.0f) : null,
             width <= 0 ? null : width,
             disabled);
     }

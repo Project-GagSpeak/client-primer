@@ -370,7 +370,8 @@ public partial class UserPairPermsSticky
                     // attempt to parse the string back into a valid timespan.
                     if (_uiShared.TryParseTimeSpan(timeSpanString, out TimeSpan result))
                     {
-                        SetOtherPairPermission(permissionType, permissionName, result);
+                        ulong ticks = (ulong)result.Ticks;
+                        SetOtherPairPermission(permissionType, permissionName, ticks);
                     }
                     else
                     {

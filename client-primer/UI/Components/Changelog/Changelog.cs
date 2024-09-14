@@ -19,6 +19,11 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 0, 0)
+            .RegisterMain("PiShock Beta Integration is implemented.")
+            .RegisterFeature("PiShock Options in the settings window have been appended.")
+            .RegisterFeature("PiShock Global & Per-Pair options have been included in the permissions popout and GagSpeak Settings.")
+            .RegisterFeature("DO NOT TEST THESE IF YOU ARE NOT WORKING DIRECTLY WITH MY ON DEVELOPMENT. STILL TESTING FEATURES.");
         VersionEntry(0, 7, 5, 1)
             .RegisterMain("Added Toybox Device Debugger")
             .RegisterFeature("Additional Buttons in toybox settings to auto connect to intiface & the vibe server upon server connection have been added.");

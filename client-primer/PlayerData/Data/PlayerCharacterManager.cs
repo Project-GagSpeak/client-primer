@@ -16,7 +16,8 @@ using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.IPC;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.User;
-using static PInvoke.User32;
+using System.Reflection;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
 
 namespace GagSpeak.PlayerData.Data;
 
@@ -36,7 +37,6 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private readonly TriggerHandler _triggerHandler;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PiShockProvider _piShockProvider;
-
     private readonly IpcCallerMoodles _ipcCallerMoodles; // used to make moodles calls.
 
     // Stored data as retrieved from the server upon connection:
@@ -44,15 +44,16 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private CharacterAppearanceData _playerCharAppearance { get; set; }
     public PlayerCharacterManager(ILogger<PlayerCharacterManager> logger,
         GagspeakMediator mediator, PairManager pairManager,
-        PatternPlaybackService playbackService, AlarmHandler alarmHandler, 
+        PatternPlaybackService playbackService, AlarmHandler alarmHandler,
         TriggerHandler triggerHandler, ClientConfigurationManager clientConfiguration,
-        IpcCallerMoodles ipcCallerMoodles) : base(logger, mediator)
+        PiShockProvider piShockProvider, IpcCallerMoodles ipcCallerMoodles) : base(logger, mediator)
     {
         _pairManager = pairManager;
         _playbackService = playbackService;
         _alarmHandler = alarmHandler;
         _triggerHandler = triggerHandler;
         _clientConfigs = clientConfiguration;
+        _piShockProvider = piShockProvider;
         _ipcCallerMoodles = ipcCallerMoodles;
 
         // Subscribe to the connected message update so we know when to update our global permissions
@@ -62,6 +63,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             _playerCharGlobalPerms = msg.Connection.UserGlobalPermissions;
             _playerCharAppearance = msg.Connection.CharacterAppearanceData;
             Mediator.Publish(new UpdateActiveGags());
+            Task.Run(async () => await GetGlobalPiShockPerms());
         });
 
         // These are called whenever we update our own data.
@@ -75,7 +77,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     }
     // used to track a reflection of the sealed cache creation service for our player.
     public CharacterIPCData? LastIpcData = null;
-    public PiShockPermissions GlobalPiShockPerms = new(false,false,false,-1,-1);
+    public PiShockPermissions GlobalPiShockPerms = new(false, false, false, -1, -1);
 
     // public access definitions.
     public UserGlobalPermissions? GlobalPerms => _playerCharGlobalPerms ?? null;
@@ -88,7 +90,12 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     private async Task<PiShockPermissions> GetGlobalPiShockPerms()
     {
-        if (GlobalPiShockPerms != null) return GlobalPiShockPerms;
+        if (GlobalPiShockPerms.MaxIntensity != -1)
+        {
+            // potentially edit this to always grab refreshed info on each connect, but idk.
+            Logger.LogDebug("Global PiShockPerms already initialized. Returning.");
+            return GlobalPiShockPerms;
+        }
 
         GlobalPiShockPerms = await _piShockProvider.GetPermissionsFromCode(_playerCharGlobalPerms.GlobalShockShareCode);
         return GlobalPiShockPerms;
@@ -104,7 +111,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         // otherwise, if the code is not null or empty but the permissions are not initialized, initialize them.
         else if (!pair.UserPairOwnUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty())
         {
-            pair.LastOwnPiShockPermsForPair = 
+            pair.LastOwnPiShockPermsForPair =
                 await _piShockProvider.GetPermissionsFromCode(pair.UserPairOwnUniquePairPerms.ShockCollarShareCode);
             return pair.LastOwnPiShockPermsForPair;
         }
@@ -129,7 +136,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
         var userPairs = _pairManager.GetOnlineUserPairs();
 
-        bool hasApiOn = !string.IsNullOrEmpty(_clientConfigs.GagspeakConfig.PiShockApiKey) 
+        bool hasApiOn = !string.IsNullOrEmpty(_clientConfigs.GagspeakConfig.PiShockApiKey)
             && !string.IsNullOrEmpty(_clientConfigs.GagspeakConfig.PiShockUsername)
             && !string.IsNullOrEmpty(_playerCharGlobalPerms.GlobalShockShareCode);
 
@@ -182,7 +189,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
 
     private CharacterAppearanceData CompileAppearanceToAPI()
     {
-        if(AppearanceData == null)
+        if (AppearanceData == null)
         {
             Logger.LogError("Appearance data is null. This should not be possible.");
             return new CharacterAppearanceData();
@@ -342,30 +349,47 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             return;
         }
 
-        // Use reflection to find the property that matches the key in ChangedPermission
-        var propertyInfo = typeof(UserGlobalPermissions).GetProperty(changeDto.ChangedPermission.Key);
+		// establish the key-value pair from the Dto so we know what is changing.
+		string propertyName = changeDto.ChangedPermission.Key;
+		object newValue = changeDto.ChangedPermission.Value;
+		PropertyInfo? propertyInfo = typeof(UserGlobalPermissions).GetProperty(propertyName);
 
-        // If the property exists and is found, update its value
-        if (changeDto.ChangedPermission.Value.GetType() == typeof(ulong) && propertyInfo.PropertyType == typeof(TimeSpan))
+        if(propertyName == "GlobalShockShareCode")
         {
-            // property should be converted back from its Uint64 [MaxLockTime, 36000000000] to the timespan.
-            propertyInfo.SetValue(_playerCharGlobalPerms, TimeSpan.FromTicks((long)(ulong)changeDto.ChangedPermission.Value));
+            Logger.LogDebug($"Attempting to grab latest PiShockPerms for Global");
+            Task.Run(async () => GlobalPiShockPerms = await GetGlobalPiShockPerms());
+            return;
         }
-        // char recognition. (these are converted to byte for Dto's instead of char)
-        else if (changeDto.ChangedPermission.Value.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
+        
+
+        if (propertyInfo != null)
         {
-            propertyInfo.SetValue(_playerCharGlobalPerms, Convert.ToChar(changeDto.ChangedPermission.Value));
-        }
-        else if (propertyInfo != null && propertyInfo.CanWrite)
-        {
-            // Convert the value to the appropriate type before setting
-            var value = Convert.ChangeType(changeDto.ChangedPermission.Value, propertyInfo.PropertyType);
-            propertyInfo.SetValue(_playerCharGlobalPerms, value);
-            Logger.LogDebug($"Updated global permission '{changeDto.ChangedPermission.Key}' to '{changeDto.ChangedPermission.Value}'");
+            // If the property exists and is found, update its value
+            if (newValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
+            {
+                long ticks = (long)(ulong)newValue;
+                propertyInfo.SetValue(_playerCharGlobalPerms, TimeSpan.FromTicks(ticks));
+            }
+            // char recognition. (these are converted to byte for Dto's instead of char)
+            else if (changeDto.ChangedPermission.Value.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
+            {
+                propertyInfo.SetValue(_playerCharGlobalPerms, Convert.ToChar(newValue));
+            }
+            else if (propertyInfo != null && propertyInfo.CanWrite)
+            {
+                // Convert the value to the appropriate type before setting
+                var value = Convert.ChangeType(newValue, propertyInfo.PropertyType);
+                propertyInfo.SetValue(_playerCharGlobalPerms, value);
+                Logger.LogDebug($"Updated global permission '{propertyName}' to '{newValue}'");
+            }
+            else
+            {
+                Logger.LogError($"Property '{propertyName}' not found or cannot be updated.");
+            }
         }
         else
         {
-            Logger.LogError($"Property '{changeDto.ChangedPermission.Key}' not found or cannot be updated.");
+            Logger.LogError($"Property '{propertyName}' not found or cannot be updated.");
         }
     }
 

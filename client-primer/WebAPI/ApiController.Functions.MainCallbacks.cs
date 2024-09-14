@@ -479,7 +479,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     {
         Logger.LogInformation("Received Instruction from: {dto}" + Environment.NewLine
             + "OpCode: {opcode}, Intensity: {intensity}, Duration Value: {duration}"
-            , dto.user.AliasOrUID, dto.opCode, dto.intensity, dto.duration);
+            , dto.User.AliasOrUID, dto.OpCode, dto.Intensity, dto.Duration);
         return Task.CompletedTask;
     }
 

@@ -7,6 +7,7 @@ using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
+using GagSpeak.Interop.IpcHelpers.Penumbra;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
@@ -411,7 +412,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         ImGui.Spacing();
 
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputText("PiShock API Key", ref piShockApiKey, 100, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             _clientConfigs.GagspeakConfig.PiShockApiKey = piShockApiKey;
@@ -419,7 +420,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         _uiShared.DrawHelpText("Required PiShock API Key to exist for any PiShock related interactions to work.");
 
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputText("PiShock Username", ref piShockUsername, 100, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             _clientConfigs.GagspeakConfig.PiShockUsername = piShockUsername;
@@ -428,46 +429,50 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared.DrawHelpText("Required PiShock Username to exist for any PiShock related interactions to work.");
 
 
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputText("Global PiShock Share Code", ref globalShockCollarShareCode, 100, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             PlayerGlobalPerms.GlobalShockShareCode = globalShockCollarShareCode;
 
             _ = _apiController.UserUpdateOwnGlobalPerm(new(_apiController.PlayerUserData,
-            new KeyValuePair<string, object>("GlobalShockCollarShareCode", globalShockCollarShareCode)));
+            new KeyValuePair<string, object>("GlobalShockShareCode", globalShockCollarShareCode)));
         }
         _uiShared.DrawHelpText("Global PiShock Share Code used for your connected ShockCollar." +Environment.NewLine + "NOTE:" + Environment.NewLine
             + "While this is a GLOBAL share code, only people you are in Hardcore mode with will have access to it.");
 
-        // make this section readonly
-        using (ImRaii.Disabled(true))
-        {
-            ImGui.Checkbox("Hardcore Pairs Can Shock Your Collar", ref allowGlobalShockShockCollar);
-
-            ImGui.Checkbox("Hardcore Pairs Can Vibrate Your Collar", ref allowGlobalVibrateShockCollar);
-
-            ImGui.Checkbox("Hardcore Pairs Can Beep Your Collar", ref allowGlobalBeepShockCollar);
-
-            ImGui.Spacing();
-            ImGui.TextUnformatted("Global Max Allowed Intensity: ");
-            ImGui.SameLine();
-            UiSharedService.ColorText(maxGlobalShockCollarIntensity.ToString()+"%", ImGuiColors.ParsedGold);
-
-            ImGui.Spacing();
-            ImGui.TextUnformatted("Global Max Allowed Duration: ");
-            ImGui.SameLine();
-            UiSharedService.ColorText(maxGlobalShockDuration.Seconds.ToString()+"."+maxGlobalShockDuration.Milliseconds.ToString(), ImGuiColors.ParsedGold);
-        }
-        _uiShared.DrawHelpText("Current State reflected from share code.");
-
-        // draw out the slider int for the max allowed shock vibration duration.
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        ImGui.SliderInt("Global Max Vibration Time", ref maxGlobalVibrateDuration, 0, 30);
-        if(ImGui.IsItemDeactivatedAfterEdit())
+        ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
+        if(ImGui.SliderInt("Global Max Vibration Time", ref maxGlobalVibrateDuration, 0, 30))
         {
             PlayerGlobalPerms.GlobalShockVibrateDuration = TimeSpan.FromSeconds(maxGlobalVibrateDuration);
+        }
+        if (ImGui.IsItemDeactivatedAfterEdit())
+        {
+            // Convert TimeSpan to ticks and send as UInt64
+            ulong ticks = (ulong)PlayerGlobalPerms.GlobalShockVibrateDuration.Ticks;
             _ = _apiController.UserUpdateOwnGlobalPerm(new(_apiController.PlayerUserData,
-            new KeyValuePair<string, object>("GlobalShockVibrateDuration", TimeSpan.FromSeconds(maxGlobalVibrateDuration))));
+            new KeyValuePair<string, object>("GlobalShockVibrateDuration", ticks)));
+        }
+        _uiShared.DrawHelpText("The maximum time in seconds that your shock collar can vibrate for.");
+
+        // make this section readonly
+        UiSharedService.ColorText("Global Shock Collar Permissions (Parsed From Share Code)", ImGuiColors.ParsedGold);
+        using (ImRaii.Disabled(true))
+        {
+            using (ImRaii.Group())
+            {
+                ImGui.Checkbox("Shocks Allowed", ref allowGlobalShockShockCollar);
+                ImGui.SameLine();
+                ImGui.Checkbox("Vibrations Allowed", ref allowGlobalVibrateShockCollar);
+                ImGui.SameLine();
+                ImGui.Checkbox("Beeps Allowed", ref allowGlobalBeepShockCollar);
+            }
+            ImGui.TextUnformatted("Global Max Shock Intensity: ");
+            ImGui.SameLine();
+            UiSharedService.ColorText(maxGlobalShockCollarIntensity.ToString() + "%", ImGuiColors.ParsedGold);
+            
+            ImGui.TextUnformatted("Global Max Shock Duration: ");
+            ImGui.SameLine();
+            UiSharedService.ColorText(maxGlobalShockDuration.Seconds.ToString()+"."+maxGlobalShockDuration.Milliseconds.ToString()+"s", ImGuiColors.ParsedGold);
         }
     }
 

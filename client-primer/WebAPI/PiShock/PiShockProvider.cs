@@ -9,12 +9,13 @@ namespace GagSpeak.WebAPI;
 
 public sealed class PiShockProvider : IDisposable
 {
-    private readonly ILogger<PiShockProvider> Logger;
+    private readonly ILogger<PiShockProvider> _logger;
     private readonly GagspeakConfigService _mainConfig;
     private readonly HttpClient _httpClient;
 
-    public PiShockProvider(ILogger<TokenProvider> logger, GagspeakConfigService mainConfig)
+    public PiShockProvider(ILogger<PiShockProvider> logger, GagspeakConfigService mainConfig)
     {
+        _logger = logger;
         _mainConfig = mainConfig;
         _httpClient = new HttpClient();
     }
@@ -74,17 +75,12 @@ public sealed class PiShockProvider : IDisposable
         {
             var jsonContent = CreateGetInfoContent(shareCode);
 
-            Logger.LogTrace("PiShock Request Info URI Firing: {piShockUri}", GagspeakPiShock.GetInfoPath());
+            _logger.LogTrace("PiShock Request Info URI Firing: {piShockUri}", GagspeakPiShock.GetInfoPath());
             var response = await _httpClient.PostAsync(GagspeakPiShock.GetInfoPath(), jsonContent).ConfigureAwait(false);
 
-            if (response.StatusCode != HttpStatusCode.OK)
+            if (response.StatusCode == HttpStatusCode.OK)
             {
-                Logger.LogError("Error getting PiShock permissions from share code. Status returned: " + response.StatusCode);
-                return new(false, false, false, -1, -1);
-            }
-            else
-            {
-                Logger.LogTrace("PiShock Request Info Response: {response}", response);
+                _logger.LogTrace("PiShock Request Info Response: {response}", response);
                 var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var jsonDocument = JsonDocument.Parse(content);
                 var root = jsonDocument.RootElement;
@@ -92,13 +88,25 @@ public sealed class PiShockProvider : IDisposable
                 int maxIntensity = root.GetProperty("maxIntensity").GetInt32();
                 int maxShockDuration = root.GetProperty("maxDuration").GetInt32();
 
-                Logger.LogTrace("Obtaining boolean values by passing dummy requests to share code");
-                return await ConstructPermissionObject(shareCode, maxIntensity, maxShockDuration);
+                _logger.LogTrace("Obtaining boolean values by passing dummy requests to share code");
+                var result = await ConstructPermissionObject(shareCode, maxIntensity, maxShockDuration);
+                _logger.LogTrace("PiShock Permissions obtained: {result}", result);
+                return result;
+            }
+            else if(response.StatusCode == HttpStatusCode.InternalServerError)
+            {
+                _logger.LogWarning("The Credentials for your API Key and Username do not match any profile in PiShock");
+                return new(false, false, false, -1, -1);
+            }
+            else
+            {
+                _logger.LogError("The ShareCode for this profile does not exist, or this is a simple error 404: {statusCode}", response.StatusCode);
+                return new(false, false, false, -1, -1);
             }
         }
         catch (HttpRequestException ex)
         {
-            Logger.LogError(ex, "Error getting PiShock permissions from share code");
+            _logger.LogError(ex, "Error getting PiShock permissions from share code");
             return new(false,false,false,-1,-1);
         }
     }
@@ -121,22 +129,21 @@ public sealed class PiShockProvider : IDisposable
                 if (response.StatusCode != HttpStatusCode.OK) continue;
 
                 var content = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                // TODO: Fix how this is parsed from the return code to mark the boolean as true
-                // only if the response "Operation Attempted" is returned.
-                var jsonDocument = JsonDocument.Parse(content);
-                var root = jsonDocument.RootElement;
 
                 switch (opCode)
                 {
-                    case 0: shocks = root.GetProperty("AllowShocks").GetBoolean(); break;
-                    case 1: vibrations = root.GetProperty("AllowVibrations").GetBoolean(); break;
-                    case 2: beeps = root.GetProperty("AllowBeeps").GetBoolean(); break;
+                    case 0:
+                        shocks = content! == "Operation Attempted."; break;
+                    case 1:
+                        vibrations = content! == "Operation Attempted."; break;
+                    case 2:
+                        beeps = content! == "Operation Attempted."; break;
                 }
             }
         }
         catch (HttpRequestException ex)
         {
-            Logger.LogError(ex, "Error executing operation on PiShock");
+            _logger.LogError(ex, "Error executing operation on PiShock");
         }
 
         return new PiShockPermissions(shocks, vibrations, beeps, intensityLimit, durationLimit);
@@ -152,15 +159,15 @@ public sealed class PiShockProvider : IDisposable
 
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                Logger.LogError("Error executing operation on PiShock. Status returned: " + response.StatusCode);
+                _logger.LogError("Error executing operation on PiShock. Status returned: " + response.StatusCode);
                 return;
             }
             var contentStr = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            Logger.LogDebug("PiShock Request Sent to Shock Collar Successfully! Content returned was:\n" + contentStr);
+            _logger.LogDebug("PiShock Request Sent to Shock Collar Successfully! Content returned was:\n" + contentStr);
         }
         catch (HttpRequestException ex)
         {
-            Logger.LogError(ex, "Error executing operation on PiShock");
+            _logger.LogError(ex, "Error executing operation on PiShock");
         }
     }
 }

@@ -6,15 +6,15 @@ namespace GagSpeak.UI;
 // we need a factory to create new instances of Device objects whenever a device is added.
 public class DeviceFactory
 {
-    private readonly ILoggerFactory _loggerfactory;
+    private readonly ILoggerFactory _loggerFactory;
 
-    public DeviceFactory(ILoggerFactory loggerfactory)
+    public DeviceFactory(ILoggerFactory loggerFactory)
     {
-        _loggerfactory = loggerfactory;
+        _loggerFactory = loggerFactory;
     }
 
     public ConnectedDevice CreateConnectedDevice(ButtplugClientDevice newDevice)
     {
-        return new ConnectedDevice(_loggerfactory.CreateLogger<ConnectedDevice>(), newDevice);
+        return new ConnectedDevice(_loggerFactory.CreateLogger<ConnectedDevice>(), newDevice);
     }
 }

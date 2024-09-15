@@ -167,7 +167,7 @@ public static class GagSpeakServiceExtensions
         // Chat Services
         .AddSingleton((s) => new ChatBoxMessage(s.GetRequiredService<ILogger<ChatBoxMessage>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PuppeteerHandler>(),
-            s.GetRequiredService<ChatSender>(), cg, cs))
+            s.GetRequiredService<ChatSender>(), s.GetRequiredService<TriggerController>(), cg, cs))
         .AddSingleton((s) => new ChatSender(ss))
         .AddSingleton((s) => new ChatInputDetour(ss, gip, s.GetRequiredService<ILogger<ChatInputDetour>>(),
             s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterManager>(),
@@ -206,6 +206,7 @@ public static class GagSpeakServiceExtensions
         // Toybox Services
         .AddSingleton<ConnectedDevice>()
         .AddSingleton<DeviceFactory>()
+        .AddSingleton<PlayerMonitorFactory>()
         .AddSingleton<DeviceController>()
         .AddSingleton<PatternPlayback>()
         .AddSingleton<AlarmHandler>()
@@ -241,11 +242,11 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new TriggerController(s.GetRequiredService<ILogger<TriggerController>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<PairManager>(), s.GetRequiredService<ActionEffectMonitor>(),
-            s.GetRequiredService<OnFrameworkService>(), dm))
+            s.GetRequiredService<PlayerMonitorFactory>(), s.GetRequiredService<OnFrameworkService>(), cs, dm))
 
         .AddSingleton((s) => new DtrBarService(s.GetRequiredService<ILogger<DtrBarService>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PairManager>(),
-            s.GetRequiredService<ApiController>(), cs, dtr, ot))
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
+            s.GetRequiredService<PairManager>(), s.GetRequiredService<OnFrameworkService>(), cs, dtr))
 
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()

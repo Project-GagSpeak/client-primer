@@ -6,6 +6,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Data;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagSpeak.UI.UiRemote;
@@ -162,38 +163,24 @@ public class ToyboxOverview
 
         foreach (var device in _vibeService.DeviceHandler.ConnectedDevices)
         {
-            DrawDeviceInfo(device.SexToyDevice);
+            DrawDeviceInfo(device);
         }
     }
 
-    private void DrawDeviceInfo(ButtplugClientDevice? Device)
+    private void DrawDeviceInfo(ConnectedDevice Device)
     {
         if (Device == null) { ImGui.Text("Device is null for this index."); return; }
 
-        ImGui.Text("Device Index: " + Device.Index);
+        ImGui.Text("Device Index: " + Device.DeviceIdx);
 
-        ImGui.Text("Device Name: " + Device.Name);
+        ImGui.Text("Device Name: " + Device.DeviceName);
 
         ImGui.Text("Device Display Name: " + Device.DisplayName);
-
-        ImGui.Text("MessageTimeGap: " + Device.MessageTimingGap);
 
         // Draw Vibrate Attributes
         ImGui.Text("Vibrate Attributes:");
         ImGui.Indent();
-        foreach (var attr in Device.VibrateAttributes)
-        {
-            ImGui.Text("Feature: " + attr.FeatureDescriptor);
-            ImGui.Text("Actuator Type: " + attr.ActuatorType);
-            ImGui.Text("Step Count: " + attr.StepCount);
-            ImGui.Text("Index: " + attr.Index);
-        }
-        ImGui.Unindent();
-
-        // Draw Oscillate Attributes
-        ImGui.Text("Oscillate Attributes:");
-        ImGui.Indent();
-        foreach (var attr in Device.OscillateAttributes)
+        foreach (var attr in Device.VibeAttributes)
         {
             ImGui.Text("Feature: " + attr.FeatureDescriptor);
             ImGui.Text("Actuator Type: " + attr.ActuatorType);
@@ -214,20 +201,9 @@ public class ToyboxOverview
         }
         ImGui.Unindent();
 
-        // Draw Linear Attributes
-        ImGui.Text("Linear Attributes:");
-        ImGui.Indent();
-        foreach (var attr in Device.LinearAttributes)
-        {
-            ImGui.Text("Feature: " + attr.FeatureDescriptor);
-            ImGui.Text("Actuator Type: " + attr.ActuatorType);
-            ImGui.Text("Step Count: " + attr.StepCount);
-            ImGui.Text("Index: " + attr.Index);
-        }
-        ImGui.Unindent();
-
         // Check if the device has a battery
-        ImGui.Text("Has Battery: " + Device.HasBattery);
+        ImGui.Text("Has Battery: " + Device.BatteryPresent);
+        ImGui.Text("Battery Level: " + Device.BatteryLevel);
     }
 
 

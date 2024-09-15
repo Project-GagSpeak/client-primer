@@ -1,4 +1,5 @@
 using Buttplug.Client;
+using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Data;
 using GagSpeak.Services.Mediator;
@@ -349,6 +350,18 @@ public class DeviceController : DisposableMediatorSubscriberBase
                 Logger.LogError($"Error stopping device {device.DeviceName} | {ex.Message}");
             }
         }
+    }
+
+    public void ExecuteVibeTrigger(Trigger trigger)
+    {
+        // if we are not connected do not allow
+        if (!ConnectedToIntiface || ButtPlugClient == null)
+        {
+            Logger.LogWarning("Cannot execute trigger if not connected to Intiface Central");
+            return;
+        }
+
+        Logger.LogInformation("Vibe Trigger Function Accessed. This would normally play a vibe by now!");
     }
 
     public void SendVibeToAllDevices(byte intensity)

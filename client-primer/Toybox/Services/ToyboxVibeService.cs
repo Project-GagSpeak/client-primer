@@ -1,8 +1,10 @@
+using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.SimulatedVibe;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Data.VibeServer;
 using Microsoft.Extensions.Logging;
 using NAudio.Wave;
@@ -14,14 +16,17 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly DeviceController _deviceHandler; // handles the actual connected devices.
     private readonly VibeSimAudio _vibeSimAudio; // handles the simulated vibrator
+    private readonly PiShockProvider _piShockProvider;
 
     public ToyboxVibeService(ILogger<ToyboxVibeService> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        DeviceController deviceHandler, VibeSimAudio vibeSimAudio) : base(logger, mediator)
+        DeviceController deviceHandler, VibeSimAudio vibeSimAudio, 
+        PiShockProvider piShockProvider) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _deviceHandler = deviceHandler;
         _vibeSimAudio = vibeSimAudio;
+        _piShockProvider = piShockProvider;
 
         if (UsingSimulatedVibe)
         {
@@ -74,6 +79,10 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
         _vibeSimAudio.Dispose();
     }
 
+    public void ExecuteShockAction(string shareCode, ShockTriggerAction shockAction)
+    {
+        _piShockProvider.ExecuteOperation(shareCode, (int)shockAction.OpCode, shockAction.Intensity, shockAction.Duration);
+    }
 
     public void UpdateVibeSimAudioType(VibeSimType newType)
     {

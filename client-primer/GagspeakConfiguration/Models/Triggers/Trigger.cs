@@ -1,3 +1,4 @@
+using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.VibeServer;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
@@ -26,9 +27,14 @@ public abstract record Trigger
     public List<string> CanToggleTrigger { get; set; } = new List<string>();
 
     // The actions to execute to each motor on the list of appended devices.
+    // Below are dummy values that are set to default when not used.
     public TriggerActionKind TriggerActionKind { get; set; } = TriggerActionKind.SexToy;
     public List<DeviceTriggerAction> TriggerAction { get; set; } = new List<DeviceTriggerAction>();
     public ShockTriggerAction ShockTriggerAction { get; set; } = new ShockTriggerAction();
+    public string RestraintNameAction { get; set; } = string.Empty;
+    public GagLayer GagLayerAction { get; set; } = GagLayer.UnderLayer;
+    public GagList.GagType GagTypeAction { get; set; } = GagList.GagType.None;
+    public Guid MoodlesIdentifier { get; set; } = Guid.Empty; // can be a status or preset, depending on TriggerActionKind
 }
 
 

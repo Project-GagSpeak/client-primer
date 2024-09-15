@@ -133,6 +133,17 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         return await RunOnFrameworkThread(() => (IPlayerCharacter?)_objectTable.CreateObjectReference(address)).ConfigureAwait(false);
     }
 
+    public List<IPlayerCharacter> GetObjectTablePlayers()
+    {
+        EnsureIsOnFramework();
+        return _objectTable.OfType<IPlayerCharacter>().ToList();
+    }
+
+    public async Task<List<IPlayerCharacter>> GetObjectTablePlayersAsync()
+    {
+        return await RunOnFrameworkThread(GetObjectTablePlayers).ConfigureAwait(false);
+    }
+
 
     /// <summary> Get if the player is not null, and if FFXIVClientState determines the playercharacter is valid </summary>
     /// <returns>a boolean telling us if the player character is present or not</returns>

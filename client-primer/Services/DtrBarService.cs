@@ -25,20 +25,19 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
     private readonly PairManager _pairManager;
+    private readonly OnFrameworkService _frameworkUtils;
     private readonly IClientState _clientState;
     private readonly IDtrBar _dtrBar;
-    private readonly IObjectTable _objectTable;
-
     public DtrBarService(ILogger<DtrBarService> logger,
-        GagspeakMediator mediator, PairManager pairManager,
-        ApiController apiController, IClientState clientState, 
-        IDtrBar dtrBar, IObjectTable objectTable) : base(logger, mediator)
+        GagspeakMediator mediator, ApiController apiController, 
+        PairManager pairManager, OnFrameworkService frameworkUtils,
+        IClientState clientState, IDtrBar dtrBar) : base(logger, mediator)
     {
         _apiController = apiController;
         _pairManager = pairManager;
+        _frameworkUtils = frameworkUtils;
         _clientState = clientState;
         _dtrBar = dtrBar;
-        _objectTable = objectTable;
 
         PrivacyEntry = _dtrBar.Get("GagSpeakPrivacy");
         PrivacyEntry.Shown = true;
@@ -74,9 +73,6 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
     public IDtrBarEntry VibratorEntry { get; private set; }
 
 
-    public List<IPlayerCharacter> ObjectTablePlayers()
-        => _objectTable.OfType<IPlayerCharacter>().ToList();
-
     // Alarm == BitmapIcon for notifications.
     private void UpdateDtrBar()
     {
@@ -87,7 +83,7 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
                 // update the privacy dtr bar
                 var visiblePairGameObjects = _pairManager.GetVisiblePairGameObjects();
                 // get players not included in our gagspeak pairs.
-                var playersNotInPairs = ObjectTablePlayers()
+                var playersNotInPairs = _frameworkUtils.GetObjectTablePlayers()
                     .Where(player => player != _clientState.LocalPlayer && !visiblePairGameObjects.Contains(player))
                     .ToList();
 

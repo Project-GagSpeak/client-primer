@@ -51,12 +51,14 @@ public unsafe class ActionEffectMonitor : IDisposable
     public void EnableHook()
     {
         if (ProcessActionEffectHook.IsEnabled) return;
+        _logger.LogInformation("Enabling ActionEffect Monitor");
         ProcessActionEffectHook.Enable();
     }
 
     public void DisableHook()
     {
         if (!ProcessActionEffectHook.IsEnabled) return;
+        _logger.LogInformation("Disabling ActionEffect Monitor");
         ProcessActionEffectHook.Disable();
     }
 
@@ -114,15 +116,6 @@ public unsafe class ActionEffectMonitor : IDisposable
         }
 
         ProcessActionEffectHook.Original(sourceID, sourceCharacter, pos, effectHeader, effectArray, effectTail);
-    }
-
-    private bool isValidActionEffectType(ActionEffectType type)
-    {
-        return type == ActionEffectType.Damage
-            || type == ActionEffectType.Heal
-            || type == ActionEffectType.BlockedDamage
-            || type == ActionEffectType.ParriedDamage
-            || type == ActionEffectType.ApplyStatusEffectTarget; // things like regen and stuff.
     }
 }
 

@@ -25,17 +25,19 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
 //    private readonly ClientConfigurationManager _clientConfigs;
     private readonly PuppeteerHandler _puppeteerHandler;
     private readonly ChatSender _chatSender;
+    private readonly TriggerController _triggerController;
     private readonly IChatGui _chat;
     private readonly IClientState _clientState;
     private Stopwatch messageTimer; // Stopwatch Timer for time between messages sent (should no longer be needed since we are not sending chained messages)
 
     /// <summary> This is the constructor for the OnChatMsgManager class. </summary>
     public ChatBoxMessage(ILogger<ChatBoxMessage> logger, GagspeakMediator mediator,
-        PuppeteerHandler puppeteerHandler, ChatSender chatSender, IChatGui clientChat, 
-        IClientState clientState) : base(logger, mediator)
+        PuppeteerHandler puppeteerHandler, ChatSender chatSender, TriggerController triggerController,
+        IChatGui clientChat, IClientState clientState) : base(logger, mediator)
     {
         _chatSender = chatSender;
         _puppeteerHandler = puppeteerHandler;
+        _triggerController = triggerController;
         _chat = clientChat;
         _clientState = clientState;
         // set variables
@@ -50,7 +52,6 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
 
         // load in the initial list of chat listeners
         OnUpdateChatListeners();
-
     }
 
     public static Queue<string> MessageQueue; // the messages to send to the server.
@@ -89,7 +90,10 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
         string senderName = senderPlayerPayload.PlayerName;
         string senderWorld = senderPlayerPayload.World.Name;
 
-        // check for globalTriggers
+        // route to scan for any active triggers.
+        _triggerController.CheckActiveChatTriggers(type, senderName + "@" + senderWorld, message.TextValue);
+
+        // check for global puppeteer triggers
         if (_puppeteerHandler.IsValidGlobalTriggerWord(message, type))
         {
             // the message did contain the trigger word, to obtain the message to send.

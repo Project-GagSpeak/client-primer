@@ -1,17 +1,10 @@
-using Dalamud.Game.ClientState.Resolvers;
-using Dalamud.Game.Text;
-using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Common.Component.Excel;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.VibeServer;
 using Lumina.Excel.GeneratedSheets;
-using Penumbra.GameData.Structs;
 using GameAction = Lumina.Excel.GeneratedSheets.Action;
-using GameActionTrait = Lumina.Excel.GeneratedSheets.Trait;
 
 namespace GagSpeak.Toybox.Services;
 
@@ -19,7 +12,6 @@ namespace GagSpeak.Toybox.Services;
 public class TriggerService : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly TriggerController _triggerController;
     private readonly ToyboxVibeService _vibeService;
     private readonly IClientState _clientState;
     private readonly IDataManager _dataManager;
@@ -30,12 +22,10 @@ public class TriggerService : DisposableMediatorSubscriberBase
 
     public TriggerService(ILogger<TriggerService> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        TriggerController triggerController, 
-        ToyboxVibeService vibeService, IClientState clientState, 
+        ToyboxVibeService vibeService, IClientState clientState,
         IDataManager dataManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
-        _triggerController = triggerController;
         _vibeService = vibeService;
         _clientState = clientState;
         _dataManager = dataManager;
@@ -92,17 +82,6 @@ public class TriggerService : DisposableMediatorSubscriberBase
     {
         base.Dispose(disposing);
     }
-
-    public void CheckChatMessageForTrigger(XivChatType chatChannel, ref SeString sender, ref SeString message)
-    {
-        // turn the sender into the player-name-with-world and then call upon the trigger controllers chat checker.
-
-        // if it is valid, execute the trigger via the vibe service.
-
-        // This process mimics the same workflow that the vibe plugin does in a more clean manner.
-
-    }
-
 }
 
 

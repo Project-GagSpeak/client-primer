@@ -325,7 +325,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     {
         try
         {
-            Logger.LogTrace($" UseActionDetour called {acId} {type}");
+            //Logger.LogTrace($" UseActionDetour called {acId} {type}");
 
             // if we are allowing hardcore updates / in hardcore mode
             if (AllowFrameworkHardcoreUpdates())

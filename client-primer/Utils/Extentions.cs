@@ -153,6 +153,10 @@ public static class UtilsExtensions
         {
             TriggerActionKind.SexToy => "Sex Toy (Lovense Device)",
             TriggerActionKind.ShockCollar => "Shock Collar",
+            TriggerActionKind.Restraint => "Apply Restraint",
+            TriggerActionKind.Gag => "Apply Gag",
+            TriggerActionKind.Moodle => "Apply Moodle",
+            TriggerActionKind.MoodlePreset => "Apply Moodle Preset",
             _ => "UNK"
         };
     }
@@ -213,7 +217,6 @@ public static class UtilsExtensions
             LimitedActionEffectType.ParriedDamage => "Damage Parried",
             LimitedActionEffectType.Attract1 => "Rescue Used",
             LimitedActionEffectType.Knockback => "Pushed Back",
-            LimitedActionEffectType.Shirk => "Shirk Used",
             LimitedActionEffectType.Interrupt => "Interrupt Applied",
             _ => "UNK"
         };

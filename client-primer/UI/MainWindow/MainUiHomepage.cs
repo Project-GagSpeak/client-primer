@@ -1,5 +1,6 @@
 using Dalamud.Interface;
 using Dalamud.Plugin;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UI.UiOrders;

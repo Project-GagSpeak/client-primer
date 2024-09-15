@@ -505,6 +505,7 @@ public class ToyboxTriggerManager
         DrawChatTriggerChannels(chatTrigger);
     }
 
+
     private uint SelectedJobId = uint.MaxValue;
     private List<GameAction> SelectedActions = new List<GameAction>();
     private string JobTypeSearchString = string.Empty;
@@ -524,7 +525,16 @@ public class ToyboxTriggerManager
         _uiShared.DrawHelpText("Action To listen for." + Environment.NewLine + Environment.NewLine
             + "NOTE: Effects Divine Benison or regen, that cast no heal value, so not count as heals.");
 
-        _uiShared.DrawComboSearchable("##ActionJobSelectionCombo", 85f, ref JobTypeSearchString, _triggerService.BattleClassJobs,
+        bool anyChecked = spellActionTrigger.ActionID == uint.MaxValue;
+        if(ImGui.Checkbox("Any", ref anyChecked))
+        {
+            spellActionTrigger.ActionID = anyChecked ? uint.MaxValue : 0;
+        }
+        _uiShared.DrawHelpText("If checked, will listen for any action from any class for this type.");
+
+        using (var disabled = ImRaii.Disabled(anyChecked))
+        {
+            _uiShared.DrawComboSearchable("##ActionJobSelectionCombo", 85f, ref JobTypeSearchString, _triggerService.BattleClassJobs,
             (job) => job.Name, false, (i) =>
             {
                 _logger.LogTrace($"Selected Job ID for Trigger: {SelectedJobId}");
@@ -532,16 +542,16 @@ public class ToyboxTriggerManager
                 _triggerService.CacheJobActionList(SelectedJobId);
             }, _triggerService.GetClientClassJob() ?? default, "Job..", ImGuiComboFlags.NoArrowButton);
 
-        ImUtf8.SameLineInner();
-        var loadedActions = _triggerService.LoadedActions[SelectedJobId];
-        _uiShared.DrawComboSearchable("##ActionToListenTo", 150f, ref ActionSearchString, loadedActions, (action) => action.Name,
-        false, (i) => spellActionTrigger.ActionID = i?.RowId ?? uint.MaxValue, null, "Select Job Action..");
+            ImUtf8.SameLineInner();
+            var loadedActions = _triggerService.LoadedActions[SelectedJobId];
+            _uiShared.DrawComboSearchable("##ActionToListenTo", 150f, ref ActionSearchString, loadedActions, (action) => action.Name,
+            false, (i) => spellActionTrigger.ActionID = i?.RowId ?? uint.MaxValue, null, "Select Job Action..");
+        }
 
         // Determine how we draw out the rest of this based on the action type:
         switch (spellActionTrigger.ActionKind)
         {
             case LimitedActionEffectType.Miss:
-            case LimitedActionEffectType.Shirk:
             case LimitedActionEffectType.Interrupt:
             case LimitedActionEffectType.Attract1:
             case LimitedActionEffectType.Knockback:
@@ -563,7 +573,7 @@ public class ToyboxTriggerManager
         UiSharedService.ColorText("Direction", ImGuiColors.ParsedGold);
         _uiShared.DrawHelpText("Determines how the trigger is fired.");
         // create a dropdown storing the enum values of TriggerDirection
-        _uiShared.DrawCombo("##DirectionSelector", 100f, Enum.GetValues<TriggerDirection>(),
+        _uiShared.DrawCombo("##DirectionSelector", 150f, Enum.GetValues<TriggerDirection>(),
         (direction) => direction.DirectionToString(), (i) => spellActionTrigger.Direction = i, spellActionTrigger.Direction);
     }
 
@@ -723,15 +733,21 @@ public class ToyboxTriggerManager
         _uiShared.DrawHelpText("Adjust the Duration the action is played for on the shock collar.");
 
         var duration = trigger.ShockTriggerAction.Duration;
-        float value = (float)duration.TotalSeconds + (float)duration.Milliseconds / 1000;
+        TimeSpan timeSpanFormat = (duration > 15 && duration < 100)
+            ? TimeSpan.Zero // invalid range.
+            : (duration >= 100 && duration <= 15000)
+                ? TimeSpan.FromMilliseconds(duration) // convert to milliseconds
+                : TimeSpan.FromSeconds(duration); // convert to seconds
+        float value = (float)timeSpanFormat.TotalSeconds + (float)timeSpanFormat.Milliseconds / 1000;
         if (ImGui.SliderFloat("##ShockCollarDuration" + trigger.TriggerIdentifier, ref value, 0.016f, 15f))
         {
-            int seconds = (int)value;
-            int milliseconds = (int)((value - seconds) * 1000);
-            trigger.ShockTriggerAction.Duration = new TimeSpan(0, 0, 0, seconds, milliseconds);
+            int newMaxDuration;
+            if (value % 1 == 0 && value >= 1 && value <= 15) { newMaxDuration = (int)value; }
+            else { newMaxDuration = (int)(value * 1000); }
+            trigger.ShockTriggerAction.Duration = newMaxDuration;
         }
 
-        ImGui.Text("Current Stored Duration: " + trigger.ShockTriggerAction.Duration.ToString("ss\\:fff"));
+        ImGui.Text("Current Stored Duration: " + trigger.ShockTriggerAction.Duration.ToString());
         ImGui.Text("Current Stored Intensity: " + trigger.ShockTriggerAction.Intensity.ToString());
     }
 

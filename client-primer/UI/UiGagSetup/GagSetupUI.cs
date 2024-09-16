@@ -17,18 +17,19 @@ public class GagSetupUI : WindowMediatorSubscriberBase
     private readonly UiSharedService _uiSharedService;
     private readonly GagSetupTabMenu _tabMenu;
     private readonly ActiveGagsPanel _activeGags;
+    private readonly LockPickerSim _lockPickSim;
     private readonly GagStoragePanel _gagStorage;
-    private readonly PlayerCharacterManager _playerManager; // for grabbing lock data
-    // gag images
+    private readonly PlayerCharacterManager _playerManager;
 
     public GagSetupUI(ILogger<GagSetupUI> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService, ActiveGagsPanel activeGags,
-        GagStoragePanel gagStorage, PlayerCharacterManager playerManager) 
-        : base(logger, mediator, "Gag Setup UI")
+        LockPickerSim lockPickSim, GagStoragePanel gagStorage, 
+        PlayerCharacterManager playerManager) : base(logger, mediator, "Gag Setup UI")
     {
         _uiSharedService = uiSharedService;
         _playerManager = playerManager;
         _activeGags = activeGags;
+        _lockPickSim = lockPickSim;
         _gagStorage = gagStorage;
 
         AllowPinning = false;
@@ -138,7 +139,7 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                             _activeGags.DrawActiveGagsPanel();
                             break;
                         case GagSetupTabs.Tabs.LockPicker: // shows off the gag storage configuration for the user's gags.
-                            DrawLockPickerPanel();
+                            _lockPickSim.DrawLockPickingSim();
                             break;
                         case GagSetupTabs.Tabs.GagStorage: // fancy WIP thingy to give players access to features based on achievements or unlocks.
                             _gagStorage.DrawGagStoragePanel();
@@ -160,12 +161,6 @@ public class GagSetupUI : WindowMediatorSubscriberBase
         {
             ImGui.PopStyleVar();
         }
-    }
-
-    // Draw the lockpicker tab
-    private void DrawLockPickerPanel()
-    {
-        ImGui.Text("Lockpicker Coming Soon");
     }
 
     // Draw the profile display edits tab

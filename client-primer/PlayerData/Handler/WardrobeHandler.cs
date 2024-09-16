@@ -110,6 +110,9 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         ClearEditingRestraintSet();
     }
 
+    public void CloneRestraintSet(RestraintSet setToClone)
+        => _clientConfigs.CloneRestraintSet(setToClone);
+
     public void AddNewRestraintSet(RestraintSet newSet)
         => _clientConfigs.AddNewRestraintSet(newSet);
 

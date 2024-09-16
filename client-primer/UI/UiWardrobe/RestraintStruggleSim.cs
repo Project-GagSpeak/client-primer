@@ -2,12 +2,10 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Simulation;
 using ImGuiNET;
-using static FFXIVClientStructs.FFXIV.Client.Game.CurrencyManager;
-
 
 namespace GagSpeak.UI.UiWardrobe;
 
-public class RestraintStruggleSim : DisposableMediatorSubscriberBase
+public class StruggleSim : DisposableMediatorSubscriberBase
 {
     private readonly UiSharedService _uiSharedService;
     private readonly WardrobeHandler _handler;
@@ -15,7 +13,7 @@ public class RestraintStruggleSim : DisposableMediatorSubscriberBase
     private readonly ProgressBar _progressBar;
     private readonly StruggleItem _currentItem;
 
-    public RestraintStruggleSim(ILogger<RestraintStruggleSim> logger,
+    public StruggleSim(ILogger<StruggleSim> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         WardrobeHandler handler, StruggleStamina stamina,
         ProgressBar progressBar, StruggleItem currentItem) : base(logger, mediator)

@@ -17,13 +17,13 @@ public class WardrobeUI : WindowMediatorSubscriberBase
     private readonly WardrobeHandler _handler;
     private readonly ActiveRestraintSet _activePanel;
     private readonly RestraintSetManager _overviewPanel;
-    private readonly RestraintStruggleSim _struggleSimPanel;
+    private readonly StruggleSim _struggleSimPanel;
     private readonly MoodlesManager _moodlesPanel;
     private readonly RestraintCosmetics _cosmeticsPanel;
     public WardrobeUI(ILogger<WardrobeUI> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         WardrobeHandler handler, ActiveRestraintSet activeSet, 
-        RestraintSetManager restraintOverview, RestraintStruggleSim struggleSim,
+        RestraintSetManager restraintOverview, StruggleSim struggleSim,
         MoodlesManager moodlesManager, RestraintCosmetics restraintCosmetics) 
         : base(logger, mediator, "Wardrobe UI")
     {

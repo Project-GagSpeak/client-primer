@@ -10,6 +10,7 @@ using GagSpeak.Toybox.Services;
 using GagSpeak.UI.Components;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
@@ -304,13 +305,48 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal RestraintSet GetActiveSet() => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.Enabled)!; // this can be null.
     internal RestraintSet GetRestraintSet(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
     internal int GetRestraintSetIdxByName(string name) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Name == name);
+
+    internal void CloneRestraintSet(RestraintSet setToClone)
+    {
+        var clonedSet = setToClone.DeepCloneSet();
+
+        clonedSet.Name = EnsureUniqueRestraintName(clonedSet.Name);
+
+        _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(clonedSet);
+        _wardrobeConfig.Save();
+        Logger.LogInformation("Restraint Set added to wardrobe");
+        // publish to mediator
+        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+    }
+
+    public string EnsureUniqueRestraintName(string baseName)
+    {
+        // Regex to match the base name and the (X) suffix if it exists
+        var suffixPattern = @"^(.*?)(?: \((\d+)\))?$";
+        var match = System.Text.RegularExpressions.Regex.Match(baseName, suffixPattern);
+
+        string namePart = match.Groups[1].Value; // The base part of the name
+        int currentNumber = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
+
+        // Increment current number for the new copy
+        currentNumber = Math.Max(1, currentNumber);
+
+        string newName = baseName;
+
+        // Ensure the name is unique by appending (X) and incrementing if necessary
+        while (WardrobeConfig.WardrobeStorage.RestraintSets.Any(set => set.Name == newName))
+        {
+            newName = $"{namePart} ({currentNumber++})";
+        }
+
+        return newName;
+    }
+
     internal void AddNewRestraintSet(RestraintSet newSet)
     {
-        // add 1 to the name until it is unique.
-        while (WardrobeConfig.WardrobeStorage.RestraintSets.Any(x => x.Name == newSet.Name))
-        {
-            newSet.Name += "(copy)";
-        }
+        // Ensure the set has a unique name before adding it.
+        newSet.Name = EnsureUniqueRestraintName(newSet.Name);
+
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(newSet);
         _wardrobeConfig.Save();
         Logger.LogInformation("Restraint Set added to wardrobe");

@@ -1,6 +1,7 @@
 using Dalamud.Utility;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI.Utils;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 
@@ -39,7 +40,6 @@ public record RestraintSet : IMoodlesAssociable
             }
         );
     }
-
 
     /// <summary> The name of the pattern </summary>
     public string Name { get; set; } = "New Restraint Set";
@@ -81,6 +81,51 @@ public record RestraintSet : IMoodlesAssociable
     /// The string indicates the UID associated with the set properties.
     /// </summary>
     public Dictionary<string, HardcoreSetProperties> SetProperties { get; set; } = new();
+
+
+    public RestraintSet DeepCloneSet()
+    {
+        // Clone basic properties
+        var clonedSet = new RestraintSet(_itemIdVars)
+        {
+            Name = this.Name,
+            Description = this.Description,
+            Enabled = this.Enabled,
+            EnabledBy = this.EnabledBy,
+            LockType = this.LockType,
+            LockPassword = this.LockPassword,
+            LockedUntil = this.LockedUntil,
+            LockedBy = this.LockedBy,
+            ForceHeadgearOnEnable = this.ForceHeadgearOnEnable,
+            ForceVisorOnEnable = this.ForceVisorOnEnable,
+            AssociatedMods = new List<AssociatedMod>(this.AssociatedMods.Select(mod => mod.DeepClone())),
+            AssociatedMoodles = new List<Guid>(this.AssociatedMoodles),
+            AssociatedMoodlePresets = new List<Guid>(this.AssociatedMoodlePresets),
+            ViewAccess = new List<string>(this.ViewAccess),
+            SetProperties = new Dictionary<string, HardcoreSetProperties>(this.SetProperties.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.DeepClone()))
+        };
+
+        // Deep clone DrawData
+        StaticLogger.Logger.LogWarning("Attempting DeepClone");
+        clonedSet.DrawData = new Dictionary<EquipSlot, EquipDrawData>(
+            this.DrawData.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.DeepCloneDrawData()));
+        // log the drawdata after.
+        StaticLogger.Logger.LogWarning("DrawData after DeepClone: {0}", clonedSet.DrawData);
+
+
+        // Deep clone BonusDrawData
+        clonedSet.BonusDrawData = new Dictionary<BonusItemFlag, BonusDrawData>(
+            this.BonusDrawData.ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value.DeepClone()));
+
+        return clonedSet;
+    }
+
 
     // parameterless constructor for serialization
     public JObject Serialize()

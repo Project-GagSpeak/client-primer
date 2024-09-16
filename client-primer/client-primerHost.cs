@@ -275,6 +275,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<StruggleStamina>()
         .AddSingleton<StruggleItem>()
         .AddSingleton<ProgressBar>()
+        .AddSingleton<LockpickMinigame>()
 
 
         // UI general services
@@ -283,11 +284,12 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<PlayerCharacterManager>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<DictStain>(), 
             s.GetRequiredService<ItemData>(), s.GetRequiredService<TextureService>(), s.GetRequiredService<MoodlesAssociations>(), dm))
+        .AddSingleton<LockPickerSim>()
 
         // Wardrobe UI
         .AddSingleton<ActiveRestraintSet>()
         .AddSingleton<RestraintSetManager>()
-        .AddSingleton<RestraintStruggleSim>()
+        .AddSingleton<StruggleSim>()
         .AddSingleton((s) => new MoodlesService(s.GetRequiredService<ILogger<MoodlesService>>(), s.GetRequiredService<UiSharedService>(), dm))
         .AddSingleton<MoodlesManager>()
         .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
@@ -371,7 +373,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
         .AddSingleton((s) => new IpcCallerGlamourer(s.GetRequiredService<ILogger<IpcCallerGlamourer>>(), pi, cs,
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>(),
-            s.GetRequiredService<IpcFastUpdates>()))
+            s.GetRequiredService<ItemIdVars>(), s.GetRequiredService<IpcFastUpdates>()))
         .AddSingleton((s) => new IpcCallerCustomize(s.GetRequiredService<ILogger<IpcCallerCustomize>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<OnFrameworkService>(),
             s.GetRequiredService<IpcFastUpdates>(), pi, cs))

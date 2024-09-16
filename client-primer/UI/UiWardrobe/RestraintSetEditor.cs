@@ -128,13 +128,6 @@ public class RestraintSetEditor : IMediatorSubscriber
             }
             associatedMoodles.Dispose();
 
-            var associatedCustomizePreset = ImRaii.TabItem("C+ Preset");
-            if (associatedCustomizePreset)
-            {
-                DrawCustomizePlusOptions(refRestraint, cellPadding.Y);
-            }
-            associatedCustomizePreset.Dispose();
-
             var associatedSpatialAudioType = ImRaii.TabItem("Sounds");
             if (associatedSpatialAudioType)
             {
@@ -348,11 +341,6 @@ public class RestraintSetEditor : IMediatorSubscriber
         {
             Logger.LogError(e, "Error Drawing Moodles Options for Restraint Set.");
         }
-    }
-
-    private void DrawCustomizePlusOptions(RestraintSet refRestraintSet, float cellPaddingY)
-    {
-        ImGui.TextWrapped("Not dealing with this crap until C+ pulls itself together. Too much a drain on my sanity and posing it too much of a bitch right now.");
     }
 
     private void DrawSpatialAudioOptions(RestraintSet refRestraintSet, float cellPaddingY)

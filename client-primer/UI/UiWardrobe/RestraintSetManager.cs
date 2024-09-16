@@ -3,6 +3,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
@@ -25,6 +26,7 @@ namespace GagSpeak.UI.UiWardrobe;
 public class RestraintSetManager : DisposableMediatorSubscriberBase
 {
     private readonly UiSharedService _uiShared;
+    private readonly IpcCallerGlamourer _ipcGlamourer;
     private readonly RestraintSetEditor _editor;
     private readonly WardrobeHandler _handler;
     private readonly TextureService _textures;
@@ -34,11 +36,12 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
     public RestraintSetManager(ILogger<RestraintSetManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        RestraintSetEditor editor, WardrobeHandler handler,
-        TextureService textureService, DictStain stainDictionary,
+        IpcCallerGlamourer ipcGlamourer, RestraintSetEditor editor, 
+        WardrobeHandler handler, TextureService textureService, DictStain stainDictionary,
         ItemIdVars itemHelper, PadlockHandler padlockHandler) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
+        _ipcGlamourer = ipcGlamourer;
         _editor = editor;
         _handler = handler;
         _textures = textureService;
@@ -54,7 +57,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
         {
             // recalculate the list selection based on the order.
-            UpdateItemHoveredList();
+            LastHoveredIndex = -1;
         });
 
         Mediator.Subscribe<TooltipSetItemToRestraintSetMessage>(this, (msg) =>
@@ -80,17 +83,20 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
     private LowerString RestraintSetSearchString = LowerString.Empty;
     private List<RestraintSet> FilteredSetList
-        => _handler.GetAllSetsForSearch()
-            // Find the enabled set and put it in a list (or an empty list if none are enabled)
-            .Where(set => set.Enabled)
-            .Concat(
-                // Append the other sets that match the search filter, excluding the already included enabled set
-                _handler.GetAllSetsForSearch()
-                    .Where(set => !set.Enabled && set.Name.Contains(RestraintSetSearchString, StringComparison.OrdinalIgnoreCase))
-            )
-            .ToList();
+    {
+        get
+        {
+            var allSets = _handler.GetAllSetsForSearch();
+            var enabledSet = allSets.FirstOrDefault(set => set.Enabled);
+            var filteredSets = allSets
+                .Where(set => !set.Enabled && set.Name.Contains(RestraintSetSearchString, StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-    private List<bool> ListItemHovered = new List<bool>();
+            return enabledSet != null ? new List<RestraintSet> { enabledSet }.Concat(filteredSets).ToList() : filteredSets;
+        }
+    }
+    private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
+
 
 
     public void DrawManageSets(Vector2 cellPadding)
@@ -153,22 +159,14 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
             ImGui.TableNextColumn();
 
-            // grab the index in the highlighted set that is true
-            var highlightedIndex = ListItemHovered.FindIndex(x => x.Equals(true));
-            // if non are, return
-            if (highlightedIndex == -1)
+            // Draw the preview based on the last hovered index
+            if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredSetList.Count)
             {
-                if (_handler.ActiveSet != null)
-                {
-                    DrawRestraintSetPreview(_handler.ActiveSet);
-                }
-                return;
+                DrawRestraintSetPreview(FilteredSetList[LastHoveredIndex]);
             }
-
-            // otherwise, draw.
-            if (FilteredSetList.Count > 0)
+            else if (_handler.ActiveSet != null)
             {
-                DrawRestraintSetPreview(FilteredSetList[highlightedIndex]);
+                DrawRestraintSetPreview(_handler.ActiveSet);
             }
         }
     }
@@ -264,6 +262,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         // use button wrounding
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
+        var importSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.FileImport, "Import Gear");
         var iconSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus);
         Vector2 textSize;
         using (_uiShared.UidFont.Push())
@@ -294,9 +293,21 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             }
 
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X * 2 - ImGui.GetStyle().ItemSpacing.X * 2);
+            float width = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - importSize - iconSize.X * 2 - ImGui.GetStyle().ItemSpacing.X * 3;
+            ImGui.SameLine(width);
+
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             var currentYpos = ImGui.GetCursorPosY();
+            // draw revert button at the same location but right below that button
+            if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import Gear", null, false, !IpcCallerGlamourer.APIAvailable || _handler.EditingSetNull))
+            {
+                _ipcGlamourer.SetRestraintEquipmentFromState(_handler.SetBeingEdited);
+                Logger.LogDebug("EquipmentImported from current State");
+            }
+            UiSharedService.AttachToolTip("Imports your Actor's Equipment Data from your current appearance.");
+
+            ImGui.SameLine();
+            ImGui.SetCursorPosY(currentYpos);
             // for saving contents
             if (_uiShared.IconButton(FontAwesomeIcon.Save))
             {
@@ -306,17 +317,14 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             UiSharedService.AttachToolTip("Save changes to Restraint Set & Return to the main list");
 
             // right beside it to the right, we need to draw the delete button
-            using (var disableDelete = ImRaii.Disabled(!UiSharedService.CtrlPressed()))
+            ImGui.SameLine();
+            ImGui.SetCursorPosY(currentYpos);
+            if (_uiShared.IconButton(FontAwesomeIcon.Trash, null, null, !UiSharedService.CtrlPressed()))
             {
-                ImGui.SameLine();
-                ImGui.SetCursorPosY(currentYpos);
-                if (_uiShared.IconButton(FontAwesomeIcon.Trash))
-                {
-                    // reset the createdPattern to a new pattern, and set editing pattern to true
-                    _handler.RemoveRestraintSet(_handler.EditingSetIndex);
-                }
-                UiSharedService.AttachToolTip("Delete Restraint Set");
+                // reset the createdPattern to a new pattern, and set editing pattern to true
+                _handler.RemoveRestraintSet(_handler.EditingSetIndex);
             }
+            UiSharedService.AttachToolTip("Delete Restraint Set");
         }
     }
 
@@ -329,37 +337,49 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         if (ImGui.InputTextWithHint("##RestraintFilter", "Search for Restraint Set", ref filter, 255))
         {
             RestraintSetSearchString = filter;
+            LastHoveredIndex = -1;
         }
         ImUtf8.SameLineInner();
         using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(RestraintSetSearchString));
         if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
         {
             RestraintSetSearchString = string.Empty;
+            LastHoveredIndex = -1;
         }
-    }
-
-    private void UpdateItemHoveredList()
-    {
-        ListItemHovered.Clear();
-        ListItemHovered.AddRange(Enumerable.Repeat(false, FilteredSetList.Count));
     }
 
     private void DrawRestraintSetSelectableMenu()
     {
-        // if list size has changed, refresh the list of hovered items
-        if (ListItemHovered.Count != FilteredSetList.Count)
-        {
-            UpdateItemHoveredList();
-        }
-
-        // Find the active set
-        var activeSet = FilteredSetList.FirstOrDefault(set => set.Enabled);
-
         // display the selectable for each restraintSet using a for loop to keep track of the index
         for (int i = 0; i < FilteredSetList.Count; i++)
         {
             var set = FilteredSetList[i];
-            DrawRestraintSetSelectable(set, i); // Pass the index to DrawRestraintSetSelectable
+            DrawRestraintSetSelectable(set, i);
+
+            if(ImGui.IsItemHovered())
+                LastHoveredIndex = i;
+
+            // if the item is right clicked, open the popup
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredSetList[i].Enabled)
+            {
+                ImGui.OpenPopup($"RestraintSetContext{i}");
+            }
+        }
+
+        if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredSetList.Count)
+        {
+            if (ImGui.BeginPopup($"RestraintSetContext{LastHoveredIndex}"))
+            {
+                if (ImGui.Selectable("Clone Restraint Set") && FilteredSetList[LastHoveredIndex] != null)
+                {
+                    _handler.CloneRestraintSet(FilteredSetList[LastHoveredIndex]);
+                }
+                if (ImGui.Selectable("Delete Set") && FilteredSetList[LastHoveredIndex] != null)
+                {
+                    _handler.RemoveRestraintSet(_handler.GetRestraintSetIndexByName(FilteredSetList[LastHoveredIndex].Name));
+                }
+                ImGui.EndPopup();
+            }
         }
     }
 
@@ -386,7 +406,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
         // if it is the active set, dont push the color, otherwise push the color
         
-        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), !isActiveSet && ListItemHovered[idx]);
+        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), !isActiveSet && LastHoveredIndex == idx);
         using (ImRaii.Child($"##EditRestraintSetHeader{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetFrameHeight() * 2 - 5f)))
         {
             var maxAllowedWidth = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - toggleSize.X - ImGui.GetStyle().ItemSpacing.X * 3;
@@ -474,7 +494,6 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         }
         if (!isActiveSet)
         {
-            ListItemHovered[idx] = ImGui.IsItemHovered();
             if (ImGui.IsItemClicked())
             {
                 _handler.SetEditingRestraintSet(set);

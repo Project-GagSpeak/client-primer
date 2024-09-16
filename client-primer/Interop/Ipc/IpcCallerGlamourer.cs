@@ -10,6 +10,10 @@ using Glamourer.Api.Enums;
 using Glamourer.Api.Helpers;
 using Glamourer.Api.IpcSubscribers;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Utils;
+using Penumbra.GameData.Enums;
+using Penumbra.GameData.Structs;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -22,6 +26,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private readonly IDalamudPluginInterface _pi;
     private readonly IClientState _clientState;
     private readonly OnFrameworkService _onFrameworkService;
+    private readonly ItemIdVars _itemHelper;
     private readonly IpcFastUpdates _fastUpdates;
     private bool _shownGlamourerUnavailable = false; // safety net to prevent notification spam.
 
@@ -41,11 +46,12 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public IpcCallerGlamourer(ILogger<IpcCallerGlamourer> logger,
         IDalamudPluginInterface pluginInterface, IClientState clientState,
         OnFrameworkService OnFrameworkService, GagspeakMediator mediator,
-        IpcFastUpdates fastUpdates) : base(logger, mediator)
+        ItemIdVars itemHelper, IpcFastUpdates fastUpdates) : base(logger, mediator)
     {
         _pi = pluginInterface;
         _onFrameworkService = OnFrameworkService;
         _clientState = clientState;
+        _itemHelper = itemHelper;
         _fastUpdates = fastUpdates;
 
         // set IPC callers
@@ -143,19 +149,55 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public JObject? GetState()
     {
-        try
-        {
-            var success = _glamourerGetState.Invoke(_clientState.LocalPlayer!.ObjectIndex);
-            return success.Item2;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning($"Error during GetState: {ex}");
-            return null;
-        }
+        var success = _glamourerGetState.Invoke(_clientState.LocalPlayer!.ObjectIndex);
+        return success.Item2;
     }
 
+    public bool SetRestraintEquipmentFromState(RestraintSet setToEdit)
+    {
+        // if the glamourerApi is not active, then return false
+        if (!APIAvailable || _onFrameworkService.IsZoning) return false;
 
+        // Get the player state and equipment JObject
+        var playerState = GetState();
+        var equipment = playerState?["Equipment"];
+        if (equipment == null) return false;
+
+        // List of equipment slots
+        var slots = new[] { "MainHand", "OffHand", "Head", "Body", "Hands", "Legs", "Feet", "Ears", "Neck", "Wrists", "RFinger", "LFinger" };
+
+        // Update each slot
+        foreach (var slotName in slots)
+        {
+            var item = equipment[slotName];
+            var equipDrawData = UpdateItem(item, slotName);
+
+            if (equipDrawData != null)
+            {
+                setToEdit.DrawData[equipDrawData.Slot] = equipDrawData; // Assign to the corresponding EquipSlot in DrawData
+            }
+        }
+
+        return true;
+    }
+
+    private EquipDrawData? UpdateItem(JToken? item, string slotName)
+    {
+        if (item == null) return null;
+
+        var customItemId = item["ItemId"]?.Value<ulong>() ?? 4294967164;
+        var stain = item["Stain"]?.Value<int>() ?? 0;
+        var stain2 = item["Stain2"]?.Value<int>() ?? 0;
+
+        StainIds gameStain = new StainIds((StainId)stain, (StainId)stain2);
+        return new EquipDrawData(_itemHelper, ItemIdVars.NothingItem((EquipSlot)Enum.Parse(typeof(EquipSlot), slotName)))
+        {
+            Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), slotName),
+            IsEnabled = true,
+            GameItem = _itemHelper.Resolve((EquipSlot)Enum.Parse(typeof(EquipSlot), slotName), new CustomItemId(customItemId)),
+            GameStain = gameStain
+        };
+    }
 
     public async Task<bool> ForceSetMetaData(MetaData metaData, bool? forcedState = null)
     {
@@ -163,35 +205,23 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         if (!APIAvailable || _onFrameworkService.IsZoning) return false;
         try
         {
-            return await _onFrameworkService.RunOnFrameworkThread(() =>
+            // grab the JObject of the character state.
+            var playerState = GetState();
+            if (playerState == null) return false;
+
+            if(metaData == MetaData.Both || metaData == MetaData.Hat)
             {
-                // grab character pointer (do this here so we do it inside the framework thread)
-                var character = _onFrameworkService._playerAddr;
-                // set the game object to the character
-                var gameObj = _onFrameworkService.CreateGameObject(character);
-                // if the game object is the character, then get the customization for it.
-                if (gameObj is ICharacter c)
-                {
-                    var objectIndex = c.ObjectIndex;
-                    // grab the JObject of the character state.
-                    var playerState = GetState();
+                playerState!["Equipment"]!["Hat"]!["Show"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Hat"]?["Show"]) ?? false); ;
+                playerState!["Equipment"]!["Hat"]!["Apply"] = true;
+            }
+            if(metaData == MetaData.Both || metaData == MetaData.Visor)
+            {
+                playerState!["Equipment"]!["Visor"]!["IsToggled"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Visor"]?["IsToggled"]) ?? false); ;
+                playerState!["Equipment"]!["Visor"]!["Apply"] = true;
+            }
 
-                    if(metaData == MetaData.Both || metaData == MetaData.Hat)
-                    {
-                        playerState!["Equipment"]!["Hat"]!["Show"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Hat"]?["Show"]) ?? false); ;
-                        playerState!["Equipment"]!["Hat"]!["Apply"] = true;
-                    }
-                    if(metaData == MetaData.Both || metaData == MetaData.Visor)
-                    {
-                        playerState!["Equipment"]!["Visor"]!["IsToggled"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Visor"]?["IsToggled"]) ?? false); ;
-                        playerState!["Equipment"]!["Visor"]!["Apply"] = true;
-                    }
-
-                    var ret = _ApplyState.Invoke(playerState, objectIndex);
-                    return ret == GlamourerApiEc.Success;
-                }
-                return false;
-            }).ConfigureAwait(false);
+            var ret = _ApplyState.Invoke(playerState, 0);
+            return ret == GlamourerApiEc.Success;
         }
         catch (Exception ex)
         {

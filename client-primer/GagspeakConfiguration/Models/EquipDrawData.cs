@@ -1,5 +1,6 @@
 
 using GagSpeak.Utils;
+using GagSpeak.WebAPI.Utils;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Penumbra.GameData.Enums;
@@ -24,6 +25,17 @@ public record EquipDrawData
     {
         _itemHelpers = itemHelper;
         GameItem = gameItem;
+    }
+
+    public EquipDrawData DeepCloneDrawData()
+    {
+        return new EquipDrawData(_itemHelpers, GameItem)
+        {
+            IsEnabled = this.IsEnabled,
+            Slot = this.Slot,
+            GameItem = this.GameItem,
+            GameStain = this.GameStain
+        };
     }
 
     public JObject Serialize()

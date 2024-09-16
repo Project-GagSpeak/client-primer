@@ -8,6 +8,7 @@ using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
 using ImGuiNET;
 using System.Numerics;
+
 namespace GagSpeak.UI.UiGagSetup;
 
 public class ActiveGagsPanel : DisposableMediatorSubscriberBase

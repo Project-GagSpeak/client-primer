@@ -3,13 +3,11 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using GagSpeak.ChatMessages;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UpdateMonitoring.Chat.ChatMonitors;
+using GagSpeak.Toybox.Controllers;
+using GagSpeak.Utils;
 
 namespace GagSpeak.UpdateMonitoring.Chat;
 
@@ -22,7 +20,7 @@ namespace GagSpeak.UpdateMonitoring.Chat;
 /// </summary>
 public class ChatBoxMessage : DisposableMediatorSubscriberBase
 {
-//    private readonly ClientConfigurationManager _clientConfigs;
+    //    private readonly ClientConfigurationManager _clientConfigs;
     private readonly PuppeteerHandler _puppeteerHandler;
     private readonly ChatSender _chatSender;
     private readonly TriggerController _triggerController;
@@ -80,18 +78,48 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
 
     private void Chat_OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        // if the sender name is ourselves, ignore the message.
-        if (sender.TextValue == _clientState.LocalPlayer?.Name.TextValue) return;
+        // Don't process messages if we ain't visible.
+        if (_clientState.LocalPlayer == null) return;
 
-        // grab the senders player payload so we can know their name and world.
-        var senderPlayerPayload = sender.Payloads.SingleOrDefault(x => x is PlayerPayload) as PlayerPayload;
-        if (senderPlayerPayload == null) return;
+        // Handle the special case where we are checking a DeathRoll
+        if (type == (XivChatType)2122 || type == (XivChatType)8266)
+        {
+            if (message.Payloads[1] is PlayerPayload)
+            {
+                // grab the player payload from the message
+                var playerPayload = message.Payloads[1] as PlayerPayload;
+                if (playerPayload != null)
+                {
+                    // check for social triggers
+                    _triggerController.CheckActiveSocialTriggers(type, playerPayload.PlayerName + "@" + playerPayload.World.Name, sender, message);
+                }
+            }
+            else
+            {
+                // Should check under our name if this isn't valid as someone elses player payload.
+                _triggerController.CheckActiveSocialTriggers(type, _clientState.LocalPlayer.GetNameWithWorld(), sender, message);
+            }
+        }
 
-        string senderName = senderPlayerPayload.PlayerName;
-        string senderWorld = senderPlayerPayload.World.Name;
+        // get the player payload of the sender. If we are sending the message, this is null.
+        PlayerPayload? senderPlayerPayload = sender.Payloads.SingleOrDefault(x => x is PlayerPayload) as PlayerPayload;
+        string senderName = "";
+        string senderWorld = "";
+        if (senderPlayerPayload == null)
+        {
+            senderName = _clientState.LocalPlayer.Name.TextValue;
+            senderWorld = _clientState.LocalPlayer.HomeWorld.GameData!.Name;
+        }
+        else
+        {
+            senderName = senderPlayerPayload.PlayerName;
+            senderWorld = senderPlayerPayload.World.Name;
+        }
 
         // route to scan for any active triggers.
         _triggerController.CheckActiveChatTriggers(type, senderName + "@" + senderWorld, message.TextValue);
+
+        if (senderName + "@" + senderWorld == _clientState.LocalPlayer.GetNameWithWorld()) return;
 
         // check for global puppeteer triggers
         if (_puppeteerHandler.IsValidGlobalTriggerWord(message, type))
@@ -116,7 +144,7 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
             {
                 // get the new message to send
                 SeString msgToSend = _puppeteerHandler.NewMessageFromPuppeteerTrigger(triggerPhrases, matchedPair.UserPairOwnUniquePairPerms, message, type);
-                
+
                 // convert any alias's set for this user if any are present.
                 msgToSend = _puppeteerHandler.ConvertAliasCommandsIfAny(matchedPair.UserData.UID, msgToSend.TextValue);
 

@@ -1,26 +1,28 @@
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Text;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
+using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Interop.Ipc;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Data;
+using GagSpeak.Toybox.Services;
+using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Triggers;
-using GagspeakAPI.Data.VibeServer;
 using GagSpeak.Utils;
-using GameAction = Lumina.Excel.GeneratedSheets.Action;
-using Dalamud.Game.ClientState.Objects.Types;
-using GagSpeak.ChatMessages;
-using OtterGuiInternal.Enums;
 using GagspeakAPI.Data.Enum;
-using GagSpeak.UI;
-using GagSpeak.Interop.Ipc;
-using GagSpeak.PlayerData.Data;
-using GagSpeak.Toybox.Services;
-using Dalamud.Utility;
+using GagspeakAPI.Data.VibeServer;
+using OtterGui.Classes;
+using System.Text.RegularExpressions;
+using GameAction = Lumina.Excel.GeneratedSheets.Action;
 
-namespace GagSpeak.PlayerData.Handlers;
+namespace GagSpeak.Toybox.Controllers;
 
 // Trigger Controller helps manage the currently active triggers and listens in on the received action effects
 public class TriggerController : DisposableMediatorSubscriberBase
@@ -29,30 +31,30 @@ public class TriggerController : DisposableMediatorSubscriberBase
     private readonly PlayerCharacterManager _playerManager;
     private readonly PairManager _pairManager;
     private readonly ActionEffectMonitor _receiveActionEffectHookManager;
-    private readonly MonitoredPlayerState _playerStateMonitor;
+    private readonly ToyboxFactory _playerMonitorFactory;
     private readonly OnFrameworkService _frameworkService;
     private readonly ToyboxVibeService _vibeService;
     private readonly IpcCallerMoodles _moodlesIpc;
+    private readonly IChatGui _chatGui;
     private readonly IClientState _clientState;
     private readonly IDataManager _gameData;
 
-
     public TriggerController(ILogger<TriggerController> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, PlayerCharacterManager playerManager, 
-        PairManager pairManager, ActionEffectMonitor actionEffectMonitor, 
-        MonitoredPlayerState playerMonitor, OnFrameworkService frameworkUtils,
-        ToyboxVibeService vibeService, IpcCallerMoodles moodles, IClientState clientState, 
-        IDataManager dataManager) : base(logger, mediator)
-
+        ClientConfigurationManager clientConfiguration, PlayerCharacterManager playerManager,
+        PairManager pairManager, ActionEffectMonitor actionEffectMonitor,
+        ToyboxFactory playerMonitorFactory, OnFrameworkService frameworkUtils,
+        ToyboxVibeService vibeService, IpcCallerMoodles moodles, IChatGui chatGui,
+        IClientState clientState, IDataManager dataManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfiguration;
         _playerManager = playerManager;
         _pairManager = pairManager;
         _receiveActionEffectHookManager = actionEffectMonitor;
-        _playerStateMonitor = playerMonitor;
+        _playerMonitorFactory = playerMonitorFactory;
         _frameworkService = frameworkUtils;
         _vibeService = vibeService;
         _moodlesIpc = moodles;
+        _chatGui = chatGui;
         _clientState = clientState;
         _gameData = dataManager;
 
@@ -60,13 +62,23 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) => CheckActiveRestraintTriggers(msg));
 
-        Mediator.Subscribe<GagTypeChanged>(this, (msg) => CheckGagStateTriggers(msg));
+        Mediator.Subscribe<GagTypeChanged>(this, (msg) =>
+        {
+
+            NewState newState = msg.NewGagType == GagList.GagType.None ? NewState.Disabled : NewState.Enabled;
+            CheckGagStateTriggers(msg.NewGagType, newState);
+        });
 
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => UpdateTriggerMonitors());
 
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => UpdateTrackedPlayerHealth());
     }
 
+    // make the last interaction the interaction that has the DateTime LastRoll value closest to the UtcNow value.
+    private List<DeathRollSession> ActiveDeathDeathRollSessions = new List<DeathRollSession>();
+    public DeathRollSession? LastInteractedSession => ActiveDeathDeathRollSessions.OrderBy(x => Math.Abs((x.LastRoll - DateTime.UtcNow).TotalMilliseconds)).FirstOrDefault();
+    public bool AnyDeathRollSessionsActive => ActiveDeathDeathRollSessions.Any();
+    public int? LatestSessionCapNumber => (LastInteractedSession != null) ? LastInteractedSession.CurrentRollCap : null;
 
     public static List<MonitoredPlayerState> MonitoredPlayers { get; private set; } = new List<MonitoredPlayerState>();
     private bool ShouldEnableActionEffectHooks => _clientConfigs.ActiveTriggers.Any(x => x.Type is TriggerKind.SpellAction);
@@ -79,19 +91,22 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
     public void CheckActiveChatTriggers(XivChatType chatType, string senderNameWithWorld, string message)
     {
+        // if the sender name is ourselves, ignore the message.
+        if (senderNameWithWorld == _clientState.LocalPlayer?.GetNameWithWorld()) return;
+
         // Check to see if any active chat triggers are in the message
         var channel = ChatChannel.GetChatChannelFromXivChatType(chatType);
-        if (channel == null) 
+        if (channel == null)
             return;
 
         var matchingTriggers = _clientConfigs.ActiveChatTriggers
-            .Where(x => x.AllowedChannels.Any() 
+            .Where(x => x.AllowedChannels.Any()
                 && x.AllowedChannels.Contains(channel.Value)
-                && x.FromPlayerName == senderNameWithWorld 
+                && x.FromPlayerName == senderNameWithWorld
                 && message.Contains(x.ChatText, StringComparison.Ordinal))
             .ToList();
         // if the triggers is not empty, perform logic, but return if there isnt any.
-        if(!matchingTriggers.Any())
+        if (!matchingTriggers.Any())
             return;
 
         foreach (var trigger in matchingTriggers)
@@ -163,7 +178,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
             return;
 
         // if there is a currently active set already that is locked, disregard.
-        if(_clientConfigs.GetActiveSet() != null && _clientConfigs.GetActiveSet().Locked)
+        if (_clientConfigs.GetActiveSet() != null && _clientConfigs.GetActiveSet().Locked)
             return;
 
         var set = _clientConfigs.GetRestraintSet(msg.SetIdx);
@@ -188,14 +203,12 @@ public class TriggerController : DisposableMediatorSubscriberBase
         }
     }
 
-    // you can create a loophole (disable gag => action to equip gag) with this but oh well. For creativity.
-    private void CheckGagStateTriggers(GagTypeChanged msg)
+    private void CheckGagStateTriggers(GagList.GagType gagType, NewState newState)
     {
-        NewState newState = msg.NewGagType == GagList.GagType.None ? NewState.Disabled : NewState.Enabled;
         // Check to see if any active gag triggers are in the message
         var matchingTriggers = _clientConfigs.ActiveGagStateTriggers
-            .Where(x => x.Gag == msg.NewGagType && x.GagState == newState)
-            .ToList();        
+            .Where(x => x.Gag == gagType && x.GagState == newState)
+            .ToList();
 
         // if the triggers is not empty, perform logic, but return if there isnt any.
         if (!matchingTriggers.Any())
@@ -213,6 +226,87 @@ public class TriggerController : DisposableMediatorSubscriberBase
         }
     }
 
+    public void CheckActiveSocialTriggers(XivChatType type, string nameWithWorld, SeString sender, SeString message)
+    {
+        // if it doesnt contain an Dice Icon its not valid. Can't check for "Dice" because of linguistic differences.
+        if (!(message.Payloads.Find(pay => pay.Type == PayloadType.Icon) != null)) return;
+
+        var matchingDeathRollTriggers = _clientConfigs.ActiveSocialTriggers.Where(x => x.SocialType == SocialActionType.DeathRollLoss).ToList();
+
+        // if the triggers is not empty, perform logic, but return if there isnt any.
+        if (!matchingDeathRollTriggers.Any() || _clientState.LocalPlayer == null) return;
+
+        // We have a DeathRoll Trigger active, so handle the message.
+        HandleDeathRollMessage(message.TextValue, out bool InitializerMsg, out int RollValue, out int RollCap);
+
+        // if initializing a new DeathRoll session
+        if (InitializerMsg)
+        {
+            ActiveDeathDeathRollSessions.RemoveAll(x => x.Initializer == nameWithWorld);
+            Logger.LogDebug("[DeathRoll] New DeathRoll session created by {player}", nameWithWorld);
+            ActiveDeathDeathRollSessions.Add(new DeathRollSession(nameWithWorld, RollCap));
+        }
+        // if its not an Initializer message, but we are responding to someone else's Roll Session, find the session and roll.
+        else if (!InitializerMsg && RollValue != int.MaxValue && RollCap != int.MaxValue)
+        {
+            // we don't necessarily need to be set as the opponent yet, but the RollCap must match the sessions current rollCap.
+            var matchedSession = ActiveDeathDeathRollSessions.FirstOrDefault(x => !x.IsComplete && !x.SessionExpired && x.CurrentRollCap == RollCap);
+            if (matchedSession != null)
+            {
+                Logger.LogDebug("[DeathRoll] Rolled in active Session with {rollValue} (out of {rollCap})", RollValue, RollCap);
+                matchedSession.TryNextRoll(nameWithWorld, RollValue, RollCap);
+            }
+        }
+        else
+        {
+            Logger.LogDebug("[DeathRoll] Roll doesn't match any active Sessions.");
+        }
+
+        // if there are any active DeathRolls that are marked as complete, not expired...
+        var completedLostDeathRolls = ActiveDeathDeathRollSessions
+            .Where(x => x.IsComplete && !x.SessionExpired && (
+            (x.Initializer == _clientState.LocalPlayer.GetNameWithWorld() && x.LastRoller == LatestRoller.Initializer) 
+            || (x.Opponent == _clientState.LocalPlayer.GetNameWithWorld() && x.LastRoller == LatestRoller.Opponent)))
+            .ToList();
+
+        // if there are any completedLostDeathRolls that exist, we should fire our trigger, and clear the rollSession.
+        if (completedLostDeathRolls.Any())
+        {
+            SeStringBuilder se = new SeStringBuilder().AddItalicsOn().AddText("[Gagspeak] You Lost a DeathRoll!").AddItalicsOff();
+            _chatGui.PrintError(se.BuiltString);
+
+            foreach (var trigger in matchingDeathRollTriggers)
+            {
+                ExecuteTriggerAction(trigger);
+            }
+            ActiveDeathDeathRollSessions.RemoveAll(x => completedLostDeathRolls.Contains(x));
+            Logger.LogDebug("DeathRoll Trigger Executed, and Session Removed.");
+        }
+    }
+
+    private void HandleDeathRollMessage(string messageValue, out bool InitializerMsg, out int RollValue, out int RollCap)
+    {
+        // determine if this is an Initializer message or continuation message:
+        InitializerMsg = (!messageValue.Contains("(") && !messageValue.Contains(")"));
+        RollCap = int.MaxValue;
+        RollValue = int.MaxValue;
+
+        // Use regex to extract all numbers from the message.
+        MatchCollection matches = Regex.Matches(messageValue, @"\d+");
+
+        // If it's an initializer message, we only expect a single roll value (i.e., the initial roll).
+        if (InitializerMsg && matches.Count > 0)
+        {
+            RollCap = int.Parse(matches[0].Value);
+        }
+        // If it's a continuation message, we expect both a rolled value and a roll cap.
+        else if (!InitializerMsg && matches.Count == 2)
+        {
+            RollValue = int.Parse(matches[0].Value);   // The first number is the rolled value.
+            RollCap = int.Parse(matches[1].Value);  // The second number is the roll cap (after "out of").
+        }
+    }
+
     private async void ExecuteTriggerAction(Trigger trigger)
     {
         Logger.LogInformation("Your Trigger With Name {name} and priority {priority} is now triggering action {action}",
@@ -226,7 +320,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 break;
 
             case TriggerActionKind.ShockCollar:
-                if(_playerManager.GlobalPerms == null || _playerManager.GlobalPerms.GlobalShockShareCode.IsNullOrEmpty() || _playerManager.GlobalPiShockPerms.MaxIntensity == -1)
+                if (_playerManager.GlobalPerms == null || _playerManager.GlobalPerms.GlobalShockShareCode.IsNullOrEmpty() || _playerManager.GlobalPiShockPerms.MaxIntensity == -1)
                 {
                     Logger.LogError("Cannot apply a shock collar action without global permissions set.\n These are used for Trigger Limitations.");
                 }
@@ -261,13 +355,13 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 break;
 
             case TriggerActionKind.Moodle:
-                if(!_moodlesIpc.APIAvailable)
+                if (!IpcCallerMoodles.APIAvailable)
                 {
                     Logger.LogError("Moodles IPC is not available, cannot execute moodle trigger.");
                     return;
                 }
                 // see if the moodle status guid exists in our list of stored statuses.
-                if(_playerManager.LastIpcData != null && _playerManager.LastIpcData.MoodlesStatuses.Any(x => x.GUID == trigger.MoodlesIdentifier))
+                if (_playerManager.LastIpcData != null && _playerManager.LastIpcData.MoodlesStatuses.Any(x => x.GUID == trigger.MoodlesIdentifier))
                 {
                     // we have a valid moodle to set, so go ahead and try to apply it!
                     Logger.LogInformation("Applying moodle status with GUID {guid}", trigger.MoodlesIdentifier);
@@ -277,15 +371,15 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 break;
 
             case TriggerActionKind.MoodlePreset:
-                if(!_moodlesIpc.APIAvailable)
+                if (!IpcCallerMoodles.APIAvailable)
                 {
                     Logger.LogError("Moodles IPC is not available, cannot execute moodle trigger.");
                     return;
                 }
-                // see if the moodle preset guid exists in our list of stored presets.
-                if(_playerManager.LastIpcData != null && _playerManager.LastIpcData.MoodlesPresets.Any(x => x.Item1 == trigger.MoodlesIdentifier))
+                // see if the Moodle preset guid exists in our list of stored presets.
+                if (_playerManager.LastIpcData != null && _playerManager.LastIpcData.MoodlesPresets.Any(x => x.Item1 == trigger.MoodlesIdentifier))
                 {
-                    // we have a valid moodle to set, so go ahead and try to apply it!
+                    // we have a valid Moodle to set, so go ahead and try to apply it!
                     Logger.LogInformation("Applying Moodle preset with GUID {guid}", trigger.MoodlesIdentifier);
                     await _moodlesIpc.ApplyOwnPresetByGUID(trigger.MoodlesIdentifier);
                     return;
@@ -294,7 +388,6 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 break;
         }
     }
-
 
     #region Controller Helper Methods & Update Checks
     public static string TrackedPlayersString()
@@ -366,7 +459,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 var playersToAdd = visiblePlayerCharacters.Where(player => !activelyMonitoredPlayers.Contains(player.GetNameWithWorld()));
                 foreach (var player in playersToAdd)
                 {
-                    MonitoredPlayers.Add(new MonitoredPlayerState(player));
+                    MonitoredPlayers.Add(_playerMonitorFactory.CreatePlayerMonitor(player));
                 }
             }
             else
@@ -377,6 +470,13 @@ public class TriggerController : DisposableMediatorSubscriberBase
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error during UpdateTriggerMonitors");
+        }
+
+        // clean up death roll sessions.
+        if(ActiveDeathDeathRollSessions.Any(x => x.SessionExpired))
+        {
+            Logger.LogDebug("[DeathRoll] Cleaning up expired DeathRoll Sessions.");
+            ActiveDeathDeathRollSessions.RemoveAll(x => x.SessionExpired);
         }
     }
 
@@ -397,7 +497,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 if (!player.HasHpChanged()) continue;
 
                 // Logger.LogDebug("Hp Changed from {PreviousHp} to {CurrentHp}", player.PreviousHp, player.CurrentHp);
-                
+
                 // Calculate health percentages once per player to avoid redundancies.
                 float percentageHP = player.CurrentHp * 100f / player.MaxHp;
                 float previousPercentageHP = player.PreviousHp * 100f / player.PreviousMaxHp;

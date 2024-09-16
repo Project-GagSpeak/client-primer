@@ -189,6 +189,7 @@ public static class UtilsExtensions
             TriggerKind.HealthPercent => "Health% Trigger",
             TriggerKind.RestraintSet => "Restraint Trigger",
             TriggerKind.GagState => "GagState Trigger",
+            TriggerKind.SocialAction => "Social Action",
             _ => "UNK"
         };
     }

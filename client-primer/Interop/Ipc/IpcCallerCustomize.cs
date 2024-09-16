@@ -60,7 +60,7 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
         CheckAPI();
     }
 
-    public bool APIAvailable { get; private set; } = false;
+    public static bool APIAvailable { get; private set; } = false;
 
     public void CheckAPI()
     {

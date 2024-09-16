@@ -67,7 +67,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     }
 
     public enum MetaData { Hat, Visor, Both }
-    public bool APIAvailable { get; private set; }
+    public static bool APIAvailable { get; private set; } = false;
 
     public void CheckAPI()
     {

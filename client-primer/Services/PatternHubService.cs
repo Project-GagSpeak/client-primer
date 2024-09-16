@@ -321,7 +321,6 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             SearchFilter.DurationExtraLong => "> 1 hour",
             SearchFilter.UsesVibration => "Vibrations",
             SearchFilter.UsesRotation => "Rotations",
-            SearchFilter.UsesOscillation => "Oscillations",
             _ => "Unknown"
         };
     }

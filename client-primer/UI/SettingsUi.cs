@@ -993,6 +993,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }, _configService.Current.LogLevel);
 
+        bool logBatteryAlarms = _configService.Current.LogBatteryAndAlarmChecks;
         bool logResourceManagement = _configService.Current.LogResourceManagement;
         bool logActionEffects = _configService.Current.LogActionEffects;
         bool logServerHealth = _configService.Current.LogServerConnectionHealth;
@@ -1017,6 +1018,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
         _uiShared.DrawHelpText("Log server connection health to the debug log.");
+
+        if (ImGui.Checkbox("Log Battery and Alarm Checks", ref logBatteryAlarms))
+        {
+            _configService.Current.LogBatteryAndAlarmChecks = logBatteryAlarms;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText("Log battery and alarm checks to the debug log.");
 
         _uiShared.BigText("Vibrator Audio Testing Beta");
         UiSharedService.ColorText("(WILL CRASH YOU IF NOT CORDY)", ImGuiColors.DPSRed);

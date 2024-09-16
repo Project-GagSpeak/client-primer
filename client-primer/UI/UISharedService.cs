@@ -21,6 +21,7 @@ using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Enum;
 using ImGuiNET;
+using Interop.Ipc;
 using OtterGui.Text;
 using PInvoke;
 using System.Numerics;
@@ -115,10 +116,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         // A subscription from our mediator to see on each delayed framework if the IPC's are available from the IPC manager
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) =>
         {
-            _penumbraExists = _ipcManager.Penumbra.APIAvailable;
-            _glamourerExists = _ipcManager.Glamourer.APIAvailable;
-            _customizePlusExists = _ipcManager.CustomizePlus.APIAvailable;
-            _moodlesExists = _ipcManager.Moodles.APIAvailable;
+            _penumbraExists = IpcCallerPenumbra.APIAvailable;
+            _glamourerExists = IpcCallerGlamourer.APIAvailable;
+            _customizePlusExists = IpcCallerCustomize.APIAvailable;
+            _moodlesExists = IpcCallerMoodles.APIAvailable;
         });
 
         // the font atlas for our UID display (make it the font from gagspeak probably unless this fits more)
@@ -978,12 +979,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public void DrawCombo<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName,
         Action<T?>? onSelected = null, T? initialSelectedItem = default, bool shouldShowLabel = true, 
-        ImGuiComboFlags flags = ImGuiComboFlags.None, string defaultPreviewText = "No Items Available...")
+        ImGuiComboFlags flags = ImGuiComboFlags.None, string defaultPreviewText = "Nothing Selected..")
     {
+        string comboLabel = shouldShowLabel ? $"{comboName}##{comboName}" : $"##{comboName}";
         if (!comboItems.Any())
         {
             ImGui.SetNextItemWidth(width);
-            if (ImGui.BeginCombo(comboName, defaultPreviewText, flags))
+            if (ImGui.BeginCombo(comboLabel, defaultPreviewText, flags))
             {
                 ImGui.EndCombo();
             }
@@ -1006,9 +1008,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             }
         }
 
+        string displayText = selectedItem == null ? defaultPreviewText : toName((T)selectedItem!);
+
         ImGui.SetNextItemWidth(width);
-        string comboLabel = shouldShowLabel ? $"{comboName}##{comboName}" : $"##{comboName}";
-        if (ImGui.BeginCombo(comboLabel, toName((T)selectedItem!), flags))
+        if (ImGui.BeginCombo(comboLabel, displayText, flags))
         {
             foreach (var item in comboItems)
             {

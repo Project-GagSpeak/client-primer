@@ -33,6 +33,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
     /// <summary>
     /// Stores the visible game object, and the moodles permissions 
     /// for the pair belonging to that object.
+    /// This is not accessible by other plugins.
     /// </summary>
     private readonly List<(GameObjectHandler, MoodlesGSpeakPairPerms, MoodlesGSpeakPairPerms)> VisiblePairObjects = [];
 

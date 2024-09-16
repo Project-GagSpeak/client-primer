@@ -1,5 +1,6 @@
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using GagSpeak.Interop.Ipc;
 using GagSpeak.UI;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
@@ -22,8 +23,8 @@ public class MoodlesService
     private bool _closePopup = false;
     private static Dictionary<uint, IconInfo?> IconInfoCache = [];
 
-    public MoodlesService(ILogger<MoodlesService> logger, UiSharedService uiShared,
-        IDataManager dataManager)
+    public MoodlesService(ILogger<MoodlesService> logger, 
+        UiSharedService uiShared, IDataManager dataManager)
     {
         _logger = logger;
         _uiShared = uiShared;
@@ -34,8 +35,9 @@ public class MoodlesService
     public static readonly Vector2 StatusSize = new(24, 32);
     public Dictionary<string, Guid> SelectedPresetComboGuids;    // the selected combo items
 
-    public bool DrawMoodlesPresetComboSearchable(string comboLabel, ref int selectedIdx, ref string searchString,
-        List<(Guid, List<Guid>)> MoodlesPresets, List<MoodlesStatusInfo> MoodlesStatuses, float width)
+
+    public bool DrawMoodlesPresetCombo(string comboLabel, ref int selectedIdx, List<(Guid, List<Guid>)> MoodlesPresets, 
+        List<MoodlesStatusInfo> MoodlesStatuses, float width)
     {
         bool itemSelected = false;
         // Return if there are no items to display in the combo box.

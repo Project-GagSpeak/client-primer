@@ -35,7 +35,7 @@ public sealed class IpcCallerMare : IIpcCaller
         // Nothing to dispose of.
     }
 
-    public bool APIAvailable { get; private set; } = false;
+    public static bool APIAvailable { get; private set; } = false;
     public void CheckAPI()
     {
         var marePlugin = _pi.InstalledPlugins.FirstOrDefault(p => string.Equals(p.InternalName, "mareSynchronos", StringComparison.OrdinalIgnoreCase));

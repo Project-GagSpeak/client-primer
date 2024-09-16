@@ -94,6 +94,9 @@ public class TriggerConfigService : ConfigurationServiceBase<TriggerConfig>
                         case TriggerKind.GagState:
                             triggerAbstract = triggerToken.ToObject<GagTrigger>()!;
                             break;
+                        case TriggerKind.SocialAction:
+                            triggerAbstract = triggerToken.ToObject<SocialTrigger>()!;
+                            break;
                         // could add a social feed trigger type here.
                         default:
                             throw new Exception("Invalid Trigger Type");

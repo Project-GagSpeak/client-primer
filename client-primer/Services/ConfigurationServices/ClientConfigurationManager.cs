@@ -762,6 +762,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public IEnumerable<HealthPercentTrigger> ActiveHealthPercentTriggers => TriggerConfig.TriggerStorage.Triggers.OfType<HealthPercentTrigger>().Where(x => x.Enabled);
     public IEnumerable<RestraintTrigger> ActiveRestraintTriggers => TriggerConfig.TriggerStorage.Triggers.OfType<RestraintTrigger>().Where(x => x.Enabled);
     public IEnumerable<GagTrigger> ActiveGagStateTriggers => TriggerConfig.TriggerStorage.Triggers.OfType<GagTrigger>().Where(x => x.Enabled);
+    public IEnumerable<SocialTrigger> ActiveSocialTriggers => TriggerConfig.TriggerStorage.Triggers.OfType<SocialTrigger>().Where(x => x.Enabled);
     
     public List<Trigger> GetTriggersForSearch() => TriggerConfig.TriggerStorage.Triggers; // readonly accessor
     public Trigger FetchTrigger(int idx) => TriggerConfig.TriggerStorage.Triggers[idx];

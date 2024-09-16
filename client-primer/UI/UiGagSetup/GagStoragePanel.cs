@@ -36,7 +36,6 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     private readonly UiSharedService _uiShared;
     private readonly DictStain StainData;
     private readonly ItemData ItemData;
-    private readonly IpcCallerMoodles _moodlesCaller;
     private readonly MoodlesAssociations _relatedMoodles;
     private readonly IDataManager _gameData;
 
@@ -50,8 +49,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     public GagStoragePanel(ILogger<GagStoragePanel> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, UiSharedService uiSharedService,
         DictStain stainData, ItemData itemData, TextureService textures,
-        IpcCallerMoodles moodles, MoodlesAssociations relatedMoodles, 
-        IDataManager gameData) : base(logger, mediator)
+        MoodlesAssociations relatedMoodles, IDataManager gameData) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _uiShared = uiSharedService;
@@ -59,7 +57,6 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         _gameData = gameData;
         StainData = stainData;
         ItemData = itemData;
-        _moodlesCaller = moodles;
         _relatedMoodles = relatedMoodles;
 
         // create a new gameItemCombo for each equipment piece type, then store them into the array.
@@ -183,7 +180,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
 
     private void DrawGagMoodles(float cellPaddingY)
     {
-        if(!_moodlesCaller.APIAvailable)
+        if(!IpcCallerMoodles.APIAvailable)
         {
             UiSharedService.ColorText("Moodles not Enabled. Please enable to view Moodles options.", ImGuiColors.DalamudRed);
             return;

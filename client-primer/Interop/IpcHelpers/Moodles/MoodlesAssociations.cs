@@ -73,7 +73,6 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
 
     private int SelectedStatusIndex = 0;
     private int SelectedPresetIndex = 0;
-    private string PresetSearchString = string.Empty;
 
     // main draw function for the mod associations table
     public void DrawMoodlesStatusesListForItem(IMoodlesAssociable associable, CharacterIPCData? lastPlayerIpcData, float paddingHeight, bool isPresets)
@@ -93,7 +92,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
         Guid? removedMoodlePreset = null;
 
         // before we fetch the list, first see if any moodles in the list are no longer present in our Moodles List. 
-        if (_moodles.APIAvailable)
+        if (IpcCallerMoodles.APIAvailable)
         {
             var moodlesStatusList = lastPlayerIpcData.MoodlesStatuses;
             associable.AssociatedMoodles.RemoveAll(x => !moodlesStatusList.Any(y => y.GUID == x));
@@ -241,7 +240,6 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
 
         ImGui.TableNextColumn();
         var length = ImGui.GetContentRegionAvail().X;
-        _moodlesService.DrawMoodlesPresetComboSearchable("RestraintSetPresetSelector", ref SelectedPresetIndex,
-        ref PresetSearchString, ipcData.MoodlesPresets, ipcData.MoodlesStatuses, length);
+        _moodlesService.DrawMoodlesPresetCombo("RestraintSetPresetSelector", ref SelectedPresetIndex, ipcData.MoodlesPresets, ipcData.MoodlesStatuses, length);
     }
 }

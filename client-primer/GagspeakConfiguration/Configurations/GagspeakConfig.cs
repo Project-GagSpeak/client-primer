@@ -46,6 +46,7 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool ShowOnlineNotificationsOnlyForIndividualPairs { get; set; } = false;
     public bool ShowOnlineNotificationsOnlyForNamedPairs { get; set; } = false;
     public LogLevel LogLevel { get; set; } = LogLevel.Trace;
+    public bool LogBatteryAndAlarmChecks { get; set; } = false;
     public bool LogResourceManagement { get; set; } = false;
     public bool LogActionEffects { get; set; } = false;
     public bool LogServerConnectionHealth { get; set; } = false;

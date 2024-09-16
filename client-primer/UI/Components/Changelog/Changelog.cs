@@ -19,6 +19,21 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 2, 0)
+            .RegisterMain("Action/Spell Triggers can now be used as a Trigger Type.\n(I stress tested it in pvp and alliance raids without crashing, so should be fine)")
+            .RegisterMain("Health% Triggers can now be used as a Trigger Type.")
+            .RegisterMain("Restraint Monitored Triggers can now be used as a Trigger Type. (Fire Triggers when certain sets are set to certain states [Applied, Locked, ext.])")
+            .RegisterMain("GagState Monitored Triggers can now be used as a Trigger Type. (Fire Triggers when certain gags are set to certain states (Lock&Unlock do not work at the moment)")
+            .RegisterMain("Added a new Trigger Type: Social Action. (Currently only supports DeathRollLoss)")
+            .RegisterMain("Added new Shock Collars Action TriggerActionType. It's limitations reflect your global PiShock ShareCode.")
+            .RegisterMain("Added new Restraint Set Application TriggerActionType.")
+            .RegisterMain("Added new Gag Application TriggerActionType.")
+            .RegisterMain("Added new Moodle Status Application TriggerActionType.")
+            .RegisterMain("Added new Moodle Preset Application TriggerActionType.")
+            .RegisterFeature("The Commands '/dr' (DeathRoll) and '/dr r' (DeathRoll Reply) are now implemented to help with DeathRoll games.")
+            .RegisterQol("The Edit Trigger Header now displayed 'Edit Trigger' instead of the trigger name to avoid text going off the screen.")
+            .RegisterQol("Additional Logging options have been added to the debug tab, to hide battery update check and alarm check logs.")
+            .RegisterBugfix("(Partially Fixed) issue in where Dropdowns that displayed selected options, were not actually selected. (Still WIP on this)");
         VersionEntry(0, 8, 1, 3)
             .RegisterBugfix("Finally fixed the bug where GagSpeak crashed your game when accessing the Moodles page.")
             .RegisterBugfix("This bug occurred for players who had 0 presets made, and it tried to draw a blank combo box incorrectly.");

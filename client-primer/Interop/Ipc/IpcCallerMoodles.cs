@@ -111,7 +111,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
 
 
     /// <summary> this boolean determines if the moodles API is available or not.</summary>
-    public bool APIAvailable { get; private set; } = false;
+    public static bool APIAvailable { get; private set; } = false;
 
     /// <summary> This method checks if the API is available </summary>
     public void CheckAPI()

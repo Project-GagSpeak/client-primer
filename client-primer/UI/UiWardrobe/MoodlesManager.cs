@@ -16,17 +16,14 @@ public class MoodlesManager : MediatorSubscriberBase
 {
     private readonly UiSharedService _uiShared;
     private readonly PairManager _pairManager;
-    private readonly IpcCallerMoodles _ipcCallerMoodles;
     private readonly MoodlesService _moodlesService;
     private enum InspectType { Status, Preset }
     public MoodlesManager(ILogger<MoodlesManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        PairManager pairManager, IpcCallerMoodles ipcCallerMoodles,
-        MoodlesService moodlesService) : base(logger, mediator)
+        PairManager pairManager, MoodlesService moodlesService) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
         _pairManager = pairManager;
-        _ipcCallerMoodles = ipcCallerMoodles;
         _moodlesService = moodlesService;
 
         Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
@@ -155,7 +152,7 @@ public class MoodlesManager : MediatorSubscriberBase
 
     private void DrawMoodles(CharacterIPCData? DataToDisplay, Vector2 cellPadding)
     {
-        if (_ipcCallerMoodles.APIAvailable == false)
+        if (IpcCallerMoodles.APIAvailable == false)
         {
             _uiShared.BigText("You do not Currently have Moodles enabled!");
             _uiShared.BigText("Enable Moodles to view own Statuses");
@@ -190,7 +187,7 @@ public class MoodlesManager : MediatorSubscriberBase
 
     private void DrawPresets(CharacterIPCData? DataToDisplay, Vector2 cellPadding)
     {
-        if (_ipcCallerMoodles.APIAvailable == false)
+        if (IpcCallerMoodles.APIAvailable == false)
         {
             _uiShared.BigText("You do not Currently have Moodles enabled!");
             _uiShared.BigText("Enable Moodles to view own Presets");

@@ -60,7 +60,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         {
             Logger.LogDebug("Received CreateCacheForObject for {handler}, updating", msg.ObjectToCreateFor);
             _cacheCreateLock.Wait();
-            if (_ipcManager.Moodles.APIAvailable) await FetchLatestMoodlesDataASync().ConfigureAwait(false);
+            if (IpcCallerMoodles.APIAvailable) await FetchLatestMoodlesDataASync().ConfigureAwait(false);
             _cacheToCreate = new CacheData(msg.ObjectToCreateFor, DataUpdateKind.IpcUpdateVisible, Guid.Empty);
             _cacheCreateLock.Release();
         });

@@ -141,8 +141,10 @@ public class AlarmHandler : MediatorSubscriberBase
 
         _lastExecutionTime = DateTime.Now; // Update the last execution time
 
-        Logger.LogTrace("Checking Alarms");
-        // Iterate througuh each stored alarm
+        if(_clientConfigs.GagspeakConfig.LogBatteryAndAlarmChecks)
+            Logger.LogTrace("Checking Alarms");
+
+        // Iterate through each stored alarm
         int alarmCount = _clientConfigs.FetchAlarmCount();
         for (int i = 0; i < alarmCount; i++)
         {

@@ -4,8 +4,10 @@ using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Controllers;
 using GagSpeak.UI;
 using GagSpeak.UI.MainWindow;
+using GagSpeak.UpdateMonitoring.Chat;
 using OtterGui.Classes;
 
 namespace GagSpeak.Services;
@@ -16,19 +18,25 @@ public sealed class CommandManagerService : IDisposable
     private const string MainCommand = "/gagspeak";
     private const string SafewordCommand = "/safeword";
     private const string SafewordHardcoreCommand = "/safewordhardcore";
+    private const string DeathRollShortcutCommand = "/dr";
     private readonly GagspeakMediator _mediator;
     private readonly GagspeakConfigService _mainConfig;
     private readonly ServerConfigurationManager _serverConfigs;
+    private readonly ChatBoxMessage _chatMessages;
+    private readonly TriggerController _triggerController;
     private readonly IChatGui _chat;
     private readonly ICommandManager _commands;
 
     public CommandManagerService(GagspeakMediator mediator,
         GagspeakConfigService mainConfig, ServerConfigurationManager serverConfigs,
+        ChatBoxMessage chatMessages, TriggerController triggerController, 
         IChatGui chat, ICommandManager commandManager)
     {
         _mediator = mediator;
         _mainConfig = mainConfig;
         _serverConfigs = serverConfigs;
+        _chatMessages = chatMessages;
+        _triggerController = triggerController;
         _chat = chat;
         _commands = commandManager;
 
@@ -48,6 +56,11 @@ public sealed class CommandManagerService : IDisposable
             HelpMessage = "revert all hardcore settings to false and disable any hardcore predicaments. For emergency uses.",
             ShowInHelp = true
         });
+        _commands.AddHandler(DeathRollShortcutCommand, new CommandInfo(OnDeathRollShortcut)
+        {
+            HelpMessage = "DeathRoll shortcut command. '/dr' begins a DeathRoll. '/dr r' responds to the last seen or interacted DeathRoll",
+            ShowInHelp = true
+        });
     }
 
     public void Dispose()
@@ -56,6 +69,7 @@ public sealed class CommandManagerService : IDisposable
         _commands.RemoveHandler(MainCommand);
         _commands.RemoveHandler(SafewordCommand);
         _commands.RemoveHandler(SafewordHardcoreCommand);
+        _commands.RemoveHandler(DeathRollShortcutCommand);
     }
 
     private void OnGagSpeak(string command, string args)
@@ -110,6 +124,34 @@ public sealed class CommandManagerService : IDisposable
         _mediator.Publish(new SafewordHardcoreUsedMessage());
     }
 
+    private void OnDeathRollShortcut(string command, string args)
+    {
+        var splitArgs = args.ToLowerInvariant().Trim().Split(" ", StringSplitOptions.RemoveEmptyEntries);
+        // if no arguments.
+        if (splitArgs.Length == 0)
+        {
+            // we initialized a DeathRoll.
+            _chatMessages.SendRealMessage("/random");
+            return;
+        }
+
+        if (string.Equals(splitArgs[0], "r", StringComparison.OrdinalIgnoreCase))
+        {
+            // get the last interacted with DeathRoll session.
+            var lastSession = _triggerController.LastInteractedSession;
+            if (lastSession != null)
+            {
+                _chatMessages.SendRealMessage($"/random {lastSession.CurrentRollCap}");
+                return;
+            }
+            _chat.Print(new SeStringBuilder().AddItalics("No DeathRolls active to reply to.").BuiltString);
+        }
+        else
+        {
+            PrintHelpToChat();
+        }
+    }
+
     private void PrintHelpToChat()
     {
         _chat.Print(new SeStringBuilder().AddYellow(" -- Gagspeak Commands --").BuiltString);
@@ -117,6 +159,7 @@ public sealed class CommandManagerService : IDisposable
         _chat.Print(new SeStringBuilder().AddCommand("/gagspeak settings", "Toggles the settings UI window.").BuiltString);
         _chat.Print(new SeStringBuilder().AddCommand("/safeword", "Cries out your safeword, disabling any active restrictions.").BuiltString);
         _chat.Print(new SeStringBuilder().AddCommand("/safewordhardcore", "Cries out your hardcore safeword, disabling any hardcore restrictions.").BuiltString);
+        _chat.Print(new SeStringBuilder().AddCommand("/dr", "Begins a DeathRoll. '/dr r' responds to the last seen or interacted DeathRoll").BuiltString);
     }
 }
 

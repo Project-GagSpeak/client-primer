@@ -89,7 +89,7 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         PenumbraInitialized();
     }
 
-    public bool APIAvailable { get; private set; } = false;
+    public static bool APIAvailable { get; private set; } = false;
     public int API_CurrentMajor { get; private set; }
     public int API_CurrentMinor { get; private set; }
     public const int RequiredPenumbraAPIBreakingVersion = 5;

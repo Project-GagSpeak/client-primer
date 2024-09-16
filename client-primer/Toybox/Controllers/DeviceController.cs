@@ -1,11 +1,11 @@
 using Buttplug.Client;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.Services.Data;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Data;
 using GagSpeak.UI;
 
-namespace GagSpeak.PlayerData.Handlers;
+namespace GagSpeak.Toybox.Controllers;
 
 /// <summary>
 /// handles the connected devices and the socket connection to the Intiface server.
@@ -18,7 +18,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
 
     // likely will include API controller and other things later. Otherwise they will be in ToyboxHandler.
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly DeviceFactory _deviceFactory;
+    private readonly ToyboxFactory _deviceFactory;
 
     private readonly List<ConnectedDevice> Devices = new List<ConnectedDevice>();
     private readonly Dictionary<string, int> ActiveDeviceAndMotors = new Dictionary<string, int>();
@@ -26,7 +26,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
     // maybe store triggers here in the future, or in the trigger handler, but not now.
 
     public DeviceController(ILogger<DeviceController> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, DeviceFactory deviceFactory)
+        ClientConfigurationManager clientConfiguration, ToyboxFactory deviceFactory)
         : base(logger, mediator)
     {
         _clientConfigs = clientConfiguration;
@@ -75,7 +75,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
     }
 
     public ConnectedDevice? GetDeviceByName(string DeviceName)
-        => Devices.FirstOrDefault(x => x.DeviceName == DeviceName); 
+        => Devices.FirstOrDefault(x => x.DeviceName == DeviceName);
 
     private ButtplugWebsocketConnector NewWebsocketConnection()
     {
@@ -273,8 +273,11 @@ public class DeviceController : DisposableMediatorSubscriberBase
         {
             // wait for 60 seconds. The longer between checks, the better on a toys battery life.
             await Task.Delay(TimeSpan.FromSeconds(60), ct).ConfigureAwait(false);
+            
             // log that we are checking the client health state
-            Logger.LogTrace("Scheduled Battery Check on connected devices");
+            if(_clientConfigs.GagspeakConfig.LogBatteryAndAlarmChecks)
+                Logger.LogTrace("Scheduled Battery Check on connected devices");
+            
             // if we need to reconnect, break out of the loop
             if (!ConnectedToIntiface) break;
             // we can perform the check, so fetch battery from all devices

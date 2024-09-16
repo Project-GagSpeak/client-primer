@@ -1,13 +1,11 @@
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Controllers;
 using GagSpeak.Toybox.SimulatedVibe;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.VibeServer;
-using Microsoft.Extensions.Logging;
-using NAudio.Wave;
 
 namespace GagSpeak.Toybox.Services;
 // handles the management of the connected devices or simulated vibrator.
@@ -20,7 +18,7 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
 
     public ToyboxVibeService(ILogger<ToyboxVibeService> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        DeviceController deviceHandler, VibeSimAudio vibeSimAudio, 
+        DeviceController deviceHandler, VibeSimAudio vibeSimAudio,
         PiShockProvider piShockProvider) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;

@@ -4,8 +4,11 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using Dalamud.Plugin.Services;
 using GagSpeak.Interop.Ipc;
+using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
+using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Data.Struct;
 
 namespace Interop.Ipc;
 
@@ -19,7 +22,7 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
 {
     /* ------------- Class Attributes ------------- */
     private readonly OnFrameworkService _frameworkUtils;
-    private bool _shownCustomizeUnavailable = false; // prevent notifcation spam
+    private readonly IpcFastUpdates _fastUpdates;
 
     /* --------- Glamourer API Event Subscribers -------- */
     // called when our client updates state of any profile in their customizePlus
@@ -37,18 +40,20 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
     private readonly ICallGateSubscriber<Guid, int> _disableProfileByUniqueId; // disables a particular profile via its GUID
 
     public IpcCallerCustomize(ILogger<IpcCallerCustomize> logger,
-        IDalamudPluginInterface pluginInterface, IClientState clientState,
-        OnFrameworkService OnFrameworkService, GagspeakMediator mediator) : base(logger, mediator)
+        GagspeakMediator mediator, OnFrameworkService frameworkUtils,
+        IpcFastUpdates fastUpdates, IDalamudPluginInterface pluginInterface, 
+        IClientState clientState) : base(logger, mediator)
     {
         // remember that we made a disposable mediator subscriber base. if we no longer need it when all is said and done, remove it.
-        _frameworkUtils = OnFrameworkService;
+        _frameworkUtils = frameworkUtils;
+        _fastUpdates = fastUpdates;
 
         // setup IPC subscribers
         _apiVersion = pluginInterface.GetIpcSubscriber<(int, int)>("CustomizePlus.General.GetApiVersion");
-        _getProfileList = pluginInterface.GetIpcSubscriber<IList<IPCProfileDataTuple>>("CustomizePlus.General.GetProfileList");
+        _getProfileList = pluginInterface.GetIpcSubscriber<IList<IPCProfileDataTuple>>("CustomizePlus.Profile.GetList");
         _getActiveProfile = pluginInterface.GetIpcSubscriber<ushort, (int, Guid?)>("CustomizePlus.Profile.GetActiveProfileIdOnCharacter");
-        _enableProfileByUniqueId = pluginInterface.GetIpcSubscriber<Guid, int>("CustomizePlus.General.EnableProfileByUniqueId");
-        _disableProfileByUniqueId = pluginInterface.GetIpcSubscriber<Guid, int>("CustomizePlus.General.DisableProfileByUniqueId");
+        _enableProfileByUniqueId = pluginInterface.GetIpcSubscriber<Guid, int>("CustomizePlus.Profile.EnableByUniqueId");
+        _disableProfileByUniqueId = pluginInterface.GetIpcSubscriber<Guid, int>("CustomizePlus.Profile.DisableByUniqueId");
 
         // set up event subscribers
         _onProfileUpdate = pluginInterface.GetIpcSubscriber<ushort, Guid, object>("CustomizePlus.Profile.OnUpdate");
@@ -73,20 +78,6 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
         {
             APIAvailable = false;
         }
-        finally
-        {
-            _shownCustomizeUnavailable = _shownCustomizeUnavailable && !APIAvailable;
-
-            if (!APIAvailable && !_shownCustomizeUnavailable)
-            {
-                _shownCustomizeUnavailable = true;
-
-                Mediator.Publish(new NotificationMessage("Glamourer inactive", "Your Glamourer " +
-                    "installation is not active or out of date. If you want to interact with modules " +
-                    "that use Glamourer, update Glamourer. If you just updated Glamourer, ignore " +
-                    "this message.", NotificationType.Warning));
-            }
-        }
     }
 
     protected override void Dispose(bool disposing)
@@ -95,60 +86,58 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
         base.Dispose(disposing);
     }
 
-    public async Task<IList<IPCProfileDataTuple>> GetProfileListAsync()
+    public List<CustomizeProfile> GetProfileList()
     {
-        Logger.LogInformation("Fetching profile list.");
-        // return blank list if no api is available.
         if (!APIAvailable)
         {
             Logger.LogWarning("Customize+ API is not available, returning empty list.");
-            return new List<IPCProfileDataTuple>();
+            return new List<CustomizeProfile>();
         }
 
-        // otherwise, return the list of profiles.
-        return await _frameworkUtils.RunOnFrameworkThread(() =>
-        {
-            Logger.LogTrace("IPC-Customize is fetching profile list.");
-            return _getProfileList.InvokeFunc();
-        }).ConfigureAwait(false);
+        Logger.LogTrace("IPC-Customize is fetching profile list.");
+        var res = _getProfileList.InvokeFunc();
+        return res.Select(tuple => new CustomizeProfile(tuple.UniqueId, tuple.Name)).ToList();
     }
 
-    public async Task<Guid?> GetActiveProfileAsync()
+    public Guid? GetActiveProfile()
     {
         if (!APIAvailable) return Guid.Empty;
 
-        var result = await _frameworkUtils.RunOnFrameworkThread(() =>
-        {
-            return _getActiveProfile.InvokeFunc(0);
-        }).ConfigureAwait(false);
+        var result = _getActiveProfile.InvokeFunc(0);
         // log result and return it
         Logger.LogTrace("IPC-Customize obtained active profile [{profile}] with error code [{code}]", result.Item2, result.Item1);
         return result.Item2;
     }
 
-    public async Task EnableProfileAsync(string profileName, Guid profileIdentifier)
+    public void EnableProfile(Guid profileIdentifier)
     {
         if (!APIAvailable) return;
-        await _frameworkUtils.RunOnFrameworkThread(() =>
-        {
-            Logger.LogTrace("IPC-Customize is enabling profile {profileName} [{profileID}]", profileName, profileIdentifier);
-            _enableProfileByUniqueId!.InvokeAction(profileIdentifier);
-        }).ConfigureAwait(false);
+
+        Logger.LogTrace("IPC-Customize is enabling profile [{profileID}]", profileIdentifier);
+        _enableProfileByUniqueId.InvokeFunc(profileIdentifier);
     }
 
-    public async Task DisableProfileAsync(string profileName, Guid profileIdentifier)
+    public void DisableProfile(Guid profileIdentifier)
     {
         if (!APIAvailable) return;
-        await _frameworkUtils.RunOnFrameworkThread(() =>
+        try
         {
-            Logger.LogTrace("IPC-Customize is disabling profile {profileName} [{profileID}]", profileName, profileIdentifier);
-            _disableProfileByUniqueId!.InvokeAction(profileIdentifier);
-        }).ConfigureAwait(false);
+            Logger.LogTrace("IPC-Customize is disabling profile [{profileID}]", profileIdentifier);
+            _disableProfileByUniqueId!.InvokeFunc(profileIdentifier);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "IPC-Customize failed to disable profile [{profileID}]", profileIdentifier);
+        }
     }
 
     private void OnProfileUpdate(ushort c, Guid g)
     {
         Logger.LogInformation("IPC-Customize received profile update for character {char} with profile {profile}", c, g);
-        Mediator.Publish(new CustomizeProfileChanged());
+        if(c == 0) // if the character is our own character
+        {
+            // publish a message to our mediator to let our other services know that our profile has changed.
+            _fastUpdates.InvokeCustomize(g);
+        }
     }
 }

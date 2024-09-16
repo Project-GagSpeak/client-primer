@@ -12,6 +12,7 @@ using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
+using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.IPC;
 using GagspeakAPI.Dto.Permissions;
@@ -37,7 +38,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     private readonly TriggerHandler _triggerHandler;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PiShockProvider _piShockProvider;
-    private readonly IpcCallerMoodles _ipcCallerMoodles; // used to make moodles calls.
+    private readonly IpcManager _ipcCaller; // used to make moodles calls.
 
     // Stored data as retrieved from the server upon connection:
     private UserGlobalPermissions _playerCharGlobalPerms { get; set; }
@@ -46,7 +47,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         GagspeakMediator mediator, PairManager pairManager,
         PatternPlaybackService playbackService, AlarmHandler alarmHandler,
         TriggerHandler triggerHandler, ClientConfigurationManager clientConfiguration,
-        PiShockProvider piShockProvider, IpcCallerMoodles ipcCallerMoodles) : base(logger, mediator)
+        PiShockProvider piShockProvider, IpcManager ipcCaller) : base(logger, mediator)
     {
         _pairManager = pairManager;
         _playbackService = playbackService;
@@ -54,7 +55,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         _triggerHandler = triggerHandler;
         _clientConfigs = clientConfiguration;
         _piShockProvider = piShockProvider;
-        _ipcCallerMoodles = ipcCallerMoodles;
+        _ipcCaller = ipcCaller;
 
         // Subscribe to the connected message update so we know when to update our global permissions
         Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
@@ -62,9 +63,14 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
             logger.LogTrace("Connected message received. Updating global permissions.");
             _playerCharGlobalPerms = msg.Connection.UserGlobalPermissions;
             _playerCharAppearance = msg.Connection.CharacterAppearanceData;
+            // update the active gags
             Mediator.Publish(new UpdateActiveGags());
+            // update the piShock permissions
             Task.Run(async () => await GetGlobalPiShockPerms());
         });
+
+        // grab the latest CustomizePlus Profile List.
+        CustomizeProfiles = _ipcCaller.CustomizePlus.GetProfileList();
 
         // These are called whenever we update our own data.
         // (Server callbacks handled separately to avoid looping calls to and from server infinitely)
@@ -77,6 +83,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     }
     // used to track a reflection of the sealed cache creation service for our player.
     public CharacterIPCData? LastIpcData = null;
+    public List<CustomizeProfile> CustomizeProfiles = new();
     public PiShockPermissions GlobalPiShockPerms = new();
 
     // public access definitions.
@@ -312,7 +319,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
     {
         if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID)) { Logger.LogError("Received Update by player is no longer present."); return; }
 
-        _ = _ipcCallerMoodles.ApplyOwnStatusByGUID(dto.Statuses).ConfigureAwait(false);
+        _ = _ipcCaller.Moodles.ApplyOwnStatusByGUID(dto.Statuses).ConfigureAwait(false);
     }
 
     public void ApplyStatusesToSelf(ApplyMoodlesByStatusDto dto, string clientPlayerNameWithWorld)
@@ -320,14 +327,14 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         string nameWithWorldOfApplier = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == dto.User.UID)?.PlayerNameWithWorld ?? string.Empty;
         if (nameWithWorldOfApplier.IsNullOrEmpty()) { Logger.LogError("Received Update by player is no longer present."); return; }
 
-        _ = _ipcCallerMoodles.ApplyStatusesFromPairToSelf(nameWithWorldOfApplier, clientPlayerNameWithWorld, dto.Statuses).ConfigureAwait(false);
+        _ = _ipcCaller.Moodles.ApplyStatusesFromPairToSelf(nameWithWorldOfApplier, clientPlayerNameWithWorld, dto.Statuses).ConfigureAwait(false);
     }
 
     public void RemoveStatusesFromSelf(RemoveMoodlesDto dto)
     {
         if (!_pairManager.GetVisibleUsers().Select(u => u.UID).Contains(dto.User.UID)) { Logger.LogError("Received Update by player is no longer present."); return; }
 
-        _ = _ipcCallerMoodles.RemoveOwnStatusByGuid(dto.Statuses).ConfigureAwait(false);
+        _ = _ipcCaller.Moodles.RemoveOwnStatusByGuid(dto.Statuses).ConfigureAwait(false);
     }
 
     public void ClearStatusesFromSelf(UserDto dto)
@@ -337,7 +344,7 @@ public class PlayerCharacterManager : DisposableMediatorSubscriberBase
         bool CanClearMoodles = _pairManager.DirectPairs.First(p => p.UserData.UID == dto.User.UID).UserPairUniquePairPerms.AllowRemovingMoodles;
         if (!CanClearMoodles) { Logger.LogError("Player does not have permission to clear their own moodles."); return; }
 
-        _ = _ipcCallerMoodles.ClearStatusAsync().ConfigureAwait(false);
+        _ = _ipcCaller.Moodles.ClearStatusAsync().ConfigureAwait(false);
     }
 
     /// <summary> Updates the changed permission from server callback to global permissions </summary>

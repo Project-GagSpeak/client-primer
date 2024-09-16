@@ -29,7 +29,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     private readonly HardcoreHandler _hardcoreHandler;
     private readonly WardrobeHandler _wardrobeHandler;
     private readonly OnFrameworkService _frameworkUtils;
-    private readonly GlamourFastUpdate _glamourFastEvent;
+    private readonly IpcFastUpdates _glamourFastEvent;
     private readonly IClientState _clientState;
     private readonly IDataManager _dataManager;
 
@@ -51,7 +51,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     public unsafe ActionMonitor(ILogger<ActionMonitor> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, HotbarLocker hotbarLocker, 
         HardcoreHandler handler, WardrobeHandler wardrobeHandler, 
-        OnFrameworkService frameworkUtils, GlamourFastUpdate fastUpdate, 
+        OnFrameworkService frameworkUtils, IpcFastUpdates fastUpdate, 
         IClientState clientState, IDataManager dataManager, 
         IGameInteropProvider interop) : base(logger, mediator)
     {
@@ -305,7 +305,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
                 // update the stored class job
                 _frameworkUtils._playerClassJobId = _clientState.LocalPlayer.ClassJob.Id;
                 // invoke jobChangedEvent to call the job changed glamour event
-                _glamourFastEvent.Invoke(GlamourUpdateType.JobChange);
+                _glamourFastEvent.InvokeGlamourer(GlamourUpdateType.JobChange);
                 // regenerate our slots
                 UpdateJobList();
                 RestoreSavedSlots();

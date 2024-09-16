@@ -146,7 +146,6 @@ public record UpdateGlamourMessage(GlamourUpdateType GenericUpdateType) : Messag
 public record UpdateGlamourGagsMessage(NewState NewState, GagLayer Layer, GagList.GagType GagType, string AssignerName, TaskCompletionSource<bool>? GagToggleTask = null): MessageBase;
 public record UpdateGlamourRestraintsMessage(NewState NewState, TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase; // Restraint set updates.
 public record UpdateGlamourBlindfoldMessage(NewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
-public record CustomizeProfileChanged : MessageBase; // when a profile is changed in customize+
 public record MoodlesReady : MessageBase;
 public record GlamourerReady : MessageBase;
 public record MoodlesStatusManagerChangedMessage(IntPtr Address) : MessageBase; // when our status manager changes.

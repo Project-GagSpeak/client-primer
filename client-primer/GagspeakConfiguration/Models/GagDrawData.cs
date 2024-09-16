@@ -24,9 +24,12 @@ public record GagDrawData : IMoodlesAssociable
     public List<Guid> AssociatedMoodles { get; set; } = new List<Guid>();
     public List<Guid> AssociatedMoodlePresets { get; set; } = new List<Guid>();
 
-    // C+ Preset when its not a bitch anymore
+    // C+ Preset to force if not Guid.Empty
+    public uint CustomizePriority { get; set; } = 0;
+    public Guid CustomizeGuid { get; set; } = Guid.Empty;
 
     // Spatial Audio type to use while gagged. (May not use since will just have one type?)
+
 
     [JsonIgnore]
     public int ActiveSlotId => Array.IndexOf(EquipSlotExtensions.EqdpSlots.ToArray(), Slot);
@@ -46,6 +49,8 @@ public record GagDrawData : IMoodlesAssociable
             ["ForceVisorOnEnable"] = ForceVisorOnEnable,
             ["GagMoodles"] = new JArray(AssociatedMoodles),
             ["GagMoodlePresets"] = new JArray(AssociatedMoodlePresets),
+            ["CustomizePriority"] = CustomizePriority,
+            ["CustomizeGuid"] = CustomizeGuid,
             ["Slot"] = Slot.ToString(),
             ["CustomItemId"] = GameItem.Id.ToString(),
             ["GameStain"] = GameStain.ToString(),
@@ -57,17 +62,17 @@ public record GagDrawData : IMoodlesAssociable
         IsEnabled = jsonObject["IsEnabled"]?.Value<bool>() ?? false;
         ForceHeadgearOnEnable = jsonObject["ForceHeadgearOnEnable"]?.Value<bool>() ?? false;
         ForceVisorOnEnable = jsonObject["ForceVisorOnEnable"]?.Value<bool>() ?? false;
+
         // Deserialize the AssociatedMoodles
         if (jsonObject["GagMoodles"] is JArray associatedMoodlesArray)
-        {
             AssociatedMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
-        }
 
         // Deserialize the AssociatedMoodlePresets
         if (jsonObject["GagMoodlePresets"] is JArray associatedMoodlePresetsArray)
-        {
             AssociatedMoodlePresets = associatedMoodlePresetsArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
-        }
+
+        CustomizePriority = jsonObject["CustomizePriority"]?.Value<uint>() ?? 0;
+        CustomizeGuid = Guid.TryParse(jsonObject["CustomizeGuid"]?.Value<string>(), out var guid) ? guid : Guid.Empty;
 
         Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
         ulong customItemId = jsonObject["CustomItemId"]?.Value<ulong>() ?? 4294967164;

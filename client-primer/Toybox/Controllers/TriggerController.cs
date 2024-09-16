@@ -18,10 +18,7 @@ using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.VibeServer;
-using OtterGui.Classes;
 using System.Text.RegularExpressions;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkCounterNode.Delegates;
-using static GagSpeak.UI.Components.MainTabMenu;
 using GameAction = Lumina.Excel.GeneratedSheets.Action;
 
 namespace GagSpeak.Toybox.Controllers;
@@ -81,6 +78,15 @@ public class TriggerController : DisposableMediatorSubscriberBase
     public DeathRollSession? LastInteractedSession => ActiveDeathDeathRollSessions.OrderBy(x => Math.Abs((x.LastRoll - DateTime.UtcNow).TotalMilliseconds)).FirstOrDefault();
     public bool AnyDeathRollSessionsActive => ActiveDeathDeathRollSessions.Any();
     public int? LatestSessionCapNumber => (LastInteractedSession != null) ? LastInteractedSession.CurrentRollCap : null;
+
+    public DeathRollSession? GetLastInteractedSession(string playerNameWithWorld)
+    {
+        return ActiveDeathDeathRollSessions
+            .OrderBy(x => Math.Abs((x.LastRoll - DateTime.UtcNow).TotalMilliseconds))
+            .Where(x => x.Initializer == playerNameWithWorld || (x.Opponent == playerNameWithWorld || x.Opponent == string.Empty))
+            .FirstOrDefault();
+    }
+
 
     public static List<MonitoredPlayerState> MonitoredPlayers { get; private set; } = new List<MonitoredPlayerState>();
     private bool ShouldEnableActionEffectHooks => _clientConfigs.ActiveTriggers.Any(x => x.Type is TriggerKind.SpellAction);
@@ -253,8 +259,14 @@ public class TriggerController : DisposableMediatorSubscriberBase
             var matchedSession = ActiveDeathDeathRollSessions.FirstOrDefault(x => !x.IsComplete && !x.SessionExpired && x.CurrentRollCap == RollCap);
             if (matchedSession != null)
             {
-                Logger.LogDebug("[DeathRoll] Rolled in active Session with {rollValue} (out of {rollCap})", RollValue, RollCap);
-                matchedSession.TryNextRoll(nameWithWorld, RollValue, RollCap);
+                if (matchedSession.TryNextRoll(nameWithWorld, RollValue, RollCap))
+                {
+                    Logger.LogDebug("[DeathRoll] Rolled in active Session with {rollValue} (out of {rollCap})", RollValue, RollCap);
+                }
+                else
+                {
+                    Logger.LogWarning("[DeathRoll] Roll not processed, as you are not part of the session.");
+                }
             }
         }
         else
@@ -270,7 +282,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         // if there are any active DeathRolls that are marked as complete, not expired...
         var completedLostDeathRolls = ActiveDeathDeathRollSessions
             .Where(x => x.IsComplete && !x.SessionExpired && (
-            (x.Initializer == _clientState.LocalPlayer.GetNameWithWorld() && x.LastRoller == LatestRoller.Initializer) 
+            (x.Initializer == _clientState.LocalPlayer.GetNameWithWorld() && x.LastRoller == LatestRoller.Initializer)
             || (x.Opponent == _clientState.LocalPlayer.GetNameWithWorld() && x.LastRoller == LatestRoller.Opponent)))
             .ToList();
 
@@ -479,7 +491,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         }
 
         // clean up death roll sessions.
-        if(ActiveDeathDeathRollSessions.Any(x => x.SessionExpired))
+        if (ActiveDeathDeathRollSessions.Any(x => x.SessionExpired))
         {
             Logger.LogDebug("[DeathRoll] Cleaning up expired DeathRoll Sessions.");
             ActiveDeathDeathRollSessions.RemoveAll(x => x.SessionExpired);

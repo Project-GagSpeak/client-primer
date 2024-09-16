@@ -23,24 +23,24 @@ public class DeathRollSession
         LastRoll = DateTime.UtcNow;
     }
 
-    public bool SessionExpired => DateTime.UtcNow - LastRoll > TimeSpan.FromMinutes(1);
+    public bool SessionExpired => DateTime.UtcNow - LastRoll > TimeSpan.FromMinutes(2);
 
-    public void TryNextRoll(string playerNameWithWorld, int rolledValue, int maxRollValue)
+    public bool TryNextRoll(string playerNameWithWorld, int rolledValue, int maxRollValue)
     {
-        if (IsComplete) { StaticLogger.Logger.LogDebug("Game is already complete, cannot roll again."); return; }
+        if (IsComplete) { StaticLogger.Logger.LogDebug("Game is already complete, cannot roll again."); return false; }
 
         // if the maxRollValue != currentRollCap, return.
         if (maxRollValue != CurrentRollCap)
         {
             StaticLogger.Logger.LogWarning("Player {player} is trying to roll, but the maxRollValue does not match the currentRollCap.", playerNameWithWorld);
-            return;
+            return false;
         }
 
         // dont allow the person to roll again if they are the last roller.
         if ((LastRoller == LatestRoller.Initializer && playerNameWithWorld == Initializer) || (LastRoller == LatestRoller.Opponent && playerNameWithWorld == Opponent))
         {
             StaticLogger.Logger.LogWarning("Player {player} is trying to roll again, but they are the last roller.", playerNameWithWorld);
-            return;
+            return false;
         }
 
         // By making it here, we matched the roll cap, opponent is not set, and they are not the initializer, so set the opponent.
@@ -54,7 +54,7 @@ public class DeathRollSession
             if (rolledValue is 1)
                 EndGame();
 
-            return;
+            return true;
         }
         else if (LastRoller == LatestRoller.Initializer && playerNameWithWorld == Opponent)
         {
@@ -65,6 +65,7 @@ public class DeathRollSession
 
             if (rolledValue is 1)
                 EndGame();
+            return true;
         }
         else if (LastRoller == LatestRoller.Opponent && playerNameWithWorld == Initializer)
         {
@@ -75,7 +76,9 @@ public class DeathRollSession
 
             if (rolledValue is 1)
                 EndGame();
+            return true;
         }
+        return false;
     }
 
     private void EndGame()

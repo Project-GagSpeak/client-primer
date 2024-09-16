@@ -255,10 +255,17 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     /* --------------------- Gag Storage Config Methods --------------------- */
     #region Gag Storage Methods
-    internal bool IsGagEnabled(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.IsEnabled;
-    internal GagDrawData GetDrawData(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData[gagType];
-    internal EquipSlot GetGagTypeEquipSlot(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot;
-    internal EquipItem GetGagTypeEquipItem(GagType gagType) => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem;
+    internal bool IsGagEnabled(GagType gagType) 
+        => GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.IsEnabled;
+    internal GagDrawData GetDrawData(GagType gagType) 
+        => GagStorageConfig.GagStorage.GagEquipData[gagType];
+    internal GagDrawData GetDrawDataWithHighestPriority(List<GagType> gagTypes)
+        => GagStorageConfig.GagStorage.GagEquipData.Where(x => gagTypes.Contains(x.Key)).OrderBy(x => x.Value.CustomizePriority).FirstOrDefault().Value;
+    internal EquipSlot GetGagTypeEquipSlot(GagType gagType) 
+        => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot;
+    internal EquipItem GetGagTypeEquipItem(GagType gagType) 
+        => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem;
+
     internal void UpdateGagStorageDictionary(Dictionary<GagType, GagDrawData> newGagStorage)
     {
         _gagStorageConfig.Current.GagStorage.GagEquipData = newGagStorage;
@@ -278,6 +285,13 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _gagStorageConfig.Save();
         Logger.LogInformation("GagStorage Config Saved");
     }
+
+    internal void SaveGagStorage()
+    {
+        _gagStorageConfig.Save();
+        Logger.LogInformation("GagStorage Config Saved");
+    }
+
     #endregion Gag Storage Methods
     /* --------------------- Wardrobe Config Methods --------------------- */
     #region Wardrobe Config Methods

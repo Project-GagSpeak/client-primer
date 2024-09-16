@@ -22,7 +22,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private readonly IDalamudPluginInterface _pi;
     private readonly IClientState _clientState;
     private readonly OnFrameworkService _onFrameworkService;
-    private readonly GlamourFastUpdate _fastUpdates;
+    private readonly IpcFastUpdates _fastUpdates;
     private bool _shownGlamourerUnavailable = false; // safety net to prevent notification spam.
 
     /* --------- Glamourer API Event Subscribers -------- */
@@ -41,7 +41,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public IpcCallerGlamourer(ILogger<IpcCallerGlamourer> logger,
         IDalamudPluginInterface pluginInterface, IClientState clientState,
         OnFrameworkService OnFrameworkService, GagspeakMediator mediator,
-        GlamourFastUpdate fastUpdates) : base(logger, mediator)
+        IpcFastUpdates fastUpdates) : base(logger, mediator)
     {
         _pi = pluginInterface;
         _onFrameworkService = OnFrameworkService;
@@ -296,7 +296,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             Logger.LogTrace($"StateChangeType is {changeType}");
 
             // call the update glamourer appearance message.
-            _fastUpdates.Invoke(GlamourUpdateType.RefreshAll);
+            _fastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
         }
         else // it is not a type we care about, so ignore
         {

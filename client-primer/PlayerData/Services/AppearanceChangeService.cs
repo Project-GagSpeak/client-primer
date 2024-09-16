@@ -28,14 +28,14 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
     private readonly PlayerCharacterManager _playerManager;
     private readonly PairManager _pairManager;
     private readonly OnFrameworkService _frameworkUtils;
-    private readonly GlamourFastUpdate _glamourFastUpdate;
+    private readonly IpcFastUpdates _ipcFastUpdates;
 
     public AppearanceChangeService(ILogger<AppearanceChangeService> logger,
         GagspeakMediator mediator, PlayerCharacterManager playerManager,
         PairManager pairManager, ClientConfigurationManager clientConfigs, 
         OnFrameworkService frameworkUtils, IpcManager interop, 
         MoodlesAssociations moodlesAssociations,
-        GlamourFastUpdate fastUpdate) : base(logger, mediator)
+        IpcFastUpdates fastUpdate) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerManager = playerManager;
@@ -44,11 +44,12 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         _Interop = interop;
         _moodlesAssociations = moodlesAssociations;
 
-        _glamourFastUpdate = fastUpdate;
+        _ipcFastUpdates = fastUpdate;
         _cts = new CancellationTokenSource(); // for handling gearset changes
 
         // subscribe to our mediator for glamourchanged
-        _glamourFastUpdate.GlamourEventFired += UpdateGenericAppearance;
+        _ipcFastUpdates.GlamourEventFired += UpdateGenericAppearance;
+        _ipcFastUpdates.CustomizeEventFired += EnsureForcedCustomizeProfile;
         // various glamour update types.
         Mediator.Subscribe<UpdateGlamourMessage>(this, (msg) => { });// UpdateGenericAppearance(msg));
         // gag glamour updates
@@ -64,7 +65,44 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         base.Dispose(disposing);
 
         // unsub
-        _glamourFastUpdate.GlamourEventFired -= UpdateGenericAppearance;
+        _ipcFastUpdates.GlamourEventFired -= UpdateGenericAppearance;
+    }
+
+    private void EnsureForcedCustomizeProfile(object sender, Guid e)
+    {
+        // return if appearance data is not valid.
+        if (_playerManager.AppearanceData == null || !IpcCallerCustomize.APIAvailable) return;
+
+        // Fetch stored gag types equipped on the player, in the order of the layer.
+        var gagTypes = _playerManager.AppearanceData.GagSlots
+            .Select(slot => slot.GagType.GetGagFromAlias())
+            .Where(gagType => gagType != GagList.GagType.None)
+            .ToList();
+
+        // Fetch the drawData of gag with the highest Priority
+        var highestPriorityData = _clientConfigs.GetDrawDataWithHighestPriority(gagTypes);
+        if (highestPriorityData.CustomizeGuid == Guid.Empty) return; // return if the highest priority gag requires no customizeGuid.
+
+        // Grab the active profile.
+        var activeGuid = _Interop.CustomizePlus.GetActiveProfile();
+        if (activeGuid == highestPriorityData.CustomizeGuid) return;
+
+        // if it is not, we need to enforce the update.
+        // Start by checking if the highestPriorityCustomizeId is in our stored profiles.
+        if(!_playerManager.CustomizeProfiles.Any(x => x.ProfileGuid == highestPriorityData.CustomizeGuid))
+        {
+            _playerManager.CustomizeProfiles = _Interop.CustomizePlus.GetProfileList();
+            // try and check again. if it fails. we should clear the customizeGuid from the draw data and save it.
+            if (!_playerManager.CustomizeProfiles.Any(x => x.ProfileGuid == highestPriorityData.CustomizeGuid))
+            {
+                highestPriorityData.CustomizeGuid = Guid.Empty;
+                _clientConfigs.SaveGagStorage();
+                return;
+            }
+        }
+
+        Logger.LogTrace("Enforcing Customize+ Profile {profile} for your equipped Gag", highestPriorityData.CustomizeGuid);
+        _Interop.CustomizePlus.EnableProfile(highestPriorityData.CustomizeGuid);
     }
 
 
@@ -93,12 +131,12 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
     }
 
 
-    public async void UpdateGenericAppearance(object sender, GlamourFastUpdateArgs msg)
+    public async void UpdateGenericAppearance(object sender, GlamourUpdateType updateType)
     {
         await ExecuteWithSemaphore(async () =>
         {
             // Triggered by using safeword, will undo everything.
-            if (msg.GenericUpdateType == GlamourUpdateType.Safeword)
+            if (updateType == GlamourUpdateType.Safeword)
             {
                 Logger.LogDebug($"Processing Safeword Update");
                 switch (_clientConfigs.GagspeakConfig.RevertStyle)
@@ -123,23 +161,21 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             }
 
             // For Generic UpdateAllGags
-            if (msg.GenericUpdateType == GlamourUpdateType.UpdateAllGags)
+            if (updateType == GlamourUpdateType.UpdateAllGags)
             {
                 Logger.LogDebug($"Updating Update Gags");
                 await ApplyGagItemsToCachedCharacterData();
             }
 
             // For Generic JobChange call
-            if (msg.GenericUpdateType == GlamourUpdateType.JobChange)
+            if (updateType == GlamourUpdateType.JobChange)
             {
                 Logger.LogDebug($"Updating due to Job Change");
                 await Task.Run(() => _frameworkUtils.RunOnFrameworkThread(UpdateCachedCharacterData));
             }
 
             // condition 7 --> it was a refresh all event, we should reapply all the gags and restraint sets
-            if (msg.GenericUpdateType == GlamourUpdateType.RefreshAll ||
-                msg.GenericUpdateType == GlamourUpdateType.ZoneChange ||
-                msg.GenericUpdateType == GlamourUpdateType.Login)
+            if (updateType == GlamourUpdateType.RefreshAll || updateType == GlamourUpdateType.ZoneChange || updateType == GlamourUpdateType.Login)
             {
                 Logger.LogDebug($"Processing Refresh All // Zone Change // Login // Job Change");
                 // apply all the gags and restraint sets
@@ -197,6 +233,13 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
                     // Wait for both the combined Equip+Meta task and the Moodles task to complete (if applicable)
                     await Task.WhenAll(equipAndMetaTask, moodlesTask ?? Task.CompletedTask);
+
+                    // apply the customize+ Profile.
+                    if (drawData.CustomizeGuid != Guid.Empty)
+                    {
+                        _Interop.CustomizePlus.EnableProfile(drawData.CustomizeGuid);
+                    }
+
                 }
                 // otherwise, do the same as the unequip function
                 else
@@ -230,6 +273,10 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
                 // Wait for both SetItemToCharacterAsync and Moodles tasks to complete
                 await Task.WhenAll(setItemTask, moodlesTask ?? Task.CompletedTask);
 
+                if (drawData.CustomizeGuid != Guid.Empty)
+                {
+                    _Interop.CustomizePlus.DisableProfile(drawData.CustomizeGuid);
+                }
 
                 // reapply any restraints hiding under them, if any
                 await ApplyRestrainSetToCachedCharacterData();

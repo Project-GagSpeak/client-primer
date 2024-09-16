@@ -26,13 +26,13 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
     private readonly GagManager _gagManager; // for removing gags.
     private readonly PatternPlaybackService _patternPlaybackService; // for stopping patterns.
     private readonly WardrobeHandler _wardrobeHandler;
-    private readonly GlamourFastUpdate _glamourFastEvent; // for reverting character.
+    private readonly IpcFastUpdates _glamourFastEvent; // for reverting character.
 
     public SafewordService(ILogger<SafewordService> logger, GagspeakMediator mediator,
         ApiController apiController, PlayerCharacterManager playerManager, 
         PairManager pairManager, ClientConfigurationManager clientConfigs, 
         GagManager gagManager, PatternPlaybackService playbackService,
-        WardrobeHandler wardrobeHandler, GlamourFastUpdate glamourFastUpdate) 
+        WardrobeHandler wardrobeHandler, IpcFastUpdates glamourFastUpdate) 
         : base(logger, mediator)
     {
         _apiController = apiController;
@@ -119,7 +119,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             Logger.LogInformation("Everything Disabled.");
 
             // reverting character.
-            _glamourFastEvent.Invoke(GlamourUpdateType.Safeword);
+            _glamourFastEvent.InvokeGlamourer(GlamourUpdateType.Safeword);
 
             Logger.LogInformation("Character reverted.");
         }

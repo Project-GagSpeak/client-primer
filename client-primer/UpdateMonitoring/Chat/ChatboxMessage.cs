@@ -82,8 +82,23 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
         // Don't process messages if we ain't visible.
         if (_clientState.LocalPlayer == null) return;
 
+        // log all types of payloads included in the message.
+
+/*        Logger.LogDebug("---------------------");
+        Logger.LogDebug("Chat Type: " + (int)type);
+        foreach (var payloadType in message.Payloads)
+        {
+            string text = payloadType.Type.ToString();
+            if (payloadType.Type is PayloadType.RawText) text = text + "(" + payloadType.ToString() + ")";
+            if (payloadType is PlayerPayload playerPayload)
+            {
+                Logger.LogInformation("Player Payload: " + playerPayload.PlayerName + "@" + playerPayload.World.Name);
+            }
+            Logger.LogInformation("Payload Type: " + text);
+        }*/
+
         // Handle the special case where we are checking a DeathRoll
-        if (type == (XivChatType)2122 || type == (XivChatType)8266)
+        if (type == (XivChatType)2122 || type == (XivChatType)8266 || type == (XivChatType)4170)
         {
             if (message.Payloads[1] is PlayerPayload)
             {
@@ -98,6 +113,7 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
             else
             {
                 // Should check under our name if this isn't valid as someone elses player payload.
+                Logger.LogDebug("Message was from self.");
                 _triggerController.CheckActiveSocialTriggers(type, _clientState.LocalPlayer.GetNameWithWorld(), sender, message);
             }
         }

@@ -8,6 +8,7 @@ using GagSpeak.Toybox.Controllers;
 using GagSpeak.UI;
 using GagSpeak.UI.MainWindow;
 using GagSpeak.UpdateMonitoring.Chat;
+using GagSpeak.Utils;
 using OtterGui.Classes;
 
 namespace GagSpeak.Services;
@@ -25,12 +26,13 @@ public sealed class CommandManagerService : IDisposable
     private readonly ChatBoxMessage _chatMessages;
     private readonly TriggerController _triggerController;
     private readonly IChatGui _chat;
+    private readonly IClientState _clientState;
     private readonly ICommandManager _commands;
 
     public CommandManagerService(GagspeakMediator mediator,
         GagspeakConfigService mainConfig, ServerConfigurationManager serverConfigs,
         ChatBoxMessage chatMessages, TriggerController triggerController, 
-        IChatGui chat, ICommandManager commandManager)
+        IChatGui chat, IClientState clientState, ICommandManager commandManager)
     {
         _mediator = mediator;
         _mainConfig = mainConfig;
@@ -38,6 +40,7 @@ public sealed class CommandManagerService : IDisposable
         _chatMessages = chatMessages;
         _triggerController = triggerController;
         _chat = chat;
+        _clientState = clientState;
         _commands = commandManager;
 
         // Add handlers to the main commands
@@ -135,10 +138,18 @@ public sealed class CommandManagerService : IDisposable
             return;
         }
 
+        // if the argument is s, start it just like above.
+        if (string.Equals(splitArgs[0], "s", StringComparison.OrdinalIgnoreCase))
+        {
+            _chatMessages.SendRealMessage("/random");
+            return;
+        }
+
         if (string.Equals(splitArgs[0], "r", StringComparison.OrdinalIgnoreCase))
         {
+            if (_clientState.LocalPlayer == null) return;
             // get the last interacted with DeathRoll session.
-            var lastSession = _triggerController.LastInteractedSession;
+            var lastSession = _triggerController.GetLastInteractedSession(_clientState.LocalPlayer.GetNameWithWorld());
             if (lastSession != null)
             {
                 _chatMessages.SendRealMessage($"/random {lastSession.CurrentRollCap}");

@@ -3,9 +3,11 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Interop.IpcHelpers.Moodles;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
@@ -15,7 +17,9 @@ using GagSpeak.UI.Components.Combos;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Data.Struct;
 using ImGuiNET;
+using Interop.Ipc;
 using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Raii;
@@ -30,9 +34,10 @@ namespace GagSpeak.UI.Tabs.WardrobeTab;
 /// <summary> This class is used to handle the ConfigSettings Tab. </summary>
 public class GagStoragePanel : DisposableMediatorSubscriberBase
 {
-    private const float ComboWidth = 175f;
+    private const float ComboWidth = 225f;
     private readonly TextureService _textures;
     private readonly ClientConfigurationManager _clientConfigs;
+    private readonly PlayerCharacterManager _playerManager;
     private readonly UiSharedService _uiShared;
     private readonly DictStain StainData;
     private readonly ItemData ItemData;
@@ -40,6 +45,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     private readonly IDataManager _gameData;
 
     private LowerString GagSearchString = LowerString.Empty;
+    private string CustomizePlusSearchString = LowerString.Empty;
     private Vector2 IconSize;
     private float ComboLength;
     private Vector2 DefaultItemSpacing;
@@ -47,11 +53,13 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     private readonly StainColorCombo StainCombo;
 
     public GagStoragePanel(ILogger<GagStoragePanel> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfigs, UiSharedService uiSharedService,
-        DictStain stainData, ItemData itemData, TextureService textures,
-        MoodlesAssociations relatedMoodles, IDataManager gameData) : base(logger, mediator)
+        ClientConfigurationManager clientConfigs, PlayerCharacterManager playerManager,
+        UiSharedService uiSharedService, DictStain stainData, ItemData itemData, 
+        TextureService textures, MoodlesAssociations relatedMoodles, IDataManager gameData) 
+        : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
+        _playerManager = playerManager;
         _uiShared = uiSharedService;
         _textures = textures;
         _gameData = gameData;
@@ -122,44 +130,48 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         DrawGagStorageHeader();
         ImGui.Separator();
         var cellPadding = ImGui.GetStyle().CellPadding;
-        using var tabBar = ImRaii.TabBar("GagStorageEditor");
 
-        if (tabBar)
+        if (UnsavedDrawData == null)
         {
-            var gagGlamour = ImRaii.TabItem("Gag Glamour");
-            if (gagGlamour)
+            SelectedGag = GagList.GagType.BallGag;
+            UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
+        }
+
+        if (ImGui.BeginTabBar("GagStorageEditor"))
+        {
+            if (ImGui.BeginTabItem("Gag Glamour"))
             {
                 DrawGagGlamour();
+                ImGui.EndTabItem();
             }
-            gagGlamour.Dispose();
-
-            var gagMoodles = ImRaii.TabItem("Moodles");
-            if (gagMoodles)
+            using (ImRaii.Disabled(!IpcCallerMoodles.APIAvailable))
             {
-                DrawGagMoodles(cellPadding.Y);
+                if (ImGui.BeginTabItem("Moodles"))
+                {
+                    DrawGagMoodles(cellPadding.Y);
+                    ImGui.EndTabItem();
+                }
             }
-            gagMoodles.Dispose();
 
-            var gagAudio = ImRaii.TabItem("Audio");
-            if (gagAudio)
+            if (ImGui.BeginTabItem("Audio"))
             {
                 _uiShared.BigText("Audio WIP");
+                ImGui.EndTabItem();
             }
-            gagAudio.Dispose();
 
-            if(DateTime.UtcNow - _lastSaveTime < TimeSpan.FromSeconds(3))
+            if (DateTime.UtcNow - _lastSaveTime < TimeSpan.FromSeconds(3))
             {
-                using (var disabled = ImRaii.Disabled())
+                using (ImRaii.Disabled())
                 {
-                    using (var style = ImRaii.PushColor(ImGuiCol.Text, new Vector4(0, 1, 0, 1)))
+                    using (ImRaii.PushColor(ImGuiCol.Text, new Vector4(0, 1, 0, 1)))
                     {
-                        var gagSaved = ImRaii.TabItem("GagData Saved Successfully!");
-                        gagSaved.Dispose();
+                        if (ImGui.BeginTabItem("GagData Saved Successfully!")) { ImGui.EndTabItem(); }
                     }
                 }
             }
-        }
 
+            ImGui.EndTabBar();
+        }
     }
 
     DateTime _lastSaveTime = DateTime.MinValue;
@@ -189,12 +201,6 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         {
             ImGui.TextWrapped("No Character Data Found. Please select a character to edit.");
             return;
-        }
-
-        if (UnsavedDrawData == null)
-        {
-            SelectedGag = GagList.GagType.BallGag;
-            UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
         }
 
         try
@@ -264,11 +270,6 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
 
     private void DrawGagGlamour()
     {
-        if (UnsavedDrawData == null)
-        {
-            SelectedGag = GagList.GagType.BallGag;
-            UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
-        }
         // define icon size and combo length
         IconSize = new Vector2(3 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y*2);
         ComboLength = ComboWidth * ImGuiHelpers.GlobalScale;
@@ -338,8 +339,34 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         }
         _uiShared.DrawHelpText("When enabled, your [Visor Visible] property in Glamourer will be set to enabled. Making visor visible.");
 
-        ImGui.Spacing();
-        ImGui.TextUnformatted("Customize+ Preset selection added here once posing is less of a pain in the ass.");
+        if (IpcCallerCustomize.APIAvailable)
+        {
+            ImGui.Spacing();
+            // collect the list of profiles from our last received IPC data.
+            var profiles = _playerManager.CustomizeProfiles.ToList();
+
+            // Create a placeholder profile for "None"
+            var noneProfile = new CustomizeProfile(Guid.Empty, "Blank Profile");
+
+            // Insert the placeholder profile at the beginning of the list
+            profiles.Insert(0, noneProfile);
+
+            _uiShared.DrawComboSearchable("C+ Profile##GagStorageCP_Profile" + SelectedGag, 150f, ref CustomizePlusSearchString, profiles,
+            (profile) => profile.ProfileName, true, (i) =>
+            {
+                UnsavedDrawData.CustomizeGuid = i.ProfileGuid;
+                Logger.LogTrace($"Gag {SelectedGag.GetGagAlias()} will now use the Customize+ Profile {i.ProfileName}");
+            }, profiles.FirstOrDefault(p => p.ProfileGuid == UnsavedDrawData.CustomizeGuid), "No Profiles Selected");
+            _uiShared.DrawHelpText("Select a Customize+ Profile to apply while this Gag is equipped.");
+
+            int priorityRef = (int)UnsavedDrawData.CustomizePriority;
+            ImGui.SetNextItemWidth(150f);
+            if(ImGui.InputInt("C+ Priority##GagStorageCP_Priority" + SelectedGag, ref priorityRef))
+            {
+                UnsavedDrawData.CustomizePriority = (byte)priorityRef;
+            }
+            _uiShared.DrawHelpText("Set the priority of this profile. Higher numbers will override lower numbers.");
+        }
     }
 
     public void DrawEquip(GameItemCombo[] _gameItemCombo, StainColorCombo _stainCombo, DictStain _stainData, float _comboLength)

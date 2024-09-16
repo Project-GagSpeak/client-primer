@@ -19,6 +19,11 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 3, 0)
+            .RegisterMain("Customize+ Gag Integration is now fully functional.")
+            .RegisterMain("C+ Gags can have set priorities to prioritize one preset over another.")
+            .RegisterFeature("A testing simulation of StruggleSim is added, but currently does nothing.")
+            .RegisterQol("Presets automatically reapply when you try to disable them.");
         VersionEntry(0, 8, 2, 0)
             .RegisterMain("Action/Spell Triggers can now be used as a Trigger Type.\n(I stress tested it in pvp and alliance raids without crashing, so should be fine)")
             .RegisterMain("Health% Triggers can now be used as a Trigger Type.")

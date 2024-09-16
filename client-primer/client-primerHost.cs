@@ -37,6 +37,7 @@ using GagSpeak.UI.Handlers;
 using GagSpeak.UI.MainWindow;
 using GagSpeak.UI.Permissions;
 using GagSpeak.UI.Profile;
+using GagSpeak.UI.Simulation;
 using GagSpeak.UI.Tabs.WardrobeTab;
 using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UI.UiOrders;
@@ -156,7 +157,7 @@ public static class GagSpeakServiceExtensions
         // Events Services
         .AddSingleton((s) => new EventAggregator(pi.ConfigDirectory.FullName,
             s.GetRequiredService<ILogger<EventAggregator>>(), s.GetRequiredService<GagspeakMediator>()))
-        .AddSingleton<GlamourFastUpdate>()
+        .AddSingleton<IpcFastUpdates>()
 
         // MufflerCore
         .AddSingleton((s) => new GagDataHandler(s.GetRequiredService<ILogger<GagDataHandler>>(),
@@ -215,7 +216,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new ActionMonitor(s.GetRequiredService<ILogger<ActionMonitor>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<HotbarLocker>(), s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<WardrobeHandler>(),
-            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GlamourFastUpdate>(), cs, dm, gip))
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<IpcFastUpdates>(), cs, dm, gip))
 
         .AddSingleton((s) => new MovementMonitor(s.GetRequiredService<ILogger<MovementMonitor>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<HardcoreHandler>(),
@@ -254,6 +255,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ModAssociations>()
         .AddSingleton<MoodlesAssociations>()
         .AddSingleton<ProfileFactory>()
+        
         // Register ObjectIdentification and ItemData
         .AddSingleton<ObjectIdentification>()
         .AddSingleton<ItemData>()
@@ -269,12 +271,18 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new ItemsTertiaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>(),
             s.GetRequiredService<ItemsSecondaryModel>()))
 
+        // UI Simulation Services
+        .AddSingleton<StruggleStamina>()
+        .AddSingleton<StruggleItem>()
+        .AddSingleton<ProgressBar>()
+
+
         // UI general services
         .AddSingleton<ActiveGagsPanel>()
         .AddSingleton((s) => new GagStoragePanel(s.GetRequiredService<ILogger<GagStoragePanel>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
-            s.GetRequiredService<UiSharedService>(), s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(),
-            s.GetRequiredService<TextureService>(), s.GetRequiredService<MoodlesAssociations>(), dm))
+            s.GetRequiredService<PlayerCharacterManager>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<DictStain>(), 
+            s.GetRequiredService<ItemData>(), s.GetRequiredService<TextureService>(), s.GetRequiredService<MoodlesAssociations>(), dm))
 
         // Wardrobe UI
         .AddSingleton<ActiveRestraintSet>()
@@ -363,9 +371,10 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
         .AddSingleton((s) => new IpcCallerGlamourer(s.GetRequiredService<ILogger<IpcCallerGlamourer>>(), pi, cs,
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>(),
-            s.GetRequiredService<GlamourFastUpdate>()))
-        .AddSingleton((s) => new IpcCallerCustomize(s.GetRequiredService<ILogger<IpcCallerCustomize>>(), pi, cs,
-            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
+            s.GetRequiredService<IpcFastUpdates>()))
+        .AddSingleton((s) => new IpcCallerCustomize(s.GetRequiredService<ILogger<IpcCallerCustomize>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<OnFrameworkService>(),
+            s.GetRequiredService<IpcFastUpdates>(), pi, cs))
 
         .AddSingleton((s) => new IpcManager(s.GetRequiredService<ILogger<IpcManager>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<IpcCallerCustomize>(),
@@ -457,7 +466,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(), s.GetRequiredService<UiFactory>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<FileDialogManager>(), s.GetRequiredService<PenumbraChangedItemTooltip>()))
         .AddScoped((s) => new CommandManagerService(s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(), 
-            s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<ChatBoxMessage>(), s.GetRequiredService<TriggerController>(), cg, cm))
+            s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<ChatBoxMessage>(), s.GetRequiredService<TriggerController>(), cg, cs, cm))
         .AddScoped((s) => new NotificationService(s.GetRequiredService<ILogger<NotificationService>>(),
             s.GetRequiredService<GagspeakMediator>(), nm, cg, s.GetRequiredService<GagspeakConfigService>()))
         .AddScoped((s) => new UiSharedService(s.GetRequiredService<ILogger<UiSharedService>>(), s.GetRequiredService<GagspeakMediator>(),

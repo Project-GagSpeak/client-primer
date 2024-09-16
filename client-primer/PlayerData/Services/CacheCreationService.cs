@@ -6,6 +6,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
+using Interop.Ipc;
 
 namespace GagSpeak.PlayerData.Services;
 
@@ -60,7 +61,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         {
             Logger.LogDebug("Received CreateCacheForObject for {handler}, updating", msg.ObjectToCreateFor);
             _cacheCreateLock.Wait();
-            if (IpcCallerMoodles.APIAvailable) await FetchLatestMoodlesDataASync().ConfigureAwait(false);
+            if (IpcCallerMoodles.APIAvailable) await FetchLatestMoodlesDataAsync().ConfigureAwait(false);
             _cacheToCreate = new CacheData(msg.ObjectToCreateFor, DataUpdateKind.IpcUpdateVisible, Guid.Empty);
             _cacheCreateLock.Release();
         });
@@ -83,8 +84,8 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<MoodlesReady>(this, async (_) =>
         {
             // run an api check before this to force update 
-            _ipcManager.Moodles.CheckAPI();
-            await FetchLatestMoodlesDataASync().ConfigureAwait(false);
+
+            await FetchLatestMoodlesDataAsync().ConfigureAwait(false);
             Logger.LogDebug("Moodles is now ready, fetching latest info and pushing to all visible pairs");
             Mediator.Publish(new CharacterIpcDataCreatedMessage(_playerIpcData, DataUpdateKind.IpcUpdateVisible));
         });
@@ -124,7 +125,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (msg) => ProcessCacheCreation());
     }
 
-    private async Task FetchLatestMoodlesDataASync()
+    private async Task FetchLatestMoodlesDataAsync()
     {
         _playerIpcData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(_playerObject.NameWithWorld).ConfigureAwait(false) ?? string.Empty;
         _playerIpcData.MoodlesDataStatuses = await _ipcManager.Moodles.GetStatusInfoAsync(_playerObject.NameWithWorld).ConfigureAwait(false) ?? new();
@@ -132,7 +133,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         _playerIpcData.MoodlesPresets = await _ipcManager.Moodles.GetPresetsInfoAsync().ConfigureAwait(false) ?? new();
         Logger.LogDebug("Latest Data from Moodles Fetched.");
     }
-
+    
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
@@ -225,7 +226,9 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
                         await StatusManagerUpdate(prevData, playerObjData).ConfigureAwait(false);
                     }
                     break;
-                case DataUpdateKind.IpcMoodlesCleared: Logger.LogTrace("Clearing Moodles Data for {object}", playerObjData); break;
+                case DataUpdateKind.IpcMoodlesCleared:
+                    Logger.LogTrace("Clearing Moodles Data for {object}", playerObjData); 
+                    break;
                 default: Logger.LogWarning("Unknown Update Kind for {object}", playerObjData); break;
             }
             Logger.LogInformation("IPC Update for player object took {time}ms", TimeSpan.FromTicks(DateTime.UtcNow.Ticks - start.Ticks).TotalMilliseconds);

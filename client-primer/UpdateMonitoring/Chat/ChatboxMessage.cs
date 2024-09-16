@@ -3,6 +3,7 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using GagSpeak.ChatMessages;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
@@ -116,8 +117,11 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
             senderWorld = senderPlayerPayload.World.Name;
         }
 
-        // route to scan for any active triggers.
-        _triggerController.CheckActiveChatTriggers(type, senderName + "@" + senderWorld, message.TextValue);
+        // route to scan for any active triggers. (block outgoing tells because otherwise they always come up as from the recipient).
+        if(type != XivChatType.TellOutgoing)
+        {
+            _triggerController.CheckActiveChatTriggers(type, senderName + "@" + senderWorld, message.TextValue);
+        }
 
         if (senderName + "@" + senderWorld == _clientState.LocalPlayer.GetNameWithWorld()) return;
 
@@ -179,7 +183,7 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
 
 
     /// <summary> <b> SENDS A REAL CHAT MESSAGE TO THE SERVER </b></summary>
-    public void SendRealMessage(string message)
+    public void  SendRealMessage(string message)
     {
         try
         {

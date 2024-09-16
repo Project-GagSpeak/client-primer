@@ -20,6 +20,8 @@ using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.VibeServer;
 using OtterGui.Classes;
 using System.Text.RegularExpressions;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkCounterNode.Delegates;
+using static GagSpeak.UI.Components.MainTabMenu;
 using GameAction = Lumina.Excel.GeneratedSheets.Action;
 
 namespace GagSpeak.Toybox.Controllers;
@@ -231,10 +233,8 @@ public class TriggerController : DisposableMediatorSubscriberBase
         // if it doesnt contain an Dice Icon its not valid. Can't check for "Dice" because of linguistic differences.
         if (!(message.Payloads.Find(pay => pay.Type == PayloadType.Icon) != null)) return;
 
-        var matchingDeathRollTriggers = _clientConfigs.ActiveSocialTriggers.Where(x => x.SocialType == SocialActionType.DeathRollLoss).ToList();
-
         // if the triggers is not empty, perform logic, but return if there isnt any.
-        if (!matchingDeathRollTriggers.Any() || _clientState.LocalPlayer == null) return;
+        if (_clientState.LocalPlayer == null) return;
 
         // We have a DeathRoll Trigger active, so handle the message.
         HandleDeathRollMessage(message.TextValue, out bool InitializerMsg, out int RollValue, out int RollCap);
@@ -261,6 +261,11 @@ public class TriggerController : DisposableMediatorSubscriberBase
         {
             Logger.LogDebug("[DeathRoll] Roll doesn't match any active Sessions.");
         }
+
+        var matchingDeathRollTriggers = _clientConfigs.ActiveSocialTriggers.Where(x => x.SocialType == SocialActionType.DeathRollLoss).ToList();
+
+        if (!matchingDeathRollTriggers.Any())
+            return;
 
         // if there are any active DeathRolls that are marked as complete, not expired...
         var completedLostDeathRolls = ActiveDeathDeathRollSessions
@@ -352,6 +357,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 // otherwise, we can change the gag type on that layer.
                 Logger.LogInformation("Applying Gag Type {gagType} to Layer {gagLayer}", trigger.GagTypeAction, trigger.GagLayerAction);
                 Mediator.Publish(new GagTypeChanged(trigger.GagTypeAction, trigger.GagLayerAction));
+                Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, trigger.GagLayerAction, trigger.GagTypeAction, "SelfApplied"));
                 break;
 
             case TriggerActionKind.Moodle:

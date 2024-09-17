@@ -83,8 +83,8 @@ public record MufflerLanguageChanged : MessageBase; // called whenever the clien
 public record UpdateActiveGags(TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase;
 public record ActiveGagsUpdated : MessageBase;
 public record ActiveLocksUpdated : MessageBase;
-public record GagTypeChanged(GagList.GagType NewGagType, GagLayer Layer) : MessageBase; // called whenever the client changes their gag type.
-public record GagLockToggle(PadlockData PadlockInfo, bool Unlocking, bool pushChanges) : MessageBase; // called whenever the client changes their padlock.
+public record GagTypeChanged(GagType NewGagType, GagLayer Layer) : MessageBase; // called whenever the client changes their gag type.
+public record GagLockToggle(PadlockData PadlockInfo, NewState newGagLockState) : MessageBase; // called whenever the client changes their padlock.
 public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase;
 public record HelmetStateChangedMessage(bool ChangedState) : MessageBase; // called whenever the client changes their helmet state.
 public record VisorStateChangedMessage(bool ChangedState) : MessageBase; // called whenever the client changes their visor state.
@@ -142,8 +142,7 @@ public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
 /* ------------------ IPC HANDLER RECORDS------------------ */
 public record PenumbraInitializedMessage : MessageBase;
 public record PenumbraDisposedMessage : MessageBase;
-public record UpdateGlamourMessage(GlamourUpdateType GenericUpdateType) : MessageBase; // for full refreshes on states.
-public record UpdateGlamourGagsMessage(NewState NewState, GagLayer Layer, GagList.GagType GagType, string AssignerName, TaskCompletionSource<bool>? GagToggleTask = null): MessageBase;
+public record UpdateGlamourGagsMessage(NewState NewState, GagLayer Layer, GagType GagType): MessageBase;
 public record UpdateGlamourRestraintsMessage(NewState NewState, TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase; // Restraint set updates.
 public record UpdateGlamourBlindfoldMessage(NewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
 public record MoodlesReady : MessageBase;

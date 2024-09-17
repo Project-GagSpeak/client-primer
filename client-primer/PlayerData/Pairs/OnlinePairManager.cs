@@ -18,7 +18,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
     private readonly OnFrameworkService _frameworkUtil;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PlayerCharacterData _playerManager;
     private readonly PairManager _pairManager;
 
     // NewOnlinePairs
@@ -33,7 +33,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
 
     public OnlinePairManager(ILogger<OnlinePairManager> logger,
         ApiController apiController, OnFrameworkService dalamudUtil,
-        PlayerCharacterManager playerCharacterManager,
+        PlayerCharacterData playerCharacterManager,
         PairManager pairManager, GagspeakMediator mediator)
         : base(logger, mediator)
     {

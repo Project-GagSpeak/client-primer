@@ -23,13 +23,13 @@ namespace GagSpeak.PlayerData.Handlers;
 public class PuppeteerHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerChara;
+    private readonly PlayerCharacterData _playerChara;
     private readonly PairManager _pairManager;
     private readonly IDataManager _dataManager;
     
 
     public PuppeteerHandler(ILogger<PuppeteerHandler> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, PlayerCharacterManager playerChara,
+        ClientConfigurationManager clientConfiguration, PlayerCharacterData playerChara,
         PairManager pairManager, IDataManager dataManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfiguration;

@@ -33,7 +33,7 @@ public class ToyboxTriggerManager
     private readonly UiSharedService _uiShared;
     private readonly PairManager _pairManager;
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PlayerCharacterData _playerManager;
     private readonly DeviceController _deviceController;
     private readonly TriggerHandler _handler;
     private readonly PatternHandler _patternHandler;
@@ -43,7 +43,7 @@ public class ToyboxTriggerManager
     public ToyboxTriggerManager(ILogger<ToyboxTriggerManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         PairManager pairManager, ClientConfigurationManager clientConfigs,
-        PlayerCharacterManager playerManager, DeviceController deviceController,
+        PlayerCharacterData playerManager, DeviceController deviceController,
         TriggerHandler handler, PatternHandler patternHandler,
         TriggerService triggerService, MoodlesService moodlesService)
     {
@@ -685,10 +685,10 @@ public class ToyboxTriggerManager
     private void DrawGagTriggerEditor(GagTrigger gagTrigger)
     {
         UiSharedService.ColorText("Gag to Monitor", ImGuiColors.ParsedGold);
-        var gagTypes = Enum.GetValues<GagList.GagType>().Where(gag => gag != GagList.GagType.None).ToArray();
+        var gagTypes = Enum.GetValues<GagType>().Where(gag => gag != GagType.None).ToArray();
         ImGui.SetNextItemWidth(200f);
         _uiShared.DrawComboSearchable("GagTriggerGagType" + gagTrigger.TriggerIdentifier, 250, ref GagSearchString, gagTypes,
-            (gag) => gag.GetGagAlias(), false, (i) => gagTrigger.Gag = i, gagTrigger.Gag);
+            (gag) => gag.GagName(), false, (i) => gagTrigger.Gag = i, gagTrigger.Gag);
         _uiShared.DrawHelpText("The Gag to listen to for this trigger.");
 
         UiSharedService.ColorText("Gag State that fires Trigger", ImGuiColors.ParsedGold);
@@ -852,10 +852,10 @@ public class ToyboxTriggerManager
         _uiShared.DrawHelpText("Apply Gag to the selected layer when the trigger is fired.");
 
         UiSharedService.ColorText("Apply Gag Type", ImGuiColors.ParsedGold);
-        var gagTypes = Enum.GetValues<GagList.GagType>().Where(gag => gag != GagList.GagType.None).ToArray();
+        var gagTypes = Enum.GetValues<GagType>().Where(gag => gag != GagType.None).ToArray();
         ImGui.SetNextItemWidth(200f);
         _uiShared.DrawComboSearchable("GagActionGagType" + trigger.TriggerIdentifier, 250, ref GagSearchString, gagTypes,
-            (gag) => gag.GetGagAlias(), false, (i) => trigger.GagTypeAction = i, trigger.GagTypeAction, "No Gag Type Selected");
+            (gag) => gag.GagName(), false, (i) => trigger.GagTypeAction = i, trigger.GagTypeAction, "No Gag Type Selected");
         _uiShared.DrawHelpText("Apply this Gag to your character when the trigger is fired.");
     }
 

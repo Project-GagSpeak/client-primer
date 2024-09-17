@@ -19,11 +19,11 @@ namespace GagSpeak.PlayerData.Handlers;
 public class WardrobeHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PlayerCharacterData _playerManager;
     private readonly PairManager _pairManager;
 
     public WardrobeHandler(ILogger<WardrobeHandler> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, PlayerCharacterManager playerManager, 
+        ClientConfigurationManager clientConfiguration, PlayerCharacterData playerManager, 
         PairManager pairManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfiguration;

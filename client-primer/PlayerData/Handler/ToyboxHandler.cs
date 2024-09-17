@@ -11,11 +11,11 @@ namespace GagSpeak.PlayerData.Handlers;
 public class ToyboxHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PlayerCharacterData _playerManager;
     private readonly ApiController apiController;
 
     public ToyboxHandler(ILogger<GagDataHandler> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, PlayerCharacterManager playerManager) : base(logger, mediator)
+        ClientConfigurationManager clientConfiguration, PlayerCharacterData playerManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfiguration;
         _playerManager = playerManager;

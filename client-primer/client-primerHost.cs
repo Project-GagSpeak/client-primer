@@ -171,7 +171,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ChatSender>(), s.GetRequiredService<TriggerController>(), cg, cs))
         .AddSingleton((s) => new ChatSender(ss))
         .AddSingleton((s) => new ChatInputDetour(ss, gip, s.GetRequiredService<ILogger<ChatInputDetour>>(),
-            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterManager>(),
+            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterData>(),
             s.GetRequiredService<GagManager>()))
 
         // Hardcore services.
@@ -195,7 +195,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ApiController>(), tm))
         .AddSingleton<ToyboxHandler>()
         .AddSingleton<RemoteHandler>()
-        .AddSingleton<PlayerCharacterManager>()
+        .AddSingleton<PlayerCharacterData>()
         .AddSingleton<GameObjectHandlerFactory>()
         .AddSingleton<PairFactory>()
         .AddSingleton<PairHandlerFactory>()
@@ -203,6 +203,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<PrivateRoomFactory>()
         .AddSingleton<PairManager>()
         .AddSingleton<PrivateRoomManager>()
+        .AddSingleton<ClientPlayerConnectedService>()
+        .AddSingleton<ClientCallbackService>()
 
         // Toybox Services
         .AddSingleton<ConnectedDevice>()
@@ -241,7 +243,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakConfigService>(), ss, gip))
         .AddSingleton((s) => new TriggerController(s.GetRequiredService<ILogger<TriggerController>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
-            s.GetRequiredService<PlayerCharacterManager>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<ActionEffectMonitor>(),
+            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<ActionEffectMonitor>(),
             s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<ToyboxVibeService>(),
             s.GetRequiredService<IpcCallerMoodles>(), cg, cs, dm))
 
@@ -282,7 +284,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ActiveGagsPanel>()
         .AddSingleton((s) => new GagStoragePanel(s.GetRequiredService<ILogger<GagStoragePanel>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
-            s.GetRequiredService<PlayerCharacterManager>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<DictStain>(), 
+            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<DictStain>(), 
             s.GetRequiredService<ItemData>(), s.GetRequiredService<TextureService>(), s.GetRequiredService<MoodlesAssociations>(), dm))
         .AddSingleton<LockPickerSim>()
 
@@ -303,7 +305,7 @@ public static class GagSpeakServiceExtensions
         // Puppeteer UI
         .AddSingleton((s) => new PuppeteerHandler(s.GetRequiredService<ILogger<PuppeteerHandler>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
-            s.GetRequiredService<PlayerCharacterManager>(), s.GetRequiredService<PairManager>(), dm))
+            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(), dm))
         .AddSingleton<AliasTable>()
 
         // Toybox UI
@@ -345,7 +347,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<SafewordService>()
         .AddSingleton<ToyboxVibeService>()
         .AddSingleton<ToyboxRemoteService>()
-        .AddSingleton<PatternPlaybackService>()
+        .AddSingleton<PlaybackService>()
         .AddSingleton((s) => new TriggerService(s.GetRequiredService<ILogger<TriggerService>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ToyboxVibeService>(), cs, dm))
         .AddSingleton<AppearanceChangeService>()
@@ -425,7 +427,7 @@ public static class GagSpeakServiceExtensions
         .AddScoped<DrawEntityFactory>()
         .AddScoped<UiFactory>((s) => new UiFactory(s.GetRequiredService<ILoggerFactory>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ApiController>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ToyboxVibeService>(),
-            s.GetRequiredService<IdDisplayHandler>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<PlayerCharacterManager>(),
+            s.GetRequiredService<IdDisplayHandler>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<PlayerCharacterData>(),
             s.GetRequiredService<ToyboxRemoteService>(), s.GetRequiredService<ServerConfigurationManager>(),
             s.GetRequiredService<ProfileService>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<MoodlesService>(), s.GetRequiredService<PermissionPresetService>(), s.GetRequiredService<PermActionsComponents>(), cs))
@@ -486,6 +488,7 @@ public static class GagSpeakServiceExtensions
         .AddHostedService(p => p.GetRequiredService<EventAggregator>())
         .AddHostedService(p => p.GetRequiredService<IpcProvider>())
         .AddHostedService(p => p.GetRequiredService<SafewordService>())
+        .AddHostedService(p => p.GetRequiredService<ClientPlayerConnectedService>())
         // add our main Plugin.cs file as a hosted ;
         .AddHostedService<GagSpeakHost>();
     #endregion HostedServices

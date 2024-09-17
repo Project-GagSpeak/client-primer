@@ -96,14 +96,14 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
 
         // Assuming GagStorage has a default constructor
         config.GagStorage = new GagStorage();
-        config.GagStorage.GagEquipData = new Dictionary<GagList.GagType, GagDrawData>();
+        config.GagStorage.GagEquipData = new Dictionary<GagType, GagDrawData>();
 
         JObject gagEquipDataObject = configJson["GagStorage"]["GagEquipData"].Value<JObject>();
         if (gagEquipDataObject == null) return config;
 
         foreach (var gagData in gagEquipDataObject)
         {
-            var gagType = (GagList.GagType)Enum.Parse(typeof(GagList.GagType), gagData.Key);
+            var gagType = (GagType)Enum.Parse(typeof(GagType), gagData.Key);
             if (gagData.Value is JObject itemObject)
             {
                 string? slotString = itemObject["Slot"].Value<string>();

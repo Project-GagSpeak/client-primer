@@ -37,7 +37,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     private const float ComboWidth = 225f;
     private readonly TextureService _textures;
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PlayerCharacterData _playerManager;
     private readonly UiSharedService _uiShared;
     private readonly DictStain StainData;
     private readonly ItemData ItemData;
@@ -53,7 +53,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     private readonly StainColorCombo StainCombo;
 
     public GagStoragePanel(ILogger<GagStoragePanel> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfigs, PlayerCharacterManager playerManager,
+        ClientConfigurationManager clientConfigs, PlayerCharacterData playerManager,
         UiSharedService uiSharedService, DictStain stainData, ItemData itemData, 
         TextureService textures, MoodlesAssociations relatedMoodles, IDataManager gameData) 
         : base(logger, mediator)
@@ -79,7 +79,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
 
     private string GagFilterSearchString = string.Empty;
     private GagDrawData UnsavedDrawData = null!;
-    private GagList.GagType SelectedGag = GagList.GagType.BallGag;
+    private GagType SelectedGag = GagType.BallGag;
 
     private void DrawGagStorageHeader()
     {
@@ -104,11 +104,11 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - saveSize - 175f - ImGui.GetStyle().ItemSpacing.X * 2);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             _uiShared.DrawComboSearchable("GagStorage Gag Type", 175f, ref GagFilterSearchString,
-            Enum.GetValues<GagList.GagType>().Where(gag => gag != GagList.GagType.None), (gag) => gag.GetGagAlias(), false, 
+            Enum.GetValues<GagType>().Where(gag => gag != GagType.None), (gag) => gag.GagName(), false, 
             (i) => 
             { 
                 // grab the new gag info.
-                SelectedGag = GagList.AliasToGagTypeMap[i.GetGagAlias()];
+                SelectedGag = i;
                 UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
             }, SelectedGag);
 
@@ -133,7 +133,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
 
         if (UnsavedDrawData == null)
         {
-            SelectedGag = GagList.GagType.BallGag;
+            SelectedGag = GagType.BallGag;
             UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
         }
 
@@ -315,10 +315,10 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         _uiShared.BigText("Adjustments");
 
         var refEnabled = UnsavedDrawData!.IsEnabled;
-        if (ImGui.Checkbox("Enable "+SelectedGag.GetGagAlias(), ref refEnabled))
+        if (ImGui.Checkbox("Enable "+SelectedGag.GagName(), ref refEnabled))
         {
             UnsavedDrawData.IsEnabled = refEnabled;
-            Logger.LogTrace($"Gag {SelectedGag.GetGagAlias()} is now {(UnsavedDrawData.IsEnabled ? "enabled" : "disabled")}");
+            Logger.LogTrace($"Gag {SelectedGag.GagName()} is now {(UnsavedDrawData.IsEnabled ? "enabled" : "disabled")}");
         }
         _uiShared.DrawHelpText("When enabled, allows Item-AutoEquip to function with this Gag."+Environment.NewLine
             + "When disabled, this Gag Glamour will not be auto equipped, even with Item Auto-Equip on.");
@@ -327,7 +327,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         if (ImGui.Checkbox($"Force Headgear", ref refHelmetForced))
         {
             UnsavedDrawData.ForceHeadgearOnEnable = refHelmetForced;
-            Logger.LogTrace($"Gag {SelectedGag.GetGagAlias()} will now {(UnsavedDrawData.ForceHeadgearOnEnable ? "force headgear on" : "not force headgear on")} when enabled");
+            Logger.LogTrace($"Gag {SelectedGag.GagName()} will now {(UnsavedDrawData.ForceHeadgearOnEnable ? "force headgear on" : "not force headgear on")} when enabled");
         }
         _uiShared.DrawHelpText("When enabled, your [Hat Visible] property in Glamourer will be set to enabled. Making headgear visible.");
 
@@ -335,7 +335,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         if (ImGui.Checkbox($"Force Visor", ref refVisorForced))
         {
             UnsavedDrawData.ForceVisorOnEnable = refVisorForced;
-            Logger.LogTrace($"Gag {SelectedGag.GetGagAlias()} will now {(UnsavedDrawData.ForceVisorOnEnable ? "force visor on" : "not force visor on")} when enabled");
+            Logger.LogTrace($"Gag {SelectedGag.GagName()} will now {(UnsavedDrawData.ForceVisorOnEnable ? "force visor on" : "not force visor on")} when enabled");
         }
         _uiShared.DrawHelpText("When enabled, your [Visor Visible] property in Glamourer will be set to enabled. Making visor visible.");
 
@@ -355,7 +355,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             (profile) => profile.ProfileName, true, (i) =>
             {
                 UnsavedDrawData.CustomizeGuid = i.ProfileGuid;
-                Logger.LogTrace($"Gag {SelectedGag.GetGagAlias()} will now use the Customize+ Profile {i.ProfileName}");
+                Logger.LogTrace($"Gag {SelectedGag.GagName()} will now use the Customize+ Profile {i.ProfileName}");
             }, profiles.FirstOrDefault(p => p.ProfileGuid == UnsavedDrawData.CustomizeGuid), "No Profiles Selected");
             _uiShared.DrawHelpText("Select a Customize+ Profile to apply while this Gag is equipped.");
 

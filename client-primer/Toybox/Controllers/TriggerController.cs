@@ -27,7 +27,7 @@ namespace GagSpeak.Toybox.Controllers;
 public class TriggerController : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PlayerCharacterData _playerManager;
     private readonly PairManager _pairManager;
     private readonly ActionEffectMonitor _receiveActionEffectHookManager;
     private readonly ToyboxFactory _playerMonitorFactory;
@@ -39,7 +39,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
     private readonly IDataManager _gameData;
 
     public TriggerController(ILogger<TriggerController> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, PlayerCharacterManager playerManager,
+        ClientConfigurationManager clientConfiguration, PlayerCharacterData playerManager,
         PairManager pairManager, ActionEffectMonitor actionEffectMonitor,
         ToyboxFactory playerMonitorFactory, OnFrameworkService frameworkUtils,
         ToyboxVibeService vibeService, IpcCallerMoodles moodles, IChatGui chatGui,
@@ -64,7 +64,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         Mediator.Subscribe<GagTypeChanged>(this, (msg) =>
         {
 
-            NewState newState = msg.NewGagType == GagList.GagType.None ? NewState.Disabled : NewState.Enabled;
+            NewState newState = msg.NewGagType == GagType.None ? NewState.Disabled : NewState.Enabled;
             CheckGagStateTriggers(msg.NewGagType, newState);
         });
 
@@ -211,7 +211,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         }
     }
 
-    private void CheckGagStateTriggers(GagList.GagType gagType, NewState newState)
+    private void CheckGagStateTriggers(GagType gagType, NewState newState)
     {
         // Check to see if any active gag triggers are in the message
         var matchingTriggers = _clientConfigs.ActiveGagStateTriggers
@@ -360,8 +360,8 @@ public class TriggerController : DisposableMediatorSubscriberBase
             case TriggerActionKind.Gag:
                 if (_playerManager.AppearanceData == null) return;
                 // if a gag on the layer we want to apply to is already equipped and locked, do not execute, and log error.
-                if (_playerManager.AppearanceData.GagSlots[(int)trigger.GagLayerAction].GagType != GagList.GagType.None.GetGagAlias()
-                 && _playerManager.AppearanceData.GagSlots[(int)trigger.GagLayerAction].Padlock != Padlocks.None.ToString())
+                if (_playerManager.AppearanceData.GagSlots[(int)trigger.GagLayerAction].GagType != GagType.None.GagName()
+                 && _playerManager.AppearanceData.GagSlots[(int)trigger.GagLayerAction].Padlock != Padlocks.None.ToName())
                 {
                     Logger.LogError("Cannot apply a gag while another is active and locked.");
                     return;
@@ -369,7 +369,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 // otherwise, we can change the gag type on that layer.
                 Logger.LogInformation("Applying Gag Type {gagType} to Layer {gagLayer}", trigger.GagTypeAction, trigger.GagLayerAction);
                 Mediator.Publish(new GagTypeChanged(trigger.GagTypeAction, trigger.GagLayerAction));
-                Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, trigger.GagLayerAction, trigger.GagTypeAction, "SelfApplied"));
+                Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, trigger.GagLayerAction, trigger.GagTypeAction));
                 break;
 
             case TriggerActionKind.Moodle:

@@ -21,7 +21,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
 {
     private readonly OnFrameworkService _frameworkUtils;
     private readonly GagspeakConfigService _mainConfig;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PlayerCharacterData _playerManager;
     protected readonly IdDisplayHandler _displayHandler;
     private readonly UiSharedService _uiShared;
     private readonly ApiController _apiController;
@@ -37,7 +37,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
     public UserPairPermsSticky(ILogger<UserPairPermsSticky> logger,
         GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
         OnFrameworkService frameworkUtils, GagspeakConfigService mainConfig,
-        PlayerCharacterManager pcManager, IdDisplayHandler displayHandler, 
+        PlayerCharacterData pcManager, IdDisplayHandler displayHandler, 
         UiSharedService uiSharedService, ApiController apiController, 
         PairManager pairManager, MoodlesService moodlesService, 
         PermissionPresetService presetService, PermActionsComponents permActionHelpers, 

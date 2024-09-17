@@ -26,7 +26,7 @@ public class UiFactory
     private readonly ToyboxVibeService _vibeService;
     private readonly IdDisplayHandler _displayHandler;
     private readonly PairManager _pairManager;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PlayerCharacterData _playerManager;
     private readonly GagspeakConfigService _mainConfig;
     private readonly ToyboxRemoteService _remoteService;
     private readonly ServerConfigurationManager _serverConfigs;
@@ -40,7 +40,7 @@ public class UiFactory
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator,
         ApiController apiController, UiSharedService uiSharedService, 
         ToyboxVibeService vibeService, IdDisplayHandler displayHandler, 
-        PairManager pairManager, PlayerCharacterManager playerManager,
+        PairManager pairManager, PlayerCharacterData playerManager,
         ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
         ProfileService profileManager, OnFrameworkService frameworkUtils,
         GagspeakConfigService mainConfig, MoodlesService moodlesService, 

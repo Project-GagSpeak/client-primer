@@ -18,13 +18,13 @@ public class PermissionPresetService
 {
     private readonly ILogger<PermissionPresetService> _logger;
     private readonly ApiController _apiController;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PlayerCharacterData _playerManager;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PairManager _pairManager; // might not need if we use a pair to pass in for this.
     private readonly UiSharedService _uiShared;
 
     public PermissionPresetService(ILogger<PermissionPresetService> logger,
-        ApiController apiController, PlayerCharacterManager playerManager,
+        ApiController apiController, PlayerCharacterData playerManager,
         ClientConfigurationManager clientConfigs, PairManager pairManager,
         UiSharedService uiShared)
     {

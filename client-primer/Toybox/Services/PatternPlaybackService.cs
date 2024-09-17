@@ -7,13 +7,13 @@ using GagSpeak.Utils;
 
 namespace GagSpeak.Toybox.Services;
 // handles the management of the connected devices or simulated vibrator.
-public sealed class PatternPlaybackService
+public sealed class PlaybackService
 {
-    private readonly ILogger<PatternPlaybackService> _logger;
+    private readonly ILogger<PlaybackService> _logger;
     private readonly GagspeakMediator _mediator;
     private readonly ClientConfigurationManager _clientConfigs;
 
-    public PatternPlaybackService(ILogger<PatternPlaybackService> logger,
+    public PlaybackService(ILogger<PlaybackService> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs)
     {
         _logger = logger;

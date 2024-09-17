@@ -27,13 +27,13 @@ public class ToyboxPatterns
     private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiShared;
     private readonly PatternHandler _handler;
-    private readonly PatternPlaybackService _playbackService;
+    private readonly PlaybackService _playbackService;
     private readonly PatternHubService _patternHubService;
     private readonly PairManager _pairManager;
 
     public ToyboxPatterns(ILogger<ToyboxPatterns> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        PatternHandler patternHandler, PatternPlaybackService playbackService,
+        PatternHandler patternHandler, PlaybackService playbackService,
         PatternHubService patternHubService, PairManager pairManager)
     {
         _logger = logger;

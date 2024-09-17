@@ -15,12 +15,12 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
 {
 
     private readonly UiSharedService _uiSharedService;
-    private readonly PlayerCharacterManager _playerManager; // for grabbing lock data
+    private readonly PlayerCharacterData _playerManager; // for grabbing lock data
     private readonly GagManager _gagManager;
 
     public ActiveGagsPanel(ILogger<ActiveGagsPanel> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        GagManager gagManager, PlayerCharacterManager playerManager)
+        GagManager gagManager, PlayerCharacterData playerManager)
         : base(logger, mediator)
     {
         _uiSharedService = uiSharedService;
@@ -35,9 +35,9 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                 return;
             }
             // update our combo items.
-            _uiSharedService._selectedComboItems["Gag Type 0"] = _playerManager.AppearanceData.GagSlots[0].GagType.GetGagFromAlias();
-            _uiSharedService._selectedComboItems["Gag Type 1"] = _playerManager.AppearanceData.GagSlots[1].GagType.GetGagFromAlias();
-            _uiSharedService._selectedComboItems["Gag Type 2"] = _playerManager.AppearanceData.GagSlots[2].GagType.GetGagFromAlias();
+            _uiSharedService._selectedComboItems["Gag Type 0"] = _playerManager.AppearanceData.GagSlots[0].GagType.ToGagType();
+            _uiSharedService._selectedComboItems["Gag Type 1"] = _playerManager.AppearanceData.GagSlots[1].GagType.ToGagType();
+            _uiSharedService._selectedComboItems["Gag Type 2"] = _playerManager.AppearanceData.GagSlots[2].GagType.ToGagType();
         });
 
         Mediator.Subscribe<ActiveLocksUpdated>(this, (_) =>
@@ -79,9 +79,9 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
         var region = ImGui.GetContentRegionAvail();
         try
         {
-            var lock1 = _uiSharedService.GetPadlock(_playerManager.AppearanceData!.GagSlots[0].Padlock);
-            var lock2 = _uiSharedService.GetPadlock(_playerManager.AppearanceData!.GagSlots[1].Padlock);
-            var lock3 = _uiSharedService.GetPadlock(_playerManager.AppearanceData!.GagSlots[2].Padlock);
+            var lock1 = _playerManager.AppearanceData!.GagSlots[0].Padlock.ToPadlock();
+            var lock2 = _playerManager.AppearanceData!.GagSlots[1].Padlock.ToPadlock();
+            var lock3 = _playerManager.AppearanceData!.GagSlots[2].Padlock.ToPadlock();
 
             // Gag Label 1
             _uiSharedService.BigText("Inner Gag:");
@@ -95,7 +95,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             }
             // Selection 1
             DrawGagAndLockSection(0, GagTypeOnePath, GagPadlockOnePath, (lock1 != Padlocks.None),
-                GagList.AliasToGagTypeMap[_playerManager.AppearanceData.GagSlots[0].GagType], (lock1 == Padlocks.None ? _gagManager.PadlockPrevs[0] : lock1));
+                _playerManager.AppearanceData.GagSlots[0].GagType.ToGagType(), (lock1 == Padlocks.None ? _gagManager.PadlockPrevs[0] : lock1));
 
             // Gag Label 2
             _uiSharedService.BigText("Central Gag:");
@@ -109,7 +109,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             }
             // Selection 2
             DrawGagAndLockSection(1, GagTypeTwoPath, GagPadlockTwoPath, (lock2 != Padlocks.None),
-                GagList.AliasToGagTypeMap[_playerManager.AppearanceData.GagSlots[1].GagType], (lock2 == Padlocks.None ? _gagManager.PadlockPrevs[1] : lock2));
+                _playerManager.AppearanceData.GagSlots[1].GagType.ToGagType(), (lock2 == Padlocks.None ? _gagManager.PadlockPrevs[1] : lock2));
 
             // Gag Label 3
             _uiSharedService.BigText("Outer Gag:");
@@ -123,7 +123,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             }
             // Selection 3
             DrawGagAndLockSection(2, GagTypeThreePath, GagPadlockThreePath, (lock3 != Padlocks.None),
-                GagList.AliasToGagTypeMap[_playerManager.AppearanceData.GagSlots[2].GagType], (lock3 == Padlocks.None ? _gagManager.PadlockPrevs[2] : lock3));
+                _playerManager.AppearanceData.GagSlots[2].GagType.ToGagType(), (lock3 == Padlocks.None ? _gagManager.PadlockPrevs[2] : lock3));
         }
         catch (Exception ex)
         {
@@ -137,7 +137,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
     };
 
 
-    private void DrawGagAndLockSection(int slotNumber, string gagTypePath, string lockTypePath, bool currentlyLocked, GagList.GagType gagType, Padlocks padlockType)
+    private void DrawGagAndLockSection(int slotNumber, string gagTypePath, string lockTypePath, bool currentlyLocked, GagType gagType, Padlocks padlockType)
     {
         using (var gagAndLockOuterGroup = ImRaii.Group())
         {
@@ -162,32 +162,32 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                 using (ImRaii.Disabled(currentlyLocked))
                 {
                     _uiSharedService.DrawComboSearchable($"Gag Type {slotNumber}", 250, ref Filters[slotNumber],
-                    Enum.GetValues<GagList.GagType>(), (gag) => gag.GetGagAlias(), false,
+                    Enum.GetValues<GagType>(), (gag) => gag.GagName(), false,
                     (i) =>
                     {
                         // locate the GagData that matches the alias of i
-                        var SelectedGag = GagList.AliasToGagTypeMap[i.GetGagAlias()];
+                        var SelectedGag = i;
                         // obtain the previous gag prior to changing.
-                        var PreviousGag = _playerManager.AppearanceData!.GagSlots[slotNumber].GagType.GetGagFromAlias();
+                        var PreviousGag = _playerManager.AppearanceData!.GagSlots[slotNumber].GagType.ToGagType();
                         Mediator.Publish(new GagTypeChanged(SelectedGag, (GagLayer)slotNumber));
                         // determine which glamour change to fire:
-                        if(SelectedGag == GagList.GagType.None)
+                        if(SelectedGag == GagType.None)
                         {
-                            Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Disabled, (GagLayer)slotNumber, PreviousGag, "SelfApplied"));
+                            Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Disabled, (GagLayer)slotNumber, PreviousGag));
                         }
                         else
                         {
-                            Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, (GagLayer)slotNumber, SelectedGag, "SelfApplied"));
+                            Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, (GagLayer)slotNumber, SelectedGag));
                         }
                     }, gagType);
                 }
 
                 // draw the padlock dropdown
-                using (ImRaii.Disabled(currentlyLocked || gagType == GagList.GagType.None))
+                using (ImRaii.Disabled(currentlyLocked || gagType == GagType.None))
                 {
                     _uiSharedService.DrawCombo($"Lock Type {slotNumber}", (248 - _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Lock).X),
                         Enum.GetValues<Padlocks>().Cast<Padlocks>().Where(p => p != Padlocks.OwnerPadlock && p != Padlocks.OwnerTimerPadlock).ToArray(),
-                        (padlock) => padlock.ToString(),
+                        (padlock) => padlock.ToName(),
                     (i) =>
                     {
                         _gagManager.PadlockPrevs[slotNumber] = i;
@@ -202,8 +202,14 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                     {
                         if (_gagManager.ValidatePassword(slotNumber, currentlyLocked))
                         {
-                            Mediator.Publish(new GagLockToggle(new PadlockData((GagLayer)slotNumber, _gagManager.PadlockPrevs[slotNumber], _gagManager.Passwords[slotNumber], 
-                                UiSharedService.GetEndTimeUTC(_gagManager.Timers[slotNumber]), "SelfApplied"), currentlyLocked, true));
+                            Mediator.Publish(new GagLockToggle(
+                                new PadlockData(
+                                    (GagLayer)slotNumber, 
+                                    _gagManager.PadlockPrevs[slotNumber], 
+                                    _gagManager.Passwords[slotNumber],
+                                    UiSharedService.GetEndTimeUTC(_gagManager.Timers[slotNumber]),
+                                    "SelfApplied"),
+                                currentlyLocked ? NewState.Unlocked : NewState.Locked));
                         }
                         // reset the password and timer
                         _gagManager.Passwords[slotNumber] = string.Empty;

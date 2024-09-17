@@ -47,7 +47,7 @@ public class MigrateGagStorage
             {
                 foreach (var gagData in gagEquipDataToken)
                 {
-                    var gagType = (GagList.GagType)Enum.Parse(typeof(GagList.GagType), gagData.Key);
+                    var gagType = (GagType)Enum.Parse(typeof(GagType), gagData.Key);
                     if (gagData.Value is JObject itemObject)
                     {
                         string slotString = itemObject["Slot"]?.Value<string>() ?? string.Empty;
@@ -72,8 +72,8 @@ public class MigrateGagStorage
     {
         var newGagStoragetorageAll = new GagStorage();
 
-        newGagStoragetorageAll.GagEquipData = Enum.GetValues(typeof(GagList.GagType))
-            .Cast<GagList.GagType>()
+        newGagStoragetorageAll.GagEquipData = Enum.GetValues(typeof(GagType))
+            .Cast<GagType>()
             .ToDictionary(gagType => gagType, gagType => new GagDrawData(_ItemHelper, ItemIdVars.NothingItem(EquipSlot.Head)));
 
         foreach (var (gagType, oldDrawData) in OldGagStorage.OldGagEquipData)
@@ -97,5 +97,5 @@ public class MigrateGagStorage
 
 public class OldGagStorage
 {
-    public Dictionary<GagList.GagType, OldEquipDrawData> OldGagEquipData = [];
+    public Dictionary<GagType, OldEquipDrawData> OldGagEquipData = [];
 }

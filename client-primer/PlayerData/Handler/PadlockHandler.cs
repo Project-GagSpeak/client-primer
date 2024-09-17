@@ -11,11 +11,11 @@ public class PadlockHandler
 {
     private readonly ILogger<PadlockHandler> _logger;
     private readonly UiSharedService _uiSharedService;
-    private readonly PlayerCharacterManager _playerCharacterManager;
+    private readonly PlayerCharacterData _playerCharacterManager;
     private readonly ClientConfigurationManager _clientConfigs;
 
     public PadlockHandler(ILogger<PadlockHandler> logger,
-        UiSharedService uiSharedService, PlayerCharacterManager playerCharacterManager,
+        UiSharedService uiSharedService, PlayerCharacterData playerCharacterManager,
         ClientConfigurationManager clientConfigs)
     {
         _logger = logger;

@@ -20,7 +20,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
 {
     private readonly ToyboxRemoteService _remoteService;
     private readonly ToyboxVibeService _vibeService;
-    private readonly PatternPlaybackService _playbackService;
+    private readonly PlaybackService _playbackService;
 
     public Stopwatch PlaybackDuration;
     private UpdateTimer PlaybackUpdateTimer;
@@ -29,7 +29,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
 
     public PatternPlayback(ILogger<PatternPlayback> logger,
         GagspeakMediator mediator, ToyboxRemoteService remoteService, 
-        ToyboxVibeService vibeService, PatternPlaybackService playbackService) 
+        ToyboxVibeService vibeService, PlaybackService playbackService) 
         : base(logger, mediator)
     {
         _remoteService = remoteService;

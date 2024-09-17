@@ -149,8 +149,16 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public JObject? GetState()
     {
-        var success = _glamourerGetState.Invoke(_clientState.LocalPlayer!.ObjectIndex);
-        return success.Item2;
+        try
+        {
+            var success = _glamourerGetState.Invoke(_clientState.LocalPlayer!.ObjectIndex);
+            return success.Item2;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning($"Error during GetState: {ex}");
+            return null;
+        }
     }
 
     public bool SetRestraintEquipmentFromState(RestraintSet setToEdit)
@@ -202,26 +210,28 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task<bool> ForceSetMetaData(MetaData metaData, bool? forcedState = null)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || _onFrameworkService.IsZoning) return false;
+        if (!APIAvailable || _onFrameworkService.IsZoning || _clientState.LocalPlayer is null) return false;
         try
         {
-            // grab the JObject of the character state.
-            var playerState = GetState();
-            if (playerState == null) return false;
-
-            if(metaData == MetaData.Both || metaData == MetaData.Hat)
+            return await _onFrameworkService.RunOnFrameworkThread(() =>
             {
-                playerState!["Equipment"]!["Hat"]!["Show"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Hat"]?["Show"]) ?? false); ;
-                playerState!["Equipment"]!["Hat"]!["Apply"] = true;
-            }
-            if(metaData == MetaData.Both || metaData == MetaData.Visor)
-            {
-                playerState!["Equipment"]!["Visor"]!["IsToggled"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Visor"]?["IsToggled"]) ?? false); ;
-                playerState!["Equipment"]!["Visor"]!["Apply"] = true;
-            }
+                // grab the JObject of the character state.
+                var playerState = GetState();
 
-            var ret = _ApplyState.Invoke(playerState, 0);
-            return ret == GlamourerApiEc.Success;
+                if (metaData == MetaData.Both || metaData == MetaData.Hat)
+                {
+                    playerState!["Equipment"]!["Hat"]!["Show"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Hat"]?["Show"]) ?? false); ;
+                    playerState!["Equipment"]!["Hat"]!["Apply"] = true;
+                }
+                if (metaData == MetaData.Both || metaData == MetaData.Visor)
+                {
+                    playerState!["Equipment"]!["Visor"]!["IsToggled"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Visor"]?["IsToggled"]) ?? false); ;
+                    playerState!["Equipment"]!["Visor"]!["Apply"] = true;
+                }
+
+                var ret = _ApplyState.Invoke(playerState!, _clientState.LocalPlayer.ObjectIndex);
+                return ret == GlamourerApiEc.Success;
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

@@ -512,12 +512,12 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 string remainingTimeStr = $"{remainingTime.Days}d{remainingTime.Hours}h{remainingTime.Minutes}m{remainingTime.Seconds}s";
                 var lockedDescription = set.Locked ? $"Locked for {remainingTimeStr}" : "Self-lock: XdXhXmXs format..";
                 // draw the padlock dropdown
-                var padlockType = _uiShared.GetPadlock(set.LockType) != Padlocks.None ? _uiShared.GetPadlock(set.LockType) : _padlockHandler.PadlockPrevs[3];
+                var padlockType = set.LockType.ToPadlock() != Padlocks.None ? set.LockType.ToPadlock() : _padlockHandler.PadlockPrevs[3];
                 using (ImRaii.Disabled(set.Locked || set.LockType != "None"))
                 {
                     _uiShared.DrawCombo($"RestraintSetLock {set.Name}", (width - 1 - _uiShared.GetIconButtonSize(FontAwesomeIcon.Lock).X - ImGui.GetStyle().ItemInnerSpacing.X),
                         Enum.GetValues<Padlocks>().Cast<Padlocks>().Where(p => p != Padlocks.OwnerPadlock && p != Padlocks.OwnerTimerPadlock).ToArray(),
-                        (padlock) => padlock.ToString(),
+                        (padlock) => padlock.ToName(),
                     (i) =>
                     {
                         _padlockHandler.PadlockPrevs[3] = i;

@@ -4,24 +4,17 @@ using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Toybox.Services;
-using GagSpeak.UI.Components;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
-using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
-using GagspeakAPI.Dto.Connection;
 using ImGuiNET;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
-using Penumbra.GameData.Files.ShaderStructs;
 using Penumbra.GameData.Structs;
 using ProjectGagspeakAPI.Data.VibeServer;
-using static GagspeakAPI.Data.Enum.GagList;
 
 namespace GagSpeak.Services.ConfigurationServices;
 
@@ -43,16 +36,16 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     public ClientConfigurationManager(ILogger<ClientConfigurationManager> logger,
         GagspeakMediator GagspeakMediator, ItemIdVars itemHelper,
-        OnFrameworkService onFrameworkService, GagspeakConfigService configService, 
-        GagStorageConfigService gagStorageConfig, WardrobeConfigService wardrobeConfig, 
-        AliasConfigService aliasConfig, PatternConfigService patternConfig, 
-        AlarmConfigService alarmConfig, TriggerConfigService triggersConfig) 
+        OnFrameworkService onFrameworkService, GagspeakConfigService configService,
+        GagStorageConfigService gagStorageConfig, WardrobeConfigService wardrobeConfig,
+        AliasConfigService aliasConfig, PatternConfigService patternConfig,
+        AlarmConfigService alarmConfig, TriggerConfigService triggersConfig)
         : base(logger, GagspeakMediator)
     {
         // create a new instance of the static universal logger that pulls from the client logger.
         // because this loads our configs before the logger initialized, we use a simply hack to set the static logger to the clientConfigManager logger.
         // its not ideal, but it works. If there is a better way please tell me.
-        StaticLogger.Logger = logger; 
+        StaticLogger.Logger = logger;
         _itemHelper = itemHelper;
         _frameworkUtils = onFrameworkService;
         _configService = configService;
@@ -69,15 +62,10 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         {
             // update our configs to point to the new user.
             if (msg.Connection.User.UID != _configService.Current.LastUidLoggedIn)
-            {
                 UpdateConfigs(msg.Connection.User.UID);
-            }
             // update the last logged in UID
             _configService.Current.LastUidLoggedIn = msg.Connection.User.UID;
             Save();
-
-            // make sure bratty subs dont use disconnect to think they can get free.
-            SyncDataWithConnectionDto(msg.Connection);
         });
 
         Mediator.Publish(new UpdateChatListeners());
@@ -86,7 +74,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     // define public access to various storages (THESE ARE ONLY GETTERS, NO SETTERS)
     public GagspeakConfig GagspeakConfig => _configService.Current; // UNIVERSAL
     public GagStorageConfig GagStorageConfig => _gagStorageConfig.Current; // PER PLAYER
-    private WardrobeConfig WardrobeConfig => _wardrobeConfig.Current; // PER PLAYER
+    public WardrobeConfig WardrobeConfig => _wardrobeConfig.Current; // PER PLAYER
     private AliasConfig AliasConfig => _aliasConfig.Current; // PER PLAYER
     private PatternConfig PatternConfig => _patternConfig.Current; // PER PLAYER
     private AlarmConfig AlarmConfig => _alarmConfig.Current; // PER PLAYER
@@ -102,10 +90,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
         InitConfigs();
     }
-
-    public bool HasCreatedConfigs()
-        => (GagspeakConfig != null && GagStorageConfig != null && WardrobeConfig != null && AliasConfig != null
-          && PatternConfig != null && AlarmConfig != null && TriggerConfig != null);
 
     /// <summary> Saves the GagspeakConfig. </summary>
     public void Save()
@@ -136,8 +120,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             Logger.LogWarning("Gag Storage Config is empty, creating a new one.");
             try
             {
-                _gagStorageConfig.Current.GagStorage.GagEquipData = Enum.GetValues(typeof(GagList.GagType))
-                    .Cast<GagList.GagType>().ToDictionary(gagType => gagType, gagType => new GagDrawData(_itemHelper, ItemIdVars.NothingItem(EquipSlot.Head)));
+                _gagStorageConfig.Current.GagStorage.GagEquipData = Enum.GetValues(typeof(GagType))
+                    .Cast<GagType>().ToDictionary(gagType => gagType, gagType => new GagDrawData(_itemHelper, ItemIdVars.NothingItem(EquipSlot.Head)));
                 // print the keys in the dictionary
                 Logger.LogInformation("Gag Storage Config Created with {count} keys", _gagStorageConfig.Current.GagStorage.GagEquipData.Count);
                 _gagStorageConfig.Save();
@@ -170,80 +154,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         if (_triggerConfig.Current.TriggerStorage == null) { _triggerConfig.Current.TriggerStorage = new(); }
 
     }
-    private async void SyncDataWithConnectionDto(ConnectionDto dto)
-    {
-        // to fix any fucked up configs, do a quick check to see if we have any sets that are locked, but not enabled, and fixed them to be not locked and disabled.
-        bool anySetIsBeingFixed = WardrobeConfig.WardrobeStorage.RestraintSets.Any(x => x.Enabled == false && x.Locked);
-        foreach (var set in WardrobeConfig.WardrobeStorage.RestraintSets.Where(set => set.Enabled == false && set.Locked))
-        {
-            set.Enabled = false;
-            set.EnabledBy = string.Empty;
-            set.LockType = Padlocks.None.ToString();
-            set.LockPassword = string.Empty;
-            set.LockedUntil = DateTimeOffset.MinValue;
-            set.LockedBy = string.Empty;
-            _wardrobeConfig.Save();
-            // this may cause some bugs down the line, so keep an eye on it. (Not syncing with server userActiveStateData)
-        }
-        if (anySetIsBeingFixed)
-        {
-            Logger.LogWarning("A set is out of sync and has been fixed");
-            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
-        }
-
-        try
-        {
-            Logger.LogInformation("Syncing Data with Connection DTO");
-            // if the active set is not string.Empty, we should update our active sets.
-            if (dto.CharacterActiveStateData.WardrobeActiveSetName != string.Empty)
-            {
-                Logger.LogInformation("Located a stored active Restraint Set from the last connection's Data.");
-                Logger.LogDebug("Active Set Name: {setName}, Password: {password}, Lock: {lock}, LockBy: {lockBy}, LockUntil: {lockUntil}",
-                    dto.CharacterActiveStateData.WardrobeActiveSetName, dto.CharacterActiveStateData.Password,
-                    dto.CharacterActiveStateData.Padlock, dto.CharacterActiveStateData.Assigner, dto.CharacterActiveStateData.Timer);
-
-                // see if the lock expired while we were disconnected.
-                if (GenericHelpers.TimerPadlocks.Contains(dto.CharacterActiveStateData.Padlock)
-                && dto.CharacterActiveStateData.Timer < DateTimeOffset.UtcNow)
-                {
-                    Logger.LogInformation("The lock on the actively stored set expired while you were disconnected. Unlocking Set");
-                    UnlockRestraintSet(GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
-                        dto.CharacterActiveStateData.Assigner);
-
-                    // if we have it set to remove sets that are unlocked automatically, do so.
-                    if (GagspeakConfig.DisableSetUponUnlock)
-                    {
-                        Logger.LogInformation("Disabling Unlocked Set due to Config Setting.");
-                        await SetRestraintSetState(
-                            GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
-                            dto.CharacterActiveStateData.WardrobeActiveSetAssigner,
-                            NewState.Disabled);
-                    }
-                }
-                // if it is not a set that had its time expired, then we should re-enable it, and re-lock it if it was locked.
-                else
-                {
-                    Logger.LogInformation("Re-Enabling the stored active Restraint Set");
-                    await SetRestraintSetState(
-                        GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
-                        dto.CharacterActiveStateData.WardrobeActiveSetAssigner, NewState.Enabled);
-                    // relock it if it had a timer.
-                    if (dto.CharacterActiveStateData.Padlock != Padlocks.None.ToString())
-                    {
-                        Logger.LogInformation("Re-Locking the stored active Restraint Set");
-                        LockRestraintSet(
-                            GetRestraintSetIdxByName(dto.CharacterActiveStateData.WardrobeActiveSetName),
-                            dto.CharacterActiveStateData.Padlock, dto.CharacterActiveStateData.Password,
-                            dto.CharacterActiveStateData.Timer, dto.CharacterActiveStateData.Assigner);
-                    }
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, "Error syncing data with connection DTO");
-        }
-    }
 
     public List<string> GetPlayersToListenFor()
     {
@@ -256,15 +166,15 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     /* --------------------- Gag Storage Config Methods --------------------- */
     #region Gag Storage Methods
-    internal bool IsGagEnabled(GagType gagType) 
+    internal bool IsGagEnabled(GagType gagType)
         => GagStorageConfig.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.IsEnabled;
-    internal GagDrawData GetDrawData(GagType gagType) 
+    internal GagDrawData GetDrawData(GagType gagType)
         => GagStorageConfig.GagStorage.GagEquipData[gagType];
     internal GagDrawData GetDrawDataWithHighestPriority(List<GagType> gagTypes)
         => GagStorageConfig.GagStorage.GagEquipData.Where(x => gagTypes.Contains(x.Key)).OrderBy(x => x.Value.CustomizePriority).FirstOrDefault().Value;
-    internal EquipSlot GetGagTypeEquipSlot(GagType gagType) 
+    internal EquipSlot GetGagTypeEquipSlot(GagType gagType)
         => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot;
-    internal EquipItem GetGagTypeEquipItem(GagType gagType) 
+    internal EquipItem GetGagTypeEquipItem(GagType gagType)
         => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem;
 
     internal void UpdateGagStorageDictionary(Dictionary<GagType, GagDrawData> newGagStorage)
@@ -571,7 +481,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal void UnlockRestraintSet(int setIndex, string UIDofPair, bool pushToServer = true)
     {
         // Clear all locked states. (making the assumption this is only called when the UIDofPair matches the LockedBy)
-        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockType = Padlocks.None.ToString();
+        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockType = Padlocks.None.ToName();
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockPassword = string.Empty;
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = DateTimeOffset.MinValue;
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = string.Empty;
@@ -589,6 +499,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldItem = drawData;
         _wardrobeConfig.Save();
     }
+
     #endregion Wardrobe Config Methods
 
     /* --------------------- Puppeteer Alias Configs --------------------- */
@@ -813,7 +724,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public IEnumerable<RestraintTrigger> ActiveRestraintTriggers => TriggerConfig.TriggerStorage.Triggers.OfType<RestraintTrigger>().Where(x => x.Enabled);
     public IEnumerable<GagTrigger> ActiveGagStateTriggers => TriggerConfig.TriggerStorage.Triggers.OfType<GagTrigger>().Where(x => x.Enabled);
     public IEnumerable<SocialTrigger> ActiveSocialTriggers => TriggerConfig.TriggerStorage.Triggers.OfType<SocialTrigger>().Where(x => x.Enabled);
-    
+
     public List<Trigger> GetTriggersForSearch() => TriggerConfig.TriggerStorage.Triggers; // readonly accessor
     public Trigger FetchTrigger(int idx) => TriggerConfig.TriggerStorage.Triggers[idx];
     public int FetchTriggerCount() => TriggerConfig.TriggerStorage.Triggers.Count;
@@ -900,7 +811,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             set.LockedBy = string.Empty;
             set.LockedUntil = DateTimeOffset.MinValue;
             set.LockPassword = string.Empty;
-            set.LockType = Padlocks.None.ToString();
+            set.LockType = Padlocks.None.ToName();
             set.EnabledBy = string.Empty;
             set.Enabled = false;
 
@@ -943,14 +854,14 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.Safeword));
 
 
-            // disable any active alarms.
-            foreach (var alarm in AlarmConfig.AlarmStorage.Alarms)
+        // disable any active alarms.
+        foreach (var alarm in AlarmConfig.AlarmStorage.Alarms)
             alarm.Enabled = false;
         _alarmConfig.Save();
-        
-        
+
+
         // disable any active triggers.
-        foreach(var trigger in TriggerConfig.TriggerStorage.Triggers)
+        foreach (var trigger in TriggerConfig.TriggerStorage.Triggers)
             trigger.Enabled = false;
         _triggerConfig.Save();
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.Safeword));

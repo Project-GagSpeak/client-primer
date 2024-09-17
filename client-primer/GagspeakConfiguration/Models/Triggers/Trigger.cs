@@ -33,7 +33,7 @@ public abstract record Trigger
     public ShockTriggerAction ShockTriggerAction { get; set; } = new ShockTriggerAction();
     public string RestraintNameAction { get; set; } = string.Empty;
     public GagLayer GagLayerAction { get; set; } = GagLayer.UnderLayer;
-    public GagList.GagType GagTypeAction { get; set; } = GagList.GagType.None;
+    public GagType GagTypeAction { get; set; } = GagType.None;
     public Guid MoodlesIdentifier { get; set; } = Guid.Empty; // can be a status or preset, depending on TriggerActionKind
 }
 

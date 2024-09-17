@@ -17,7 +17,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
     private readonly OnFrameworkService _frameworkUtil;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PlayerCharacterData _playerManager;
     private readonly PairManager _pairManager;
 
     // Stores the last recieved IpcData from our client player characters cache creation service.
@@ -28,7 +28,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
 
     public VisiblePairManager(ILogger<VisiblePairManager> logger,
         GagspeakMediator mediator, ApiController apiController,
-        OnFrameworkService dalamudUtil, PlayerCharacterManager playerManager,
+        OnFrameworkService dalamudUtil, PlayerCharacterData playerManager,
         PairManager pairManager) : base(logger, mediator)
     {
         _apiController = apiController;

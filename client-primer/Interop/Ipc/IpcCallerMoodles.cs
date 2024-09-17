@@ -11,7 +11,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
 {
     // TERMINOLOGY:
     // StatusManager == The manager handling the current active statuses on you.
-    // Status == The invidual "Moodle" in your Moodles tab under the Moodles UI.
+    // Status == The individual "Moodle" in your Moodles tab under the Moodles UI.
     // Preset == The collection of Statuses to apply at once. Stored in a preset.
     
     // Remember, all these are called only when OUR client changes. Not other pairs.

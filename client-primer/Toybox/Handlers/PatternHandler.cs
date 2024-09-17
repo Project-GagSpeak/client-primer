@@ -9,7 +9,7 @@ using GagspeakAPI.Data;
 namespace GagSpeak.PlayerData.Handlers;
 
 // Responcible for handling the management of patterns.
-// Pattern playback is managed by the PatternPlaybackService.
+// Pattern playback is managed by the PlaybackService.
 public class PatternHandler : MediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;

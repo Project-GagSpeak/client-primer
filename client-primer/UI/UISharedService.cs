@@ -604,11 +604,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             disabled);
     }
 
-    public Padlocks GetPadlock(string padlockType)
-    {
-        Enum.TryParse<Padlocks>(padlockType, true, out var PadlockType);
-        return PadlockType;
-    }
 
     /// <summary> Cleans sender string from the chatlog before processing, so it stays a valid player sender string. </summary>
     /// <param name="senderName"> The original uncleaned sender name string </param>

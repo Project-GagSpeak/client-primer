@@ -32,7 +32,7 @@ namespace GagSpeak.UI;
 public class SettingsUi : WindowMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
-    private readonly PlayerCharacterManager _playerCharacterManager;
+    private readonly PlayerCharacterData _playerCharacterManager;
     private readonly IpcManager _ipcManager;
     private readonly OnFrameworkService _frameworkUtil;
     private readonly GagspeakConfigService _configService;
@@ -56,7 +56,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     public SettingsUi(ILogger<SettingsUi> logger, UiSharedService uiShared,
         ApiController apiController, GagspeakConfigService configService,
-        PairManager pairManager, PlayerCharacterManager playerCharacterManager,
+        PairManager pairManager, PlayerCharacterData playerCharacterManager,
         ClientConfigurationManager clientConfigs, AvfxManager avfxManager,
         VfxSpawns vfxSpawns, ServerConfigurationManager serverConfigs,
         GagspeakMediator mediator, IpcManager ipcManager, SettingsHardcore hardcoreSettingsUI,

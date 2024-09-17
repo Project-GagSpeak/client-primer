@@ -20,18 +20,18 @@ namespace GagSpeak.Services;
 public class SafewordService : MediatorSubscriberBase, IHostedService
 {
     private readonly ApiController _apiController; // for sending the updates.
-    private readonly PlayerCharacterManager _playerManager; // has our global permissions.
+    private readonly PlayerCharacterData _playerManager; // has our global permissions.
     private readonly PairManager _pairManager; // for accessing the permissions of each pair.
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly GagManager _gagManager; // for removing gags.
-    private readonly PatternPlaybackService _patternPlaybackService; // for stopping patterns.
+    private readonly PlaybackService _patternPlaybackService; // for stopping patterns.
     private readonly WardrobeHandler _wardrobeHandler;
     private readonly IpcFastUpdates _glamourFastEvent; // for reverting character.
 
     public SafewordService(ILogger<SafewordService> logger, GagspeakMediator mediator,
-        ApiController apiController, PlayerCharacterManager playerManager, 
+        ApiController apiController, PlayerCharacterData playerManager, 
         PairManager pairManager, ClientConfigurationManager clientConfigs, 
-        GagManager gagManager, PatternPlaybackService playbackService,
+        GagManager gagManager, PlaybackService playbackService,
         WardrobeHandler wardrobeHandler, IpcFastUpdates glamourFastUpdate) 
         : base(logger, mediator)
     {
@@ -109,8 +109,6 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
                 _playerManager.GlobalPerms.LockToyboxUI = false;
                 _playerManager.GlobalPerms.ToyIntensity = 0;
                 _playerManager.GlobalPerms.SpatialVibratorAudio = false;
-                // update our global permissions and send the new info to the server.
-                _playerManager.UpdateGlobalPermsInBulk(_playerManager.GlobalPerms); // the api callback will correct these with the same values we set after if any inconsistencies anyways.
 
                 Logger.LogInformation("Pushing Global updates to the server.");
                 _ = _apiController.UserPushAllGlobalPerms(new(_apiController.PlayerUserData, _playerManager.GlobalPerms));
@@ -144,7 +142,9 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
         // push the permission update for the hardcore safeword to the server.
         UserGlobalPermissions newGlobalPerms = _playerManager.GlobalPerms ?? new UserGlobalPermissions();
         newGlobalPerms.HardcoreSafewordUsed = true;
-        _playerManager.UpdateGlobalPermsInBulk(newGlobalPerms);
+
+        _playerManager.GlobalPerms = newGlobalPerms;
+        
         if(_apiController.ServerState is ServerState.Connected)
         {
             _ = _apiController.UserUpdateOwnGlobalPerm(new(_apiController.PlayerUserData, new KeyValuePair<string, object>("HardcoreSafewordUsed", true)));

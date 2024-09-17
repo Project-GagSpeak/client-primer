@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 3, 1)
+            .RegisterMain("You can now Clone & Remove restraint sets from the selector menu.")
+            .RegisterFeature("Added Button to import your actors current equipment into restraint Appearance.");
         VersionEntry(0, 8, 3, 0)
             .RegisterMain("Customize+ Gag Integration is now fully functional.")
             .RegisterMain("C+ Gags can have set priorities to prioritize one preset over another.")

@@ -40,34 +40,26 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
         _frameworkUtils = frameworkUtils;
         _uiShared = uiShared;
 
-        Mediator.Subscribe<RestraintSetToggleMoodlesMessage>(this, (msg) =>
+        Mediator.Subscribe<RestraintSetToggleMoodlesMessage>(this, async (msg) =>
         {
             var moodlesToApply = _handler.GetAssociatedMoodles(msg.SetIdx);
-            ToggleMoodlesOnAction(moodlesToApply, msg.State, msg.MoodlesTask);
+            await ToggleMoodlesTask(moodlesToApply, msg.State);
+            if(msg.MoodlesTask != null)
+            {
+                msg.MoodlesTask.SetResult(true);
+            }
         });
     }
 
-    public async void ToggleMoodlesOnAction(List<Guid> moodlesToToggle, NewState newState, TaskCompletionSource<bool>? Task = null)
+    public async Task ToggleMoodlesTask(List<Guid> moodlesToToggle, NewState newState)
     {
-        try
-        {
-            if (newState == NewState.Enabled)
-            { 
-                await _moodles.ApplyOwnStatusByGUID(moodlesToToggle);
-            }
-            else
-            {
-                await _moodles.RemoveOwnStatusByGuid(moodlesToToggle);
-            }
+        if (newState == NewState.Enabled)
+        { 
+            await _moodles.ApplyOwnStatusByGUID(moodlesToToggle);
         }
-        catch (Exception e)
+        else
         {
-            Logger.LogError(e, "Error applying Moodles on set toggle.");
-        }
-
-        if(Task != null)
-        {
-            Task.SetResult(true);
+            await _moodles.RemoveOwnStatusByGuid(moodlesToToggle);
         }
     }
 

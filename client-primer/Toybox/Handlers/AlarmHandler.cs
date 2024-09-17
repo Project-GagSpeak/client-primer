@@ -16,12 +16,12 @@ namespace GagSpeak.PlayerData.Handlers;
 public class AlarmHandler : MediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PatternPlaybackService _playbackService;
+    private readonly PlaybackService _playbackService;
     private DateTime _lastExecutionTime;
 
     public AlarmHandler(ILogger<AlarmHandler> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        PatternPlaybackService playbackService) : base(logger, mediator)
+        PlaybackService playbackService) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playbackService = playbackService;

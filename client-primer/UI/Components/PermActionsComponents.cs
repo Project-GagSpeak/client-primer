@@ -242,10 +242,7 @@ public class PermActionsComponents
     }
 
     public bool ExpandLockHeightCheck(Padlocks type)
-    {
-        return type == Padlocks.CombinationPadlock || type == Padlocks.PasswordPadlock
-            || type == Padlocks.TimerPasswordPadlock || type == Padlocks.OwnerTimerPadlock;
-    }
+        => type is Padlocks.CombinationPadlock or Padlocks.PasswordPadlock or Padlocks.TimerPasswordPadlock or Padlocks.OwnerTimerPadlock;
 
 
     public void DisplayPadlockFields(Padlocks selectedPadlock)

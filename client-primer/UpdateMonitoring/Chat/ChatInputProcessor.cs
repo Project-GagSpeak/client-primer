@@ -20,7 +20,7 @@ public unsafe class ChatInputDetour : IDisposable
 {
     private readonly ILogger<ChatInputDetour> _logger;
     private readonly GagspeakConfigService _config;
-    private readonly PlayerCharacterManager _playerManager;
+    private readonly PlayerCharacterData _playerManager;
     private readonly GagManager _gagManager;
 
     private readonly List<string> AllowedCommandChannels;
@@ -33,7 +33,7 @@ public unsafe class ChatInputDetour : IDisposable
 
     internal ChatInputDetour(ISigScanner scanner, IGameInteropProvider interop,
         ILogger<ChatInputDetour> logger, GagspeakConfigService config, 
-        PlayerCharacterManager playerManager, GagManager gagManager)
+        PlayerCharacterData playerManager, GagManager gagManager)
     {
         // initialize the classes
         _logger = logger;

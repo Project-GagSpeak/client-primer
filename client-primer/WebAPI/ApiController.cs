@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System.Reflection;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.PlayerData.PrivateRooms;
+using GagSpeak.PlayerData.Services;
 
 namespace GagSpeak.WebAPI;
 
@@ -26,7 +27,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
     private readonly OnFrameworkService _frameworkUtils;            // the on framework service
     private readonly HubFactory _hubFactory;                        // the hub factory
-    private readonly PlayerCharacterManager _playerCharManager;     // the player character manager
+    private readonly PlayerCharacterData _playerCharManager;        // the player character manager
+    private readonly ClientCallbackService _playerCallbackService;  // handles callbacks for the player.
     private readonly PrivateRoomManager _privateRoomManager;        // the private room manager
     private readonly PairManager _pairManager;                      // for managing the clients paired users
     private readonly ServerConfigurationManager _serverConfigs;     // the server configuration manager
@@ -53,14 +55,15 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     private ServerState _toyboxServerState;                         // the current state of the toybox server
 
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, OnFrameworkService frameworkService,
-        PlayerCharacterManager playerCharManager, PrivateRoomManager roomManager, 
-        PairManager pairManager, ServerConfigurationManager serverManager,
+        PlayerCharacterData playerCharManager, ClientCallbackService callbackService,
+        PrivateRoomManager roomManager, PairManager pairManager, ServerConfigurationManager serverManager,
         GagspeakMediator gagspeakMediator, PiShockProvider piShockProvider, 
         TokenProvider tokenProvider, GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
     {
         _frameworkUtils = frameworkService;
         _hubFactory = hubFactory;
         _playerCharManager = playerCharManager;
+        _playerCallbackService = callbackService;
         _privateRoomManager = roomManager;
         _pairManager = pairManager;
         _serverConfigs = serverManager;

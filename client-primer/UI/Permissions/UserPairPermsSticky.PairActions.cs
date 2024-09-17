@@ -4,7 +4,6 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 using GagSpeak.Utils;
-using GagSpeak.WebAPI;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
@@ -15,13 +14,9 @@ using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.Toybox;
 using ImGuiNET;
-using OtterGui;
 using OtterGui.Text;
 using ProjectGagspeakAPI.Data.VibeServer;
 using System.Numerics;
-using static GagspeakAPI.Data.Enum.GagList;
-using static System.ComponentModel.Design.ObjectSelectorEditor;
-using static System.Windows.Forms.AxHost;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -145,8 +140,8 @@ public partial class UserPairPermsSticky
 
         bool canUseGagFeatures = UserPairForPerms.UserPairUniquePairPerms.GagFeatures;
         bool canUseOwnerLocks = UserPairForPerms.UserPairUniquePairPerms.OwnerLocks;
-        bool disableLocking = UserPairForPerms.LastReceivedAppearanceData!.GagSlots[_permActions.GagLayer].GagType == GagType.None.GetGagAlias();
-        bool disableUnlocking = UserPairForPerms.LastReceivedAppearanceData!.GagSlots[_permActions.GagLayer].Padlock == Padlocks.None.ToString();
+        bool disableLocking = UserPairForPerms.LastReceivedAppearanceData!.GagSlots[_permActions.GagLayer].GagType == GagType.None.GagName();
+        bool disableUnlocking = UserPairForPerms.LastReceivedAppearanceData!.GagSlots[_permActions.GagLayer].Padlock == Padlocks.None.ToName();
         bool disableRemoving = !disableUnlocking;
 
         ////////// APPLY GAG //////////
@@ -162,8 +157,8 @@ public partial class UserPairPermsSticky
                 if (!actionChild) return;
                 GagType selected = _permActions.GetSelectedItem<GagType>("ApplyGagForPairPermCombo", UserPairForPerms.UserData.UID);
 
-                _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ApplyGagForPairPermCombo", "Apply Gag", 
-                WindowMenuWidth, Enum.GetValues<GagType>(), (gag) => gag.GetGagAlias(), true, selected==GagType.None, false, GagType.None, 
+                _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ApplyGagForPairPermCombo", "Apply Gag",
+                WindowMenuWidth, Enum.GetValues<GagType>(), (gag) => gag.GagName(), true, selected == GagType.None, false, GagType.None,
                 FontAwesomeIcon.None, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Gag: " + selected); },
                 (onButtonPress) =>
                 {
@@ -171,8 +166,8 @@ public partial class UserPairPermsSticky
                     {
                         var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
                         if (newAppearance == null) throw new Exception("Appearance data is null, not sending");
-                        newAppearance.GagSlots[_permActions.GagLayer].GagType = onButtonPress.GetGagAlias();
-                        DataUpdateKind updateKind = _permActions.GagLayer switch 
+                        newAppearance.GagSlots[_permActions.GagLayer].GagType = onButtonPress.GagName();
+                        DataUpdateKind updateKind = _permActions.GagLayer switch
                         {
                             0 => DataUpdateKind.AppearanceGagAppliedLayerOne,
                             1 => DataUpdateKind.AppearanceGagAppliedLayerTwo,
@@ -180,7 +175,7 @@ public partial class UserPairPermsSticky
                             _ => throw new Exception("Invalid layer selected.")
                         };
                         _ = _apiController.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
-                        _logger.LogDebug("Applying Selected Gag {0} to {1}", onButtonPress.GetGagAlias(), UserPairForPerms.UserData.AliasOrUID);
+                        _logger.LogDebug("Applying Selected Gag {0} to {1}", onButtonPress.GagName(), UserPairForPerms.UserData.AliasOrUID);
                         ShowGagList = false;
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated appearance data: " + e.Message); }
@@ -192,8 +187,8 @@ public partial class UserPairPermsSticky
         ////////// LOCK GAG //////////
         using (var color = ImRaii.PushColor(ImGuiCol.Text, disableUnlocking ? ImGuiColors.DalamudWhite : ImGuiColors.DalamudYellow))
         {
-            string DisplayText = disableUnlocking ? "Lock "+PairUID+"'s Gag" 
-                : UserPairForPerms.LastReceivedAppearanceData!.GagSlots[_permActions.GagLayer].Padlock+" is on this Gag.";
+            string DisplayText = disableUnlocking ? "Lock " + PairUID + "'s Gag"
+                : UserPairForPerms.LastReceivedAppearanceData!.GagSlots[_permActions.GagLayer].Padlock + " is on this Gag.";
             if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, DisplayText, WindowMenuWidth, true, disableLocking || !canUseGagFeatures))
             {
                 ShowGagLock = !ShowGagLock;
@@ -213,14 +208,14 @@ public partial class UserPairPermsSticky
                 bool disabled = selected == Padlocks.None || !canUseGagFeatures;
                 // Draw combo
                 _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "LockGagForPairPermCombo", "Lock",
-                WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToString(), false, disabled, true, Padlocks.None,
+                WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToName(), false, disabled, true, Padlocks.None,
                 FontAwesomeIcon.Lock, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Padlock: " + selected); },
                 (onButtonPress) =>
                 {
                     var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
                     if (newAppearance == null) throw new Exception("Appearance data is null or lock is invalid., not sending");
 
-                    if (_permActions.PadlockVerifyLock<IPadlockable>(newAppearance.GagSlots[_permActions.GagLayer], onButtonPress, 
+                    if (_permActions.PadlockVerifyLock<IPadlockable>(newAppearance.GagSlots[_permActions.GagLayer], onButtonPress,
                     UserPairForPerms.UserPairUniquePairPerms.ExtendedLockTimes, canUseOwnerLocks))
                     {
                         try
@@ -253,11 +248,11 @@ public partial class UserPairPermsSticky
         }
 
         ////////// UNLOCK GAG //////////
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, ("Unlock "+PairUID+"'s Gag"), WindowMenuWidth, true, disableUnlocking || !canUseGagFeatures))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, ("Unlock " + PairUID + "'s Gag"), WindowMenuWidth, true, disableUnlocking || !canUseGagFeatures))
         {
             ShowGagUnlock = !ShowGagUnlock;
         }
-        UiSharedService.AttachToolTip("Unlock "+PairUID+"'s Gag. Click to view options.");
+        UiSharedService.AttachToolTip("Unlock " + PairUID + "'s Gag. Click to view options.");
         if (ShowGagUnlock)
         {
             Padlocks selected = _permActions.GetSelectedItem<Padlocks>("UnlockGagForPairPermCombo", UserPairForPerms.UserData.UID);
@@ -269,7 +264,7 @@ public partial class UserPairPermsSticky
                 bool disabled = selected == Padlocks.None || !canUseGagFeatures;
                 // Draw combo
                 _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "UnlockGagForPairPermCombo", "Unlock",
-                WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToString(), false, disabled, true, Padlocks.None,
+                WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToName(), false, disabled, true, Padlocks.None,
                 FontAwesomeIcon.Unlock, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Padlock: " + selected); },
                 (onButtonPress) =>
                 {
@@ -305,7 +300,7 @@ public partial class UserPairPermsSticky
         }
 
         ////////// REMOVE GAG //////////
-        if (_uiShared.IconTextButton(FontAwesomeIcon.TimesCircle, ("Remove "+PairUID+"'s Gag"), WindowMenuWidth, true,  
+        if (_uiShared.IconTextButton(FontAwesomeIcon.TimesCircle, ("Remove " + PairUID + "'s Gag"), WindowMenuWidth, true,
         (disableRemoving || !canUseGagFeatures || disableLocking)))
         {
             ShowGagRemove = !ShowGagRemove;
@@ -313,7 +308,7 @@ public partial class UserPairPermsSticky
         UiSharedService.AttachToolTip("Remove " + PairUID + "'s Gag. Click to view options.");
         if (ShowGagRemove)
         {
-            using (var actionChild  = ImRaii.Child("GagRemoveChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
+            using (var actionChild = ImRaii.Child("GagRemoveChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
                 if (!actionChild) return;
 
@@ -323,7 +318,7 @@ public partial class UserPairPermsSticky
                     {
                         var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
                         if (newAppearance == null) throw new Exception("Appearance data is null, not sending");
-                        newAppearance.GagSlots[_permActions.GagLayer].GagType = GagType.None.GetGagAlias();
+                        newAppearance.GagSlots[_permActions.GagLayer].GagType = GagType.None.GagName();
                         DataUpdateKind updateKind = _permActions.GagLayer switch
                         {
                             0 => DataUpdateKind.AppearanceGagRemovedLayerOne,
@@ -358,7 +353,7 @@ public partial class UserPairPermsSticky
         if (lastWardrobeData == null || pairUniquePerms == null) return;
 
         bool applyButtonDisabled = !pairUniquePerms.ApplyRestraintSets || lastWardrobeData.OutfitNames.Count <= 0;
-        bool lockButtonDisabled = !pairUniquePerms.LockRestraintSets || lastWardrobeData.ActiveSetName == string.Empty || lastWardrobeData!.Padlock != Padlocks.None.ToString();
+        bool lockButtonDisabled = !pairUniquePerms.LockRestraintSets || lastWardrobeData.ActiveSetName == string.Empty || lastWardrobeData!.Padlock != Padlocks.None.ToName();
         bool unlockButtonDisabled = !pairUniquePerms.UnlockRestraintSets || lastWardrobeData.Padlock == "None";
         bool removeButtonDisabled = !pairUniquePerms.RemoveRestraintSets || lastWardrobeData.ActiveSetName == string.Empty;
 
@@ -377,7 +372,7 @@ public partial class UserPairPermsSticky
                 string storedSelectedSet = _permActions.GetSelectedItem<string>("ApplyRestraintSetForPairPermCombo", UserPairForPerms.UserData.UID) ?? string.Empty;
 
                 _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ApplyRestraintSetForPairPermCombo", "Apply Set",
-                WindowMenuWidth, lastWardrobeData.OutfitNames, (RSet) => RSet, true, storedSelectedSet==string.Empty, true, default,
+                WindowMenuWidth, lastWardrobeData.OutfitNames, (RSet) => RSet, true, storedSelectedSet == string.Empty, true, default,
                 FontAwesomeIcon.Female, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Restraint Set: " + selected); },
                 (onButtonPress) =>
                 {
@@ -401,9 +396,9 @@ public partial class UserPairPermsSticky
         ////////// LOCK RESTRAINT SET //////////
         string DisplayText = lockButtonDisabled ? "Lock Restraint Set" : lastWardrobeData.Padlock + " is on this Set.";
         // push text style
-        using (var color = ImRaii.PushColor(ImGuiCol.Text, (lastWardrobeData.Padlock == Padlocks.None.ToString()) ? ImGuiColors.DalamudWhite : ImGuiColors.DalamudYellow))
+        using (var color = ImRaii.PushColor(ImGuiCol.Text, (lastWardrobeData.Padlock == Padlocks.None.ToName()) ? ImGuiColors.DalamudWhite : ImGuiColors.DalamudYellow))
         {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, DisplayText, WindowMenuWidth, true, lockButtonDisabled)) 
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, DisplayText, WindowMenuWidth, true, lockButtonDisabled))
             {
                 ShowSetLock = !ShowSetLock;
             }
@@ -425,7 +420,7 @@ public partial class UserPairPermsSticky
                 if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName ?? "Not Set Active")) { ImGui.EndCombo(); }
                 // Draw combo
                 _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "LockRestraintSetForPairPermCombo", "Lock Set",
-                WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToString(), false, disabled, true, Padlocks.None,
+                WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToName(), false, disabled, true, Padlocks.None,
                 FontAwesomeIcon.Lock, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Padlock: " + selected); },
                 (onButtonPress) =>
                 {
@@ -436,7 +431,7 @@ public partial class UserPairPermsSticky
 
                         if (_permActions.PadlockVerifyLock<IPadlockable>(newWardrobeData, onButtonPress, pairUniquePerms.ExtendedLockTimes, canUseOwnerLocks))
                         {
-                            newWardrobeData.Padlock = onButtonPress.ToString();
+                            newWardrobeData.Padlock = onButtonPress.ToName();
                             newWardrobeData.Password = _permActions.Password;
                             newWardrobeData.Timer = UiSharedService.GetEndTimeUTC(_permActions.Timer);
                             newWardrobeData.Assigner = _apiController.UID;
@@ -477,7 +472,7 @@ public partial class UserPairPermsSticky
                 if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName ?? "Not Set Active")) { ImGui.EndCombo(); }
                 // Draw combo
                 _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "UnlockRestraintSetForPairPermCombo", "Unlock Set",
-                WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToString(), false, disabled, true, Padlocks.None,
+                WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToName(), false, disabled, true, Padlocks.None,
                 FontAwesomeIcon.Unlock, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Padlock: " + selected); },
                 (onButtonPress) =>
                 {
@@ -488,12 +483,12 @@ public partial class UserPairPermsSticky
 
                         if (_permActions.PadlockVerifyUnlock<IPadlockable>(newWardrobeData, onButtonPress, canUseOwnerLocks))
                         {
-                            newWardrobeData.Padlock = onButtonPress.ToString();
+                            newWardrobeData.Padlock = onButtonPress.ToName();
                             newWardrobeData.Password = _permActions.Password;
                             newWardrobeData.Timer = DateTimeOffset.UtcNow;
                             newWardrobeData.Assigner = _apiController.UID;
                             _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, DataUpdateKind.WardrobeRestraintUnlocked));
-                            _logger.LogDebug("Unlocking Restraint Set with GagPadlock {0} on {1}", onButtonPress.ToString(), PairNickOrAliasOrUID);
+                            _logger.LogDebug("Unlocking Restraint Set with GagPadlock {0} on {1}", onButtonPress.ToName(), PairNickOrAliasOrUID);
                             ShowSetUnlock = false;
                             // reset the password and timer
                             _permActions.Password = string.Empty;
@@ -778,7 +773,7 @@ public partial class UserPairPermsSticky
         if (!UserPairForPerms.OnlineToyboxUser && pairUniquePerms.CanUseVibeRemote)
         {
             // create a permission to define if a room with this pair is established to change the text.
-            string toyVibeRemoteText = "Create Vibe Remote with "+PairUID;
+            string toyVibeRemoteText = "Create Vibe Remote with " + PairUID;
             if (_uiShared.IconTextButton(FontAwesomeIcon.Mobile, toyVibeRemoteText, WindowMenuWidth, true))
             {
                 // open a new private hosted room between the two of you automatically.
@@ -790,7 +785,7 @@ public partial class UserPairPermsSticky
 
         ////////// TOGGLE ALARM FOR PAIR //////////
         var disableAlarms = !pairUniquePerms.CanToggleAlarms;
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Clock, "Toggle "+PairUID+"'s Alarms", WindowMenuWidth, true, disableAlarms))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Clock, "Toggle " + PairUID + "'s Alarms", WindowMenuWidth, true, disableAlarms))
         {
             ShowAlarmToggle = !ShowAlarmToggle;
         }
@@ -803,7 +798,7 @@ public partial class UserPairPermsSticky
 
                 AlarmInfo selectedAlarm = _permActions.GetSelectedItem<AlarmInfo>("ToggleAlarmForPairPermCombo", UserPairForPerms.UserData.UID) ?? new AlarmInfo();
                 bool disabledCondition = selectedAlarm.Identifier == Guid.Empty || !lastToyboxData.AlarmList.Any();
-                string buttonText = (selectedAlarm.Identifier == Guid.Empty ? "Enable Alarm ":"Disable Alarm");
+                string buttonText = (selectedAlarm.Identifier == Guid.Empty ? "Enable Alarm " : "Disable Alarm");
 
                 _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ExecutePatternForPairPermCombo", buttonText,
                 WindowMenuWidth, lastToyboxData.AlarmList, (Alarm) => Alarm.Name, true, disabledCondition, false, selectedAlarm,
@@ -873,7 +868,7 @@ public partial class UserPairPermsSticky
 
         ////////// STOP RUNNING PATTERN ON PAIR'S TOY //////////
         bool disableStopPattern = !pairUniquePerms.CanStopPatterns || !UserPairForPerms.UserPairGlobalPerms.ToyIsActive || lastToyboxData.ActivePatternGuid == Guid.Empty;
-        if (_uiShared.IconTextButton(FontAwesomeIcon.StopCircle, "Stop "+PairUID+"'s Active Pattern", WindowMenuWidth, true, disableStopPattern))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.StopCircle, "Stop " + PairUID + "'s Active Pattern", WindowMenuWidth, true, disableStopPattern))
         {
             try
             {
@@ -886,15 +881,15 @@ public partial class UserPairPermsSticky
             }
             catch (Exception e) { _logger.LogError("Failed to push updated ToyboxPattern data: " + e.Message); }
         }
-        UiSharedService.AttachToolTip("Halt the active pattern on "+PairUID+"'s Toy");
+        UiSharedService.AttachToolTip("Halt the active pattern on " + PairUID + "'s Toy");
 
         ////////// TOGGLE TRIGGER FOR PAIR //////////
         var disableTriggers = !pairUniquePerms.CanToggleTriggers;
-        if (_uiShared.IconTextButton(FontAwesomeIcon.LandMineOn, "Toggle "+PairUID+"'s Triggers", WindowMenuWidth, true, disableTriggers))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.LandMineOn, "Toggle " + PairUID + "'s Triggers", WindowMenuWidth, true, disableTriggers))
         {
             ShowTriggerToggle = !ShowTriggerToggle;
         }
-        UiSharedService.AttachToolTip("Toggle the state of a trigger in "+PairUID+"'s triggerList.");
+        UiSharedService.AttachToolTip("Toggle the state of a trigger in " + PairUID + "'s triggerList.");
         if (ShowTriggerToggle)
         {
             using (var actionChild = ImRaii.Child("TriggerToggleChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
@@ -1017,7 +1012,7 @@ public partial class UserPairPermsSticky
                 ImGui.SetNextItemWidth(WindowMenuWidth);
                 ImGui.SliderInt("##IntensitySliderRef" + PairNickOrAliasOrUID, ref Intensity, 0, permissions.MaxIntensity, "%d%%", ImGuiSliderFlags.None);
                 ImGui.SetNextItemWidth(width);
-                ImGui.SliderFloat("##DurationSliderRef"+PairNickOrAliasOrUID, ref Duration, 0.0f, ((float)permissions.GetTimespanFromDuration().TotalMilliseconds/1000f), "%.1fs", ImGuiSliderFlags.None);
+                ImGui.SliderFloat("##DurationSliderRef" + PairNickOrAliasOrUID, ref Duration, 0.0f, ((float)permissions.GetTimespanFromDuration().TotalMilliseconds / 1000f), "%.1fs", ImGuiSliderFlags.None);
                 ImUtf8.SameLineInner();
                 try
                 {

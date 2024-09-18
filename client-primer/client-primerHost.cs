@@ -203,7 +203,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<PrivateRoomFactory>()
         .AddSingleton<PairManager>()
         .AddSingleton<PrivateRoomManager>()
-        .AddSingleton<ClientPlayerConnectedService>()
+        .AddSingleton<OnConnectedService>()
         .AddSingleton<ClientCallbackService>()
 
         // Toybox Services
@@ -253,6 +253,7 @@ public static class GagSpeakServiceExtensions
 
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
+        .AddSingleton<StaticLoggerInit>()
         .AddSingleton<GagSpeakHost>()
         .AddSingleton<ModAssociations>()
         .AddSingleton<MoodlesAssociations>()
@@ -292,7 +293,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ActiveRestraintSet>()
         .AddSingleton<RestraintSetManager>()
         .AddSingleton<StruggleSim>()
-        .AddSingleton((s) => new MoodlesService(s.GetRequiredService<ILogger<MoodlesService>>(), s.GetRequiredService<UiSharedService>(), dm))
+        .AddSingleton((s) => new MoodlesService(s.GetRequiredService<ILogger<MoodlesService>>(), dm, tp))
         .AddSingleton<MoodlesManager>()
         .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<WardrobeHandler>(),
@@ -483,12 +484,14 @@ public static class GagSpeakServiceExtensions
     #region HostedServices
     public static IServiceCollection AddGagSpeakHosted(this IServiceCollection services)
     => services
+        .AddHostedService(p => p.GetRequiredService<StaticLoggerInit>())
         .AddHostedService(p => p.GetRequiredService<GagspeakMediator>())
         .AddHostedService(p => p.GetRequiredService<OnFrameworkService>())
         .AddHostedService(p => p.GetRequiredService<EventAggregator>())
         .AddHostedService(p => p.GetRequiredService<IpcProvider>())
         .AddHostedService(p => p.GetRequiredService<SafewordService>())
-        .AddHostedService(p => p.GetRequiredService<ClientPlayerConnectedService>())
+        .AddHostedService(p => p.GetRequiredService<OnConnectedService>())
+        
         // add our main Plugin.cs file as a hosted ;
         .AddHostedService<GagSpeakHost>();
     #endregion HostedServices

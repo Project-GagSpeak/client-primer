@@ -145,7 +145,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
 
         _playerManager.GlobalPerms = newGlobalPerms;
         
-        if(_apiController.ServerState is ServerState.Connected)
+        if(ApiController.ServerState is ServerState.Connected)
         {
             _ = _apiController.UserUpdateOwnGlobalPerm(new(_apiController.PlayerUserData, new KeyValuePair<string, object>("HardcoreSafewordUsed", true)));
         }
@@ -167,7 +167,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
                 pair.UserPair.OwnPairPerms.IsBlindfolded = false;
 
                 // send the updates to the server.
-                if (_apiController.ServerState is ServerState.Connected)
+                if (ApiController.ServerState is ServerState.Connected)
                 {
                     _ = _apiController.UserPushAllUniquePerms(new(pair.UserData, pair.UserPair.OwnPairPerms, pair.UserPair.OwnEditAccessPerms));
                 }

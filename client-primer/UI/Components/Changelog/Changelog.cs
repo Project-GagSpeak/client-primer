@@ -19,6 +19,10 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 4, 0)
+            .RegisterMain("Reworked entire backend for how Client Player Data is stored and synced.")
+            .RegisterFeature("You can now 'REAPPLY' to game/Automation, retaining your customizations.")
+            .RegisterQol("You can clone restraint sets now.");
         VersionEntry(0, 8, 3, 1)
             .RegisterMain("You can now Clone & Remove restraint sets from the selector menu.")
             .RegisterFeature("Added Button to import your actors current equipment into restraint Appearance.");

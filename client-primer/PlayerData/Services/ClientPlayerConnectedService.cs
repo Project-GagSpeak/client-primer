@@ -20,7 +20,7 @@ using Penumbra.GameData.Data;
 namespace GagSpeak.PlayerData.Services;
 
 // A class intended to help execute any actions that should be performed by the client upon initial connection.
-public sealed class ClientPlayerConnectedService : DisposableMediatorSubscriberBase, IHostedService
+public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHostedService
 {
     private readonly PlayerCharacterData _playerData;
     private readonly ClientConfigurationManager _clientConfigs;
@@ -29,8 +29,7 @@ public sealed class ClientPlayerConnectedService : DisposableMediatorSubscriberB
     private readonly IpcFastUpdates _ipcFastUpdates;
     private readonly AppearanceChangeService _visualUpdater;
 
-
-    public ClientPlayerConnectedService(ILogger<ClientPlayerConnectedService> logger,
+    public OnConnectedService(ILogger<OnConnectedService> logger,
         GagspeakMediator mediator, PlayerCharacterData playerData,
         ClientConfigurationManager clientConfigs, GagManager gagManager,
         IpcManager ipcManager, IpcFastUpdates ipcFastUpdates,
@@ -108,12 +107,12 @@ public sealed class ClientPlayerConnectedService : DisposableMediatorSubscriberB
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        Logger.LogInformation("Starting ClientPlayerConnectedService");
+        Logger.LogInformation("Starting OnConnectedService");
 
         // grab the latest CustomizePlus Profile List.
         _playerData.CustomizeProfiles = _ipcManager.CustomizePlus.GetProfileList();
 
-        Logger.LogInformation("Started ClientPlayerConnectedService");
+        Logger.LogInformation("Started OnConnectedService");
         return Task.CompletedTask;
     }
 

@@ -28,10 +28,6 @@ namespace GagSpeak;
 /// interfaces and scoped services and hosted services.
 /// </para>
 /// </summary>
-public static class StaticLogger
-{
-    public static ILogger Logger { get; set; }
-}
 
 public class GagSpeakHost : MediatorSubscriberBase, IHostedService
 {

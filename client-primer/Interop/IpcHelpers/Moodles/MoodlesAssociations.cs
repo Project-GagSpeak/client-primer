@@ -1,13 +1,9 @@
-using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface;
-using Dalamud.Interface.Utility;
 using Dalamud.Utility;
-using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI;
 using GagSpeak.UI.Components;
 using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Character;
@@ -15,9 +11,7 @@ using GagspeakAPI.Data.Enum;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Raii;
-using Penumbra.Api.Enums;
 using System.Numerics;
-using System.Xml.Linq;
 
 namespace GagSpeak.Interop.IpcHelpers.Moodles;
 public class MoodlesAssociations : DisposableMediatorSubscriberBase
@@ -26,25 +20,23 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
     private readonly IpcCallerMoodles _moodles;
     private readonly MoodlesService _moodlesService;
     private readonly OnFrameworkService _frameworkUtils;
-    private readonly UiSharedService _uiShared;
 
     public MoodlesAssociations(ILogger<MoodlesAssociations> logger,
         GagspeakMediator mediator, WardrobeHandler handler,
         IpcCallerMoodles moodles, MoodlesService moodlesService,
-        OnFrameworkService frameworkUtils, UiSharedService uiShared)
+        OnFrameworkService frameworkUtils)
         : base(logger, mediator)
     {
         _handler = handler;
         _moodles = moodles;
         _moodlesService = moodlesService;
         _frameworkUtils = frameworkUtils;
-        _uiShared = uiShared;
 
         Mediator.Subscribe<RestraintSetToggleMoodlesMessage>(this, async (msg) =>
         {
             var moodlesToApply = _handler.GetAssociatedMoodles(msg.SetIdx);
             await ToggleMoodlesTask(moodlesToApply, msg.State);
-            if(msg.MoodlesTask != null)
+            if (msg.MoodlesTask != null)
             {
                 msg.MoodlesTask.SetResult(true);
             }
@@ -54,7 +46,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
     public async Task ToggleMoodlesTask(List<Guid> moodlesToToggle, NewState newState)
     {
         if (newState == NewState.Enabled)
-        { 
+        {
             await _moodles.ApplyOwnStatusByGUID(moodlesToToggle);
         }
         else
@@ -179,7 +171,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
         ImGui.TableNextColumn();
         // locate the friendly name 
         ImGui.Selectable($"{presetGuid} - (Hover To See Attached Statuses)##presetName");
-        if (ImGui.IsItemHovered()) 
+        if (ImGui.IsItemHovered())
         {
             // get the list of friendly names for each guid in the preset
             var test = clientIpcData.MoodlesPresets

@@ -1,8 +1,10 @@
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Services;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Enum;
 using Penumbra.GameData.Enums;
+using System.Security.Cryptography;
 
 namespace GagSpeak.GagspeakConfiguration;
 
@@ -21,7 +23,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
     protected override JObject MigrateConfig(JObject oldConfigJson, int readVersion)
     {
         JObject newConfigJson = oldConfigJson;
-        if (readVersion < 2)
+        if (readVersion == 1)
         {
             newConfigJson = MigrateFromV1toV2(oldConfigJson);
         }
@@ -101,9 +103,28 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
         JObject gagEquipDataObject = configJson["GagStorage"]["GagEquipData"].Value<JObject>();
         if (gagEquipDataObject == null) return config;
 
+        int i = 0;
         foreach (var gagData in gagEquipDataObject)
         {
-            var gagType = (GagType)Enum.Parse(typeof(GagType), gagData.Key);
+            GagType gagType;
+            if(gagData.Key.IsValidGagName())
+            {
+                gagType = Enum.GetValues(typeof(GagType))
+                    .Cast<GagType>()
+                    .FirstOrDefault(gt => gt.GagName() == gagData.Key);
+            }
+            else
+            {
+                gagType = Enum.GetValues(typeof(GagType))
+                    .Cast<GagType>()
+                    .FirstOrDefault(gt => gt.ToString() == gagData.Key);
+                if (gagType == default)
+                {
+                    if (gagData.Key == "WiffleGag") gagType = GagType.WhiffleGag;
+                    if (gagData.Key == "TenticleGag") gagType = GagType.TentacleGag;
+                }
+            }
+
             if (gagData.Value is JObject itemObject)
             {
                 string? slotString = itemObject["Slot"].Value<string>();
@@ -111,6 +132,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
                 var gagDrawData = new GagDrawData(_itemHelper, ItemIdVars.NothingItem(slot));
                 gagDrawData.Deserialize(itemObject);
                 config.GagStorage.GagEquipData.Add(gagType, gagDrawData);
+                i++;
             }
         }
         return config;
@@ -126,7 +148,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
 
         foreach (var kvp in config.GagStorage.GagEquipData)
         {
-            gagEquipDataObject[kvp.Key.ToString()] = kvp.Value.Serialize();
+            gagEquipDataObject[kvp.Key.GagName()] = kvp.Value.Serialize();
         }
 
         configObject["GagStorage"] = new JObject

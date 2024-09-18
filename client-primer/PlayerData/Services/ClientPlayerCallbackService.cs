@@ -1,22 +1,23 @@
 using Dalamud.Utility;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
-using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
+using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Extensions;
-using GagspeakAPI.Data.Struct;
+using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.IPC;
+using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.User;
 
 namespace GagSpeak.PlayerData.Services;
 
 // A class to help with callbacks received from the server.
-public sealed class ClientCallbackService
+public class ClientCallbackService
 {
     private readonly ILogger<ClientCallbackService> _logger;
     private readonly GagspeakMediator _mediator;
@@ -47,8 +48,12 @@ public sealed class ClientCallbackService
         _playbackService = playbackService;
     }
 
-    private bool HasRestraintPermissions()
-        => _playerData.CoreDataNull || !_playerData.GlobalPerms!.WardrobeEnabled || !_playerData.GlobalPerms.RestraintSetAutoEquip;
+    public bool ShockCodePresent => _playerData.CoreDataNull && _playerData.GlobalPerms!.GlobalShockShareCode.IsNullOrEmpty();
+    public string GlobalPiShockShareCode => _playerData.GlobalPerms!.GlobalShockShareCode;
+    public void SetGlobalPerms(UserGlobalPermissions perms) => _playerData.GlobalPerms = perms;
+    public void SetAppearanceData(CharacterAppearanceData appearanceData) => _playerData.AppearanceData = appearanceData;
+    public void ApplyGlobalPerm(UserGlobalPermChangeDto dto) => _playerData.ApplyGlobalPermChange(dto);
+    private bool HasRestraintPermissions() => _playerData.CoreDataNull || !_playerData.GlobalPerms!.WardrobeEnabled || !_playerData.GlobalPerms.RestraintSetAutoEquip;
 
     #region IPC Callbacks
     public async void ApplyStatusesByGuid(ApplyMoodlesByGuidDto dto)
@@ -167,7 +172,7 @@ public sealed class ClientCallbackService
         }
         else if (callbackGagState is NewState.Disabled)
         {
-            await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, currentGagType, NewState.Disabled);
+            //await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, currentGagType, NewState.Disabled);
             _gagManager.OnGagTypeChanged(callbackGagLayer, currentGagType);
         }
     }
@@ -176,7 +181,7 @@ public sealed class ClientCallbackService
     {
         if (callbackWasFromSelf)
         {
-            if(callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintUnlocked && _clientConfigs.GagspeakConfig.DisableSetUponUnlock)
+            if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintUnlocked && _clientConfigs.GagspeakConfig.DisableSetUponUnlock)
             {
                 // auto remove the restraint set after unlocking if we have just finished unlocking it.
                 if (_playerData.CoreDataNull || !_playerData.GlobalPerms!.RestraintSetAutoEquip) return;

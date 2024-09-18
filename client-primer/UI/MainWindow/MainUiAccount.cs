@@ -191,7 +191,7 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
         }
 
         // if we are connected
-        if (_apiController.ServerState is ServerState.Connected)
+        if (ApiController.ServerState is ServerState.Connected)
         {
             UiSharedService.CopyableDisplayText(_apiController.DisplayName);
 

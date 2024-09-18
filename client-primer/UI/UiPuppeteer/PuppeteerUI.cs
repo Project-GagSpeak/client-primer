@@ -13,6 +13,7 @@ using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
+using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 using OtterGui;
@@ -163,43 +164,42 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         }
 
         ImGui.Separator();
-        
-        // Create a Tab bar for the sub-sections of the puppeteer.
-        using var tabBar = ImRaii.TabBar("Puppeteer Sub-Tabs");
-        if (tabBar)
-        {
-            var pairCharaInfo = ImRaii.TabItem("Your Settings");
-            if (pairCharaInfo)
-            {
-                using (ImRaii.Disabled(_puppeteerHandler.StorageBeingEdited.CharacterName == string.Empty))
-                {
-                    DrawClientSettings(region);
-                }
-            }
-            pairCharaInfo.Dispose();
 
-            // create glamour tab (applying the visuals)
-            var aliasList = ImRaii.TabItem("Your Alias List");
-            if (aliasList)
+        // Create a Tab bar for the sub-sections of the puppeteer.
+        if (ImGui.BeginTabBar("Puppeteer Sub-Tabs"))
+        {
+            if (ImGui.BeginTabItem("Your Settings"))
+            {
+                DrawClientSettings(region);
+                ImGui.EndTabItem();
+            }
+
+            if (ImGui.BeginTabItem("Your Alias List"))
             {
                 using (ImRaii.Disabled(_puppeteerHandler.StorageBeingEdited.CharacterName == string.Empty))
                 {
                     _aliasTable.DrawAliasListTable(_puppeteerHandler.SelectedPair.UserData.UID, DefaultCellPadding.Y);
                 }
+                ImGui.EndTabItem();
             }
-            aliasList.Dispose();
 
-            var aliasList2 = ImRaii.TabItem((_puppeteerHandler.SelectedPair.GetNickname() ?? _puppeteerHandler.SelectedPair.UserData.AliasOrUID) + "'s Alias List");
-            if (aliasList2)
+            using (ImRaii.Disabled(!AliasDataListExists || ApiController.ServerState is not ServerState.Connected))
             {
-                using (ImRaii.Disabled(!_puppeteerHandler.SelectedPair.LastReceivedAliasData!.AliasList.Any()))
-                { 
-                    DrawPairAliasList(_puppeteerHandler.SelectedPair.LastReceivedAliasData); 
+                if (ImGui.BeginTabItem((_puppeteerHandler.SelectedPair.GetNickname() ?? _puppeteerHandler.SelectedPair.UserData.AliasOrUID) + "'s Alias List"))
+                {
+                    DrawPairAliasList(_puppeteerHandler.SelectedPair.LastReceivedAliasData);
                 }
+                ImGui.EndTabItem();
             }
-            aliasList2.Dispose();
+
+            ImGui.EndTabBar();
         }
     }
+
+    private bool AliasDataListExists
+        => _puppeteerHandler.SelectedPair is not null
+        && _puppeteerHandler.SelectedPair.LastReceivedAliasData is not null
+        && _puppeteerHandler.SelectedPair.LastReceivedAliasData.AliasList.Any();
 
     private void DrawPuppeteerHeader(Vector2 DefaultCellPadding)
     {

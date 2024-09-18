@@ -3,6 +3,8 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
@@ -101,6 +103,19 @@ public partial class UserPairPermsSticky
             }
             UiSharedService.AttachToolTip("Opens the profile for this user in a new window");
         }
+
+        if (!UserPairForPerms.IsPaused)
+        {
+            ImGui.Separator();
+            ImGui.TextUnformatted("Pair reporting");
+            if (_uiShared.IconTextButton(FontAwesomeIcon.ExclamationTriangle, "Report GagSpeak Profile", WindowMenuWidth, true))
+            {
+                ImGui.CloseCurrentPopup();
+                Mediator.Publish(new ReportGagSpeakProfileMessage(UserPairForPerms));
+            }
+            UiSharedService.AttachToolTip("Snapshot this user's ProfileData and send it as a reported profile.");
+        }
+
         if (UserPairForPerms.IsPaired)
         {
             var pauseIcon = UserPairForPerms.UserPair!.OwnPairPerms.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;

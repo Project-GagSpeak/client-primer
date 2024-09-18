@@ -124,7 +124,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         // Should make us call to the moodles IPC to apply the statuses recieved
         // (permissions verified by server)
         Logger.LogDebug("Client_UserApplyMoodlesByGuid: {dto}", dto);
-        ExecuteSafely(() => _playerCallbackService.ApplyStatusesByGuid(dto));
+        //ExecuteSafely(() => _playerCallbackService.ApplyStatusesByGuid(dto));
         return Task.CompletedTask;
     }
 
@@ -134,7 +134,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         Logger.LogDebug("Client_UserApplyMoodlesByStatus: {dto}", dto);
         // obtain the localplayername and world
         string NameWithWorld = _frameworkUtils.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtils._playerAddr).GetAwaiter().GetResult()?.GetNameWithWorld() ?? string.Empty;
-        ExecuteSafely(() => _playerCallbackService.ApplyStatusesToSelf(dto, NameWithWorld));
+        //ExecuteSafely(() => _playerCallbackService.ApplyStatusesToSelf(dto, NameWithWorld));
         return Task.CompletedTask;
     }
 
@@ -145,7 +145,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserRemoveMoodles(RemoveMoodlesDto dto)
     {
         Logger.LogDebug("Client_UserRemoveMoodles: {dto}", dto);
-        ExecuteSafely(() => _playerCallbackService.RemoveStatusesFromSelf(dto));
+        //ExecuteSafely(() => _playerCallbackService.RemoveStatusesFromSelf(dto));
         return Task.CompletedTask;
     }
 
@@ -156,7 +156,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserClearMoodles(UserDto dto)
     {
         Logger.LogDebug("Client_UserClearMoodles: {dto}", dto);
-        ExecuteSafely(() => _playerCallbackService.ClearStatusesFromSelf(dto));
+        //ExecuteSafely(() => _playerCallbackService.ClearStatusesFromSelf(dto));
         return Task.CompletedTask;
     }
 
@@ -180,7 +180,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogInformation("Updating all global permissions in bulk for self.");
-            ExecuteSafely(() => _playerCharManager.GlobalPerms = dto.GlobalPermissions);
+            ExecuteSafely(() => _clientCallbacks.SetGlobalPerms(dto.GlobalPermissions));
             return Task.CompletedTask;
         }
         else
@@ -216,7 +216,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         if (dto.User.UID == UID)
         {
             Logger.LogTrace("Callback matched player character, updating own global permission data");
-            ExecuteSafely(() => _playerCharManager.ApplyGlobalPermChange(dto));
+            ExecuteSafely(() => _clientCallbacks.ApplyGlobalPerm(dto));
             return Task.CompletedTask;
         }
         else
@@ -371,7 +371,6 @@ public partial class ApiController // Partial class for MainHub Callbacks
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogWarning("Why are you trying to receive your own composite data? There is no need for this???");
-            //ExecuteSafely(() => _playerCharManager.UpdateCharWithCompositeData(dataDto));
             return Task.CompletedTask;
         }
         else
@@ -386,8 +385,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Update Own Appearance Data </summary>
     public Task Client_UserReceiveOwnDataIpc(OnlineUserCharaIpcDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOwnDataIpc: {dataDto}", dataDto);
-        // ExecuteSafely(() => _playerCharManager.UpdateIpcFromCallback(dataDto)); // TODO: Do this last.
+        Logger.LogDebug("Client_UserReceiveOwnDataIpc (not executing any functions): {dataDto}", dataDto);
         return Task.CompletedTask;
     }
 
@@ -405,7 +403,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     {
         Logger.LogDebug("Client_UserReceiveOwnDataAppearance: {dataDto}", dataDto);
         bool callbackWasFromSelf = dataDto.User.UID == UID;
-        ExecuteSafely(() => _playerCallbackService.CallbackAppearanceUpdate(dataDto, callbackWasFromSelf));
+        ExecuteSafely(() => _clientCallbacks.CallbackAppearanceUpdate(dataDto, callbackWasFromSelf));
         return Task.CompletedTask;
     }
 
@@ -422,7 +420,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     {
         Logger.LogDebug("Client_UserReceiveOwnDataWardrobe: {dataDto}", dataDto);
         bool callbackWasFromSelf = dataDto.User.UID == UID;
-        ExecuteSafely(() => _playerCallbackService.CallbackWardrobeUpdate(dataDto, callbackWasFromSelf));
+        ExecuteSafely(() => _clientCallbacks.CallbackWardrobeUpdate(dataDto, callbackWasFromSelf));
         return Task.CompletedTask;
 
     }
@@ -439,7 +437,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveOwnDataAlias(OnlineUserCharaAliasDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataAlias: {dataDto}", dataDto);
-        ExecuteSafely(() => _playerCallbackService.CallbackAliasStorageUpdate(dataDto));
+        ExecuteSafely(() => _clientCallbacks.CallbackAliasStorageUpdate(dataDto));
         return Task.CompletedTask;
     }
 
@@ -455,7 +453,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveOwnDataToybox(OnlineUserCharaToyboxDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataToybox: {dataDto}", dataDto);
-        ExecuteSafely(() => _playerCallbackService.CallbackToyboxUpdate(dataDto));
+        ExecuteSafely(() => _clientCallbacks.CallbackToyboxUpdate(dataDto));
         return Task.CompletedTask;
     }
 
@@ -492,10 +490,10 @@ public partial class ApiController // Partial class for MainHub Callbacks
                     Logger.LogDebug("Executing Shock Instruction to UniquePair ShareCode");
                     _piShockProvider.ExecuteOperation(pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode, dto.OpCode, dto.Intensity, dto.Duration);
                 }
-                else if (_playerCharManager.GlobalPerms != null && !_playerCharManager.GlobalPerms.GlobalShockShareCode.IsNullOrEmpty())
+                else if (_clientCallbacks.ShockCodePresent)
                 {
                     Logger.LogDebug("Executing Shock Instruction to Global ShareCode");
-                    _piShockProvider.ExecuteOperation(_playerCharManager.GlobalPerms.GlobalShockShareCode, dto.OpCode, dto.Intensity, dto.Duration);
+                    _piShockProvider.ExecuteOperation(_clientCallbacks.GlobalPiShockShareCode, dto.OpCode, dto.Intensity, dto.Duration);
                 }
                 else
                 {

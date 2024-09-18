@@ -178,7 +178,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 $"It is highly recommended to keep GagSpeak up to date. Open /xlplugins and update the plugin.", ImGuiColors.DalamudRed);
         }
 
-        if (_apiController.ServerState is ServerState.NoSecretKey || _apiController.ServerState is ServerState.VersionMisMatch)
+        if (ApiController.ServerState is ServerState.NoSecretKey || ApiController.ServerState is ServerState.VersionMisMatch)
         {
             using (ImRaii.PushId("header")) DrawUIDHeader();
         }
@@ -194,7 +194,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
 
         // if we are connected, draw out our menus based on the tab selection.
         // if we are connected to the server
-        if (_apiController.ServerState is ServerState.Connected)
+        if (ApiController.ServerState is ServerState.Connected)
         {
             if (_addingNewUser)
             {
@@ -270,7 +270,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         }
 
         // if we are connected
-        if (_apiController.ServerState is ServerState.Connected)
+        if (ApiController.ServerState is ServerState.Connected)
         {
             UiSharedService.CopyableDisplayText(_apiController.DisplayName);
 
@@ -306,7 +306,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         var printShard = shardConnection != string.Empty;
 
         // if the server is connected, then we should display the server info
-        if (_apiController.ServerState is ServerState.Connected)
+        if (ApiController.ServerState is ServerState.Connected)
         {
             // fancy math shit for clean display, adjust when moving things around
             ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
@@ -341,7 +341,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         }
 
         // if the server is reconnecting or disconnecting
-        if (_apiController.ServerState is not (ServerState.Reconnecting or ServerState.Disconnecting))
+        if (ApiController.ServerState is not (ServerState.Reconnecting or ServerState.Disconnecting))
         {
             // we need to turn the button from the connected link to the disconnected link.
             using (ImRaii.PushColor(ImGuiCol.Text, color))
@@ -391,7 +391,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     /// <returns> The error message of the server.</returns>
     private string GetServerError()
     {
-        return _apiController.ServerState switch
+        return ApiController.ServerState switch
         {
             ServerState.Connecting => "Attempting to connect to the server.",
             ServerState.Reconnecting => "Connection to server interrupted, attempting to reconnect to the server.",

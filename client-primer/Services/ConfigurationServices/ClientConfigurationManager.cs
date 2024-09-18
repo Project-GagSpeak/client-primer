@@ -32,7 +32,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     private readonly AliasConfigService _aliasConfig;               // the config for the alias lists (puppeteer stuff)
     private readonly PatternConfigService _patternConfig;           // the config for the pattern service (toybox pattern storage))
     private readonly AlarmConfigService _alarmConfig;               // the config for the alarm service (toybox alarm storage)
-    private readonly TriggerConfigService _triggerConfig;          // the config for the triggers service (toybox triggers storage)
+    private readonly TriggerConfigService _triggerConfig;           // the config for the triggers service (toybox triggers storage)
 
     public ClientConfigurationManager(ILogger<ClientConfigurationManager> logger,
         GagspeakMediator GagspeakMediator, ItemIdVars itemHelper,
@@ -611,13 +611,26 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
-    public string EnsureUniqueName(string baseName)
+
+    public string EnsureUniquePatternName(string baseName)
     {
-        int copyNumber = 1;
+        // Regex to match the base name and the (X) suffix if it exists
+        var suffixPattern = @"^(.*?)(?: \((\d+)\))?$";
+        var match = System.Text.RegularExpressions.Regex.Match(baseName, suffixPattern);
+
+        string namePart = match.Groups[1].Value; // The base part of the name
+        int currentNumber = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
+
+        // Increment current number for the new copy
+        currentNumber = Math.Max(1, currentNumber);
+
         string newName = baseName;
 
+        // Ensure the name is unique by appending (X) and incrementing if necessary
         while (PatternConfig.PatternStorage.Patterns.Any(set => set.Name == newName))
-            newName = baseName + $"(copy{copyNumber++})";
+        {
+            newName = $"{namePart} ({currentNumber++})";
+        }
 
         return newName;
     }
@@ -955,9 +968,11 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     public void DrawAliasLists()
     {
+        using var indent = ImRaii.PushIndent();
+
         foreach (var alias in AliasConfig.AliasStorage)
         {
-            if (ImGui.CollapsingHeader($"Alias Data for {alias.Key}"))
+            if (ImGui.TreeNode($"Alias Data for {alias.Key}"))
             {
                 ImGui.Text("List of Alias's For this User:");
                 // begin a table.
@@ -979,6 +994,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
                     ImGui.SameLine();
                     ImGui.Text(aliasTrigger.OutputCommand);
                 }
+                ImGui.TreePop();
             }
         }
     }

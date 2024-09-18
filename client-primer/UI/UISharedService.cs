@@ -1023,6 +1023,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         // Check if the item was right-clicked. If so, reset to default value.
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
+            Logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboName);
             selectedItem = comboItems.First();
             _selectedComboItems[comboName] = selectedItem!;
             onSelected?.Invoke((T)selectedItem!);
@@ -1030,76 +1031,81 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return;
     }
 
-    public T? DrawComboSearchable<T>(string comboName, float width, ref string searchString, IEnumerable<T> comboItems,
+    public void DrawComboSearchable<T>(string comboName, float width, ref string searchString, IEnumerable<T> comboItems,
         Func<T, string> toName, bool showLabel = true, Action<T?>? onSelected = null, T? initialSelectedItem = default,
         string defaultPreviewText = "No Items Available...", ImGuiComboFlags flags = ImGuiComboFlags.None)
     {
-        // Return default if there are no items to display in the combo box.
-        if (!comboItems.Any())
+        try
         {
-            ImGui.SetNextItemWidth(width);
-            ImGui.BeginCombo(comboName, defaultPreviewText, flags);
-            ImGui.EndCombo();
-            return default;
-        }
-
-        // try to get currently selected item from a dictionary storing selections for each combo box.
-        if (!_selectedComboItems.TryGetValue(comboName, out var selectedItem) && selectedItem == null)
-        {
-            if (!EqualityComparer<T>.Default.Equals(initialSelectedItem, default))
+            // Return default if there are no items to display in the combo box.
+            string comboLabel = showLabel ? $"{comboName}##{comboName}" : $"##{comboName}";
+            if (!comboItems.Any())
             {
-                selectedItem = initialSelectedItem;
-                _selectedComboItems[comboName] = selectedItem!;
-            }
-            else
-            {
-                selectedItem = comboItems.First();
-                _selectedComboItems[comboName] = selectedItem!;
-            }
-        }
-
-        // if the selected item is not in the list of items being passed in, update it to the first item in the comboItems list
-        if (!comboItems.Contains((T)selectedItem!))
-        {
-            selectedItem = comboItems.First();
-            _selectedComboItems[comboName] = selectedItem!;
-        }
-
-        ImGui.SetNextItemWidth(width);
-        string comboLabel = showLabel ? $"{comboName}##{comboName}" : $"##{comboName}";
-        if (ImGui.BeginCombo(comboLabel, toName((T)selectedItem!), flags))
-        {
-            // Search filter
-            ImGui.SetNextItemWidth(width);
-            ImGui.InputTextWithHint("##filter", "Filter...", ref searchString, 255);
-            var searchText = searchString.ToLowerInvariant();
-
-            var filteredItems = string.IsNullOrEmpty(searchText)
-                ? comboItems
-                : comboItems.Where(item => toName(item).ToLowerInvariant().Contains(searchText));
-
-            // display filtered content.
-            foreach (var item in filteredItems)
-            {
-                bool isSelected = EqualityComparer<T>.Default.Equals(item, (T?)selectedItem);
-                if (ImGui.Selectable(toName(item), isSelected))
+                ImGui.SetNextItemWidth(width);
+                if (ImGui.BeginCombo(comboLabel, defaultPreviewText, flags))
                 {
-                    _selectedComboItems[comboName] = item!;
-                    onSelected?.Invoke(item!);
+                    ImGui.EndCombo();
+                }
+                return;
+            }
+
+            // try to get currently selected item from a dictionary storing selections for each combo box.
+            if (!_selectedComboItems.TryGetValue(comboName, out var selectedItem) && selectedItem == null)
+            {
+                if (!EqualityComparer<T>.Default.Equals(initialSelectedItem, default))
+                {
+                    selectedItem = initialSelectedItem;
+                    _selectedComboItems[comboName] = selectedItem!;
+                    if (!EqualityComparer<T>.Default.Equals(initialSelectedItem, default))
+                        onSelected?.Invoke(initialSelectedItem);
+                }
+                else
+                {
+                    selectedItem = comboItems.First();
+                    _selectedComboItems[comboName] = selectedItem!;
                 }
             }
-            ImGui.EndCombo();
-        }
-        // Check if the item was right-clicked. If so, reset to default value.
-        if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-        {
-            Logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboName);
-            selectedItem = comboItems.First();
-            _selectedComboItems[comboName] = selectedItem!;
-            onSelected?.Invoke((T)selectedItem!);
-        }
 
-        return (T)_selectedComboItems[comboName];
+            string displayText = selectedItem == null ? defaultPreviewText : toName((T)selectedItem!);
+
+            ImGui.SetNextItemWidth(width);
+            if (ImGui.BeginCombo(comboLabel, displayText, flags))
+            {
+                // Search filter
+                ImGui.SetNextItemWidth(width);
+                ImGui.InputTextWithHint("##filter", "Filter...", ref searchString, 255);
+                var searchText = searchString.ToLowerInvariant();
+
+                var filteredItems = string.IsNullOrEmpty(searchText)
+                    ? comboItems
+                    : comboItems.Where(item => toName(item).ToLowerInvariant().Contains(searchText));
+
+                // display filtered content.
+                foreach (var item in filteredItems)
+                {
+                    bool isSelected = EqualityComparer<T>.Default.Equals(item, (T?)selectedItem);
+                    if (ImGui.Selectable(toName(item), isSelected))
+                    {
+                        Logger.LogTrace("Selected {item} from {comboName}", toName(item), comboName);
+                        _selectedComboItems[comboName] = item!;
+                        onSelected?.Invoke(item!);
+                    }
+                }
+                ImGui.EndCombo();
+            }
+            // Check if the item was right-clicked. If so, reset to default value.
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            {
+                Logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboName);
+                selectedItem = comboItems.First();
+                _selectedComboItems[comboName] = selectedItem!;
+                onSelected?.Invoke((T)selectedItem!);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in DrawComboSearchable");
+        }
     }
 
     public void DrawTimeSpanCombo(string label, TimeSpan patternMaxDuration, ref TimeSpan patternDuration, float width, string format = "hh\\:mm\\:ss", bool showLabel = true)
@@ -1384,7 +1390,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     /// <returns> The color of the UID text in Vector4 format .</returns>
     public Vector4 GetUidColor()
     {
-        return _apiController.ServerState switch
+        return ApiController.ServerState switch
         {
             ServerState.Connecting => ImGuiColors.DalamudYellow,
             ServerState.Reconnecting => ImGuiColors.DalamudRed,
@@ -1403,7 +1409,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     /// <returns> The text of the UID.</returns>
     public string GetUidText()
     {
-        return _apiController.ServerState switch
+        return ApiController.ServerState switch
         {
             ServerState.Reconnecting => "Reconnecting",
             ServerState.Connecting => "Connecting",

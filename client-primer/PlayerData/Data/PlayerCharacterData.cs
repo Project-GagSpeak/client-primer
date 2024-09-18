@@ -1,31 +1,21 @@
 using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Interop.Ipc;
-using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Toybox.Services;
-using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Data.Struct;
-using GagspeakAPI.Dto.Connection;
-using GagspeakAPI.Dto.IPC;
 using GagspeakAPI.Dto.Permissions;
-using GagspeakAPI.Dto.User;
 using System.Reflection;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
 
 namespace GagSpeak.PlayerData.Data;
 
 /// <summary>
 /// Handles the player character data.
-/// Must not use extra handlers to avoid circular dependancy on the ones that must access player data. 
 /// <para>
 /// Applies callback updates to clientConfig data
 /// Compiles client config data into API format for server transfer.

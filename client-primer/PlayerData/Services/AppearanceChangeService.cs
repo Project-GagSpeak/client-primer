@@ -1,22 +1,16 @@
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.PlayerData.Data;
-using GagSpeak.PlayerData.Factories;
-using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
-using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Enum;
 using Glamourer.Api.Enums;
-using ImGuiNET;
 using Interop.Ipc;
-using System.Reflection;
-using static PInvoke.User32;
+using Penumbra.GameData.Enums;
 
 namespace GagSpeak.PlayerData.Services;
 
@@ -33,8 +27,8 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
     public AppearanceChangeService(ILogger<AppearanceChangeService> logger,
         GagspeakMediator mediator, PlayerCharacterData playerManager,
-        PairManager pairManager, ClientConfigurationManager clientConfigs, 
-        OnFrameworkService frameworkUtils, IpcManager interop, 
+        PairManager pairManager, ClientConfigurationManager clientConfigs,
+        OnFrameworkService frameworkUtils, IpcManager interop,
         MoodlesAssociations moodlesAssociations,
         IpcFastUpdates fastUpdate) : base(logger, mediator)
     {
@@ -48,7 +42,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         _ipcFastUpdates = fastUpdate;
         _cts = new CancellationTokenSource(); // for handling gearset changes
 
-        // subscribe to our mediator for glamourchanged
+        // subscribe to our mediator for glamour changed
         _ipcFastUpdates.GlamourEventFired += UpdateGenericAppearance;
         _ipcFastUpdates.CustomizeEventFired += EnsureForcedCustomizeProfile;
 
@@ -71,6 +65,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
         // unsub
         _ipcFastUpdates.GlamourEventFired -= UpdateGenericAppearance;
+        _ipcFastUpdates.CustomizeEventFired -= EnsureForcedCustomizeProfile;
     }
 
     private void EnsureForcedCustomizeProfile(object sender, Guid e)
@@ -94,7 +89,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
         // if it is not, we need to enforce the update.
         // Start by checking if the highestPriorityCustomizeId is in our stored profiles.
-        if(!_playerManager.CustomizeProfiles.Any(x => x.ProfileGuid == highestPriorityData.CustomizeGuid))
+        if (!_playerManager.CustomizeProfiles.Any(x => x.ProfileGuid == highestPriorityData.CustomizeGuid))
         {
             _playerManager.CustomizeProfiles = _Interop.CustomizePlus.GetProfileList();
             // try and check again. if it fails. we should clear the customizeGuid from the draw data and save it.
@@ -145,15 +140,20 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
                 Logger.LogDebug($"Processing Safeword Update");
                 switch (_clientConfigs.GagspeakConfig.RevertStyle)
                 {
-                    case RevertStyle.ToGameOnly:
-                        await _Interop.Glamourer.GlamourerRevertCharacter(_frameworkUtils._playerAddr);
+                    case RevertStyle.RevertToGame:
+                        await _Interop.Glamourer.GlamourerRevertToGame();
                         break;
-                    case RevertStyle.ToAutomationOnly:
-                        await _Interop.Glamourer.GlamourerRevertCharacterToAutomation(_frameworkUtils._playerAddr);
+
+                    case RevertStyle.RevertEquipToGame:
+                        await _Interop.Glamourer.GlamourerRevertToGameEquipOnly();
                         break;
-                    case RevertStyle.ToGameThenAutomation:
-                        await _Interop.Glamourer.GlamourerRevertCharacter(_frameworkUtils._playerAddr);
-                        await _Interop.Glamourer.GlamourerRevertCharacterToAutomation(_frameworkUtils._playerAddr);
+
+                    case RevertStyle.RevertToAutomation:
+                        await _Interop.Glamourer.GlamourerRevertToAutomation();
+                        break;
+
+                    case RevertStyle.RevertEquipToAutomation:
+                        await _Interop.Glamourer.GlamourerRevertToAutomationEquipOnly();
                         break;
                 }
             }
@@ -176,7 +176,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             // For Generic JobChange call
             if (updateType is GlamourUpdateType.JobChange or GlamourUpdateType.RefreshAll or GlamourUpdateType.ZoneChange or GlamourUpdateType.Login)
             {
-                Logger.LogDebug("Processing Full Refresh due to UpdateType: ["+updateType.ToString()+"]");
+                Logger.LogDebug("Processing Full Refresh due to UpdateType: [" + updateType.ToString() + "]");
                 await Task.Run(() => _frameworkUtils.RunOnFrameworkThread(UpdateCachedCharacterData));
             }
         });
@@ -188,7 +188,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         // reference the completion source.
         await ExecuteWithSemaphore(async () =>
         {
-            if(_playerManager.CoreDataNull) return;
+            if (_playerManager.CoreDataNull) return;
 
             // do not accept if we have enable wardrobe turned off.
             if (!_playerManager.GlobalPerms!.ItemAutoEquip)
@@ -253,7 +253,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
                 }
 
                 // finally, we need to update our blindfold (TODO:)
-                if (false)
+                if (_pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded))
                 {
                     await EquipBlindfold();
                 }
@@ -263,15 +263,20 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
                 // now perform a revert based on our customization option
                 switch (_clientConfigs.GagspeakConfig.RevertStyle)
                 {
-                    case RevertStyle.ToGameOnly:
-                        await _Interop.Glamourer.GlamourerRevertCharacter(_frameworkUtils._playerAddr);
+                    case RevertStyle.RevertToGame:
+                        await _Interop.Glamourer.GlamourerRevertToGame();
                         break;
-                    case RevertStyle.ToAutomationOnly:
-                        await _Interop.Glamourer.GlamourerRevertCharacterToAutomation(_frameworkUtils._playerAddr);
+
+                    case RevertStyle.RevertEquipToGame:
+                        await _Interop.Glamourer.GlamourerRevertToGameEquipOnly();
                         break;
-                    case RevertStyle.ToGameThenAutomation:
-                        await _Interop.Glamourer.GlamourerRevertCharacter(_frameworkUtils._playerAddr);
-                        await _Interop.Glamourer.GlamourerRevertCharacterToAutomation(_frameworkUtils._playerAddr);
+
+                    case RevertStyle.RevertToAutomation:
+                        await _Interop.Glamourer.GlamourerRevertToAutomation();
+                        break;
+
+                    case RevertStyle.RevertEquipToAutomation:
+                        await _Interop.Glamourer.GlamourerRevertToAutomationEquipOnly();
                         break;
                 }
             }
@@ -282,7 +287,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
                 await ApplyGagItemsToCachedCharacterData();
                 Logger.LogDebug($"Reapplying blindfold");
                 // TODO: Blindfold logic
-                if (false)
+                if (_pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded))
                 {
                     await EquipBlindfold();
                 }
@@ -321,7 +326,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
                 // get the index of the person who equipped it onto you (FIXLOGIC TODO)
                 if (_pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded))
                 {
-                    Logger.LogWarning("You are blindfolded by :"+ _pairManager.DirectPairs.First(x => x.UserPairOwnUniquePairPerms.IsBlindfolded).UserData.AliasOrUID);
+                    Logger.LogWarning("You are blindfolded by :" + _pairManager.DirectPairs.First(x => x.UserPairOwnUniquePairPerms.IsBlindfolded).UserData.AliasOrUID);
                     await EquipBlindfold();
                 }
                 else
@@ -351,7 +356,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
     {
         Logger.LogDebug($"Equipping blindfold");
         // attempt to equip the blindfold to the player
-        await _Interop.Glamourer.SetItemToCharacterAsync((ApiEquipSlot)_clientConfigs.GetBlindfoldItem().Slot, 
+        await _Interop.Glamourer.SetItemToCharacterAsync((ApiEquipSlot)_clientConfigs.GetBlindfoldItem().Slot,
             _clientConfigs.GetBlindfoldItem().GameItem.Id.Id,
             [_clientConfigs.GetBlindfoldItem().GameStain.Stain1.Id, _clientConfigs.GetBlindfoldItem().GameStain.Stain2.Id], 0);
     }
@@ -401,13 +406,11 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         {
             var equipSlot = (ApiEquipSlot)pair.Key;
             var gameItem = pair.Value.GameItem;
-            var gameStainIds = new[] { pair.Value.GameStain.Stain1.Id, pair.Value.GameStain.Stain2.Id };
-
             // Handle the "enabled" or "disabled" logic
             if (pair.Value.IsEnabled || !gameItem.Equals(ItemIdVars.NothingItem(pair.Value.Slot)))
             {
                 Logger.LogTrace($"Processing slot {equipSlot}");
-                return _Interop.Glamourer.SetItemToCharacterAsync(equipSlot, gameItem.Id.Id, gameStainIds, 0);
+                return _Interop.Glamourer.SetItemToCharacterAsync(equipSlot, gameItem.Id.Id, [pair.Value.GameStain.Stain1.Id, pair.Value.GameStain.Stain2.Id], 0);
             }
 
             Logger.LogTrace($"Skipping over {equipSlot}!");
@@ -453,18 +456,16 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             await GagApplyAsync(gagType, drawData);
         else
             await GagRemoveAsync(gagType, drawData);
-
-        Logger.LogDebug($"Set item {_clientConfigs.GetGagTypeEquipItem(gagType)} to slot {_clientConfigs.GetGagTypeEquipSlot(gagType)} for gag {gagType.GagName()}");
     }
 
 
     private async Task GagApplyAsync(GagType gagType, GagDrawData gagInfo)
     {
-        Logger.LogTrace("Applying Gag");
-        if(gagType is GagType.None) return; // this avoids applying a nothing glamour when unintended.
+        Logger.LogInformation("Applying Gag of Type: {gagType}", gagType);
+        if (gagType is GagType.None) return; // this avoids applying a nothing glamour when unintended.
 
         // Equip the gag and apply metadata in a separate task
-        var equipAndMetaTask = EquipAndSetMetaAsync(gagType, gagInfo);
+        var equipAndMetaTask = EquipAndSetMetaAsync(gagType, gagInfo, NewState.Enabled);
 
         // Handle associated moodles if any
         var moodlesTask = HandleMoodlesAsync(gagInfo, NewState.Enabled);
@@ -479,9 +480,9 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
     private async Task GagRemoveAsync(GagType gagType, GagDrawData gagInfo)
     {
-        Logger.LogTrace("Removing Gag");
+        Logger.LogInformation("Removing Gag of type {gagType}", gagType);
         // Equip the gag and apply metadata in a separate task
-        var equipAndMetaTask = EquipAndSetMetaAsync(gagType, gagInfo);
+        var equipAndMetaTask = EquipAndSetMetaAsync(gagType, gagInfo, NewState.Disabled);
 
         // Handle associated moodles if any
         var moodlesTask = HandleMoodlesAsync(gagInfo, NewState.Disabled);
@@ -494,25 +495,20 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             _Interop.CustomizePlus.DisableProfile(gagInfo.CustomizeGuid);
     }
 
-    private async Task EquipAndSetMetaAsync(GagType gagType, GagDrawData drawData)
+    private async Task EquipAndSetMetaAsync(GagType gagType, GagDrawData drawData, NewState newState)
     {
+        EquipSlot slot = _clientConfigs.GetGagTypeEquipSlot(gagType);
         // Set the gag
-        if (gagType is GagType.None)
+        if (newState is NewState.Enabled)
         {
-            await _Interop.Glamourer.SetItemToCharacterAsync(
-            (ApiEquipSlot)_clientConfigs.GetGagTypeEquipSlot(gagType),
-            drawData.GameItem.Id.Id,
-            new[] { drawData.GameStain.Stain1.Id, drawData.GameStain.Stain2.Id },
-            0
-            );
+            Logger.LogInformation($"Setting item {drawData.GameItem.Id.Id} to slot {(ApiEquipSlot)slot} "+
+                $"with stain ID's {drawData.GameStain.Stain1.Id} and {drawData.GameStain.Stain2.Id} for gag {gagType.GagName()}");
+            await _Interop.Glamourer.SetItemToCharacterAsync((ApiEquipSlot)slot, drawData.GameItem.Id.Id, [drawData.GameStain.Stain1.Id, drawData.GameStain.Stain2.Id], 0);
         }
         else
         {
-            await _Interop.Glamourer.SetItemToCharacterAsync(
-                (ApiEquipSlot)_clientConfigs.GetGagTypeEquipSlot(gagType),
-                ItemIdVars.NothingItem(_clientConfigs.GetGagTypeEquipSlot(gagType)).Id.Id,
-                [0, 0],
-                0);
+            Logger.LogInformation($"Set Nothing item to slot {slot} for gag {gagType.GagName()}");
+            await _Interop.Glamourer.SetItemToCharacterAsync((ApiEquipSlot)slot, ItemIdVars.NothingItem(slot).Id.Id, [0, 0], 0);
         }
 
         // Apply metadata if needed
@@ -530,7 +526,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
     private async Task HandleMoodlesAsync(GagDrawData drawData, NewState newState)
     {
-        if(_playerManager.IpcDataNull) return;
+        if (_playerManager.IpcDataNull) return;
 
         // see if we are missing any moodles from the associated Moodles.
         bool missingMoodles = drawData.AssociatedMoodles

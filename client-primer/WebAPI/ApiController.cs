@@ -27,8 +27,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
     private readonly OnFrameworkService _frameworkUtils;            // the on framework service
     private readonly HubFactory _hubFactory;                        // the hub factory
-    private readonly PlayerCharacterData _playerCharManager;        // the player character manager
-    private readonly ClientCallbackService _playerCallbackService;  // handles callbacks for the player.
+    private readonly ClientCallbackService _clientCallbacks;        // the player character manager
     private readonly PrivateRoomManager _privateRoomManager;        // the private room manager
     private readonly PairManager _pairManager;                      // for managing the clients paired users
     private readonly ServerConfigurationManager _serverConfigs;     // the server configuration manager
@@ -40,11 +39,11 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     // gagspeak hub variables
     private ConnectionDto? _connectionDto;                          // dto of our connection to main server
     private CancellationTokenSource _connectionCTS;                 // token for connection creation
-    private CancellationTokenSource? _healthCTS = new();             // token for health check
+    private CancellationTokenSource? _healthCTS = new();            // token for health check
     private bool _initialized;                                      // flag for if the hub is initialized
     private string? _lastUsedToken;                                 // the last used token (will use this for toybox connection too)
     private HubConnection? _gagspeakHub;                            // the current hub connection
-    private ServerState _serverState;                               // the current state of the server
+    private static ServerState _serverState = ServerState.Offline;  // Make the backing field static
 
     // toybox hub variables
     private ToyboxConnectionDto? _toyboxConnectionDto;              // dto of our connection to toybox server
@@ -55,15 +54,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     private ServerState _toyboxServerState;                         // the current state of the toybox server
 
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, OnFrameworkService frameworkService,
-        PlayerCharacterData playerCharManager, ClientCallbackService callbackService,
-        PrivateRoomManager roomManager, PairManager pairManager, ServerConfigurationManager serverManager,
-        GagspeakMediator gagspeakMediator, PiShockProvider piShockProvider, 
+        ClientCallbackService clientCallbacks, PrivateRoomManager roomManager, PairManager pairManager, 
+        ServerConfigurationManager serverManager, GagspeakMediator gagspeakMediator, PiShockProvider piShockProvider, 
         TokenProvider tokenProvider, GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
     {
         _frameworkUtils = frameworkService;
         _hubFactory = hubFactory;
-        _playerCharManager = playerCharManager;
-        _playerCallbackService = callbackService;
+        _clientCallbacks = clientCallbacks;
         _privateRoomManager = roomManager;
         _pairManager = pairManager;
         _serverConfigs = serverManager;
@@ -105,12 +102,12 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     public SystemInfoDto SystemInfoDto { get; private set; } = new();                                       // the system info data transfer object
     public string UID => _connectionDto?.User.UID ?? string.Empty;                                          // the UID of the connected client user
     public UserData PlayerUserData => _connectionDto!.User;                                                        // the user data of the connected client user
-    public ServerState ServerState                                                                          // the current state of the server.
+    public static ServerState ServerState
     {
         get => _serverState;
         private set
         {
-            Logger.LogDebug($"New ServerState: {value}, prev ServerState: {_serverState}");
+            StaticLogger.Logger.LogDebug($"New ServerState: {value}, prev ServerState: {_serverState}");
             _serverState = value;
         }
     }

@@ -73,6 +73,6 @@ public class PatternHandler : MediatorSubscriberBase
     public List<PatternData> GetPatternsForSearch()
         => _clientConfigs.GetPatternsForSearch();
 
-    public string EnsureUniqueName(string name) => _clientConfigs.EnsureUniqueName(name);
+    public string EnsureUniqueName(string name) => _clientConfigs.EnsureUniquePatternName(name);
 }
 

@@ -54,11 +54,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         GameIconSize = new Vector2(2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y);
         StainColorCombos = new StainColorCombo(0, _stainDictionary, logger);
 
-        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
-        {
-            // recalculate the list selection based on the order.
-            LastHoveredIndex = -1;
-        });
+        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) => LastHoveredIndex = -1);
 
         Mediator.Subscribe<TooltipSetItemToRestraintSetMessage>(this, (msg) =>
         {
@@ -81,6 +77,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
     public bool CreatingRestraintSet = false;
     private string LockTimerInputString = string.Empty;
 
+    private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
     private LowerString RestraintSetSearchString = LowerString.Empty;
     private List<RestraintSet> FilteredSetList
     {
@@ -95,7 +92,6 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             return enabledSet != null ? new List<RestraintSet> { enabledSet }.Concat(filteredSets).ToList() : filteredSets;
         }
     }
-    private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
 
 
 

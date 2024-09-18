@@ -9,7 +9,6 @@ using GagspeakAPI.Data.Enum;
 using Glamourer.Api.Enums;
 using Glamourer.Api.Helpers;
 using Glamourer.Api.IpcSubscribers;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Utils;
 using Penumbra.GameData.Enums;
@@ -81,7 +80,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         try
         {
             var version = _ApiVersion.Invoke();
-            if (version is { Major: 1, Minor: >= 2 })
+            if (version is { Major: 1, Minor: >= 3 })
             {
                 apiAvailable = true;
             }
@@ -112,10 +111,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         _glamourChanged.Disable();
         _glamourChanged?.Dispose();
         // revert our character back to the base game state
-        if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.Address != nint.Zero)
-        {
-            Task.Run(() => GlamourerRevertCharacterToAutomation(_clientState.LocalPlayer.Address));
-        }
+        GlamourerRevertToAutomation();
     }
 
     /// <summary> ========== BEGIN OUR IPC CALL MANAGEMENT UNDER ASYNC TASKS ========== </summary>
@@ -171,7 +167,6 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         var equipment = playerState?["Equipment"];
         if (equipment == null) return false;
 
-        // List of equipment slots
         var slots = new[] { "MainHand", "OffHand", "Head", "Body", "Hands", "Legs", "Feet", "Ears", "Neck", "Wrists", "RFinger", "LFinger" };
 
         // Update each slot
@@ -181,9 +176,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             var equipDrawData = UpdateItem(item, slotName);
 
             if (equipDrawData != null)
-            {
-                setToEdit.DrawData[equipDrawData.Slot] = equipDrawData; // Assign to the corresponding EquipSlot in DrawData
-            }
+                setToEdit.DrawData[equipDrawData.Slot] = equipDrawData;
         }
 
         return true;
@@ -240,75 +233,120 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
     }
 
-
-    public async Task GlamourerRevertCharacterToAutomation(nint character)
+    public Task GlamourerRevertToAutomationEquipOnly()
     {
-        // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || _onFrameworkService.IsZoning) return;
+        if (!APIAvailable || _onFrameworkService.IsZoning) return Task.CompletedTask;
+
         try
         {
-            // we specifically DONT want to wait for character to finish drawing because we want to revert before an automation is applied
-            await _onFrameworkService.RunOnFrameworkThread(async () =>
+            Logger.LogTrace("Calling on IPC: RevertToAutomationEquipOnly");
+            JObject? playerState = GetState();
+
+            // revert player after obtaining state.
+            GlamourerRevertToAutomation();
+
+            // if the state we grabbed is null, return.
+            if (playerState == null)
             {
-                try
-                {
-                    // set the game object to the character
-                    var gameObj = _onFrameworkService.CreateGameObject(character);
-                    // if the game object is the character, then get the customization for it.
-                    if (gameObj is ICharacter c)
-                    {
-                        Logger.LogTrace("Calling on IPC: GlamourerRevertToAutomationCharacter");
-                        var result = _RevertToAutomation.Invoke(c.ObjectIndex);
-                        Logger.LogTrace($"Revert to automation result: {result}");
-                        // if it doesnt return success, revert to game instead
-                        if (result != GlamourerApiEc.Success)
-                        {
-                            Logger.LogWarning($"Revert to automation failed, reverting to game instead");
-                            await GlamourerRevertCharacter(character);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning($"Error during GlamourerRevert: {ex}");
-                }
-            }).ConfigureAwait(false);
+                Logger.LogWarning("Failed to get player state. Reverting to Automation with full Appearance.");
+                return Task.CompletedTask;
+            }
+
+            // otherwise, get the new state POST-REVERT.
+            JObject? newState = GetState();
+            if(newState != null)
+            {
+                newState["Customize"] = playerState["Customize"];
+                newState["Parameters"] = playerState["Parameters"];
+                newState["Materials"] = playerState["Materials"];
+                // apply the modified "Re-Applied" state.
+                _ApplyState.Invoke(newState, 0);
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogWarning($"Error during GlamourerRevert: {ex}");
+            Logger.LogWarning($"Error during GlamourerRevertToAutomationEquipOnly: {ex}");
         }
+
+        return Task.CompletedTask;
     }
 
-    public async Task GlamourerRevertCharacter(nint character)
+
+    public Task GlamourerRevertToAutomation()
     {
-        // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || _onFrameworkService.IsZoning) return;
+        if (!APIAvailable || _onFrameworkService.IsZoning) return Task.CompletedTask;
+
         try
         {
-            // we specifically DONT want to wait for character to finish drawing because we want to revert before an automation is applied
-            await _onFrameworkService.RunOnFrameworkThread(() =>
+            Logger.LogTrace("Calling on IPC: GlamourerRevertToAutomation");
+            var result = _RevertToAutomation.Invoke(0, 0);
+
+            // do a fallback to a base reset if the automation fails.
+            if (result != GlamourerApiEc.Success)
             {
-                try
-                {
-                    // set the game object to the character
-                    var gameObj = _onFrameworkService.CreateGameObject(character);
-                    // if the game object is the character, then get the customization for it.
-                    if (gameObj is ICharacter c)
-                    {
-                        _RevertCharacter.Invoke(c.ObjectIndex);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogWarning($"Error during GlamourerRevert: {ex}");
-                }
-            }).ConfigureAwait(false);
+                Logger.LogWarning($"Revert to automation failed, reverting to game instead");
+                _RevertCharacter.Invoke(0, 0);
+            }
         }
         catch (Exception ex)
         {
-            Logger.LogWarning($"Error during GlamourerRevert: {ex}");
+            Logger.LogWarning($"Error during GlamourerRevertToAutomation: {ex}");
         }
+
+        return Task.CompletedTask;
+    }
+
+    public Task GlamourerRevertToGameEquipOnly()
+    {
+        if (!APIAvailable || _onFrameworkService.IsZoning) return Task.CompletedTask;
+
+        try
+        {
+            Logger.LogTrace("Calling on IPC: GlamourerRevertToGameEquipOnly");
+            JObject? playerState = GetState();
+
+            GlamourerRevertToGame();
+
+            if (playerState == null)
+            {
+                Logger.LogWarning("Failed to get player state. Reverting full Appearance.");
+                return Task.CompletedTask;
+            }
+
+            // otherwise, get the new state POST-REVERT.
+            JObject? newState = GetState();
+            if (newState != null)
+            {
+                newState["Customize"] = playerState["Customize"];
+                newState["Parameters"] = playerState["Parameters"];
+                newState["Materials"] = playerState["Materials"];
+                // apply the modified "Re-Applied" state.
+                _ApplyState.Invoke(newState, 0);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning($"Error during GlamourerRevertToGame: {ex}");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task GlamourerRevertToGame()
+    {
+        if (!APIAvailable || _onFrameworkService.IsZoning) return Task.CompletedTask;
+
+        try
+        {
+            Logger.LogTrace("Calling on IPC: GlamourerRevertToGame");
+            _RevertCharacter.Invoke(0, 0);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning($"Error during GlamourerRevertToGame: {ex}");
+        }
+
+        return Task.CompletedTask;
     }
 
     /// <summary> Fired upon by the IPC event subscriber when the glamourer changes. </summary>
@@ -327,21 +365,13 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
 
         // See if the change type is a type we are looking for
-        if (changeType == StateChangeType.Design
-        || changeType == StateChangeType.Reapply
-        || changeType == StateChangeType.Reset
-        || changeType == StateChangeType.Equip
-        || changeType == StateChangeType.Stains)
+        if (changeType is StateChangeType.Design or StateChangeType.Reapply or StateChangeType.Reset or StateChangeType.Equip or StateChangeType.Stains)
         {
             Logger.LogTrace($"StateChangeType is {changeType}");
-
-            // call the update glamourer appearance message.
             _fastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
+            return;
         }
-        else // it is not a type we care about, so ignore
-        {
-            Logger.LogTrace($"GlamourerChanged event was not a type we care about, " +
-                $"so skipping (Type was: {changeType})");
-        }
+        
+        Logger.LogTrace($"GlamourerChanged event was not a type we care about, so skipping (Type was: {changeType})");
     }
 }

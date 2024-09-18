@@ -4,22 +4,20 @@ using GagSpeak.UI;
 using GagspeakAPI.Data.Enum;
 using ImGuiNET;
 using OtterGui.Text;
+using System.Text.RegularExpressions;
 
 namespace GagSpeak.PlayerData.Handlers;
 /// <summary> Handles how the information stored in padlock spaces are contained.. </summary>
 public class PadlockHandler
 {
     private readonly ILogger<PadlockHandler> _logger;
-    private readonly UiSharedService _uiSharedService;
     private readonly PlayerCharacterData _playerCharacterManager;
     private readonly ClientConfigurationManager _clientConfigs;
 
     public PadlockHandler(ILogger<PadlockHandler> logger,
-        UiSharedService uiSharedService, PlayerCharacterData playerCharacterManager,
-        ClientConfigurationManager clientConfigs)
+        PlayerCharacterData playerCharacterManager, ClientConfigurationManager clientConfigs)
     {
         _logger = logger;
-        _uiSharedService = uiSharedService;
         _playerCharacterManager = playerCharacterManager;
         _clientConfigs = clientConfigs;
     }
@@ -41,9 +39,7 @@ public class PadlockHandler
                 return true;
             case Padlocks.TimerPasswordPadlock:
                 if (isLocked)
-                {
                     Passwords[slot] = DisplayInputField($"##Password_Input{slot}", "Enter password", Passwords[slot], 20, 1f, totalWidth);
-                }
                 else
                 {
                     Passwords[slot] = DisplayInputField($"##Password_Input{slot}", "Enter password", Passwords[slot], 20, 2 / 3f, totalWidth);
@@ -84,38 +80,20 @@ public class PadlockHandler
                 Timers[slot] = "0h5m0s";
                 return true; 
             case Padlocks.CombinationPadlock:
-                {
-                    if (currentlyLocked)
-                    {
-                        return Passwords[slot] == _playerCharacterManager.AppearanceData?.GagSlots[slot].Password;
-                    }
-                    else
-                    {
-                        return _uiSharedService.ValidateCombination(Passwords[slot]);
-                    }
-                }
+                if (currentlyLocked)
+                    return Passwords[slot] == _playerCharacterManager.AppearanceData?.GagSlots[slot].Password;
+                else
+                    return ValidateCombination(Passwords[slot]);
             case Padlocks.PasswordPadlock:
-                {
-                    if (currentlyLocked)
-                    {
-                        return Passwords[slot] == _playerCharacterManager.AppearanceData?.GagSlots[slot].Password;
-                    }
-                    else
-                    {
-                        return _uiSharedService.ValidatePassword(Passwords[slot]);
-                    }
-                }
+                if (currentlyLocked)
+                    return Passwords[slot] == _playerCharacterManager.AppearanceData?.GagSlots[slot].Password;
+                else
+                    return ValidatePassword(Passwords[slot]);
             case Padlocks.TimerPasswordPadlock:
-                {
-                    if (currentlyLocked)
-                    {
-                        return Passwords[slot] == _playerCharacterManager.AppearanceData?.GagSlots[slot].Password;
-                    }
-                    else
-                    {
-                        return _uiSharedService.ValidatePassword(Passwords[slot]) && _uiSharedService.TryParseTimeSpan(Timers[slot], out TimeSpan test);
-                    }
-                }
+                if (currentlyLocked)
+                    return Passwords[slot] == _playerCharacterManager.AppearanceData?.GagSlots[slot].Password;
+                else
+                    return ValidatePassword(Passwords[slot]) && TryParseTimeSpan(Timers[slot], out TimeSpan test);
         }
         return false;
     }
@@ -133,43 +111,64 @@ public class PadlockHandler
                 Timers[3] = "0h5m0s";
                 return true;
             case Padlocks.CombinationPadlock:
+                if (currentlyLocked)
                 {
-                    if (currentlyLocked)
-                    {
-                        _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
-                        return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
-                    }
-                    else
-                    {
-                        return _uiSharedService.ValidateCombination(Passwords[3]);
-                    }
+                    _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
+                    return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
                 }
+                else
+                    return ValidateCombination(Passwords[3]);
             case Padlocks.PasswordPadlock:
+                if (currentlyLocked)
                 {
-                    if (currentlyLocked)
-                    {
-                        _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
-                        return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
-                    }
-                    else
-                    {
-                        return _uiSharedService.ValidatePassword(Passwords[3]);
-                    }
+                    _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
+                    return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
                 }
+                else
+                    return ValidatePassword(Passwords[3]);
             case Padlocks.TimerPasswordPadlock:
+                if (currentlyLocked)
                 {
-                    if (currentlyLocked)
-                    {
-                        _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
-                        return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
-                    }
-                    else
-                    {
-                        return _uiSharedService.ValidatePassword(Passwords[3]) && _uiSharedService.TryParseTimeSpan(Timers[3], out TimeSpan test);
-                    }
+                    _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
+                    return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
                 }
+                else
+                    return ValidatePassword(Passwords[3]) && TryParseTimeSpan(Timers[3], out TimeSpan test);
         }
         return false;
     }
 
+    /// <summary> Validates a password </summary>
+    public bool ValidatePassword(string password)
+    {
+        _logger.LogDebug($"Validating Password {password}");
+        return !string.IsNullOrWhiteSpace(password) && password.Length <= 20 && !password.Contains(" ");
+    }
+
+    /// <summary> Validates a 4 digit combination </summary>
+    public bool ValidateCombination(string combination)
+    {
+        _logger.LogDebug($"Validating Combination {combination}");
+        return int.TryParse(combination, out _) && combination.Length == 4;
+    }
+
+    public bool TryParseTimeSpan(string input, out TimeSpan result)
+    {
+        result = TimeSpan.Zero;
+        var regex = new Regex(@"(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?");
+        var match = regex.Match(input);
+
+        if (!match.Success)
+        {
+            return false;
+        }
+
+        int days = match.Groups[1].Success ? int.Parse(match.Groups[1].Value) : 0;
+        int hours = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
+        int minutes = match.Groups[3].Success ? int.Parse(match.Groups[3].Value) : 0;
+        int seconds = match.Groups[4].Success ? int.Parse(match.Groups[4].Value) : 0;
+
+        result = new TimeSpan(days, hours, minutes, seconds);
+        return true;
+    }
 }

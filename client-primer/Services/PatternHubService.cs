@@ -55,7 +55,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
     // Should be run in the drawloop to check if any tasks have completed.
     public void DisplayPendingMessages()
     {
-        if(!InitialSearchMade && _apiController.IsConnected && _apiController.ServerState == ServerState.Connected)
+        if(!InitialSearchMade && _apiController.IsConnected && ApiController.ServerState == ServerState.Connected)
         { InitialSearchMade = true; SearchPatterns(SearchQuery); }
 
         DisplayTaskStatus(UploadPatternTask, "Uploading Pattern to Servers...", "Pattern uploaded to servers!", "Failed to upload pattern to servers.", ImGuiColors.DalamudGrey, ImGuiColors.HealerGreen, ImGuiColors.DalamudRed);
@@ -174,7 +174,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 pattern.IsPublished = false;
                 pattern.CreatedByClient = false;
                 // Ensure the pattern has a unique name
-                string baseName = _clientConfigs.EnsureUniqueName(pattern.Name);
+                string baseName = _clientConfigs.EnsureUniquePatternName(pattern.Name);
                 // Set the active pattern
                 _clientConfigs.AddNewPattern(pattern);
             }

@@ -1,7 +1,6 @@
+using Dalamud.Interface.Textures;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using GagSpeak.Interop.Ipc;
-using GagSpeak.UI;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
 using ImGuiNET;
@@ -14,8 +13,8 @@ namespace GagSpeak.Services;
 public class MoodlesService
 {
     private readonly ILogger<MoodlesService> _logger;
-    private readonly UiSharedService _uiShared;
-    private IDataManager _dataManager;
+    private readonly IDataManager _dataManager;
+    private readonly ITextureProvider _textures;
 
     private readonly HashSet<uint> _popupState = [];
     private int _lastSelection = -1;
@@ -23,12 +22,11 @@ public class MoodlesService
     private bool _closePopup = false;
     private static Dictionary<uint, IconInfo?> IconInfoCache = [];
 
-    public MoodlesService(ILogger<MoodlesService> logger, 
-        UiSharedService uiShared, IDataManager dataManager)
+    public MoodlesService(ILogger<MoodlesService> logger, IDataManager dataManager, ITextureProvider textures)
     {
         _logger = logger;
-        _uiShared = uiShared;
         _dataManager = dataManager;
+        _textures = textures;
         SelectedPresetComboGuids = new Dictionary<string, Guid>();
     }
 
@@ -36,7 +34,7 @@ public class MoodlesService
     public Dictionary<string, Guid> SelectedPresetComboGuids;    // the selected combo items
 
 
-    public bool DrawMoodlesPresetCombo(string comboLabel, ref int selectedIdx, List<(Guid, List<Guid>)> MoodlesPresets, 
+    public bool DrawMoodlesPresetCombo(string comboLabel, ref int selectedIdx, List<(Guid, List<Guid>)> MoodlesPresets,
         List<MoodlesStatusInfo> MoodlesStatuses, float width)
     {
         bool itemSelected = false;
@@ -194,8 +192,7 @@ public class MoodlesService
                 // Draw out the image.
                 if (item.IconID != 0)
                 {
-                    var statusIcon = _uiShared.GetGameStatusIcon((uint)((uint)item.IconID + item.Stacks - 1));
-
+                    var statusIcon = _textures.GetFromGameIcon(new GameIconLookup((uint)((uint)item.IconID + item.Stacks - 1))).GetWrapOrEmpty();
                     if (statusIcon is { } wrap)
                     {
                         ImGui.SetCursorScreenPos(ImGui.GetCursorScreenPos() - new Vector2(0, 5));

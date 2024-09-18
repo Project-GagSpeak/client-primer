@@ -23,6 +23,7 @@ using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
+using OtterGui;
 using OtterGui.Text;
 using System.Globalization;
 using System.Numerics;
@@ -251,34 +252,41 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         using (ImRaii.Disabled(!wardrobeEnabled))
         {
-            using var indent = ImRaii.PushIndent();
-
             if (ImGui.Checkbox("Allow Restraint Sets to be Auto-Equipped", ref restraintSetAutoEquip))
             {
                 PlayerGlobalPerms.RestraintSetAutoEquip = restraintSetAutoEquip;
                 // if this creates a race condition down the line remove the above line.
                 _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
                 new KeyValuePair<string, object>("RestraintSetAutoEquip", restraintSetAutoEquip)));
-
             }
             _uiShared.DrawHelpText("Allows Glamourer to bind restraint sets to your character.\nRestraint sets can be created in the Wardrobe Interface.");
-        }
 
-        if (ImGui.Checkbox("Disable Restraint's When Locks Expire", ref restraintSetDisableWhenUnlocked))
-        {
-            _clientConfigs.GagspeakConfig.DisableSetUponUnlock = restraintSetDisableWhenUnlocked;
-            _clientConfigs.Save();
+            if (ImGui.Checkbox("Disable Restraint's When Locks Expire", ref restraintSetDisableWhenUnlocked))
+            {
+                _clientConfigs.GagspeakConfig.DisableSetUponUnlock = restraintSetDisableWhenUnlocked;
+                _clientConfigs.Save();
+            }
+            _uiShared.DrawHelpText("Let's the Active Restraint Set that is locked be automatically disabled when it's lock expires.");
         }
-        _uiShared.DrawHelpText("Let's the Active Restraint Set that is locked be automatically disabled when it's lock expires.");
 
         // draw out revert style selection
-        _uiShared.DrawCombo($"Revert Style##Revert Type Style", 200f, Enum.GetValues<RevertStyle>(), (revertStyle) => revertStyle.ToString(),
-        (i) =>
+        ImGui.Spacing();
+        ImGui.TextUnformatted("On Safeword/Restraint Disable:");
+        // Draw radio buttons for each RevertStyle enum value
+        foreach (RevertStyle style in Enum.GetValues(typeof(RevertStyle)))
         {
-            _clientConfigs.GagspeakConfig.RevertStyle = i;
-            _clientConfigs.Save();
-        }, _clientConfigs.GagspeakConfig.RevertStyle);
+            string label = (style is RevertStyle.RevertToGame or RevertStyle.RevertToAutomation) ? "Revert" : "Reapply";
 
+            bool isSelected = _clientConfigs.GagspeakConfig.RevertStyle == style;
+            if (ImGui.RadioButton(label+"##"+style.ToString(), isSelected))
+            {
+                _clientConfigs.GagspeakConfig.RevertStyle = style;
+                _clientConfigs.Save();
+            }
+            ImUtf8.SameLineInner();
+            ImGui.TextUnformatted(style.ToName());
+            _uiShared.DrawHelpText(style.ToHelpText());
+        }
 
 
         ImGui.Separator();
@@ -1441,8 +1449,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 }
                 if (ImGui.BeginTabItem("Hardcore"))
                 {
-                    _lastTab = "Hardcore";
-
                     _hardcoreSettingsUI.DrawHardcoreSettings();
                     ImGui.EndTabItem();
                 }

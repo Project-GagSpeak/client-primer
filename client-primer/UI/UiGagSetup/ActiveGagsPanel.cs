@@ -13,7 +13,6 @@ namespace GagSpeak.UI.UiGagSetup;
 
 public class ActiveGagsPanel : DisposableMediatorSubscriberBase
 {
-
     private readonly UiSharedService _uiSharedService;
     private readonly PlayerCharacterData _playerManager; // for grabbing lock data
     private readonly GagManager _gagManager;
@@ -47,16 +46,13 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                 Logger.LogWarning("Appearance data is null, cannot update active locks.");
                 return;
             }
-
-            Enum.TryParse<Padlocks>(_playerManager.AppearanceData.GagSlots[0].Padlock, out var lock1);
-            Logger.LogInformation($"Lock 1: {lock1}");
-            _uiSharedService._selectedComboItems["Lock Type 0"] = lock1;
-            Enum.TryParse<Padlocks>(_playerManager.AppearanceData.GagSlots[1].Padlock, out var lock2);
-            Logger.LogInformation($"Lock 2: {lock2}");
-            _uiSharedService._selectedComboItems["Lock Type 1"] = lock2;
-            Enum.TryParse<Padlocks>(_playerManager.AppearanceData.GagSlots[2].Padlock, out var lock3);
-            Logger.LogInformation($"Lock 3: {lock3}");
-            _uiSharedService._selectedComboItems["Lock Type 2"] = lock3;
+            var lock0 = _playerManager.AppearanceData.GagSlots[0].Padlock.ToPadlock();
+            var lock1 = _playerManager.AppearanceData.GagSlots[1].Padlock.ToPadlock();
+            var lock2 = _playerManager.AppearanceData.GagSlots[2].Padlock.ToPadlock();
+            _uiSharedService._selectedComboItems["Lock Type 0"] = lock0;
+            _uiSharedService._selectedComboItems["Lock Type 1"] = lock1;
+            _uiSharedService._selectedComboItems["Lock Type 2"] = lock2;
+            Logger.LogInformation($"Lock 0: {lock0} || Lock 1: {lock1} || Lock 2: {lock2}");
         });
     }
 
@@ -73,6 +69,11 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
     // Draw the active gags tab
     public void DrawActiveGagsPanel()
     {
+        if (_playerManager.CoreDataNull)
+        {
+            Logger.LogWarning("Core data is null, cannot draw active gags panel.");
+            return;
+        }
         Vector2 bigTextSize = new Vector2(0, 0);
         using (_uiSharedService.UidFont.Push()) { bigTextSize = ImGui.CalcTextSize("HeightDummy"); }
 
@@ -161,7 +162,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
 
                 using (ImRaii.Disabled(currentlyLocked))
                 {
-                    _uiSharedService.DrawComboSearchable($"Gag Type {slotNumber}", 250, ref Filters[slotNumber],
+                    _uiSharedService.DrawComboSearchable($"Gag Type {slotNumber}", 250f, ref Filters[slotNumber],
                     Enum.GetValues<GagType>(), (gag) => gag.GagName(), false,
                     (i) =>
                     {

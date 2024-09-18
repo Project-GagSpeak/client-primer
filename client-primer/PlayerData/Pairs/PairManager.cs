@@ -1,22 +1,17 @@
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.ImGuiNotification;
-using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Factories;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
+using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Comparer;
-using GagspeakAPI.Dto.User;
+using GagspeakAPI.Data.Enum;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
-using GagspeakAPI.Dto.Permissions;
+using GagspeakAPI.Dto.User;
 using GagspeakAPI.Dto.UserPair;
-using System.Reflection;
-using Penumbra.GameData;
-using GagspeakAPI.Data.Character;
-using Dalamud.Game.ClientState.Objects.Types;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using GagspeakAPI.Data.Enum;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -44,10 +39,10 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
         // subscribe to the disconnected message, and clear all pairs when it is received.
         Mediator.Subscribe<DisconnectedMessage>(this, (_) => ClearPairs());
-        
+
         // subscribe to the cutscene end message, and reapply the pair data when it is received.
         Mediator.Subscribe<CutsceneEndMessage>(this, (_) => ReapplyPairData());
-        
+
         _directPairsInternal = DirectPairsLazy();
     }
 
@@ -137,11 +132,11 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     }
 
     /// <summary> Fetches the filtered list of user pair objects where only users that are currently online are returned.</summary>
-    public List<Pair> GetOnlineUserPairs() 
+    public List<Pair> GetOnlineUserPairs()
         => _allClientPairs.Where(p => !string.IsNullOrEmpty(p.Value.GetPlayerNameHash())).Select(p => p.Value).ToList();
 
     /// <summary> Fetches all online userPairs, but returns the key instead of value like above.</summary>
-    public List<UserData> GetOnlineUserDatas() 
+    public List<UserData> GetOnlineUserDatas()
         => _allClientPairs.Where(p => !string.IsNullOrEmpty(p.Value.GetPlayerNameHash())).Select(p => p.Key).ToList();
 
     /// <summary> fetches the total number of online users that are also visible to the client.</summary>
@@ -152,7 +147,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
     /// <summary> Gets all pairs where IsVisible is true and returns their game objects in a list form, excluding null values. </summary>
     public List<IGameObject> GetVisiblePairGameObjects()
-        => _allClientPairs.Select(p => p.Value.VisiblePairGameObject).Where(gameObject => gameObject != null).ToList()!;    
+        => _allClientPairs.Select(p => p.Value.VisiblePairGameObject).Where(gameObject => gameObject != null).ToList()!;
 
     /// <summary> Fetch the list of userData UID's for all pairs who have OnlineToyboxUser to true.</summary>
     public List<Pair> GetOnlineToyboxUsers() => _allClientPairs.Where(p => p.Value.OnlineToyboxUser).Select(p => p.Value).ToList();

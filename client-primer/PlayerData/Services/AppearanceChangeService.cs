@@ -528,12 +528,18 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
     {
         if (_playerManager.IpcDataNull) return;
 
+        Logger.LogDebug("Handling Moodles for Gag {gagType}", newState);
+
         // see if we are missing any moodles from the associated Moodles.
         bool missingMoodles = drawData.AssociatedMoodles
-            .Any(moodle => _playerManager.LastIpcData!.MoodlesDataStatuses.Any(x => x.GUID == moodle));
+            .Any(moodle => !_playerManager.LastIpcData!.MoodlesDataStatuses.Any(x => x.GUID == moodle));
 
-        if (missingMoodles)
+        if (newState == NewState.Disabled || missingMoodles)
         {
+            Logger.LogDebug(missingMoodles
+                ? "Missing moodles, updating."
+                : "Disabling, updating moodles.");
+            Logger.LogDebug("Missing Moodles, updating");
             await _moodlesAssociations.ToggleMoodlesTask(drawData.AssociatedMoodles, newState);
         }
     }

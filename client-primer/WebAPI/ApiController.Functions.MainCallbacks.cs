@@ -410,7 +410,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Update Other UserPair Appearance Data </summary>
     public Task Client_UserReceiveOtherDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOtherDataAppearance: {dataDto}", dataDto);
+        Logger.LogDebug("Client_UserReceiveOtherDataAppearance: {user}{updateKind}\n{data}", dataDto.User, dataDto.UpdateKind, dataDto.AppearanceData.ToString());
         ExecuteSafely(() => _pairManager.ReceiveCharaAppearanceData(dataDto));
         return Task.CompletedTask;
     }

@@ -233,120 +233,124 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
     }
 
-    public Task GlamourerRevertToAutomationEquipOnly()
+    public async Task GlamourerRevertToAutomationEquipOnly()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning) return Task.CompletedTask;
+        if (!APIAvailable || _onFrameworkService.IsZoning) return;
 
         try
         {
-            Logger.LogTrace("Calling on IPC: RevertToAutomationEquipOnly");
-            JObject? playerState = GetState();
-
-            // revert player after obtaining state.
-            GlamourerRevertToAutomation();
-
-            // if the state we grabbed is null, return.
-            if (playerState == null)
+            await _onFrameworkService.RunOnFrameworkThread(() =>
             {
-                Logger.LogWarning("Failed to get player state. Reverting to Automation with full Appearance.");
-                return Task.CompletedTask;
-            }
+                Logger.LogTrace("Calling on IPC: RevertToAutomationEquipOnly");
+                JObject? playerState = GetState();
 
-            // otherwise, get the new state POST-REVERT.
-            JObject? newState = GetState();
-            if(newState != null)
-            {
-                newState["Customize"] = playerState["Customize"];
-                newState["Parameters"] = playerState["Parameters"];
-                newState["Materials"] = playerState["Materials"];
-                // apply the modified "Re-Applied" state.
-                _ApplyState.Invoke(newState, 0);
-            }
+                // revert player after obtaining state.
+                GlamourerRevertToAutomation().ConfigureAwait(false);
+
+                // if the state we grabbed is null, return.
+                if (playerState == null)
+                {
+                    Logger.LogWarning("Failed to get player state. Reverting to Automation with full Appearance.");
+                    return;
+                }
+
+                // otherwise, get the new state POST-REVERT.
+                JObject? newState = GetState();
+                if(newState != null)
+                {
+                    newState["Customize"] = playerState["Customize"];
+                    newState["Parameters"] = playerState["Parameters"];
+                    newState["Materials"] = playerState["Materials"];
+                    // apply the modified "Re-Applied" state.
+                    _ApplyState.Invoke(newState, 0);
+                }
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             Logger.LogWarning($"Error during GlamourerRevertToAutomationEquipOnly: {ex}");
         }
-
-        return Task.CompletedTask;
     }
 
 
-    public Task GlamourerRevertToAutomation()
+    public async Task GlamourerRevertToAutomation()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning) return Task.CompletedTask;
+        if (!APIAvailable || _onFrameworkService.IsZoning) return;
 
         try
         {
-            Logger.LogTrace("Calling on IPC: GlamourerRevertToAutomation");
-            var result = _RevertToAutomation.Invoke(0, 0);
-
-            // do a fallback to a base reset if the automation fails.
-            if (result != GlamourerApiEc.Success)
+            await _onFrameworkService.RunOnFrameworkThread(() =>
             {
-                Logger.LogWarning($"Revert to automation failed, reverting to game instead");
-                _RevertCharacter.Invoke(0, 0);
-            }
+                Logger.LogTrace("Calling on IPC: GlamourerRevertToAutomation");
+                var result = _RevertToAutomation.Invoke(0, 0);
+
+                // do a fallback to a base reset if the automation fails.
+                if (result != GlamourerApiEc.Success)
+                {
+                    Logger.LogWarning($"Revert to automation failed, reverting to game instead");
+                    _RevertCharacter.Invoke(0, 0);
+                }
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             Logger.LogWarning($"Error during GlamourerRevertToAutomation: {ex}");
         }
-
-        return Task.CompletedTask;
     }
 
-    public Task GlamourerRevertToGameEquipOnly()
+    public async Task GlamourerRevertToGameEquipOnly()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning) return Task.CompletedTask;
+        if (!APIAvailable || _onFrameworkService.IsZoning) return;
 
         try
         {
-            Logger.LogTrace("Calling on IPC: GlamourerRevertToGameEquipOnly");
-            JObject? playerState = GetState();
-
-            GlamourerRevertToGame();
-
-            if (playerState == null)
+            await _onFrameworkService.RunOnFrameworkThread(() =>
             {
-                Logger.LogWarning("Failed to get player state. Reverting full Appearance.");
-                return Task.CompletedTask;
-            }
+                Logger.LogTrace("Calling on IPC: GlamourerRevertToGameEquipOnly");
+                JObject? playerState = GetState();
 
-            // otherwise, get the new state POST-REVERT.
-            JObject? newState = GetState();
-            if (newState != null)
-            {
-                newState["Customize"] = playerState["Customize"];
-                newState["Parameters"] = playerState["Parameters"];
-                newState["Materials"] = playerState["Materials"];
-                // apply the modified "Re-Applied" state.
-                _ApplyState.Invoke(newState, 0);
-            }
+                GlamourerRevertToGame().ConfigureAwait(false);
+
+                if (playerState == null)
+                {
+                    Logger.LogWarning("Failed to get player state. Reverting full Appearance.");
+                    return;
+                }
+
+                // otherwise, get the new state POST-REVERT.
+                JObject? newState = GetState();
+                if (newState != null)
+                {
+                    newState["Customize"] = playerState["Customize"];
+                    newState["Parameters"] = playerState["Parameters"];
+                    newState["Materials"] = playerState["Materials"];
+                    // apply the modified "Re-Applied" state.
+                    _ApplyState.Invoke(newState, 0);
+                }
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             Logger.LogWarning($"Error during GlamourerRevertToGame: {ex}");
         }
-
-        return Task.CompletedTask;
     }
 
-    public Task GlamourerRevertToGame()
+    public async Task GlamourerRevertToGame()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning) return Task.CompletedTask;
+        if (!APIAvailable || _onFrameworkService.IsZoning) return;
 
         try
         {
-            Logger.LogTrace("Calling on IPC: GlamourerRevertToGame");
-            _RevertCharacter.Invoke(0, 0);
+            await _onFrameworkService.RunOnFrameworkThread(() =>
+            {
+                Logger.LogTrace("Calling on IPC: GlamourerRevertToGame");
+                _RevertCharacter.Invoke(0, 0);
+            }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             Logger.LogWarning($"Error during GlamourerRevertToGame: {ex}");
         }
-
-        return Task.CompletedTask;
     }
 
     /// <summary> Fired upon by the IPC event subscriber when the glamourer changes. </summary>

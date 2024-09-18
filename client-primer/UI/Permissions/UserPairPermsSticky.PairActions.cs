@@ -203,7 +203,7 @@ public partial class UserPairPermsSticky
         using (var color = ImRaii.PushColor(ImGuiCol.Text, disableUnlocking ? ImGuiColors.DalamudWhite : ImGuiColors.DalamudYellow))
         {
             string DisplayText = disableUnlocking ? "Lock " + PairUID + "'s Gag"
-                : UserPairForPerms.LastReceivedAppearanceData!.GagSlots[_permActions.GagLayer].Padlock + " is on this Gag.";
+                : "Locked with a " + UserPairForPerms.LastReceivedAppearanceData!.GagSlots[_permActions.GagLayer].Padlock;
             if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, DisplayText, WindowMenuWidth, true, disableLocking || !canUseGagFeatures))
             {
                 ShowGagLock = !ShowGagLock;
@@ -235,7 +235,7 @@ public partial class UserPairPermsSticky
                     {
                         try
                         {
-                            newAppearance.GagSlots[_permActions.GagLayer].Padlock = onButtonPress.ToString();
+                            newAppearance.GagSlots[_permActions.GagLayer].Padlock = onButtonPress.ToName();
                             newAppearance.GagSlots[_permActions.GagLayer].Password = _permActions.Password;
                             newAppearance.GagSlots[_permActions.GagLayer].Timer = UiSharedService.GetEndTimeUTC(_permActions.Timer);
                             newAppearance.GagSlots[_permActions.GagLayer].Assigner = _apiController.UID;
@@ -247,7 +247,7 @@ public partial class UserPairPermsSticky
                                 _ => throw new Exception("Invalid layer selected.")
                             };
                             _ = _apiController.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
-                            _logger.LogDebug("Locking Gag with GagPadlock {0} on {1}", onButtonPress.ToString(), PairNickOrAliasOrUID);
+                            _logger.LogDebug("Locking Gag with GagPadlock {0} on {1}", onButtonPress.ToName(), PairNickOrAliasOrUID);
                             ShowGagLock = false;
                             // reset the password and timer
                             _permActions.Password = string.Empty;
@@ -270,7 +270,7 @@ public partial class UserPairPermsSticky
         UiSharedService.AttachToolTip("Unlock " + PairUID + "'s Gag. Click to view options.");
         if (ShowGagUnlock)
         {
-            Padlocks selected = _permActions.GetSelectedItem<Padlocks>("UnlockGagForPairPermCombo", UserPairForPerms.UserData.UID);
+            Padlocks selected = UserPairForPerms.LastReceivedAppearanceData.GagSlots[_permActions.GagLayer].Padlock.ToPadlock();
             float height = _permActions.ExpandLockHeightCheck(selected) ? ImGui.GetFrameHeight() * 2 + ImGui.GetStyle().ItemSpacing.Y : ImGui.GetFrameHeight();
             using (var actionChild = ImRaii.Child("GagUnlockChild", new Vector2(WindowMenuWidth, height), false))
             {
@@ -278,19 +278,20 @@ public partial class UserPairPermsSticky
 
                 bool disabled = selected == Padlocks.None || !canUseGagFeatures;
                 // Draw combo
-                _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "UnlockGagForPairPermCombo", "Unlock",
-                WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToName(), false, disabled, true, Padlocks.None,
-                FontAwesomeIcon.Unlock, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Padlock: " + selected); },
-                (onButtonPress) =>
+                float width = WindowMenuWidth - ImGui.GetStyle().ItemInnerSpacing.X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Unlock, "Unlock");
+                ImGui.SetNextItemWidth(width);
+                if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", UserPairForPerms.LastReceivedAppearanceData.GagSlots[_permActions.GagLayer].Padlock ?? "Not Lock Active")) { ImGui.EndCombo(); }
+                ImUtf8.SameLineInner();
+                if(_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock", ImGui.GetContentRegionAvail().X, true, disabled))
                 {
                     try
                     {
                         var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
                         if (newAppearance == null) throw new Exception("Appearance data is null or unlock is invalid. not sending");
 
-                        if (_permActions.PadlockVerifyUnlock<IPadlockable>(newAppearance.GagSlots[_permActions.GagLayer], onButtonPress, canUseOwnerLocks))
+                        if (_permActions.PadlockVerifyUnlock<IPadlockable>(newAppearance.GagSlots[_permActions.GagLayer], selected, canUseOwnerLocks))
                         {
-                            newAppearance.GagSlots[_permActions.GagLayer].Padlock = onButtonPress.ToString();
+                            newAppearance.GagSlots[_permActions.GagLayer].Padlock = selected.ToName();
                             newAppearance.GagSlots[_permActions.GagLayer].Password = _permActions.Password;
                             newAppearance.GagSlots[_permActions.GagLayer].Timer = DateTimeOffset.UtcNow;
                             newAppearance.GagSlots[_permActions.GagLayer].Assigner = _apiController.UID;
@@ -302,12 +303,12 @@ public partial class UserPairPermsSticky
                                 _ => throw new Exception("Invalid layer selected.")
                             };
                             _ = _apiController.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
-                            _logger.LogDebug("Unlocking Gag with GagPadlock {0} on {1}", onButtonPress.ToString(), PairNickOrAliasOrUID);
+                            _logger.LogDebug("Unlocking Gag with GagPadlock {0} on {1}", selected.ToName(), PairNickOrAliasOrUID);
                             ShowGagUnlock = false;
                         }
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated appearance data: " + e.Message); }
-                });
+                }
                 // draw password field combos.
                 _permActions.DisplayPadlockFields(selected);
             }
@@ -409,7 +410,7 @@ public partial class UserPairPermsSticky
         }
 
         ////////// LOCK RESTRAINT SET //////////
-        string DisplayText = lockButtonDisabled ? "Lock Restraint Set" : lastWardrobeData.Padlock + " is on this Set.";
+        string DisplayText = lockButtonDisabled ? "Lock Restraint Set" : "Locked with a " + lastWardrobeData.Padlock;
         // push text style
         using (var color = ImRaii.PushColor(ImGuiCol.Text, (lastWardrobeData.Padlock == Padlocks.None.ToName()) ? ImGuiColors.DalamudWhite : ImGuiColors.DalamudYellow))
         {
@@ -474,7 +475,7 @@ public partial class UserPairPermsSticky
         UiSharedService.AttachToolTip("Unlocks the Restraint Set applied to " + UserPairForPerms.UserData.AliasOrUID + ". Click to view options.");
         if (ShowSetUnlock)
         {
-            Padlocks selected = _permActions.GetSelectedItem<Padlocks>("UnlockRestraintSetForPairPermCombo", UserPairForPerms.UserData.UID);
+            Padlocks selected = UserPairForPerms.LastReceivedWardrobeData?.Padlock.ToPadlock() ?? Padlocks.None;
             float height = _permActions.ExpandLockHeightCheck(selected)
                 ? 3 * ImGui.GetFrameHeight() + 2 * ImGui.GetStyle().ItemSpacing.Y
                 : 2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y;
@@ -483,27 +484,26 @@ public partial class UserPairPermsSticky
                 if (!actionChild) return;
 
                 bool disabled = selected == Padlocks.None || !pairUniquePerms.UnlockRestraintSets;
-
-                if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName ?? "Not Set Active")) { ImGui.EndCombo(); }
                 // Draw combo
-                _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "UnlockRestraintSetForPairPermCombo", "Unlock Set",
-                WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToName(), false, disabled, true, Padlocks.None,
-                FontAwesomeIcon.Unlock, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Padlock: " + selected); },
-                (onButtonPress) =>
+                float width = WindowMenuWidth - ImGui.GetStyle().ItemInnerSpacing.X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Unlock, "Unlock");
+                ImGui.SetNextItemWidth(width);
+                if (ImGui.BeginCombo("##DummyComboDisplayLockedRestraintSet", UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName ?? "No Set Lock Active")) { ImGui.EndCombo(); }
+                ImUtf8.SameLineInner();
+                if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock", ImGui.GetContentRegionAvail().X, true, disabled))
                 {
                     try
                     {
                         var newWardrobeData = lastWardrobeData.DeepClone();
                         if (newWardrobeData == null) throw new Exception("Wardrobe data is null, not sending");
 
-                        if (_permActions.PadlockVerifyUnlock<IPadlockable>(newWardrobeData, onButtonPress, canUseOwnerLocks))
+                        if (_permActions.PadlockVerifyUnlock<IPadlockable>(newWardrobeData, selected, canUseOwnerLocks))
                         {
-                            newWardrobeData.Padlock = onButtonPress.ToName();
+                            newWardrobeData.Padlock = selected.ToName();
                             newWardrobeData.Password = _permActions.Password;
                             newWardrobeData.Timer = DateTimeOffset.UtcNow;
                             newWardrobeData.Assigner = _apiController.UID;
                             _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, DataUpdateKind.WardrobeRestraintUnlocked));
-                            _logger.LogDebug("Unlocking Restraint Set with GagPadlock {0} on {1}", onButtonPress.ToName(), PairNickOrAliasOrUID);
+                            _logger.LogDebug("Unlocking Restraint Set with GagPadlock {0} on {1}", selected.ToName(), PairNickOrAliasOrUID);
                             ShowSetUnlock = false;
                             // reset the password and timer
                             _permActions.Password = string.Empty;
@@ -511,7 +511,7 @@ public partial class UserPairPermsSticky
                         }
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated Wardrobe data: " + e.Message); }
-                });
+                };
                 // draw password field combos.
                 _permActions.DisplayPadlockFields(selected);
             }
@@ -530,7 +530,7 @@ public partial class UserPairPermsSticky
             {
                 if (!actionChild) return;
 
-                if (ImGui.Button("Remove Gag", ImGui.GetContentRegionAvail()))
+                if (ImGui.Button("Remove Restraint", ImGui.GetContentRegionAvail()))
                 {
                     try
                     {

@@ -53,7 +53,7 @@ public class ClientCallbackService
     public void SetGlobalPerms(UserGlobalPermissions perms) => _playerData.GlobalPerms = perms;
     public void SetAppearanceData(CharacterAppearanceData appearanceData) => _playerData.AppearanceData = appearanceData;
     public void ApplyGlobalPerm(UserGlobalPermChangeDto dto) => _playerData.ApplyGlobalPermChange(dto);
-    private bool HasRestraintPermissions() => _playerData.CoreDataNull || !_playerData.GlobalPerms!.WardrobeEnabled || !_playerData.GlobalPerms.RestraintSetAutoEquip;
+    private bool CanDoWardrobeInteract() => !_playerData.CoreDataNull && _playerData.GlobalPerms!.WardrobeEnabled && _playerData.GlobalPerms.RestraintSetAutoEquip;
 
     #region IPC Callbacks
     public async void ApplyStatusesByGuid(ApplyMoodlesByGuidDto dto)
@@ -144,6 +144,9 @@ public class ClientCallbackService
         var callbackGagSlot = callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer];
         var currentGagType = _playerData.AppearanceData!.GagSlots[(int)callbackGagLayer].GagType.ToGagType();
 
+        _logger.LogDebug("Callback State: {0} | Callback Layer: {1} | Callback GagType: {2} | Current GagType: {3}",
+            callbackGagState, callbackGagLayer, callbackGagSlot.GagType, currentGagType);
+
 
         // let's start handling the cases. For starters, if the NewState is apply..
         if (callbackGagState is NewState.Enabled)
@@ -151,12 +154,14 @@ public class ClientCallbackService
             // handle the case where we need to reapply, then...
             if (_playerData.AppearanceData!.GagSlots[(int)callbackGagLayer].GagType.ToGagType() != GagType.None)
             {
+                _logger.LogDebug("Gag is already applied. Removing before reapplying.");
                 // set up a task for removing and reapplying the gag glamours, and the another for updating the GagManager.
                 await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, currentGagType, NewState.Disabled);
                 // after its disabled,...
             }
 
             // ...apply the new version.
+            _logger.LogDebug("Applying Gag to Character Appearance.");
             await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), NewState.Enabled);
             _gagManager.OnGagTypeChanged(callbackGagLayer, callbackGagSlot.GagType.ToGagType());
         }
@@ -172,8 +177,8 @@ public class ClientCallbackService
         }
         else if (callbackGagState is NewState.Disabled)
         {
-            //await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, currentGagType, NewState.Disabled);
-            _gagManager.OnGagTypeChanged(callbackGagLayer, currentGagType);
+            await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, currentGagType, NewState.Disabled);
+            _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None);
         }
     }
 
@@ -190,41 +195,56 @@ public class ClientCallbackService
                 await _clientConfigs.SetRestraintSetState(activeSetIdx, "SelfApplied", NewState.Disabled, true);
             }
             _logger.LogDebug("Received Callback for Self-Wardrobe Data with DataUpdateKind: {0}", callbackDto.UpdateKind.ToName());
+            return;
         }
 
         var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
-        if (matchedPair == null) return;
+        if (matchedPair == null)
+        {
+            _logger.LogError("Received Update by player is no longer present.");
+            return;
+        }
 
-        if (!HasRestraintPermissions()) return;
+        if (!CanDoWardrobeInteract())
+        {
+            _logger.LogError("Player does not have permission to update their own wardrobe.");
+            return;
+        }
 
         int idx = _clientConfigs.GetRestraintSetIdxByName(callbackDto.WardrobeData.ActiveSetName);
-
-        switch (callbackDto.UpdateKind)
+        try
         {
-            case DataUpdateKind.WardrobeRestraintOutfitsUpdated:
-                _logger.LogError("Unexpected UpdateKind: WardrobeRestraintOutfitsUpdated.");
-                break;
+            switch (callbackDto.UpdateKind)
+            {
+                case DataUpdateKind.WardrobeRestraintOutfitsUpdated:
+                    _logger.LogError("Unexpected UpdateKind: WardrobeRestraintOutfitsUpdated.");
+                    break;
 
-            case DataUpdateKind.WardrobeRestraintApplied:
-                _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
-                await _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, NewState.Enabled, false);
-                break;
+                case DataUpdateKind.WardrobeRestraintApplied:
+                    _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
+                    await _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, NewState.Enabled, false);
+                    break;
 
-            case DataUpdateKind.WardrobeRestraintLocked:
-                _logger.LogDebug($"{callbackDto.User.UID} has forcibly locked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
-                _clientConfigs.LockRestraintSet(idx, callbackDto.WardrobeData.Padlock, callbackDto.WardrobeData.Password,
-                    callbackDto.WardrobeData.Timer, callbackDto.User.UID, false);
-                break;
+                case DataUpdateKind.WardrobeRestraintLocked:
+                    _logger.LogDebug($"{callbackDto.User.UID} has forcibly locked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
+                    _clientConfigs.LockRestraintSet(idx, callbackDto.WardrobeData.Padlock, callbackDto.WardrobeData.Password,
+                        callbackDto.WardrobeData.Timer, callbackDto.User.UID, false);
+                    break;
 
-            case DataUpdateKind.WardrobeRestraintUnlocked:
-                _logger.LogDebug($"{callbackDto.User.UID} has force unlocked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
-                _clientConfigs.UnlockRestraintSet(idx, callbackDto.User.UID, false);
-                break;
+                case DataUpdateKind.WardrobeRestraintUnlocked:
+                    _logger.LogDebug($"{callbackDto.User.UID} has force unlocked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
+                    _clientConfigs.UnlockRestraintSet(idx, callbackDto.User.UID, false);
+                    break;
 
-            case DataUpdateKind.WardrobeRestraintDisabled:
-                _logger.LogDebug($"{callbackDto.User.UID} has force disabled your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
-                await _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, NewState.Disabled, false);
-                break;
+                case DataUpdateKind.WardrobeRestraintDisabled:
+                    _logger.LogDebug($"{callbackDto.User.UID} has force disabled your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
+                    await _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, NewState.Disabled, false);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while processing Wardrobe Update.");
         }
 
     }

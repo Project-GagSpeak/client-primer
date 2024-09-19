@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 5, 2)
+            .RegisterMain("Clicking on the Privacy DTR bar opens a mini-window to click on player names to view locations.");
         VersionEntry(0, 8, 5, 1)
             .RegisterMain("Client now properly communicates with server and discord bot for messages and reconnections.");
         VersionEntry(0, 8, 4, 0)

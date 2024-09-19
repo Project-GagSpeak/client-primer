@@ -249,7 +249,7 @@ public static class GagSpeakServiceExtensions
 
         .AddSingleton((s) => new DtrBarService(s.GetRequiredService<ILogger<DtrBarService>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(),
-            s.GetRequiredService<PairManager>(), s.GetRequiredService<OnFrameworkService>(), cs, dtr))
+            s.GetRequiredService<PairManager>(), s.GetRequiredService<OnFrameworkService>(), cs, dm, dtr))
 
         // Utilities Services
         .AddSingleton<ILoggerProvider, Microsoft.Extensions.Logging.Console.ConsoleLoggerProvider>()
@@ -444,6 +444,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<DrawEntityFactory>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
+        .AddScoped<WindowMediatorSubscriberBase, DtrVisibleWindow>()
         .AddScoped<WindowMediatorSubscriberBase, ChangelogUI>()
         .AddScoped<WindowMediatorSubscriberBase, MigrationsUI>()
         .AddScoped<WindowMediatorSubscriberBase, RemotePersonal>()

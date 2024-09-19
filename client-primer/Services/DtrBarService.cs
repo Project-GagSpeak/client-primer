@@ -15,6 +15,11 @@ using System.Formats.Tar;
 using System.Net;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
+using FFXIVClientStructs.FFXIV.Client.Game.Fate;
+using Lumina.Excel.GeneratedSheets;
+using Dalamud.Game.Text;
+using GagSpeak.UI.MainWindow;
+using GagSpeak.UI.Components;
 
 namespace GagSpeak.UpdateMonitoring;
 
@@ -27,19 +32,23 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly IClientState _clientState;
+    private readonly IDataManager _gameData;
     private readonly IDtrBar _dtrBar;
     public DtrBarService(ILogger<DtrBarService> logger,
         GagspeakMediator mediator, ApiController apiController, 
         PairManager pairManager, OnFrameworkService frameworkUtils,
-        IClientState clientState, IDtrBar dtrBar) : base(logger, mediator)
+        IClientState clientState, IDataManager dataManager, 
+        IDtrBar dtrBar) : base(logger, mediator)
     {
         _apiController = apiController;
         _pairManager = pairManager;
         _frameworkUtils = frameworkUtils;
         _clientState = clientState;
+        _gameData = dataManager;
         _dtrBar = dtrBar;
 
         PrivacyEntry = _dtrBar.Get("GagSpeakPrivacy");
+        PrivacyEntry.OnClick += () => Mediator.Publish(new UiToggleMessage(typeof(DtrVisibleWindow)));
         PrivacyEntry.Shown = true;
         UpdateMessagesEntry = _dtrBar.Get("GagSpeakUpdateMessages");
         UpdateMessagesEntry.Shown = false;
@@ -55,7 +64,6 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
         {
             PrivacyEntry.Shown = false;
         });
-
         //Mediator.Subscribe<ToggleDtrBarMessage>(this, (_) => DtrBarEnabled = !DtrBarEnabled);
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => UpdateDtrBar());
     }
@@ -67,6 +75,8 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
         VibratorEntry.Remove();
         base.Dispose(disposing);
     }
+
+    public List<IPlayerCharacter> _visiblePlayers;
 
     public IDtrBarEntry PrivacyEntry { get; private set; }
     public IDtrBarEntry UpdateMessagesEntry { get; private set; }
@@ -87,6 +97,9 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
                     .Where(player => player != _clientState.LocalPlayer && !visiblePairGameObjects.Contains(player))
                     .ToList();
 
+                // Store the list of visible players
+                _visiblePlayers = playersNotInPairs;
+
                 var displayedPlayers = playersNotInPairs.Take(10).ToList();
                 var remainingCount = playersNotInPairs.Count - displayedPlayers.Count;
 
@@ -103,6 +116,48 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
                 PrivacyEntry.Tooltip = new SeString(new TextPayload(TooltipDisplay));
             }
         }
+    }
+
+    public void LocatePlayer(IPlayerCharacter player)
+    {
+        if(_gameData == null || _clientState == null) return;
+
+        try
+        {
+            //Logger.LogTrace("Player Locations:");
+            var map = _gameData.GetExcelSheet<TerritoryType>()?.GetRow(_clientState.TerritoryType)?.Map;
+            if (map == null)
+            {
+                Logger.LogError("Failed to get map data.");
+                return;
+            }
+
+            var coords = GenerateMapLinkMessageForObject(player);
+            Logger.LogTrace($"{player.Name} at {coords}");
+            var mapLink = new MapLinkPayload(_clientState.TerritoryType, map.Row, coords.Item1, coords.Item2);
+            _frameworkUtils.OpenMapWithMapLink(mapLink);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to locate player.");
+        }
+    }
+
+    private (float, float) GenerateMapLinkMessageForObject(IGameObject playerObject)
+    {
+        var place = _gameData.GetExcelSheet<Map>(_clientState.ClientLanguage)?.FirstOrDefault(m => m.TerritoryType.Row == _clientState.TerritoryType);
+        var placeName = place?.PlaceName.Row;
+        float scale = place?.SizeFactor ?? 100f;
+
+        return ((float)ToMapCoordinate(playerObject.Position.X, scale), (float)ToMapCoordinate(playerObject.Position.Z, scale));
+    }
+
+    // Ref: https://github.com/Bluefissure/MapLinker/blob/master/MapLinker/MapLinker.cs#L223
+    private double ToMapCoordinate(double val, float scale)
+    {
+        var c = scale / 100.0;
+        val *= c;
+        return ((41.0 / c) * ((val + 1024.0) / 2048.0)) + 1;
     }
 }
 

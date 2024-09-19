@@ -2,6 +2,8 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using GagSpeak.Services.Mediator;
@@ -82,6 +84,14 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
             }).ConfigureAwait(false);
         });
     }
+
+    public void OpenMapWithMapLink(MapLinkPayload mapLink)
+    {
+        _gameGui.OpenMapWithMapLink(mapLink);
+    }
+
+
+
     #region FrameworkMethods
     /// <summary> Ensures that we are running on the games framework thread. Throws exception if we are not. </summary>
     public void EnsureIsOnFramework()

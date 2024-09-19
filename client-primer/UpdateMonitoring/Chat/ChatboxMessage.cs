@@ -9,6 +9,7 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Controllers;
 using GagSpeak.Utils;
+using Territory = FFXIVClientStructs.FFXIV.Client.Game.UI.TerritoryInfo;
 
 namespace GagSpeak.UpdateMonitoring.Chat;
 
@@ -19,7 +20,7 @@ namespace GagSpeak.UpdateMonitoring.Chat;
 /// It is worth noting that this detection occurs after the message is sent to the server, and should not be
 /// depended on for translation prior to sending.
 /// </summary>
-public class ChatBoxMessage : DisposableMediatorSubscriberBase
+public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
 {
     //    private readonly ClientConfigurationManager _clientConfigs;
     private readonly PuppeteerHandler _puppeteerHandler;
@@ -28,6 +29,8 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
     private readonly IChatGui _chat;
     private readonly IClientState _clientState;
     private Stopwatch messageTimer; // Stopwatch Timer for time between messages sent (should no longer be needed since we are not sending chained messages)
+
+    private unsafe Territory* info = Territory.Instance();
 
     /// <summary> This is the constructor for the OnChatMsgManager class. </summary>
     public ChatBoxMessage(ILogger<ChatBoxMessage> logger, GagspeakMediator mediator,
@@ -90,13 +93,14 @@ public class ChatBoxMessage : DisposableMediatorSubscriberBase
         {
             string text = payloadType.Type.ToString();
             if (payloadType.Type is PayloadType.RawText) text = text + "(" + payloadType.ToString() + ")";
+            if (payloadType.Type is PayloadType.MapLink) text = text + "(" + payloadType.ToString() + ")";
             if (payloadType is PlayerPayload playerPayload)
             {
                 Logger.LogInformation("Player Payload: " + playerPayload.PlayerName + "@" + playerPayload.World.Name);
             }
             Logger.LogInformation("Payload Type: " + text);
-        }*/
-
+        }
+*/
         // Handle the special case where we are checking a DeathRoll
         if (type == (XivChatType)2122 || type == (XivChatType)8266 || type == (XivChatType)4170)
         {

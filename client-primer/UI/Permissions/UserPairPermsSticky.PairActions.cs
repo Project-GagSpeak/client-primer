@@ -3,23 +3,22 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
-using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Interfaces;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.Toybox;
+using GagspeakAPI.Enums;
+using GagspeakAPI.Extensions;
 using ImGuiNET;
 using OtterGui.Text;
-using ProjectGagspeakAPI.Data;
+using GagspeakAPI.Data;
 using System.Numerics;
-using GagspeakAPI.Extensions;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -282,7 +281,7 @@ public partial class UserPairPermsSticky
                 ImGui.SetNextItemWidth(width);
                 if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", UserPairForPerms.LastReceivedAppearanceData.GagSlots[_permActions.GagLayer].Padlock ?? "Not Lock Active")) { ImGui.EndCombo(); }
                 ImUtf8.SameLineInner();
-                if(_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock", ImGui.GetContentRegionAvail().X, false, disabled))
+                if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock", ImGui.GetContentRegionAvail().X, false, disabled))
                 {
                     try
                     {
@@ -809,7 +808,7 @@ public partial class UserPairPermsSticky
         }
         UiSharedService.AttachToolTip("Toggle " + PairUID + "'s Alarms.");
         if (ShowPatternExecute)
-        { 
+        {
             using (var actionChild = ImRaii.Child("AlarmToggleChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
                 if (!actionChild) return;

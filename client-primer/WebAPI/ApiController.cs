@@ -361,6 +361,14 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         if (_serverConfigs.CurrentServer?.FullPause ?? true)
         {
             Logger.LogInformation("Stopping connection because user has wished to disconnect");
+            if (_serverConfigs.CurrentServer is not null && !_serverConfigs.CurrentServer.FullPause && !_serverConfigs.CurrentServer.ToyboxFullPause)
+            {
+                Logger.LogTrace("Disconnecting from Toybox Server because both connections were active.");
+                _serverConfigs.CurrentServer.ToyboxFullPause = !_serverConfigs.CurrentServer.ToyboxFullPause;
+                _serverConfigs.Save();
+                _ = CreateToyboxConnection();
+            }
+
             _connectionDto = null;
             await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
             _connectionCTS?.Cancel();

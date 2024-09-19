@@ -14,7 +14,6 @@ using ImGuiNET;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
-using ProjectGagspeakAPI.Data;
 
 namespace GagSpeak.Services.ConfigurationServices;
 

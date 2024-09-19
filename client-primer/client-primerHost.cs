@@ -375,7 +375,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new IpcCallerPenumbra(s.GetRequiredService<ILogger<IpcCallerPenumbra>>(), pi,
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
         .AddSingleton((s) => new IpcCallerGlamourer(s.GetRequiredService<ILogger<IpcCallerGlamourer>>(), pi, cs,
-            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>(),
+            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ItemIdVars>(), s.GetRequiredService<IpcFastUpdates>()))
         .AddSingleton((s) => new IpcCallerCustomize(s.GetRequiredService<ILogger<IpcCallerCustomize>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<OnFrameworkService>(),

@@ -1,11 +1,8 @@
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagspeakAPI.Data;
-using GagspeakAPI.Enums;
-using ProjectGagspeakAPI.Data;
 using GagSpeak.Toybox.Services;
+using GagspeakAPI.Data;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -141,7 +138,7 @@ public class AlarmHandler : MediatorSubscriberBase
 
         _lastExecutionTime = DateTime.Now; // Update the last execution time
 
-        if(_clientConfigs.GagspeakConfig.LogBatteryAndAlarmChecks)
+        if (_clientConfigs.GagspeakConfig.LogBatteryAndAlarmChecks)
             Logger.LogTrace("Checking Alarms");
 
         // Iterate through each stored alarm

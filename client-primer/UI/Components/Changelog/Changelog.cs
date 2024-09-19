@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 5, 1)
+            .RegisterMain("Client now properly communicates with server and discord bot for messages and reconnections.");
         VersionEntry(0, 8, 4, 0)
             .RegisterMain("Reworked entire backend for how Client Player Data is stored and synced.")
             .RegisterFeature("You can now 'REAPPLY' to game/Automation, retaining your customizations.")

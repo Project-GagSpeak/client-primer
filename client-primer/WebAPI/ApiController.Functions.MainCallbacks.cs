@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using GagspeakAPI.Dto.IPC;
 using GagSpeak.Utils;
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Common.Lua;
 
 namespace GagSpeak.WebAPI;
 
@@ -73,7 +74,20 @@ public partial class ApiController // Partial class for MainHub Callbacks
         // we need to update the api server state to be stopped if connected
         if (ServerState == ServerState.Connected)
         {
-            _ = Task.Run(async () => await StopConnection(newServerState).ConfigureAwait(false));
+            _ = Task.Run(async () =>
+            {
+                // pause the server state
+                _serverConfigs.CurrentServer.FullPause = true;
+                _serverConfigs.Save();
+                _doNotNotifyOnNextInfo = true;
+                // create a new connection to force the disconnect.
+                await CreateConnections().ConfigureAwait(false);
+                // after it stops, switch the connection pause back to false and create a new connection.
+                _serverConfigs.CurrentServer.FullPause = false;
+                _serverConfigs.Save();
+                _doNotNotifyOnNextInfo = true;
+                await CreateConnections().ConfigureAwait(false);
+            });
         }
         // return completed
         return Task.CompletedTask;

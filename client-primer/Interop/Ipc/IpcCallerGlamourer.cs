@@ -13,6 +13,7 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Utils;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
+using GagSpeak.GagspeakConfiguration;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -24,6 +25,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     /* ------------- Class Attributes ------------- */
     private readonly IDalamudPluginInterface _pi;
     private readonly IClientState _clientState;
+    private readonly GagspeakConfigService _gagspeakConfig;
     private readonly OnFrameworkService _onFrameworkService;
     private readonly ItemIdVars _itemHelper;
     private readonly IpcFastUpdates _fastUpdates;
@@ -44,10 +46,12 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public IpcCallerGlamourer(ILogger<IpcCallerGlamourer> logger,
         IDalamudPluginInterface pluginInterface, IClientState clientState,
-        OnFrameworkService OnFrameworkService, GagspeakMediator mediator,
-        ItemIdVars itemHelper, IpcFastUpdates fastUpdates) : base(logger, mediator)
+        GagspeakConfigService clientConfigs, OnFrameworkService OnFrameworkService, 
+        GagspeakMediator mediator, ItemIdVars itemHelper, 
+        IpcFastUpdates fastUpdates) : base(logger, mediator)
     {
         _pi = pluginInterface;
+        _gagspeakConfig = clientConfigs;
         _onFrameworkService = OnFrameworkService;
         _clientState = clientState;
         _itemHelper = itemHelper;
@@ -110,8 +114,32 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
         _glamourChanged.Disable();
         _glamourChanged?.Dispose();
-        // revert our character back to the base game state
-        Task.Run(async () => await GlamourerRevertToAutomation());
+        // revert our character back to the base game state (But dont if we are closing the game)
+        // now perform a revert based on our customization option
+        if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.Address != nint.Zero)
+        {
+            Task.Run(async () =>
+            {
+                switch (_gagspeakConfig.Current.RevertStyle)
+                {
+                    case RevertStyle.RevertToGame:
+                        await GlamourerRevertToGame();
+                        break;
+
+                    case RevertStyle.RevertEquipToGame:
+                        await GlamourerRevertToGameEquipOnly();
+                        break;
+
+                    case RevertStyle.RevertToAutomation:
+                        await GlamourerRevertToAutomation();
+                        break;
+
+                    case RevertStyle.RevertEquipToAutomation:
+                        await GlamourerRevertToAutomationEquipOnly();
+                        break;
+                }
+            });
+        }
     }
 
     /// <summary> ========== BEGIN OUR IPC CALL MANAGEMENT UNDER ASYNC TASKS ========== </summary>

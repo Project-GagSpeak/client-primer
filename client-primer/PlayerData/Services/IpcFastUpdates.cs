@@ -1,6 +1,6 @@
 using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using Glamourer.Api.Enums;
 
 namespace GagSpeak.PlayerData.Services;

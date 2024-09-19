@@ -5,7 +5,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagspeakAPI.Dto.UserPair;
 using GagSpeak.PlayerData.PrivateRooms;
 using GagspeakAPI.Data;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Data;
 
 namespace GagSpeak.PlayerData.Factories;
 

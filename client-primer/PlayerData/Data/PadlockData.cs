@@ -1,4 +1,4 @@
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 
 namespace GagSpeak.PlayerData.Data;
 public struct PadlockData // good for transferring across mediators.

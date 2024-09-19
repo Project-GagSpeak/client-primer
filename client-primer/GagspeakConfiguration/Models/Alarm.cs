@@ -1,4 +1,4 @@
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Data;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
 

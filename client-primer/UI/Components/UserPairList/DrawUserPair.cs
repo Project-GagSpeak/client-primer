@@ -7,7 +7,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Handlers;
 using GagSpeak.UI.Permissions;
 using GagSpeak.WebAPI;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
 using ImGuiNET;
@@ -189,7 +189,7 @@ public class DrawUserPair
         {
             userPairText += UiSharedService.TooltipSeparator + "User has not added you back";
         }
-        else if (_pair.IndividualPairStatus == GagspeakAPI.Data.Enum.IndividualPairStatus.Bidirectional)
+        else if (_pair.IndividualPairStatus == IndividualPairStatus.Bidirectional)
         {
             userPairText += UiSharedService.TooltipSeparator + "You are directly Paired";
         }
@@ -283,7 +283,7 @@ public class DrawUserPair
     {
         var entryUID = _pair.UserData.AliasOrUID;
 
-        if (_pair.IndividualPairStatus != GagspeakAPI.Data.Enum.IndividualPairStatus.None)
+        if (_pair.IndividualPairStatus != IndividualPairStatus.None)
         {
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", _menuWidth, true) && UiSharedService.CtrlPressed())
             {

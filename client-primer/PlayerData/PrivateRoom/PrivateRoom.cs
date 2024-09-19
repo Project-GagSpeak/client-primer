@@ -3,7 +3,7 @@ using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Comparer;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Data;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.User;

@@ -1,6 +1,6 @@
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Data;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.User;
 

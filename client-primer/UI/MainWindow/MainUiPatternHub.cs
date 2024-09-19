@@ -6,7 +6,7 @@ using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Text;

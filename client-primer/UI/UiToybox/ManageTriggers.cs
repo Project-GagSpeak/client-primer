@@ -15,14 +15,15 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Controllers;
 using GagSpeak.Toybox.Services;
 using GagSpeak.Utils;
-using GagspeakAPI.Data.Enum;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Enums;
+using GagspeakAPI.Data;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Text;
 using System.Numerics;
 using GameAction = Lumina.Excel.GeneratedSheets.Action;
+using GagspeakAPI.Extensions;
 
 namespace GagSpeak.UI.UiToybox;
 

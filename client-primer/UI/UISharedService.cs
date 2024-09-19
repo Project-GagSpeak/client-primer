@@ -19,7 +19,7 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using ImGuiNET;
 using Interop.Ipc;
 using OtterGui.Text;

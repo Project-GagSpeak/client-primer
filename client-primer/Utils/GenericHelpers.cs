@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using Lumina.Misc;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using System.Runtime.InteropServices;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 
 namespace GagSpeak.Utils;
 

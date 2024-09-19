@@ -10,7 +10,7 @@ using GagSpeak.Toybox.Services;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Enums;
 using ImGuiNET;
 using OtterGui.Text;
 

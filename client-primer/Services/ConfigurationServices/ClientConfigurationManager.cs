@@ -9,12 +9,12 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using ImGuiNET;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
-using ProjectGagspeakAPI.Data.VibeServer;
+using ProjectGagspeakAPI.Data;
 
 namespace GagSpeak.Services.ConfigurationServices;
 

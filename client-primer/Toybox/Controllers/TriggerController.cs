@@ -16,10 +16,11 @@ using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
-using GagspeakAPI.Data.Enum;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Enums;
+using GagspeakAPI.Data;
 using System.Text.RegularExpressions;
 using GameAction = Lumina.Excel.GeneratedSheets.Action;
+using GagspeakAPI.Extensions;
 
 namespace GagSpeak.Toybox.Controllers;
 

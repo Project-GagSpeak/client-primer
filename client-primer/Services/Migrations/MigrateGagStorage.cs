@@ -1,7 +1,7 @@
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Utils;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using Penumbra.GameData.Enums;
 
 namespace GagSpeak.Services;

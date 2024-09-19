@@ -7,7 +7,8 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
+using GagspeakAPI.Extensions;
 using Glamourer.Api.Enums;
 using Interop.Ipc;
 using Penumbra.GameData.Enums;
@@ -43,11 +44,11 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         _cts = new CancellationTokenSource(); // for handling gearset changes
 
         // subscribe to our mediator for glamour changed
-        _ipcFastUpdates.GlamourEventFired += UpdateGenericAppearance;
+        _ipcFastUpdates.GlamourEventFired += (sender, updateType) => UpdateGenericAppearance(updateType);
         _ipcFastUpdates.CustomizeEventFired += EnsureForcedCustomizeProfile;
 
         // gag glamour updates
-        Mediator.Subscribe<UpdateGlamourGagsMessage>(this, async (msg) =>
+        Mediator.Subscribe<UpdateGlamourGagsMessage>(this, async (msg) => 
         {
             await UpdateGagsAppearance(msg.Layer, msg.GagType, msg.NewState);
         });
@@ -57,6 +58,8 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
         // blindfold glamour updates
         Mediator.Subscribe<UpdateGlamourBlindfoldMessage>(this, (msg) => UpdateGlamourerBlindfoldAppearance(msg));
+
+        Mediator.Subscribe<ZoneSwitchEndMessage>(this, (_) => UpdateGenericAppearance(GlamourUpdateType.ZoneChange));
     }
 
     protected override void Dispose(bool disposing)
@@ -64,7 +67,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         base.Dispose(disposing);
 
         // unsub
-        _ipcFastUpdates.GlamourEventFired -= UpdateGenericAppearance;
+        _ipcFastUpdates.GlamourEventFired -= (sender, updateType) => UpdateGenericAppearance(updateType);
         _ipcFastUpdates.CustomizeEventFired -= EnsureForcedCustomizeProfile;
     }
 
@@ -130,7 +133,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
     }
 
 
-    public async void UpdateGenericAppearance(object sender, GlamourUpdateType updateType)
+    public async void UpdateGenericAppearance(GlamourUpdateType updateType)
     {
         await ExecuteWithSemaphore(async () =>
         {

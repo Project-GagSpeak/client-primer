@@ -6,7 +6,7 @@ using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Data;
 using ImGuiNET;
 using OtterGui.Classes;
 using System.Globalization;

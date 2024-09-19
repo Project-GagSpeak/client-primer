@@ -7,7 +7,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.GagspeakConfiguration;
 using Dalamud.Interface.Textures.TextureWraps;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 
 namespace GagSpeak.UI.Handlers;
 

@@ -9,13 +9,13 @@ using GagSpeak.UI;
 using GagSpeak.UI.Permissions;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Dto.Connection;
 using Glamourer.Api.Enums;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using System.Numerics;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Data;
 using GagSpeak.PlayerData.PrivateRooms;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.IPC;
@@ -26,12 +26,8 @@ namespace GagSpeak.Services.Mediator;
 #pragma warning disable MA0048, S2094
 
 /* ------------------ MESSAGE RELATED RECORDS ------------------ */
-public record NotificationMessage // the record indicating a notification message that should be send to the client.
-    (string Title, string Message, NotificationType Type, TimeSpan? TimeShownOnScreen = null) : MessageBase;
-
-
-/* ------------------ EVENT LOGGER RECORDS ------------------ */
-public record EventMessage(Event Event) : MessageBase; // an event message for logging purposes. (used in APIController, see there for ref
+public record NotificationMessage(string Title, string Message, NotificationType Type, TimeSpan? TimeShownOnScreen = null) : MessageBase;
+public record EventMessage(Event Event) : MessageBase;
 
 
 /* ------------------ MAIN HUB RECORDS ------------------ */
@@ -63,7 +59,6 @@ public record DelayedFrameworkUpdateMessage : SameThreadMessage; // a message in
 public record CutsceneEndMessage : MessageBase; // helps us know when to reapply data like moodles.
 public record ZoneSwitchStartMessage : MessageBase; // know when we are beginning to switch zones
 public record ZoneSwitchEndMessage : MessageBase; // know when we have finished switching zones
-public record HaltScanMessage(string Source) : MessageBase; // know when we should stop scanning
 public record ResumeScanMessage(string Source) : MessageBase; // know when we should resume scanning
 
 
@@ -89,9 +84,7 @@ public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item
 public record HelmetStateChangedMessage(bool ChangedState) : MessageBase; // called whenever the client changes their helmet state.
 public record VisorStateChangedMessage(bool ChangedState) : MessageBase; // called whenever the client changes their visor state.
 
-
-#region PLAYERDATA WARDROBE HANDLER RECORDS
-// Toggle mods in a separate awaiting task so any applied mods have the animations/vfx the mods contained on the first redraw we see.
+////////////// WARDROBE RELATED RECORDS //////////////
 public record RestraintSetToggleModsMessage(int SetIdx, NewState State, TaskCompletionSource<bool>? ModToggleTask = null) : MessageBase; 
 public record RestraintSetToggleMoodlesMessage(int SetIdx, NewState State, TaskCompletionSource<bool>? MoodlesTask = null) : MessageBase;
 public record RestraintSetToggleHardcoreTraitsMessage(int SetIdx, string AssignerUID, NewState State, TaskCompletionSource<bool>? HardcoreTraitsTask = null) : MessageBase;
@@ -104,14 +97,13 @@ public record HardcoreForcedBlindfoldMessage(Pair Pair, NewState State) : Messag
 public record HardcoreUpdatedShareCodeForPair(Pair pair, string ShareCode) : MessageBase;
 public record MovementRestrictionChangedMessage(MovementRestrictionType Type, NewState NewState) : MessageBase;
 public record MoodlesPermissionsUpdated(string NameWithWorld) : MessageBase;
-#endregion PLAYERDATA WARDROBE HANDLER RECORDS
 
-#region PLAYERDATA PUPPETEER HANDLER RECORDS
+////////////// PUPPETEER RELATED RECORDS //////////////
 public record UpdateChatListeners : MessageBase; // for updating the chat listeners.
 public record UpdateCharacterListenerForUid(string Uid, string CharName, string CharWorld) : MessageBase;
-#endregion PLAYERDATA PUPPETEER HANDLER RECORDS
 
-#region PLAYERDATA TOYBOX HANDLER RECORDS
+
+////////////// TOYBOX RELATED RECORDS //////////////
 public record VfxActorRemoved(IntPtr data) : MessageBase;
 public record ToyScanStarted : MessageBase; // for when the toybox scan is started.
 public record ToyScanFinished : MessageBase; // for when the toybox scan is finished.
@@ -124,7 +116,7 @@ public record PlaybackStateToggled(Guid PatternId, NewState NewState) : MessageB
 public record PatternRemovedMessage(Guid PatternId) : MessageBase; // for when a pattern is removed.
 public record TriggersModifiedMessage : MessageBase;
 public record ExecuteHealthPercentTriggerMessage(HealthPercentTrigger Trigger) : MessageBase;
-#endregion PLAYERDATA TOYBOX HANDLER RECORDS
+
 
 /* ------------------ PLAYERDATA CLIENTSIDE PERMISSION HANDLING ------------------- */
 public record ClientGlobalPermissionChanged(string Permission, object Value) : MessageBase; // for when a client global permission is changed.

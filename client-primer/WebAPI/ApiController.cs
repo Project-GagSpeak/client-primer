@@ -1,7 +1,7 @@
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Utility;
 using GagspeakAPI.Data;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.SignalR;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
@@ -16,6 +16,7 @@ using System.Reflection;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.PlayerData.Services;
+using GagspeakAPI.Enums;
 
 namespace GagSpeak.WebAPI;
 

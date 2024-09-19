@@ -11,7 +11,7 @@ using GagSpeak.UI.Profile;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using ImGuiNET;
 using System.Numerics;
 

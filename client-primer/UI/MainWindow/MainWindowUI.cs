@@ -9,7 +9,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
 using GagSpeak.WebAPI;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using ImGuiNET;
 using System.Globalization;
 using System.Numerics;

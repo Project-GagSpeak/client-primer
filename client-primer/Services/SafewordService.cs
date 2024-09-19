@@ -7,7 +7,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagSpeak.WebAPI;
 using GagSpeak.WebAPI.Utils;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using JetBrains.Annotations;

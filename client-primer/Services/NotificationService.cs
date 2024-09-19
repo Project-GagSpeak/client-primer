@@ -1,12 +1,9 @@
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
-using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Services.Mediator;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Models;
-using Microsoft.Extensions.Logging;
+using GagSpeak.Services.Mediator;
 
 namespace GagSpeak.Services;
 
@@ -17,7 +14,7 @@ public class NotificationService : DisposableMediatorSubscriberBase
     private readonly GagspeakConfigService _configurationService;
 
     public NotificationService(ILogger<NotificationService> logger, GagspeakMediator mediator,
-        INotificationManager notificationManager, IChatGui chatGui, 
+        INotificationManager notificationManager, IChatGui chatGui,
         GagspeakConfigService configurationService) : base(logger, mediator)
     {
         _notificationManager = notificationManager;
@@ -25,6 +22,13 @@ public class NotificationService : DisposableMediatorSubscriberBase
         _configurationService = configurationService;
 
         Mediator.Subscribe<NotificationMessage>(this, ShowNotification);
+
+        // notify about live chat garbler on zone switch.
+        Mediator.Subscribe<ZoneSwitchStartMessage>(this, (_) =>
+        {
+            if (_configurationService.Current.LiveGarblerZoneChangeWarn)
+                ShowNotification(new NotificationMessage("Zone Switch", "Live Chat Garbler is still Active!", NotificationType.Warning));
+        });
     }
 
     private void PrintErrorChat(string? message)
@@ -111,7 +115,7 @@ public class NotificationService : DisposableMediatorSubscriberBase
 
     private void ShowToast(NotificationMessage msg)
     {
-        _notificationManager.AddNotification(new Dalamud.Interface.ImGuiNotification.Notification()
+        _notificationManager.AddNotification(new Notification()
         {
             Content = msg.Message ?? string.Empty,
             Title = msg.Title,

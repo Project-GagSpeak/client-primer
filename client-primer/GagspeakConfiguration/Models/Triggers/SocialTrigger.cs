@@ -1,5 +1,5 @@
-using GagspeakAPI.Data.Enum;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Enums;
+using GagspeakAPI.Data;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
 

@@ -2,7 +2,8 @@ using Dalamud.Plugin.Services;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Data;
+using GagspeakAPI.Enums;
 using Lumina.Excel.GeneratedSheets;
 using GameAction = Lumina.Excel.GeneratedSheets.Action;
 

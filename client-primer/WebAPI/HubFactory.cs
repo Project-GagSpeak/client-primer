@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI.Utils;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 
 namespace GagSpeak.WebAPI;
 

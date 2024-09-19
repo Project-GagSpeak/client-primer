@@ -461,6 +461,7 @@ public static class GagSpeakServiceExtensions
         .AddScoped<WindowMediatorSubscriberBase, PopupHandler>()
         .AddScoped<IPopupHandler, VerificationPopupHandler>()
         .AddScoped<IPopupHandler, SavePatternPopupHandler>()
+        .AddScoped<IPopupHandler, ReportPopupHandler>()
         .AddScoped<CacheCreationService>()
         .AddScoped((s) => new CosmeticTexturesService(tp, pi))
         .AddScoped<TextureService>()

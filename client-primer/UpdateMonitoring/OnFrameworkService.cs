@@ -400,7 +400,6 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                     _logger.LogDebug("Zone switch/Gpose start");
                     _sentBetweenAreas = true;
                     Mediator.Publish(new ZoneSwitchStartMessage());
-                    Mediator.Publish(new HaltScanMessage(nameof(ConditionFlag.BetweenAreas))); // remove later maybe
                 }
             }
             // do an early return so we dont hit the sentBetweenAreas conditional below

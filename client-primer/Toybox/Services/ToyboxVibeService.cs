@@ -5,7 +5,8 @@ using GagSpeak.Toybox.Controllers;
 using GagSpeak.Toybox.SimulatedVibe;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Data;
+using GagspeakAPI.Enums;
 
 namespace GagSpeak.Toybox.Services;
 // handles the management of the connected devices or simulated vibrator.

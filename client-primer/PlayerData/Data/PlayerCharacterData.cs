@@ -6,11 +6,12 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Dto.Permissions;
 using System.Reflection;
+using GagspeakAPI.Extensions;
 
 namespace GagSpeak.PlayerData.Data;
 

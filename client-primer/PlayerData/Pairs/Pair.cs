@@ -4,7 +4,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Dto.User;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Dto.Connection;

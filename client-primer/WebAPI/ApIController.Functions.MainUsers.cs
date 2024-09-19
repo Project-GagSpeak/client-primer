@@ -5,7 +5,7 @@ using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
 using Microsoft.AspNetCore.SignalR.Client;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.IPC;
 using GagspeakAPI.Dto.Patterns;

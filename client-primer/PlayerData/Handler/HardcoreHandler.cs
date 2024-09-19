@@ -9,7 +9,7 @@ using GagSpeak.UI.MainWindow;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using System.Numerics;
 
 namespace GagSpeak.PlayerData.Handlers;

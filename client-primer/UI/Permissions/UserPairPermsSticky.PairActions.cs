@@ -9,7 +9,7 @@ using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Interfaces;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
@@ -17,8 +17,9 @@ using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.Toybox;
 using ImGuiNET;
 using OtterGui.Text;
-using ProjectGagspeakAPI.Data.VibeServer;
+using ProjectGagspeakAPI.Data;
 using System.Numerics;
+using GagspeakAPI.Extensions;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -106,8 +107,6 @@ public partial class UserPairPermsSticky
 
         if (!UserPairForPerms.IsPaused)
         {
-            ImGui.Separator();
-            ImGui.TextUnformatted("Pair reporting");
             if (_uiShared.IconTextButton(FontAwesomeIcon.ExclamationTriangle, "Report GagSpeak Profile", WindowMenuWidth, true))
             {
                 ImGui.CloseCurrentPopup();
@@ -181,6 +180,7 @@ public partial class UserPairPermsSticky
                     {
                         var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
                         if (newAppearance == null) throw new Exception("Appearance data is null, not sending");
+
                         newAppearance.GagSlots[_permActions.GagLayer].GagType = onButtonPress.GagName();
                         DataUpdateKind updateKind = _permActions.GagLayer switch
                         {
@@ -282,13 +282,13 @@ public partial class UserPairPermsSticky
                 ImGui.SetNextItemWidth(width);
                 if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", UserPairForPerms.LastReceivedAppearanceData.GagSlots[_permActions.GagLayer].Padlock ?? "Not Lock Active")) { ImGui.EndCombo(); }
                 ImUtf8.SameLineInner();
-                if(_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock", ImGui.GetContentRegionAvail().X, true, disabled))
+                if(_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock", ImGui.GetContentRegionAvail().X, false, disabled))
                 {
                     try
                     {
                         var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
                         if (newAppearance == null) throw new Exception("Appearance data is null or unlock is invalid. not sending");
-
+                        _logger.LogDebug("Verifying password for padlock: " + selected.ToName() + "with password " + _permActions.Password);
                         if (_permActions.PadlockVerifyUnlock<IPadlockable>(newAppearance.GagSlots[_permActions.GagLayer], selected, canUseOwnerLocks))
                         {
                             newAppearance.GagSlots[_permActions.GagLayer].Padlock = selected.ToName();
@@ -486,10 +486,13 @@ public partial class UserPairPermsSticky
                 bool disabled = selected == Padlocks.None || !pairUniquePerms.UnlockRestraintSets;
                 // Draw combo
                 float width = WindowMenuWidth - ImGui.GetStyle().ItemInnerSpacing.X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Unlock, "Unlock");
-                ImGui.SetNextItemWidth(width);
-                if (ImGui.BeginCombo("##DummyComboDisplayLockedRestraintSet", UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName ?? "No Set Lock Active")) { ImGui.EndCombo(); }
+                using (ImRaii.Disabled(true))
+                {
+                    ImGui.SetNextItemWidth(width);
+                    if (ImGui.BeginCombo("##DummyComboDisplayLockedRestraintSet", UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName ?? "No Set Lock Active")) { ImGui.EndCombo(); }
+                }
                 ImUtf8.SameLineInner();
-                if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock", ImGui.GetContentRegionAvail().X, true, disabled))
+                if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock", ImGui.GetContentRegionAvail().X, false, disabled))
                 {
                     try
                     {
@@ -806,7 +809,7 @@ public partial class UserPairPermsSticky
         }
         UiSharedService.AttachToolTip("Toggle " + PairUID + "'s Alarms.");
         if (ShowPatternExecute)
-        {
+        { 
             using (var actionChild = ImRaii.Child("AlarmToggleChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
                 if (!actionChild) return;
@@ -1127,7 +1130,7 @@ public partial class UserPairPermsSticky
     {
         var entryUID = UserPairForPerms.UserData.AliasOrUID;
 
-        if (UserPairForPerms.IndividualPairStatus != GagspeakAPI.Data.Enum.IndividualPairStatus.None)
+        if (UserPairForPerms.IndividualPairStatus != IndividualPairStatus.None)
         {
             if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", WindowMenuWidth, true) && UiSharedService.CtrlPressed())
             {

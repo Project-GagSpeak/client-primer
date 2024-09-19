@@ -2,7 +2,8 @@ using GagSpeak.MufflerCore.Handler;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
+using GagspeakAPI.Extensions;
 
 namespace GagSpeak.PlayerData.Data;
 

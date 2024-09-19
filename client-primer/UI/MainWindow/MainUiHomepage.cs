@@ -10,7 +10,7 @@ using GagSpeak.UI.UiToybox;
 using GagSpeak.UI.UiWardrobe;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using ImGuiNET;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;

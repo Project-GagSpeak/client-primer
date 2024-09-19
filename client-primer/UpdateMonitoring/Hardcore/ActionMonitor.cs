@@ -16,7 +16,7 @@ using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using System.Collections.Immutable;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 

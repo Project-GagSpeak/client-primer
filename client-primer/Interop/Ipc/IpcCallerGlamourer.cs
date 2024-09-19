@@ -5,7 +5,7 @@ using Dalamud.Plugin.Services;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using Glamourer.Api.Enums;
 using Glamourer.Api.Helpers;
 using Glamourer.Api.IpcSubscribers;
@@ -111,7 +111,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         _glamourChanged.Disable();
         _glamourChanged?.Dispose();
         // revert our character back to the base game state
-        GlamourerRevertToAutomation();
+        Task.Run(async () => await GlamourerRevertToAutomation());
     }
 
     /// <summary> ========== BEGIN OUR IPC CALL MANAGEMENT UNDER ASYNC TASKS ========== </summary>
@@ -222,7 +222,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
                     playerState!["Equipment"]!["Visor"]!["Apply"] = true;
                 }
 
-                var ret = _ApplyState.Invoke(playerState!, _clientState.LocalPlayer.ObjectIndex);
+                var ret = _ApplyState.Invoke(playerState!, 0);
                 return ret == GlamourerApiEc.Success;
             }).ConfigureAwait(false);
         }

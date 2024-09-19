@@ -1,10 +1,10 @@
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using Microsoft.Extensions.Logging;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.UI;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.ChatMessages;
-using GagspeakAPI.Data.VibeServer;
+using GagspeakAPI.Data;
 using GagSpeak.Hardcore;
 
 namespace GagSpeak.GagspeakConfiguration.Configurations;
@@ -58,7 +58,7 @@ public class GagspeakConfig : IGagspeakConfiguration
     public string Safeword { get; set; } = "";
     public string Language { get; set; } = "English"; // MuffleCore
     public string LanguageDialect { get; set; } = "IPA_US"; // MuffleCore
-    public bool LiveGarblerZoneChangeWarn { get; set; } = false; // LiveChatGarbler Warnings
+    public bool LiveGarblerZoneChangeWarn { get; set; } = true; // LiveChatGarbler Warnings
     public bool RemoveGagUponLockExpiration { get; set; } = false; // Auto-Remove Gags
     public RevertStyle RevertStyle { get; set; } = RevertStyle.RevertToGame; // How to revert Character when reset
     public bool DisableSetUponUnlock { get; set; } = false; // Auto-Remove Restraint Sets

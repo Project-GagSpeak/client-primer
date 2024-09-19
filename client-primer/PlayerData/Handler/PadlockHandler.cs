@@ -1,7 +1,7 @@
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.UI;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using ImGuiNET;
 using OtterGui.Text;
 using System.Text.RegularExpressions;

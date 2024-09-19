@@ -9,7 +9,7 @@ using ImGuiNET;
 using ImPlotNET;
 using System.Timers;
 using GagSpeak.Utils;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 
 namespace GagSpeak.UI.Components;
 

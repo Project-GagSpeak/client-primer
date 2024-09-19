@@ -1,5 +1,5 @@
 using GagSpeak.Services.Mediator;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using System.Reflection;

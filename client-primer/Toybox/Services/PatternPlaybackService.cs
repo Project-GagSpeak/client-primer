@@ -1,7 +1,7 @@
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using NAudio.Wave;
 using GagSpeak.Utils;
 

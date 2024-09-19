@@ -3,7 +3,7 @@ using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using GagSpeak.GagspeakConfiguration;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using static FFXIVClientStructs.FFXIV.Client.Game.Character.ActionEffectHandler;

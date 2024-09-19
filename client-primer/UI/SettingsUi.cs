@@ -19,7 +19,7 @@ using GagSpeak.UpdateMonitoring.SpatialAudio.Spawner;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
@@ -771,8 +771,17 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var onlineNotifs = _configService.Current.ShowOnlineNotifications;
         var onlineNotifsPairsOnly = _configService.Current.ShowOnlineNotificationsOnlyForIndividualPairs;
         var onlineNotifsNamedOnly = _configService.Current.ShowOnlineNotificationsOnlyForNamedPairs;
+        var liveGarblerZoneChangeWarn = _configService.Current.LiveGarblerZoneChangeWarn;
 
         _uiShared.BigText("Notifications");
+
+        if (ImGui.Checkbox("Warn User if Live Chat Garbler is still active on Zone Change", ref liveGarblerZoneChangeWarn))
+        {
+            _configService.Current.LiveGarblerZoneChangeWarn = liveGarblerZoneChangeWarn;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText("Displays a notification to you if you change zones while your live garbler is still active."+
+            Environment.NewLine + "Helpful for preventing any accidental muffled statements in unwanted chats~");
 
         if (ImGui.Checkbox("Enable online notifications", ref onlineNotifs))
         {
@@ -780,6 +789,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
         _uiShared.DrawHelpText("Enabling this will show a small notification (type: Info) in the bottom right corner when pairs go online.");
+
         // if you want to toggle it for only direct pairs, or only for named direct pairs.
         using var disabled = ImRaii.Disabled(!onlineNotifs);
         if (ImGui.Checkbox("Notify only for individual pairs", ref onlineNotifsPairsOnly))
@@ -788,6 +798,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }
         _uiShared.DrawHelpText("Enabling this will only show online notifications (type: Info) for individual pairs.");
+
         if (ImGui.Checkbox("Notify only for named pairs", ref onlineNotifsNamedOnly))
         {
             _configService.Current.ShowOnlineNotificationsOnlyForNamedPairs = onlineNotifsNamedOnly;

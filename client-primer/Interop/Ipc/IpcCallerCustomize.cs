@@ -7,7 +7,7 @@ using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Struct;
 
 namespace Interop.Ipc;

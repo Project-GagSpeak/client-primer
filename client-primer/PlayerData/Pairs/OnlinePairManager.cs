@@ -6,7 +6,7 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
-using GagspeakAPI.Data.Enum;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Permissions;
 
 namespace GagSpeak.PlayerData.Pairs;

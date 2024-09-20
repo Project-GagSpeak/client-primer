@@ -7,7 +7,7 @@
         <TargetFramework>net8.0-windows</TargetFramework>
         <Copyright>Copyright © 2024</Copyright>
         <LangVersion>preview</LangVersion>
-        <Version>0.8.5.2</Version>
+        <Version>0.8.5.3</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
@@ -155,6 +155,7 @@
       <Folder Include="Hardcore\PromptHandler\NewFolder\" />
     </ItemGroup>
 </Project>
+
 
 
 

@@ -71,7 +71,7 @@ public class GagManager : DisposableMediatorSubscriberBase
     /// <summary>
     /// Handles the GagTypeChanged event, updating the active gags list accordingly.
     /// </summary>
-    public void OnGagTypeChanged(GagLayer Layer, GagType NewGagType)
+    public void OnGagTypeChanged(GagLayer Layer, GagType NewGagType, bool publish)
     {
         if (_characterManager.CoreDataNull) return;
 
@@ -82,24 +82,24 @@ public class GagManager : DisposableMediatorSubscriberBase
         if (Layer is GagLayer.UnderLayer)
         {
             _characterManager.AppearanceData!.GagSlots[0].GagType = NewGagType.GagName();
-            Mediator.Publish(new PlayerCharAppearanceChanged(IsApplying ? DataUpdateKind.AppearanceGagAppliedLayerOne : DataUpdateKind.AppearanceGagRemovedLayerOne));
+            if(publish) Mediator.Publish(new PlayerCharAppearanceChanged(IsApplying ? DataUpdateKind.AppearanceGagAppliedLayerOne : DataUpdateKind.AppearanceGagRemovedLayerOne));
         }
         if (Layer is GagLayer.MiddleLayer)
         {
             _characterManager.AppearanceData!.GagSlots[1].GagType = NewGagType.GagName();
-            Mediator.Publish(new PlayerCharAppearanceChanged(IsApplying ? DataUpdateKind.AppearanceGagAppliedLayerTwo : DataUpdateKind.AppearanceGagRemovedLayerTwo));
+            if (publish) Mediator.Publish(new PlayerCharAppearanceChanged(IsApplying ? DataUpdateKind.AppearanceGagAppliedLayerTwo : DataUpdateKind.AppearanceGagRemovedLayerTwo));
         }
         if (Layer is GagLayer.TopLayer)
         {
             _characterManager.AppearanceData!.GagSlots[2].GagType = NewGagType.GagName();
-            Mediator.Publish(new PlayerCharAppearanceChanged(IsApplying ? DataUpdateKind.AppearanceGagAppliedLayerThree : DataUpdateKind.AppearanceGagRemovedLayerThree));
+            if (publish) Mediator.Publish(new PlayerCharAppearanceChanged(IsApplying ? DataUpdateKind.AppearanceGagAppliedLayerThree : DataUpdateKind.AppearanceGagRemovedLayerThree));
         }
 
         // Update the list of active gags
         UpdateActiveGags();
     }
 
-    public void OnGagLockChanged(PadlockData padlockInfo, NewState gagLockNewState)
+    public void OnGagLockChanged(PadlockData padlockInfo, NewState gagLockNewState, bool publish)
     {
         if (_characterManager.CoreDataNull) return;
 
@@ -108,12 +108,12 @@ public class GagManager : DisposableMediatorSubscriberBase
         if (gagLockNewState is NewState.Unlocked)
         {
             DisableLock(layerIndex);
-            PublishAppearanceChange(layerIndex, isUnlocked: true);
+            if(publish) PublishAppearanceChange(layerIndex, isUnlocked: true);
         }
         else
         {
             UpdateGagSlot(layerIndex, padlockInfo);
-            PublishAppearanceChange(layerIndex, isUnlocked: false);
+            if(publish) PublishAppearanceChange(layerIndex, isUnlocked: false);
             Mediator.Publish(new ActiveLocksUpdated());
         }
     }

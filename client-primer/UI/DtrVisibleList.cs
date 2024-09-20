@@ -1,5 +1,6 @@
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
@@ -35,8 +36,8 @@ internal class DtrVisibleWindow : WindowMediatorSubscriberBase
 
         Flags |= ImGuiWindowFlags.NoMove;
 
-        int cnt = NonGagspeakUsers.Count > 10 ? 11 : NonGagspeakUsers.Count;
-        var size = new Vector2(200f, ImGui.GetFrameHeight() * cnt - 5f);
+        int cnt = NonGagspeakUsers.Count > 10 ? 10+2 : NonGagspeakUsers.Count+2;
+        var size = new Vector2(200f, (ImGui.GetTextLineHeightWithSpacing() * cnt) - ImGui.GetFrameHeight() - ImGui.GetStyle().WindowPadding.Y + ImGuiHelpers.GlobalScale);
 
         ImGui.SetNextWindowSize(size);
 

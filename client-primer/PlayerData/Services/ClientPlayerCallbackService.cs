@@ -163,22 +163,22 @@ public class ClientCallbackService
             // ...apply the new version.
             _logger.LogDebug("Applying Gag to Character Appearance.");
             await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), NewState.Enabled);
-            _gagManager.OnGagTypeChanged(callbackGagLayer, callbackGagSlot.GagType.ToGagType());
+            _gagManager.OnGagTypeChanged(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), false);
         }
         else if (callbackGagState is NewState.Locked)
         {
             var padlockData = new PadlockData(callbackGagLayer, callbackGagSlot.Padlock.ToPadlock(), callbackGagSlot.Password, callbackGagSlot.Timer, callbackDto.User.UID);
-            _gagManager.OnGagLockChanged(padlockData, callbackGagState);
+            _gagManager.OnGagLockChanged(padlockData, callbackGagState, false);
         }
         else if (callbackGagState is NewState.Unlocked)
         {
             var padlockData = new PadlockData(callbackGagLayer, callbackGagSlot.Padlock.ToPadlock(), callbackGagSlot.Password, callbackGagSlot.Timer, callbackDto.User.UID);
-            _gagManager.OnGagLockChanged(padlockData, callbackGagState);
+            _gagManager.OnGagLockChanged(padlockData, callbackGagState, false);
         }
         else if (callbackGagState is NewState.Disabled)
         {
             await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, currentGagType, NewState.Disabled);
-            _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None);
+            _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None, false);
         }
     }
 

@@ -905,8 +905,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             {
                 // publish a notification message that the client is outdated
                 Mediator.Publish(new NotificationMessage("Client outdated",
-                    $"Your client is outdated ({Assembly.GetExecutingAssembly().GetName().Version!.Major}.{Assembly.GetExecutingAssembly().GetName().Version!.Minor}.{Assembly.GetExecutingAssembly().GetName().Version!.Build}), current is: " +
-                    $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}. " +
+                    $"Your client is outdated ({Assembly.GetExecutingAssembly().GetName().Version!.Major}."+
+                    $"{Assembly.GetExecutingAssembly().GetName().Version!.Minor}.{Assembly.GetExecutingAssembly().GetName().Version!.Build}.{Assembly.GetExecutingAssembly().GetName().Version!.Revision}), current is: " +
+                    $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}.{_connectionDto.CurrentClientVersion.Revision} " +
                     $"Please keep your Gagspeak client up-to-date.",
                     NotificationType.Warning));
 

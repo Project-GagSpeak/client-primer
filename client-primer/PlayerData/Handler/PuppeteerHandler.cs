@@ -15,6 +15,8 @@ using GagspeakAPI.Data;
 using GagspeakAPI.Data.Permissions;
 using Lumina.Excel.GeneratedSheets;
 using System.Text.RegularExpressions;
+using static FFXIVClientStructs.FFXIV.Client.Graphics.Kernel.VertexShader;
+using static PInvoke.User32;
 
 namespace GagSpeak.PlayerData.Handlers;
 /// <summary>
@@ -36,30 +38,6 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         _playerChara = playerChara;
         _pairManager = pairManager;
         _dataManager = dataManager;
-
-        // subscriber to update the pair being displayed.
-        Mediator.Subscribe<UpdateDisplayWithPair>(this, (msg) =>
-        {
-            // for firstime generations
-            if (SelectedPair == null)
-            {
-                SelectedPair = msg.Pair;
-                StorageBeingEdited = _clientConfigs.FetchAliasStorageForPair(msg.Pair.UserData.UID);
-            }
-
-            // for refreshing data once we switch pairs.
-            if (SelectedPair.UserData.UID != msg.Pair.UserData.UID)
-            {
-                Logger.LogTrace($"Updating display to reflect pair {msg.Pair.UserData.AliasOrUID}");
-                SelectedPair = msg.Pair;
-                StorageBeingEdited = _clientConfigs.FetchAliasStorageForPair(msg.Pair.UserData.UID);
-            }
-            // log if the storage being edited is null.
-            if (StorageBeingEdited == null)
-            {
-                Logger.LogWarning($"Storage being edited is null for pair {msg.Pair.UserData.AliasOrUID}");
-            }
-        });
 
         Mediator.Subscribe<UpdateCharacterListenerForUid>(this, (msg) =>
         {
@@ -88,6 +66,30 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
 
     #region PuppeteerSettings
 
+    public void UpdateDisplayForNewPair(Pair pair)
+    {
+        // for firstime generations
+        if (SelectedPair == null)
+        {
+            SelectedPair = pair;
+            StorageBeingEdited = _clientConfigs.FetchAliasStorageForPair(pair.UserData.UID);
+        }
+
+        // for refreshing data once we switch pairs.
+        if (SelectedPair.UserData.UID != pair.UserData.UID)
+        {
+            Logger.LogTrace($"Updating display to reflect pair {pair.UserData.AliasOrUID}");
+            SelectedPair = pair;
+            StorageBeingEdited = _clientConfigs.FetchAliasStorageForPair(pair.UserData.UID);
+        }
+        // log if the storage being edited is null.
+        if (StorageBeingEdited == null)
+        {
+            Logger.LogWarning($"Storage being edited is null for pair {pair.UserData.AliasOrUID}");
+        }
+    }
+
+
     public void UpdatedEditedStorage()
     {
         // update the set in the client configs
@@ -105,22 +107,28 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
     public string? GetUIDMatchingSender(string name, string world)
         => _clientConfigs.GetUidMatchingSender(name, world);
 
-    public void UpdateAliasStorage(string pairUID, AliasStorage storageToUpdate)
-    => _clientConfigs.UpdateAliasStorage(pairUID, storageToUpdate);
-
     public void AddAlias(AliasTrigger alias)
-        => StorageBeingEdited.AliasList.Add(alias);
+        => _clientConfigs.AddNewAliasTrigger(UidOfStorage, alias);
     public void RemoveAlias(AliasTrigger alias)
-        => StorageBeingEdited.AliasList.Remove(alias);
+        => _clientConfigs.RemoveAliasTrigger(UidOfStorage, alias);
 
     public void UpdateAliasInput(int aliasIndex, string input)
-        => StorageBeingEdited.AliasList[aliasIndex].InputCommand = input;
+    {
+        StorageBeingEdited.AliasList[aliasIndex].InputCommand = input;
+        _clientConfigs.AliasDataModified(UidOfStorage);
+    }
 
     public void UpdateAliasOutput(int aliasIndex, string output)
-        => StorageBeingEdited.AliasList[aliasIndex].OutputCommand = output;
+    {
+        StorageBeingEdited.AliasList[aliasIndex].OutputCommand = output;
+        _clientConfigs.AliasDataModified(UidOfStorage);
+    }
 
     public void UpdateAliasEnabled(int aliasIndex, bool enabled)
-        => StorageBeingEdited.AliasList[aliasIndex].Enabled = enabled;
+    {
+        StorageBeingEdited.AliasList[aliasIndex].Enabled = enabled;
+        _clientConfigs.AliasDataModified(UidOfStorage);
+    }
 
     #endregion PuppeteerSettings
     #region PuppeteerTriggerDetection

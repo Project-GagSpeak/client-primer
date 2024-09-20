@@ -52,6 +52,8 @@ public class UserPairListHandler
     /// <summary> List of all draw folders to display in the UI </summary>
     public List<DrawUserPair> AllPairDrawsDistinct => _allUserPairDrawsDistinct;
 
+    public Pair? SelectedPair { get; private set; } = null;
+
     public string Filter
     {
         get => _filter;
@@ -95,38 +97,44 @@ public class UserPairListHandler
     }
 
     /// <summary> Draws all bi-directionally paired users (online or offline) without any tag header. </summary>
-    public void DrawPairsNoGroups(float windowContentWidth)
+    public void DrawPairsPuppeteer(float windowContentWidth)
     {
         // Assuming _drawFolders is your list of IDrawFolder
         var allTagFolder = _drawFolders
-            .FirstOrDefault(folder => folder is DrawFolderBase && ((DrawFolderBase)folder).ID == TagHandler.CustomAllTag);
+            .FirstOrDefault(folder => folder is DrawFolderBase && ((DrawFolderBase)folder).ID == TagHandler.CustomOnlineTag);
 
         if (allTagFolder == null) return;
 
         var drawFolderBase = (DrawFolderBase)allTagFolder; // Cast to DrawFolderBase
         
         using var indent = ImRaii.PushIndent(_uiSharedService.GetIconData(FontAwesomeIcon.EllipsisV).X + ImGui.GetStyle().ItemSpacing.X, false);
-        
-        if (drawFolderBase.DrawPairs.Any())
-        {
-            foreach (var item in drawFolderBase.DrawPairs)
-            {
-                item.DrawPairedClientListForm(); // Draw each pair directly
-            }
-        }
-        else
+
+        if (!drawFolderBase.DrawPairs.Any())
         {
             ImGui.TextUnformatted("No Draw Pairs to Draw");
         }
+
+        // draw the pairs.
+        foreach (var item in drawFolderBase.DrawPairs)
+        {
+            bool useColor = SelectedPair is not null && SelectedPair.UserData.UID == item.Pair.UserData.UID;
+            using (var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), useColor))
+            {
+                // if its selected, set the selected UID.
+                if(item.DrawPairedClient(true,true,false,false,false,true,false))
+                {
+                    SelectedPair = item.Pair;
+                }
+            }
+        }
     }
 
-
-
-
     /// <summary> Draws the search filter for our user pair list (whitelist) </summary>
-    public void DrawSearchFilter(float availableWidth, float spacingX)
+    public void DrawSearchFilter(float availableWidth, float spacingX, bool showClear = true)
     {
-        var buttonSize = _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
+        var buttonSize = showClear
+            ? _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear")
+            : _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Ban).X;
         ImGui.SetNextItemWidth(availableWidth - buttonSize - spacingX);
         string filter = Filter;
         if (ImGui.InputTextWithHint("##filter", "Filter for UID/notes", ref filter, 255))
@@ -134,9 +142,19 @@ public class UserPairListHandler
             Filter = filter;
         }
         ImUtf8.SameLineInner();
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Ban, "Clear", null, false, string.IsNullOrEmpty(Filter)))
+        if (showClear)
         {
-            Filter = string.Empty;
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Ban, "Clear", null, false, string.IsNullOrEmpty(Filter)))
+            {
+                Filter = string.Empty;
+            }
+        }
+        else
+        {
+            if (_uiSharedService.IconButton(FontAwesomeIcon.Ban, null, "FilterClear", string.IsNullOrEmpty(Filter)))
+            {
+                Filter = string.Empty;
+            }
         }
     }
 

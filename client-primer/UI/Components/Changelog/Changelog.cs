@@ -19,6 +19,11 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 6, 0)
+            .RegisterMain("Gag and Restraint Set Actions now have correct logic. Major Debugging Part 1")
+            .RegisterFeature("The Puppeteer UI has been reworked to a cleaner design layout.")
+            .RegisterQol("You can now interact with the user list items without needing to hover the player name text itself.")
+            .RegisterQol("Puppeteer userPair selectors now display which pair is selected.");
         VersionEntry(0, 8, 5, 2)
             .RegisterMain("Clicking on the Privacy DTR bar opens a mini-window to click on player names to view locations.");
         VersionEntry(0, 8, 5, 1)

@@ -285,8 +285,6 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         var AliasStorage = _clientConfigs.FetchAliasStorageForPair(UserUID);
         CharacterAliasData dataToPush = new CharacterAliasData
         {
-            CharacterName = AliasStorage.CharacterName,
-            CharacterWorld = AliasStorage.CharacterWorld,
             AliasList = AliasStorage.AliasList
         };
 

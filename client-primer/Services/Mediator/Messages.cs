@@ -68,7 +68,6 @@ public record PairWentOnlineMessage(UserData UserData) : MessageBase; // a messa
 public record PairHandlerVisibleMessage(PairHandler Player) : MessageBase; // a message indicating the visibility of a pair handler.
 public record OpenUserPairPermissions(Pair? Pair, StickyWindowType PermsWindowType) : MessageBase; // fired upon request to open the permissions window for a pair
 public record TargetPairMessage(Pair Pair) : MessageBase; // called when publishing a targeted pair connection (see UI)
-public record UpdateDisplayWithPair(Pair Pair) : MessageBase; // called when we need to update the display with a pair.
 public record CyclePauseMessage(UserData UserData) : MessageBase; // for cycling the paused state of self
 public record CreateCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase;
 public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase; // called when we should clear a gameobject from cache creation service.

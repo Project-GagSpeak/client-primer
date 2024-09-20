@@ -237,8 +237,16 @@ public class ClientCallbackService
                     break;
 
                 case DataUpdateKind.WardrobeRestraintDisabled:
-                    _logger.LogDebug($"{callbackDto.User.UID} has force disabled your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
-                    await _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, NewState.Disabled, false);
+                    _logger.LogDebug($"{callbackDto.User.UID} has force disabled your restraint set!");
+                    var activeIdx = _clientConfigs.GetActiveSetIdx();
+                    if (activeIdx != -1)
+                    {
+                        await _clientConfigs.SetRestraintSetState(activeIdx, callbackDto.User.UID, NewState.Disabled, false);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Somehow Made it to here, trying to remove the active set while it's already removed?");
+                    }
                     break;
             }
         }
@@ -249,7 +257,7 @@ public class ClientCallbackService
 
     }
 
-    public void CallbackAliasStorageUpdate(OnlineUserCharaAliasDataDto callbackDto)
+    public void CallbackAliasStorageUpdate(OnlineUserCharaAliasDataDto callbackDto, bool callbackFromSelf)
     {
         // this call should only ever be used for updating the registered name of a pair. if used for any other purpose, log error.
         if (callbackDto.UpdateKind == DataUpdateKind.PuppeteerPlayerNameRegistered)
@@ -257,6 +265,18 @@ public class ClientCallbackService
             // do the update for name registration of this pair.
             _mediator.Publish(new UpdateCharacterListenerForUid(callbackDto.User.UID, callbackDto.AliasData.CharacterName, callbackDto.AliasData.CharacterWorld));
             _logger.LogDebug("Player Name Registered Successfully processed by Server!");
+        }
+        else if (callbackFromSelf)
+        {
+            // if the update was an aliasList updated, log the successful update.
+            if (callbackDto.UpdateKind == DataUpdateKind.PuppeteerAliasListUpdated)
+            {
+                _logger.LogDebug("Alias List Updated Successfully processed by Server!");
+            }
+            else
+            {
+                _logger.LogError("Unexpected UpdateKind: {0}", callbackDto.UpdateKind.ToName());
+            }
         }
         else
         {

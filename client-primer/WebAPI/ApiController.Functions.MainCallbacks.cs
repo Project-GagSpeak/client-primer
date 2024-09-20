@@ -451,7 +451,8 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveOwnDataAlias(OnlineUserCharaAliasDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataAlias: {dataDto}", dataDto);
-        ExecuteSafely(() => _clientCallbacks.CallbackAliasStorageUpdate(dataDto));
+        bool callbackWasFromSelf = dataDto.User.UID == UID;
+        ExecuteSafely(() => _clientCallbacks.CallbackAliasStorageUpdate(dataDto, callbackWasFromSelf));
         return Task.CompletedTask;
     }
 

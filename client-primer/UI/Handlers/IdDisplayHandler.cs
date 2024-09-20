@@ -8,6 +8,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.GagspeakConfiguration;
 using Dalamud.Interface.Textures.TextureWraps;
 using GagspeakAPI.Enums;
+using System.Numerics;
 
 namespace GagSpeak.UI.Handlers;
 
@@ -30,69 +31,93 @@ public class IdDisplayHandler
         _gagspeakConfigService = gagspeakConfigService;
     }
 
-    public void DrawPairText(string id, Pair pair, float textPosX, Func<float> editBoxWidth, bool isASelectable)
+    public bool DrawPairText(string id, Pair pair, float textPosX, Func<float> editBoxWidth, bool canTogglePairTextDisplay, bool displayNameTT)
     {
+        var returnVal = false;
+
         ImGui.SameLine(textPosX);
         (bool textIsUid, string playerText) = GetPlayerText(pair);
+
+        float textWidth = editBoxWidth.Invoke() - 20f;
+        bool hovered = false;
+
         if (!string.Equals(_editEntry, pair.UserData.UID, StringComparison.Ordinal))
         {
             ImGui.AlignTextToFramePadding();
 
-            using (ImRaii.PushFont(UiBuilder.MonoFont, textIsUid)) ImGui.TextUnformatted(playerText);
-
-            if (ImGui.IsItemHovered() && !isASelectable)
+            using (ImRaii.Group())
             {
-                if (!string.Equals(_lastMouseOverUid, id))
+                using (ImRaii.PushFont(UiBuilder.MonoFont, textIsUid)) ImGui.TextUnformatted(playerText);
+                if (ImGui.IsItemHovered())
                 {
-                    _popupTime = DateTime.UtcNow.AddSeconds(_gagspeakConfigService.Current.ProfileDelay);
+                    hovered = true;
+
+                    if (!string.Equals(_lastMouseOverUid, id))
+                    {
+                        _popupTime = DateTime.UtcNow.AddSeconds(_gagspeakConfigService.Current.ProfileDelay);
+                    }
+
+                    _lastMouseOverUid = id;
+
+                    if (_popupTime < DateTime.UtcNow && !_popupShown)
+                    {
+                        _popupShown = true;
+                        _mediator.Publish(new ProfilePopoutToggle(pair));
+                    }
                 }
 
-                _lastMouseOverUid = id;
+                // Draw an invisible item that matches the width of the editable text box
+                ImGui.SameLine();
+                ImGui.InvisibleButton("hoverArea", new Vector2(textWidth - ImGui.CalcTextSize(playerText).X, ImGui.GetTextLineHeight()));
+                if (ImGui.IsItemHovered()) hovered = true;
 
-                if (_popupTime > DateTime.UtcNow || !_gagspeakConfigService.Current.ProfilesShow)
+
+                if (hovered && displayNameTT)
                 {
                     ImGui.SetTooltip("Left click to switch between UID display and nick" + Environment.NewLine
                         + "Right click to change nick for " + pair.UserData.AliasOrUID + Environment.NewLine
                         + "Middle Mouse Button to open their profile in a separate window");
                 }
-                else if (_popupTime < DateTime.UtcNow && !_popupShown)
+                else
                 {
-                    _popupShown = true;
-                    _mediator.Publish(new ProfilePopoutToggle(pair));
-                }
-            }
-            else
-            {
-                if (string.Equals(_lastMouseOverUid, id))
-                {
-                    _mediator.Publish(new ProfilePopoutToggle(Pair: null));
-                    _lastMouseOverUid = string.Empty;
-                    _popupShown = false;
+                    if (string.Equals(_lastMouseOverUid, id))
+                    {
+                        _mediator.Publish(new ProfilePopoutToggle(Pair: null));
+                        _lastMouseOverUid = string.Empty;
+                        _popupShown = false;
+                    }
                 }
             }
 
             if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
             {
-                var prevState = textIsUid;
-                if (_showIdForEntry.ContainsKey(pair.UserData.UID))
+                if(canTogglePairTextDisplay)
                 {
-                    prevState = _showIdForEntry[pair.UserData.UID];
+                    var prevState = textIsUid;
+                    if (_showIdForEntry.ContainsKey(pair.UserData.UID))
+                    {
+                        prevState = _showIdForEntry[pair.UserData.UID];
+                    }
+                    _showIdForEntry[pair.UserData.UID] = !prevState;
                 }
-                _showIdForEntry[pair.UserData.UID] = !prevState;
+                returnVal = true;
             }
 
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            if(canTogglePairTextDisplay)
             {
-                _serverManager.SetNicknameForUid(_editEntry, _editComment, save: true);
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                {
+                    _serverManager.SetNicknameForUid(_editEntry, _editComment, save: true);
 
-                _editComment = pair.GetNickname() ?? string.Empty;
-                _editEntry = pair.UserData.UID;
-                _editIsUid = true;
-            }
+                    _editComment = pair.GetNickname() ?? string.Empty;
+                    _editEntry = pair.UserData.UID;
+                    _editIsUid = true;
+                }
 
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Middle))
-            {
-                _mediator.Publish(new ProfileOpenStandaloneMessage(pair));
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Middle))
+                {
+                    _mediator.Publish(new ProfileOpenStandaloneMessage(pair));
+                }
             }
         }
         else
@@ -113,6 +138,7 @@ public class IdDisplayHandler
             }
             UiSharedService.AttachToolTip("Hit ENTER to save\nRight click to cancel");
         }
+        return returnVal;
     }
     public (bool isUid, string text) GetPlayerText(Pair pair)
     {

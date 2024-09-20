@@ -85,7 +85,7 @@ public class AliasTable : DisposableMediatorSubscriberBase
 
                 // next line draw output
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2*ImGuiHelpers.GlobalScale);
-                _uiSharedService.IconButton(FontAwesomeIcon.LongArrowAltRight);
+                _uiSharedService.IconButton(FontAwesomeIcon.LongArrowAltRight, null, null, true, false);
                 UiSharedService.AttachToolTip($"The command that will be executed when the input phrase is said by {userID}");
                 ImUtf8.SameLineInner();
                 string aliasOutput = aliasTrigger.OutputCommand;
@@ -102,7 +102,7 @@ public class AliasTable : DisposableMediatorSubscriberBase
             }
             ImGui.TableNextColumn();
             // draw edit button.
-            if (_uiSharedService.IconButton(FontAwesomeIcon.Pen))
+            if (_uiSharedService.IconButton((EditableAliasIndex == idx) ? FontAwesomeIcon.Save : FontAwesomeIcon.Pen))
             {
                 EditableAliasIndex = (EditableAliasIndex == idx) ? -1 : idx;
             }

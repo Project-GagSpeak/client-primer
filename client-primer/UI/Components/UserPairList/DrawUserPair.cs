@@ -32,6 +32,7 @@ public class DrawUserPair
     private readonly UiSharedService _uiSharedService;
     private float _menuWidth = -1;
     private bool _wasHovered = false;
+    private string tooltipString = "";
     // store the created texturewrap for the supporter tier image so we are not loading it every single time.
     private IDalamudTextureWrap? _supporterWrap = null;
     public DrawUserPair(ILogger<DrawUserPair> logger, string id, Pair entry, ApiController apiController,
@@ -56,60 +57,45 @@ public class DrawUserPair
         _supporterWrap = null;
     }
 
-    public void DrawPairedClient()
+    public bool DrawPairedClient(bool supporterIcon = true, bool icon = true, bool iconTT = true, 
+        bool displayToggleOnClick = true, bool displayNameTT = true, bool showHovered = true, bool showRightButtons = true)
     {
+        bool selected = false;
         // get the current screen cursor pos
         var cursorPos = ImGui.GetCursorPosX();
         using var id = ImRaii.PushId(GetType() + _id);
-        var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), _wasHovered);
-        using (ImRaii.Child(GetType() + _id, new System.Numerics.Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
+        using (var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), showHovered && _wasHovered))
         {
-            ImUtf8.SameLineInner();
-            DrawLeftSide();
-            ImGui.SameLine();
-            var posX = ImGui.GetCursorPosX();
+            using (ImRaii.Child(GetType() + _id, new Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
+            {
+                ImUtf8.SameLineInner();
+                if (icon)
+                {
+                    DrawLeftSide(iconTT);
+                }
+                ImGui.SameLine();
+                var posX = ImGui.GetCursorPosX();
 
-            float rightSide = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()
-                              - (_uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV).X);
+                float rightSide = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()
+                                  - (_uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV).X);
 
-            rightSide = DrawRightSide();
+                if (showRightButtons)
+                {
+                    rightSide = DrawRightSide();
+                }
 
-            DrawName(posX, rightSide, false);
+                selected = DrawName(posX, rightSide, displayToggleOnClick, displayNameTT);
+            }
+            _wasHovered = ImGui.IsItemHovered();
         }
-        _wasHovered = ImGui.IsItemHovered();
-        color.Dispose();
         // if they were a supporter, go back to the start and draw the image.
-        if (!_pair.UserData.SupporterTier.Equals(CkSupporterTier.NoRole)) DrawSupporterIcon(cursorPos);
+        if (supporterIcon && _pair.UserData.SupporterTier is not CkSupporterTier.NoRole)
+        {
+            DrawSupporterIcon(cursorPos);
+        }
+        return selected;
     }
 
-    public void DrawPairedClientListForm()
-    {
-        var cursorPos = ImGui.GetCursorPosX();
-        using var id = ImRaii.PushId(GetType() + _id);
-        var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), _wasHovered);
-        using (ImRaii.Child(GetType() + _id, new Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
-        {
-            ImUtf8.SameLineInner();
-            DrawLeftSide();
-            ImGui.SameLine();
-            var posX = ImGui.GetCursorPosX();
-
-            float rightSide = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()
-                              - (_uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV).X);
-            DrawName(posX, rightSide, true);
-        }
-        // if we left clicked this item, we should set the selected pair to this pair.
-        if (ImGui.IsItemClicked())
-        {
-            _mediator.Publish(new UpdateDisplayWithPair(_pair));
-        }
-        _wasHovered = ImGui.IsItemHovered();
-        color.Dispose();
-        // if they were a supporter, go back to the start and draw the image.
-        if (!_pair.UserData.SupporterTier.Equals(CkSupporterTier.NoRole)) DrawSupporterIcon(cursorPos);
-    }
-
-    private string tooltipString = "";
     private void DrawSupporterIcon(float cursorPos)
     {
         ImGui.SameLine(cursorPos);
@@ -153,7 +139,7 @@ public class DrawUserPair
         // return to the end of the line.
     }
 
-    private void DrawLeftSide()
+    private void DrawLeftSide(bool showToolTip)
     {
         var userPairText = string.Empty;
 
@@ -194,14 +180,15 @@ public class DrawUserPair
             userPairText += UiSharedService.TooltipSeparator + "You are directly Paired";
         }
 
-        UiSharedService.AttachToolTip(userPairText);
+        if (showToolTip)
+            UiSharedService.AttachToolTip(userPairText);
 
         ImGui.SameLine();
     }
 
-    private void DrawName(float leftSide, float rightSide, bool isASelectable)
+    private bool DrawName(float leftSide, float rightSide, bool canTogglePairTextDisplay, bool displayNameTT)
     {
-        _displayHandler.DrawPairText(_id, _pair, leftSide, () => rightSide - leftSide, isASelectable);
+        return _displayHandler.DrawPairText(_id, _pair, leftSide, () => rightSide - leftSide, canTogglePairTextDisplay, displayNameTT);
     }
 
     private float DrawRightSide()

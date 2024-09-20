@@ -247,11 +247,10 @@ public partial class UserPairPermsSticky
                             _ = _apiController.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
                             _logger.LogDebug("Locking Gag with GagPadlock {0} on {1}", onButtonPress.ToName(), PairNickOrAliasOrUID);
                             ShowGagLock = false;
-                            // reset the password and timer
-                            _permActions.ResetInputs();
                         }
                         catch (Exception e) { _logger.LogError("Failed to push updated appearance data: " + e.Message); }
                     }
+                    _permActions.ResetInputs();
                 });
                 // draw password field combos.
                 _permActions.DisplayPadlockFields(selected);
@@ -307,12 +306,12 @@ public partial class UserPairPermsSticky
                             _ = _apiController.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
                             _logger.LogDebug("Unlocking Gag with GagPadlock {0} on {1}", selected.ToName(), PairNickOrAliasOrUID);
                             ShowGagUnlock = false;
-                            _permActions.ResetInputs();
                         }
                         else
                         {
                             _logger.LogDebug("Invalid Password Validation");
                         }
+                        _permActions.ResetInputs();
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated appearance data: " + e.Message); }
                 }
@@ -375,10 +374,10 @@ public partial class UserPairPermsSticky
         bool canUseOwnerLocks = pairUniquePerms.OwnerLocks;
         if (lastWardrobeData == null || pairUniquePerms == null) return;
 
-        bool applyButtonDisabled = !pairUniquePerms.ApplyRestraintSets || lastWardrobeData.OutfitNames.Count <= 0;
-        bool lockButtonDisabled = !pairUniquePerms.LockRestraintSets || lastWardrobeData.ActiveSetName == string.Empty || lastWardrobeData!.Padlock != Padlocks.None.ToName();
+        bool applyButtonDisabled = !pairUniquePerms.ApplyRestraintSets || lastWardrobeData.OutfitNames.Count <= 0 || lastWardrobeData.ActiveSetName != string.Empty;
+        bool lockButtonDisabled = !pairUniquePerms.LockRestraintSets || lastWardrobeData.ActiveSetName == string.Empty || lastWardrobeData.Padlock != Padlocks.None.ToName();
         bool unlockButtonDisabled = !pairUniquePerms.UnlockRestraintSets || lastWardrobeData.Padlock == "None";
-        bool removeButtonDisabled = !pairUniquePerms.RemoveRestraintSets || lastWardrobeData.ActiveSetName == string.Empty;
+        bool removeButtonDisabled = !pairUniquePerms.RemoveRestraintSets || lastWardrobeData.ActiveSetName == string.Empty || lastWardrobeData.Padlock != Padlocks.None.ToName();
 
         ////////// APPLY RESTRAINT SET //////////
         if (_uiShared.IconTextButton(FontAwesomeIcon.Handcuffs, "Apply Restraint Set", WindowMenuWidth, true, applyButtonDisabled))
@@ -440,7 +439,12 @@ public partial class UserPairPermsSticky
 
                 bool disabled = selected == Padlocks.None || !pairUniquePerms.LockRestraintSets;
 
-                if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName ?? "Not Set Active")) { ImGui.EndCombo(); }
+                using (ImRaii.Disabled(true))
+                {
+                    ImGui.SetNextItemWidth(WindowMenuWidth);
+                    if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", "Locking: ["+UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName+"]" ?? "Not Set Active")) { ImGui.EndCombo(); }
+                }
+                
                 // Draw combo
                 _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "LockRestraintSetForPairPermCombo", "Lock Set",
                 WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToName(), false, disabled, true, Padlocks.None,
@@ -462,8 +466,8 @@ public partial class UserPairPermsSticky
                             _logger.LogDebug("Locking Restraint Set with GagPadlock {0} on {1}", onButtonPress.ToString(), PairNickOrAliasOrUID);
                             ShowSetLock = false;
                             // reset the password and timer
-                            //_permActions.ResetInputs();
                         }
+                        _permActions.ResetInputs();
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated Wardrobe data: " + e.Message); }
                 });
@@ -483,8 +487,8 @@ public partial class UserPairPermsSticky
         {
             Padlocks selected = UserPairForPerms.LastReceivedWardrobeData?.Padlock.ToPadlock() ?? Padlocks.None;
             float height = _permActions.ExpandLockHeightCheck(selected)
-                ? 3 * ImGui.GetFrameHeight() + 2 * ImGui.GetStyle().ItemSpacing.Y
-                : 2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y;
+                ? 2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y
+                : ImGui.GetFrameHeight();
             using (var actionChild = ImRaii.Child("SetUnlockChild", new Vector2(WindowMenuWidth, height), false))
             {
                 if (!actionChild) return;
@@ -495,7 +499,7 @@ public partial class UserPairPermsSticky
                 using (ImRaii.Disabled(true))
                 {
                     ImGui.SetNextItemWidth(width);
-                    if (ImGui.BeginCombo("##DummyComboDisplayLockedRestraintSet", UserPairForPerms.LastReceivedWardrobeData?.ActiveSetName ?? "No Set Lock Active")) { ImGui.EndCombo(); }
+                    if (ImGui.BeginCombo("##DummyComboDisplayLockedRestraintSet", UserPairForPerms.LastReceivedWardrobeData?.Padlock ?? "No Set Lock Active")) { ImGui.EndCombo(); }
                 }
                 ImUtf8.SameLineInner();
                 if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock", ImGui.GetContentRegionAvail().X, false, disabled))
@@ -514,8 +518,8 @@ public partial class UserPairPermsSticky
                             _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, DataUpdateKind.WardrobeRestraintUnlocked));
                             _logger.LogDebug("Unlocking Restraint Set with GagPadlock {0} on {1}", selected.ToName(), PairNickOrAliasOrUID);
                             ShowSetUnlock = false;
-                            //_permActions.ResetInputs();
                         }
+                        _permActions.ResetInputs();
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated Wardrobe data: " + e.Message); }
                 };

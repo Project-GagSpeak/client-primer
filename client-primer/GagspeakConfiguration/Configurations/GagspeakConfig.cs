@@ -60,7 +60,7 @@ public class GagspeakConfig : IGagspeakConfiguration
     public string LanguageDialect { get; set; } = "IPA_US"; // MuffleCore
     public bool LiveGarblerZoneChangeWarn { get; set; } = true; // LiveChatGarbler Warnings
     public bool RemoveGagUponLockExpiration { get; set; } = false; // Auto-Remove Gags
-    public RevertStyle RevertStyle { get; set; } = RevertStyle.RevertToGame; // How to revert Character when reset
+    public RevertStyle RevertStyle { get; set; } = RevertStyle.RevertToAutomation; // How to revert Character when reset
     public bool DisableSetUponUnlock { get; set; } = false; // Auto-Remove Restraint Sets
 
     // GLOBAL VIBRATOR SETTINGS

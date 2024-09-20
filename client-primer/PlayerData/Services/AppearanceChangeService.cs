@@ -88,7 +88,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
         // Grab the active profile.
         var activeGuid = _Interop.CustomizePlus.GetActiveProfile();
-        if (activeGuid == highestPriorityData.CustomizeGuid) return;
+        if (activeGuid == highestPriorityData.CustomizeGuid || activeGuid is null) return;
 
         // if it is not, we need to enforce the update.
         // Start by checking if the highestPriorityCustomizeId is in our stored profiles.

@@ -210,14 +210,26 @@ public class PermActionsComponents
             case Padlocks.OwnerTimerPadlock:
                 var validTime = _uiShared.TryParseTimeSpan(Timer, out var test2);
                 if (!validTime)
+                {
+                    logger.LogWarning("Invalid time entered: {Timer}", Timer);
                     return false;
+                }
                 // Check if the TimeSpan is longer than one hour and extended locks are not allowed
                 if (test2 > TimeSpan.FromHours(1) && !allowExtended)
+                {
+                    logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
                     return false;
+                }
                 // return base case.
                 return validTime && allowOwner;
         }
         return false;
+    }
+
+    public void ResetInputs()
+    {
+        _password = string.Empty;
+        _timer = string.Empty;
     }
 
     public bool PadlockVerifyUnlock<T>(T data, Padlocks selectedPadlock, bool allowOwnerLocks) where T : IPadlockable
@@ -230,13 +242,16 @@ public class PermActionsComponents
             case Padlocks.FiveMinutesPadlock:
                 return true;
             case Padlocks.CombinationPadlock:
-                return _uiShared.ValidateCombination(Password) && Password == data.Password;
+                var resCombo = _uiShared.ValidateCombination(Password) && Password == data.Password;
+                return resCombo;
             case Padlocks.PasswordPadlock:
             case Padlocks.TimerPasswordPadlock:
-                return _uiShared.ValidatePassword(Password) && Password == data.Password;
+                var resPass = _uiShared.ValidatePassword(Password) && Password == data.Password;
+                return resPass;
             case Padlocks.OwnerPadlock:
             case Padlocks.OwnerTimerPadlock:
-                return allowOwnerLocks && _apiController.UID == data.Assigner;
+                var resOwner = allowOwnerLocks && _apiController.UID == data.Assigner;
+                return resOwner;
         }
         return false;
     }
@@ -245,7 +260,7 @@ public class PermActionsComponents
         => type is Padlocks.CombinationPadlock or Padlocks.PasswordPadlock or Padlocks.TimerPasswordPadlock or Padlocks.OwnerTimerPadlock;
 
 
-    public void DisplayPadlockFields(Padlocks selectedPadlock)
+    public void DisplayPadlockFields(Padlocks selectedPadlock, bool unlocking = false)
     {
         float width = ImGui.GetContentRegionAvail().X;
         switch (selectedPadlock)
@@ -259,11 +274,20 @@ public class PermActionsComponents
                 ImGui.InputTextWithHint("##Password_Input", "Enter password...", ref _password, 20);
                 break;
             case Padlocks.TimerPasswordPadlock:
-                ImGui.SetNextItemWidth(width * (2/3f));
-                ImGui.InputTextWithHint("##Password_Input", "Enter password...", ref _password, 20);
-                ImUtf8.SameLineInner();
-                ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                ImGui.InputTextWithHint("##Timer_Input", "Ex: 0h2m7s", ref _timer, 12);; 
+                if(unlocking)
+                {
+                    ImGui.SetNextItemWidth(width);
+                    ImGui.InputTextWithHint("##Password_Input", "Enter password...", ref _password, 20);
+                    break;
+                }
+                else
+                {
+                    ImGui.SetNextItemWidth(width * (2 / 3f));
+                    ImGui.InputTextWithHint("##Password_Input", "Enter password...", ref _password, 20);
+                    ImUtf8.SameLineInner();
+                    ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
+                    ImGui.InputTextWithHint("##Timer_Input", "Ex: 0h2m7s", ref _timer, 12); ;
+                }
                 break;
             case Padlocks.OwnerTimerPadlock:
                 ImGui.SetNextItemWidth(width);

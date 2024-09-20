@@ -2,6 +2,7 @@ using Dalamud.Interface;
 using Dalamud.Plugin;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI.Permissions;
 using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UI.UiOrders;
 using GagSpeak.UI.UiPuppeteer;
@@ -26,13 +27,15 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
 {
     private readonly UiSharedService _uiShared;
     private readonly ItemIdVars _itemHelpers;
+    private readonly PermActionsComponents _actions;
 
     public MainUiHomepage(ILogger<MainUiHomepage> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService, ItemIdVars itemHelpers)
-        : base(logger, mediator)
+        GagspeakMediator mediator, UiSharedService uiSharedService, ItemIdVars itemHelpers,
+        PermActionsComponents actions) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
         _itemHelpers = itemHelpers;
+        _actions = actions;
     }
 
     public float DrawHomepageSection(IDalamudPluginInterface pi)
@@ -112,5 +115,9 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         {
             Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
         }
+
+        ImGui.Text("PermActions Password: " + _actions.Password);
+        ImGui.Text("PermActions Timer: " + _actions.Timer);
+        ImGui.Text("PermActions Layer: " + _actions.GagLayer);
     }
 }

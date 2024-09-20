@@ -43,6 +43,10 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         _visualUpdater = visualUpdater;
 
         Mediator.Subscribe<ConnectedMessage>(this, (msg) => OnConnected(msg.Connection));
+
+        Mediator.Subscribe<CustomizeReady>(this, _ => _playerData.CustomizeProfiles = _ipcManager.CustomizePlus.GetProfileList());
+
+        Mediator.Subscribe<CustomizeDispose>(this, _ => _playerData.CustomizeProfiles = new List<CustomizeProfile>());
     }
 
     private async void OnConnected(ConnectionDto connectionDto)

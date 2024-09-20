@@ -139,6 +139,8 @@ public record UpdateGlamourRestraintsMessage(NewState NewState, TaskCompletionSo
 public record UpdateGlamourBlindfoldMessage(NewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
 public record MoodlesReady : MessageBase;
 public record GlamourerReady : MessageBase;
+public record CustomizeReady : MessageBase;
+public record CustomizeDispose : MessageBase;
 public record MoodlesStatusManagerChangedMessage(IntPtr Address) : MessageBase; // when our status manager changes.
 public record MoodlesStatusModified(Guid Guid) : MessageBase; // when we change one of our moodles settings.
 public record MoodlesPresetModified(Guid Guid) : MessageBase; // when we change one of our moodles presets.

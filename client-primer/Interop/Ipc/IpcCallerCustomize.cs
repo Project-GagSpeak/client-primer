@@ -69,6 +69,8 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
 
     public void CheckAPI()
     {
+        bool previousState = APIAvailable;
+
         try
         {
             var version = _apiVersion.InvokeFunc();
@@ -77,6 +79,20 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
         catch
         {
             APIAvailable = false;
+        }
+
+        if (APIAvailable != previousState)
+        {
+            if (APIAvailable)
+            {
+                Logger.LogInformation("Customize+ API is now available.");
+                Mediator.Publish(new CustomizeReady());
+            }
+            else
+            {
+                Logger.LogInformation("Customize+ API is now disconnected.");
+                Mediator.Publish(new CustomizeDispose());
+            }
         }
     }
 

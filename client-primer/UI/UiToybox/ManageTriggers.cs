@@ -74,7 +74,7 @@ public class ToyboxTriggerManager
     private string GagSearchString = LowerString.Empty;
     private string SelectedDeviceName = LowerString.Empty;
     private int SelectedMoodleIdx = 0;
-    private int SelectedMoodlePresetIdx = 0;
+    private int SelectedPresetGUID = 0;
 
     public void DrawTriggersPanel()
     {
@@ -873,8 +873,8 @@ public class ToyboxTriggerManager
 
         UiSharedService.ColorText("Moodle Status to Apply", ImGuiColors.ParsedGold);
         ImGui.SetNextItemWidth(200f);
-        _moodlesService.DrawMoodleStatusComboSearchable(_playerManager.LastIpcData.MoodlesStatuses, "##MoodleStatusTriggerAction"
-            + trigger.TriggerIdentifier, ref SelectedMoodleIdx, ImGui.GetContentRegionAvail().X, 1f);
+        _moodlesService.DrawMoodleStatusCombo("##MoodleStatusTriggerAction", ImGui.GetContentRegionAvail().X,
+            _playerManager.LastIpcData.MoodlesStatuses, (i) => trigger.TriggerIdentifier = i ?? Guid.Empty);
         _uiShared.DrawHelpText("This Moodle will be applied when the trigger is fired.");
     }
 
@@ -886,13 +886,11 @@ public class ToyboxTriggerManager
             return;
         }
 
-        // reset the index if its out of bounds.
-        if (SelectedMoodlePresetIdx >= _playerManager.LastIpcData.MoodlesPresets.Count) SelectedMoodlePresetIdx = 0;
-
         UiSharedService.ColorText("Moodle Preset to Apply", ImGuiColors.ParsedGold);
         ImGui.SetNextItemWidth(200f);
-        _moodlesService.DrawMoodlesPresetCombo("##MoodlePresetTriggerAction" + trigger.TriggerIdentifier, ref SelectedMoodlePresetIdx,
-            _playerManager.LastIpcData.MoodlesPresets, _playerManager.LastIpcData.MoodlesStatuses, ImGui.GetContentRegionAvail().X);
+        _moodlesService.DrawMoodlesPresetCombo("##MoodlePresetTriggerAction" + trigger.TriggerIdentifier,
+            ImGui.GetContentRegionAvail().X, _playerManager.LastIpcData.MoodlesPresets, _playerManager.LastIpcData.MoodlesStatuses,
+            (i) => trigger.MoodlesIdentifier = i ?? Guid.Empty);
         _uiShared.DrawHelpText("This Moodle Preset will be applied when the trigger is fired.");
     }
 

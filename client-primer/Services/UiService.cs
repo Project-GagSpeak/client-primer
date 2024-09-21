@@ -8,6 +8,7 @@ using Dalamud.Interface.ImGuiFileDialog;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.UI.Permissions;
 using GagSpeak.Interop.IpcHelpers.Penumbra;
+using GagSpeak.UI.Profile;
 
 namespace GagSpeak.Services;
 
@@ -57,12 +58,12 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<DisconnectedMessage>(this, (msg) =>
         {
             var pairPermissionWindows = _createdWindows
-                .Where(p => p is UserPairPermsSticky)
+                .Where(p => p is PairStickyUI)
                 .ToList();
 
             foreach (var window in pairPermissionWindows)
             {
-                _logger.LogTrace("Closing pair permission window for pair {pair}", ((UserPairPermsSticky)window).UserPairForPerms.UserData.AliasOrUID);
+                _logger.LogTrace("Closing pair permission window for pair {pair}", ((PairStickyUI)window).UserPairForPerms.UserData.AliasOrUID);
                 _windowSystem.RemoveWindow(window);
                 _createdWindows.Remove(window);
                 window.Dispose();
@@ -81,21 +82,21 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         /* ---------- The following subscribers are for factory made windows, meant to be unique to each pair ---------- */
         Mediator.Subscribe<ProfileOpenStandaloneMessage>(this, (msg) =>
         {
-            /*if (!_createdWindows.Exists(p => p is StandaloneProfileUi ui
+            if (!_createdWindows.Exists(p => p is StandaloneProfileUi ui
                 && string.Equals(ui.Pair.UserData.AliasOrUID, msg.Pair.UserData.AliasOrUID, StringComparison.Ordinal)))
             {
                 var window = _uiFactory.CreateStandaloneProfileUi(msg.Pair);
                 _createdWindows.Add(window);
                 _windowSystem.AddWindow(window);
-            }*/
+            }
         });
 
 
         Mediator.Subscribe<OpenUserPairPermissions>(this, (msg) =>
         {
-            // Find existing UserPairPermsSticky windows with the same window type and pair UID
+            // Find existing PairStickyUI windows with the same window type and pair UID
             var existingWindow = _createdWindows
-                .FirstOrDefault(p => p is UserPairPermsSticky stickyWindow &&
+                .FirstOrDefault(p => p is PairStickyUI stickyWindow &&
                                      stickyWindow.UserPairForPerms.UserData.AliasOrUID == msg.Pair.UserData.AliasOrUID &&
                                      stickyWindow.DrawType == msg.PermsWindowType);
 
@@ -107,14 +108,14 @@ public sealed class UiService : DisposableMediatorSubscriberBase
             }
             else
             {
-                // Close and dispose of any other UserPairPermsSticky windows
+                // Close and dispose of any other PairStickyUI windows
                 var otherWindows = _createdWindows
-                    .Where(p => p is UserPairPermsSticky)
+                    .Where(p => p is PairStickyUI)
                     .ToList();
 
                 foreach (var window in otherWindows)
                 {
-                    _logger.LogTrace("Disposing existing sticky window for pair {pair}", ((UserPairPermsSticky)window).UserPairForPerms.UserData.AliasOrUID);
+                    _logger.LogTrace("Disposing existing sticky window for pair {pair}", ((PairStickyUI)window).UserPairForPerms.UserData.AliasOrUID);
                     _windowSystem.RemoveWindow(window);
                     _createdWindows.Remove(window);
                     window.Dispose();
@@ -154,12 +155,12 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<ClosedMainUiMessage>(this, (msg) =>
         {
             var pairPermissionWindows = _createdWindows
-                .Where(p => p is UserPairPermsSticky)
+                .Where(p => p is PairStickyUI)
                 .ToList();
 
             foreach (var window in pairPermissionWindows)
             {
-                _logger.LogTrace("Closing pair permission window for pair {pair}", ((UserPairPermsSticky)window).UserPairForPerms.UserData.AliasOrUID);
+                _logger.LogTrace("Closing pair permission window for pair {pair}", ((PairStickyUI)window).UserPairForPerms.UserData.AliasOrUID);
                 _windowSystem.RemoveWindow(window);
                 _createdWindows.Remove(window);
                 window.Dispose();

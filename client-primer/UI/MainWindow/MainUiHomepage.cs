@@ -27,15 +27,13 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
 {
     private readonly UiSharedService _uiShared;
     private readonly ItemIdVars _itemHelpers;
-    private readonly PermActionsComponents _actions;
 
     public MainUiHomepage(ILogger<MainUiHomepage> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService, ItemIdVars itemHelpers,
-        PermActionsComponents actions) : base(logger, mediator)
+        GagspeakMediator mediator, UiSharedService uiSharedService, 
+        ItemIdVars itemHelpers) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
         _itemHelpers = itemHelpers;
-        _actions = actions;
     }
 
     public float DrawHomepageSection(IDalamudPluginInterface pi)
@@ -115,9 +113,5 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         {
             Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
         }
-
-        ImGui.Text("PermActions Password: " + _actions.Password);
-        ImGui.Text("PermActions Timer: " + _actions.Timer);
-        ImGui.Text("PermActions Layer: " + _actions.GagLayer);
     }
 }

@@ -9,6 +9,7 @@ using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.IPC;
 using ImGuiNET;
 using System.Numerics;
+using System.Xml.Linq;
 
 namespace GagSpeak.UI.UiWardrobe;
 
@@ -37,10 +38,12 @@ public class MoodlesManager : MediatorSubscriberBase
     private string PairSearchString = string.Empty;
     private Pair? PairToInspect = null;
     private int SelectedExamineIndex = 0;
-    private int SelectedStatusIndex = 0;
     private int SelectedPresetIndex = 0;
     private string PresetSearchString = string.Empty;
     private Vector2 DefaultItemSpacing;
+
+    private const string MoodleManagerStatusComboLabel = "##MoodlesManagerStatusSelector";
+    private const string MoodleManagerPresetComboLabel = "##MoodlesManagerPresetSelector";
 
     private void MoodlesHeader()
     {
@@ -94,7 +97,6 @@ public class MoodlesManager : MediatorSubscriberBase
                     {
                         idxOfSelected = 0;
                         // reset the indexes
-                        SelectedStatusIndex = 0;
                         SelectedPresetIndex = 0;
                     }
                     else
@@ -102,7 +104,6 @@ public class MoodlesManager : MediatorSubscriberBase
                         idxOfSelected = PairList.IndexOf(pair);
                         PairToInspect = pair;
                         // reset the indexes
-                        SelectedStatusIndex = 0;
                         SelectedPresetIndex = 0;
                     }
                     SelectedExamineIndex = idxOfSelected;
@@ -115,8 +116,6 @@ public class MoodlesManager : MediatorSubscriberBase
             if (_uiShared.IconTextButton(FontAwesomeIcon.Search, "Statuses", null, false, CurrentType == InspectType.Status))
             {
                 CurrentType = InspectType.Status;
-                // reset the index to 0
-                SelectedStatusIndex = 0;
             }
             UiSharedService.AttachToolTip("View the list of Moodles Statuses");
 
@@ -171,8 +170,9 @@ public class MoodlesManager : MediatorSubscriberBase
         }
 
         var length = ImGui.GetContentRegionAvail().X;
-        _moodlesService.DrawMoodleStatusComboSearchable(DataToDisplay.MoodlesStatuses, DataToDisplay.MoodlesStatuses[SelectedStatusIndex].Title + "##StatusSelector",
-            ref SelectedStatusIndex, length, 1.25f);
+
+        _moodlesService.DrawMoodleStatusCombo(MoodleManagerStatusComboLabel, length, DataToDisplay.MoodlesStatuses,
+            (i) => Logger.LogDebug("Selected Status: " + i), 1.25f);
         ImGui.Separator();
 
         using var child = ImRaii.Child("MoodlesInspectionWindow", -Vector2.One, false);
@@ -181,8 +181,12 @@ public class MoodlesManager : MediatorSubscriberBase
         // draw the moodleInfo
         var cursorPos = new Vector2(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X - MoodlesService.StatusSize.X * 2, ImGui.GetCursorPosY()) - new Vector2(20, 5);
         _uiShared.BigText("Moodle Information");
-        if (SelectedStatusIndex == -1) return;
-        PrintMoodleInfoExtended(DataToDisplay!.MoodlesStatuses[SelectedStatusIndex], cellPadding, cursorPos);
+
+        var selectedStatus = _moodlesService.GetSelectedItem(MoodleManagerStatusComboLabel);
+        if (DataToDisplay.MoodlesStatuses.Any(x => x.GUID == selectedStatus))
+        {
+            PrintMoodleInfoExtended(DataToDisplay.MoodlesStatuses.First(x => x.GUID == selectedStatus), cellPadding, cursorPos);
+        }
     }
 
     private void DrawPresets(CharacterIPCData? DataToDisplay, Vector2 cellPadding)

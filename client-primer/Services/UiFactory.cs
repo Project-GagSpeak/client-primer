@@ -1,7 +1,6 @@
 using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Data;
-using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.Services.ConfigurationServices;
@@ -14,6 +13,7 @@ using GagSpeak.UI.Profile;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Enums;
 
 namespace GagSpeak.Services;
 
@@ -38,13 +38,13 @@ public class UiFactory
     private readonly IClientState _clientState;
 
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator,
-        ApiController apiController, UiSharedService uiSharedService, 
-        ToyboxVibeService vibeService, IdDisplayHandler displayHandler, 
+        ApiController apiController, UiSharedService uiSharedService,
+        ToyboxVibeService vibeService, IdDisplayHandler displayHandler,
         PairManager pairManager, PlayerCharacterData playerManager,
         ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
         ProfileService profileManager, OnFrameworkService frameworkUtils,
-        GagspeakConfigService mainConfig, MoodlesService moodlesService, 
-        PermissionPresetService presetService, PermActionsComponents permActionHelpers, 
+        GagspeakConfigService mainConfig, MoodlesService moodlesService,
+        PermissionPresetService presetService, PermActionsComponents permActionHelpers,
         IClientState clientState)
     {
         _loggerFactory = loggerFactory;
@@ -79,9 +79,9 @@ public class UiFactory
     }
 
     // create a new instance window of the userpair permissions window every time a new pair is selected.
-    public UserPairPermsSticky CreateStickyPairPerms(Pair pair, StickyWindowType drawType)
+    public PairStickyUI CreateStickyPairPerms(Pair pair, StickyWindowType drawType)
     {
-        return new UserPairPermsSticky(_loggerFactory.CreateLogger<UserPairPermsSticky>(), _gagspeakMediator, pair, 
+        return new PairStickyUI(_loggerFactory.CreateLogger<PairStickyUI>(), _gagspeakMediator, pair,
             drawType, _frameworkUtils, _mainConfig, _playerManager, _displayHandler, _uiSharedService, _apiController, _pairManager,
             _moodlesService, _presetService, _permActionHelpers, _clientState);
     }

@@ -78,13 +78,6 @@ public static class MoodlesHelpers
             logger.LogWarning("SelectedStatusIdx was out of bounds. The count was {count} and the selected index was {selectedIdx}", statusList.Count, StateIdx);
             StateIdx = 0;
         }
-        // Draw out the status selector.
-        if (moodlesService.DrawMoodleStatusComboSearchable(statusList, "##Status for " + nickname, ref StateIdx, width, 1.0f))
-        {
-            logger.LogTrace("SelectedStatusIdx is now {selectedStatusIdx} with GUID {guid}", StateIdx, statusList[StateIdx].GUID);
-            SelectedGuid = statusList[StateIdx].GUID;
-        }
-        UiSharedService.AttachToolTip("Select a status to apply to " + nickname);
     }
 
     public static void DrawOwnPresetSelection(CharacterIPCData ipcData, float width, string UID, string nickname, UiSharedService uiShared, ILogger logger)

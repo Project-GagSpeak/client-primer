@@ -11,13 +11,14 @@ using GagSpeak.UI.Handlers;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Character;
+using GagspeakAPI.Enums;
 using ImGuiNET;
 using OtterGui;
 using System.Numerics;
 
 namespace GagSpeak.UI.Permissions;
 
-public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
+public partial class PairStickyUI : WindowMediatorSubscriberBase
 {
     private readonly OnFrameworkService _frameworkUtils;
     private readonly GagspeakConfigService _mainConfig;
@@ -32,9 +33,7 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
     private readonly PiShockProvider _shockProvider;
     private readonly IClientState _clientState;
 
-    public enum PermissionType { Global, UniquePairPerm, UniquePairPermEditAccess };
-
-    public UserPairPermsSticky(ILogger<UserPairPermsSticky> logger,
+    public PairStickyUI(ILogger<PairStickyUI> logger,
         GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
         OnFrameworkService frameworkUtils, GagspeakConfigService mainConfig,
         PlayerCharacterData pcManager, IdDisplayHandler displayHandler, 
@@ -65,8 +64,6 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
     }
 
     private CharacterIPCData? LastCreatedCharacterData => _playerManager.LastIpcData;
-
-
     public override void OnClose() => Mediator.Publish(new RemoveWindowMessage(this)); // remove window on close.
 
     public Pair UserPairForPerms { get; init; } // pair we're drawing the sticky permissions for.
@@ -75,8 +72,6 @@ public partial class UserPairPermsSticky : WindowMediatorSubscriberBase
     public float IconButtonTextWidth => WindowMenuWidth - ImGui.GetFrameHeightWithSpacing();
     public string PairNickOrAliasOrUID => UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID;
     public string PairUID => UserPairForPerms.UserData.UID;
-    public bool InteractionSuccessful { get; private set; } = true;// set to true every time an interaction is successfully made.
-                                                                   // Will display a banner at the top for 3 seconds for user feedback.
 
     protected override void PreDrawInternal()
     {

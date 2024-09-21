@@ -1,22 +1,18 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Dto.Permissions;
+using GagspeakAPI.Enums;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets2;
 using OtterGui.Text;
-using System.Security;
-using static FFXIVClientStructs.FFXIV.Client.UI.Agent.AgentMJIGatheringHouse;
-using static GagSpeak.UI.Permissions.UserPairPermsSticky;
 
 namespace GagSpeak.UI.Permissions;
 
 /// <summary>
 /// CLIENT PERMS PARTIAL CLASS
 /// </summary>
-public partial class UserPairPermsSticky
+public partial class PairStickyUI
 {
     // This is where we both view our current settings for the pair,
     // and the levels of access we have granted them control over.
@@ -60,7 +56,7 @@ public partial class UserPairPermsSticky
         DrawOwnSetting("GagFeatures", "GagFeaturesAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.GagFeatures ? "Allowing Gag Interactions" : "Preventing Gag Interactions",
             UserPairForPerms.UserPairOwnUniquePairPerms.GagFeatures ? FontAwesomeIcon.CheckCircle : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairOwnUniquePairPerms.GagFeatures ? 
+            UserPairForPerms.UserPairOwnUniquePairPerms.GagFeatures ?
                 $"Prevent {PairNickOrAliasOrUID} from Applying, Locking, and Removing Gags" : $"Allow {PairNickOrAliasOrUID} to Apply, Lock, and Remove Gags.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
@@ -82,7 +78,7 @@ public partial class UserPairPermsSticky
         DrawOwnSetting("ExtendedLockTimes", "ExtendedLockTimesAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.ExtendedLockTimes ? "Allowing Extended Lock Times" : "Preventing Extended Lock Times",
             UserPairForPerms.UserPairOwnUniquePairPerms.ExtendedLockTimes ? FontAwesomeIcon.Stopwatch : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairOwnUniquePairPerms.ExtendedLockTimes ? 
+            UserPairForPerms.UserPairOwnUniquePairPerms.ExtendedLockTimes ?
                 $"Prevent {PairNickOrAliasOrUID} from setting locks longer than 1 hour." : $"Allow {PairNickOrAliasOrUID} to set locks longer than 1 hour.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
@@ -146,9 +142,9 @@ public partial class UserPairPermsSticky
         ImGui.TextUnformatted("Puppeteer Permissions");
 
         DrawOwnSetting("AllowSitRequests", "AllowSitRequestsAllowed",
-            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSitRequests? "Allowing Sit Requests" : "Preventing Sit Requests",
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSitRequests ? "Allowing Sit Requests" : "Preventing Sit Requests",
             UserPairForPerms.UserPairOwnUniquePairPerms.AllowSitRequests ? FontAwesomeIcon.Chair : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSitRequests ? $"Prevent {PairNickOrAliasOrUID} from forcing "+
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSitRequests ? $"Prevent {PairNickOrAliasOrUID} from forcing " +
                 "you to /sit (different from hardcore)" : $"Let {PairNickOrAliasOrUID} forcing you to /sit or /groundsit.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
@@ -156,7 +152,7 @@ public partial class UserPairPermsSticky
         DrawOwnSetting("AllowMotionRequests", "AllowMotionRequestsAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.AllowMotionRequests ? "Allowing Motion Requests" : "Preventing Motion Requests",
             UserPairForPerms.UserPairOwnUniquePairPerms.AllowMotionRequests ? FontAwesomeIcon.Walking : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairOwnUniquePairPerms.AllowMotionRequests ? $"Prevent {PairNickOrAliasOrUID} from forcing you to do expressions "+
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowMotionRequests ? $"Prevent {PairNickOrAliasOrUID} from forcing you to do expressions " +
                 "and emotes." : $"Let {PairNickOrAliasOrUID} force you to do expressions and emotes.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
@@ -172,18 +168,18 @@ public partial class UserPairPermsSticky
         /* ----------- MOODLES PERMISSIONS ----------- */
         ImGui.TextUnformatted("Moodles Permissions");
 
-         DrawOwnSetting("AllowPositiveStatusTypes", "AllowPositiveStatusTypesAllowed",
-            UserPairForPerms.UserPairOwnUniquePairPerms.AllowPositiveStatusTypes ? "Allow Applying Positive Moodles" : "Positive Moodles Disallowed",
-            UserPairForPerms.UserPairOwnUniquePairPerms.AllowPositiveStatusTypes ? FontAwesomeIcon.SmileBeam : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairOwnUniquePairPerms.AllowPositiveStatusTypes ? $"Prevent {PairNickOrAliasOrUID} from applying moodles with a positive "+
-                "status." : $"Allow {PairNickOrAliasOrUID} to apply moodles with a positive status.",
-            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
-            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+        DrawOwnSetting("AllowPositiveStatusTypes", "AllowPositiveStatusTypesAllowed",
+           UserPairForPerms.UserPairOwnUniquePairPerms.AllowPositiveStatusTypes ? "Allow Applying Positive Moodles" : "Positive Moodles Disallowed",
+           UserPairForPerms.UserPairOwnUniquePairPerms.AllowPositiveStatusTypes ? FontAwesomeIcon.SmileBeam : FontAwesomeIcon.Ban,
+           UserPairForPerms.UserPairOwnUniquePairPerms.AllowPositiveStatusTypes ? $"Prevent {PairNickOrAliasOrUID} from applying moodles with a positive " +
+               "status." : $"Allow {PairNickOrAliasOrUID} to apply moodles with a positive status.",
+           UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+           PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
         DrawOwnSetting("AllowNegativeStatusTypes", "AllowNegativeStatusTypesAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.AllowNegativeStatusTypes ? "Allow Applying Negative Moodles" : "Negative Moodles Disallowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.AllowNegativeStatusTypes ? FontAwesomeIcon.FrownOpen : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairOwnUniquePairPerms.AllowNegativeStatusTypes ? $"Prevent {PairNickOrAliasOrUID} from applying moodles with a negative "+
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowNegativeStatusTypes ? $"Prevent {PairNickOrAliasOrUID} from applying moodles with a negative " +
                 "status." : $"Allow {PairNickOrAliasOrUID} to apply moodles with a negative status.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
@@ -191,7 +187,7 @@ public partial class UserPairPermsSticky
         DrawOwnSetting("AllowSpecialStatusTypes", "AllowSpecialStatusTypesAllowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.AllowSpecialStatusTypes ? "Allow Applying Special Moodles" : "Special Moodles Disallowed",
             UserPairForPerms.UserPairOwnUniquePairPerms.AllowSpecialStatusTypes ? FontAwesomeIcon.WandMagicSparkles : FontAwesomeIcon.Ban,
-            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSpecialStatusTypes ? $"Prevent {PairNickOrAliasOrUID} from applying moodles with a special "+
+            UserPairForPerms.UserPairOwnUniquePairPerms.AllowSpecialStatusTypes ? $"Prevent {PairNickOrAliasOrUID} from applying moodles with a special " +
                 "status." : $"Allow {PairNickOrAliasOrUID} to apply moodles with a special status.",
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
@@ -329,8 +325,8 @@ public partial class UserPairPermsSticky
         using (var group = ImRaii.Group())
         {
             float width = IconButtonTextWidth - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Sync, "Refresh") + ImGui.GetFrameHeight();
-            if (_uiShared.IconInputText("ShockCollarShareCode"+PairUID, FontAwesomeIcon.ShareAlt, string.Empty, "Unique Share Code...", 
-            ref shockCollarPairShareCode, 40, width, true, false)) 
+            if (_uiShared.IconInputText("ShockCollarShareCode" + PairUID, FontAwesomeIcon.ShareAlt, string.Empty, "Unique Share Code...",
+            ref shockCollarPairShareCode, 40, width, true, false))
             {
                 UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode = shockCollarPairShareCode;
             }
@@ -351,12 +347,12 @@ public partial class UserPairPermsSticky
                 Mediator.Publish(new HardcoreUpdatedShareCodeForPair(UserPairForPerms, shockCollarPairShareCode));
             }
         }
-        
+
         // special case for this.
         float seconds = (float)UserPairForPerms.UserPairOwnUniquePairPerms.MaxVibrateDuration.TotalMilliseconds / 1000;
         using (var group = ImRaii.Group())
         {
-            if (_uiShared.IconSliderFloat("##ClientSetMaxVibeDurationForPair"+PairUID, FontAwesomeIcon.Stopwatch, "Max Vibe Duration",
+            if (_uiShared.IconSliderFloat("##ClientSetMaxVibeDurationForPair" + PairUID, FontAwesomeIcon.Stopwatch, "Max Vibe Duration",
                 ref seconds, 0.1f, 15f, IconButtonTextWidth * .65f, true, !UniqueShockCollarPermsExist()))
             {
                 UserPairForPerms.UserPairOwnUniquePairPerms.MaxVibrateDuration = TimeSpan.FromSeconds(seconds);
@@ -389,7 +385,7 @@ public partial class UserPairPermsSticky
     {
         try
         {
-            switch(permissionType)
+            switch (permissionType)
             {
                 case PermissionType.Global:
                     DrawOwnPermission(permissionType, _playerManager.GlobalPerms, textLabel, icon, tooltipStr, canChange,
@@ -501,7 +497,6 @@ public partial class UserPairPermsSticky
                     {
                         // find some way to print this to the chat or something.
                         _logger.LogWarning("You tried to set an invalid timespan format. Please use the format 0d0h0m0s");
-                        InteractionSuccessful = false;
                         timeSpanString = "0d0h0m0s";
                     }
                 }

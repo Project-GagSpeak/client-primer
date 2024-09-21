@@ -2,6 +2,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Controllers;
@@ -22,13 +23,14 @@ public class ToyboxOverview
     private readonly GagspeakMediator _mediator;
     private readonly ApiController _apiController;
     private readonly UiSharedService _uiShared;
+    private readonly PlayerCharacterData _playerManager;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly ToyboxVibeService _vibeService;
 
     public ToyboxOverview(ILogger<ToyboxOverview> logger,
         GagspeakMediator mediator, ApiController controller,
-        UiSharedService uiSharedService,
+        UiSharedService uiSharedService, PlayerCharacterData playerData,
         ClientConfigurationManager clientConfigs,
         ServerConfigurationManager serverConfigs,
         ToyboxVibeService vibeService)
@@ -37,6 +39,7 @@ public class ToyboxOverview
         _mediator = mediator;
         _apiController = controller;
         _uiShared = uiSharedService;
+        _playerManager = playerData;
         _clientConfigs = clientConfigs;
         _serverConfigs = serverConfigs;
         _vibeService = vibeService;
@@ -82,6 +85,11 @@ public class ToyboxOverview
         }
         ImUtf8.SameLineInner();
         ImGui.Text("Open Personal Remote");
+
+        if(_playerManager.GlobalPerms is not null)
+            ImGui.Text("Active Toys State: " + (_playerManager.GlobalPerms.ToyIsActive ? "Active" : "Inactive"));
+
+        ImGui.Text("ConnectedToyActive: " + _vibeService.ConnectedToyActive);
 
         // draw out the list of devices
         ImGui.Separator();

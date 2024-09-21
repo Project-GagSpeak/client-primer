@@ -55,8 +55,8 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
         }
     }
 
-    private int SelectedStatusIndex = 0;
-    private int SelectedPresetIndex = 0;
+    private Guid SelectedStatusGuid = Guid.Empty;
+    private Guid SelectedPresetGuid = Guid.Empty;
 
     // main draw function for the mod associations table
     public void DrawMoodlesStatusesListForItem(IMoodlesAssociable associable, CharacterIPCData? lastPlayerIpcData, float paddingHeight, bool isPresets)
@@ -85,10 +85,6 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
             associable.AssociatedMoodlePresets.RemoveAll(preset =>
                 moodlesPresetList.Any(x => x.Item1 == preset && x.Item2.Any(status => !associable.AssociatedMoodles.Any(y => y == status))));
         }
-
-        // correct the selected index's if they are out of bounds.
-        if (SelectedStatusIndex < 0 || SelectedStatusIndex >= lastPlayerIpcData.MoodlesStatuses.Count) SelectedStatusIndex = 0;
-        if (SelectedPresetIndex < 0 || SelectedPresetIndex >= lastPlayerIpcData.MoodlesPresets.Count) SelectedPresetIndex = 0;
 
         // Handle what we are drawing based on what the table is for.
         if (isPresets)
@@ -187,21 +183,22 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
         var displayList = ipcData.MoodlesStatuses;
 
         ImGui.TableNextColumn();
-        var tooltip = refSet.AssociatedMoodles.Any(x => x == displayList[SelectedStatusIndex].GUID)
+        var tooltip = refSet.AssociatedMoodles.Any(x => x == SelectedStatusGuid)
                 ? "The Restraint Set already includes this Moodle." : "Add Moodle Status to Status List";
 
-        bool disableCondition = refSet.AssociatedMoodles.Any(x => x == displayList[SelectedStatusIndex].GUID);
+        bool disableCondition = refSet.AssociatedMoodles.Any(x => x == SelectedStatusGuid);
 
         if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Plus.ToIconString(),
             new Vector2(ImGui.GetFrameHeight()), tooltip, disableCondition, true))
         {
-            refSet.AssociatedMoodles.Add(displayList[SelectedStatusIndex].GUID);
+            refSet.AssociatedMoodles.Add(SelectedStatusGuid);
         }
 
         ImGui.TableNextColumn();
         var length = ImGui.GetContentRegionAvail().X;
-        _moodlesService.DrawMoodleStatusComboSearchable(ipcData.MoodlesStatuses, ipcData.MoodlesStatuses[SelectedStatusIndex].Title + "##StatusSelector",
-            ref SelectedStatusIndex, length, 1.25f);
+        string label = ipcData.MoodlesStatuses.FirstOrDefault(x => x.GUID == SelectedStatusGuid).Title ?? "None";
+        _moodlesService.DrawMoodleStatusCombo(label + "##StatusSelector", length, ipcData.MoodlesStatuses, 
+            (i) => SelectedStatusGuid = i ?? Guid.Empty, 1.25f);
     }
 
     private void DrawSetNewMoodlePresetRow(IMoodlesAssociable refSet, CharacterIPCData ipcData)
@@ -214,16 +211,18 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
         if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Plus.ToIconString(),
             new Vector2(ImGui.GetFrameHeight()), tooltip, false, true))
         {
-            // take all the GUID's in the preset list and append them to a list.
-            List<Guid> GuidsToAdd = displayList[SelectedPresetIndex].Item2;
-            var newGuids = GuidsToAdd.Where(guid => !refSet.AssociatedMoodles.Contains(guid)).ToList();
-            refSet.AssociatedMoodles.AddRange(newGuids);
-            // add the preset to the preset list.
-            refSet.AssociatedMoodlePresets.Add(displayList[SelectedPresetIndex].Item1);
+            // using the currently selected preset guid, locate it in the list where it matches the .Item1, and get .Item2 values.
+            var presetGuids = displayList.FirstOrDefault(x => x.Item1 == SelectedPresetGuid).Item2;
+            if (presetGuids != null)
+            {
+                refSet.AssociatedMoodles.AddRange(presetGuids.Where(x => !refSet.AssociatedMoodles.Contains(x)));
+                refSet.AssociatedMoodlePresets.Add(SelectedPresetGuid);
+            }
         }
 
         ImGui.TableNextColumn();
         var length = ImGui.GetContentRegionAvail().X;
-        _moodlesService.DrawMoodlesPresetCombo("RestraintSetPresetSelector", ref SelectedPresetIndex, ipcData.MoodlesPresets, ipcData.MoodlesStatuses, length);
+        _moodlesService.DrawMoodlesPresetCombo("RestraintSetPresetSelector", length, ipcData.MoodlesPresets, 
+            ipcData.MoodlesStatuses, (i) => SelectedPresetGuid = i ?? Guid.Empty);
     }
 }

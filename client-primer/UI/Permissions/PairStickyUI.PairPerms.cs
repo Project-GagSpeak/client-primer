@@ -14,7 +14,7 @@ namespace GagSpeak.UI.Permissions;
 /// <summary>
 /// Contains functions relative to the paired users permissions for the client user.
 /// </summary>
-public partial class UserPairPermsSticky
+public partial class PairStickyUI
 {
     public void DrawPairPermsForClient()
     {
@@ -377,7 +377,6 @@ public partial class UserPairPermsSticky
                     {
                         // find some way to print this to the chat or something.
                         _logger.LogWarning("You tried to set an invalid timespan format. Please use the format 0d0h0m0s");
-                        InteractionSuccessful = false;
                         timeSpanString = "0d0h0m0s";
                     }
                 }

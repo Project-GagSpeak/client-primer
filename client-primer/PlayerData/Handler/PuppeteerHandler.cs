@@ -221,28 +221,43 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    public SeString NewMessageFromPuppeteerTrigger(List<string> triggerPhrases, UserPairPermissions permsForSender, 
-        SeString chatMessage, XivChatType type)
+    public SeString NewMessageFromPuppeteerTrigger(List<string> triggerPhrases, string SenderUid,
+        UserPairPermissions permsForSender, SeString chatMessage, XivChatType type)
     {
         // check to see if any of the triggers are valid triggers.
         foreach (string triggerWord in triggerPhrases)
         {
+            //Logger.LogTrace("Checking trigger word: {0}", triggerWord);
+
             if (string.IsNullOrEmpty(triggerWord) || string.IsNullOrWhiteSpace(triggerWord)) continue;
 
             // attempt to match it.
             var match = MatchTriggerWord(chatMessage.TextValue, triggerWord);
             if (!match.Success) continue;
 
+            //Logger.LogTrace("Matched trigger word: {0}", triggerWord);
+
             // obtain the substring of the match comes after the trigger phrase.
-            string remainingMessage = chatMessage.TextValue.Substring(match.Index + match.Length).Trim();
+            SeString remainingMessage = chatMessage.TextValue.Substring(match.Index + match.Length).Trim();
+
+            //Logger.LogTrace("Remaining message: {0}", remainingMessage);
 
             // obtqain the substring within the start and end char if provided.
-            remainingMessage = GetSubstringWithinParentheses(remainingMessage, permsForSender.StartChar, permsForSender.EndChar);
-            
-            // if the substring in the custom brackets is not null or empty, then convert brackets to angled and return.
-            if (remainingMessage.IsNullOrEmpty()) return new SeString();
+            remainingMessage = GetSubstringWithinParentheses(remainingMessage.TextValue, permsForSender.StartChar, permsForSender.EndChar);
 
-            remainingMessage = ConvertSquareToAngleBrackets(remainingMessage);
+            //Logger.LogTrace("Remaining message after brackets: {0}", remainingMessage);
+
+
+            //Logger.LogTrace("Checking for Aliases");
+            remainingMessage = ConvertAliasCommandsIfAny(SenderUid, remainingMessage.TextValue);
+
+            //Logger.LogTrace("Remaining message after aliases: {0}", remainingMessage);
+
+
+            // if the substring in the custom brackets is not null or empty, then convert brackets to angled and return.
+            if (remainingMessage.TextValue.IsNullOrEmpty()) return new SeString();
+
+            remainingMessage = ConvertSquareToAngleBrackets(remainingMessage.TextValue);
 
             if (MeetsSettingCriteria(permsForSender, remainingMessage))
             {
@@ -251,10 +266,12 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
             else
             {
                 // return an empty sestring
+                Logger.LogDebug("Message did not meet the criteria for the sender");
                 return new SeString();
             }
         }
         // return blank string if invalid.
+        Logger.LogDebug("No valid trigger word found in the message");
         return new SeString();
     }
 
@@ -274,11 +291,9 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
             var emotes = _dataManager.GetExcelSheet<Emote>();
             if (emotes != null)
             {
-                // check if the message matches any emotes from that sheet
-                foreach (var emote in emotes)
-                {
-                    if (messageRecieved.TextValue == emote.Name.RawString.Replace(" ", "").ToLower()) return true;
-                }
+                if(emotes.Any(emotes => messageRecieved.TextValue == emotes.Name.RawString.Replace(" ", "").ToLower())) return true;
+
+                if(messageRecieved.TextValue == "cpose") return true;
             }
         }
 
@@ -330,11 +345,9 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
             var emotes = _dataManager.GetExcelSheet<Emote>();
             if (emotes != null)
             {
-                // check if the message matches any emotes from that sheet
-                foreach (var emote in emotes)
-                {
-                    if (messageRecieved.TextValue == emote.Name.RawString.Replace(" ", "").ToLower()) return true;
-                }
+                if(emotes.Any(emotes => messageRecieved.TextValue == emotes.Name.RawString.Replace(" ", "").ToLower())) return true;
+
+                if(messageRecieved.TextValue == "cpose") return true;
             }
         }
 

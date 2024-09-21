@@ -539,7 +539,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             ImGui.NewLine();
             ImGui.AlignTextToFramePadding();
-            ImGui.Text("GagSpeak Channels:");
+            ImGui.Text("Language & Dialect:");
             if (ImGui.IsItemHovered())
             {
                 ImGui.SetTooltip("Every selected channel from here becomes a channel that your direct chat garbler works in.");

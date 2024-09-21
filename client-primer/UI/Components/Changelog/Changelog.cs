@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 6, 2)
+            .RegisterMain("Logic for handling puppeteer trigger phrases should be mostly corrected now.")
+            .RegisterQol("The main puppeteer permission options have been added as buttons in the trigger phrase box.");
         VersionEntry(0, 8, 6, 0)
             .RegisterMain("Gag and Restraint Set Actions now have correct logic. Major Debugging Part 1")
             .RegisterFeature("The Puppeteer UI has been reworked to a cleaner design layout.")

@@ -2,10 +2,8 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using GagSpeak.PlayerData.Data;
+using Dalamud.Utility;
 using GagSpeak.PlayerData.Handlers;
-using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Handlers;
@@ -14,17 +12,9 @@ using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Enums;
-using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
-using OtterGui;
 using OtterGui.Text;
-using System.Drawing;
 using System.Numerics;
-using System.Reflection.Metadata;
-using static System.Net.Mime.MediaTypeNames;
-using Dalamud.Utility;
-using GagSpeak.GagspeakConfiguration.Models;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkUnitBase.Delegates;
 
 namespace GagSpeak.UI.UiPuppeteer;
 
@@ -154,13 +144,13 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             return;
         }
 
-        if(_userPairListHandler.SelectedPair is not null && _puppeteerHandler.SelectedPair is null)
+        if (_userPairListHandler.SelectedPair is not null && _puppeteerHandler.SelectedPair is null)
         {
             _puppeteerHandler.UpdateDisplayForNewPair(_userPairListHandler.SelectedPair);
             return;
         }
 
-        if(_puppeteerHandler.SelectedPair is null || _userPairListHandler.SelectedPair is null)
+        if (_puppeteerHandler.SelectedPair is null || _userPairListHandler.SelectedPair is null)
         {
             _uiShared.BigText("No Pair Selected, select one first!");
             return;
@@ -180,7 +170,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
 
         ImGui.Separator();
 
-        switch(_currentTab)
+        switch (_currentTab)
         {
             case PuppeteerTab.TriggerPhrases:
                 DrawTriggerPhrases(region.X);
@@ -212,7 +202,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         var pairAliasListSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.EllipsisV, "Pair's List");
         var centerYpos = (textSize.Y - ImGui.GetFrameHeight());
 
-        using (ImRaii.Child("ViewPairInformationHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 
+        using (ImRaii.Child("ViewPairInformationHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(),
             _uiShared.GetIconButtonSize(FontAwesomeIcon.Voicemail).Y + (centerYpos - startYpos) * 2 - DefaultCellPadding.Y)))
         {
             // now next to it we need to draw the header text
@@ -237,7 +227,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             // draw revert button at the same location but right below that button
             ImGui.SameLine();
             ImGui.SetCursorPosY(currentYpos);
-            if (_uiShared.IconTextButton(FontAwesomeIcon.EllipsisV, "Your List", null, false, _currentTab == PuppeteerTab.ClientAliasList 
+            if (_uiShared.IconTextButton(FontAwesomeIcon.EllipsisV, "Your List", null, false, _currentTab == PuppeteerTab.ClientAliasList
                 || (_puppeteerHandler.StorageBeingEdited.CharacterName.IsNullOrEmpty() || _puppeteerHandler.StorageBeingEdited.CharacterWorld.IsNullOrEmpty())))
             {
                 _currentTab = PuppeteerTab.ClientAliasList;
@@ -306,7 +296,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
     private string? _tempEndChar = null!;
     private void DrawTriggerPhraseDetailBox(TriggerData triggerInfo)
     {
-        if(_puppeteerHandler.SelectedPair is null) return;
+        if (_puppeteerHandler.SelectedPair is null) return;
 
         bool isClient = triggerInfo.UID == "Client";
         bool displayInRed = isClient && (_puppeteerHandler.StorageBeingEdited.CharacterName.IsNullOrEmpty() || _puppeteerHandler.StorageBeingEdited.CharacterWorld.IsNullOrEmpty());
@@ -323,7 +313,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         // push a less transparent very dark grey background color.
         using var bgColor = ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.25f, 0.2f, 0.2f, 0.4f));
         // create the child window.
-        using (var patternResChild = ImRaii.Child("##TriggerDataFor"+triggerInfo.UID, ImGui.GetContentRegionAvail(), true, ImGuiWindowFlags.ChildWindow))
+        using (var patternResChild = ImRaii.Child("##TriggerDataFor" + triggerInfo.UID, ImGui.GetContentRegionAvail(), true, ImGuiWindowFlags.ChildWindow))
         {
             if (!patternResChild) return;
 
@@ -337,8 +327,8 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                     UiSharedService.ColorTextCentered("This pair must press the action:", ImGuiColors.DalamudRed);
                     ImGui.Spacing();
 
-                    ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 
-                        - (_uiShared.GetIconTextButtonSize(FontAwesomeIcon.Sync, "Update [UID] with your Name") - 5*ImGuiHelpers.GlobalScale)/2 );
+                    ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2
+                        - (_uiShared.GetIconTextButtonSize(FontAwesomeIcon.Sync, "Update [UID] with your Name") - 5 * ImGuiHelpers.GlobalScale) / 2);
 
                     using (ImRaii.Disabled(true))
                     {
@@ -350,25 +340,63 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                 }
             }
 
-            if(isClient)
+            if (isClient)
             {
                 using (var group = ImRaii.Group())
                 {
                     // display name, then display the downloads and likes on the other side.
                     ImGui.AlignTextToFramePadding();
                     UiSharedService.ColorText("Listening To", ImGuiColors.ParsedPink);
-                    if (isClient)
+
+                    ImGui.SameLine(ImGui.GetContentRegionAvail().X - iconSize.X * 4 - ImGui.GetStyle().ItemInnerSpacing.X * 3);
+                    bool allowSitRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowSitRequests;
+                    using (var color = ImRaii.PushColor(ImGuiCol.Text, allowSitRequests ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey))
                     {
-                        ImGui.SameLine(ImGui.GetContentRegionAvail().X - iconSize.X);
-                        using (var color = ImRaii.PushColor(ImGuiCol.Text, isEditingTriggerPhrase ? ImGuiColors.ParsedPink : ImGuiColors.DalamudGrey))
+                        if (_uiShared.IconButton(FontAwesomeIcon.Chair, null, null, false, true))
                         {
-                            if (_uiShared.IconButton(buttonIcon, null, null, false, true))
-                                isEditingTriggerPhrase = !isEditingTriggerPhrase;
+                            _logger.LogTrace($"Updated own pair permission: AllowSitCommands to {!allowSitRequests}");
+                            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData,
+                                new KeyValuePair<string, object>("AllowSitRequests", !allowSitRequests)));
                         }
-                        UiSharedService.AttachToolTip(isEditingTriggerPhrase ? "Stop Editing your TriggerPhrase Info." : "Modify Your TriggerPhrase Info");
                     }
+                    UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform /sit and /groundsit");
+
+                    ImUtf8.SameLineInner();
+                    bool allowMotionRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowMotionRequests;
+                    using (var color = ImRaii.PushColor(ImGuiCol.Text, allowMotionRequests ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey))
+                    {
+                        if (_uiShared.IconButton(FontAwesomeIcon.Walking, null, null, false, true))
+                        {
+                            _logger.LogTrace($"Updated own pair permission: AllowEmotesExpressions to {!allowMotionRequests}");
+                            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData,
+                                new KeyValuePair<string, object>("AllowMotionRequests", !allowMotionRequests)));
+                        }
+                    }
+                    UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform emotes " +
+                        "and expressions (cpose included)");
+
+                    ImUtf8.SameLineInner();
+                    bool allowAllRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowAllRequests;
+                    using (var color = ImRaii.PushColor(ImGuiCol.Text, allowAllRequests ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey))
+                    {
+                        if (_uiShared.IconButton(FontAwesomeIcon.CheckDouble, null, null, false, true))
+                        {
+                            _logger.LogTrace($"Updated own pair permission: AllowAllCommands to {!allowAllRequests}");
+                            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData,
+                                new KeyValuePair<string, object>("AllowAllRequests", !allowAllRequests)));
+                        }
+                    }
+                    UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform any command");
+
+                    ImUtf8.SameLineInner();
+                    using (var color = ImRaii.PushColor(ImGuiCol.Text, isEditingTriggerPhrase ? ImGuiColors.ParsedPink : ImGuiColors.DalamudGrey))
+                    {
+                        if (_uiShared.IconButton(buttonIcon, null, null, false, true))
+                            isEditingTriggerPhrase = !isEditingTriggerPhrase;
+                    }
+                    UiSharedService.AttachToolTip(isEditingTriggerPhrase ? "Stop Editing your TriggerPhrase Info." : "Modify Your TriggerPhrase Info");
                 }
-                
+
                 using (ImRaii.PushFont(UiBuilder.MonoFont)) ImGui.TextUnformatted($"{_puppeteerHandler.StorageBeingEdited.CharacterName} @ {_puppeteerHandler.StorageBeingEdited.CharacterWorld}");
                 ImGui.Spacing();
                 ImGui.Separator();
@@ -380,11 +408,11 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             StringBuilder label = new StringBuilder();
             if (isClient)
                 label.Append("Your ");
-            if(triggers.Length > 1)
+            if (triggers.Length > 1)
                 label.Append("Trigger Phrases");
             else
                 label.Append("Trigger Phrase");
-            if(!isClient) 
+            if (!isClient)
                 label.Append(" set for you.");
 
             ImGui.AlignTextToFramePadding();
@@ -435,7 +463,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                 ImGui.AlignTextToFramePadding();
                 UiSharedService.ColorText("Custom Brackets:", ImGuiColors.ParsedPink);
                 ImGui.SameLine();
-                if(isEditingTriggerPhrase && isClient)
+                if (isEditingTriggerPhrase && isClient)
                 {
                     ImGui.SetNextItemWidth(20 * ImGuiHelpers.GlobalScale);
                     var startChar = _tempStartChar ?? triggerInfo.StartChar.ToString();
@@ -465,7 +493,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                 ImUtf8.SameLineInner();
                 _uiShared.IconText(FontAwesomeIcon.GripLinesVertical, ImGuiColors.ParsedPink);
                 ImUtf8.SameLineInner();
-                if(isEditingTriggerPhrase && isClient)
+                if (isEditingTriggerPhrase && isClient)
                 {
                     ImGui.SetNextItemWidth(20 * ImGuiHelpers.GlobalScale);
                     var endChar = _tempEndChar ?? triggerInfo.EndChar.ToString();
@@ -505,8 +533,8 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                     : $"<{_puppeteerHandler.StorageBeingEdited.CharacterName.Split(' ').First()}{_puppeteerHandler.StorageBeingEdited.CharacterWorld}> ";
                 UiSharedService.ColorText("Example Usage:", ImGuiColors.ParsedPink);
                 ImGui.TextWrapped(charaName + triggers[0] + " " +
-                    _puppeteerHandler.SelectedPair?.UserPairOwnUniquePairPerms.StartChar+
-                   " glamour apply Hogtied | p | [me] "+ 
+                    _puppeteerHandler.SelectedPair?.UserPairOwnUniquePairPerms.StartChar +
+                   " glamour apply Hogtied | p | [me] " +
                    _puppeteerHandler.SelectedPair?.UserPairOwnUniquePairPerms.EndChar);
             }
         }

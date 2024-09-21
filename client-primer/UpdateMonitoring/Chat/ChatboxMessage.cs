@@ -162,15 +162,18 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         {
             // obtain the trigger phrases for this sender
             var triggerPhrases = matchedPair.UserPairOwnUniquePairPerms.TriggerPhrase.Split('|').ToList();
-
             // see if valid pair trigger-phrase was used
             if (_puppeteerHandler.IsValidPuppeteerTriggerWord(triggerPhrases, message))
             {
+                Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!");
                 // get the new message to send
                 SeString msgToSend = _puppeteerHandler.NewMessageFromPuppeteerTrigger(triggerPhrases, matchedPair.UserPairOwnUniquePairPerms, message, type);
 
                 // convert any alias's set for this user if any are present.
+                Logger.LogInformation("message before alias conversion: " + msgToSend.TextValue);
                 msgToSend = _puppeteerHandler.ConvertAliasCommandsIfAny(matchedPair.UserData.UID, msgToSend.TextValue);
+
+                Logger.LogInformation("message after alias conversion: " + msgToSend.TextValue);
 
                 if (!msgToSend.TextValue.IsNullOrEmpty())
                 {

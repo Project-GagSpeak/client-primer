@@ -114,8 +114,8 @@ public class ClientCallbackService
             _logger.LogDebug("Appearance Update Verified by Server Callback.");
             return;
         }
-        // I honestly forgot why i ever had this but i guess ill find out when debugging later.
-        /*
+
+        // This is just for automatically removing a gag once it's unlocked.
         if (callbackWasFromSelf)
         {
             _logger.LogTrace($"Callback for self-appearance data from server handled successfully.");
@@ -131,10 +131,10 @@ public class ClientCallbackService
 
             if (layer.HasValue)
             {
-                Mediator.Publish(new GagTypeChanged(GagType.None, layer.Value));
+                _gagManager.OnGagTypeChanged(layer.Value, GagType.None, false);
             }
             return;
-        }*/
+        }
 
 
         // we should start by extracting what the actionType is, and the layer, from the DataUpdateKind in a efficient Manner.
@@ -257,26 +257,18 @@ public class ClientCallbackService
 
     }
 
-    public void CallbackAliasStorageUpdate(OnlineUserCharaAliasDataDto callbackDto, bool callbackFromSelf)
+    public void CallbackAliasStorageUpdate(OnlineUserCharaAliasDataDto callbackDto)
     {
         // this call should only ever be used for updating the registered name of a pair. if used for any other purpose, log error.
-        if (callbackDto.UpdateKind == DataUpdateKind.PuppeteerPlayerNameRegistered)
+        if (callbackDto.UpdateKind is DataUpdateKind.PuppeteerPlayerNameRegistered)
         {
             // do the update for name registration of this pair.
             _mediator.Publish(new UpdateCharacterListenerForUid(callbackDto.User.UID, callbackDto.AliasData.CharacterName, callbackDto.AliasData.CharacterWorld));
             _logger.LogDebug("Player Name Registered Successfully processed by Server!");
         }
-        else if (callbackFromSelf)
+        else if (callbackDto.UpdateKind is DataUpdateKind.PuppeteerAliasListUpdated)
         {
-            // if the update was an aliasList updated, log the successful update.
-            if (callbackDto.UpdateKind == DataUpdateKind.PuppeteerAliasListUpdated)
-            {
-                _logger.LogDebug("Alias List Updated Successfully processed by Server!");
-            }
-            else
-            {
-                _logger.LogError("Unexpected UpdateKind: {0}", callbackDto.UpdateKind.ToName());
-            }
+            _logger.LogDebug("Alias List Update Success retrieved from Server for UID: " + callbackDto.User.UID);
         }
         else
         {

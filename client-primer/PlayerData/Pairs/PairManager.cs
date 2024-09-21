@@ -298,7 +298,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // apply the alias data (FOR OUR CLIENTPAIR ONLY) to the aliasData object.
 
         // first see if our clientUID exists as a key in dto.CompositeData.AliasData. If it does not, define it as an empty data.
-        if (!dto.CompositeData.AliasData.ContainsKey(clientUID))
+        if (dto.CompositeData.AliasData.ContainsKey(clientUID))
         {
             _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, dto.CompositeData.AliasData[clientUID], dto.UpdateKind));
         }
@@ -313,7 +313,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // apply the PiShock stuff
         _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, dto.CompositeData.GlobalShockPermissions, DataUpdateKind.PiShockGlobalUpdated));
 
-        if (!dto.CompositeData.PairShockPermissions.ContainsKey(clientUID))
+        if (dto.CompositeData.PairShockPermissions.ContainsKey(clientUID))
         {
             _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, dto.CompositeData.PairShockPermissions[clientUID], DataUpdateKind.PiShockPairPermsForUserUpdated));
         }

@@ -24,7 +24,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         switch (messageSeverity)
         {
             case MessageSeverity.Error:
-                Mediator.Publish(new NotificationMessage("Warning from " +
+                Mediator.Publish(new NotificationMessage("Error from " +
                     _serverConfigs.CurrentServer!.ServerName, message, NotificationType.Error, TimeSpan.FromSeconds(7.5)));
                 break;
 
@@ -52,7 +52,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         switch (messageSeverity)
         {
             case MessageSeverity.Error:
-                Mediator.Publish(new NotificationMessage("Warning from " +
+                Mediator.Publish(new NotificationMessage("Error from " +
                     _serverConfigs.CurrentServer!.ServerName, message, NotificationType.Error, TimeSpan.FromSeconds(7.5)));
                 break;
 
@@ -138,7 +138,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         // Should make us call to the moodles IPC to apply the statuses recieved
         // (permissions verified by server)
         Logger.LogDebug("Client_UserApplyMoodlesByGuid: {dto}", dto);
-        //ExecuteSafely(() => _playerCallbackService.ApplyStatusesByGuid(dto));
+        ExecuteSafely(() => _clientCallbacks.ApplyStatusesByGuid(dto));
         return Task.CompletedTask;
     }
 
@@ -148,7 +148,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         Logger.LogDebug("Client_UserApplyMoodlesByStatus: {dto}", dto);
         // obtain the localplayername and world
         string NameWithWorld = _frameworkUtils.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtils._playerAddr).GetAwaiter().GetResult()?.GetNameWithWorld() ?? string.Empty;
-        //ExecuteSafely(() => _playerCallbackService.ApplyStatusesToSelf(dto, NameWithWorld));
+        ExecuteSafely(() => _clientCallbacks.ApplyStatusesToSelf(dto, NameWithWorld));
         return Task.CompletedTask;
     }
 
@@ -159,7 +159,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserRemoveMoodles(RemoveMoodlesDto dto)
     {
         Logger.LogDebug("Client_UserRemoveMoodles: {dto}", dto);
-        //ExecuteSafely(() => _playerCallbackService.RemoveStatusesFromSelf(dto));
+        ExecuteSafely(() => _clientCallbacks.RemoveStatusesFromSelf(dto));
         return Task.CompletedTask;
     }
 
@@ -170,7 +170,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserClearMoodles(UserDto dto)
     {
         Logger.LogDebug("Client_UserClearMoodles: {dto}", dto);
-        //ExecuteSafely(() => _playerCallbackService.ClearStatusesFromSelf(dto));
+        ExecuteSafely(() => _clientCallbacks.ClearStatusesFromSelf(dto));
         return Task.CompletedTask;
     }
 
@@ -452,7 +452,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     {
         Logger.LogDebug("Client_UserReceiveOwnDataAlias: {dataDto}", dataDto);
         bool callbackWasFromSelf = dataDto.User.UID == UID;
-        ExecuteSafely(() => _clientCallbacks.CallbackAliasStorageUpdate(dataDto, callbackWasFromSelf));
+        ExecuteSafely(() => _clientCallbacks.CallbackAliasStorageUpdate(dataDto));
         return Task.CompletedTask;
     }
 

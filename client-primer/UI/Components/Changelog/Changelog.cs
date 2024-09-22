@@ -23,7 +23,7 @@ public class Changelog
             .RegisterMain("Added a more Advanced Logger System that adds logger filter categories beyond provided ones.")
             .RegisterFeature("Switch on or off the individual logger categories in the settings window for helpful debugging.")
             .RegisterQol("Added an all on / all off button to auto assign all recommended logger filters or turn them all off.")
-            .RegisterQol("Reorgniazed the asset folders into their own directories for less messy output navigation.");
+            .RegisterQol("Reorganized the asset folders into their own directories for less messy output navigation.");
         VersionEntry(0, 8, 6, 2)
             .RegisterMain("Logic for handling puppeteer trigger phrases should be mostly corrected now.")
             .RegisterQol("The main puppeteer permission options have been added as buttons in the trigger phrase box.");

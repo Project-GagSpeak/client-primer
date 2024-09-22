@@ -142,8 +142,8 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
             return;
         }
         // start a new one
-        Logger.LogDebug($"Starting playback of pattern {_playbackService.ActivePattern?.Name}");
-        
+        Logger.LogDebug($"Starting playback of pattern {_playbackService.ActivePattern?.Name}", LoggerType.ToyboxPatterns);
+
         // set the playback index to the start
         ReadBufferIdx = 0;
 
@@ -171,7 +171,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
 
     public void StopPlayback(Guid patternIdentifier)
     {
-        Logger.LogDebug($"Stopping playback of pattern {_playbackService.GetPatternNameFromGuid(patternIdentifier)}");
+        Logger.LogDebug($"Stopping playback of pattern "+_playbackService.GetPatternNameFromGuid(patternIdentifier), LoggerType.ToyboxPatterns);
         // clear the local variables
         ReadBufferIdx = 0;
         // reset the timers

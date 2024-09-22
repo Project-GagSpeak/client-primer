@@ -11,7 +11,7 @@ public abstract class WindowMediatorSubscriberBase : Window, IMediatorSubscriber
     {
         _logger = logger;
         Mediator = mediator;
-        _logger.LogTrace("Creating {type}", GetType());
+        _logger.LogTrace("Creating "+GetType(), LoggerType.Mediator);
 
         // subscribe to the UI toggle message???? (likely dont need and is respective to gagspeak)
         Mediator.Subscribe<UiToggleMessage>(this, (msg) =>
@@ -82,7 +82,7 @@ public abstract class WindowMediatorSubscriberBase : Window, IMediatorSubscriber
 
     protected virtual void Dispose(bool disposing)
     {
-        _logger.LogTrace("Disposing {type}", GetType());
+        _logger.LogTrace("Disposing "+GetType(), LoggerType.Mediator);
 
         Mediator.UnsubscribeAll(this);
     }

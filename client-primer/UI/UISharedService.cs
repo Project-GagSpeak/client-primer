@@ -1,6 +1,5 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Components;
 using Dalamud.Interface.GameFonts;
 using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Interface.Textures;
@@ -10,6 +9,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Localization;
 using GagSpeak.PlayerData.Pairs;
@@ -21,11 +21,9 @@ using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Enums;
 using ImGuiNET;
-using Interop.Ipc;
 using OtterGui.Text;
 using PInvoke;
 using System.Numerics;
-using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
@@ -66,13 +64,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private bool _useTheme = true;                                      // if we should use the GagSpeak Theme
 
     // default image paths
-    private const string Logo256Path = "icon256.png";
-    private const string Logo256bgPath = "icon256bg.png";
-    private const string SupporterBooster = "BoosterIcon.png";
-    private const string SupporterT1 = "Tier1Icon.png";
-    private const string SupporterT2 = "Tier2Icon.png";
-    private const string SupporterT3 = "Tier3Icon.png";
-    private const string OwnerT4 = "Tier4Icon.png";
+    private const string Logo256Path = "RequiredImages\\icon256.png";
+    private const string Logo256bgPath = "RequiredImages\\icon256bg.png";
+    private const string SupporterBooster = "RequiredImages\\BoosterIcon.png";
+    private const string SupporterT1 = "RequiredImages\\Tier1Icon.png";
+    private const string SupporterT2 = "RequiredImages\\Tier2Icon.png";
+    private const string SupporterT3 = "RequiredImages\\Tier3Icon.png";
+    private const string OwnerT4 = "RequiredImages\\Tier4Icon.png";
     // helpers to get the static images
     public IDalamudTextureWrap GetLogo() => GetImageFromDirectoryFile(Logo256Path);
     public IDalamudTextureWrap? RentLogo() => RentImageFromFile(Logo256Path);
@@ -168,11 +166,11 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public IDalamudTextureWrap GetImageFromDirectoryFile(string path)
-        => _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, path)).GetWrapOrEmpty();
+        => _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path)).GetWrapOrEmpty();
 
     public IDalamudTextureWrap? RentImageFromFile(string path)
     {
-        _sharedTextures = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, path));
+        _sharedTextures = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path));
         if (_sharedTextures.GetWrapOrDefault() == null) return null;
         else return _sharedTextures.RentAsync().Result;
     }
@@ -474,7 +472,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             num++;
         }
 
-        ImGui.PushID(text+"##"+id);
+        ImGui.PushID(text + "##" + id);
         Vector2 vector;
         using (IconFont.Push())
             vector = ImGui.CalcTextSize(icon.ToIconString());
@@ -508,7 +506,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             disabled, id);
     }
 
-    private bool IconSliderFloatInternal(string id, FontAwesomeIcon icon, string label, ref float valueRef, float min, 
+    private bool IconSliderFloatInternal(string id, FontAwesomeIcon icon, string label, ref float valueRef, float min,
         float max, Vector4? defaultColor = null, float? width = null, bool disabled = false, string format = "%.1f")
     {
         using var dis = ImRaii.PushStyle(ImGuiStyleVar.Alpha, disabled ? 0.5f : 1f);
@@ -532,7 +530,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         float frameHeight = ImGui.GetFrameHeight();
         ImGui.SetCursorPosX(vector.X + ImGui.GetStyle().FramePadding.X * 2f);
         ImGui.SetNextItemWidth(x - vector.X - num2 * 4); // idk why this works, it probably doesnt on different scaling. Idfk. Look into later.
-        bool result = ImGui.SliderFloat(label+"##"+ id, ref valueRef, min, max, format);
+        bool result = ImGui.SliderFloat(label + "##" + id, ref valueRef, min, max, format);
 
         Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
         using (IconFont.Push())
@@ -579,7 +577,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         float x = width ?? vector.X + vector2.X + ImGui.GetStyle().FramePadding.X * 2f + num2;
         float frameHeight = ImGui.GetFrameHeight();
         ImGui.SetCursorPosX(vector.X + ImGui.GetStyle().FramePadding.X * 2f);
-        ImGui.SetNextItemWidth(x - vector.X - num2*4); // idk why this works, it probably doesnt on different scaling. Idfk. Look into later.
+        ImGui.SetNextItemWidth(x - vector.X - num2 * 4); // idk why this works, it probably doesnt on different scaling. Idfk. Look into later.
         bool result = ImGui.InputTextWithHint(label, hint, ref inputStr, maxLength, ImGuiInputTextFlags.EnterReturnsTrue);
 
         Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
@@ -973,7 +971,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public void DrawCombo<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName,
-        Action<T?>? onSelected = null, T? initialSelectedItem = default, bool shouldShowLabel = true, 
+        Action<T?>? onSelected = null, T? initialSelectedItem = default, bool shouldShowLabel = true,
         ImGuiComboFlags flags = ImGuiComboFlags.None, string defaultPreviewText = "Nothing Selected..")
     {
         string comboLabel = shouldShowLabel ? $"{comboName}##{comboName}" : $"##{comboName}";
@@ -1123,7 +1121,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             ImGui.OpenPopup($"TimeSpanPopup-{label}");
         }
         // just to the right of it, aligned with the button, display the label
-        if(showLabel)
+        if (showLabel)
         {
             ImUtf8.SameLineInner();
             ImGui.TextUnformatted(label);
@@ -1159,10 +1157,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         if (ImGui.BeginTable("TimeDurationTable", totalColumns)) // 3 columns for hours, minutes, seconds
         {
             // Setup columns based on the format
-            if (format.Contains("hh")) ImGui.TableSetupColumn("##Hours", ImGuiTableColumnFlags.WidthFixed, patternHourTextSize.X + totalColumns+1);
-            if (format.Contains("mm")) ImGui.TableSetupColumn("##Minutes", ImGuiTableColumnFlags.WidthFixed, patternMinuteTextSize.X + totalColumns+1);
-            if (format.Contains("ss")) ImGui.TableSetupColumn("##Seconds", ImGuiTableColumnFlags.WidthFixed, patternSecondTextSize.X + totalColumns+1);
-            if (format.Contains("fff")) ImGui.TableSetupColumn("##Milliseconds", ImGuiTableColumnFlags.WidthFixed, patternMillisecondTextSize.X + totalColumns+1);
+            if (format.Contains("hh")) ImGui.TableSetupColumn("##Hours", ImGuiTableColumnFlags.WidthFixed, patternHourTextSize.X + totalColumns + 1);
+            if (format.Contains("mm")) ImGui.TableSetupColumn("##Minutes", ImGuiTableColumnFlags.WidthFixed, patternMinuteTextSize.X + totalColumns + 1);
+            if (format.Contains("ss")) ImGui.TableSetupColumn("##Seconds", ImGuiTableColumnFlags.WidthFixed, patternSecondTextSize.X + totalColumns + 1);
+            if (format.Contains("fff")) ImGui.TableSetupColumn("##Milliseconds", ImGuiTableColumnFlags.WidthFixed, patternMillisecondTextSize.X + totalColumns + 1);
             ImGui.TableNextRow();
 
             // Draw components based on the format
@@ -1201,7 +1199,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             "ms" => $"{Math.Max(0, (duration.Milliseconds - 10)):000}",
             _ => $"UNK"
         };
-        
+
         string currentValue = suffix switch
         {
             "h" => $"{duration.Hours:00}h",
@@ -1243,7 +1241,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             if (suffix == "h") { hours += delta; }
             if (suffix == "m") { minutes += delta; }
             if (suffix == "s") { seconds += delta; }
-            if (suffix == "ms") { milliseconds += delta*10; }
+            if (suffix == "ms") { milliseconds += delta * 10; }
             // Rollover and clamp logic
             if (milliseconds < 0) { milliseconds += 1000; seconds--; }
             if (milliseconds > 999) { milliseconds -= 1000; seconds++; }

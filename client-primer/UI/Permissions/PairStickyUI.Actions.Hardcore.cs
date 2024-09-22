@@ -85,11 +85,11 @@ public partial class PairStickyUI
 
         if (_uiShared.IconTextButton(FontAwesomeIcon.BoltLightning, "Shock " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, !permissions.AllowShocks))
         {
-            Opened = Opened == ActiveActionButton.ShockAction ? ActiveActionButton.None : ActiveActionButton.ShockAction;
+            Opened = Opened == InteractionType.ShockAction ? InteractionType.None : InteractionType.ShockAction;
         }
         UiSharedService.AttachToolTip("Perform a Shock action to " + PairUID + "'s Shock Collar.");
 
-        if (Opened is ActiveActionButton.ShockAction)
+        if (Opened is InteractionType.ShockAction)
         {
             using (var actionChild = ImRaii.Child("ShockCollarActionChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight() * 2 + ImGui.GetStyle().ItemSpacing.Y), false))
             {
@@ -112,7 +112,7 @@ public partial class PairStickyUI
 
                         _logger.LogDebug("Sending Shock to Shock Collar with duration: " + newMaxDuration + "(milliseconds)");
                         _ = _apiController.UserShockActionOnPair(new ShockCollarActionDto(UserPairForPerms.UserData, 0, Intensity, newMaxDuration));
-                        Opened = ActiveActionButton.None;
+                        Opened = InteractionType.None;
                     }
                 }
                 catch (Exception e) { _logger.LogError("Failed to push ShockCollar Shock message: " + e.Message); }
@@ -122,11 +122,11 @@ public partial class PairStickyUI
 
         if (_uiShared.IconTextButton(FontAwesomeIcon.WaveSquare, "Vibrate " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, false))
         {
-            Opened = Opened == ActiveActionButton.VibrateAction ? ActiveActionButton.None : ActiveActionButton.VibrateAction;
+            Opened = Opened == InteractionType.VibrateAction ? InteractionType.None : InteractionType.VibrateAction;
         }
         UiSharedService.AttachToolTip("Perform a Vibrate action to " + PairUID + "'s Shock Collar.");
 
-        if (Opened is ActiveActionButton.VibrateAction)
+        if (Opened is InteractionType.VibrateAction)
         {
             using (var actionChild = ImRaii.Child("VibrateCollarActionChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight() * 2 + ImGui.GetStyle().ItemSpacing.Y), false))
             {
@@ -150,7 +150,7 @@ public partial class PairStickyUI
 
                         _logger.LogDebug("Sending Vibration to Shock Collar with duration: " + newMaxDuration + "(milliseconds)");
                         _ = _apiController.UserShockActionOnPair(new ShockCollarActionDto(UserPairForPerms.UserData, 1, VibrateIntensity, newMaxDuration));
-                        Opened = ActiveActionButton.None;
+                        Opened = InteractionType.None;
                     }
                 }
                 catch (Exception e) { _logger.LogError("Failed to push ShockCollar Vibrate message: " + e.Message); }
@@ -160,11 +160,11 @@ public partial class PairStickyUI
 
         if (_uiShared.IconTextButton(FontAwesomeIcon.LandMineOn, "Beep " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, !permissions.AllowBeeps))
         {
-            Opened = Opened == ActiveActionButton.BeepAction ? ActiveActionButton.None : ActiveActionButton.BeepAction;
+            Opened = Opened == InteractionType.BeepAction ? InteractionType.None : InteractionType.BeepAction;
         }
         UiSharedService.AttachToolTip("Beep " + PairUID + "'s Shock Collar.");
 
-        if (Opened is ActiveActionButton.BeepAction)
+        if (Opened is InteractionType.BeepAction)
         {
             using (var actionChild = ImRaii.Child("BeepCollarActionChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
@@ -185,7 +185,7 @@ public partial class PairStickyUI
                         else { newMaxDuration = (int)(VibeDuration * 1000); }
                         _logger.LogDebug("Sending Beep to Shock Collar with duration: " + newMaxDuration + "(note that values between 1 and 15 are full seconds)");
                         _ = _apiController.UserShockActionOnPair(new ShockCollarActionDto(UserPairForPerms.UserData, 2, Intensity, newMaxDuration));
-                        Opened = ActiveActionButton.None;
+                        Opened = InteractionType.None;
                     }
                 }
                 catch (Exception e) { _logger.LogError("Failed to push ShockCollar Beep message: " + e.Message); }

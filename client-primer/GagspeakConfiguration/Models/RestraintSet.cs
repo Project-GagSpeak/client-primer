@@ -1,5 +1,5 @@
 using Dalamud.Utility;
-using GagSpeak.UI.Components;
+using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
 using Penumbra.GameData.Enums;

@@ -11,6 +11,10 @@ using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.UserPair;
 using GagspeakAPI.Data.Permissions;
 using Dalamud.Game.ClientState.Objects.Types;
+using GagspeakAPI.Helpers;
+using Dalamud.Game.Gui.ContextMenu;
+using Dalamud.Game.Text.SeStringHandling;
+using Penumbra.GameData.Structs;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -88,9 +92,66 @@ public class Pair
     public string PlayerNameWithWorld => CachedPlayer?.PlayerNameWithWorld ?? string.Empty;
     public string CachedPlayerString() => CachedPlayer?.ToString() ?? "No Cached Player"; // string representation of the cached player.
 
-    /// <summary>
-    /// Applies the IPC related data that should effect players within visible range of the client, to the user pair.
-    /// </summary>
+    public void AddContextMenu(IMenuOpenedArgs args)
+    {
+        // if the visible player is not cached, not our target, or not a valid object, or paused, don't display./
+        if (CachedPlayer == null 
+        || (args.Target is not MenuTargetDefault target) 
+        || target.TargetObjectId != CachedPlayer.PairObject?.OwnerId 
+        || IsPaused) return;
+
+        // This only works when you create it prior to adding it to the args,
+        // otherwise the += has trouble calling. (it would fall out of scope)
+        var subMenu = new MenuItem();
+        subMenu.IsSubmenu = true;
+        subMenu.Name = "SubMenu Test Item";
+        subMenu.PrefixChar = 'G';
+        subMenu.PrefixColor = 526;
+        subMenu.OnClicked += args => OpenSubMenuTest(args, _logger);
+        args.AddMenuItem(subMenu);
+
+        args.AddMenuItem(new MenuItem()
+        {
+            Name = new SeStringBuilder().AddText("Open Actions").Build(),
+            PrefixChar = 'G',
+            PrefixColor = 526,
+            OnClicked = (a) =>
+            {
+                // see if we need to toggle the main UI before this.
+                _mediator.Publish(new OpenUserPairPermissions(this, StickyWindowType.PairActionFunctions));
+            },
+        });
+    }
+
+    private static unsafe void OpenSubMenuTest(IMenuItemClickedArgs args, ILogger logger)
+    {
+        // create some dummy test items.
+        var menuItems = new List<MenuItem>();
+
+        // dummy item 1
+        var menuItem = new MenuItem();
+        menuItem.Name = "SubMenu Test Item 1";
+        menuItem.PrefixChar = 'G';
+        menuItem.PrefixColor = 706;
+        menuItem.OnClicked += clickedArgs => logger.LogInformation("Submenu Item 1 Clicked!", LoggerType.ContextDtr);
+
+        menuItems.Add(menuItem);
+        
+
+        var menuItem2 = new MenuItem();
+        menuItem2.Name = "SubMenu Test Item 2";
+        menuItem2.PrefixChar = 'G';
+        menuItem2.PrefixColor = 706;
+        menuItem2.OnClicked += clickedArgs => logger.LogInformation("Submenu Item 2 Clicked!", LoggerType.ContextDtr);
+
+        menuItems.Add(menuItem2);
+
+        if (menuItems.Count > 0)
+            args.OpenSubmenu(menuItems);
+    }
+
+
+    /// <summary> Update IPC Data </summary>
     public void ApplyVisibleData(OnlineUserCharaIpcDataDto data)
     {
         _applicationCts = _applicationCts.CancelRecreate();
@@ -101,7 +162,7 @@ public class Pair
         if (CachedPlayer == null)
         {
             // log that we received data for the user, but the cached player does not exist, and we are waiting.
-            _logger.LogDebug("Received Data for {uid} but CachedPlayer does not exist, waiting", data.User.UID);
+            _logger.LogDebug("Received Data for " + data.User.UID + " but CachedPlayer does not exist, waiting", LoggerType.PairManagement);
             // asynchronously run the following code
             _ = Task.Run(async () =>
             {
@@ -125,7 +186,7 @@ public class Pair
                 if (!combined.IsCancellationRequested)
                 {
                     // apply the last received data
-                    _logger.LogDebug("Applying delayed data for {uid}", data.User.UID);
+                    _logger.LogDebug("Applying delayed data for "+data.User.UID, LoggerType.PairManagement);
                     ApplyLastReceivedIpcData(); // in essence, this means apply the character data send in the Dto
                 }
             });
@@ -142,10 +203,7 @@ public class Pair
     /// </summary>
     public void ApplyAppearanceData(OnlineUserCharaAppearanceDataDto data)
     {
-        _logger.LogDebug("Applying updated appearance data for {uid}", data.User.UID);
-
-        // update the full appearance, since we assume this is handled correctly and only called by owner of pair.
-        // Change this to only update info respective to the UpdateDataKind if this fails.
+        _logger.LogDebug("Applying updated appearance data for "+data.User.UID, LoggerType.PairManagement);
         LastReceivedAppearanceData = data.AppearanceData;
     }
 
@@ -155,9 +213,7 @@ public class Pair
     /// </summary>
     public void ApplyWardrobeData(OnlineUserCharaWardrobeDataDto data)
     {
-        _logger.LogDebug("Applying updated wardrobe data for {uid}", data.User.UID);
-        // update the full appearance, since we assume this is handled correctly and only called by owner of pair.
-        // Change this to only update info respective to the UpdateDataKind if this fails.
+        _logger.LogDebug("Applying updated wardrobe data for "+data.User.UID, LoggerType.PairManagement);
         LastReceivedWardrobeData = data.WardrobeData;
     }
 
@@ -167,9 +223,9 @@ public class Pair
     /// </summary>
     public void ApplyAliasData(OnlineUserCharaAliasDataDto data)
     {
-        _logger.LogDebug("Applying updated alias data for {uid}", data.User.UID);
+        _logger.LogDebug("Applying updated alias data for " + data.User.UID, LoggerType.PairManagement);
         // update either the name associated to the list, or the list itself.
-        if(LastReceivedAliasData == null)
+        if (LastReceivedAliasData == null)
         {
             LastReceivedAliasData = data.AliasData;
         }
@@ -190,7 +246,7 @@ public class Pair
         }
         else
         {
-            _logger.LogWarning("Unknown Set Type: {updateKind}", data.UpdateKind);
+            _logger.LogWarning("Unknown Set Type: " + data.UpdateKind);
         }
     }
 
@@ -202,9 +258,8 @@ public class Pair
     /// </summary>
     public void ApplyToyboxData(OnlineUserCharaToyboxDataDto data)
     {
-        _logger.LogDebug("Applying updated pattern data for {uid}", data.User.UID);
-        // update the full appearance, since we assume this is handled correctly and only called by owner of pair.
-        // Change this to only update info respective to the UpdateDataKind if this fails.
+        _logger.LogDebug("Applying updated toybox data for " + data.User.UID, LoggerType.PairManagement);
+        _logger.LogTrace("Toybox Information: "+data.ToyboxInfo.ParseToString(), LoggerType.PairManagement);
         LastReceivedToyboxData = data.ToyboxInfo;
     }
 
@@ -229,10 +284,8 @@ public class Pair
     }
 
     /// <summary> Method that applies the last received data to the cached player.
-    /// <para> It does this only if the CachedPlayer is not null, and the LastRecievedCharacterData is not null.</para>
+    /// <para> It does this only if the CachedPlayer is not null, and the LastReceivedCharacterData is not null.</para>
     /// </summary>
-    /// <param name="forced">if this method was forced or not 
-    /// (will remove for now, but you can always add it back in later if people want it i guess)</param>
     public void ApplyLastReceivedIpcData(bool forced = false)
     {
         // if we have not yet recieved data from the player at least once since being online, return and do not apply.
@@ -260,7 +313,7 @@ public class Pair
             // If the cachedPlayer is already stored for this pair, we do not need to create it again, so return.
             if (CachedPlayer != null)
             {
-                _logger.LogDebug("CachedPlayer already exists for {uid}", UserData.UID);
+                _logger.LogDebug("CachedPlayer already exists for " + UserData.UID, LoggerType.PairManagement);
                 return;
             }
 
@@ -277,11 +330,11 @@ public class Pair
             // if the OnlineUserIdentDto contains information, we should update our pairs _onlineUserIdentDto to the dto
             if (dto != null)
             {
-                _logger.LogDebug("Updating OnlineUserIdentDto for {uid}", UserData.UID);
+                _logger.LogDebug("Updating OnlineUserIdentDto for " + UserData.UID, LoggerType.PairManagement);
                 _onlineUserIdentDto = dto;
             }
 
-            _logger.LogTrace("Disposing of existing CachedPlayer to create a new one for {uid}", UserData.UID);
+            _logger.LogTrace("Disposing of existing CachedPlayer to create a new one for " + UserData.UID, LoggerType.PairManagement);
             // not we can dispose of the cached player
             CachedPlayer?.Dispose();
             // and create a new one from our _cachedPlayerFactory (the pair handler factory)
@@ -330,7 +383,7 @@ public class Pair
             // dispose of the player object.
             player?.Dispose();
             // log the pair as offline
-            _logger.LogTrace("Marked {uid} as offline", UserData.UID);
+            _logger.LogTrace("Marked "+UserData.UID+" as offline", LoggerType.PairManagement);
         }
         finally
         {

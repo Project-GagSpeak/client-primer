@@ -3,7 +3,6 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using GagSpeak.ChatMessages;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
@@ -22,7 +21,6 @@ namespace GagSpeak.UpdateMonitoring.Chat;
 /// </summary>
 public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
 {
-    //    private readonly ClientConfigurationManager _clientConfigs;
     private readonly PuppeteerHandler _puppeteerHandler;
     private readonly ChatSender _chatSender;
     private readonly TriggerController _triggerController;
@@ -59,8 +57,6 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
     public static Queue<string> MessageQueue; // the messages to send to the server.
     public static List<string> PlayersToListenFor; // players to listen to messages from. (Format of NameWithWorld)
 
-
-
     /// <summary> This is the disposer for the OnChatMsgManager class. </summary>
     protected override void Dispose(bool disposing)
     {
@@ -76,7 +72,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
 
     private void OnUpdateChatListeners()
     {
-        Logger.LogDebug("Updating Chat Listeners");
+        Logger.LogDebug("Updating Chat Listeners", LoggerType.ToyboxTriggers);
         PlayersToListenFor = _puppeteerHandler.GetPlayersToListenFor();
     }
 
@@ -86,9 +82,10 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         if (_clientState.LocalPlayer == null) return;
 
         // log all types of payloads included in the message.
+        /*
 
-/*        Logger.LogDebug("---------------------");
-        Logger.LogDebug("Chat Type: " + (int)type);
+        Logger.LogDebug("---------------------");
+        Logger.LogDebug("Chat Type: " + (int)type, LoggerType.ToyboxTriggers);
         foreach (var payloadType in message.Payloads)
         {
             string text = payloadType.Type.ToString();
@@ -99,8 +96,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
                 Logger.LogInformation("Player Payload: " + playerPayload.PlayerName + "@" + playerPayload.World.Name);
             }
             Logger.LogInformation("Payload Type: " + text);
-        }
-*/
+        }*/
         // Handle the special case where we are checking a DeathRoll
         if (type == (XivChatType)2122 || type == (XivChatType)8266 || type == (XivChatType)4170)
         {
@@ -117,7 +113,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
             else
             {
                 // Should check under our name if this isn't valid as someone elses player payload.
-                Logger.LogDebug("Message was from self.");
+                Logger.LogDebug("Message was from self.", LoggerType.ToyboxTriggers);
                 _triggerController.CheckActiveSocialTriggers(type, _clientState.LocalPlayer.GetNameWithWorld(), sender, message);
             }
         }
@@ -138,7 +134,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         }
 
         // route to scan for any active triggers. (block outgoing tells because otherwise they always come up as from the recipient).
-        if(type != XivChatType.TellOutgoing)
+        if (type != XivChatType.TellOutgoing)
         {
             _triggerController.CheckActiveChatTriggers(type, senderName + "@" + senderWorld, message.TextValue);
         }
@@ -153,7 +149,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
             if (msgToSend.TextValue.IsNullOrEmpty()) return;
 
             // enqueue the message and log sucess
-            Logger.LogInformation(senderName + " used your global trigger phase to make you exeucte a message!");
+            Logger.LogInformation(senderName + " used your global trigger phase to make you exeucte a message!", LoggerType.Puppeteer);
             EnqueueMessage("/" + msgToSend.TextValue);
         }
 
@@ -178,7 +174,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
                 if (!msgToSend.TextValue.IsNullOrEmpty())
                 {
                     // enqueue the message and log sucess
-                    Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!");
+                    Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!", LoggerType.Puppeteer);
                     EnqueueMessage("/" + msgToSend.TextValue);
                 }
             }
@@ -206,7 +202,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
 
 
     /// <summary> <b> SENDS A REAL CHAT MESSAGE TO THE SERVER </b></summary>
-    public void  SendRealMessage(string message)
+    public void SendRealMessage(string message)
     {
         try
         {
@@ -224,34 +220,26 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
     /// </summary>
     private void FrameworkUpdate()
     {
-        try
+        if (MessageQueue.Count <= 0 || _chatSender is null) return;
+
+        if (!messageTimer.IsRunning)
         {
-            if (MessageQueue.Count > 0 && _chatSender != null)
-            {
-                if (!messageTimer.IsRunning)
-                {
-                    messageTimer.Start();
-                }
-                else
-                {
-                    if (messageTimer.ElapsedMilliseconds > 500)
-                    {
-                        try
-                        {
-                            _chatSender.SendMessage(MessageQueue.Dequeue());
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.LogWarning($"{e},{e.Message}");
-                        }
-                        messageTimer.Restart();
-                    }
-                }
-            }
+            messageTimer.Start();
         }
-        catch
+        else
         {
-            Logger.LogError($"Failed to process Framework Update!");
+            if (messageTimer.ElapsedMilliseconds > 500)
+            {
+                try
+                {
+                    _chatSender.SendMessage(MessageQueue.Dequeue());
+                }
+                catch (Exception e)
+                {
+                    Logger.LogWarning($"{e},{e.Message}");
+                }
+                messageTimer.Restart();
+            }
         }
     }
 }

@@ -27,7 +27,7 @@ public class DeathRollSession
 
     public bool TryNextRoll(string playerNameWithWorld, int rolledValue, int maxRollValue)
     {
-        if (IsComplete) { StaticLogger.Logger.LogDebug("Game is already complete, cannot roll again."); return false; }
+        if (IsComplete) { StaticLogger.Logger.LogWarning("Game is already complete, cannot roll again."); return false; }
 
         // if the maxRollValue != currentRollCap, return.
         if (maxRollValue != CurrentRollCap)

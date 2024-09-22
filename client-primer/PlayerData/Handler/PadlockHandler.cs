@@ -70,7 +70,7 @@ public class PadlockHandler
 
     public bool PasswordValidated(int slot, bool currentlyLocked)
     {
-        _logger.LogDebug($"Validating Password for Slot {slot} which has padlock type {PadlockPrevs[slot]}");
+        _logger.LogDebug($"Validating Password for Slot {slot} which has padlock type {PadlockPrevs[slot]}", LoggerType.PadlockManagement);
         switch (PadlockPrevs[slot])
         {
             case Padlocks.None:
@@ -101,7 +101,7 @@ public class PadlockHandler
     public bool RestraintPasswordValidate(int setIdx, bool currentlyLocked)
     {
         var set = _clientConfigs.GetRestraintSet(setIdx);
-        _logger.LogDebug($"Validating Password restraintSet {set.Name} which has padlock type preview {PadlockPrevs[3]}");
+        _logger.LogDebug($"Validating Password restraintSet {set.Name} which has padlock type preview {PadlockPrevs[3]}", LoggerType.PadlockManagement);
         switch (PadlockPrevs[3])
         {
             case Padlocks.None:
@@ -113,7 +113,7 @@ public class PadlockHandler
             case Padlocks.CombinationPadlock:
                 if (currentlyLocked)
                 {
-                    _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
+                    _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}", LoggerType.PadlockManagement);
                     return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
                 }
                 else
@@ -121,7 +121,7 @@ public class PadlockHandler
             case Padlocks.PasswordPadlock:
                 if (currentlyLocked)
                 {
-                    _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
+                    _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}", LoggerType.PadlockManagement);
                     return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
                 }
                 else
@@ -129,7 +129,7 @@ public class PadlockHandler
             case Padlocks.TimerPasswordPadlock:
                 if (currentlyLocked)
                 {
-                    _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}");
+                    _logger.LogTrace($"Checking if {Passwords[3]} is equal to {set.LockPassword}", LoggerType.PadlockManagement);
                     return string.Equals(Passwords[3], set.LockPassword, StringComparison.Ordinal);
                 }
                 else
@@ -141,14 +141,14 @@ public class PadlockHandler
     /// <summary> Validates a password </summary>
     public bool ValidatePassword(string password)
     {
-        _logger.LogDebug($"Validating Password {password}");
+        _logger.LogDebug($"Validating Password {password}", LoggerType.PadlockManagement);
         return !string.IsNullOrWhiteSpace(password) && password.Length <= 20 && !password.Contains(" ");
     }
 
     /// <summary> Validates a 4 digit combination </summary>
     public bool ValidateCombination(string combination)
     {
-        _logger.LogDebug($"Validating Combination {combination}");
+        _logger.LogDebug($"Validating Combination {combination}", LoggerType.PadlockManagement);
         return int.TryParse(combination, out _) && combination.Length == 4;
     }
 

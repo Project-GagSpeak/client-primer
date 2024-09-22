@@ -64,7 +64,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             }
             else
             {
-                Logger.LogDebug("Data was no different. Not sending data");
+                Logger.LogDebug("Data was no different. Not sending data", LoggerType.OnlinePairs);
             }
         });
 
@@ -79,7 +79,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             }
             else
             {
-                Logger.LogDebug("Data was no different. Not sending data");
+                Logger.LogDebug("Data was no different. Not sending data", LoggerType.OnlinePairs);
             }
         });
 
@@ -94,7 +94,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             }
             else
             {
-                Logger.LogDebug("Data was no different. Not sending data");
+                Logger.LogDebug("Data was no different. Not sending data", LoggerType.OnlinePairs);
             }
         });
 
@@ -109,7 +109,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             }
             else
             {
-                Logger.LogDebug("Data was no different. Not sending data");
+                Logger.LogDebug("Data was no different. Not sending data", LoggerType.OnlinePairs);
             }
         });
 
@@ -124,7 +124,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             }
             else
             {
-                Logger.LogDebug("PiShock Data was no different. Not sending data");
+                Logger.LogDebug("PiShock Data was no different. Not sending data", LoggerType.OnlinePairs);
             }
         });
 
@@ -153,7 +153,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             _ = Task.Run(async () =>
             {
                 CharacterCompositeData compiledDataToSend = await _playerManager.CompileCompositeDataToSend();
-                Logger.LogDebug("new Online Pairs Identified, pushing latest Composite data");
+                Logger.LogDebug("new Online Pairs Identified, pushing latest Composite data", LoggerType.OnlinePairs);
                 await _apiController.PushCharacterCompositeData(compiledDataToSend, newOnlinePairs).ConfigureAwait(false);
             });
         }
@@ -186,6 +186,10 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
                 await _apiController.PushCharacterWardrobeData(_lastWardrobeData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }
+        else
+        {
+            Logger.LogWarning("No Wardrobe data to push to online players");
+        }
     }
 
     /// <summary> Pushes the character alias list to the respective pair we updated it for. </summary>
@@ -197,6 +201,10 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             {
                 await _apiController.PushCharacterAliasListData(_lastAliasData, onlinePairToPushTo, DataUpdateKind.PuppeteerAliasListUpdated).ConfigureAwait(false);
             });
+        }
+        else
+        {
+            Logger.LogWarning("No Alias data to push to online players");
         }
     }
 
@@ -210,6 +218,10 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
                 await _apiController.PushCharacterToyboxData(_lastToyboxData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }
+        else
+        {
+            Logger.LogWarning("No Toybox data to push to online players");
+        }
     }
 
     private void PushCharacterPiShockPerms(List<UserData> onlinePairToPushTo, PiShockPermissions perms, DataUpdateKind updateKind)
@@ -221,6 +233,10 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             {
                 await _apiController.PushCharacterPiShockData(perms, onlinePairToPushTo, updateKind).ConfigureAwait(false);
             });
+        }
+        else
+        {
+            Logger.LogWarning("No PiShock data to push to online players");
         }
     }
 }

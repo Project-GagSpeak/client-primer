@@ -94,7 +94,7 @@ public class RemotePersonal : RemoteBase
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .025f);
 
             // attempt to obtain an image wrap for it
-            var spinnyArrow = _uiShared.GetImageFromDirectoryFile("arrows-spin.png");
+            var spinnyArrow = _uiShared.GetImageFromDirectoryFile("RequiredImages\\arrows-spin.png");
             if (!(spinnyArrow is { } wrap))
             {
                 _logger.LogWarning("Failed to render image!");
@@ -113,7 +113,7 @@ public class RemotePersonal : RemoteBase
             // move it down from current position by another .2f scale
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .05f);
 
-            var circlesDot = _uiShared.GetImageFromDirectoryFile("circle-dot.png");
+            var circlesDot = _uiShared.GetImageFromDirectoryFile("RequiredImages\\circle-dot.png");
             if (!(circlesDot is { } wrap2))
             {
                 _logger.LogWarning("Failed to render image!");
@@ -131,7 +131,7 @@ public class RemotePersonal : RemoteBase
 
             ImGui.SetCursorPosY(CurrentRegion.Y * .775f);
 
-            var power = _uiShared.GetImageFromDirectoryFile("power.png");
+            var power = _uiShared.GetImageFromDirectoryFile("RequiredImages\\power.png");
             if (!(power is { } wrap3))
             {
                 _logger.LogWarning("Failed to render image!");

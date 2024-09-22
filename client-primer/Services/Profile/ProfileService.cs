@@ -49,7 +49,7 @@ public class ProfileService : MediatorSubscriberBase
         // Locate the profile data for the pair.
         if (!_gagspeakProfiles.TryGetValue(userData, out var profile))
         {
-            Logger.LogTrace("Profile for {user} not found, creating loading profile.", userData);
+            Logger.LogTrace("Profile for "+userData.UID+" not found, creating loading profile.", LoggerType.Profiles);
             // If not found, create a loading profile template for the user,
             AssignLoadingProfile(userData);
             // then run a call to the GetGagspeakProfile API call to fetch it.
@@ -67,12 +67,12 @@ public class ProfileService : MediatorSubscriberBase
     {
         // add the user & profile data to the concurrent dictionary.
         _gagspeakProfiles[data] = _profileFactory.CreateProfileData(false, string.Empty, string.Empty);
-        Logger.LogTrace("Assigned new profile for {user}", data);
+        Logger.LogTrace("Assigned new profile for "+data.UID, LoggerType.Profiles);
     }
 
     public void RemoveGagspeakProfile(UserData userData)
     {
-        Logger.LogInformation("Removing profile for {user} if it exists.", userData);
+        Logger.LogInformation("Removing profile for "+userData.UID+" if it exists.", LoggerType.Profiles);
         // Check if the profile exists before attempting to dispose and remove it
         if (_gagspeakProfiles.TryGetValue(userData, out var profile))
         {
@@ -85,7 +85,7 @@ public class ProfileService : MediatorSubscriberBase
 
     public void ClearAllProfiles()
     {
-        Logger.LogInformation("Clearing all profiles.");
+        Logger.LogInformation("Clearing all profiles.", LoggerType.Profiles);
         // dispose of all the profile data.
         foreach (var profile in _gagspeakProfiles.Values)
         {
@@ -100,7 +100,7 @@ public class ProfileService : MediatorSubscriberBase
     {
         try
         {
-            Logger.LogTrace("Fetching profile for {user}", data);
+            Logger.LogTrace("Fetching profile for "+data.UID, LoggerType.Profiles);
             // Fetch userData profile info from server
             var profile = await _apiController.UserGetProfile(new UserDto(data)).ConfigureAwait(false);
 
@@ -108,12 +108,12 @@ public class ProfileService : MediatorSubscriberBase
             _gagspeakProfiles[data].Flagged = profile.Disabled;
             _gagspeakProfiles[data].Base64ProfilePicture = profile.ProfilePictureBase64;
             _gagspeakProfiles[data].Description = (string.IsNullOrEmpty(profile.Description) ? "No Description Set." : profile.Description);
-            Logger.LogDebug("Profile for {user} loaded.", data);
+            Logger.LogDebug("Profile for "+data.UID+" loaded.", LoggerType.Profiles);
         }
         catch (Exception ex)
         {
             // log the failure and set default data.
-            Logger.LogWarning(ex, "Failed to get Profile from service for user {user}", data);
+            Logger.LogWarning(ex, "Failed to get Profile from service for user "+data.UID); 
             _gagspeakProfiles[data].Flagged = false;
             _gagspeakProfiles[data].Base64ProfilePicture = string.Empty;
             _gagspeakProfiles[data].Description = "Failed to load profile data.";

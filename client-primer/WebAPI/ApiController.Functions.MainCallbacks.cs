@@ -111,7 +111,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserAddClientPair(UserPairDto dto)
     {
-        Logger.LogDebug("Client_UserAddClientPair: {dto}", dto);
+        Logger.LogDebug("Client_UserAddClientPair: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.AddUserPair(dto, addToLastAddedUser: true));
         return Task.CompletedTask;
     }
@@ -123,7 +123,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserRemoveClientPair(UserDto dto)
     {
-        Logger.LogDebug("Client_UserRemoveClientPair: {dto}", dto);
+        Logger.LogDebug("Client_UserRemoveClientPair: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.RemoveUserPair(dto));
         return Task.CompletedTask;
     }
@@ -137,7 +137,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     {
         // Should make us call to the moodles IPC to apply the statuses recieved
         // (permissions verified by server)
-        Logger.LogDebug("Client_UserApplyMoodlesByGuid: {dto}", dto);
+        Logger.LogDebug("Client_UserApplyMoodlesByGuid: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _clientCallbacks.ApplyStatusesByGuid(dto));
         return Task.CompletedTask;
     }
@@ -145,7 +145,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
 
     public Task Client_UserApplyMoodlesByStatus(ApplyMoodlesByStatusDto dto)
     {
-        Logger.LogDebug("Client_UserApplyMoodlesByStatus: {dto}", dto);
+        Logger.LogDebug("Client_UserApplyMoodlesByStatus: "+dto, LoggerType.Callbacks);
         // obtain the localplayername and world
         string NameWithWorld = _frameworkUtils.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtils._playerAddr).GetAwaiter().GetResult()?.GetNameWithWorld() ?? string.Empty;
         ExecuteSafely(() => _clientCallbacks.ApplyStatusesToSelf(dto, NameWithWorld));
@@ -158,7 +158,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserRemoveMoodles(RemoveMoodlesDto dto)
     {
-        Logger.LogDebug("Client_UserRemoveMoodles: {dto}", dto);
+        Logger.LogDebug("Client_UserRemoveMoodles: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _clientCallbacks.RemoveStatusesFromSelf(dto));
         return Task.CompletedTask;
     }
@@ -169,7 +169,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserClearMoodles(UserDto dto)
     {
-        Logger.LogDebug("Client_UserClearMoodles: {dto}", dto);
+        Logger.LogDebug("Client_UserClearMoodles: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _clientCallbacks.ClearStatusesFromSelf(dto));
         return Task.CompletedTask;
     }
@@ -183,17 +183,17 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UpdateUserIndividualPairStatusDto(UserIndividualPairStatusDto dto)
     {
-        Logger.LogDebug("Client_UpdateUserIndividualPairStatusDto: {dto}", dto);
+        Logger.LogDebug("Client_UpdateUserIndividualPairStatusDto: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.UpdateIndividualPairStatus(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_UserUpdateSelfAllGlobalPerms(UserAllGlobalPermChangeDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
         if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
-            Logger.LogInformation("Updating all global permissions in bulk for self.");
+            Logger.LogInformation("Updating all global permissions in bulk for self.", LoggerType.Callbacks);
             ExecuteSafely(() => _clientCallbacks.SetGlobalPerms(dto.GlobalPermissions));
             return Task.CompletedTask;
         }
@@ -206,7 +206,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
 
     public Task Client_UserUpdateSelfAllUniquePerms(UserPairUpdateAllUniqueDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
         if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
@@ -214,7 +214,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.");
+            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.", LoggerType.Callbacks);
             ExecuteSafely(() => _pairManager.UpdatePairUpdateOwnAllUniquePermissions(dto));
             return Task.CompletedTask;
         }
@@ -226,16 +226,16 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserUpdateSelfPairPermsGlobal(UserGlobalPermChangeDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateSelfPairPermsGlobal: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateSelfPairPermsGlobal: "+dto, LoggerType.Callbacks);
         if (dto.User.UID == UID)
         {
-            Logger.LogTrace("Callback matched player character, updating own global permission data");
+            Logger.LogTrace("Callback matched player character, updating own global permission data", LoggerType.Callbacks);
             ExecuteSafely(() => _clientCallbacks.ApplyGlobalPerm(dto));
             return Task.CompletedTask;
         }
         else
         {
-            Logger.LogInformation("Callback matched to a paired user, but was called by update self. This shouldn't be possible!");
+            Logger.LogInformation("Callback matched to a paired user, but was called by update self. This shouldn't be possible!", LoggerType.Callbacks);
             return Task.CompletedTask;
         }
     }
@@ -246,7 +246,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserUpdateSelfPairPerms(UserPairPermChangeDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateSelfPairPerms: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateSelfPairPerms: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.UpdateSelfPairPermission(dto));
         return Task.CompletedTask;
 
@@ -255,7 +255,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Sent to client from server informing them to update their own permission edit access settings </summary>
     public Task Client_UserUpdateSelfPairPermAccess(UserPairAccessChangeDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateSelfPairPermAccess: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateSelfPairPermAccess: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.UpdateSelfPairAccessPermission(dto));
         return Task.CompletedTask;
     }
@@ -266,7 +266,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserUpdateOtherAllPairPerms(UserPairUpdateAllPermsDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateOtherAllPairPerms: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateOtherAllPairPerms: "+dto, LoggerType.Callbacks);
         if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
@@ -274,7 +274,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogInformation("Callback matched to a paired user. Updating all permissions for them.");
+            Logger.LogInformation("Callback matched to a paired user. Updating all permissions for them.", LoggerType.Callbacks);
             ExecuteSafely(() => _pairManager.UpdateOtherPairAllPermissions(dto));
             return Task.CompletedTask;
         }
@@ -282,7 +282,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
 
     public Task Client_UserUpdateOtherAllGlobalPerms(UserAllGlobalPermChangeDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
         if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
@@ -290,7 +290,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.");
+            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.", LoggerType.Callbacks);
             ExecuteSafely(() => _pairManager.UpdatePairUpdateOtherAllGlobalPermissions(dto));
             return Task.CompletedTask;
         }
@@ -298,7 +298,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
 
     public Task Client_UserUpdateOtherAllUniquePerms(UserPairUpdateAllUniqueDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
         if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
@@ -306,7 +306,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.");
+            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.", LoggerType.Callbacks);
             ExecuteSafely(() => _pairManager.UpdatePairUpdateOtherAllUniquePermissions(dto));
             return Task.CompletedTask;
         }
@@ -317,7 +317,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserUpdateOtherPairPermsGlobal(UserGlobalPermChangeDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateOtherPairPermsGlobal: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateOtherPairPermsGlobal: "+dto, LoggerType.Callbacks);
         if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
@@ -325,7 +325,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.");
+            Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.", LoggerType.Callbacks);
             ExecuteSafely(() => _pairManager.UpdateOtherPairGlobalPermission(dto));
             return Task.CompletedTask;
         }
@@ -336,7 +336,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserUpdateOtherPairPerms(UserPairPermChangeDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateOtherPairPerms: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateOtherPairPerms: "+dto, LoggerType.Callbacks);
         if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
@@ -344,7 +344,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogInformation("Callback matched to a paired user. Updating permissions for them.");
+            Logger.LogInformation("Callback matched to a paired user. Updating permissions for them.", LoggerType.Callbacks);
             ExecuteSafely(() => _pairManager.UpdateOtherPairPermission(dto));
             return Task.CompletedTask;
         }
@@ -361,7 +361,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserUpdateOtherPairPermAccess(UserPairAccessChangeDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateOtherPairPermAccess: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateOtherPairPermAccess: "+dto, LoggerType.Callbacks);
         if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
@@ -369,7 +369,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogInformation("Callback matched to a paired user. Updating permissions for them.");
+            Logger.LogInformation("Callback matched to a paired user. Updating permissions for them.", LoggerType.Callbacks);
             ExecuteSafely(() => _pairManager.UpdateOtherPairAccessPermission(dto));
             return Task.CompletedTask;
         }
@@ -381,7 +381,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserReceiveCharacterDataComposite(OnlineUserCompositeDataDto dataDto)
     {
-        Logger.LogTrace("Client_UserReceiveCharacterDataComposite: {dataDto}", dataDto);
+        Logger.LogTrace("Client_UserReceiveCharacterDataComposite:"+dataDto.User, LoggerType.Callbacks);
         if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
         {
             Logger.LogWarning("Why are you trying to receive your own composite data? There is no need for this???");
@@ -389,7 +389,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
         }
         else
         {
-            Logger.LogDebug("User {0} has went online and updated you with their composite data!", dataDto.User.UID);
+            Logger.LogDebug("User "+ dataDto.User.UID+" has went online and updated you with their composite data!", LoggerType.Callbacks);
             ExecuteSafely(() => _pairManager.ReceiveCharaCompositeData(dataDto, UID));
             return Task.CompletedTask;
         }
@@ -399,14 +399,14 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Update Own Appearance Data </summary>
     public Task Client_UserReceiveOwnDataIpc(OnlineUserCharaIpcDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOwnDataIpc (not executing any functions): {dataDto}", dataDto);
+        Logger.LogDebug("Client_UserReceiveOwnDataIpc (not executing any functions):"+dataDto.User, LoggerType.Callbacks);
         return Task.CompletedTask;
     }
 
     /// <summary> Update Other UserPair Ipc Data </summary>
     public Task Client_UserReceiveOtherDataIpc(OnlineUserCharaIpcDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOtherDataIpc: {dataDto} {ipcIsNull}", dataDto, dataDto.IPCData == null);
+        Logger.LogDebug("Client_UserReceiveOtherDataIpc: "+dataDto, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.ReceiveCharaIpcData(dataDto));
         return Task.CompletedTask;
     }
@@ -415,7 +415,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Update Own Appearance Data </summary>
     public Task Client_UserReceiveOwnDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOwnDataAppearance: {dataDto}", dataDto);
+        Logger.LogDebug("Client_UserReceiveOwnDataAppearance:"+dataDto.User, LoggerType.Callbacks);
         bool callbackWasFromSelf = dataDto.User.UID == UID;
         ExecuteSafely(() => _clientCallbacks.CallbackAppearanceUpdate(dataDto, callbackWasFromSelf));
         return Task.CompletedTask;
@@ -432,7 +432,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Update Own Wardrobe Data </summary>
     public Task Client_UserReceiveOwnDataWardrobe(OnlineUserCharaWardrobeDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOwnDataWardrobe: {dataDto}", dataDto);
+        Logger.LogDebug("Client_UserReceiveOwnDataWardrobe:"+dataDto.User, LoggerType.Callbacks);
         bool callbackWasFromSelf = dataDto.User.UID == UID;
         ExecuteSafely(() => _clientCallbacks.CallbackWardrobeUpdate(dataDto, callbackWasFromSelf));
         return Task.CompletedTask;
@@ -442,7 +442,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Update Other UserPair Wardrobe Data </summary>
     public Task Client_UserReceiveOtherDataWardrobe(OnlineUserCharaWardrobeDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOtherDataWardrobe: {dataDto}", dataDto);
+        Logger.LogDebug("Client_UserReceiveOtherDataWardrobe:"+dataDto.User, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.ReceiveCharaWardrobeData(dataDto));
         return Task.CompletedTask;
     }
@@ -450,7 +450,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Update Own UserPair Alias Data </summary>
     public Task Client_UserReceiveOwnDataAlias(OnlineUserCharaAliasDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOwnDataAlias: {dataDto}", dataDto);
+        Logger.LogDebug("Client_UserReceiveOwnDataAlias:"+dataDto.User, LoggerType.Callbacks);
         bool callbackWasFromSelf = dataDto.User.UID == UID;
         ExecuteSafely(() => _clientCallbacks.CallbackAliasStorageUpdate(dataDto));
         return Task.CompletedTask;
@@ -459,7 +459,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Update Other UserPair Alias Data </summary>
     public Task Client_UserReceiveOtherDataAlias(OnlineUserCharaAliasDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOtherDataAlias: {dataDto}", dataDto);
+        Logger.LogDebug("Client_UserReceiveOtherDataAlias:"+dataDto.User, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.ReceiveCharaAliasData(dataDto));
         return Task.CompletedTask;
     }
@@ -467,7 +467,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Update Own UserPair Toybox Data </summary>
     public Task Client_UserReceiveOwnDataToybox(OnlineUserCharaToyboxDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOwnDataToybox: {dataDto}", dataDto);
+        Logger.LogDebug("Client_UserReceiveOwnDataToybox:"+dataDto.User, LoggerType.Callbacks);
         ExecuteSafely(() => _clientCallbacks.CallbackToyboxUpdate(dataDto));
         return Task.CompletedTask;
     }
@@ -475,20 +475,20 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Update Other UserPair Toybox Data </summary>
     public Task Client_UserReceiveOtherDataToybox(OnlineUserCharaToyboxDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOtherDataToybox: {dataDto}", dataDto);
+        Logger.LogDebug("Client_UserReceiveOtherDataToybox:"+dataDto.User, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.ReceiveCharaToyboxData(dataDto));
         return Task.CompletedTask;
     }
 
     public Task Client_UserReceiveDataPiShock(OnlineUserCharaPiShockPermDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOwnDataPiShock: {dataDto}", dataDto);
+        Logger.LogDebug("Client_UserReceiveOwnDataPiShock:"+dataDto.User, LoggerType.Callbacks);
         // only case that doesn't offer feedback is updating own global, which should have been done before it was even sent out.
         ExecuteSafely(() => _pairManager.ReceiveCharaPiShockPermData(dataDto));
         return Task.CompletedTask;
     }
 
-    /// <summary> Recieve a Shock Instruction from another Pair. </summary>
+    /// <summary> Receive a Shock Instruction from another Pair. </summary>
     public Task Client_UserReceiveShockInstruction(ShockCollarActionDto dto)
     {
         Logger.LogInformation("Received Instruction from: {dto}" + Environment.NewLine
@@ -502,17 +502,17 @@ public partial class ApiController // Partial class for MainHub Callbacks
             {
                 if (!pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty())
                 {
-                    Logger.LogDebug("Executing Shock Instruction to UniquePair ShareCode");
+                    Logger.LogDebug("Executing Shock Instruction to UniquePair ShareCode", LoggerType.Callbacks);
                     _piShockProvider.ExecuteOperation(pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode, dto.OpCode, dto.Intensity, dto.Duration);
                 }
                 else if (_clientCallbacks.ShockCodePresent)
                 {
-                    Logger.LogDebug("Executing Shock Instruction to Global ShareCode");
+                    Logger.LogDebug("Executing Shock Instruction to Global ShareCode", LoggerType.Callbacks);
                     _piShockProvider.ExecuteOperation(_clientCallbacks.GlobalPiShockShareCode, dto.OpCode, dto.Intensity, dto.Duration);
                 }
                 else
                 {
-                    Logger.LogWarning("Someone Attempted to execute an instruction to you, but you don't have any sharecodes enabled!");
+                    Logger.LogWarning("Someone Attempted to execute an instruction to you, but you don't have any share codes enabled!");
                 }
             }
 
@@ -524,7 +524,6 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// <summary> Receive a Global Chat Message. DO NOT LOG THIS. </summary>
     public Task Client_GlobalChatMessage(GlobalChatMessageDto dto)
     {
-        // TODO: Turn this into a direct call over a mediator if we do not need to use APIController in the service.
         ExecuteSafely(() => Mediator.Publish(new GlobalChatMessage(dto, (dto.MessageSender.UID == UID))));
         return Task.CompletedTask;
     }
@@ -535,7 +534,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserSendOffline(UserDto dto)
     {
-        Logger.LogDebug("Client_UserSendOffline: {dto}", dto);
+        Logger.LogDebug("Client_UserSendOffline: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.MarkPairOffline(dto.User));
         return Task.CompletedTask;
     }
@@ -545,7 +544,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserSendOnline(OnlineUserIdentDto dto)
     {
-        Logger.LogDebug("Client_UserSendOnline: {dto}", dto);
+        Logger.LogDebug("Client_UserSendOnline: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.MarkPairOnline(dto));
         return Task.CompletedTask;
     }
@@ -555,14 +554,14 @@ public partial class ApiController // Partial class for MainHub Callbacks
     /// </summary>
     public Task Client_UserUpdateProfile(UserDto dto)
     {
-        Logger.LogDebug("Client_UserUpdateProfile: {dto}", dto);
+        Logger.LogDebug("Client_UserUpdateProfile: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => Mediator.Publish(new ClearProfileDataMessage(dto.User)));
         return Task.CompletedTask;
     }
 
     public Task Client_DisplayVerificationPopup(VerificationDto dto)
     {
-        Logger.LogDebug("Client_DisplayVerificationPopup: {dto}", dto);
+        Logger.LogDebug("Client_DisplayVerificationPopup: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => Mediator.Publish(new VerificationPopupMessage(dto)));
         return Task.CompletedTask;
     }

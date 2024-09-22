@@ -1,4 +1,5 @@
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.PlayerData.Data;
@@ -7,10 +8,8 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
-using GagspeakAPI.Enums;
 using GagspeakAPI.Extensions;
 using Glamourer.Api.Enums;
-using Interop.Ipc;
 using Penumbra.GameData.Enums;
 
 namespace GagSpeak.PlayerData.Services;
@@ -48,7 +47,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         _ipcFastUpdates.CustomizeEventFired += EnsureForcedCustomizeProfile;
 
         // gag glamour updates
-        Mediator.Subscribe<UpdateGlamourGagsMessage>(this, async (msg) => 
+        Mediator.Subscribe<UpdateGlamourGagsMessage>(this, async (msg) =>
         {
             await UpdateGagsAppearance(msg.Layer, msg.GagType, msg.NewState);
         });
@@ -82,6 +81,8 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             .Where(gagType => gagType != GagType.None)
             .ToList();
 
+        if (!_playerManager.IsPlayerGagged()) return;
+
         // Fetch the drawData of gag with the highest Priority
         var highestPriorityData = _clientConfigs.GetDrawDataWithHighestPriority(gagTypes);
         if (highestPriorityData.CustomizeGuid == Guid.Empty) return; // return if the highest priority gag requires no customizeGuid.
@@ -104,7 +105,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             }
         }
 
-        Logger.LogTrace("Enforcing Customize+ Profile {profile} for your equipped Gag", highestPriorityData.CustomizeGuid);
+        Logger.LogTrace("Enforcing Customize+ Profile " + highestPriorityData.CustomizeGuid + " for your equipped Gag", LoggerType.IpcCustomize);
         _Interop.CustomizePlus.EnableProfile(highestPriorityData.CustomizeGuid);
     }
 
@@ -140,7 +141,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             // Triggered by using safeword, will undo everything.
             if (updateType == GlamourUpdateType.Safeword)
             {
-                Logger.LogDebug($"Processing Safeword Update");
+                Logger.LogDebug($"Processing Safeword Update", LoggerType.Safeword);
                 switch (_clientConfigs.GagspeakConfig.RevertStyle)
                 {
                     case RevertStyle.RevertToGame:
@@ -172,7 +173,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             // For Generic UpdateAllGags
             if (updateType == GlamourUpdateType.UpdateAllGags)
             {
-                Logger.LogDebug($"Updating Update Gags");
+                Logger.LogDebug($"Updating Update Gags", LoggerType.GagManagement);
                 await ApplyGagItemsToCachedCharacterData();
             }
 
@@ -196,13 +197,13 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             // do not accept if we have enable wardrobe turned off.
             if (!_playerManager.GlobalPerms!.ItemAutoEquip)
             {
-                Logger.LogDebug("Gag AutoEquip is disabled, so not processing Gag Update");
+                Logger.LogDebug("Gag AutoEquip is disabled, so not processing Gag Update", LoggerType.GagManagement);
                 return;
             }
 
             if (updatedState is NewState.Enabled)
             {
-                Logger.LogDebug($"Processing Gag Equipped");
+                Logger.LogDebug($"Processing Gag Equipped", LoggerType.GagManagement);
                 await UpdateGagItem(gagType, NewState.Enabled);
 
                 // reapply any restraints hiding under them, if any
@@ -216,7 +217,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
             if (updatedState is NewState.Disabled)
             {
-                Logger.LogDebug($"Processing Gag UnEquip");
+                Logger.LogDebug($"Processing Gag UnEquip", LoggerType.GagManagement);
                 await UpdateGagItem(gagType, NewState.Disabled);
 
                 // reapply any restraints hiding under them, if any
@@ -238,13 +239,13 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             // do not accept if we have enable wardrobe turned off.
             if (_playerManager.GlobalPerms == null || !_playerManager.GlobalPerms.WardrobeEnabled || !_playerManager.GlobalPerms.RestraintSetAutoEquip)
             {
-                Logger.LogDebug("Wardrobe is disabled, or Restraint AutoEquip is not allowed, so skipping");
+                Logger.LogDebug("Wardrobe is disabled, or Restraint AutoEquip is not allowed, so skipping", LoggerType.Restraints);
                 return;
             }
 
             if (msg.NewState == NewState.Enabled)
             {
-                Logger.LogDebug($"Processing Restraint Set Update");
+                Logger.LogDebug($"Processing Restraint Set Update", LoggerType.Restraints);
                 // apply restraint set data to character.
                 await ApplyRestrainSetToCachedCharacterData();
 
@@ -286,9 +287,9 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             // now reapply the gags
             if (_playerManager.GlobalPerms.ItemAutoEquip && _playerManager.IsPlayerGagged())
             {
-                Logger.LogDebug($"Reapplying gags");
+                Logger.LogDebug($"Reapplying gags", LoggerType.GagManagement);
                 await ApplyGagItemsToCachedCharacterData();
-                Logger.LogDebug($"Reapplying blindfold");
+                Logger.LogDebug($"Reapplying blindfold", LoggerType.HardcoreActions);
                 // TODO: Blindfold logic
                 if (_pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded))
                 {
@@ -302,7 +303,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
                 if (msg.CompletionTaskSource != null)
                 {
-                    Logger.LogInformation("Restraint Set GlamourChangeTask completed.");
+                    Logger.LogInformation("Restraint Set GlamourChangeTask completed.", LoggerType.Restraints);
                     msg.CompletionTaskSource.SetResult(true);
                 }
             }
@@ -317,7 +318,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             if (_playerManager.CoreDataNull) return;
 
             // do not accept if we have enable wardrobe turned off.
-            if (!_playerManager.GlobalPerms.WardrobeEnabled)
+            if (!_playerManager.GlobalPerms!.WardrobeEnabled)
             {
                 Logger.LogDebug("Wardrobe is disabled, so not processing Blindfold Update");
                 return;
@@ -325,22 +326,23 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
             if (msg.NewState == NewState.Enabled)
             {
-                Logger.LogDebug($"Processing Blindfold Equipped");
+                Logger.LogDebug($"Processing Blindfold Equipped", LoggerType.HardcoreActions);
                 // get the index of the person who equipped it onto you (FIXLOGIC TODO)
                 if (_pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded))
                 {
-                    Logger.LogWarning("You are blindfolded by :" + _pairManager.DirectPairs.First(x => x.UserPairOwnUniquePairPerms.IsBlindfolded).UserData.AliasOrUID);
+                    Logger.LogInformation("You are blindfolded by :" + 
+                        _pairManager.DirectPairs.First(x => x.UserPairOwnUniquePairPerms.IsBlindfolded).UserData.AliasOrUID, LoggerType.HardcoreActions);
                     await EquipBlindfold();
                 }
                 else
                 {
-                    Logger.LogDebug($"Assigner is not on your whitelist, so not setting item.");
+                    Logger.LogDebug($"Assigner is not on your whitelist, so not setting item.", LoggerType.HardcoreActions);
                 }
             }
 
             if (msg.NewState == NewState.Disabled)
             {
-                Logger.LogDebug($"Processing Blindfold UnEquip");
+                Logger.LogDebug($"Processing Blindfold UnEquip", LoggerType.HardcoreActions);
                 // get the index of the person who equipped it onto you (FIXLOGIC TODO)
                 if (_pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded))
                 {
@@ -348,7 +350,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
                 }
                 else
                 {
-                    Logger.LogDebug($"Assigner is not on your whitelist, so not setting item.");
+                    Logger.LogDebug($"Assigner is not on your whitelist, so not setting item.", LoggerType.HardcoreActions);
                 }
             }
         });
@@ -357,7 +359,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
     private async Task EquipBlindfold()
     {
-        Logger.LogDebug($"Equipping blindfold");
+        Logger.LogDebug($"Equipping blindfold", LoggerType.HardcoreActions);
         // attempt to equip the blindfold to the player
         await _Interop.Glamourer.SetItemToCharacterAsync((ApiEquipSlot)_clientConfigs.GetBlindfoldItem().Slot,
             _clientConfigs.GetBlindfoldItem().GameItem.Id.Id,
@@ -366,7 +368,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
     private async Task UnequipBlindfold()
     {
-        Logger.LogDebug($"Unequipping blindfold");
+        Logger.LogDebug($"Unequipping blindfold", LoggerType.HardcoreActions);
         // attempt to unequip the blindfold from the player
         await _Interop.Glamourer.SetItemToCharacterAsync((ApiEquipSlot)_clientConfigs.GetBlindfoldItem().Slot,
             ItemIdVars.NothingItem(_clientConfigs.GetBlindfoldItem().Slot).Id.Id, [0], 0);
@@ -400,7 +402,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
         if (enabledRestraintSet == null)
         {
-            Logger.LogDebug("No restraint sets are enabled, skipping!");
+            Logger.LogDebug("No restraint sets are enabled, skipping!", LoggerType.Restraints);
             return;
         }
 
@@ -412,25 +414,25 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             // Handle the "enabled" or "disabled" logic
             if (pair.Value.IsEnabled || !gameItem.Equals(ItemIdVars.NothingItem(pair.Value.Slot)))
             {
-                Logger.LogTrace($"Processing slot {equipSlot}");
+                Logger.LogTrace($"Processing slot {equipSlot}", LoggerType.Restraints);
                 return _Interop.Glamourer.SetItemToCharacterAsync(equipSlot, gameItem.Id.Id, [pair.Value.GameStain.Stain1.Id, pair.Value.GameStain.Stain2.Id], 0);
             }
 
-            Logger.LogTrace($"Skipping over {equipSlot}!");
+            Logger.LogTrace($"Skipping over {equipSlot}!", LoggerType.Restraints);
             return Task.CompletedTask; // No-op task for skipped items
         })
         .ToList(); // Trigger execution
 
-        Logger.LogDebug("Applying Restraint Set to Cached Character Data");
+        Logger.LogDebug("Applying Restraint Set to Cached Character Data", LoggerType.Restraints);
         await Task.WhenAll(tasks);
-        Logger.LogDebug("Restraint Set Applied");
+        Logger.LogDebug("Restraint Set Applied", LoggerType.Restraints);
     }
 
     /// <summary> Applies the gag items to the cached character data. </summary>
     public async Task ApplyGagItemsToCachedCharacterData()
     {
         if (_playerManager.CoreDataNull) return;
-        Logger.LogDebug($"Applying Gag Items to Player");
+        Logger.LogDebug($"Applying Gag Items to Player", LoggerType.GagManagement);
         // Collect only gags that are not of type None
         var gagSlots = _playerManager.AppearanceData!.GagSlots
             .Where(slot => slot.GagType.ToGagType() != GagType.None)
@@ -442,7 +444,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             .ToList();
 
         await Task.WhenAll(updateTasks);
-        Logger.LogDebug($"Gag Items Applied to Player");
+        Logger.LogDebug($"Gag Items Applied to Player", LoggerType.GagManagement);
     }
 
     /// <summary> Equips a gag by the defined gag name </summary>
@@ -464,7 +466,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
     private async Task GagApplyAsync(GagType gagType, GagDrawData gagInfo)
     {
-        Logger.LogInformation("Applying Gag of Type: {gagType}", gagType);
+        Logger.LogInformation("Applying Gag of Type: "+gagType, LoggerType.GagManagement);
         if (gagType is GagType.None) return; // this avoids applying a nothing glamour when unintended.
 
         // Equip the gag and apply metadata in a separate task
@@ -483,7 +485,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
 
     private async Task GagRemoveAsync(GagType gagType, GagDrawData gagInfo)
     {
-        Logger.LogInformation("Removing Gag of type {gagType}", gagType);
+        Logger.LogInformation("Removing Gag of type "+gagType, LoggerType.GagManagement);
         // Equip the gag and apply metadata in a separate task
         var equipAndMetaTask = EquipAndSetMetaAsync(gagType, gagInfo, NewState.Disabled);
 
@@ -504,13 +506,13 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         // Set the gag
         if (newState is NewState.Enabled)
         {
-            Logger.LogInformation($"Setting item {drawData.GameItem.Id.Id} to slot {(ApiEquipSlot)slot} "+
-                $"with stain ID's {drawData.GameStain.Stain1.Id} and {drawData.GameStain.Stain2.Id} for gag {gagType.GagName()}");
+            Logger.LogInformation($"Setting item {drawData.GameItem.Id.Id} to slot {(ApiEquipSlot)slot} " +
+                $"with stain ID's {drawData.GameStain.Stain1.Id} and {drawData.GameStain.Stain2.Id} for gag {gagType.GagName()}", LoggerType.GagManagement);
             await _Interop.Glamourer.SetItemToCharacterAsync((ApiEquipSlot)slot, drawData.GameItem.Id.Id, [drawData.GameStain.Stain1.Id, drawData.GameStain.Stain2.Id], 0);
         }
         else
         {
-            Logger.LogInformation($"Set Nothing item to slot {slot} for gag {gagType.GagName()}");
+            Logger.LogInformation($"Set Nothing item to slot {slot} for gag {gagType.GagName()}", LoggerType.GagManagement);
             await _Interop.Glamourer.SetItemToCharacterAsync((ApiEquipSlot)slot, ItemIdVars.NothingItem(slot).Id.Id, [0, 0], 0);
         }
 
@@ -531,7 +533,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
     {
         if (_playerManager.IpcDataNull) return;
 
-        Logger.LogDebug("Handling Moodles for Gag {gagType}", newState);
+        Logger.LogDebug("Handling Moodles for Gag "+newState, LoggerType.IpcMoodles);
 
         // see if we are missing any moodles from the associated Moodles.
         bool missingMoodles = drawData.AssociatedMoodles
@@ -541,8 +543,8 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         {
             Logger.LogDebug(missingMoodles
                 ? "Missing moodles, updating."
-                : "Disabling, updating moodles.");
-            Logger.LogDebug("Missing Moodles, updating");
+                : "Disabling, updating moodles.", LoggerType.IpcMoodles);
+            Logger.LogDebug("Missing Moodles, updating", LoggerType.IpcMoodles);
             await _moodlesAssociations.ToggleMoodlesTask(drawData.AssociatedMoodles, newState);
         }
     }

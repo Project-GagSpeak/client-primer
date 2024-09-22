@@ -2,6 +2,7 @@ using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
@@ -99,7 +100,7 @@ public class MoodlesService
         // Check if the item was right-clicked. If so, reset to default value.
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
-            _logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboLabel);
+            _logger.LogTrace("Right-clicked on "+comboLabel+". Resetting to default value.", LoggerType.IpcMoodles);
             selectedItem = MoodlesPresets.First().Item1;
             SelectedMoodleComboGuids[comboLabel] = selectedItem!;
             onSelected?.Invoke(selectedItem!);
@@ -264,7 +265,7 @@ public class MoodlesService
         // Check if the item was right-clicked. If so, reset to default value.
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
-            _logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboLabel);
+            _logger.LogTrace("Right-clicked on " + comboLabel + ". Resetting to default value.", LoggerType.IpcMoodles);
             selectedItem = statuses.First().GUID;
             SelectedMoodleComboGuids[comboLabel] = selectedItem!;
             onSelected?.Invoke(selectedItem!);

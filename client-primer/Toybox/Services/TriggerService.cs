@@ -37,11 +37,11 @@ public class TriggerService : DisposableMediatorSubscriberBase
 
     public void TryUpdateClassJobList()
     {
-        Logger.LogDebug("Attempting to update ClassJob list.");
+        Logger.LogDebug("Attempting to update ClassJob list.", LoggerType.ToyboxTriggers);
         if (ClassJobs.Count == 0)
         {
             ClassJobs = _dataManager.GetExcelSheet<ClassJob>()?.ToList() ?? new List<ClassJob>();
-            Logger.LogDebug($"ClassJob list updated. Total jobs: {ClassJobs.Count}");
+            Logger.LogDebug($"ClassJob list updated. Total jobs: "+ClassJobs.Count, LoggerType.ToyboxTriggers);
         }
     }
 
@@ -53,7 +53,8 @@ public class TriggerService : DisposableMediatorSubscriberBase
 
     public void CacheJobActionList(uint JobId)
     {
-        Logger.LogDebug($"Attempting to cache actions for JobId: {JobId}");
+        Logger.LogDebug($"Attempting to cache actions for JobId: "+JobId, LoggerType.ToyboxTriggers);
+   
         if (JobId == uint.MaxValue)
         {
             Logger.LogWarning("Invalid JobId: uint.MaxValue. No actions cached.");
@@ -69,11 +70,11 @@ public class TriggerService : DisposableMediatorSubscriberBase
                 .ToList() ?? new List<GameAction>();
 
             LoadedActions[JobId] = actions;
-            Logger.LogDebug($"Cached {actions.Count} actions for JobId: {JobId}");
+            Logger.LogDebug($"Cached {actions.Count} actions for JobId: {JobId}", LoggerType.ToyboxTriggers);
         }
         else
         {
-            Logger.LogDebug($"Actions for JobId: {JobId} are already cached.");
+            Logger.LogDebug($"Actions for JobId: {JobId} are already cached.", LoggerType.ToyboxTriggers);
         }
     }
 

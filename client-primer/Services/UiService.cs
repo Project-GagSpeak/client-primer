@@ -31,7 +31,6 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         PenumbraChangedItemTooltip penumbraChangedItemTooltip) : base(logger, gagspeakMediator)
     {
         _logger = logger;
-        _logger.LogTrace("Creating {type}", GetType().Name);
         _uiBuilder = uiBuilder;
         _gagspeakConfigService = gagspeakConfigService;
         _windowSystem = windowSystem;
@@ -63,7 +62,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
 
             foreach (var window in pairPermissionWindows)
             {
-                _logger.LogTrace("Closing pair permission window for pair {pair}", ((PairStickyUI)window).UserPairForPerms.UserData.AliasOrUID);
+                _logger.LogTrace("Closing pair permission window for pair "+((PairStickyUI)window).UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
                 _windowSystem.RemoveWindow(window);
                 _createdWindows.Remove(window);
                 window.Dispose();
@@ -97,13 +96,13 @@ public sealed class UiService : DisposableMediatorSubscriberBase
             // Find existing PairStickyUI windows with the same window type and pair UID
             var existingWindow = _createdWindows
                 .FirstOrDefault(p => p is PairStickyUI stickyWindow &&
-                                     stickyWindow.UserPairForPerms.UserData.AliasOrUID == msg.Pair.UserData.AliasOrUID &&
+                                     stickyWindow.UserPairForPerms.UserData.AliasOrUID == msg.Pair?.UserData.AliasOrUID &&
                                      stickyWindow.DrawType == msg.PermsWindowType);
 
             if (existingWindow != null)
             {
                 // If a matching window is found, toggle it
-                _logger.LogTrace("Toggling existing sticky window for pair {pair}", msg.Pair.UserData.AliasOrUID);
+                _logger.LogTrace("Toggling existing sticky window for pair "+msg.Pair?.UserData.AliasOrUID, LoggerType.Permissions);
                 existingWindow.Toggle();
             }
             else
@@ -115,15 +114,15 @@ public sealed class UiService : DisposableMediatorSubscriberBase
 
                 foreach (var window in otherWindows)
                 {
-                    _logger.LogTrace("Disposing existing sticky window for pair {pair}", ((PairStickyUI)window).UserPairForPerms.UserData.AliasOrUID);
+                    _logger.LogTrace("Disposing existing sticky window for pair "+((PairStickyUI)window).UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
                     _windowSystem.RemoveWindow(window);
                     _createdWindows.Remove(window);
                     window.Dispose();
                 }
 
                 // Create a new sticky pair perms window for the pair
-                _logger.LogTrace("Creating new sticky window for pair {pair}", msg.Pair.UserData.AliasOrUID);
-                var newWindow = _uiFactory.CreateStickyPairPerms(msg.Pair, msg.PermsWindowType);
+                _logger.LogTrace("Creating new sticky window for pair "+msg.Pair?.UserData.AliasOrUID, LoggerType.Permissions);
+                var newWindow = _uiFactory.CreateStickyPairPerms(msg.Pair!, msg.PermsWindowType);
                 _createdWindows.Add(newWindow);
                 _windowSystem.AddWindow(newWindow);
             }
@@ -137,7 +136,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
 
             if (existingWindow == null)
             {
-                _logger.LogDebug("Creating remote controller for room {room}", msg.PrivateRoom.RoomName);
+                _logger.LogDebug("Creating remote controller for room "+msg.PrivateRoom.RoomName, LoggerType.PrivateRoom);
                 // Create a new remote instance for the private room
                 var window = _uiFactory.CreateControllerRemote(msg.PrivateRoom);
                 // Add it to the created windows
@@ -147,7 +146,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
             }
             else
             {
-                _logger.LogTrace("Toggling remote controller for room {room}", msg.PrivateRoom.RoomName);
+                _logger.LogTrace("Toggling remote controller for room " + msg.PrivateRoom.RoomName, LoggerType.PrivateRoom);
                 existingWindow.Toggle();
             }
         });
@@ -160,7 +159,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
 
             foreach (var window in pairPermissionWindows)
             {
-                _logger.LogTrace("Closing pair permission window for pair {pair}", ((PairStickyUI)window).UserPairForPerms.UserData.AliasOrUID);
+                _logger.LogTrace("Closing pair permission window for pair " + ((PairStickyUI)window).UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
                 _windowSystem.RemoveWindow(window);
                 _createdWindows.Remove(window);
                 window.Dispose();
@@ -214,7 +213,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         // dispose of the base class
         base.Dispose(disposing);
 
-        _logger.LogTrace("Disposing {type}", GetType().Name);
+        _logger.LogTrace("Disposing "+GetType().Name, LoggerType.UiCore);
 
         // then remove all windows from the windows system
         _windowSystem.RemoveAllWindows();

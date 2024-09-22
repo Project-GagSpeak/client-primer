@@ -1,5 +1,6 @@
 using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration;
+using GagspeakAPI.Enums;
 
 namespace GagSpeak.Interop;
 
@@ -78,7 +79,6 @@ internal sealed class DalamudLogger : ILogger
                 break;
         }
     }
-
     private StringBuilder ExceptionStringBuilder<TState>(TState state, Exception? exception)
     {
         // create the format for our exception format

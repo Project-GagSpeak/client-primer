@@ -43,28 +43,28 @@ public unsafe class ActionEffectMonitor : IDisposable
 
         var actionEffectReceivedAddr = sigScanner.ScanText(Signatures.ReceiveActionEffect);
         ProcessActionEffectHook = interopProvider.HookFromAddress<ProcessActionEffect>(actionEffectReceivedAddr, ProcessActionEffectDetour);
-        _logger.LogInformation("Starting ActionEffect Monitor");
+        _logger.LogInformation("Starting ActionEffect Monitor", LoggerType.ActionEffects);
         EnableHook();
-        _logger.LogInformation("Started ActionEffect Monitor");
+        _logger.LogInformation("Started ActionEffect Monitor", LoggerType.ActionEffects);
     }
 
     public void EnableHook()
     {
         if (ProcessActionEffectHook.IsEnabled) return;
-        _logger.LogInformation("Enabling ActionEffect Monitor");
+        _logger.LogInformation("Enabling ActionEffect Monitor", LoggerType.ActionEffects);
         ProcessActionEffectHook.Enable();
     }
 
     public void DisableHook()
     {
         if (!ProcessActionEffectHook.IsEnabled) return;
-        _logger.LogInformation("Disabling ActionEffect Monitor");
+        _logger.LogInformation("Disabling ActionEffect Monitor", LoggerType.ActionEffects);
         ProcessActionEffectHook.Disable();
     }
 
     public void Dispose()
     {
-        _logger.LogInformation("Stopping ActionEffect Monitor");
+        _logger.LogInformation("Stopping ActionEffect Monitor", LoggerType.ActionEffects);
         try
         {
             if (ProcessActionEffectHook.IsEnabled) DisableHook();
@@ -74,17 +74,14 @@ public unsafe class ActionEffectMonitor : IDisposable
         {
             _logger.LogError(e, "Error disposing of ResourceLoader");
         }
-        _logger.LogInformation("Stopped ActionEffect Monitor");
+        _logger.LogInformation("Stopped ActionEffect Monitor", LoggerType.ActionEffects);
     }
 
     private void ProcessActionEffectDetour(uint sourceID, Character* sourceCharacter, Vector3* pos, ActionEffectHandler.Header* effectHeader, EffectEntry* effectArray, ulong* effectTail)
     {
-        // return original if not a type we care for.
-
         try
         {
-            if (_mainConfig.Current.LogActionEffects) _logger.LogDebug(
-                $"--- source actor: {sourceCharacter->GameObject.EntityId}, action id {effectHeader->ActionId}, numTargets: {effectHeader->NumTargets} ---");
+            _logger.LogDebug($"--- source actor: {sourceCharacter->GameObject.EntityId}, action id {effectHeader->ActionId}, numTargets: {effectHeader->NumTargets} ---", LoggerType.ActionEffects);
 
             var TargetEffects = new TargetEffect[effectHeader->NumTargets];
             for (var i = 0; i < effectHeader->NumTargets; i++)
@@ -100,7 +97,7 @@ public unsafe class ActionEffectMonitor : IDisposable
                     if(entry.type == 0) return; // ignore blank entries.
                     if (!entry.TryGetActionEffectType(out var actionEffectType))
                     {
-                        if (_mainConfig.Current.LogActionEffects) _logger.LogDebug("EffectType was of type : " + entry.type);
+                        _logger.LogDebug("EffectType was of type : " + entry.type, LoggerType.ActionEffects);
                         return;
                     }
                     // the effect is valid, so add it to targeted effects 

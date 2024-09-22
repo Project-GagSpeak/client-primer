@@ -16,11 +16,9 @@ using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
-using GagspeakAPI.Enums;
-using GagspeakAPI.Data;
+using GagspeakAPI.Extensions;
 using System.Text.RegularExpressions;
 using GameAction = Lumina.Excel.GeneratedSheets.Action;
-using GagspeakAPI.Extensions;
 
 namespace GagSpeak.Toybox.Controllers;
 
@@ -152,7 +150,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
                 if (!directionMatches)
                 {
-                    Logger.LogDebug("Direction didn't match");
+                    Logger.LogDebug("Direction didn't match", LoggerType.ToyboxTriggers);
                     return; // Use return instead of continue in lambda expressions
                 }
 
@@ -165,12 +163,12 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
                 if (isDamageRelated && (actionEffect.Damage < trigger.ThresholdMinValue || actionEffect.Damage > trigger.ThresholdMaxValue))
                 {
-                    Logger.LogDebug($"{actionEffect.Type} Threshold not met");
+                    Logger.LogDebug($"{actionEffect.Type} Threshold not met", LoggerType.ToyboxTriggers);
                     return; // Use return instead of continue in lambda expressions
                 }
 
                 // Execute trigger action if all conditions are met
-                Logger.LogDebug($"{actionEffect.Type} Action Triggered");
+                Logger.LogDebug($"{actionEffect.Type} Action Triggered", LoggerType.ToyboxTriggers);
                 ExecuteTriggerAction(trigger);
             }
             catch (Exception ex)
@@ -250,7 +248,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         if (InitializerMsg)
         {
             ActiveDeathDeathRollSessions.RemoveAll(x => x.Initializer == nameWithWorld);
-            Logger.LogDebug("[DeathRoll] New DeathRoll session created by {player}", nameWithWorld);
+            Logger.LogDebug("[DeathRoll] New DeathRoll session created by "+nameWithWorld, LoggerType.ToyboxTriggers);
             ActiveDeathDeathRollSessions.Add(new DeathRollSession(nameWithWorld, RollCap));
         }
         // if its not an Initializer message, but we are responding to someone else's Roll Session, find the session and roll.
@@ -262,17 +260,17 @@ public class TriggerController : DisposableMediatorSubscriberBase
             {
                 if (matchedSession.TryNextRoll(nameWithWorld, RollValue, RollCap))
                 {
-                    Logger.LogDebug("[DeathRoll] Rolled in active Session with {rollValue} (out of {rollCap})", RollValue, RollCap);
+                    Logger.LogDebug("[DeathRoll] Rolled in active Session with "+RollValue+" (out of "+RollCap+")", LoggerType.ToyboxTriggers);
                 }
                 else
                 {
-                    Logger.LogWarning("[DeathRoll] Roll not processed, as you are not part of the session.");
+                    Logger.LogDebug("[DeathRoll] Roll not processed, as you are not part of the session.", LoggerType.ToyboxTriggers);
                 }
             }
         }
         else
         {
-            Logger.LogDebug("[DeathRoll] Roll doesn't match any active Sessions.");
+            Logger.LogDebug("[DeathRoll] Roll doesn't match any active Sessions.", LoggerType.ToyboxTriggers);
         }
 
         var matchingDeathRollTriggers = _clientConfigs.ActiveSocialTriggers.Where(x => x.SocialType == SocialActionType.DeathRollLoss).ToList();
@@ -298,7 +296,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 ExecuteTriggerAction(trigger);
             }
             ActiveDeathDeathRollSessions.RemoveAll(x => completedLostDeathRolls.Contains(x));
-            Logger.LogDebug("DeathRoll Trigger Executed, and Session Removed.");
+            Logger.LogDebug("DeathRoll Trigger Executed, and Session Removed.", LoggerType.ToyboxTriggers);
         }
     }
 
@@ -327,14 +325,14 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
     private async void ExecuteTriggerAction(Trigger trigger)
     {
-        Logger.LogInformation("Your Trigger With Name {name} and priority {priority} is now triggering action {action}",
-            trigger.Name, trigger.Priority, trigger.TriggerActionKind.ToName());
+        Logger.LogInformation("Your Trigger With Name "+trigger.Name+" and priority "+trigger.Priority+" triggering action "
+            + trigger.TriggerActionKind.ToName(), LoggerType.ToyboxTriggers);
 
         switch (trigger.TriggerActionKind)
         {
             case TriggerActionKind.SexToy:
                 _vibeService.DeviceHandler.ExecuteVibeTrigger(trigger);
-                Logger.LogInformation("Vibe Trigger Executed");
+                Logger.LogInformation("Vibe Trigger Executed", LoggerType.ToyboxTriggers);
                 break;
 
             case TriggerActionKind.ShockCollar:
@@ -343,7 +341,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                     Logger.LogError("Cannot apply a shock collar action without global permissions set.\n These are used for Trigger Limitations.");
                 }
                 _vibeService.ExecuteShockAction(_playerManager.GlobalPerms!.GlobalShockShareCode, trigger.ShockTriggerAction);
-                Logger.LogInformation("Applied Shock Collar action.");
+                Logger.LogInformation("Applied Shock Collar action.", LoggerType.ToyboxTriggers);
                 break;
 
             case TriggerActionKind.Restraint:
@@ -353,7 +351,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                     Logger.LogError("Cannot apply a restraint set while another is active and locked.");
                     return;
                 }
-                Logger.LogInformation("Applying Restraint Set {restraintName} with state {state}", trigger.RestraintNameAction, NewState.Enabled);
+                Logger.LogInformation("Applying Restraint Set "+trigger.RestraintNameAction+" with state "+NewState.Enabled, LoggerType.ToyboxTriggers);
                 var idx = _clientConfigs.GetRestraintSetIdxByName(trigger.RestraintNameAction);
                 await _clientConfigs.SetRestraintSetState(idx, "SelfApplied", NewState.Enabled, true);
                 break;
@@ -368,7 +366,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                     return;
                 }
                 // otherwise, we can change the gag type on that layer.
-                Logger.LogInformation("Applying Gag Type {gagType} to Layer {gagLayer}", trigger.GagTypeAction, trigger.GagLayerAction);
+                Logger.LogInformation("Applying Gag Type "+trigger.GagTypeAction+" to layer "+trigger.GagLayerAction);
                 Mediator.Publish(new GagTypeChanged(trigger.GagTypeAction, trigger.GagLayerAction));
                 Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, trigger.GagLayerAction, trigger.GagTypeAction));
                 break;
@@ -383,7 +381,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 if (_playerManager.LastIpcData != null && _playerManager.LastIpcData.MoodlesStatuses.Any(x => x.GUID == trigger.MoodlesIdentifier))
                 {
                     // we have a valid moodle to set, so go ahead and try to apply it!
-                    Logger.LogInformation("Applying moodle status with GUID {guid}", trigger.MoodlesIdentifier);
+                    Logger.LogInformation("Applying moodle status with GUID "+trigger.MoodlesIdentifier, LoggerType.ToyboxTriggers);
                     await _moodlesIpc.ApplyOwnStatusByGUID(new List<Guid>() { trigger.MoodlesIdentifier });
                     return;
                 }
@@ -399,11 +397,11 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 if (_playerManager.LastIpcData != null && _playerManager.LastIpcData.MoodlesPresets.Any(x => x.Item1 == trigger.MoodlesIdentifier))
                 {
                     // we have a valid Moodle to set, so go ahead and try to apply it!
-                    Logger.LogInformation("Applying Moodle preset with GUID {guid}", trigger.MoodlesIdentifier);
+                    Logger.LogInformation("Applying Moodle preset with GUID "+trigger.MoodlesIdentifier, LoggerType.ToyboxTriggers);
                     await _moodlesIpc.ApplyOwnPresetByGUID(trigger.MoodlesIdentifier);
                     return;
                 }
-                Logger.LogDebug("Moodle preset with GUID {guid} not found in the list of presets.", trigger.MoodlesIdentifier);
+                Logger.LogDebug("Moodle preset with GUID "+trigger.MoodlesIdentifier+" not found in the list of presets.", LoggerType.ToyboxTriggers);
                 break;
         }
     }
@@ -429,13 +427,14 @@ public class TriggerController : DisposableMediatorSubscriberBase
             {
                 foreach (var actionEffect in actionEffects)
                 {
-                    if (_clientConfigs.GagspeakConfig.LogActionEffects)
+                    if (LoggerFilter.FilteredCategories.Contains(LoggerType.ActionEffects))
                     {
                         // Perform logging and action processing for each effect
                         var sourceCharaStr = (_frameworkService.SearchObjectTableById(actionEffect.SourceID) as IPlayerCharacter)?.GetNameWithWorld() ?? "UNKN OBJ";
                         var targetCharaStr = (_frameworkService.SearchObjectTableById(actionEffect.TargetID) as IPlayerCharacter)?.GetNameWithWorld() ?? "UNKN OBJ";
                         var actionStr = _gameData.GetExcelSheet<GameAction>()!.GetRow(actionEffect.ActionID)?.Name.ToString() ?? "UNKN ACT";
-                        Logger.LogDebug($"Source:{sourceCharaStr}, Target: {targetCharaStr}, Action: {actionStr}, Action ID:{actionEffect.ActionID}, Type: {actionEffect.Type.ToString()} Amount: {actionEffect.Damage}");
+                        Logger.LogDebug($"Source:{sourceCharaStr}, Target: {targetCharaStr}, Action: {actionStr}, Action ID:{actionEffect.ActionID}, " +
+                            $"Type: {actionEffect.Type.ToString()} Amount: {actionEffect.Damage}", LoggerType.ActionEffects);
                     }
                     CheckSpellActionTriggers(actionEffect);
                 };
@@ -494,7 +493,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         // clean up death roll sessions.
         if (ActiveDeathDeathRollSessions.Any(x => x.SessionExpired))
         {
-            Logger.LogDebug("[DeathRoll] Cleaning up expired DeathRoll Sessions.");
+            Logger.LogDebug("[DeathRoll] Cleaning up expired DeathRoll Sessions.", LoggerType.ToyboxTriggers);
             ActiveDeathDeathRollSessions.RemoveAll(x => x.SessionExpired);
         }
     }

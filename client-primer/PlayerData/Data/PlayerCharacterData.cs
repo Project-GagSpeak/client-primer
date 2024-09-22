@@ -65,7 +65,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         if (CoreDataNull || ShockPermsNull)
         {
             // potentially edit this to always grab refreshed info on each connect, but idk.
-            Logger.LogDebug("Global PiShockPerms already initialized. Returning.");
+            Logger.LogDebug("Global PiShockPerms already initialized. Returning.", LoggerType.PiShock);
             return GlobalPiShockPerms;
         }
 
@@ -113,7 +113,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
 
         if (propertyName == "GlobalShockShareCode")
         {
-            Logger.LogDebug($"Attempting to grab latest PiShockPerms for Global");
+            Logger.LogDebug($"Attempting to grab latest PiShockPerms for Global", LoggerType.PiShock);
             Task.Run(async () => GlobalPiShockPerms = await GetGlobalPiShockPerms());
             return;
         }
@@ -137,7 +137,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
                 // Convert the value to the appropriate type before setting
                 var value = Convert.ChangeType(newValue, propertyInfo.PropertyType);
                 propertyInfo.SetValue(GlobalPerms, value);
-                Logger.LogDebug($"Updated global permission '{propertyName}' to '{newValue}'");
+                Logger.LogDebug($"Updated global permission '{propertyName}' to '{newValue}'", LoggerType.ClientPlayerData);
             }
             else
             {

@@ -6,7 +6,6 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Enums;
-using Interop.Ipc;
 
 namespace GagSpeak.PlayerData.Services;
 
@@ -59,7 +58,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         // called upon whenever a new cache should be added to the cache creation service.
         Mediator.Subscribe<CreateCacheForObjectMessage>(this, async (msg) =>
         {
-            Logger.LogDebug("Received CreateCacheForObject for {handler}, updating", msg.ObjectToCreateFor);
+            Logger.LogDebug("Received CreateCacheForObject for "+msg.ObjectToCreateFor+", updating", LoggerType.ClientPlayerData);
             _cacheCreateLock.Wait();
             if (IpcCallerMoodles.APIAvailable) await FetchLatestMoodlesDataAsync().ConfigureAwait(false);
             _cacheToCreate = new CacheData(msg.ObjectToCreateFor, DataUpdateKind.IpcUpdateVisible, Guid.Empty);
@@ -76,7 +75,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
                 _playerIpcData.MoodlesData = string.Empty;
                 _playerIpcData.MoodlesStatuses.Clear();
                 _playerIpcData.MoodlesPresets.Clear();
-                Logger.LogDebug("Clearing cache for {obj}", msg.ObjectToCreateFor);
+                Logger.LogDebug("Clearing cache for "+msg.ObjectToCreateFor, LoggerType.ClientPlayerData);
                 Mediator.Publish(new CharacterIpcDataCreatedMessage(_playerIpcData, DataUpdateKind.IpcMoodlesCleared));
             });
         });
@@ -86,7 +85,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             // run an api check before this to force update 
 
             await FetchLatestMoodlesDataAsync().ConfigureAwait(false);
-            Logger.LogDebug("Moodles is now ready, fetching latest info and pushing to all visible pairs");
+            Logger.LogDebug("Moodles is now ready, fetching latest info and pushing to all visible pairs", LoggerType.IpcMoodles);
             Mediator.Publish(new CharacterIpcDataCreatedMessage(_playerIpcData, DataUpdateKind.IpcUpdateVisible));
         });
 
@@ -96,7 +95,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             // Assuming _playerObject is now a single GameObjectHandler instance
             if (_playerObject != null && _playerObject.Address == msg.Address)
             {
-                Logger.LogDebug("Updating visible pairs with latest Moodles Data. [Status Manager Changed!]");
+                Logger.LogDebug("Updating visible pairs with latest Moodles Data. [Status Manager Changed!]", LoggerType.IpcMoodles);
                 _ = AddPlayerCacheToCreate(DataUpdateKind.IpcMoodlesStatusManagerChanged, Guid.Empty);
             }
         });
@@ -107,7 +106,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             // Assuming _playerObject is now a single GameObjectHandler instance
             if (_playerObject != null && _playerObject.Address != nint.Zero)
             {
-                Logger.LogDebug("Updating visible pairs with latest Moodles Data. [You Changed Settings of a Status!]");
+                Logger.LogDebug("Updating visible pairs with latest Moodles Data. [You Changed Settings of a Status!]", LoggerType.IpcMoodles);
                 _ = AddPlayerCacheToCreate(DataUpdateKind.IpcMoodlesStatusesUpdated, msg.Guid);
             }
         });
@@ -117,7 +116,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             if (_isZoning) return;
             if (_playerObject != null && _playerObject.Address != nint.Zero)
             {
-                Logger.LogDebug("Received a Status Manager change for Moodles. Updating player with latest IPC");
+                Logger.LogDebug("Received a Status Manager change for Moodles. Updating player with latest IPC", LoggerType.IpcMoodles);
                 _ = AddPlayerCacheToCreate(DataUpdateKind.IpcMoodlesPresetsUpdated, msg.Guid);
             }
         });
@@ -131,9 +130,9 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         _playerIpcData.MoodlesDataStatuses = await _ipcManager.Moodles.GetStatusInfoAsync(_playerObject.NameWithWorld).ConfigureAwait(false) ?? new();
         _playerIpcData.MoodlesStatuses = await _ipcManager.Moodles.GetMoodlesInfoAsync().ConfigureAwait(false) ?? new();
         _playerIpcData.MoodlesPresets = await _ipcManager.Moodles.GetPresetsInfoAsync().ConfigureAwait(false) ?? new();
-        Logger.LogDebug("Latest Data from Moodles Fetched.");
+        Logger.LogDebug("Latest Data from Moodles Fetched.", LoggerType.IpcMoodles);
     }
-    
+
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
@@ -170,17 +169,17 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogCritical(ex, "Error during Cache Creation Processing");
+                    Logger.LogError(ex, "Error during Cache Creation Processing");
                 }
                 finally
                 {
-                    Logger.LogDebug("Cache Creation complete");
+                    Logger.LogDebug("Cache Creation complete", LoggerType.ClientPlayerData);
                 }
             }, _cts.Token);
         }
         else if (_cacheToCreate.GameObj != null)
         {
-            Logger.LogDebug("Cache Creation stored until previous creation finished");
+            Logger.LogDebug("Cache Creation stored until previous creation finished", LoggerType.ClientPlayerData);
         }
     }
 
@@ -194,7 +193,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             var pointerIsZero = await CheckForNullDrawObject(playerObjData.GameObj.Address).ConfigureAwait(false);
             if (pointerIsZero)
             {
-                Logger.LogTrace("Pointer was zero for object being built");
+                Logger.LogTrace("Pointer was zero for object being built", LoggerType.ClientPlayerData);
                 return;
             }
 
@@ -227,11 +226,12 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
                     }
                     break;
                 case DataUpdateKind.IpcMoodlesCleared:
-                    Logger.LogTrace("Clearing Moodles Data for {object}", playerObjData); 
+                    Logger.LogTrace("Clearing Moodles Data for " + playerObjData, LoggerType.IpcMoodles);
                     break;
                 default: Logger.LogWarning("Unknown Update Kind for {object}", playerObjData); break;
             }
-            Logger.LogInformation("IPC Update for player object took {time}ms", TimeSpan.FromTicks(DateTime.UtcNow.Ticks - start.Ticks).TotalMilliseconds);
+            Logger.LogInformation("IPC Update for player object took " + TimeSpan.FromTicks(DateTime.UtcNow.Ticks - start.Ticks).TotalMilliseconds 
+                + "ms", LoggerType.ClientPlayerData);
             //Logger.LogTrace("Data: {data}", prevData.MoodlesData);
             //Logger.LogTrace("StatusManager Statuses: {data}", prevData.MoodlesDataStatuses.Count);
             //Logger.LogTrace("Statuses: {data}", prevData.MoodlesStatuses.Count);
@@ -239,7 +239,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         }
         catch (OperationCanceledException)
         {
-            Logger.LogDebug("Cancelled creating Character data for {object}", playerObjData);
+            Logger.LogDebug("Cancelled creating Character data for "+playerObjData, LoggerType.ClientPlayerData);
         }
         catch (Exception e)
         {

@@ -1,4 +1,3 @@
-using GagSpeak.GagspeakConfiguration;
 using Microsoft.Extensions.Hosting;
 using System.Reflection;
 
@@ -15,18 +14,17 @@ public sealed class GagspeakMediator : IHostedService
     private readonly ILogger<GagspeakMediator> _logger;                     // the logger for the mediator
     private readonly CancellationTokenSource _loopCts = new();              // the cancellation token source for the loop
     private readonly ConcurrentQueue<MessageBase> _messageQueue = new();    // the queue of mediator published messages
-    private readonly GagspeakConfigService _gagspeakConfigService;              // the configuration service for the plugin
     private readonly Dictionary<Type, HashSet<SubscriberAction>> _subscriberDict = []; // the subscriber dictionary
     private bool _processQueue = false;                                     // if we should be processing the queue
     private readonly Dictionary<Type, MethodInfo?> _genericExecuteMethods = new(); // the generic execution methods
-    public GagspeakMediator(ILogger<GagspeakMediator> logger, GagspeakConfigService gagspeakConfigService)
+    public GagspeakMediator(ILogger<GagspeakMediator> logger)
     {
         _logger = logger;
-        _gagspeakConfigService = gagspeakConfigService;
     }
 
     /// <summary>
     /// Logs information about all subscribers, including the types of messages they are subscribed to.
+    /// (No real reason to really add this, possibly remove.)
     /// </summary>
     public void PrintSubscriberInfo()
     {
@@ -70,11 +68,9 @@ public sealed class GagspeakMediator : IHostedService
     }
 
     /// <summary>
-    /// The required startAsync method by the mediatorbase
+    /// The required startAsync method by the mediator-base
     /// <para>Begins processing the message queue in a loop</para>
     /// </summary>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
     public Task StartAsync(CancellationToken cancellationToken)
     {
         // start the loop in async
@@ -147,7 +143,7 @@ public sealed class GagspeakMediator : IHostedService
             }
 
             // otherwise, we would have sucessfully added it to the dictionary, logging its sucess afterward
-            _logger.LogDebug("Subscriber added for message {message}: {sub}", typeof(T).Name, subscriber.GetType().Name);
+            _logger.LogDebug("Subscriber added for message "+typeof(T).Name+": "+subscriber.GetType().Name, LoggerType.Mediator);
         }
     }
 
@@ -188,7 +184,7 @@ public sealed class GagspeakMediator : IHostedService
                 // if the subscriber was removed, log the sucess
                 if (unSubbed > 0)
                 {
-                    _logger.LogDebug("{sub} unsubscribed from {msg}", subscriber.GetType().Name, kvp.Name);
+                    _logger.LogDebug(subscriber.GetType().Name+" unsubscribed from "+kvp.Name, LoggerType.Mediator);
                 }
             }
         }

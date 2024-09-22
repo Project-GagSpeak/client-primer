@@ -42,7 +42,7 @@ public class MoveController : IDisposable
         {
             *hold = 0;
         }
-        //_logger.LogDebug($"Move movement is active for {((IntPtr)hold).ToString("X")}");
+        //_logger.LogDebug($"Move movement is active for {((IntPtr)hold).ToString("X")}", LoggerType.HardcoreMovement);
         // update the original
         byte ret = MovementUpdateHook.Original(thisx);
         // restore the original
@@ -61,55 +61,55 @@ public class MoveController : IDisposable
         UnkTargetFollowStruct* temp = unk1;
         
         var targetFollowVar = unk1;
-        _logger.LogDebug($"PRE:       UnkTargetFollowStruct: {((IntPtr)unk1).ToString("X")}");
-        _logger.LogDebug($"---------------------------------");
-        _logger.LogDebug($"PRE: Unk_0x450.Unk_GameObjectID0: {unk1->Unk_0x450.Unk_GameObjectID0.ToString("X")};");
+        _logger.LogDebug($"PRE:       UnkTargetFollowStruct: {((IntPtr)unk1).ToString("X")}", LoggerType.HardcoreMovement);
+        _logger.LogDebug($"---------------------------------", LoggerType.HardcoreMovement);
+        _logger.LogDebug($"PRE: Unk_0x450.Unk_GameObjectID0: {unk1->Unk_0x450.Unk_GameObjectID0.ToString("X")};", LoggerType.HardcoreMovement);
         try {
-            _logger.LogDebug($"PRE      Struct target4 Unk_0x10: {unk1->Unk_0x450.Unk_0x10};");
-            _logger.LogDebug($"PRE      Struct target4 Unk_0x54: {unk1->Unk_0x450.Unk_0x54};");
+            _logger.LogDebug($"PRE      Struct target4 Unk_0x10: {unk1->Unk_0x450.Unk_0x10};", LoggerType.HardcoreMovement);
+            _logger.LogDebug($"PRE      Struct target4 Unk_0x54: {unk1->Unk_0x450.Unk_0x54};", LoggerType.HardcoreMovement);
         } catch (Exception ex) {
-            _logger.LogError($"Error converting Unk_0x10 to string: {ex}");
+            _logger.LogError($"Error converting Unk_0x10 to string: {ex}", LoggerType.HardcoreMovement);
         }
-        _logger.LogDebug($"PRE:             FollowingTarget: {unk1->FollowingTarget.ToString("X")}");
-        _logger.LogDebug($"PRE:                 Follow Type: {unk1->FollowType.ToString("X")}");
-        
+        _logger.LogDebug($"PRE:             FollowingTarget: {unk1->FollowingTarget.ToString("X")}", LoggerType.HardcoreMovement);
+        _logger.LogDebug($"PRE:                 Follow Type: {unk1->FollowType.ToString("X")}", LoggerType.HardcoreMovement);
+
         foreach (Dalamud.Game.ClientState.Objects.Types.IGameObject obj in _objectTable)
         {
             if (obj.GameObjectId == unk1->GameObjectIDToFollow)
             {
-                _logger.LogDebug($"Game Object To Follow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}");
+                _logger.LogDebug($"Game Object To Follow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}", LoggerType.HardcoreMovement);
                 break;
             }
         }
         // if this condition it true, it means that the function is attempting to call a cancelation 
         if (DisablingMouseMovement && unk1->Unk_0x450.Unk_0x54 == 256)
         {
-            _logger.LogDebug($"Early escaping to prevent canceling follow!");
+            _logger.LogDebug($"Early escaping to prevent canceling follow!", LoggerType.HardcoreMovement);
             return; // do an early return to prevent processing
         }
         else
         {
-            _logger.LogDebug($"DisablingMouseMovement was {DisablingMouseMovement}, Unk_0x450.Unk_0x54 was {unk1->Unk_0x450.Unk_0x54}. Performing early return of original.");
+            _logger.LogDebug($"DisablingMouseMovement was {DisablingMouseMovement}, Unk_0x450.Unk_0x54 was {unk1->Unk_0x450.Unk_0x54}. Performing early return of original.", LoggerType.HardcoreMovement);
             // output the original
             UnfollowHook.Original(unk1);
         }
         
         try {
-            _logger.LogDebug($"POST       UnkTargetFollowStruct: {((IntPtr)unk1).ToString("X")}");
-            _logger.LogDebug($"---------------------------------");
-            _logger.LogDebug($"POST Unk_0x450.Unk_GameObjectID0: {unk1->Unk_0x450.Unk_GameObjectID0.ToString("X")};");
-            _logger.LogDebug($"POST     Struct target4 Unk_0x54: {unk1->Unk_0x450.Unk_0x54};");
-            _logger.LogDebug($"POST             FollowingTarget: {unk1->FollowingTarget.ToString("X")}");
-            _logger.LogDebug($"POST                 Follow Type: {unk1->FollowType.ToString("X")}");
+            _logger.LogDebug($"POST       UnkTargetFollowStruct: {((IntPtr)unk1).ToString("X")}", LoggerType.HardcoreMovement);
+            _logger.LogDebug($"---------------------------------", LoggerType.HardcoreMovement);
+            _logger.LogDebug($"POST Unk_0x450.Unk_GameObjectID0: {unk1->Unk_0x450.Unk_GameObjectID0.ToString("X")};", LoggerType.HardcoreMovement);
+            _logger.LogDebug($"POST     Struct target4 Unk_0x54: {unk1->Unk_0x450.Unk_0x54};", LoggerType.HardcoreMovement);
+            _logger.LogDebug($"POST             FollowingTarget: {unk1->FollowingTarget.ToString("X")}", LoggerType.HardcoreMovement);
+            _logger.LogDebug($"POST                 Follow Type: {unk1->FollowType.ToString("X")}", LoggerType.HardcoreMovement);
         } catch (Exception ex) {
-            _logger.LogError($"Error {ex}");
+            _logger.LogError($"Error {ex}", LoggerType.HardcoreMovement);
         }
         
         foreach (Dalamud.Game.ClientState.Objects.Types.IGameObject obj in _objectTable)
         {
             if (obj.GameObjectId == unk1->GameObjectIDToFollow)
             {
-                _logger.LogDebug($"POST ObjectIDtoFollow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}");
+                _logger.LogDebug($"POST ObjectIDtoFollow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}", LoggerType.HardcoreMovement);
                 break;
             }
         }
@@ -132,7 +132,7 @@ public class MoveController : IDisposable
         MovementUpdateHook?.Enable(); // for enabling the prevention of LMB+RMB movement
         UnfollowHook?.Enable(); // makes it so you cant unfollow the target
         if (UnfollowHook != null && UnfollowHook.IsEnabled)
-            _logger.LogDebug($"UnfollowHook is enabled: {UnfollowHook.IsEnabled}");
+            _logger.LogDebug($"UnfollowHook is enabled: {UnfollowHook.IsEnabled}", LoggerType.HardcoreMovement);
     }
 
     // Hook disablers
@@ -145,7 +145,7 @@ public class MoveController : IDisposable
     // the disposer
     public void Dispose()
     {
-        _logger.LogDebug($"Disposing of MoveController: {DisablingALLMovement}, {DisablingMouseMovement}");
+        _logger.LogDebug($"Disposing of MoveController: {DisablingALLMovement}, {DisablingMouseMovement}", LoggerType.HardcoreMovement);
         DisableMovementHooks(); // disable the hooks
 
         // dispose of the hooks
@@ -161,7 +161,7 @@ public class MoveController : IDisposable
         // if we have RestrictedMovement actively, and want to enable movement, we should set it to false
         if (DisablingALLMovement)
         {
-            _logger.LogDebug($"Enabling moving, {ForceDisableMovement}");
+            _logger.LogDebug($"Enabling moving, {ForceDisableMovement}", LoggerType.HardcoreMovement);
             // if our pointer is above 0, it means that we are frozen, so let us move again
             if (ForceDisableMovement > 0)
             {
@@ -173,7 +173,7 @@ public class MoveController : IDisposable
         // if we are toggling the mouse
         if (DisablingMouseMovement)
         {
-            _logger.LogDebug($"Enabling mouse");
+            _logger.LogDebug($"Enabling mouse", LoggerType.HardcoreMovement);
             // let our code know we are no longer preventing mouse movement
             DisableMovementHooks();
             DisablingMouseMovement = false;
@@ -185,7 +185,7 @@ public class MoveController : IDisposable
         // if we are currenelty not preventing mouse movement, and we want to disable movement, we should set it to true
         if (!DisablingALLMovement && togglePointer)
         {
-            _logger.LogDebug($"Disabling moving, {ForceDisableMovement}");
+            _logger.LogDebug($"Disabling moving, {ForceDisableMovement}", LoggerType.HardcoreMovement);
             // if our pointer is 0, it means that we are not frozen, so let us freeze
             if (ForceDisableMovement == 0)
             {
@@ -197,7 +197,7 @@ public class MoveController : IDisposable
         if (!DisablingMouseMovement && toggleMouse)
         {
             EnableMovementHooks();
-            _logger.LogDebug($"Disabling mouse");
+            _logger.LogDebug($"Disabling mouse", LoggerType.HardcoreMovement);
             DisablingMouseMovement = true;
         }
     }

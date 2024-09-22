@@ -1,15 +1,6 @@
-using Dalamud.Interface.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
-using Dalamud.Interface.Utility;
-using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Services.Textures;
 using GagSpeak.UI;
-using GagSpeak.UpdateMonitoring;
-using ImGuiNET;
-using System.IO;
-using System.Numerics;
 
 namespace GagSpeak.Services;
 public class GagspeakProfile : DisposableMediatorSubscriberBase
@@ -25,7 +16,7 @@ public class GagspeakProfile : DisposableMediatorSubscriberBase
 
 
     public GagspeakProfile(ILogger<GagspeakProfile> logger, GagspeakMediator mediator,
-        UiSharedService uiShared, bool flagged, string base64ProfilePicture, 
+        UiSharedService uiShared, bool flagged, string base64ProfilePicture,
         string description) : base(logger, mediator)
     {
         _uiShared = uiShared;
@@ -58,7 +49,7 @@ public class GagspeakProfile : DisposableMediatorSubscriberBase
             if (_base64ProfilePicture != value)
             {
                 _base64ProfilePicture = value;
-                Logger.LogDebug("Profile picture updated.");
+                Logger.LogDebug("Profile picture updated.", LoggerType.Profiles);
                 RefreshData = true;
                 RefreshWrap = true;
             }
@@ -70,9 +61,9 @@ public class GagspeakProfile : DisposableMediatorSubscriberBase
         {
             if (RefreshData)
             {
-                Logger.LogTrace("Refreshing profile image data!");
+                Logger.LogTrace("Refreshing profile image data!", LoggerType.Profiles);
                 _imageData = new Lazy<byte[]>(() => ConvertBase64ToByteArray(Base64ProfilePicture));
-                Logger.LogTrace("Refreshed profile image data!");
+                Logger.LogTrace("Refreshed profile image data!", LoggerType.Profiles);
                 RefreshData = false;
             }
             return _imageData;
@@ -102,13 +93,13 @@ public class GagspeakProfile : DisposableMediatorSubscriberBase
         {
             if (ImageData.Value == null || ImageData.Value.Length == 0)
             {
-                Logger.LogTrace("Loading no radial small.");
+                Logger.LogTrace("Loading no radial small.", LoggerType.Profiles);
                 _lastProfileImage?.Dispose();
                 _lastProfileImage = _uiShared.RentLogoNoRadial();
             }
             else
             {
-                Logger.LogTrace("Loading default image while processing the actual image.");
+                Logger.LogTrace("Loading default image while processing the actual image.", LoggerType.Profiles);
                 _lastProfileImage?.Dispose();
                 _lastProfileImage = _uiShared.RentLogoNoRadial();
                 _ = Task.Run(() =>

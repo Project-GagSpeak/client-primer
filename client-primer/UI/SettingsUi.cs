@@ -955,7 +955,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         if (ImGui.BeginPopupModal("Delete your account?", ref _deleteAccountPopupModalShown, UiSharedService.PopupWindowFlags))
         {
-            UiSharedService.TextWrapped("Be Deleting your primary GagSpeak account, all seconary users below will also be deleted.");
+            UiSharedService.TextWrapped("Be Deleting your primary GagSpeak account, all secondary users below will also be deleted.");
             UiSharedService.TextWrapped("Your UID will be removed from all pairing lists.");
             ImGui.TextUnformatted("Are you sure you want to continue?");
             ImGui.Separator();
@@ -984,6 +984,110 @@ public class SettingsUi : WindowMediatorSubscriberBase
     }
 
     /// <summary> Displays the Debug section within the settings, where we can set our debug level </summary>
+    private static readonly Dictionary<string, LoggerType[]> loggerSections = new Dictionary<string, LoggerType[]>
+    {
+        { "Main", new[] { LoggerType.Mediator, LoggerType.GarblerCore } },
+        { "Interop", new[] { LoggerType.IpcGagSpeak, LoggerType.IpcCustomize, LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra } },
+        { "Hardcore", new[] { LoggerType.HardcoreActions, LoggerType.HardcoreMovement, LoggerType.HardcorePrompt } },
+        { "Player Data", new[] { LoggerType.GagManagement, LoggerType.PadlockManagement, LoggerType.ClientPlayerData, LoggerType.GameObjects, LoggerType.PairManagement, LoggerType.OnlinePairs, LoggerType.VisiblePairs } },
+        { "Services", new[] { LoggerType.Notification, LoggerType.Profiles, LoggerType.Cosmetics, LoggerType.GlobalChat, LoggerType.ContextDtr, LoggerType.PatternHub, LoggerType.Safeword } },
+        { "Toybox", new[] { LoggerType.ToyboxDevices, LoggerType.ToyboxPatterns, LoggerType.ToyboxTriggers, LoggerType.ToyboxAlarms, LoggerType.VibeControl, LoggerType.PrivateRoom } },
+        { "Update Monitoring", new[] { LoggerType.ChatDetours, LoggerType.ActionEffects, LoggerType.SpatialAudioController, LoggerType.SpatialAudioLogger } },
+        { "UI", new[] { LoggerType.UiCore, LoggerType.UserPairDrawer, LoggerType.Permissions, LoggerType.Simulation } },
+        { "WebAPI", new[] { LoggerType.PiShock, LoggerType.ApiCore, LoggerType.Callbacks, LoggerType.Health, LoggerType.HubFactory, LoggerType.JwtTokens } }
+    };
+
+    private void DrawLoggerSettings()
+    {
+        bool isFirstSection = true;
+
+        // Iterate through each section in loggerSections
+        foreach (var section in loggerSections)
+        {
+            // Begin a new group for the section
+            using (ImRaii.Group())
+            {
+                // Calculate the number of checkboxes in the current section
+                var checkboxes = section.Value;
+
+                // Draw a custom line above the table to simulate the upper border
+                var drawList = ImGui.GetWindowDrawList();
+                var cursorPos = ImGui.GetCursorScreenPos();
+                drawList.AddLine(new Vector2(cursorPos.X, cursorPos.Y), new Vector2(cursorPos.X + ImGui.GetContentRegionAvail().X, cursorPos.Y), ImGui.GetColorU32(ImGuiCol.Border));
+
+                // Add some vertical spacing to position the table correctly
+                ImGui.Dummy(new Vector2(0, 1));
+
+                // Begin a new table for the checkboxes without any borders
+                if (ImGui.BeginTable(section.Key, 4, ImGuiTableFlags.None))
+                {
+                    // Iterate through the checkboxes, managing columns and rows
+                    for (int i = 0; i < checkboxes.Length; i++)
+                    {
+                        ImGui.TableNextColumn();
+
+                        bool isEnabled = _configService.Current.LoggerFilters.Contains(checkboxes[i]);
+
+                        if (ImGui.Checkbox(checkboxes[i].ToName(), ref isEnabled))
+                        {
+                            if (isEnabled)
+                            {
+                                _configService.Current.LoggerFilters.Add(checkboxes[i]);
+                                LoggerFilter.AddAllowedCategory(checkboxes[i]);
+                            }
+                            else
+                            {
+                                _configService.Current.LoggerFilters.Remove(checkboxes[i]);
+                                LoggerFilter.RemoveAllowedCategory(checkboxes[i]);
+                            }
+                            _configService.Save();
+                        }
+                    }
+
+                    // Add "All On" and "All Off" buttons for the first section
+                    if (isFirstSection)
+                    {
+                        ImGui.TableNextColumn();
+                        if (ImGui.Button("All On"))
+                        {
+                            _configService.Current.LoggerFilters = LoggerFilter.GetAllRecommendedFilters();
+                            _configService.Save();
+                            LoggerFilter.AddAllowedCategories(_configService.Current.LoggerFilters);
+                        }
+
+                        ImGui.TableNextColumn();
+                        if (ImGui.Button("All Off"))
+                        {
+                            _configService.Current.LoggerFilters.Clear();
+                            _configService.Current.LoggerFilters.Add(LoggerType.None);
+                            _configService.Save();
+                            LoggerFilter.ClearAllowedCategories();
+                        }
+                    }
+
+                    ImGui.EndTable();
+                }
+
+                // Display a tooltip when hovering over any element in the group
+                if (ImGui.IsItemHovered(ImGuiHoveredFlags.RectOnly))
+                {
+                    ImGui.BeginTooltip();
+                    UiSharedService.ColorText(section.Key, ImGuiColors.ParsedGold);
+                    ImGui.EndTooltip();
+                }
+            }
+
+            // Mark that the first section has been processed
+            isFirstSection = false;
+        }
+
+        // Ensure LoggerType.None is always included in the filtered categories
+        if (!_configService.Current.LoggerFilters.Contains(LoggerType.None))
+        {
+            _configService.Current.LoggerFilters.Add(LoggerType.None);
+            LoggerFilter.AddAllowedCategory(LoggerType.None);
+        }
+    }
     private void DrawDebug()
     {
         _lastTab = "Debug";
@@ -997,38 +1101,15 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Save();
         }, _configService.Current.LogLevel);
 
-        bool logBatteryAlarms = _configService.Current.LogBatteryAndAlarmChecks;
-        bool logResourceManagement = _configService.Current.LogResourceManagement;
-        bool logActionEffects = _configService.Current.LogActionEffects;
-        bool logServerHealth = _configService.Current.LogServerConnectionHealth;
+        var logFilters = _configService.Current.LoggerFilters;
 
-        if (ImGui.Checkbox("Log Resource Management", ref logResourceManagement))
+        // draw a collapsible tree node here to draw the logger settings:
+        ImGui.Spacing();
+        if (ImGui.TreeNode("Advanced Logger Filters (Only Edit if you know what you're doing!)"))
         {
-            _configService.Current.LogResourceManagement = logResourceManagement;
-            _configService.Save();
+            DrawLoggerSettings();
+            ImGui.TreePop();
         }
-        _uiShared.DrawHelpText("Log vibrator audio source management to the debug log.");
-
-        if (ImGui.Checkbox("Log Action Effect", ref logActionEffects))
-        {
-            _configService.Current.LogActionEffects = logActionEffects;
-            _configService.Save();
-        }
-        _uiShared.DrawHelpText("Log the action effects received to your client from yourself or other players actions.");
-
-        if (ImGui.Checkbox("Log Server Health", ref logServerHealth))
-        {
-            _configService.Current.LogServerConnectionHealth = logServerHealth;
-            _configService.Save();
-        }
-        _uiShared.DrawHelpText("Log server connection health to the debug log.");
-
-        if (ImGui.Checkbox("Log Battery and Alarm Checks", ref logBatteryAlarms))
-        {
-            _configService.Current.LogBatteryAndAlarmChecks = logBatteryAlarms;
-            _configService.Save();
-        }
-        _uiShared.DrawHelpText("Log battery and alarm checks to the debug log.");
 
         _uiShared.BigText("Vibrator Audio Testing Beta");
         UiSharedService.ColorText("(WILL CRASH YOU IF NOT CORDY)", ImGuiColors.DPSRed);

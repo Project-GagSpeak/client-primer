@@ -138,8 +138,7 @@ public class AlarmHandler : MediatorSubscriberBase
 
         _lastExecutionTime = DateTime.Now; // Update the last execution time
 
-        if (_clientConfigs.GagspeakConfig.LogBatteryAndAlarmChecks)
-            Logger.LogTrace("Checking Alarms");
+        Logger.LogTrace("Checking Alarms", LoggerType.ToyboxAlarms);
 
         // Iterate through each stored alarm
         int alarmCount = _clientConfigs.FetchAlarmCount();
@@ -167,7 +166,7 @@ public class AlarmHandler : MediatorSubscriberBase
             // check if current time matches execution time and if so play
             if (now.Hour == alarmTime.Hour && now.Minute == alarmTime.Minute)
             {
-                Logger.LogInformation("Playing Pattern : {0}", alarm.PatternToPlay);
+                Logger.LogInformation("Playing Pattern : "+alarm.PatternToPlay, LoggerType.ToyboxAlarms);
                 _playbackService.PlayPattern(alarm.PatternToPlay, alarm.PatternStartPoint, alarm.PatternDuration, true);
             }
         }

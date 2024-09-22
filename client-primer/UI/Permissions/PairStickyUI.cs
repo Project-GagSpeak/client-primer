@@ -1,11 +1,9 @@
-using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin.Services;
-using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
+using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Handlers;
 using GagSpeak.UpdateMonitoring;
@@ -21,7 +19,7 @@ namespace GagSpeak.UI.Permissions;
 public partial class PairStickyUI : WindowMediatorSubscriberBase
 {
     private readonly OnFrameworkService _frameworkUtils;
-    private readonly GagspeakConfigService _mainConfig;
+    private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerManager;
     protected readonly IdDisplayHandler _displayHandler;
     private readonly UiSharedService _uiShared;
@@ -35,15 +33,15 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
 
     public PairStickyUI(ILogger<PairStickyUI> logger,
         GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
-        OnFrameworkService frameworkUtils, GagspeakConfigService mainConfig,
-        PlayerCharacterData pcManager, IdDisplayHandler displayHandler, 
-        UiSharedService uiSharedService, ApiController apiController, 
-        PairManager pairManager, MoodlesService moodlesService, 
-        PermissionPresetService presetService, PermActionsComponents permActionHelpers, 
-        IClientState clientState) : base(logger, mediator, "StickyPairPerms for " + pairToDrawFor.UserData.UID + "pair.")
+        OnFrameworkService frameworkUtils, ClientConfigurationManager clientConfigs,
+        PlayerCharacterData pcManager, IdDisplayHandler displayHandler,
+        UiSharedService uiSharedService, ApiController apiController,
+        PairManager pairManager, MoodlesService moodlesService,
+        PermissionPresetService presetService, PermActionsComponents permActionHelpers,
+        IClientState clientState) : base(logger, mediator, "PairStickyUI for " + pairToDrawFor.UserData.UID + "pair.")
     {
         _frameworkUtils = frameworkUtils;
-        _mainConfig = mainConfig;
+        _clientConfigs = clientConfigs;
         _playerManager = pcManager;
         _uiShared = uiSharedService;
         _apiController = apiController;
@@ -106,7 +104,7 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
             ImGui.BeginChild("PairPermsContent", new Vector2(0, ImGui.GetContentRegionAvail().Y), false, ImGuiWindowFlags.NoScrollbar);
             // draw the pair's permissions they have set for you
             DrawPairPermsForClient();
-                
+
             ImGui.EndChild();
         }
         else if (DrawType == StickyWindowType.ClientPermsForPair)

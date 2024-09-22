@@ -358,7 +358,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                 // make sure to turn that off and reset it
                 GlamourChangeFinishedDrawing = false;
                 GlamourChangeEventsDisabled = false;
-                _logger.LogDebug($"Re-Allowing Glamour Change Event");
+                _logger.LogDebug($"Re-Allowing Glamour Change Event", LoggerType.IpcGlamourer);
             }
         }
 

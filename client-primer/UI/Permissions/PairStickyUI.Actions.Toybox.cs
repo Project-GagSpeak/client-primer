@@ -31,7 +31,7 @@ public partial class PairStickyUI
             {
                 _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData,
                     new KeyValuePair<string, object>("ToyIsActive", !UserPairForPerms.UserPairGlobalPerms.ToyIsActive)));
-                _logger.LogDebug("Toggled Toybox for " + PairUID + "(New State: " + !UserPairForPerms.UserPairGlobalPerms.ToyIsActive + ")");
+                _logger.LogDebug("Toggled Toybox for " + PairUID + "(New State: " + !UserPairForPerms.UserPairGlobalPerms.ToyIsActive + ")", LoggerType.Permissions);
             }
             UiSharedService.AttachToolTip("Toggles the state of " + PairUID + "'s connected Toys.");
         }
@@ -54,10 +54,10 @@ public partial class PairStickyUI
         var disableAlarms = !pairUniquePerms.CanToggleAlarms || !lastToyboxData.AlarmList.Any();
         if (_uiShared.IconTextButton(FontAwesomeIcon.Clock, "Toggle " + PairUID + "'s Alarms", WindowMenuWidth, true, disableAlarms))
         {
-            Opened = Opened == ActiveActionButton.ToggleAlarm ? ActiveActionButton.None : ActiveActionButton.ToggleAlarm;
+            Opened = Opened == InteractionType.ToggleAlarm ? InteractionType.None : InteractionType.ToggleAlarm;
         }
         UiSharedService.AttachToolTip("Toggle " + PairUID + "'s Alarms.");
-        if (Opened is ActiveActionButton.ToggleAlarm)
+        if (Opened is InteractionType.ToggleAlarm)
         {
             using (var actionChild = ImRaii.Child("AlarmToggleChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
@@ -84,8 +84,8 @@ public partial class PairStickyUI
                         newToyboxData.AlarmList[alarmToToggle].Enabled = !newToyboxData.AlarmList[alarmToToggle].Enabled;
 
                         _ = _apiController.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxAlarmToggled));
-                        _logger.LogDebug("Toggling Alarm {0} on {1}'s AlarmList", onButtonPress.Name, PairNickOrAliasOrUID);
-                        Opened = ActiveActionButton.None;
+                        _logger.LogDebug("Toggling Alarm "+onButtonPress.Name+" on "+PairNickOrAliasOrUID+"'s AlarmList", LoggerType.Permissions);
+                        Opened = InteractionType.None;
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated ToyboxPattern data: " + e.Message); }
                 });
@@ -97,10 +97,10 @@ public partial class PairStickyUI
         var disablePatternButton = !pairUniquePerms.CanExecutePatterns || !UserPairForPerms.UserPairGlobalPerms.ToyIsActive || !lastToyboxData.PatternList.Any();
         if (_uiShared.IconTextButton(FontAwesomeIcon.PlayCircle, ("Activate " + PairUID + "'s Patterns"), WindowMenuWidth, true, disablePatternButton))
         {
-            Opened = Opened == ActiveActionButton.ActivatePattern ? ActiveActionButton.None : ActiveActionButton.ActivatePattern;
+            Opened = Opened == InteractionType.ActivatePattern ? InteractionType.None : InteractionType.ActivatePattern;
         }
         UiSharedService.AttachToolTip("Play one of " + PairUID + "'s patterns to their active Toy.");
-        if (Opened is ActiveActionButton.ActivatePattern)
+        if (Opened is InteractionType.ActivatePattern)
         {
             using (var actionChild = ImRaii.Child("PatternExecuteChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
@@ -111,7 +111,7 @@ public partial class PairStickyUI
 
                 _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ExecutePatternForPairPermCombo", "Play Pattern",
                 WindowMenuWidth, lastToyboxData.PatternList, (Pattern) => Pattern.Name, true, disabledCondition, true, storedPatternName,
-                FontAwesomeIcon.Play, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Pattern Set: " + selected); },
+                FontAwesomeIcon.Play, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Pattern Set: " + selected, LoggerType.Permissions); },
                 (onButtonPress) =>
                 {
                     try
@@ -124,8 +124,8 @@ public partial class PairStickyUI
 
                         // Run the call to execute the pattern to the server.
                         _ = _apiController.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxPatternExecuted));
-                        _logger.LogDebug("Executing Pattern {0} to {1}'s toy", onButtonPress.Name, PairNickOrAliasOrUID);
-                        Opened = ActiveActionButton.None;
+                        _logger.LogDebug("Executing Pattern " + onButtonPress.Name + " on " + PairNickOrAliasOrUID + "'s Toy", LoggerType.Permissions);
+                        Opened = InteractionType.None;
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated ToyboxPattern data: " + e.Message); }
                 });
@@ -144,7 +144,7 @@ public partial class PairStickyUI
                 newToyboxData.ActivePatternGuid = Guid.Empty;
 
                 _ = _apiController.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxPatternStopped));
-                _logger.LogDebug("Stopped active Pattern running on {1}'s toy", PairNickOrAliasOrUID);
+                _logger.LogDebug("Stopped active Pattern running on "+PairNickOrAliasOrUID+"'s toy", LoggerType.Permissions);
             }
             catch (Exception e) { _logger.LogError("Failed to push updated ToyboxPattern data: " + e.Message); }
         }
@@ -155,22 +155,24 @@ public partial class PairStickyUI
         var disableTriggers = !pairUniquePerms.CanToggleTriggers;
         if (_uiShared.IconTextButton(FontAwesomeIcon.LandMineOn, "Toggle " + PairUID + "'s Triggers", WindowMenuWidth, true, disableTriggers))
         {
-            Opened = Opened == ActiveActionButton.ToggleTrigger ? ActiveActionButton.None : ActiveActionButton.ToggleTrigger;
+            Opened = Opened == InteractionType.ToggleTrigger ? InteractionType.None : InteractionType.ToggleTrigger;
         }
         UiSharedService.AttachToolTip("Toggle the state of a trigger in " + PairUID + "'s triggerList.");
-        if (Opened is ActiveActionButton.ToggleTrigger)
+        if (Opened is InteractionType.ToggleTrigger)
         {
             using (var actionChild = ImRaii.Child("TriggerToggleChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
                 if (!actionChild) return;
 
-                TriggerInfo selected = _permActions.GetSelectedItem<TriggerInfo>("ToggleTriggerForPairPermCombo", UserPairForPerms.UserData.UID) ?? new TriggerInfo();
-                bool disabled = selected.Identifier == Guid.Empty || !lastToyboxData.TriggerList.Any();
-                string buttonText = selected.Enabled ? "Disable Trigger" : "Enable Trigger";
+                Guid selected = _permActions.GetSelectedItem<Guid>("ToggleTriggerForPairPermCombo", UserPairForPerms.UserData.UID);
+                var chosenTrigger = lastToyboxData.TriggerList.FirstOrDefault(x => x.Identifier == selected);
+                bool disabled = selected == Guid.Empty || chosenTrigger is null;
+                string buttonText = chosenTrigger?.Enabled is true ? "Disable" : "Enable";
 
-                _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ToggleTriggerForPairPermCombo", buttonText,
-                WindowMenuWidth, lastToyboxData.TriggerList, (Trigger) => Trigger.Name, true, disabled, false, selected,
-                FontAwesomeIcon.None, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Trigger: " + selected?.Name); },
+                _permActions.DrawGenericComboButton(PairUID, "ToggleTriggerForPairPermCombo", buttonText,
+                WindowMenuWidth, lastToyboxData.TriggerList, (Trigger) => Trigger.Name, true, disabled, false, default,
+                FontAwesomeIcon.None, ImGuiComboFlags.None,
+                (onSelected) => { _logger.LogDebug("Selected Trigger: " + onSelected?.Name ?? "UNK NAME", LoggerType.Permissions); },
                 (onButtonPress) =>
                 {
                     try
@@ -181,12 +183,11 @@ public partial class PairStickyUI
                         var triggerToToggle = newToyboxData.TriggerList.FindIndex(x => x.Identifier == onButtonPress.Identifier);
                         if (triggerToToggle == -1) throw new Exception("Trigger not found in list.");
 
-                        // toggle the alarm state.
                         newToyboxData.TriggerList[triggerToToggle].Enabled = !newToyboxData.TriggerList[triggerToToggle].Enabled;
 
                         _ = _apiController.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxTriggerToggled));
-                        _logger.LogDebug("Toggling Trigger {0} on {1}'s TriggerList", onButtonPress.Name, PairNickOrAliasOrUID);
-                        Opened = ActiveActionButton.None;
+                        _logger.LogDebug("Toggling Trigger "+onButtonPress.Name+" on "+PairNickOrAliasOrUID+"'s TriggerList", LoggerType.Permissions);
+                        Opened = InteractionType.None;
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated ToyboxPattern data: " + e.Message); }
                 });

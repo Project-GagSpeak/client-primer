@@ -136,26 +136,4 @@ public class DrawFolderTag : DrawFolderBase
 
         ImGui.TextUnformatted(name);
     }
-
-    protected override float DrawRightSide(float currentRightSideX)
-    {
-        /*if (!RenderPause) return currentRightSideX;
-
-        var allArePaused = _allPairs.All(pair => pair.UserPair!.OwnPermissions.IsPaused());
-        var pauseButton = allArePaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
-        var pauseButtonX = _uiSharedService.GetIconButtonSize(pauseButton).X;
-
-        var buttonPauseOffset = currentRightSideX - pauseButtonX;
-        ImGui.SameLine(buttonPauseOffset);
-        if (allArePaused)
-        {
-            UiSharedService.AttachToolTip($"Resume pairing with all pairs in {_id}");
-        }
-        else
-        {
-            UiSharedService.AttachToolTip($"Pause pairing with all pairs in {_id}");
-        }
-        */
-        return currentRightSideX;
-    }
 }

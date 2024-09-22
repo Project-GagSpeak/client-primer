@@ -3,6 +3,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
+using GagspeakAPI.Enums;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -61,7 +62,7 @@ public sealed class IpcCallerMare : IIpcCaller
         catch (Exception e)
         {
             // log it if we failed.
-            _logger.LogWarning(e, "Could not Get Moodles Info");
+            _logger.LogWarning("Could not Get Moodles Info"+e, LoggerType.IpcMare);
             return null;
         }
     }

@@ -149,7 +149,6 @@ public class MigrateRestraintSets
             newRestraintSets.Add(newSet);
         }
 
-        _logger.LogInformation(" Migrating all old restraint sets to the new system.");
         _clientConfigs.AddNewRestraintSets(newRestraintSets);
     }
 }

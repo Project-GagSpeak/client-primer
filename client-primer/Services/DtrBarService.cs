@@ -1,25 +1,14 @@
-using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Gui.Dtr;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
-using GagSpeak.WebAPI.Utils;
-using Microsoft.Extensions.Hosting;
-using System.Formats.Tar;
-using System.Net;
-using GagSpeak.Utils;
-using GagSpeak.WebAPI;
-using FFXIVClientStructs.FFXIV.Client.Game.Fate;
-using Lumina.Excel.GeneratedSheets;
-using Dalamud.Game.Text;
-using GagSpeak.UI.MainWindow;
 using GagSpeak.UI.Components;
+using GagSpeak.WebAPI;
+using Lumina.Excel.GeneratedSheets;
 
 namespace GagSpeak.UpdateMonitoring;
 
@@ -35,9 +24,9 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
     private readonly IDataManager _gameData;
     private readonly IDtrBar _dtrBar;
     public DtrBarService(ILogger<DtrBarService> logger,
-        GagspeakMediator mediator, ApiController apiController, 
+        GagspeakMediator mediator, ApiController apiController,
         PairManager pairManager, OnFrameworkService frameworkUtils,
-        IClientState clientState, IDataManager dataManager, 
+        IClientState clientState, IDataManager dataManager,
         IDtrBar dtrBar) : base(logger, mediator)
     {
         _apiController = apiController;
@@ -86,7 +75,7 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
     // Alarm == BitmapIcon for notifications.
     private void UpdateDtrBar()
     {
-        if(_apiController.ServerAlive)
+        if (_apiController.ServerAlive)
         {
             if (PrivacyEntry.Shown == true)
             {
@@ -120,7 +109,7 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
 
     public void LocatePlayer(IPlayerCharacter player)
     {
-        if(_gameData == null || _clientState == null) return;
+        if (_gameData == null || _clientState == null) return;
 
         try
         {
@@ -133,7 +122,7 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
             }
 
             var coords = GenerateMapLinkMessageForObject(player);
-            Logger.LogTrace($"{player.Name} at {coords}");
+            Logger.LogTrace($"{player.Name} at {coords}", LoggerType.ContextDtr);
             var mapLink = new MapLinkPayload(_clientState.TerritoryType, map.Row, coords.Item1, coords.Item2);
             _frameworkUtils.OpenMapWithMapLink(mapLink);
         }

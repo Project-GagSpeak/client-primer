@@ -1,11 +1,8 @@
-using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
-using OtterGui.Widgets;
-using Penumbra.GameData.DataContainers;
-using Penumbra.GameData.Structs;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using global::OtterGui;
 using ImGuiNET;
+using OtterGui.Widgets;
 using System.Numerics;
 
 namespace GagSpeak.UI.Components.Combos;

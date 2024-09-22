@@ -1,7 +1,6 @@
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
@@ -9,16 +8,12 @@ using FFXIVClientStructs.Interop;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.Hotbar;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
-using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
-using GagspeakAPI.Enums;
 using System.Collections.Immutable;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
 
 namespace UpdateMonitoring;
 public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
@@ -49,10 +44,10 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     public Dictionary<int, Tuple<float, DateTime>> CooldownList = new Dictionary<int, Tuple<float, DateTime>>(); // stores the recast timers for each action
 
     public unsafe ActionMonitor(ILogger<ActionMonitor> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfigs, HotbarLocker hotbarLocker, 
-        HardcoreHandler handler, WardrobeHandler wardrobeHandler, 
-        OnFrameworkService frameworkUtils, IpcFastUpdates fastUpdate, 
-        IClientState clientState, IDataManager dataManager, 
+        ClientConfigurationManager clientConfigs, HotbarLocker hotbarLocker,
+        HardcoreHandler handler, WardrobeHandler wardrobeHandler,
+        OnFrameworkService frameworkUtils, IpcFastUpdates fastUpdate,
+        IClientState clientState, IDataManager dataManager,
         IGameInteropProvider interop) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
@@ -74,7 +69,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         if (_wardrobeHandler.ActiveSet != null && _wardrobeHandler.ActiveSet.EnabledBy != "SelfAssigned" &&
             _clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), _wardrobeHandler.ActiveSet.EnabledBy))
         {
-            Logger.LogDebug($"Hardcore RestraintSet is now active");
+            Logger.LogDebug("Hardcore RestraintSet is now active", LoggerType.HardcoreActions);
             // apply stimulation modifier, if any (TODO)
             _hardcoreHandler.ApplyMultiplier();
             // activate hotbar lock, if we have any properties enabled (we always will since this subscriber is only called if there is)
@@ -82,7 +77,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         }
         else
         {
-            Logger.LogDebug($" No restraint sets are active");
+            Logger.LogDebug("No restraint sets are active", LoggerType.HardcoreActions);
         }
 
         // subscribe to events.
@@ -90,7 +85,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<RestraintSetToggleHardcoreTraitsMessage>(this, (msg) =>
         {
-            if(msg.AssignerUID != "SelfAssigned" && msg.State == NewState.Enabled)
+            if (msg.AssignerUID != "SelfAssigned" && msg.State == NewState.Enabled)
             {
                 // apply stimulation modifier, if any (TODO)
                 _hardcoreHandler.ApplyMultiplier();
@@ -99,7 +94,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
                 // begin allowing monitoring of properties
                 MonitorHardcoreRestraintSetProperties = true;
             }
-            if(msg.AssignerUID != "SelfAssigned" && msg.State == NewState.Disabled)
+            if (msg.AssignerUID != "SelfAssigned" && msg.State == NewState.Disabled)
             {
                 // reset multiplier
                 _hardcoreHandler.StimulationMultiplier = 1.0;
@@ -111,7 +106,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
                 MonitorHardcoreRestraintSetProperties = false;
             }
 
-            if(msg.HardcoreTraitsTask != null)
+            if (msg.HardcoreTraitsTask != null)
             {
                 msg.HardcoreTraitsTask.SetResult(true);
             }
@@ -142,7 +137,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     {
         if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.ClassJob != null && raptureHotbarModule != null)
         {
-            Logger.LogDebug($"Restoring saved slots");
+            Logger.LogDebug("Restoring saved slots", LoggerType.HardcoreActions);
             var baseSpan = raptureHotbarModule->StandardHotbars; // the length of our hotbar count
             for (var i = 0; i < baseSpan.Length; i++)
             {
@@ -224,7 +219,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         // this will be called by the job changed event. When it does, we will update our job list with the new job.
         if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.ClassJob != null)
         {
-            Logger.LogDebug($"Updating job list");
+            Logger.LogDebug("Updating job list", LoggerType.HardcoreActions);
             ActionData.GetJobActionProperties((JobType)_clientState.LocalPlayer.ClassJob.Id, out var bannedJobActions);
             CurrentJobBannedActions = bannedJobActions; // updated our job list
             // only do this if we are logged in
@@ -238,7 +233,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         }
         else
         {
-            Logger.LogDebug($"Player is null, returning");
+            Logger.LogDebug("Player is null, returning", LoggerType.HardcoreActions);
         }
     }
 
@@ -336,13 +331,13 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
                     // check if we are trying to hit teleport or return from hotbars /  menus
                     if (type == ActionType.GeneralAction && (acId == 7 || acId == 8))
                     {
-                        Logger.LogTrace($" You are currently locked away, canceling teleport/return execution");
+                        Logger.LogTrace("You are currently locked away, canceling teleport/return execution", LoggerType.HardcoreActions);
                         return false;
                     }
                     // if we somehow managed to start executing it, then stop that too
                     if (type == ActionType.Action && (acId == 5 || acId == 6 || acId == 11408))
                     {
-                        Logger.LogTrace($" You are currently locked away, canceling teleport/return execution");
+                        Logger.LogTrace("You are currently locked away, canceling teleport/return execution", LoggerType.HardcoreActions);
                         return false;
                     }
                 }
@@ -366,18 +361,18 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
                             if (DateTime.Now >= cooldownData.Item2.AddMilliseconds(cooldownData.Item1))
                             {
                                 // Update the last execution time before execution
-                                Logger.LogTrace($" ACTION COOLDOWN FINISHED");
+                                Logger.LogTrace("ACTION COOLDOWN FINISHED", LoggerType.HardcoreActions);
                                 CooldownList[recastGroup] = new Tuple<float, DateTime>(cooldownData.Item1, DateTime.Now);
                             }
                             else
                             {
-                                Logger.LogTrace($" ACTION COOLDOWN NOT FINISHED");
+                                Logger.LogTrace("ACTION COOLDOWN NOT FINISHED", LoggerType.HardcoreActions);
                                 return false; // Do not execute the action
                             }
                         }
                         else
                         {
-                            Logger.LogDebug($" GROUP NOT FOUND");
+                            Logger.LogDebug("GROUP NOT FOUND", LoggerType.HardcoreActions);
                         }
                     }
                 }

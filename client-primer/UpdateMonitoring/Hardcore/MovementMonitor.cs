@@ -70,7 +70,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         {
             if (!_frameworkUtils.IsLoggedIn)
             {
-                Logger.LogDebug($"[RestraintSetManager] Waiting for login to complete before activating restraint set");
+                Logger.LogDebug("Waiting for login to complete before activating restraint set", LoggerType.HardcoreMovement);
                 while (!_clientState.IsLoggedIn || _clientState.LocalPlayer == null || _clientState.LocalPlayer.Address == nint.Zero && _clientState.LocalContentId == 0)
                 {
                     await Task.Delay(2000); // Wait for 1 second before checking the login status again
@@ -91,7 +91,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             if (msg.State == NewState.Disabled && msg.AssignerUID != "SelfAssigned")
             {
                 // might need to add back in another variable to pass through that references if it had weighty or not?
-                Logger.LogDebug($"[Action Manager]: Letting you run again");
+                Logger.LogDebug("Letting you run again", LoggerType.HardcoreMovement);
                 Task.Delay(200);
                 unsafe // temp fix to larger issue, if experiencing problems, refer to old code.
                 {
@@ -109,7 +109,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
 
             // we don't need to worry about if ForcedSit or immobile is active here,
             // because it will be reactivated if it is turned off right away.
-            Logger.LogDebug($"ForcedFollow has been disabled, re-enabling movement");
+            Logger.LogDebug("ForcedFollow has been disabled, re-enabling movement", LoggerType.HardcoreMovement);
             _MoveController.CompletelyEnableMovement();
             ResetCancelledMoveKeys();
         });
@@ -168,7 +168,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                     {
                         // set the forced follow to false
                         _handler.SetForcedFollow(NewState.Disabled, _handler.ForceFollowedPair);
-                        Logger.LogDebug($"[MovementManager]: Player has been standing still for too long, forcing them to move again");
+                        Logger.LogDebug("Player has been standing still for too long, forcing them to move again", LoggerType.HardcoreMovement);
                     }
                 }
             }
@@ -298,7 +298,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                 _keyState.SetRawValue(x, 0);
                 // set was canceled to true
                 WasCancelled = true;
-                Logger.LogTrace($"Cancelling key {x}");
+                Logger.LogTrace("Cancelling key: "+x, LoggerType.HardcoreMovement);
             }
         });
     }

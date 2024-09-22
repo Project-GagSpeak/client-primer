@@ -20,7 +20,6 @@ public class SelectTagForPairUi
     /// <summary>
     /// The group UI is always open for a specific pair. This defines which pair the UI is open for.
     /// </summary>
-    /// <returns></returns>
     private Pair? _pair;
 
     /// <summary>

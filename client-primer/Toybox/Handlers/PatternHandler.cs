@@ -1,21 +1,17 @@
-using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Toybox.Services;
-using GagspeakAPI.Data;
 
 namespace GagSpeak.PlayerData.Handlers;
 
-// Responcible for handling the management of patterns.
+// Responsible for handling the management of patterns.
 // Pattern playback is managed by the PlaybackService.
 public class PatternHandler : MediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
 
     public PatternHandler(ILogger<PatternHandler> logger,
-        GagspeakMediator mediator, ClientConfigurationManager clientConfigs) 
+        GagspeakMediator mediator, ClientConfigurationManager clientConfigs)
         : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;

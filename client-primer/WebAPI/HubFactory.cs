@@ -1,13 +1,12 @@
-using GagspeakAPI.SignalR;
 using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Mediator;
+using GagSpeak.WebAPI.Utils;
+using GagspeakAPI.SignalR;
 using MessagePack;
 using MessagePack.Resolvers;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
-using GagSpeak.Services.Mediator;
-using GagSpeak.WebAPI.Utils;
-using GagspeakAPI.Enums;
 
 namespace GagSpeak.WebAPI;
 
@@ -23,8 +22,8 @@ public class HubFactory : MediatorSubscriberBase
 
     // the default constructor for the HubFactory
     public HubFactory(ILogger<HubFactory> logger, GagspeakMediator gagspeakMediator,
-        ServerConfigurationManager serverConfigManager,
-        TokenProvider tokenProvider, ILoggerProvider pluginLog) : base(logger, gagspeakMediator)
+        ServerConfigurationManager serverConfigManager, TokenProvider tokenProvider, 
+        ILoggerProvider pluginLog) : base(logger, gagspeakMediator)
     {
         _serverConfigs = serverConfigManager;
         _tokenProvider = tokenProvider;
@@ -36,12 +35,12 @@ public class HubFactory : MediatorSubscriberBase
     /// </summary>
     public async Task DisposeHubAsync(HubType hubType = HubType.MainHub)
     {
-        if(hubType == HubType.MainHub)
+        if (hubType == HubType.MainHub)
         {
             // if our instance is null or we have already disposed, then just return, as we have no need.
             if (_instance == null || _isDisposed) return;
             // Otherwise, log that we are disposing the current HubConnection
-            Logger.LogDebug("Disposing current HubConnection");
+            Logger.LogDebug("Disposing current HubConnection", LoggerType.HubFactory);
             // Set the _isDisposed flag to true, as we are disposing of the current HubConnection
             _isDisposed = true;
             // unsubscribe from the Closed, Reconnecting, and Reconnected events
@@ -52,14 +51,14 @@ public class HubFactory : MediatorSubscriberBase
             await _instance.StopAsync().ConfigureAwait(false);
             await _instance.DisposeAsync().ConfigureAwait(false);
             _instance = null;
-            Logger.LogDebug("Current HubConnection disposed");
+            Logger.LogDebug("Current HubConnection disposed", LoggerType.HubFactory);
         }
         else
         {
             // if our instance is null or we have already disposed, then just return, as we have no need.
             if (_instanceToybox == null || _isToyboxDisposed) return;
             // Otherwise, log that we are disposing the current HubConnection
-            Logger.LogDebug("Disposing current Toybox HubConnection");
+            Logger.LogDebug("Disposing current Toybox HubConnection", LoggerType.HubFactory);
             // Set the _isDisposed flag to true, as we are disposing of the current HubConnection
             _isToyboxDisposed = true;
             // unsubscribe from the Closed, Reconnecting, and Reconnected events
@@ -70,14 +69,14 @@ public class HubFactory : MediatorSubscriberBase
             await _instanceToybox.StopAsync().ConfigureAwait(false);
             await _instanceToybox.DisposeAsync().ConfigureAwait(false);
             _instanceToybox = null;
-            Logger.LogDebug("Current Toybox HubConnection disposed");
+            Logger.LogDebug("Current Toybox HubConnection disposed", LoggerType.HubFactory);
         }
     }
 
     /// <summary> Gets or creates a new HubConnection. </summary>
     public HubConnection GetOrCreate(CancellationToken ct, HubType hubType = HubType.MainHub, string token = "")
     {
-        if(hubType == HubType.MainHub)
+        if (hubType == HubType.MainHub)
         {
             // if we are not disposed and the instance is not null, then return the instance.
             if (!_isDisposed && _instance != null) return _instance;
@@ -97,11 +96,11 @@ public class HubFactory : MediatorSubscriberBase
     private HubConnection BuildHubConnection(CancellationToken ct, HubType hubType = HubType.MainHub, string token = "")
     {
         // Log that we are building a new HubConnection
-        Logger.LogDebug("Building new HubConnection");
-        var connectionURI = _serverConfigs.CurrentApiUrl 
+        Logger.LogDebug("Building new HubConnection", LoggerType.HubFactory);
+        var connectionURI = _serverConfigs.CurrentApiUrl
             + (hubType == HubType.MainHub ? IGagspeakHub.Path : IToyboxHub.Path);
 
-        Logger.LogDebug($"Attempting to connect to URI: {connectionURI}");
+        Logger.LogDebug($"Attempting to connect to URI: {connectionURI}", LoggerType.HubFactory);
         // create the instance, based on the hub type.
         if (hubType == HubType.MainHub)
         {

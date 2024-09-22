@@ -53,7 +53,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
         if (!_handler.DisablePromptHooks)
         {
             base.Enable();
-            _logger.LogInformation("Activating Listeners");
+            _logger.LogInformation("Activating Listeners", LoggerType.HardcorePrompt);
             _addonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectString", AddonStrSetup);
             _addonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SelectString", SetEntry);
 
@@ -68,7 +68,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
         if (_handler.DisablePromptHooks)
         {
             base.Disable();
-            _logger.LogInformation("Deactivating Listeners");
+            _logger.LogInformation("Deactivating Listeners", LoggerType.HardcorePrompt);
             _addonLifecycle.UnregisterListener(AddonStrSetup);
             _addonLifecycle.UnregisterListener(AddonYNSetup);
             _handler.SetPromptHooksState(false); // set it to false so we dont keep repeating it
@@ -116,10 +116,10 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
         // get the text
         var text = GS_GetSeString.GetSeStringText(new nint(addon->AtkValues[0].String));
         _handler.LastSeenDialogText = Tuple.Create(text, new List<string> { "No", "Yes" });
-        _logger.LogDebug($"YesNo Prompt Text => {text}");
+        _logger.LogDebug($"YesNo Prompt Text => {text}", LoggerType.HardcorePrompt);
 
         var nodes = _handler.GetAllNodes().OfType<TextEntryNode>();
-        _logger.LogDebug($"AddonSelectYesNo: Checking Existing AutoSelect Nodes ({nodes.Count()})");
+        _logger.LogDebug($"AddonSelectYesNo: Checking Existing AutoSelect Nodes ({nodes.Count()})", LoggerType.HardcorePrompt);
         foreach (var node in nodes)
         {
             if (!node.Enabled || string.IsNullOrEmpty(node.Text))
@@ -128,7 +128,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
             if (!EntryMatchesText(node, text))
                 continue;
 
-            _logger.LogDebug($"AddonSelectYesNo: Matched on {node.Text}");
+            _logger.LogDebug($"AddonSelectYesNo: Matched on {node.Text}", LoggerType.HardcorePrompt);
             // if nobody is making us stay, then just escape and dont process it
             if (!_handler.IsCurrentlyForcedToStay())
             {
@@ -148,17 +148,17 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
             var yesButton = addonPtr->YesButton;
             if (yesButton != null && !yesButton->IsEnabled)
             {
-                _logger.LogDebug("Auto-Select YesNo: Enabling yes button");
+                _logger.LogDebug("Auto-Select YesNo: Enabling yes button", LoggerType.HardcorePrompt);
                 var flagsPtr = (ushort*)&yesButton->AtkComponentBase.OwnerNode->AtkResNode.NodeFlags;
                 *flagsPtr ^= 1 << 5;
             }
 
-            _logger.LogDebug("Auto-Select YesNo: Selecting yes");
+            _logger.LogDebug("Auto-Select YesNo: Selecting yes", LoggerType.HardcorePrompt);
             ClickSelectYesNo.Using(addon).Yes();
         }
         else
         {
-            _logger.LogDebug("Auto-Select YesNo: Selecting no");
+            _logger.LogDebug("Auto-Select YesNo: Selecting no", LoggerType.HardcorePrompt);
             ClickSelectYesNo.Using(addon).No();
         }
     }
@@ -196,7 +196,8 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
         // iterate through all our nodes to see if their node.text matches the targetName
         foreach (var node in nodes)
         {
-            _logger.LogTrace($"Auto-Select Dialog: Checking {node.Text} of size {node.Options.Length} against {targetName} of size {options.Count}");
+            _logger.LogTrace($"Auto-Select Dialog: Checking {node.Text} of size {node.Options.Length} "+
+                $"against {targetName} of size {options.Count}", LoggerType.HardcorePrompt);
             // if the node is not enabled or the text is empty, then skip it
             if (!node.Enabled || string.IsNullOrEmpty(node.Text))
                 continue;
@@ -211,7 +212,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
                 continue;
 
             // if it does match, then select the index automatically
-            _logger.LogInformation($"Auto-Select Dialog Matched!: Matched on {node.Text}");
+            _logger.LogInformation($"Auto-Select Dialog Matched!: Matched on {node.Text}", LoggerType.HardcorePrompt);
             // if nobody is making us stay, then just escape and dont process it
             if (!_handler.IsCurrentlyForcedToStay())
             {
@@ -220,8 +221,8 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
             SelectItemExecute((IntPtr)addon, node.SelectThisIndex);
             return;
         }
-        _logger.LogInformation($"Node Check Finished");
-        _logger.LogInformation($"StoredInfo: {_handler.LastSeenDialogText.Item1} => {string.Join(", ", _handler.LastSeenDialogText.Item2)}");
+        _logger.LogInformation($"Node Check Finished", LoggerType.HardcorePrompt);
+        _logger.LogInformation($"StoredInfo: {_handler.LastSeenDialogText.Item1} => {string.Join(", ", _handler.LastSeenDialogText.Item2)}", LoggerType.HardcorePrompt);
     }
 
     private static bool EntryMatchesListText(TextEntryNode node, List<string> targetNodeOptions)
@@ -232,7 +233,7 @@ public class OptionPromptListeners : OnSetupSelectListFeature, IDisposable
 
     protected override void SelectItemExecute(IntPtr addon, int index)
     {
-        _logger.LogInformation($"Auto-Select Dialog: Selecting {index}");
+        _logger.LogInformation($"Auto-Select Dialog: Selecting {index}", LoggerType.HardcorePrompt);
         ClickSelectString.Using(addon).SelectItem((ushort)index);
     }
 }

@@ -10,7 +10,7 @@ using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Struct;
 
-namespace Interop.Ipc;
+namespace GagSpeak.Interop;
 
 // NOTICE: THE LOGIC FOR THIS IS INCOMPLETE, BUT AT LEAST FUNCTIONAL
 
@@ -85,12 +85,12 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
         {
             if (APIAvailable)
             {
-                Logger.LogInformation("Customize+ API is now available.");
+                Logger.LogInformation("Customize+ API is now available.", LoggerType.IpcCustomize);
                 Mediator.Publish(new CustomizeReady());
             }
             else
             {
-                Logger.LogInformation("Customize+ API is now disconnected.");
+                Logger.LogInformation("Customize+ API is now disconnected.", LoggerType.IpcCustomize);
                 Mediator.Publish(new CustomizeDispose());
             }
         }
@@ -106,11 +106,11 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
     {
         if (!APIAvailable)
         {
-            Logger.LogWarning("Customize+ API is not available, returning empty list.");
+            Logger.LogWarning("Customize+ API is not available, returning empty list.", LoggerType.IpcCustomize);
             return new List<CustomizeProfile>();
         }
 
-        Logger.LogTrace("IPC-Customize is fetching profile list.");
+        Logger.LogTrace("IPC-Customize is fetching profile list.", LoggerType.IpcCustomize);
         var res = _getProfileList.InvokeFunc();
         return res.Select(tuple => new CustomizeProfile(tuple.UniqueId, tuple.Name)).ToList();
     }
@@ -121,7 +121,7 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
 
         var result = _getActiveProfile.InvokeFunc(0);
         // log result and return it
-        Logger.LogTrace("IPC-Customize obtained active profile [{profile}] with error code [{code}]", result.Item2, result.Item1);
+        Logger.LogTrace($"IPC-Customize obtained active profile [{result.Item2}] with error code [{result.Item1}]", LoggerType.IpcCustomize);
         return result.Item2;
     }
 
@@ -129,7 +129,7 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
     {
         if (!APIAvailable) return;
 
-        Logger.LogTrace("IPC-Customize is enabling profile [{profileID}]", profileIdentifier);
+        Logger.LogTrace("IPC-Customize is enabling profile "+ profileIdentifier, LoggerType.IpcCustomize);
         _enableProfileByUniqueId.InvokeFunc(profileIdentifier);
     }
 
@@ -138,18 +138,18 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
         if (!APIAvailable) return;
         try
         {
-            Logger.LogTrace("IPC-Customize is disabling profile [{profileID}]", profileIdentifier);
+            Logger.LogTrace("IPC-Customize is disabling profile ["+profileIdentifier+"]", LoggerType.IpcCustomize);
             _disableProfileByUniqueId!.InvokeFunc(profileIdentifier);
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "IPC-Customize failed to disable profile [{profileID}]", profileIdentifier);
+            Logger.LogError(e, "IPC-Customize failed to disable profile ["+profileIdentifier+"]", LoggerType.IpcCustomize);
         }
     }
 
     private void OnProfileUpdate(ushort c, Guid g)
     {
-        Logger.LogInformation("IPC-Customize received profile update for character {char} with profile {profile}", c, g);
+        Logger.LogInformation("IPC-Customize received profile update for character "+c+" with profile "+g, LoggerType.IpcCustomize);
         if(c == 0) // if the character is our own character
         {
             // publish a message to our mediator to let our other services know that our profile has changed.

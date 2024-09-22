@@ -10,7 +10,7 @@ using OtterGui.Text;
 namespace GagSpeak.UI.Components.UserPairList;
 
 /// <summary>
-/// The base for the drawfolder, which is a dropdown section in the list of paired users, and handles the basic draw functionality
+/// The base for the draw folder, which is a dropdown section in the list of paired users, and handles the basic draw functionality
 /// </summary>
 public abstract class DrawFolderBase : IDrawFolder
 {
@@ -106,8 +106,6 @@ public abstract class DrawFolderBase : IDrawFolder
 
     protected abstract void DrawName(float width);
 
-    protected abstract float DrawRightSide(float currentRightSideX);
-
     private float DrawRightSideInternal()
     {
         var barButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV);
@@ -136,6 +134,6 @@ public abstract class DrawFolderBase : IDrawFolder
             }
         }
 
-        return DrawRightSide(rightSideStart);
+        return rightSideStart;
     }
 }

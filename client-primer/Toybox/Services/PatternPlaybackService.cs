@@ -31,8 +31,8 @@ public sealed class PlaybackService
     {
         if (ActivePattern == null) return;
 
-        _logger.LogDebug($"Start point at {startPoint} and duration at {playbackDuration}");
-        _logger.LogDebug("Total byte count of original pattern data: " + ActivePattern.PatternByteData.Count);
+        _logger.LogDebug($"Start point at "+startPoint+" and duration at "+playbackDuration,LoggerType.ToyboxPatterns);
+        _logger.LogDebug("Total byte count of original pattern data: " + ActivePattern.PatternByteData.Count, LoggerType.ToyboxPatterns);
 
         // Convert start point and duration to indices
         int _startIndex = (int)(startPoint.TotalSeconds * 50);
@@ -45,7 +45,7 @@ public sealed class PlaybackService
         _endIndex = Math.Min(ActivePattern.PatternByteData.Count, _endIndex);
 
         // Log the details
-        _logger.LogDebug($"Calculating subset pattern byte data from {_startIndex} to {_endIndex}");
+        _logger.LogDebug($"Calculating subset pattern byte data from " + _startIndex + " to " + _endIndex, LoggerType.ToyboxPatterns);
 
         // Get the subset of the pattern byte data
         PlaybackByteRange = ActivePattern.PatternByteData.Skip(_startIndex).Take(_endIndex - _startIndex).ToList();

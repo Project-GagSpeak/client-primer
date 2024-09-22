@@ -40,7 +40,7 @@ public static class GenericUtils
         bool moodlesDataDifferent = !string.Equals(oldData.MoodlesData, newData.MoodlesData, StringComparison.Ordinal);
         if (moodlesDataDifferent)
         {
-            logger.LogDebug("[BASE-{appBase}] Updating {object} (Diff moodles data) => {change}", applicationBase, cachedPlayer, PlayerChanges.Moodles);
+            logger.LogDebug("[BASE-"+ applicationBase+"] Updating "+cachedPlayer+" (Diff moodles data) => "+PlayerChanges.Moodles, LoggerType.GameObjects);
             charaDataToUpdate.Add(PlayerChanges.Moodles);
         }
 

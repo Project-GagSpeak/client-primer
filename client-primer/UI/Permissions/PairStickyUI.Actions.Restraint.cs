@@ -35,10 +35,10 @@ public partial class PairStickyUI
         ////////// APPLY RESTRAINT SET //////////
         if (_uiShared.IconTextButton(FontAwesomeIcon.Handcuffs, "Apply Restraint Set", WindowMenuWidth, true, applyButtonDisabled))
         {
-            Opened = Opened == ActiveActionButton.ApplyRestraint ? ActiveActionButton.None : ActiveActionButton.ApplyRestraint;
+            Opened = Opened == InteractionType.ApplyRestraint ? InteractionType.None : InteractionType.ApplyRestraint;
         }
         UiSharedService.AttachToolTip("Applies a Restraint Set to " + UserPairForPerms.UserData.AliasOrUID + ". Click to select set.");
-        if (Opened is ActiveActionButton.ApplyRestraint)
+        if (Opened is InteractionType.ApplyRestraint)
         {
             using (var actionChild = ImRaii.Child("SetApplyChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
@@ -48,7 +48,7 @@ public partial class PairStickyUI
 
                 _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ApplyRestraintSetForPairPermCombo", "Apply Set",
                 WindowMenuWidth, lastWardrobeData.OutfitNames, (RSet) => RSet, true, storedSelectedSet == string.Empty, true, default,
-                FontAwesomeIcon.Female, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Restraint Set: " + selected); },
+                FontAwesomeIcon.Female, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Restraint Set: " + selected, LoggerType.Permissions); },
                 (onButtonPress) =>
                 {
                     try
@@ -59,8 +59,8 @@ public partial class PairStickyUI
                         newWardrobe.ActiveSetName = onButtonPress;
                         newWardrobe.ActiveSetEnabledBy = _apiController.UID;
                         _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobe, DataUpdateKind.WardrobeRestraintApplied));
-                        _logger.LogDebug("Applying Restraint Set with GagPadlock {0} on {1}", onButtonPress.ToString(), PairNickOrAliasOrUID);
-                        Opened = ActiveActionButton.ApplyRestraint;
+                        _logger.LogDebug("Applying Restraint Set with GagPadlock "+onButtonPress.ToString()+" to "+PairNickOrAliasOrUID, LoggerType.Permissions);
+                        Opened = InteractionType.ApplyRestraint;
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated Wardrobe data: " + e.Message); }
                 });
@@ -75,11 +75,11 @@ public partial class PairStickyUI
         {
             if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, DisplayText, WindowMenuWidth, true, lockButtonDisabled))
             {
-                Opened = Opened == ActiveActionButton.LockRestraint ? ActiveActionButton.None : ActiveActionButton.LockRestraint;
+                Opened = Opened == InteractionType.LockRestraint ? InteractionType.None : InteractionType.LockRestraint;
             }
         }
         UiSharedService.AttachToolTip("Locks the Restraint Set applied to " + UserPairForPerms.UserData.AliasOrUID + ". Click to view options.");
-        if (Opened is ActiveActionButton.LockRestraint)
+        if (Opened is InteractionType.LockRestraint)
         {
             Padlocks selected = _permActions.GetSelectedItem<Padlocks>("LockRestraintSetForPairPermCombo", UserPairForPerms.UserData.UID);
             float height = _permActions.ExpandLockHeightCheck(selected)
@@ -101,7 +101,7 @@ public partial class PairStickyUI
                 // Draw combo
                 _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "LockRestraintSetForPairPermCombo", "Lock Set",
                 WindowMenuWidth, Enum.GetValues<Padlocks>(), (padlock) => padlock.ToName(), false, disabled, true, Padlocks.None,
-                FontAwesomeIcon.Lock, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Padlock: " + selected); },
+                FontAwesomeIcon.Lock, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Padlock: " + selected, LoggerType.Permissions); },
                 (onButtonPress) =>
                 {
                     try
@@ -116,8 +116,8 @@ public partial class PairStickyUI
                             newWardrobeData.Timer = UiSharedService.GetEndTimeUTC(_permActions.Timer);
                             newWardrobeData.Assigner = _apiController.UID;
                             _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, DataUpdateKind.WardrobeRestraintLocked));
-                            _logger.LogDebug("Locking Restraint Set with GagPadlock {0} on {1}", onButtonPress.ToString(), PairNickOrAliasOrUID);
-                            Opened = ActiveActionButton.None;
+                            _logger.LogDebug("Locking Restraint Set with GagPadlock " + onButtonPress.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
+                            Opened = InteractionType.None;
                             // reset the password and timer
                         }
                         _permActions.ResetInputs();
@@ -133,10 +133,10 @@ public partial class PairStickyUI
         // draw the unlock restraint set button.
         if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock Restraint Set", WindowMenuWidth, true, unlockButtonDisabled))
         {
-            Opened = Opened == ActiveActionButton.UnlockRestraint ? ActiveActionButton.None : ActiveActionButton.UnlockRestraint;
+            Opened = Opened == InteractionType.UnlockRestraint ? InteractionType.None : InteractionType.UnlockRestraint;
         }
         UiSharedService.AttachToolTip("Unlocks the Restraint Set applied to " + UserPairForPerms.UserData.AliasOrUID + ". Click to view options.");
-        if (Opened is ActiveActionButton.UnlockRestraint)
+        if (Opened is InteractionType.UnlockRestraint)
         {
             Padlocks selected = UserPairForPerms.LastReceivedWardrobeData?.Padlock.ToPadlock() ?? Padlocks.None;
             float height = _permActions.ExpandLockHeightCheck(selected)
@@ -169,8 +169,8 @@ public partial class PairStickyUI
                             newWardrobeData.Timer = DateTimeOffset.UtcNow;
                             newWardrobeData.Assigner = _apiController.UID;
                             _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, DataUpdateKind.WardrobeRestraintUnlocked));
-                            _logger.LogDebug("Unlocking Restraint Set with GagPadlock {0} on {1}", selected.ToName(), PairNickOrAliasOrUID);
-                            Opened = ActiveActionButton.None;
+                            _logger.LogDebug("Unlocking Restraint Set with GagPadlock " + selected.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
+                            Opened = InteractionType.None;
                         }
                         _permActions.ResetInputs();
                     }
@@ -185,10 +185,10 @@ public partial class PairStickyUI
         // draw the remove restraint set button.
         if (_uiShared.IconTextButton(FontAwesomeIcon.TimesCircle, "Remove Restraint Set", WindowMenuWidth, true, removeButtonDisabled))
         {
-            Opened = Opened == ActiveActionButton.RemoveRestraint ? ActiveActionButton.None : ActiveActionButton.RemoveRestraint;
+            Opened = Opened == InteractionType.RemoveRestraint ? InteractionType.None : InteractionType.RemoveRestraint;
         }
         UiSharedService.AttachToolTip("Removes the Restraint Set applied to " + UserPairForPerms.UserData.AliasOrUID + ". Click to view options.");
-        if (Opened is ActiveActionButton.RemoveRestraint)
+        if (Opened is InteractionType.RemoveRestraint)
         {
             using (var actionChild = ImRaii.Child("SetRemoveChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeightWithSpacing()), false))
             {
@@ -203,8 +203,8 @@ public partial class PairStickyUI
                         newWardrobeData.ActiveSetName = string.Empty;
                         newWardrobeData.ActiveSetEnabledBy = string.Empty;
                         _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, DataUpdateKind.WardrobeRestraintDisabled));
-                        _logger.LogDebug("Removing Restraint Set from {0}", PairNickOrAliasOrUID);
-                        Opened = ActiveActionButton.None;
+                        _logger.LogDebug("Removing Restraint Set from "+PairNickOrAliasOrUID, LoggerType.Permissions);
+                        Opened = InteractionType.None;
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated Wardrobe data: " + e.Message); }
                 }

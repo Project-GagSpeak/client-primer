@@ -7,29 +7,24 @@
         <TargetFramework>net8.0-windows</TargetFramework>
         <Copyright>Copyright © 2024</Copyright>
         <LangVersion>preview</LangVersion>
-        <Version>0.8.6.2</Version>
+        <Version>0.8.7.0</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
         <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
+
     
     <ItemGroup>
-        <!--Include Images needed for UI Display-->
-        <Content Include="..\.images\**">
+        <!-- Include all files and subfolders within the Assets folder -->
+        <Content Include=".\Assets\**\*.*">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Visible>false</Visible>
         </Content>
-        <!--Images for Gag Previews, supporter images, ext. Possibly merge \.images\ with this Later-->
-        <Content Include="..\.assets\**">
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Visible>false</Visible>
-        </Content>
+        
         <!--Include files nessisary for GagSpeak's Muffler Core-->
         <Content Include=".\MufflerCore\**\*.json">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-            <Visible>false</Visible>
         </Content>
     </ItemGroup>
     
@@ -155,6 +150,7 @@
       <Folder Include="Hardcore\PromptHandler\NewFolder\" />
     </ItemGroup>
 </Project>
+
 
 
 

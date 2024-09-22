@@ -1,14 +1,12 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Textures;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.PlayerData.Data;
-using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
@@ -16,10 +14,10 @@ using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components.Combos;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Struct;
+using GagspeakAPI.Enums;
+using GagspeakAPI.Extensions;
 using ImGuiNET;
-using Interop.Ipc;
 using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Raii;
@@ -29,7 +27,6 @@ using Penumbra.GameData.DataContainers;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using System.Numerics;
-using GagspeakAPI.Extensions;
 
 namespace GagSpeak.UI.Tabs.WardrobeTab;
 /// <summary> This class is used to handle the ConfigSettings Tab. </summary>
@@ -55,8 +52,8 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
 
     public GagStoragePanel(ILogger<GagStoragePanel> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerManager,
-        UiSharedService uiSharedService, DictStain stainData, ItemData itemData, 
-        TextureService textures, MoodlesAssociations relatedMoodles, IDataManager gameData) 
+        UiSharedService uiSharedService, DictStain stainData, ItemData itemData,
+        TextureService textures, MoodlesAssociations relatedMoodles, IDataManager gameData)
         : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
@@ -105,9 +102,9 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - saveSize - 175f - ImGui.GetStyle().ItemSpacing.X * 2);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             _uiShared.DrawComboSearchable("GagStorage Gag Type", 175f, ref GagFilterSearchString,
-            Enum.GetValues<GagType>().Where(gag => gag != GagType.None), (gag) => gag.GagName(), false, 
-            (i) => 
-            { 
+            Enum.GetValues<GagType>().Where(gag => gag != GagType.None), (gag) => gag.GagName(), false,
+            (i) =>
+            {
                 // grab the new gag info.
                 SelectedGag = i;
                 UnsavedDrawData = _clientConfigs.GetDrawData(SelectedGag);
@@ -193,7 +190,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
 
     private void DrawGagMoodles(float cellPaddingY)
     {
-        if(!IpcCallerMoodles.APIAvailable)
+        if (!IpcCallerMoodles.APIAvailable)
         {
             UiSharedService.ColorText("Moodles not Enabled. Please enable to view Moodles options.", ImGuiColors.DalamudRed);
             return;
@@ -272,7 +269,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     private void DrawGagGlamour()
     {
         // define icon size and combo length
-        IconSize = new Vector2(3 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y*2);
+        IconSize = new Vector2(3 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y * 2);
         ComboLength = ComboWidth * ImGuiHelpers.GlobalScale;
 
         // on the new line, lets draw out a group, containing the image, and the slot, item, and stain listings.
@@ -316,12 +313,12 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         _uiShared.BigText("Adjustments");
 
         var refEnabled = UnsavedDrawData!.IsEnabled;
-        if (ImGui.Checkbox("Enable "+SelectedGag.GagName(), ref refEnabled))
+        if (ImGui.Checkbox("Enable " + SelectedGag.GagName(), ref refEnabled))
         {
             UnsavedDrawData.IsEnabled = refEnabled;
             Logger.LogTrace($"Gag {SelectedGag.GagName()} is now {(UnsavedDrawData.IsEnabled ? "enabled" : "disabled")}");
         }
-        _uiShared.DrawHelpText("When enabled, allows Item-AutoEquip to function with this Gag."+Environment.NewLine
+        _uiShared.DrawHelpText("When enabled, allows Item-AutoEquip to function with this Gag." + Environment.NewLine
             + "When disabled, this Gag Glamour will not be auto equipped, even with Item Auto-Equip on.");
 
         var refHelmetForced = UnsavedDrawData.ForceHeadgearOnEnable;
@@ -362,7 +359,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
 
             int priorityRef = (int)UnsavedDrawData.CustomizePriority;
             ImGui.SetNextItemWidth(150f);
-            if(ImGui.InputInt("C+ Priority##GagStorageCP_Priority" + SelectedGag, ref priorityRef))
+            if (ImGui.InputInt("C+ Priority##GagStorageCP_Priority" + SelectedGag, ref priorityRef))
             {
                 UnsavedDrawData.CustomizePriority = (byte)priorityRef;
             }

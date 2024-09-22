@@ -70,11 +70,11 @@ public sealed class PenumbraChangedItemTooltip : DisposableMediatorSubscriberBas
                 switch (ImGui.GetIO().KeyAlt, ImGui.GetIO().KeyShift)
                 {
                     case (true, false):
-                        Logger.LogDebug($"Applying {item.Name} to Right Finger.");
+                        Logger.LogDebug($"Applying {item.Name} to Right Finger.", LoggerType.IpcPenumbra);
                         Mediator.Publish(new TooltipSetItemToRestraintSetMessage(EquipSlot.RFinger, item));
                         break;
                     case (true, true):
-                        Logger.LogDebug($"Applying {item.Name} to Left Finger.");
+                        Logger.LogDebug($"Applying {item.Name} to Left Finger.", LoggerType.IpcPenumbra);
                         Mediator.Publish(new TooltipSetItemToRestraintSetMessage(EquipSlot.LFinger, item));
                         break;
                 }
@@ -82,7 +82,7 @@ public sealed class PenumbraChangedItemTooltip : DisposableMediatorSubscriberBas
             default:
                 if (ImGui.GetIO().KeyAlt)
                 {
-                    Logger.LogDebug($"Applying {item.Name} to {slot.ToName()}.");
+                    Logger.LogDebug($"Applying {item.Name} to {slot.ToName()}.", LoggerType.IpcPenumbra);
                     Mediator.Publish(new TooltipSetItemToRestraintSetMessage(slot, item));
                 }
                 return;

@@ -6,13 +6,12 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Enums;
-using GagspeakAPI.Extensions;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.IPC;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.User;
+using GagspeakAPI.Extensions;
 
 namespace GagSpeak.PlayerData.Services;
 
@@ -111,14 +110,14 @@ public class ClientCallbackService
 
         if (callbackWasFromSelf)
         {
-            _logger.LogDebug("Appearance Update Verified by Server Callback.");
+            _logger.LogDebug("Appearance Update Verified by Server Callback.", LoggerType.Callbacks);
             return;
         }
 
         // This is just for automatically removing a gag once it's unlocked.
         if (callbackWasFromSelf)
         {
-            _logger.LogTrace($"Callback for self-appearance data from server handled successfully.");
+            _logger.LogTrace($"Callback for self-appearance data from server handled successfully.", LoggerType.Callbacks);
             if (!_clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration) return;
 
             var layer = callbackDto.UpdateKind switch
@@ -144,9 +143,11 @@ public class ClientCallbackService
         var callbackGagSlot = callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer];
         var currentGagType = _playerData.AppearanceData!.GagSlots[(int)callbackGagLayer].GagType.ToGagType();
 
-        _logger.LogDebug("Callback State: {0} | Callback Layer: {1} | Callback GagType: {2} | Current GagType: {3}",
-            callbackGagState, callbackGagLayer, callbackGagSlot.GagType, currentGagType);
-
+        _logger.LogDebug(
+            "Callback State: "+callbackGagState +
+            " | Callback Layer: "+callbackGagLayer +
+            " | Callback GagType: "+callbackGagSlot.GagType +
+            " | Current GagType: "+currentGagType, LoggerType.Callbacks);
 
         // let's start handling the cases. For starters, if the NewState is apply..
         if (callbackGagState is NewState.Enabled)
@@ -154,14 +155,14 @@ public class ClientCallbackService
             // handle the case where we need to reapply, then...
             if (_playerData.AppearanceData!.GagSlots[(int)callbackGagLayer].GagType.ToGagType() != GagType.None)
             {
-                _logger.LogDebug("Gag is already applied. Removing before reapplying.");
+                _logger.LogDebug("Gag is already applied. Removing before reapplying.", LoggerType.Callbacks);
                 // set up a task for removing and reapplying the gag glamours, and the another for updating the GagManager.
                 await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, currentGagType, NewState.Disabled);
                 // after its disabled,...
             }
 
             // ...apply the new version.
-            _logger.LogDebug("Applying Gag to Character Appearance.");
+            _logger.LogDebug("Applying Gag to Character Appearance.", LoggerType.Callbacks);
             await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), NewState.Enabled);
             _gagManager.OnGagTypeChanged(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), false);
         }
@@ -194,7 +195,7 @@ public class ClientCallbackService
                 int activeSetIdx = _clientConfigs.GetRestraintSetIdxByName(callbackDto.WardrobeData.ActiveSetName);
                 await _clientConfigs.SetRestraintSetState(activeSetIdx, "SelfApplied", NewState.Disabled, true);
             }
-            _logger.LogDebug("Received Callback for Self-Wardrobe Data with DataUpdateKind: {0}", callbackDto.UpdateKind.ToName());
+            _logger.LogDebug("Received Callback for Self-Wardrobe Data with DataUpdateKind: "+callbackDto.UpdateKind.ToName(), LoggerType.Callbacks);
             return;
         }
 
@@ -221,23 +222,23 @@ public class ClientCallbackService
                     break;
 
                 case DataUpdateKind.WardrobeRestraintApplied:
-                    _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
+                    _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!", LoggerType.Callbacks);
                     await _clientConfigs.SetRestraintSetState(idx, callbackDto.User.UID, NewState.Enabled, false);
                     break;
 
                 case DataUpdateKind.WardrobeRestraintLocked:
-                    _logger.LogDebug($"{callbackDto.User.UID} has forcibly locked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
+                    _logger.LogDebug($"{callbackDto.User.UID} has forcibly locked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!", LoggerType.Callbacks);
                     _clientConfigs.LockRestraintSet(idx, callbackDto.WardrobeData.Padlock, callbackDto.WardrobeData.Password,
                         callbackDto.WardrobeData.Timer, callbackDto.User.UID, false);
                     break;
 
                 case DataUpdateKind.WardrobeRestraintUnlocked:
-                    _logger.LogDebug($"{callbackDto.User.UID} has force unlocked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!");
+                    _logger.LogDebug($"{callbackDto.User.UID} has force unlocked your [{callbackDto.WardrobeData.ActiveSetName}] restraint set!", LoggerType.Callbacks);
                     _clientConfigs.UnlockRestraintSet(idx, callbackDto.User.UID, false);
                     break;
 
                 case DataUpdateKind.WardrobeRestraintDisabled:
-                    _logger.LogDebug($"{callbackDto.User.UID} has force disabled your restraint set!");
+                    _logger.LogDebug($"{callbackDto.User.UID} has force disabled your restraint set!", LoggerType.Callbacks);
                     var activeIdx = _clientConfigs.GetActiveSetIdx();
                     if (activeIdx != -1)
                     {
@@ -264,15 +265,15 @@ public class ClientCallbackService
         {
             // do the update for name registration of this pair.
             _mediator.Publish(new UpdateCharacterListenerForUid(callbackDto.User.UID, callbackDto.AliasData.CharacterName, callbackDto.AliasData.CharacterWorld));
-            _logger.LogDebug("Player Name Registered Successfully processed by Server!");
+            _logger.LogDebug("Player Name Registered Successfully processed by Server!", LoggerType.Callbacks);
         }
         else if (callbackDto.UpdateKind is DataUpdateKind.PuppeteerAliasListUpdated)
         {
-            _logger.LogDebug("Alias List Update Success retrieved from Server for UID: " + callbackDto.User.UID);
+            _logger.LogDebug("Alias List Update Success retrieved from Server for UID: " + callbackDto.User.UID, LoggerType.Callbacks);
         }
         else
         {
-            _logger.LogError("Another Player should not be attempting to update your own alias list. Report this if you see it.");
+            _logger.LogError("Another Player should not be attempting to update your own alias list. Report this if you see it.", LoggerType.Callbacks);
             return;
         }
     }
@@ -294,7 +295,7 @@ public class ClientCallbackService
                         return;
                     }
                     _playbackService.PlayPattern(patternData.UniqueIdentifier, patternData.StartPoint, patternData.Duration, false);
-                    _logger.LogInformation("Pattern Executed by Server Callback.");
+                    _logger.LogInformation("Pattern Executed by Server Callback.", LoggerType.Callbacks);
                 }
                 break;
             case DataUpdateKind.ToyboxPatternStopped:
@@ -307,20 +308,20 @@ public class ClientCallbackService
                         return;
                     }
                     _playbackService.StopPattern(patternId, false);
-                    _logger.LogInformation("Pattern Stopped by Server Callback.");
+                    _logger.LogInformation("Pattern Stopped by Server Callback.", LoggerType.Callbacks);
                 }
                 break;
             case DataUpdateKind.ToyboxAlarmListUpdated:
-                _logger.LogInformation("ToyboxAlarmListUpdated Callback Received...");
+                _logger.LogInformation("ToyboxAlarmListUpdated Callback Received...", LoggerType.Callbacks);
                 break;
             case DataUpdateKind.ToyboxAlarmToggled:
-                _logger.LogInformation("ToyboxAlarmToggled Callback Received...");
+                _logger.LogInformation("ToyboxAlarmToggled Callback Received...", LoggerType.Callbacks);
                 break;
             case DataUpdateKind.ToyboxTriggerListUpdated:
-                _logger.LogInformation("ToyboxTriggerListUpdated Callback Received...");
+                _logger.LogInformation("ToyboxTriggerListUpdated Callback Received...", LoggerType.Callbacks);
                 break;
             case DataUpdateKind.ToyboxTriggerToggled:
-                _logger.LogInformation("ToyboxTriggerToggled Callback Received...");
+                _logger.LogInformation("ToyboxTriggerToggled Callback Received...", LoggerType.Callbacks);
                 break;
         }
     }

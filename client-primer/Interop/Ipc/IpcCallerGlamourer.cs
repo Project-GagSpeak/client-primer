@@ -104,9 +104,14 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     private void OnGlamourerReady()
     {
-        Logger.LogWarning("Glamourer is now Ready!");
+        Logger.LogWarning("Glamourer is now Ready!", LoggerType.IpcGlamourer);
         Mediator.Publish(new GlamourerReady());
     }
+
+    private bool PlayerIsPresent()
+        => _clientState.LocalPlayer != null
+        && _clientState.LocalPlayer.Address != nint.Zero
+        && _clientState.LocalPlayer.IsValid();
 
     protected override void Dispose(bool disposing)
     {
@@ -116,7 +121,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         _glamourChanged?.Dispose();
         // revert our character back to the base game state (But dont if we are closing the game)
         // now perform a revert based on our customization option
-        if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.Address != nint.Zero)
+        if (PlayerIsPresent())
         {
             Task.Run(async () =>
             {
@@ -146,7 +151,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task SetItemToCharacterAsync(ApiEquipSlot slot, ulong item, IReadOnlyList<byte> dye, uint variant)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || _onFrameworkService.IsZoning) return;
+        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return;
         try
         {
             // await for us to be running on the framework thread. Once we are:
@@ -166,7 +171,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         catch (Exception ex)
         {
             // if at any point this errors, return an empty string as well.
-            Logger.LogWarning($"Failed to set item to character with slot {slot}, item {item}, dye {dye.ToArray().ToString()}, and key {variant}, {ex}");
+            Logger.LogWarning($"Failed to set item to character with slot {slot}, item {item}, dye {dye.ToArray().ToString()}, and key {variant}, {ex}", LoggerType.IpcGlamourer);
             return;
         }
     }
@@ -180,15 +185,13 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
         catch (Exception ex)
         {
-            Logger.LogWarning($"Error during GetState: {ex}");
+            Logger.LogWarning($"Error during GetState: {ex}", LoggerType.IpcGlamourer);
             return null;
         }
     }
 
     public bool SetRestraintEquipmentFromState(RestraintSet setToEdit)
     {
-        // if the glamourerApi is not active, then return false
-        if (!APIAvailable || _onFrameworkService.IsZoning) return false;
 
         // Get the player state and equipment JObject
         var playerState = GetState();
@@ -231,7 +234,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task<bool> ForceSetMetaData(MetaData metaData, bool? forcedState = null)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || _onFrameworkService.IsZoning || _clientState.LocalPlayer is null) return false;
+        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return false;
         try
         {
             return await _onFrameworkService.RunOnFrameworkThread(() =>
@@ -256,20 +259,20 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
         catch (Exception ex)
         {
-            Logger.LogWarning($"Error during SetMetaData: {ex}");
+            Logger.LogWarning($"Error during SetMetaData: {ex}", LoggerType.IpcGlamourer);
             return false;
         }
     }
 
     public async Task GlamourerRevertToAutomationEquipOnly()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning) return;
+        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return;
 
         try
         {
             await _onFrameworkService.RunOnFrameworkThread(() =>
             {
-                Logger.LogTrace("Calling on IPC: RevertToAutomationEquipOnly");
+                Logger.LogTrace("Calling on IPC: RevertToAutomationEquipOnly", LoggerType.IpcGlamourer);
                 JObject? playerState = GetState();
 
                 // revert player after obtaining state.
@@ -278,7 +281,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
                 // if the state we grabbed is null, return.
                 if (playerState == null)
                 {
-                    Logger.LogWarning("Failed to get player state. Reverting to Automation with full Appearance.");
+                    Logger.LogWarning("Failed to get player state. Reverting to Automation with full Appearance.", LoggerType.IpcGlamourer);
                     return;
                 }
 
@@ -296,52 +299,52 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
         catch (Exception ex)
         {
-            Logger.LogWarning($"Error during GlamourerRevertToAutomationEquipOnly: {ex}");
+            Logger.LogWarning($"Error during GlamourerRevertToAutomationEquipOnly: {ex}", LoggerType.IpcGlamourer);
         }
     }
 
 
     public async Task GlamourerRevertToAutomation()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning) return;
+        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return;
 
         try
         {
             await _onFrameworkService.RunOnFrameworkThread(() =>
             {
-                Logger.LogTrace("Calling on IPC: GlamourerRevertToAutomation");
+                Logger.LogTrace("Calling on IPC: GlamourerRevertToAutomation", LoggerType.IpcGlamourer);
                 var result = _RevertToAutomation.Invoke(0, 0);
 
                 // do a fallback to a base reset if the automation fails.
                 if (result != GlamourerApiEc.Success)
                 {
-                    Logger.LogWarning($"Revert to automation failed, reverting to game instead");
+                    Logger.LogWarning($"Revert to automation failed, reverting to game instead", LoggerType.IpcGlamourer);
                     _RevertCharacter.Invoke(0, 0);
                 }
             }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            Logger.LogWarning($"Error during GlamourerRevertToAutomation: {ex}");
+            Logger.LogWarning($"Error during GlamourerRevertToAutomation: {ex}", LoggerType.IpcGlamourer);
         }
     }
 
     public async Task GlamourerRevertToGameEquipOnly()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning) return;
+        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return;
 
         try
         {
             await _onFrameworkService.RunOnFrameworkThread(() =>
             {
-                Logger.LogTrace("Calling on IPC: GlamourerRevertToGameEquipOnly");
+                Logger.LogTrace("Calling on IPC: GlamourerRevertToGameEquipOnly", LoggerType.IpcGlamourer);
                 JObject? playerState = GetState();
 
                 GlamourerRevertToGame().ConfigureAwait(false);
 
                 if (playerState == null)
                 {
-                    Logger.LogWarning("Failed to get player state. Reverting full Appearance.");
+                    Logger.LogWarning("Failed to get player state. Reverting full Appearance.", LoggerType.IpcGlamourer);
                     return;
                 }
 
@@ -359,25 +362,25 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
         catch (Exception ex)
         {
-            Logger.LogWarning($"Error during GlamourerRevertToGame: {ex}");
+            Logger.LogWarning($"Error during GlamourerRevertToGame: {ex}", LoggerType.IpcGlamourer);
         }
     }
 
     public async Task GlamourerRevertToGame()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning) return;
+        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return;
 
         try
         {
             await _onFrameworkService.RunOnFrameworkThread(() =>
             {
-                Logger.LogTrace("Calling on IPC: GlamourerRevertToGame");
+                Logger.LogTrace("Calling on IPC: GlamourerRevertToGame", LoggerType.IpcGlamourer);
                 _RevertCharacter.Invoke(0, 0);
             }).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            Logger.LogWarning($"Error during GlamourerRevertToGame: {ex}");
+            Logger.LogWarning($"Error during GlamourerRevertToGame: {ex}", LoggerType.IpcGlamourer);
         }
     }
 
@@ -387,23 +390,23 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private void GlamourerChanged(nint address, StateChangeType changeType)
     {
         // do not accept if coming from other player besides us.
-        if (address != _onFrameworkService._playerAddr) return;
+        if (address != _onFrameworkService._playerAddr || !PlayerIsPresent()) return;
 
         // block if we are not desiring to listen to changes yet.
         if (OnFrameworkService.GlamourChangeEventsDisabled)
         {
-            Logger.LogTrace($"GlamourEvent Blocked: {changeType}");
+            Logger.LogTrace($"GlamourEvent Blocked: {changeType}", LoggerType.IpcGlamourer);
             return;
         }
 
         // See if the change type is a type we are looking for
         if (changeType is StateChangeType.Design or StateChangeType.Reapply or StateChangeType.Reset or StateChangeType.Equip or StateChangeType.Stains)
         {
-            Logger.LogTrace($"StateChangeType is {changeType}");
+            Logger.LogTrace($"StateChangeType is {changeType}", LoggerType.IpcGlamourer);
             _fastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
             return;
         }
         
-        Logger.LogTrace($"GlamourerChanged event was not a type we care about, so skipping (Type was: {changeType})");
+        Logger.LogTrace($"GlamourerChanged event was not a type we care about, so skipping (Type was: {changeType})", LoggerType.IpcGlamourer);
     }
 }

@@ -533,14 +533,14 @@ public partial class PairStickyUI
         {
             case PermissionType.Global:
                 {
-                    _logger.LogTrace($"Updated own global permission: {permissionName} to {newValue}");
+                    _logger.LogTrace($"Updated own global permission: {permissionName} to {newValue}", LoggerType.Permissions);
                     _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
                         new KeyValuePair<string, object>(permissionName, newValue)));
                 }
                 break;
             case PermissionType.UniquePairPerm:
                 {
-                    _logger.LogTrace($"Updated own pair permission: {permissionName} to {newValue}");
+                    _logger.LogTrace($"Updated own pair permission: {permissionName} to {newValue}", LoggerType.Permissions);
                     _ = _apiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
                         new KeyValuePair<string, object>(permissionName, newValue)));
                 }
@@ -548,7 +548,7 @@ public partial class PairStickyUI
             // this case should technically never be called for this particular instance.
             case PermissionType.UniquePairPermEditAccess:
                 {
-                    _logger.LogTrace($"Updated own edit access permission: {permissionName} to {newValue}");
+                    _logger.LogTrace($"Updated own edit access permission: {permissionName} to {newValue}", LoggerType.Permissions);
                     _ = _apiController.UserUpdateOwnPairPermAccess(new UserPairAccessChangeDto(UserPairForPerms.UserData,
                         new KeyValuePair<string, object>(permissionName, newValue)));
                 }

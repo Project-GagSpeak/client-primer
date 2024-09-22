@@ -33,15 +33,15 @@ public class Ipa_EN_FR_JP_SP_Handler
             string jsonFilePath = Path.Combine(_pi.AssemblyLocation.Directory?.FullName!, data_file);
             string json = File.ReadAllText(jsonFilePath);
             obj = JsonConvert.DeserializeObject<Dictionary<string, string>>(json) ?? new Dictionary<string, string>();
-            _logger.LogInformation($"File read: {data_file}");
+            _logger.LogInformation($"File read: {data_file}", LoggerType.GarblerCore);
         }
         catch (FileNotFoundException)
         {
-            _logger.LogDebug($"File does not exist: {data_file}");
+            _logger.LogDebug($"File does not exist: {data_file}", LoggerType.GarblerCore);
         }
         catch (Exception ex)
         {
-            _logger.LogDebug($"An error occurred while reading the file: {ex.Message}");
+            _logger.LogDebug($"An error occurred while reading the file: {ex.Message}", LoggerType.GarblerCore);
         }
     }
 
@@ -86,7 +86,7 @@ public class Ipa_EN_FR_JP_SP_Handler
                 }
             }
         }
-        _logger.LogTrace($"Parsed IPA string: {str}");
+        _logger.LogTrace($"Parsed IPA string: {str}", LoggerType.GarblerCore);
         //str = ConvertToSpacedPhonetics(str);
         return str;
     }
@@ -109,8 +109,7 @@ public class Ipa_EN_FR_JP_SP_Handler
     {
         // Log the input string
 
-        _logger.LogTrace($"Parsing IPA string from original message:"); // do not include logs here.
-                                                                        // Split the input string into words
+        _logger.LogTrace($"Parsing IPA string from original message:", LoggerType.GarblerCore);
         string[] c_w = (Preprocess(input) + " ").Split(" ");
         // Initialize the result dictionary
         List<Tuple<string, List<string>>> result = new List<Tuple<string, List<string>>>();
@@ -175,7 +174,7 @@ public class Ipa_EN_FR_JP_SP_Handler
             }
         }
         _logger.LogTrace("String parsed to list successfully: " +
-                        $"{string.Join(", ", result.Select(t => $"{t.Item1}: [{string.Join(", ", t.Item2)}]"))}");
+                        $"{string.Join(", ", result.Select(t => $"{t.Item1}: [{string.Join(", ", t.Item2)}]"))}", LoggerType.GarblerCore);
         return result;
     }
 

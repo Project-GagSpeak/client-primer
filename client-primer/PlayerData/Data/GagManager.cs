@@ -48,10 +48,9 @@ public class GagManager : DisposableMediatorSubscriberBase
     /// <summary> ONLY UPDATES THE LOGIC CONTROLLING GARBLE SPEECH, NOT APPEARNACE DATA </summary>
     public Task UpdateActiveGags()
     {
-        Logger.LogTrace("GagTypeOne: {0}, GagTypeTwo: {1}, GagTypeThree: {2}",
-            _characterManager.AppearanceData.GagSlots[0].GagType,
-            _characterManager.AppearanceData.GagSlots[1].GagType,
-            _characterManager.AppearanceData.GagSlots[2].GagType);
+        Logger.LogTrace("GagTypeOne: "+_characterManager.AppearanceData.GagSlots[0].GagType
+            + "GagTypeTwo: " + _characterManager.AppearanceData.GagSlots[1].GagType
+            + "GagTypeThree: " + _characterManager.AppearanceData.GagSlots[2].GagType, LoggerType.GagManagement);
 
         // compile the strings into a list of strings, then locate the names in the handler storage that match it.
         _activeGags = new List<string>
@@ -75,7 +74,7 @@ public class GagManager : DisposableMediatorSubscriberBase
     {
         if (_characterManager.CoreDataNull) return;
 
-        Logger.LogTrace("GagTypeChanged event received.");
+        Logger.LogTrace("GagTypeChanged event received.", LoggerType.GagManagement);
         bool IsApplying = (NewGagType is not GagType.None);
 
         // Update the corresponding slot in CharacterAppearanceData based on the GagLayer
@@ -182,7 +181,7 @@ public class GagManager : DisposableMediatorSubscriberBase
         try
         {
             outputStr = ConvertToGagSpeak(inputMessage);
-            Logger.LogTrace($"Converted message to GagSpeak: {outputStr}");
+            Logger.LogTrace($"Converted message to GagSpeak: {outputStr}", LoggerType.GarblerCore);
         }
         catch (Exception e)
         {
@@ -204,7 +203,7 @@ public class GagManager : DisposableMediatorSubscriberBase
         }
 
         // Initialize the algorithm scoped variables 
-        Logger.LogDebug($"Converting message to GagSpeak, at least one gag is not None.");
+        Logger.LogDebug($"Converting message to GagSpeak, at least one gag is not None.", LoggerType.GarblerCore);
         StringBuilder finalMessage = new StringBuilder(); // initialize a stringbuilder object so we dont need to make a new string each time
         bool skipTranslation = false;
         try

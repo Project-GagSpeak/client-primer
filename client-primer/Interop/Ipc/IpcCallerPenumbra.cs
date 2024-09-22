@@ -256,7 +256,7 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
     /// </summary>
     public void RedrawObject(int objectIndex, RedrawType settings)
     {
-        Logger.LogDebug($"Redrawing object {objectIndex} due to set toggle!");
+        Logger.LogInformation($"Redrawing object {objectIndex} due to set toggle!");
         _redrawSubscriber!.Invoke(objectIndex, settings);
     }
 

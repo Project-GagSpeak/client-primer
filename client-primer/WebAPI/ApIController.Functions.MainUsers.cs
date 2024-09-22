@@ -23,7 +23,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     {
         // if we are not connected, return
         if (!IsConnected) return;
-        Logger.LogDebug("Adding pair {user} to client. Sending call to server.", user);
+        Logger.LogDebug("Adding pair "+user+" to client. Sending call to server.", LoggerType.ApiCore);
         // otherwise, call the UserAddPair function on the server with the user data transfer object via signalR
         await _gagspeakHub!.SendAsync(nameof(UserAddPair), user).ConfigureAwait(false); // wait for request to send.
     }
@@ -409,7 +409,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
         try // if connected, try to push the data to the server
         {
-            Logger.LogDebug("Pushing Character Composite data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
+            Logger.LogDebug("Pushing Character Composite data to "+string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)), LoggerType.OnlinePairs);
             await UserPushData(new(onlineCharacters, data, DataUpdateKind.FullDataUpdate)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
@@ -427,10 +427,10 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
         try // if connected, try to push the data to the server
         {
-            Logger.LogDebug("Pushing Character IPC data to {visible}", string.Join(", ", visibleCharacters.Select(v => v.AliasOrUID)));
+            Logger.LogDebug("Pushing Character IPC data to "+string.Join(", ", visibleCharacters.Select(v => v.AliasOrUID)), LoggerType.VisiblePairs);
             await UserPushDataIpc(new(visibleCharacters, data, updateKind)).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
+        catch (OperationCanceledException) { Logger.LogWarning("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of IPC data"); }
     }
 
@@ -446,11 +446,17 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
         try // if connected, try to push the data to the server
         {
-            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character Appearance data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            else Logger.LogDebug("Updating AppearanceData to stored ActiveStateData");
+            if (onlineCharacters.Any())
+            {
+                Logger.LogDebug("Pushing Character Appearance data to " + string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)), LoggerType.OnlinePairs);
+            }
+            else
+            {
+                Logger.LogDebug("Updating AppearanceData to stored ActiveStateData", LoggerType.OnlinePairs);
+            }
             await UserPushDataAppearance(new(onlineCharacters, data, updateKind)).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
+        catch (OperationCanceledException) { Logger.LogWarning("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Appearance data"); }
     }
 
@@ -466,11 +472,11 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
         try // if connected, try to push the data to the server
         {
-            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character Wardrobe data to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            else Logger.LogDebug("Updating WardrobeData to stored ActiveStateData");
+            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character Wardrobe data to " + string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)), LoggerType.OnlinePairs);
+            else Logger.LogDebug("Updating WardrobeData to stored ActiveStateData", LoggerType.OnlinePairs);
             await UserPushDataWardrobe(new(onlineCharacters, data, updateKind)).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
+        catch (OperationCanceledException) { Logger.LogWarning("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Wardrobe data"); }
     }
 
@@ -486,10 +492,10 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
         try // if connected, try to push the data to the server
         {
-            Logger.LogDebug("Pushing Character Alias data to {visible}", string.Join(", ", onlineCharacter.AliasOrUID));
+            Logger.LogDebug("Pushing Character Alias data to "+string.Join(", ", onlineCharacter.AliasOrUID), LoggerType.OnlinePairs);
             await UserPushDataAlias(new(onlineCharacter, data, updateKind)).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
+        catch (OperationCanceledException) { Logger.LogWarning("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Alias List data"); }
     }
 
@@ -504,11 +510,11 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
         try // if connected, try to push the data to the server
         {
-            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character PatternInfo to {visible}", string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)));
-            else Logger.LogDebug("Updating ToyboxData to stored ActiveStateData");
+            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character PatternInfo to "+string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)), LoggerType.VisiblePairs);
+            else Logger.LogDebug("Updating ToyboxData to stored ActiveStateData", LoggerType.OnlinePairs);
             await UserPushDataToybox(new(onlineCharacters, data, updateKind)).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
+        catch (OperationCanceledException) { Logger.LogWarning("Upload operation was cancelled"); }
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Pattern Information"); }
     }
 
@@ -518,7 +524,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
 
         try
         {
-            if (userToPushTo.Any()) Logger.LogDebug("Pushing PiShock to {visible}", string.Join(", ", userToPushTo.Select(v => v.AliasOrUID)));
+            if (userToPushTo.Any()) Logger.LogDebug("Pushing PiShock to "+string.Join(", ", userToPushTo.Select(v => v.AliasOrUID)), LoggerType.OnlinePairs);
             await UserPushPiShockUpdate(new(userToPushTo, perms, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }

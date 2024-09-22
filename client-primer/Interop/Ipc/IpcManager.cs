@@ -1,5 +1,4 @@
 using GagSpeak.Services.Mediator;
-using Interop.Ipc;
 
 namespace GagSpeak.Interop.Ipc;
 

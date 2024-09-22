@@ -5,16 +5,12 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Handlers;
-using GagSpeak.UI.Permissions;
 using GagSpeak.WebAPI;
-using GagspeakAPI.Enums;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
 using ImGuiNET;
-using OtterGui;
 using OtterGui.Text;
 using System.Numerics;
-using static GagSpeak.UI.Components.MainTabMenu;
 
 namespace GagSpeak.UI.Components.UserPairList;
 
@@ -57,7 +53,7 @@ public class DrawUserPair
         _supporterWrap = null;
     }
 
-    public bool DrawPairedClient(bool supporterIcon = true, bool icon = true, bool iconTT = true, 
+    public bool DrawPairedClient(bool supporterIcon = true, bool icon = true, bool iconTT = true,
         bool displayToggleOnClick = true, bool displayNameTT = true, bool showHovered = true, bool showRightButtons = true)
     {
         bool selected = false;
@@ -98,8 +94,6 @@ public class DrawUserPair
 
     private void DrawSupporterIcon(float cursorPos)
     {
-        ImGui.SameLine(cursorPos);
-        ImGui.SetCursorPosX(cursorPos - _uiSharedService.GetIconData(FontAwesomeIcon.EllipsisV).X - ImGui.GetStyle().ItemSpacing.X);
         // fetch new image if needed, otherwise use existing
         if (_supporterWrap == null)
         {
@@ -133,9 +127,11 @@ public class DrawUserPair
 
         if ((_supporterWrap is { } supporterImage))
         {
+            ImGui.SameLine(cursorPos);
+            ImGui.SetCursorPosX(cursorPos - _uiSharedService.GetIconData(FontAwesomeIcon.EllipsisV).X - ImGui.GetStyle().ItemSpacing.X);
             ImGui.Image(supporterImage.ImGuiHandle, new Vector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight()));
+            UiSharedService.AttachToolTip(tooltipString);
         }
-        UiSharedService.AttachToolTip(tooltipString);
         // return to the end of the line.
     }
 

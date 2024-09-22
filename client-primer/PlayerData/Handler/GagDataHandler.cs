@@ -30,12 +30,12 @@ public class GagDataHandler : DisposableMediatorSubscriberBase
         }
         catch (FileNotFoundException)
         {
-            Logger.LogDebug($"[IPA Parser] File does not exist");
+            Logger.LogDebug($"[IPA Parser] File does not exist", LoggerType.GagManagement);
             _gagData = new Dictionary<string, Dictionary<string, PhonemeProperties>>();
         }
         catch (Exception ex)
         {
-            Logger.LogDebug($"[IPA Parser] An error occurred while reading the file: {ex.Message}");
+            Logger.LogDebug($"[IPA Parser] An error occurred while reading the file: {ex.Message}", LoggerType.GagManagement);
             _gagData = new Dictionary<string, Dictionary<string, PhonemeProperties>>();
         }
 

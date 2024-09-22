@@ -91,7 +91,7 @@ public unsafe partial class ResourceLoader
         if (string.IsNullOrEmpty(gamePath)) return;
 
         var gameResource = GetResource(gamePath, true);
-        if (_mainConfig.Current.LogResourceManagement && DoDebug(gamePath)) _logger.LogDebug($"[ReloadPath] {gamePath} / {localPath} -> " + gameResource.ToString("X8"));
+        if (DoDebug(gamePath)) _logger.LogDebug($"[ReloadPath] {gamePath} / {localPath} -> " + gameResource.ToString("X8"), LoggerType.SpatialAudioLogger);
 
         if (gameResource != IntPtr.Zero)
         {
@@ -101,7 +101,7 @@ public unsafe partial class ResourceLoader
         if (string.IsNullOrEmpty(localPath)) return;
 
         var localGameResource = GetResource(gamePath, false); // get local path resource
-        if (_mainConfig.Current.LogResourceManagement && DoDebug(gamePath)) _logger.LogDebug($"[ReloadPath] {gamePath} / {localPath} -> " + localGameResource.ToString("X8"));
+        if (DoDebug(gamePath)) _logger.LogDebug($"[ReloadPath] {gamePath} / {localPath} -> " + localGameResource.ToString("X8"), LoggerType.SpatialAudioLogger);
 
         if (localGameResource != IntPtr.Zero)
         {

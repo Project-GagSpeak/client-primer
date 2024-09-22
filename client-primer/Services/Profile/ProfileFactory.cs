@@ -10,15 +10,13 @@ public class ProfileFactory
     private readonly ILoggerFactory _loggerFactory;
     private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiShared;
-    private readonly CosmeticTexturesService _cosmeticTextures;
 
     public ProfileFactory(ILoggerFactory loggerFactory, GagspeakMediator mediator,
-        UiSharedService uiShared, CosmeticTexturesService cosmeticTextures)
+        UiSharedService uiShared)
     {
         _loggerFactory = loggerFactory;
         _mediator = mediator;
         _uiShared = uiShared;
-        _cosmeticTextures = cosmeticTextures;
     }
 
     public GagspeakProfile CreateProfileData(bool Flagged, string Base64ProfilePicture, string Description)

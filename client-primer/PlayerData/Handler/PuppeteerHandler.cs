@@ -6,29 +6,22 @@ using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI.UiPuppeteer;
-using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Permissions;
 using Lumina.Excel.GeneratedSheets;
 using System.Text.RegularExpressions;
-using static FFXIVClientStructs.FFXIV.Client.Graphics.Kernel.VertexShader;
-using static PInvoke.User32;
 
 namespace GagSpeak.PlayerData.Handlers;
-/// <summary>
-/// Should be a nice place to store a rapidly updating vibe intensity value while connecting to toybox servers to send the new intensities
-/// </summary>
+
 public class PuppeteerHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerChara;
     private readonly PairManager _pairManager;
     private readonly IDataManager _dataManager;
-    
+
 
     public PuppeteerHandler(ILogger<PuppeteerHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfiguration, PlayerCharacterData playerChara,
@@ -78,14 +71,14 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         // for refreshing data once we switch pairs.
         if (SelectedPair.UserData.UID != pair.UserData.UID)
         {
-            Logger.LogTrace($"Updating display to reflect pair {pair.UserData.AliasOrUID}");
+            Logger.LogTrace($"Updating display to reflect pair " + pair.UserData.AliasOrUID, LoggerType.Puppeteer);
             SelectedPair = pair;
             StorageBeingEdited = _clientConfigs.FetchAliasStorageForPair(pair.UserData.UID);
         }
         // log if the storage being edited is null.
         if (StorageBeingEdited == null)
         {
-            Logger.LogWarning($"Storage being edited is null for pair {pair.UserData.AliasOrUID}");
+            Logger.LogWarning($"Storage being edited is null for pair " + pair.UserData.AliasOrUID, LoggerType.Puppeteer);
         }
     }
 
@@ -136,7 +129,7 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
     public List<string> GetPlayersToListenFor()
         => _clientConfigs.GetPlayersToListenFor();
 
-    public Pair? GetPairOfUid(string uid) 
+    public Pair? GetPairOfUid(string uid)
         => _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == uid);
 
     /// <summary> Checks if the message contains the global trigger word </summary>
@@ -266,12 +259,12 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
             else
             {
                 // return an empty sestring
-                Logger.LogDebug("Message did not meet the criteria for the sender");
+                Logger.LogDebug("Message did not meet the criteria for the sender", LoggerType.Puppeteer);
                 return new SeString();
             }
         }
         // return blank string if invalid.
-        Logger.LogDebug("No valid trigger word found in the message");
+        Logger.LogDebug("No valid trigger word found in the message", LoggerType.Puppeteer);
         return new SeString();
     }
 
@@ -285,15 +278,15 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         }
 
         // check for emote commands.
-        if(_playerChara.GlobalPerms.GlobalAllowMotionRequests)
+        if (_playerChara.GlobalPerms.GlobalAllowMotionRequests)
         {
             // we can check to see if it is a valid emote
             var emotes = _dataManager.GetExcelSheet<Emote>();
             if (emotes != null)
             {
-                if(emotes.Any(emotes => messageRecieved.TextValue == emotes.Name.RawString.Replace(" ", "").ToLower())) return true;
+                if (emotes.Any(emotes => messageRecieved.TextValue == emotes.Name.RawString.Replace(" ", "").ToLower())) return true;
 
-                if(messageRecieved.TextValue == "cpose") return true;
+                if (messageRecieved.TextValue == "cpose") return true;
             }
         }
 
@@ -324,7 +317,7 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         return string.Empty;
     }
 
-    public bool IsValidPuppeteerChannel(ChatChannel.ChatChannels chatChannel)
+    public bool IsValidPuppeteerChannel(ChatChannels chatChannel)
         => _clientConfigs.GagspeakConfig.ChannelsPuppeteer.Contains(chatChannel);
 
 
@@ -333,28 +326,28 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         // handle sit commands
         if (permsForSender.AllowSitRequests)
         {
-            Logger.LogTrace("Checking if message is a sit command");
+            Logger.LogTrace("Checking if message is a sit command", LoggerType.Puppeteer);
             if (messageRecieved.TextValue == "sit" || messageRecieved.TextValue == "groundsit") return true;
         }
 
         // handle motion commands
         if (permsForSender.AllowMotionRequests)
         {
-            Logger.LogTrace("Checking if message is a motion command");
+            Logger.LogTrace("Checking if message is a motion command", LoggerType.Puppeteer);
             // we can check to see if it is a valid emote
             var emotes = _dataManager.GetExcelSheet<Emote>();
             if (emotes != null)
             {
-                if(emotes.Any(emotes => messageRecieved.TextValue == emotes.Name.RawString.Replace(" ", "").ToLower())) return true;
+                if (emotes.Any(emotes => messageRecieved.TextValue == emotes.Name.RawString.Replace(" ", "").ToLower())) return true;
 
-                if(messageRecieved.TextValue == "cpose") return true;
+                if (messageRecieved.TextValue == "cpose") return true;
             }
         }
 
         // handle all commands
         if (permsForSender.AllowAllRequests)
         {
-            Logger.LogTrace("Checking if message is an all command");
+            Logger.LogTrace("Checking if message is an all command", LoggerType.Puppeteer);
             return true;
         }
 
@@ -367,7 +360,7 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         // now we can use this index to scan our aliasLists
         List<AliasTrigger> Triggers = GetAliasStorage(SenderUid).AliasList;
 
-        Logger.LogTrace("Found {0} alias triggers for this user", Triggers.Count);
+        Logger.LogTrace("Found " + Triggers.Count + " alias triggers for this user", LoggerType.Puppeteer);
 
         // sort by decending length so that shorter equivalents to not override longer variants.
         var sortedAliases = Triggers.OrderByDescending(alias => alias.InputCommand.Length);
@@ -375,7 +368,7 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         foreach (AliasTrigger alias in Triggers)
         {
             // if the alias is enabled and in our message
-            if (alias.Enabled && !string.IsNullOrWhiteSpace(alias.InputCommand) && 
+            if (alias.Enabled && !string.IsNullOrWhiteSpace(alias.InputCommand) &&
                 !string.IsNullOrWhiteSpace(alias.OutputCommand) && puppeteerMessageToSend.Contains(alias.InputCommand))
             {
                 // replace the alias command with the output command

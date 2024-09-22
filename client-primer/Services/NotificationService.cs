@@ -71,7 +71,7 @@ public class NotificationService : DisposableMediatorSubscriberBase
 
     private void ShowNotification(NotificationMessage msg)
     {
-        Logger.LogInformation("{msg}", msg.ToString());
+        Logger.LogInformation(msg.ToString(), LoggerType.Notification);
 
         switch (msg.Type)
         {

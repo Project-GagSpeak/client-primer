@@ -35,7 +35,7 @@ public abstract class OnSetupSelectListFeature : BaseFeature, IDisposable
     {
         if (disposing)
         {
-            _logger.LogDebug("OnSetupSelectListFeature: Dispose");
+            _logger.LogDebug("OnSetupSelectListFeature: Dispose", LoggerType.HardcorePrompt);
             onItemSelectedHook?.Disable();
             onItemSelectedHook?.Dispose();
         }
@@ -43,7 +43,7 @@ public abstract class OnSetupSelectListFeature : BaseFeature, IDisposable
 
     protected unsafe int? GetMatchingIndex(string[] entries)
     {
-        _logger.LogDebug("CompareNodesToEntryTexts");
+        _logger.LogDebug("CompareNodesToEntryTexts", LoggerType.HardcorePrompt);
         var target = _targetManager.Target;
         var targetName = target != null ? target.Name.ExtractText() : string.Empty;
 
@@ -57,7 +57,7 @@ public abstract class OnSetupSelectListFeature : BaseFeature, IDisposable
             if (!matched)
                 continue;
 
-            _logger.LogDebug($"OnSetupSelectListFeature: Matched on {node.Text}");
+            _logger.LogDebug($"OnSetupSelectListFeature: Matched on {node.Text}", LoggerType.HardcorePrompt);
             return index;
         }
         return null;
@@ -95,7 +95,8 @@ public abstract class OnSetupSelectListFeature : BaseFeature, IDisposable
 
     private unsafe nint OnItemSelectedDetour(AtkEventListener* self, AtkEventType eventType, uint eventParam, AtkEvent* eventData, ulong* inputData)
     {
-        _logger.LogDebug($"PopupMenu RCV: listener={onItemSelectedHook.Address} {(nint)self:X}, type={eventType}, param={eventParam}, input={inputData[0]:X16} {inputData[1]:X16} {inputData[2]:X16} {(int)inputData[2]}");
+        _logger.LogDebug($"PopupMenu RCV: listener={onItemSelectedHook.Address} {(nint)self:X}, type={eventType}, param={eventParam}, "+
+            $"input={inputData[0]:X16} {inputData[1]:X16} {inputData[2]:X16} {(int)inputData[2]}", LoggerType.HardcorePrompt);
         try
         {
             var target = _targetManager.Target;
@@ -114,7 +115,7 @@ public abstract class OnSetupSelectListFeature : BaseFeature, IDisposable
         var count = popupMenu->EntryCount;
         var entryTexts = new string?[count];
 
-        _logger.LogDebug($"SelectString: Reading {count} strings");
+        _logger.LogDebug($"SelectString: Reading {count} strings", LoggerType.HardcorePrompt);
         for (var i = 0; i < count; i++)
         {
             var textPtr = popupMenu->EntryNames[i];

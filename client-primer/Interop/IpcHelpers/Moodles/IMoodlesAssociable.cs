@@ -1,4 +1,4 @@
-namespace GagSpeak.UI.Components;
+namespace GagSpeak.Interop.IpcHelpers.Moodles;
 
 public interface IMoodlesAssociable
 {

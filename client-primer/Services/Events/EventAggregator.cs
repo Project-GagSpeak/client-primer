@@ -28,7 +28,7 @@ public class EventAggregator : MediatorSubscriberBase, IHostedService
             try
             {
                 // make trace again once I can figure out how to make the plugin accept it
-                Logger.LogTrace("Received Event: {evt}", msg.Event.ToString());
+                Logger.LogTrace("Received Event: "+msg.Event.ToString(), LoggerType.Notification);
                 _events.Add(msg.Event);
                 WriteToFile(msg.Event);
             }

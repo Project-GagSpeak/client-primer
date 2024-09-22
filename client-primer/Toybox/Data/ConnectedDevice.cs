@@ -61,7 +61,7 @@ public class ConnectedDevice
     /// <summary> Resets all motors of the device to 0, stopping all vibrations. </summary>
     public void ResetMotors()
     {
-        _logger.LogInformation("Reset Motors called!");
+        _logger.LogInformation("Reset Motors called!", LoggerType.ToyboxDevices);
     }
 
     public async void UpdateBatteryPercentage()
@@ -150,45 +150,46 @@ public class ConnectedDevice
     /// <summary> Send a rotation command. </summary>
     public void SendRotate(byte intensity, bool clockwise = true, int motorIndex = -1)
     {
-        _logger.LogDebug("Rotation Disabled Currently");
-        /*        if (ClientDevice == null || !CanRotate || !IsConnected)
-                {
-                    _logger.LogError("Cannot send rotation command, device is not connected or does not support rotation.");
-                    return;
-                }
+        _logger.LogDebug("Rotation Disabled Currently", LoggerType.ToyboxDevices);
+        /*
+        if (ClientDevice == null || !CanRotate || !IsConnected)
+        {
+            _logger.LogError("Cannot send rotation command, device is not connected or does not support rotation.");
+            return;
+        }
 
-                try
+        try
+        {
+            // if motor spesified, update that motor only.
+            if (motorIndex != -1)
+            {
+                CurrentRotationIntensity[motorIndex] = intensity;
+            }
+            // otherwise update all motors
+            else
+            {
+                for (int i = 0; i < RotateMotors; i++)
                 {
-                    // if motor spesified, update that motor only.
-                    if (motorIndex != -1)
-                    {
-                        CurrentRotationIntensity[motorIndex] = intensity;
-                    }
-                    // otherwise update all motors
-                    else
-                    {
-                        for (int i = 0; i < RotateMotors; i++)
-                        {
-                            CurrentRotationIntensity[i] = intensity;
-                        }
-                    }
-                    // prepare sendoff
-                    List<(double, bool)> motorIntensitysToSend = new List<(double, bool)>();
-                    // store the bytes as doubles.
-                    for (int i = 0; i < CurrentRotationIntensity.Length; i++)
-                    {
-                        motorIntensitysToSend.Add((GetRotateDoubleFromByte(CurrentRotationIntensity[i]), clockwise));
-                    }
-
-                    // send them off.
-                    RotateDebouncer.Debounce(delegate
-                    {
-                        ClientDevice.RotateAsync(motorIntensitysToSend);
-                    });
+                    CurrentRotationIntensity[i] = intensity;
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError($"Error Sending Rotation: {ex.Message}");
-                }*/
+            }
+            // prepare sendoff
+            List<(double, bool)> motorIntensitysToSend = new List<(double, bool)>();
+            // store the bytes as doubles.
+            for (int i = 0; i < CurrentRotationIntensity.Length; i++)
+            {
+                motorIntensitysToSend.Add((GetRotateDoubleFromByte(CurrentRotationIntensity[i]), clockwise));
+            }
+
+            // send them off.
+            RotateDebouncer.Debounce(delegate
+            {
+                ClientDevice.RotateAsync(motorIntensitysToSend);
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Error Sending Rotation: {ex.Message}");
+        }*/
     }
 }

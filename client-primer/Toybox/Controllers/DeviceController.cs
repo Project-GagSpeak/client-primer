@@ -32,7 +32,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
         _clientConfigs = clientConfiguration;
         _deviceFactory = deviceFactory;
 
-        // create the websocket connector
+        // create the WebSocket connector
         WebsocketConnector = NewWebsocketConnection();
         // initialize the client
         ButtPlugClient = new ButtplugClient(IntifaceClientName);
@@ -112,7 +112,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
             if (IndexInDeviceListToRemove > -1)
             {
                 // log the removal and remove it
-                Logger.LogInformation($"Device {Devices[IndexInDeviceListToRemove]} removed from device list.");
+                Logger.LogInformation($"Device "+Devices[IndexInDeviceListToRemove]+" removed from device list.", LoggerType.ToyboxDevices);
                 // create shallow copy
                 ConnectedDevice device2 = Devices[IndexInDeviceListToRemove];
                 // remove from list
@@ -125,20 +125,20 @@ public class DeviceController : DisposableMediatorSubscriberBase
         }
         catch (Exception ex)
         {
-            Logger.LogError($"Error removing device from device list. {ex.Message}");
+            Logger.LogError($"Error removing device from device list. "+ex.Message, LoggerType.ToyboxDevices);
         }
     }
 
     /// <summary> Fired when scanning for devices is finished </summary>
     private void OnScanningFinished()
     {
-        Logger.LogInformation("Finished Scanning for new Devices");
+        Logger.LogInformation("Finished Scanning for new Devices", LoggerType.ToyboxDevices);
         ScanningForDevices = false;
     }
 
     private void OnButtplugClientDisconnected()
     {
-        Logger.LogInformation("Intiface Central Disconnected");
+        Logger.LogInformation("Intiface Central Disconnected", LoggerType.ToyboxDevices);
         HandleDisconnect();
     }
 
@@ -158,7 +158,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
             }
             else if (ButtPlugClient.Connected)
             {
-                Logger.LogInformation("Already connected to Intiface Central");
+                Logger.LogInformation("Already connected to Intiface Central", LoggerType.ToyboxDevices);
                 return;
             }
             else if (WebsocketConnector == null)
@@ -168,11 +168,11 @@ public class DeviceController : DisposableMediatorSubscriberBase
             }
             if (ConnectedToIntiface)
             {
-                Logger.LogInformation("Already connected to Intiface Central");
+                Logger.LogInformation("Already connected to Intiface Central", LoggerType.ToyboxDevices);
                 return;
             }
             // Attempt connection to server
-            Logger.LogDebug("Attempting connection to Intiface Central");
+            Logger.LogDebug("Attempting connection to Intiface Central", LoggerType.ToyboxDevices);
             await ButtPlugClient.ConnectAsync(WebsocketConnector);
         }
         catch (ButtplugClientConnectorException socketEx)
@@ -189,11 +189,11 @@ public class DeviceController : DisposableMediatorSubscriberBase
         }
 
         // see if we sucessfully connected
-        Logger.LogInformation("Connected to Intiface Central");
+        Logger.LogInformation("Connected to Intiface Central", LoggerType.ToyboxDevices);
         try
         {
             // scan for any devices for the next 2 seconds
-            Logger.LogInformation("Scanning for devices over the next 2 seconds.");
+            Logger.LogInformation("Scanning for devices over the next 2 seconds.", LoggerType.ToyboxDevices);
             await StartDeviceScanAsync();
             Thread.Sleep(2000);
             await StopDeviceScanAsync();
@@ -229,7 +229,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
                 // if the disconnect was sucessful, handle the disconnect.
                 if (!ButtPlugClient.Connected)
                 {
-                    Logger.LogInformation("Disconnected from Intiface Central");
+                    Logger.LogInformation("Disconnected from Intiface Central", LoggerType.ToyboxDevices);
                     ScanningForDevices = false;
                     // no need to use handleDisconnect here since we execute that in the subscribed event.
                 }
@@ -246,7 +246,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
 
     public void HandleDisconnect()
     {
-        Logger.LogDebug("Client was properly disconnected from Intiface Central. Disconnecting Device Handler.");
+        Logger.LogDebug("Client was properly disconnected from Intiface Central. Disconnecting Device Handler.", LoggerType.ToyboxDevices);
         try
         {
             Devices.Clear();
@@ -263,7 +263,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
     #endregion ConnectionHandle
 
     /// <summary> 
-    /// Asyncronous method that continuously checks the battery health of the client 
+    /// Asynchronous method that continuously checks the battery health of the client 
     /// until canceled at a set interval
     /// </summary>
     private async Task BatteryHealthCheck(CancellationToken ct)
@@ -275,8 +275,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
             await Task.Delay(TimeSpan.FromSeconds(60), ct).ConfigureAwait(false);
             
             // log that we are checking the client health state
-            if(_clientConfigs.GagspeakConfig.LogBatteryAndAlarmChecks)
-                Logger.LogTrace("Scheduled Battery Check on connected devices");
+            Logger.LogTrace("Scheduled Battery Check on connected devices", LoggerType.ToyboxDevices);
             
             // if we need to reconnect, break out of the loop
             if (!ConnectedToIntiface) break;
@@ -303,7 +302,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
             Logger.LogWarning("Cannot scan for devices if not connected to Intiface Central");
         }
 
-        Logger.LogDebug("Now actively scanning for new devices...");
+        Logger.LogDebug("Now actively scanning for new devices...", LoggerType.ToyboxDevices);
         try
         {
             ScanningForDevices = true;
@@ -324,7 +323,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
             Logger.LogWarning("Cannot stop scanning for devices if not connected to Intiface Central");
         }
 
-        Logger.LogDebug("Halting the scan for new devices to add");
+        Logger.LogDebug("Halting the scan for new devices to add", LoggerType.ToyboxDevices);
         try
         {
             await ButtPlugClient.StopScanningAsync();
@@ -364,7 +363,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
             return;
         }
 
-        Logger.LogInformation("Vibe Trigger Function Accessed. This would normally play a vibe by now!");
+        Logger.LogInformation("Vibe Trigger Function Accessed. This would normally play a vibe by now!", LoggerType.ToyboxDevices);
     }
 
     public void SendVibeToAllDevices(byte intensity)

@@ -105,7 +105,7 @@ public unsafe class ChatInputDetour : IDisposable
             var matchedCommand = "";
             var matchedChannelType = "";
             // DEBUG MESSAGE: (remove when not debugging)
-            _logger.LogTrace($"Detouring Message: {inputString}");
+            _logger.LogTrace($"Detouring Message: {inputString}", LoggerType.ChatDetours);
 
             // if the message is a command, see if the command is a channel command. If so, still use for translation, otherwise, return original.
             // TODO: Implement configured allowed channels for this later.
@@ -118,21 +118,21 @@ public unsafe class ChatInputDetour : IDisposable
                 if (matchedCommand.IsNullOrEmpty())
                 {
                     // DEBUG MESSAGE: (remove when not debugging)
-                    _logger.LogTrace("Ignoring Message as it is a command");
+                    _logger.LogTrace("Ignoring Message as it is a command", LoggerType.ChatDetours);
                     return ProcessChatInputHook.Original(uiModule, message, a3);
                 }
 
                 // Set the matched command to the matched channel type. 
                 matchedChannelType = matchedCommand;
 
-                _logger.LogTrace($"Matched Command [{matchedCommand}] for matchedChannelType: [{matchedChannelType}]");
+                _logger.LogTrace($"Matched Command [{matchedCommand}] for matchedChannelType: [{matchedChannelType}]", LoggerType.ChatDetours);
             }
 
             // If current channel message is being sent to is in list of enabled channels, translate it.
             if (_config.Current.ChannelsGagSpeak.Contains(ChatChannel.GetChatChannel()) || _config.Current.ChannelsGagSpeak.IsAliasForAnyActiveChannel(matchedChannelType.Trim()))
             {
                 // DEBUG MESSAGE: (Remove when not debugging)
-                _logger.LogTrace($"MatchedCommand ->{matchedCommand} || Input ->{inputString}");
+                _logger.LogTrace($"MatchedCommand ->{matchedCommand} || Input ->{inputString}", LoggerType.ChatDetours);
 
                 try
                 {
@@ -140,10 +140,10 @@ public unsafe class ChatInputDetour : IDisposable
                     var stringToProcess = inputString.Substring(matchedCommand.Length);
 
                     // see if this is an outgoing tell, if it is, we must make sure it isn't garbled for encoded messages
-                    if (ChatChannel.GetChatChannel() == ChatChannel.ChatChannels.Tell || matchedChannelType.Contains("/t") || matchedChannelType.Contains("/tell"))
+                    if (ChatChannel.GetChatChannel() == ChatChannels.Tell || matchedChannelType.Contains("/t") || matchedChannelType.Contains("/tell"))
                     {
                         // it is a tell, we need to make sure it is not garbled if it is an encoded message
-                        _logger.LogTrace($"Message is a tell message, skipping garbling");
+                        _logger.LogTrace($"Message is a tell message, skipping garbling", LoggerType.ChatDetours);
                     }
 
                     // Translate the original message into Garbled Speech.
@@ -159,7 +159,7 @@ public unsafe class ChatInputDetour : IDisposable
                     if (output.Length <= 500)
                     {
                         // DEBUG MESSAGE: (Remove when not debugging)
-                        _logger.LogTrace($"New Packet Message: {output}");
+                        _logger.LogTrace($"New Packet Message: {output}", LoggerType.ChatDetours);
                         // encode the new string
                         var bytes = Encoding.UTF8.GetBytes(output);
                         // allocate the memory

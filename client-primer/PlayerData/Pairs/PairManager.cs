@@ -1,5 +1,7 @@
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface.ImGuiNotification;
+using Dalamud.Plugin.Services;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Factories;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
@@ -11,6 +13,7 @@ using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.User;
 using GagspeakAPI.Dto.UserPair;
+using Dalamud.Game.Gui.ContextMenu;
 using GagspeakAPI.Enums;
 
 namespace GagSpeak.PlayerData.Pairs;
@@ -21,75 +24,93 @@ namespace GagSpeak.PlayerData.Pairs;
 /// </summary>
 public sealed partial class PairManager : DisposableMediatorSubscriberBase
 {
-    ILogger<PairManager> _logger;
     private readonly ConcurrentDictionary<UserData, Pair> _allClientPairs;  // concurrent dictionary of all paired paired to the client.
-    private readonly ClientConfigurationManager _clientConfigurationManager;// client-end related configs manager           
+    private readonly GagspeakConfigService _mainConfig;                     // main gagspeak config
     private readonly PairFactory _pairFactory;                              // the pair factory for creating new pair objects
+    private readonly IContextMenu _contextMenu;                             // adds GagSpeak options when right clicking players.
+    
     private Lazy<List<Pair>> _directPairsInternal;                          // the internal direct pairs lazy list for optimization
+    
     public List<Pair> DirectPairs => _directPairsInternal.Value;            // the direct pairs the client has with other users.
     public Pair? LastAddedUser { get; internal set; }                       // the user pair most recently added to the pair list.
 
-    public PairManager(ILogger<PairManager> logger, PairFactory pairFactory,
-        ClientConfigurationManager configurationService, GagspeakMediator mediator) : base(logger, mediator)
+    public PairManager(ILogger<PairManager> logger, GagspeakMediator mediator,
+        PairFactory pairFactory, GagspeakConfigService mainConfig, 
+        IContextMenu contextMenu) : base(logger, mediator)
     {
-        _logger = logger;
         _allClientPairs = new(UserDataComparer.Instance);
         _pairFactory = pairFactory;
-        _clientConfigurationManager = configurationService;
+        _mainConfig = mainConfig;
+        _contextMenu = contextMenu;
 
-        // subscribe to the disconnected message, and clear all pairs when it is received.
         Mediator.Subscribe<DisconnectedMessage>(this, (_) => ClearPairs());
-
-        // subscribe to the cutscene end message, and reapply the pair data when it is received.
         Mediator.Subscribe<CutsceneEndMessage>(this, (_) => ReapplyPairData());
 
         _directPairsInternal = DirectPairsLazy();
+
+        _contextMenu.OnMenuOpened += OnOpenPairContextMenu;
     }
 
+    private void OnOpenPairContextMenu(IMenuOpenedArgs args)
+    {
+        // make sure its a player context menu
+        if (args.MenuType == ContextMenuType.Inventory) return;
+        
+        // don't open if we don't want to show context menus
+        if (!_mainConfig.Current.ContextMenusShow) return;
+
+        // otherwise, locate the pair and add the context menu args to the visible pairs.
+        foreach (var pair in _allClientPairs.Where((p => p.Value.IsVisible)))
+        {
+            pair.Value.AddContextMenu(args);
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        _contextMenu.OnMenuOpened -= OnOpenPairContextMenu;
+        // dispose of the pairs
+        DisposePairs();
+    }
+
+
     /// <summary>
-    /// 
-    /// Should only be called by the apicontrollers `LoadIninitialPairs` function on startup.
-    /// 
+    /// Should only be called by the api controllers `LoadInitialPairs` function on startup.
     /// <para>
-    /// 
     /// Will pass in the necessary information to create a new pair, 
     /// including their global permissions and permissions for the client pair.
-    /// 
     /// </para>
     /// </summary>
     public void AddUserPair(UserPairDto dto)
     {
-        _logger.LogTrace("Scanning all client pairs to see if added user already exists");
+        Logger.LogTrace("Scanning all client pairs to see if added user already exists");
         // if the user is not in the client's pair list, create a new pair for them.
         if (!_allClientPairs.ContainsKey(dto.User))
         {
-            _logger.LogDebug("User {user} not found in client pairs, creating new pair", dto.User);
+            Logger.LogDebug("User "+dto.User.UID+" not found in client pairs, creating new pair", LoggerType.PairManagement);
             // create a new pair object for the user through the pair factory
             _allClientPairs[dto.User] = _pairFactory.Create(dto);
         }
         // if the user is in the client's pair list, apply the last received data to the pair.
         else
         {
-            _logger.LogDebug("User {user} found in client pairs, applying last received data instead.", dto.User);
+            Logger.LogDebug("User " + dto.User.UID + " found in client pairs, applying last received data instead.", LoggerType.PairManagement);
             // apply the last received data to the pair.
             _allClientPairs[dto.User].UserPair.IndividualPairStatus = dto.IndividualPairStatus;
             _allClientPairs[dto.User].ApplyLastReceivedIpcData();
         }
-        _logger.LogTrace("Recreating the lazy list of direct pairs.");
+        Logger.LogTrace("Recreating the lazy list of direct pairs.", LoggerType.PairManagement);
         // recreate the lazy list of direct pairs.
         RecreateLazy();
     }
 
     /// <summary> 
-    /// 
     /// This should only ever be called upon by the signalR server callback.
-    /// 
     /// <para> 
-    /// 
     /// When you request to the server to add another user to your client pairs, 
     /// the server will send back a call once the pair is added. This call then calls this function.
     /// When this function is ran, that user will be appended to your client pairs.
-    /// 
     /// </para> 
     /// </summary>
     public void AddUserPair(UserPairDto dto, bool addToLastAddedUser = true)
@@ -122,7 +143,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     /// <summary> Clears all pairs from the client's pair list.</summary>
     public void ClearPairs()
     {
-        Logger.LogDebug("Clearing all Pairs");
+        Logger.LogDebug("Clearing all Pairs", LoggerType.PairManagement);
         // dispose of all our pairs
         DisposePairs();
         // clear the client's pair list
@@ -247,15 +268,15 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // if the pair has a cached player, recreate the lazy list.
         if (pair.HasCachedPlayer)
         {
-            Logger.LogDebug("Pair {pair} already has a cached player, recreating the lazy list of direct pairs.", pair.UserData);
+            Logger.LogDebug("Pair "+dto.User.UID+" already has a cached player, recreating the lazy list of direct pairs.", LoggerType.PairManagement);
             RecreateLazy();
             return;
         }
 
         // if send notification is on, then we should send the online notification to the client.
-        if (sendNotif && _clientConfigurationManager.GagspeakConfig.ShowOnlineNotifications
-            && (_clientConfigurationManager.GagspeakConfig.ShowOnlineNotificationsOnlyForNamedPairs && !string.IsNullOrEmpty(pair.GetNickname())
-            || !_clientConfigurationManager.GagspeakConfig.ShowOnlineNotificationsOnlyForNamedPairs))
+        if (sendNotif && _mainConfig.Current.ShowOnlineNotifications
+            && (_mainConfig.Current.ShowOnlineNotificationsOnlyForNamedPairs && !string.IsNullOrEmpty(pair.GetNickname())
+            || !_mainConfig.Current.ShowOnlineNotificationsOnlyForNamedPairs))
         {
             // get the nickname from the pair, if it is not null, set the nickname to the pair's nickname.
             string? nickname = pair.GetNickname();
@@ -289,38 +310,23 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // if they are found, publish an event message that we have received character data from our paired User
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Composite Data")));
 
-        // apply the other appearances to the pair.
         _allClientPairs[dto.User].ApplyAppearanceData(new OnlineUserCharaAppearanceDataDto(dto.User, dto.CompositeData.AppearanceData, dto.UpdateKind));
-
-        // apply the wardrobe data to the pair.
         _allClientPairs[dto.User].ApplyWardrobeData(new OnlineUserCharaWardrobeDataDto(dto.User, dto.CompositeData.WardrobeData, dto.UpdateKind));
+        _allClientPairs[dto.User].ApplyToyboxData(new OnlineUserCharaToyboxDataDto(dto.User, dto.CompositeData.ToyboxData, dto.UpdateKind));
+        _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, dto.CompositeData.GlobalShockPermissions, DataUpdateKind.PiShockGlobalUpdated));
 
-        // apply the alias data (FOR OUR CLIENTPAIR ONLY) to the aliasData object.
 
         // first see if our clientUID exists as a key in dto.CompositeData.AliasData. If it does not, define it as an empty data.
         if (dto.CompositeData.AliasData.ContainsKey(clientUID))
-        {
             _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, dto.CompositeData.AliasData[clientUID], dto.UpdateKind));
-        }
         else
-        {
             _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, new CharacterAliasData(), dto.UpdateKind));
-        }
 
-        // apply the pattern data to the pair.
-        _allClientPairs[dto.User].ApplyToyboxData(new OnlineUserCharaToyboxDataDto(dto.User, dto.CompositeData.ToyboxData, dto.UpdateKind));
-
-        // apply the PiShock stuff
-        _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, dto.CompositeData.GlobalShockPermissions, DataUpdateKind.PiShockGlobalUpdated));
-
+        // pishock perms for pair.
         if (dto.CompositeData.PairShockPermissions.ContainsKey(clientUID))
-        {
             _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, dto.CompositeData.PairShockPermissions[clientUID], DataUpdateKind.PiShockPairPermsForUserUpdated));
-        }
         else
-        {
             _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, new PiShockPermissions(), DataUpdateKind.PiShockPairPermsForUserUpdated));
-        }
     }
 
     /// <summary> Method similar to compositeData, but this will only update the IPC data of the user pair. </summary>
@@ -332,7 +338,6 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // if they are found, publish an event message that we have received character data from our paired User
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character IPC Data")));
 
-        Logger.LogWarning("Received IPC Data for {user}", dto.User);
         // apply the IPC data to the pair.
         _allClientPairs[dto.User].ApplyVisibleData(dto);
     }
@@ -440,14 +445,6 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
     }
 
-    /// <summary> The override disposal method for the pair manager</summary>
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-        // dispose of the pairs
-        DisposePairs();
-    }
-
     /// <summary> The lazy list of direct pairs, remade from the _allClientPairs</summary>
     private Lazy<List<Pair>> DirectPairsLazy() => new(() => _allClientPairs.Select(k => k.Value)
         .Where(k => k.IndividualPairStatus != IndividualPairStatus.None).ToList());
@@ -456,7 +453,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     private void DisposePairs()
     {
         // log the action about to occur
-        Logger.LogDebug("Disposing all Pairs");
+        Logger.LogDebug("Disposing all Pairs", LoggerType.PairManagement);
         // for each pair in the client's pair list, dispose of them by marking them as offline.
         Parallel.ForEach(_allClientPairs, item =>
         {

@@ -108,7 +108,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         get => _serverState;
         private set
         {
-            StaticLogger.Logger.LogDebug($"New ServerState: {value}, prev ServerState: {_serverState}");
+            StaticLogger.Logger.LogDebug($"New ServerState: {value}, prev ServerState: {_serverState}", LoggerType.ApiCore);
             _serverState = value;
         }
     }
@@ -119,7 +119,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         get => _toyboxServerState;
         private set
         {
-            Logger.LogDebug($"New ToyboxServerState: {value}, prev ToyboxServerState: {_toyboxServerState}");
+            Logger.LogDebug($"New ToyboxServerState: {value}, prev ToyboxServerState: {_toyboxServerState}", LoggerType.ApiCore);
             _toyboxServerState = value;
         }
     }
@@ -152,7 +152,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
             ServerState = ServerState.Connecting;
 
-            Logger.LogDebug("Building connection");
+            Logger.LogDebug("Building connection", LoggerType.ApiCore);
             // try and fetch our last used token from the token provider
             try
             {
@@ -171,24 +171,24 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             while (!await _frameworkUtils.GetIsPlayerPresentAsync().ConfigureAwait(false) && !token.IsCancellationRequested)
             {
                 // log that the player has not yet loaded in and wait for 1 second
-                Logger.LogDebug("Player not loaded in yet, waiting");
+                Logger.LogDebug("Player not loaded in yet, waiting", LoggerType.ApiCore);
                 await Task.Delay(TimeSpan.FromSeconds(1), token).ConfigureAwait(false);
             }
 
             // otherwise, create a new hub connection
             _gagspeakHub = _hubFactory.GetOrCreate(token);
 
-            Logger.LogDebug("Starting created hub instance");
+            Logger.LogDebug("Starting created hub instance", LoggerType.ApiCore);
 
             // start the hub we just created in async
             await _gagspeakHub.StartAsync(token).ConfigureAwait(false);
 
-            Logger.LogDebug("Calling OneTimeUseAccountGeneration.");
+            Logger.LogDebug("Calling OneTimeUseAccountGeneration.", LoggerType.ApiCore);
 
             // Invoke the method to fetch new account details
             // Replace "RequestNewAccountDetails" with the actual method name and adjust return type as necessary
-            var accountDetails = await _gagspeakHub.InvokeAsync<(string, string)>("OneTimeUseAccountGeneration");
-            Logger.LogInformation("New Account Details Fetched.");
+            var accountDetails = await _gagspeakHub.InvokeAsync<(string, string)>("OneTimeUseAccountGeneration", LoggerType.ApiCore);
+            Logger.LogInformation("New Account Details Fetched.", LoggerType.ApiCore);
             // Return the fetched account details
             return accountDetails;
         }
@@ -200,12 +200,12 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         catch (Exception ex)
         {
             // Handle exceptions (logging, rethrowing, etc.)
-            Logger.LogInformation($"Error fetching new account details: {ex.StackTrace}");
+            Logger.LogInformation($"Error fetching new account details: {ex.StackTrace}", LoggerType.ApiCore);
             throw;
         }
         finally
         {
-            Logger.LogInformation("Stopping connection");
+            Logger.LogInformation("Stopping connection", LoggerType.ApiCore);
             // Ensure the connection is properly closed and disposed of
             if (_gagspeakHub != null && _gagspeakHub.State == HubConnectionState.Connected)
             {
@@ -218,12 +218,12 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     public async Task CreateToyboxConnection()
     {
         // perform the same regular checks as the main server connection, minus the redundancy.
-        Logger.LogInformation("CreateToyboxConnection called");
+        Logger.LogInformation("CreateToyboxConnection called", LoggerType.ApiCore);
 
         // make sure we are connected to the main server. If not, shut it down.
         if (!ServerAlive)
         {
-            Logger.LogInformation("Stopping connection because connection to main server was lost.");
+            Logger.LogInformation("Stopping connection because connection to main server was lost.", LoggerType.ApiCore);
             await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
             _connectionToyboxCTS?.Cancel();
             return;
@@ -231,7 +231,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         // if we have opted to disconnect from the main server (manual button toggle)
         if (_serverConfigs.CurrentServer?.ToyboxFullPause ?? true)
         {
-            Logger.LogInformation("Stopping connection to toybox server, as user wished to disconnect");
+            Logger.LogInformation("Stopping connection to toybox server, as user wished to disconnect", LoggerType.ApiCore);
             await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
             _connectionToyboxCTS?.Cancel();
             return;
@@ -240,7 +240,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
 
         // now we can recreate the connection
-        Logger.LogInformation("Recreating Toybox Connection");
+        Logger.LogInformation("Recreating Toybox Connection", LoggerType.ApiCore);
         Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController),
             Services.Events.EventSeverity.Informational, $"Starting Connection to Toybox Server")));
 
@@ -259,12 +259,12 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
             try
             {
-                Logger.LogDebug("Building connection to toybox WebSocket server");
+                Logger.LogDebug("Building connection to toybox WebSocket server", LoggerType.ApiCore);
                 // wait to connect to the server until they have logged in with their player character and make sure the cancelation token has not yet been called
                 while (!await _frameworkUtils.GetIsPlayerPresentAsync().ConfigureAwait(false) && !token.IsCancellationRequested)
                 {
                     // log that the player has not yet loaded in and wait for 1 second
-                    Logger.LogDebug("Player not loaded in yet, waiting");
+                    Logger.LogDebug("Player not loaded in yet, waiting", LoggerType.ApiCore);
                     await Task.Delay(TimeSpan.FromSeconds(1), token).ConfigureAwait(false);
                 }
 
@@ -293,8 +293,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 ToyboxServerState = ServerState.Connected;
 
                 // declare the current client version from the executing assembly
-                Logger.LogInformation("Client Version for server: {clientServerVar}", IGagspeakHub.ApiVersion);
-                Logger.LogInformation("Server Version: {serverVersion}", _toyboxConnectionDto.ServerVersion);
+                Logger.LogInformation("Client Version for server: "+IGagspeakHub.ApiVersion, LoggerType.HubFactory);
+                Logger.LogInformation("Server Version: "+_toyboxConnectionDto.ServerVersion, LoggerType.HubFactory);
 
                 // if the server version is not the same as the API version
                 if (_toyboxConnectionDto.ServerVersion != IGagspeakHub.ApiVersion)
@@ -304,7 +304,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                         $"Your client is outdated and will not be able to connect. Please update Gagspeak to fix.",
                         NotificationType.Error));
                     // stop connection
-                    Logger.LogInformation("_toyboxConnectionDto.ServerVersion != IGagspeakHub.ApiVersion");
+                    Logger.LogInformation("_toyboxConnectionDto.ServerVersion != IGagspeakHub.ApiVersion", LoggerType.ApiCore);
                     await StopConnection(ServerState.VersionMisMatch, HubType.ToyboxHub).ConfigureAwait(false);
                     return;
                 }
@@ -313,11 +313,11 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 await LoadToyboxOnlinePairs().ConfigureAwait(false);
 
                 // initialize the connectionDto information to the privateRoomManager.
-                Logger.LogInformation("Toybox Connection DTO ServerVersion: {ServerVersion}", _toyboxConnectionDto.ServerVersion);
-                Logger.LogInformation("Toybox Connection DTO HostedRoom: {host}", _toyboxConnectionDto.HostedRoom.NewRoomName);
-                Logger.LogInformation("Toybox Connection DTO ConnectedRooms: {rooms}", _toyboxConnectionDto.ConnectedRooms.Count);
+                Logger.LogInformation("Toybox Connection DTO ServerVersion: "+_toyboxConnectionDto.ServerVersion, LoggerType.HubFactory);
+                Logger.LogInformation("Toybox Connection DTO HostedRoom: "+_toyboxConnectionDto.HostedRoom.NewRoomName, LoggerType.HubFactory);
+                Logger.LogInformation("Toybox Connection DTO ConnectedRooms: "+_toyboxConnectionDto.ConnectedRooms.Count, LoggerType.HubFactory);
             }
-            catch (OperationCanceledException) { Logger.LogWarning("Toybox Connection attempt cancelled"); return; }
+            catch (OperationCanceledException) { Logger.LogWarning("Toybox Connection attempt cancelled", LoggerType.ApiCore); return; }
             catch (HttpRequestException ex)
             {
                 Logger.LogWarning($"{ex} HttpRequestException on Toybox Connection");
@@ -331,7 +331,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
                 // otherwise attempt to reconnect
                 ToyboxServerState = ServerState.Reconnecting;
-                Logger.LogInformation("Failed to establish connection to toybox server, retrying");
+                Logger.LogInformation("Failed to establish connection to toybox server, retrying", LoggerType.ApiCore);
                 await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), token).ConfigureAwait(false);
             }
             catch (InvalidOperationException ex)
@@ -344,8 +344,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             catch (Exception ex)
             {
                 // if we had any other exception, log it and attempt to reconnect
-                Logger.LogWarning($"{ex} Exception on Toybox Connection");
-                Logger.LogInformation("Failed to establish connection, retrying");
+                Logger.LogWarning($"{ex} Exception on Toybox Connection, retrying");
                 await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), token).ConfigureAwait(false);
             }
         }
@@ -355,15 +354,15 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     // create a connection
     public async Task CreateConnections()
     {
-        Logger.LogInformation("CreateConnections called");
+        Logger.LogInformation("CreateConnections called", LoggerType.ApiCore);
 
         // if we have opted to disconnect from the server for now, then stop the connection and return.
         if (_serverConfigs.CurrentServer?.FullPause ?? true)
         {
-            Logger.LogInformation("Stopping connection because user has wished to disconnect");
+            Logger.LogInformation("Stopping connection because user has wished to disconnect", LoggerType.ApiCore);
             if (_serverConfigs.CurrentServer is not null && !_serverConfigs.CurrentServer.FullPause && !_serverConfigs.CurrentServer.ToyboxFullPause)
             {
-                Logger.LogTrace("Disconnecting from Toybox Server because both connections were active.");
+                Logger.LogTrace("Disconnecting from Toybox Server because both connections were active.", LoggerType.ApiCore);
                 _serverConfigs.CurrentServer.ToyboxFullPause = !_serverConfigs.CurrentServer.ToyboxFullPause;
                 _serverConfigs.Save();
                 _ = CreateToyboxConnection();
@@ -378,7 +377,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         // get the currently stored secretkey from the server manager
         var secretKey = _serverConfigs.GetSecretKeyForCharacter();
         // log the secret key
-        Logger.LogDebug("Secret Key fetched: {secretKey}", secretKey);
+        Logger.LogDebug("Secret Key fetched: "+secretKey, LoggerType.ApiCore);
         // if the secret key is null or empty
         if (secretKey.IsNullOrEmpty())
         {
@@ -398,7 +397,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
 
         // now we can recreate the connection
-        Logger.LogInformation("Recreating Connection");
+        Logger.LogInformation("Recreating Connection", LoggerType.ApiCore);
         Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Informational,
             $"Starting Connection to {_serverConfigs.CurrentServer.ServerName}")));
 
@@ -423,7 +422,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // try to connect to the server....
             try
             {
-                Logger.LogDebug("Building connection");
+                Logger.LogDebug("Building connection", LoggerType.ApiCore);
                 // try and fetch our last used token from the token provider
                 try
                 {
@@ -442,7 +441,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 while (!await _frameworkUtils.GetIsPlayerPresentAsync().ConfigureAwait(false) && !token.IsCancellationRequested)
                 {
                     // log that the player has not yet loaded in and wait for 1 second
-                    Logger.LogDebug("Player not loaded in yet, waiting");
+                    Logger.LogDebug("Player not loaded in yet, waiting", LoggerType.ApiCore);
                     await Task.Delay(TimeSpan.FromSeconds(1), token).ConfigureAwait(false);
                 }
 
@@ -473,8 +472,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
                 // declare the current client version from the executing assembly
                 var currentClientVer = Assembly.GetExecutingAssembly().GetName().Version!;
-                Logger.LogInformation("Current Client Version: {currentClientVer}", currentClientVer);
-                Logger.LogInformation("Server Version: {serverVersion}", _connectionDto.CurrentClientVersion);
+                Logger.LogInformation("Current Client Version: "+currentClientVer, LoggerType.ApiCore);
+                Logger.LogInformation("Server Version: "+_connectionDto.CurrentClientVersion, LoggerType.ApiCore);
 
                 // if the server version is not the same as the API version
                 if (_connectionDto.ServerVersion != IGagspeakHub.ApiVersion)
@@ -491,7 +490,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                             NotificationType.Error));
                     }
                     // stop connection
-                    Logger.LogInformation("_connectionDto.ServerVersion != IGagspeakHub.ApiVersion");
+                    Logger.LogInformation("_connectionDto.ServerVersion != IGagspeakHub.ApiVersion", LoggerType.ApiCore);
                     await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                     return;
                 }
@@ -505,19 +504,15 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                             $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}."+
                             $"{_connectionDto.CurrentClientVersion.Revision} Please keep your Gagspeak client up-to-date.", NotificationType.Warning));
                     // stop connection
-                    Logger.LogInformation("_connectionDto.CurrentClientVersion > currentClientVer");
+                    Logger.LogInformation("_connectionDto.CurrentClientVersion > currentClientVer", LoggerType.ApiCore);
                     await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                     return;
 
                 }
-                Logger.LogInformation("Loading inital pairs for client");
                 // load the initial pairs for our client
                 await LoadIninitialPairs().ConfigureAwait(false);
-                Logger.LogInformation("Initial pairs loaded for client");
-                Logger.LogInformation("Loading Online Pairs for client");
                 // load in the online pairs for our client
                 await LoadOnlinePairs().ConfigureAwait(false);
-                Logger.LogInformation("Online pairs loaded for client");
                 // set the secret keys successful connection
                 _serverConfigs.SetSecretKeyAsValid(secretKey);
                 // auto connect to toybox vibe servers if enabled.
@@ -543,21 +538,21 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
                 // otherwise attempt to reconnect
                 ServerState = ServerState.Reconnecting;
-                Logger.LogInformation("Failed to establish connection, retrying");
+                Logger.LogWarning("Failed to establish connection, retrying", LoggerType.ApiCore);
                 await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), token).ConfigureAwait(false);
             }
             catch (InvalidOperationException ex)
             {
                 // if we had an invalid operation exception then we should stop the connection (disconnect).
-                Logger.LogWarning($"{ex} InvalidOperationException on connection");
+                Logger.LogWarning($"{ex} InvalidOperationException on connection", LoggerType.ApiCore);
                 await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
                 return;
             }
             catch (Exception ex)
             {
                 // if we had any other exception, log it and attempt to reconnect
-                Logger.LogWarning($"{ex} Exception on Connection");
-                Logger.LogInformation("Failed to establish connection, retrying");
+                Logger.LogWarning($"{ex} Exception on Connection", LoggerType.ApiCore);
+                Logger.LogInformation("Failed to establish connection, retrying", LoggerType.ApiCore);
                 await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), token).ConfigureAwait(false);
             }
         }
@@ -580,7 +575,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             while (pair.UserPair!.OwnPairPerms != perm)
             {
                 await Task.Delay(250, cts.Token).ConfigureAwait(false);
-                Logger.LogTrace("Waiting for permissions change for {data}", userData);
+                Logger.LogTrace("Waiting for permissions change for "+userData.UID, LoggerType.ApiCore);
             }
             // set it back to false;
             perm.IsPaused = false;
@@ -620,7 +615,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         return dto;
     }
 
-    /// <summary> The Disposal method for the APIcontroller.
+    /// <summary> The Disposal method for the API Controller.
     /// <para> This will cancel the healthCTS, stop the connection to the server, and cancel the connectionCTS.</para>
     /// </summary>
     /// <param name="disposing"></param>
@@ -652,10 +647,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // wait for 30 seconds
             await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
             // log that we are checking the client health state
-            if(_gagspeakConfigService.Current.LogServerConnectionHealth)
-            {
-                Logger.LogTrace("Checking Main Server Client Health State");
-            }
+            Logger.LogTrace("Checking Main Server Client Health State", LoggerType.Health);
+
             // refresh the token and check if we need to reconnect
             bool requireReconnect = await RefreshToken(ct).ConfigureAwait(false);
             // if we need to reconnect, break out of the loop
@@ -674,10 +667,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // wait for 30 seconds
             await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
             // log that we are checking the client health state
-            if (_gagspeakConfigService.Current.LogServerConnectionHealth)
-            {
-                Logger.LogTrace("Checking Toybox Server Client Health State");
-            }
+            Logger.LogTrace("Checking Toybox Server Client Health State", LoggerType.Health);
+
             // refresh the token and check if we need to reconnect
             bool requireReconnect = await RefreshToken(ct).ConfigureAwait(false);
             // if we need to reconnect, break out of the loop
@@ -703,7 +694,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             {
                 // then we can safely assume this is an alt account character of the Primary account.
                 // so, we can create a empty authentication template by storing ContentID, name, world.
-                Logger.LogDebug("Character has no secret key, generating new auth for current character");
+                Logger.LogDebug("Character has no secret key, generating new auth for current character", LoggerType.ApiCore);
                 _serverConfigs.GenerateAuthForCurrentCharacter();
             }
             // otherwise, we can use the existing authentication
@@ -735,7 +726,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // if the hub is null, return
             if (_gagspeakHub == null) return;
             // otherwise, log that we are initializing the data, and initialize it.
-            Logger.LogDebug("Initializing data");
+            Logger.LogDebug("Initializing data", LoggerType.ApiCore);
 
             // On the left is the function from the gagspeakhubclient.cs in the API, on the right is the function to be called in the API controller.
             OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
@@ -797,7 +788,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // if the hub is null, return
             if (_toyboxHub == null) return;
             // otherwise, log that we are initializing the data, and initialize it.
-            Logger.LogDebug("Initializing ToyboxHub API Hooks");
+            Logger.LogDebug("Initializing ToyboxHub API Hooks", LoggerType.ApiCore);
 
             // On the left is the function from the GagspeakHubClient.cs in the API, on the right is the function to be called in the API controller.
             OnReceiveServerMessage((sev, msg) => _ = Client_ReceiveServerMessage(sev, msg));
@@ -832,7 +823,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         foreach (var userPair in await UserGetPairedClients().ConfigureAwait(false))
         {
             // debug the pair, then add it to the pair manager.
-            Logger.LogTrace("Individual Pair Found: {userPair}", userPair.User.AliasOrUID);
+            Logger.LogTrace("Individual Pair Found: "+userPair.User.AliasOrUID, LoggerType.ApiCore);
             _pairManager.AddUserPair(userPair);
         }
     }
@@ -844,7 +835,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         foreach (var entry in await UserGetOnlinePairs().ConfigureAwait(false))
         {
             // debug the pair, then mark it as online in the pair manager.
-            Logger.LogDebug("Pair online: {pair}", entry);
+            Logger.LogDebug("Pair online: "+entry, LoggerType.ApiCore);
             _pairManager.MarkPairOnline(entry, sendNotif: false);
         }
         Mediator.Publish(new OnlinePairsLoadedMessage());
@@ -858,7 +849,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         foreach (var entry in await ToyboxUserGetOnlinePairs(UidList).ConfigureAwait(false))
         {
             // debug the pair, then mark it as online in the pair manager.
-            Logger.LogDebug("Pair online: {pair}", entry);
+            Logger.LogDebug("Pair online: "+entry, LoggerType.ApiCore);
             _pairManager.MarkPairToyboxOnline(entry);
         }
     }
@@ -878,7 +869,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         }
         else
         {
-            Logger.LogInformation("Connection closed");
+            Logger.LogInformation("Connection closed", LoggerType.ApiCore);
         }
     }
 
@@ -896,7 +887,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // if its not equal to the APIVersion then stop the connection
             if (_connectionDto.ServerVersion != IGagspeakHub.ApiVersion)
             {
-                Logger.LogInformation("_connectionDto.ServerVersion != IGagspeakHub.ApiVersion");
+                Logger.LogInformation("_connectionDto.ServerVersion != IGagspeakHub.ApiVersion", LoggerType.ApiCore);
                 await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                 return;
             }
@@ -912,7 +903,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                     NotificationType.Warning));
 
                 // stop connection
-                Logger.LogInformation("_connectionDto.CurrentClientVersion > Assembly.GetExecutingAssembly().GetName().Version!");
+                Logger.LogInformation("_connectionDto.CurrentClientVersion > Assembly.GetExecutingAssembly().GetName().Version!", LoggerType.ApiCore);
                 await StopConnection(ServerState.VersionMisMatch).ConfigureAwait(false);
                 return;
 
@@ -962,7 +953,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         }
         else
         {
-            Logger.LogInformation("Toybox Connection closed");
+            Logger.LogInformation("Toybox Connection closed", LoggerType.ApiCore);
         }
     }
 
@@ -1016,7 +1007,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// <returns>a boolean that is true if we need to refresh the token, and false if not.</returns>
     private async Task<bool> RefreshToken(CancellationToken ct)
     {
-        // Logger.LogTrace("Checking token");
+        // Logger.LogTrace("Checking token", LoggerType.ApiCore);
         // assume we dont require a reconnect
         bool requireReconnect = false;
         try
@@ -1026,7 +1017,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // if the token is not equal to the last used token
             if (!string.Equals(token, _lastUsedToken, StringComparison.Ordinal))
             {
-                Logger.LogDebug("Reconnecting due to updated token");
+                Logger.LogDebug("Reconnecting due to updated token", LoggerType.ApiCore);
                 // reconnect because it was updated
                 _doNotNotifyOnNextInfo = true;
                 await CreateConnections().ConfigureAwait(false);
@@ -1058,7 +1049,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // set state to disconnecting
             ServerState = ServerState.Disconnecting;
             // dispose of the hub factory
-            Logger.LogInformation("Stopping existing connection");
+            Logger.LogInformation("Stopping existing connection", LoggerType.ApiCore);
             await _hubFactory.DisposeHubAsync(HubType.MainHub).ConfigureAwait(false);
             // if the hub is not null
             if (_gagspeakHub is not null)
@@ -1082,7 +1073,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // set state to disconnecting
             ToyboxServerState = ServerState.Disconnecting;
             // dispose of the hub factory
-            Logger.LogInformation("Stopping existing Toybox connection");
+            Logger.LogInformation("Stopping existing Toybox connection", LoggerType.ApiCore);
             await _hubFactory.DisposeHubAsync(HubType.ToyboxHub).ConfigureAwait(false);
             // if the hub is not null
             if (_toyboxHub is not null)
@@ -1120,7 +1111,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         {
             if (ToyboxServerState is not (ServerState.Connected or ServerState.Connecting or ServerState.Reconnecting))
             {
-                throw new InvalidDataException("Not connected");
+                throw new InvalidDataException("ToyboxHub Not connected");
             }
         }
     }

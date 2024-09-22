@@ -44,7 +44,7 @@ public abstract class CustomFilterComboBase<T>
 
     private void ClearStorage(string label)
     {
-        Log.LogTrace("Cleaning up Filter Combo Cache for {Label}.", label);
+        Log.LogTrace("Cleaning up Filter Combo Cache for "+label);
         _filter = LowerString.Empty;
         _filterParts = [];
         _lastSelection = -1;

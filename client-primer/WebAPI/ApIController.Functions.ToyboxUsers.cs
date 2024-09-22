@@ -34,7 +34,7 @@ public partial class ApiController // Partial class for Toybox User Functions.
     public async Task<bool> PrivateRoomInviteUser(RoomInviteDto dto)
     {
         if (!IsToyboxConnected) return false;
-        Logger.LogInformation("Sending Invite to {0}", dto.UserInvited.AliasOrUID);
+        Logger.LogInformation("Sending Invite to "+dto.UserInvited.AliasOrUID, LoggerType.ApiCore);
         return await _toyboxHub!.InvokeAsync<bool>(nameof(PrivateRoomInviteUser), dto).ConfigureAwait(false);
     }
 

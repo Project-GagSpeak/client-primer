@@ -1,14 +1,9 @@
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
-using GagspeakAPI.Data.Character;
-using GagspeakAPI.Enums;
-using GagspeakAPI.Dto.Connection;
-using static PInvoke.User32;
 
 namespace GagSpeak.PlayerData.Handlers;
 /// <summary>
@@ -23,7 +18,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     private readonly PairManager _pairManager;
 
     public WardrobeHandler(ILogger<WardrobeHandler> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, PlayerCharacterData playerManager, 
+        ClientConfigurationManager clientConfiguration, PlayerCharacterData playerManager,
         PairManager pairManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfiguration;
@@ -35,14 +30,14 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
             // handle changes
             if (msg.State == NewState.Enabled)
             {
-                Logger.LogInformation("ActiveSet Enabled at index {0}", msg.SetIdx);
+                Logger.LogInformation("ActiveSet Enabled at index "+msg.SetIdx, LoggerType.Restraints);
                 ActiveSet = _clientConfigs.GetActiveSet();
                 Mediator.Publish(new UpdateGlamourRestraintsMessage(NewState.Enabled, msg.GlamourChangeTask));
             }
 
             if (msg.State == NewState.Disabled)
             {
-                Logger.LogInformation("ActiveSet Disabled at index {0}", msg.SetIdx);
+                Logger.LogInformation("ActiveSet Disabled at index " + msg.SetIdx, LoggerType.Restraints);
                 Mediator.Publish(new UpdateGlamourRestraintsMessage(NewState.Disabled, msg.GlamourChangeTask));
                 ActiveSet = null!;
             }
@@ -132,9 +127,9 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
     public async void EnableRestraintSet(int idx, string AssignerUID = "SelfApplied")
     {
-        if(!WardrobeEnabled || !RestraintSetsEnabled)
+        if (!WardrobeEnabled || !RestraintSetsEnabled)
         {
-            Logger.LogInformation("Wardrobe or Restraint Sets are disabled, cannot enable restraint set.");
+            Logger.LogInformation("Wardrobe or Restraint Sets are disabled, cannot enable restraint set.", LoggerType.Restraints);
             return;
         }
         await _clientConfigs.SetRestraintSetState(idx, AssignerUID, NewState.Enabled, true);
@@ -143,22 +138,22 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     {
         if (!WardrobeEnabled || !RestraintSetsEnabled)
         {
-            Logger.LogInformation("Wardrobe or Restraint Sets are disabled, cannot disable restraint set.");
+            Logger.LogInformation("Wardrobe or Restraint Sets are disabled, cannot disable restraint set.", LoggerType.Restraints);
             return;
         }
         await _clientConfigs.SetRestraintSetState(idx, AssignerUID, NewState.Disabled, true);
     }
-    
+
     public void LockRestraintSet(int idx, string lockType, string password, DateTimeOffset endLockTimeUTC, string AssignerUID)
         => _clientConfigs.LockRestraintSet(idx, lockType, password, endLockTimeUTC, AssignerUID, true);
 
     public void UnlockRestraintSet(int idx, string AssignerUID)
         => _clientConfigs.UnlockRestraintSet(idx, AssignerUID, true);
 
-    public int GetActiveSetIndex() 
+    public int GetActiveSetIndex()
         => _clientConfigs.GetActiveSetIdx();
 
-    public List<string> GetRestraintSetsByName() 
+    public List<string> GetRestraintSetsByName()
         => _clientConfigs.GetRestraintSetNames();
 
     public int GetRestraintSetIndexByName(string setName)
@@ -169,7 +164,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
     public List<Guid> GetAssociatedMoodles(int setIndex)
         => _clientConfigs.GetAssociatedMoodles(setIndex);
-    
+
     public EquipDrawData GetBlindfoldDrawData()
         => _clientConfigs.GetBlindfoldItem();
 
@@ -193,7 +188,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
             if (GenericHelpers.TimerPadlocks.Contains(ActiveSet.LockType) && ActiveSet.LockedUntil - DateTimeOffset.UtcNow <= TimeSpan.Zero)
             {
                 UnlockRestraintSet(GetActiveSetIndex(), ActiveSet.LockedBy);
-                Logger.LogInformation("Active Set [{0}] has expired its lock, unlocking and removing restraint set.", ActiveSet.Name);
+                Logger.LogInformation("Active Set ["+ActiveSet.Name+"] has expired its lock, unlocking and removing restraint set.", LoggerType.Restraints);
             }
         }
         catch (Exception ex)

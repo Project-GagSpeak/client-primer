@@ -19,5 +19,4 @@ public class IpcFastUpdates
     public delegate void CustomizeFastUpdateHandler(object sender, Guid e);
     public event CustomizeFastUpdateHandler? CustomizeEventFired;
     public void InvokeCustomize(Guid Guid) => CustomizeEventFired?.Invoke(this, Guid);
-
 }

@@ -4,6 +4,7 @@ using Dalamud.Plugin.Ipc;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
 using GagSpeak.UpdateMonitoring;
+using GagspeakAPI.Enums;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -92,7 +93,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
 
     private void OnMoodlesReady()
     {
-        _logger.LogWarning("Moodles Ready Invoked!");
+        _logger.LogWarning("Moodles Ready Invoked!", LoggerType.IpcMoodles);
         _gagspeakMediator.Publish(new MoodlesReady());
     }
 
@@ -146,7 +147,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Get Moodles Info");
+            _logger.LogWarning("Could not Get Moodles Info: "+e, LoggerType.IpcMoodles);
             return null;
         }
     }
@@ -162,7 +163,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Get Moodles Info");
+            _logger.LogWarning("Could not Get Moodles Info: " + e, LoggerType.IpcMoodles);
             return null;
         }
     }
@@ -178,7 +179,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Get Moodles Preset Info");
+            _logger.LogWarning("Could not Get Moodles Preset Info: " + e, LoggerType.IpcMoodles);
             return null;
         }
     }
@@ -193,7 +194,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Get Moodles Presets Info");
+            _logger.LogWarning("Could not Get Moodles Preset Info: " + e, LoggerType.IpcMoodles);
             return null;
         }
     }
@@ -208,7 +209,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Get Moodles Status");
+            _logger.LogWarning("Could not Get Moodles Status: " + e, LoggerType.IpcMoodles);
             return null;
         }
     }
@@ -223,7 +224,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Get Moodles Status");
+            _logger.LogWarning("Could not Get Moodles Status: " + e, LoggerType.IpcMoodles);
             return null;
         }
     }
@@ -238,7 +239,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Get Moodles Status");
+            _logger.LogWarning("Could not Get Moodles Status: " + e, LoggerType.IpcMoodles);
             return null;
         }
     }
@@ -254,7 +255,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Get Moodles Status");
+            _logger.LogWarning("Could not Get Moodles Status: " + e, LoggerType.IpcMoodles);
             return null;
         }
     }
@@ -266,7 +267,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
         if (string.IsNullOrEmpty(playerNameWithWorld))
         {
-            _logger.LogError("Could not get player name with world for Client Player!!!!");
+            _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);
             return;
         }
 
@@ -289,7 +290,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Apply Moodles Status");
+            _logger.LogWarning("Could not Apply Moodles Status: " + e, LoggerType.IpcMoodles);
         }
     }
 
@@ -303,7 +304,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
                 string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
                 if (string.IsNullOrEmpty(playerNameWithWorld))
                 {
-                    _logger.LogError("Could not get player name with world for Client Player!!!!");
+                    _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);
                 }
                 else
                 {
@@ -313,7 +314,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Apply Moodles Status");
+            _logger.LogWarning("Could not Apply Moodles Preset: " + e, LoggerType.IpcMoodles);
         }
     }
 
@@ -323,12 +324,11 @@ public sealed class IpcCallerMoodles : IIpcCaller
         if (!APIAvailable) return;
         try
         {
-            await _frameworkUtil.RunOnFrameworkThread(() => 
-                _applyStatusesFromPair.InvokeAction(applierNameWithWorld, recipientNameWithWorld, statuses)).ConfigureAwait(false);
+            await _frameworkUtil.RunOnFrameworkThread(() => _applyStatusesFromPair.InvokeAction(applierNameWithWorld, recipientNameWithWorld, statuses)).ConfigureAwait(false);
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Apply Moodles Status");
+            _logger.LogWarning("Could not Apply Moodles Status: " + e, LoggerType.IpcMoodles);
         }
     }
 
@@ -342,7 +342,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
                 string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
                 if (string.IsNullOrEmpty(playerNameWithWorld))
                 {
-                    _logger.LogError("Could not get player name with world for Client Player!!!!");
+                    _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);
                 }
                 else
                 {
@@ -352,7 +352,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Set Moodles Status");
+            _logger.LogWarning("Could not Remove Moodles Status: " + e, LoggerType.IpcMoodles);
         }
     }
 
@@ -366,7 +366,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Set Moodles Status");
+            _logger.LogWarning("Could not Set Moodles Status: " + e, LoggerType.IpcMoodles);
         }
     }
 
@@ -375,7 +375,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
         if (string.IsNullOrEmpty(playerNameWithWorld))
         {
-            _logger.LogError("Could not get player name with world for Client Player!!!!");
+            _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);
         }
         await ClearStatusAsync(playerNameWithWorld);
     }
@@ -391,7 +391,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
         catch (Exception e)
         {
-            _logger.LogWarning(e, "Could not Set Moodles Status");
+            _logger.LogWarning("Could not Clear Moodles Statuses: " + e, LoggerType.IpcMoodles);
         }
     }
 }

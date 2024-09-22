@@ -27,7 +27,7 @@ public class UiFactory
     private readonly IdDisplayHandler _displayHandler;
     private readonly PairManager _pairManager;
     private readonly PlayerCharacterData _playerManager;
-    private readonly GagspeakConfigService _mainConfig;
+    private readonly ClientConfigurationManager _clientConfigs;
     private readonly ToyboxRemoteService _remoteService;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly ProfileService _gagspeakProfileManager;
@@ -43,7 +43,7 @@ public class UiFactory
         PairManager pairManager, PlayerCharacterData playerManager,
         ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
         ProfileService profileManager, OnFrameworkService frameworkUtils,
-        GagspeakConfigService mainConfig, MoodlesService moodlesService,
+        ClientConfigurationManager clientConfigs, MoodlesService moodlesService,
         PermissionPresetService presetService, PermActionsComponents permActionHelpers,
         IClientState clientState)
     {
@@ -59,7 +59,7 @@ public class UiFactory
         _serverConfigs = serverConfigs;
         _gagspeakProfileManager = profileManager;
         _frameworkUtils = frameworkUtils;
-        _mainConfig = mainConfig;
+        _clientConfigs = clientConfigs;
         _moodlesService = moodlesService;
         _presetService = presetService;
         _permActionHelpers = permActionHelpers;
@@ -82,7 +82,7 @@ public class UiFactory
     public PairStickyUI CreateStickyPairPerms(Pair pair, StickyWindowType drawType)
     {
         return new PairStickyUI(_loggerFactory.CreateLogger<PairStickyUI>(), _gagspeakMediator, pair,
-            drawType, _frameworkUtils, _mainConfig, _playerManager, _displayHandler, _uiSharedService, _apiController, _pairManager,
-            _moodlesService, _presetService, _permActionHelpers, _clientState);
+            drawType, _frameworkUtils, _clientConfigs, _playerManager, _displayHandler, _uiSharedService, 
+            _apiController, _pairManager, _moodlesService, _presetService, _permActionHelpers, _clientState);
     }
 }

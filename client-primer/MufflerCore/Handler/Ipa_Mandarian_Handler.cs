@@ -51,18 +51,18 @@ public class Ipa_Mandarian_Handler
             string jsonFilePath = Path.Combine(_pi.AssemblyLocation.Directory?.FullName!, data_file);
             string json = File.ReadAllText(jsonFilePath);
             obj = JsonConvert.DeserializeObject<Dictionary<string, string>>(json) ?? new Dictionary<string, string>();
-            _logger.LogInformation($"File read: {data_file}");
+            _logger.LogInformation($"File read: {data_file}", LoggerType.GarblerCore);
             ExtractUniquePhonetics();
             uniqueSymbolsString = string.Join(",", uniqueSymbols);
         }
         catch (FileNotFoundException)
         {
-            _logger.LogDebug($"File does not exist: {data_file}");
+            _logger.LogDebug($"File does not exist: {data_file}", LoggerType.GarblerCore);
             obj = new Dictionary<string, string>();
         }
         catch (Exception ex)
         {
-            _logger.LogDebug($"An error occurred while reading the file: {ex.Message}");
+            _logger.LogDebug($"An error occurred while reading the file: {ex.Message}", LoggerType.GarblerCore);
             obj = new Dictionary<string, string>();
         }
     }
@@ -220,7 +220,7 @@ public class Ipa_Mandarian_Handler
 
     public string ConvertToSpacedPhonetics(string input)
     {
-        _logger.LogDebug($"[IPA Parser] Converting phonetics to spaced phonetics: {input}");
+        _logger.LogDebug($"[IPA Parser] Converting phonetics to spaced phonetics: {input}", LoggerType.GarblerCore);
         var output = "";
         // Add a placeholder at the start and end of the input string
         input = " " + input + " ";
@@ -229,7 +229,7 @@ public class Ipa_Mandarian_Handler
         // Iterate over the phonetic representations
         foreach (var representation in phoneticRepresentations)
         {
-            _logger.LogDebug($"[IPA Parser] Phonetic representation: {representation}");
+            _logger.LogDebug($"[IPA Parser] Phonetic representation: {representation}", LoggerType.GarblerCore);
             // Remove the placeholders
             var phonetics = representation.Trim();
             // Check if the representation has a phonetic representation
@@ -278,7 +278,7 @@ public class Ipa_Mandarian_Handler
                 output += phonetics + " ";
             }
         }
-        _logger.LogDebug($"[IPA Parser] Converted phonetics to spaced phonetics: {output}");
+        _logger.LogDebug($"[IPA Parser] Converted phonetics to spaced phonetics: {output}", LoggerType.GarblerCore);
         // Remove the trailing space and return the output
         return output.TrimEnd();
     }

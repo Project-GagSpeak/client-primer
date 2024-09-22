@@ -7,7 +7,6 @@ using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
-using GagspeakAPI.Enums;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Raii;
@@ -85,16 +84,10 @@ public class ModAssociations : DisposableMediatorSubscriberBase
             Logger.LogError(e, "Error applying mods on set toggle.");
         }
 
-        if(msg.ModToggleTask != null)
+        if (msg.ModToggleTask != null)
         {
             msg.ModToggleTask.SetResult(true);
         }
-    }
-
-    // main draw function for the mod associations table
-    public void Draw()
-    {
-        DrawTable();
     }
 
     public void DrawUnstoredSetTable(RestraintSet unstoredSet, float paddingHeight)
@@ -147,53 +140,6 @@ public class ModAssociations : DisposableMediatorSubscriberBase
 
             unstoredSet.AssociatedMods[associatedModIdx] = updatedMod.UpdatedMod;
         }
-    }
-
-    // draw the table for constructing the associated mods.
-    private void DrawTable()
-    {
-/*        using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, ImGui.GetStyle().CellPadding.Y));
-        using var table = ImRaii.Table("Mods", 5, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY);
-        if (!table) { return; }
-
-        ImGui.TableSetupColumn("##Delete", ImGuiTableColumnFlags.WidthFixed, ImGui.GetFrameHeight());
-        ImGui.TableSetupColumn("Mods to enable with this Set", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("Toggle", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Toggle").X);
-        ImGui.TableSetupColumn("##Redraw", ImGuiTableColumnFlags.WidthFixed, ImGui.GetFrameHeight());
-        ImGui.TableSetupColumn("##Update", ImGuiTableColumnFlags.WidthFixed, ImGui.GetFrameHeight());             // update to reflect what is in
-        ImGui.TableHeadersRow();
-
-        Mod? removedMod = null;
-        ModUpdateResult? updatedMod = null;
-
-        foreach (var (associatedMod, idx) in _handler.GetAssociatedMods(_handler.SelectedSetIdx).WithIndex())
-        {
-            using var id = ImRaii.PushId(idx);
-
-            DrawAssociatedModRow(associatedMod, idx, out var removedModTmp, out var updatedModTmp);
-
-            if (removedModTmp.HasValue)
-            {
-                removedMod = removedModTmp;
-            }
-
-            if (updatedModTmp != null && updatedModTmp.IsChanged)
-            {
-                updatedMod = updatedModTmp;
-            }
-        }
-
-        DrawNewModRow();
-
-        if (removedMod.HasValue)
-        {
-            _handler.RemoveAssociatedMod(_handler.SelectedSetIdx, removedMod.Value);
-        }
-
-        if (updatedMod != null && updatedMod.IsChanged)
-        {
-            _handler.UpdateAssociatedMod(_handler.SelectedSetIdx, updatedMod.UpdatedMod);
-        }*/
     }
 
     private void DrawAssociatedModRow(AssociatedMod currentMod, int idx, out Mod? removedMod, out ModUpdateResult? updatedMod)

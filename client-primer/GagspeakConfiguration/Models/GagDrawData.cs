@@ -1,4 +1,4 @@
-using GagSpeak.UI.Components;
+using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.Utils;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;

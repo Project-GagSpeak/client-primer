@@ -137,7 +137,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             }
             else
             {
-                Logger.LogInformation("Retrieved patterns from servers.");
+                Logger.LogInformation("Retrieved patterns from servers.", LoggerType.PatternHub);
                 SearchResults = SearchPatternsTask.Result;
             }
             _ = ClearTaskInOneSecond(() => SearchPatternsTask, () => SearchPatternsTask = null);
@@ -150,7 +150,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             Logger.LogWarning("DownloadPatternTask already in progress.");
             return;
         }
-        Logger.LogTrace("Downloading Pattern from server.");
+        Logger.LogTrace("Downloading Pattern from server.", LoggerType.PatternHub);
         DownloadPatternTask = _apiController.DownloadPattern(patternIdentifier);
         DownloadPatternTask.ContinueWith(task =>
         {
@@ -197,7 +197,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
         {
             if (task.Result)
             {
-                Logger.LogDebug("LikePatternTask completed.");
+                Logger.LogDebug("LikePatternTask completed.", LoggerType.PatternHub);
                 // update the pattern stuff
                 var pattern = SearchResults.FirstOrDefault(x => x.Identifier == PatternInteractingWith);
                 if (pattern != null)

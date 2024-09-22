@@ -156,7 +156,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             // update the isFollowingForAnyPair to true. This should always be true since its switched to enabled from the call.
             _isFollowingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
             HandleForcedFollow(true, pairToFollow);
-            Logger.LogDebug("Enabled forced follow for pair.");
+            Logger.LogDebug("Enabled forced follow for pair.", LoggerType.HardcoreMovement);
             return;
         }
 
@@ -169,7 +169,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
                 _isFollowingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
                 HandleForcedFollow(false);
                 Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedFollow, NewState.Disabled));
-                Logger.LogDebug("Disabled forced follow for pair.");
+                Logger.LogDebug("Disabled forced follow for pair.", LoggerType.HardcoreMovement);
                 return;
             }
 
@@ -185,7 +185,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             HandleForcedFollow(false, pairToFollow);
             Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedFollow, NewState.Disabled));
             // log success.
-            Logger.LogDebug("Disabled forced follow for pair.");
+            Logger.LogDebug("Disabled forced follow for pair.", LoggerType.HardcoreMovement);
             return;
         }
     }
@@ -210,7 +210,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
                 ChatBoxMessage.EnqueueMessage("/sit");
             }
             // log success.
-            Logger.LogDebug("Enabled forced kneeling for pair.");
+            Logger.LogDebug("Enabled forced kneeling for pair.", LoggerType.HardcoreMovement);
             return;
         }
 
@@ -233,7 +233,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
                 Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedSit, NewState.Disabled));
             }
             // log success.
-            Logger.LogDebug("Enabled forced follow for pair.");
+            Logger.LogDebug("Enabled forced follow for pair.", LoggerType.HardcoreMovement);
             return;
         }
     }
@@ -248,7 +248,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         if (newState == NewState.Enabled && !IsForcedFollow)
         {
             _isStayingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay);
-            Logger.LogDebug("Enabled forced follow for pair.");
+            Logger.LogDebug("Enabled forced follow for pair.", LoggerType.HardcoreMovement);
             return;
         }
 
@@ -260,7 +260,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
                 return;
             }
             _isStayingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay);
-            Logger.LogDebug("Disabled forced follow for pair.");
+            Logger.LogDebug("Disabled forced follow for pair.", LoggerType.HardcoreMovement);
             return;
         }
     }
@@ -275,7 +275,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         {
             _isBlindfoldedByAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded);
             await HandleBlindfoldLogic(NewState.Enabled, pairBlindfolding.UserData.UID);
-            Logger.LogDebug("Enabled forced follow for pair.");
+            Logger.LogDebug("Enabled forced follow for pair.", LoggerType.HardcoreActions);
             return;
         }
 
@@ -288,7 +288,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             }
             _isBlindfoldedByAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded);
             await HandleBlindfoldLogic(NewState.Disabled, pairBlindfolding.UserData.UID);
-            Logger.LogDebug("Disabled forced follow for pair.");
+            Logger.LogDebug("Disabled forced follow for pair.", LoggerType.HardcoreMovement);
             return;
         }
     }
@@ -367,22 +367,22 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     {
         if (_outfitHandler.ActiveSet.SetProperties[_outfitHandler.ActiveSet.EnabledBy].LightStimulation)
         {
-            Logger.LogDebug($"Light Stimulation Multiplier applied from set with factor of 1.125x!");
+            Logger.LogDebug($"Light Stimulation Multiplier applied from set with factor of 1.125x!", LoggerType.HardcoreActions);
             StimulationMultiplier = 1.125;
         }
         else if (_outfitHandler.ActiveSet.SetProperties[_outfitHandler.ActiveSet.EnabledBy].MildStimulation)
         {
-            Logger.LogDebug($"Mild Stimulation Multiplier applied from set with factor of 1.25x!");
+            Logger.LogDebug($"Mild Stimulation Multiplier applied from set with factor of 1.25x!", LoggerType.HardcoreActions);
             StimulationMultiplier = 1.25;
         }
         else if (_outfitHandler.ActiveSet.SetProperties[_outfitHandler.ActiveSet.EnabledBy].HeavyStimulation)
         {
-            Logger.LogDebug($"Heavy Stimulation Multiplier applied from set with factor of 1.5x!");
+            Logger.LogDebug($"Heavy Stimulation Multiplier applied from set with factor of 1.5x!", LoggerType.HardcoreActions);
             StimulationMultiplier = 1.5;
         }
         else
         {
-            Logger.LogDebug($"No Stimulation Multiplier applied from set, defaulting to 1.0x!");
+            Logger.LogDebug($"No Stimulation Multiplier applied from set, defaulting to 1.0x!", LoggerType.HardcoreActions);
             StimulationMultiplier = 1.0;
         }
     }

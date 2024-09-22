@@ -6,16 +6,12 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagSpeak.WebAPI;
-using GagSpeak.WebAPI.Utils;
-using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Permissions;
-using GagspeakAPI.Dto.Permissions;
-using JetBrains.Annotations;
 using Microsoft.Extensions.Hosting;
 
 namespace GagSpeak.Services;
 
-// The most fundementally important service in the entire application.
+// The most fundamentally important service in the entire application.
 // helps revert any active states applied to the player when used.
 public class SafewordService : MediatorSubscriberBase, IHostedService
 {
@@ -29,10 +25,10 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
     private readonly IpcFastUpdates _glamourFastEvent; // for reverting character.
 
     public SafewordService(ILogger<SafewordService> logger, GagspeakMediator mediator,
-        ApiController apiController, PlayerCharacterData playerManager, 
-        PairManager pairManager, ClientConfigurationManager clientConfigs, 
+        ApiController apiController, PlayerCharacterData playerManager,
+        PairManager pairManager, ClientConfigurationManager clientConfigs,
         GagManager gagManager, PlaybackService playbackService,
-        WardrobeHandler wardrobeHandler, IpcFastUpdates glamourFastUpdate) 
+        WardrobeHandler wardrobeHandler, IpcFastUpdates glamourFastUpdate)
         : base(logger, mediator)
     {
         _apiController = apiController;
@@ -66,28 +62,28 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             // return if it has not yet been 5 minutes since the last use.
             if (SafewordIsUsed)
             {
-                Logger.LogWarning("Hardcore Safeword was used too soon after the last use. Must wait 5 minutes.");
+                Logger.LogWarning("Hardcore Safeword was used too soon after the last use. Must wait 5 minutes.", LoggerType.Safeword);
                 return;
             }
 
             // set the time of the last safeword used.
             TimeOfLastSafewordUsed = DateTime.Now;
-            Logger.LogInformation("Safeword was used.");
+            Logger.LogInformation("Safeword was used.", LoggerType.Safeword);
 
             // disable any active gags and push these updates to the API.
-            Logger.LogInformation("Disabling any active gags.");
+            Logger.LogInformation("Disabling any active gags.", LoggerType.Safeword);
             _gagManager.SafewordWasUsed();
-            Logger.LogInformation("Active gags disabled.");
+            Logger.LogInformation("Active gags disabled.", LoggerType.Safeword);
 
             // disable any active restraints.
-            Logger.LogInformation("Disabling all stored data and reverting character.");
+            Logger.LogInformation("Disabling all stored data and reverting character.", LoggerType.Safeword);
 
             // grab active pattern first if any.
             if (_patternPlaybackService.ActivePattern != null)
             {
-                Logger.LogInformation("Stopping active pattern.");
+                Logger.LogInformation("Stopping active pattern.", LoggerType.Safeword);
                 _patternPlaybackService.StopPattern(_patternPlaybackService.ActivePattern.UniqueIdentifier, false);
-                Logger.LogInformation("Active pattern stopped.");
+                Logger.LogInformation("Active pattern stopped.", LoggerType.Safeword);
             }
 
             // disable all other active things.
@@ -110,16 +106,16 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
                 _playerManager.GlobalPerms.ToyIntensity = 0;
                 _playerManager.GlobalPerms.SpatialVibratorAudio = false;
 
-                Logger.LogInformation("Pushing Global updates to the server.");
+                Logger.LogInformation("Pushing Global updates to the server.", LoggerType.Safeword);
                 _ = _apiController.UserPushAllGlobalPerms(new(_apiController.PlayerUserData, _playerManager.GlobalPerms));
-                Logger.LogInformation("Global updates pushed to the server.");
+                Logger.LogInformation("Global updates pushed to the server.", LoggerType.Safeword);
             }
-            Logger.LogInformation("Everything Disabled.");
+            Logger.LogInformation("Everything Disabled.", LoggerType.Safeword);
 
             // reverting character.
             _glamourFastEvent.InvokeGlamourer(GlamourUpdateType.Safeword);
 
-            Logger.LogInformation("Character reverted.");
+            Logger.LogInformation("Character reverted.", LoggerType.Safeword);
         }
         catch (Exception ex)
         {
@@ -137,15 +133,15 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
         }
         // set the time of the last hardcore safeword used.
         TimeOfLastHardcoreSafewordUsed = DateTime.Now;
-        Logger.LogInformation("Hardcore Safeword was used.");
+        Logger.LogInformation("Hardcore Safeword was used.", LoggerType.Safeword);
 
         // push the permission update for the hardcore safeword to the server.
         UserGlobalPermissions newGlobalPerms = _playerManager.GlobalPerms ?? new UserGlobalPermissions();
         newGlobalPerms.HardcoreSafewordUsed = true;
 
         _playerManager.GlobalPerms = newGlobalPerms;
-        
-        if(ApiController.ServerState is ServerState.Connected)
+
+        if (ApiController.ServerState is ServerState.Connected)
         {
             _ = _apiController.UserUpdateOwnGlobalPerm(new(_apiController.PlayerUserData, new KeyValuePair<string, object>("HardcoreSafewordUsed", true)));
         }

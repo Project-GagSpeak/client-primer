@@ -47,20 +47,20 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
             // this check also helps us ensure that we are not receiving the same data as pairHandlerVisible
             if (LastIpcData == null || LastIpcData.Equals(newData))
             {
-                Logger.LogDebug("Pushing new IPC data to all visible players");
+                Logger.LogDebug("Pushing new IPC data to all visible players", LoggerType.VisiblePairs);
                 LastIpcData = newData;
                 PushCharacterIpcData(_pairManager.GetVisibleUsers(), msg.UpdateKind);
             }
             else
             {
-                Logger.LogDebug("Data was no different. Not sending data");
+                Logger.LogDebug("Data was no different. Not sending data", LoggerType.VisiblePairs);
             }
         });
 
         // Called whenever we are requesting to apply a set of moodles from our clients Moodle Statuses, to another pair.
         Mediator.Subscribe<MoodlesApplyStatusToPair>(this, (msg) =>
         {
-            Logger.LogDebug("Applying List of your Statuses from your Moodles to {user}", msg.StatusDto.User.AliasOrUID);
+            Logger.LogDebug("Applying List of your Statuses from your Moodles to "+msg.StatusDto.User.AliasOrUID, LoggerType.VisiblePairs);
             _ = Task.Run(async () =>
             {
                 await _apiController.UserApplyMoodlesByStatus(msg.StatusDto).ConfigureAwait(false);
@@ -86,7 +86,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
         _newVisiblePlayers.Clear();
 
         // Push our IPC data to those players, applying our moodles data & sending customize+ info.
-        Logger.LogTrace("Has new visible players, pushing character data");
+        Logger.LogTrace("Has new visible players, pushing character data", LoggerType.VisiblePairs);
         PushCharacterIpcData(newVisiblePlayers.Select(c => c.OnlineUser.User).ToList(), DataUpdateKind.IpcUpdateVisible);
     }
 
@@ -105,7 +105,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
         }
         else
         {
-            Logger.LogWarning("No visible players to push IPC data to");
+            Logger.LogInformation("No visible players to push IPC data to");
         }
     }
 }

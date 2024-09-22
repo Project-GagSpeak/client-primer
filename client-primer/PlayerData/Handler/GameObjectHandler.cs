@@ -62,7 +62,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
 
     public void Invalidate()
     {
-        Logger.LogDebug("Object for {NameWithWorld} is now invalid, clearing Address & NameWithWorld", NameWithWorld);
+        Logger.LogDebug("Object for ["+NameWithWorld+"] is now invalid, clearing Address & NameWithWorld", LoggerType.GameObjects);
         Address = IntPtr.Zero;
         NameWithWorld = string.Empty;
         DrawObjectAddress = IntPtr.Zero;
@@ -130,7 +130,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             // if they are both not 0, and the clear cts is not null (aka we want to cancel), cancel the clear cts.
             if (_clearCts != null)
             {
-                Logger.LogDebug("Cancelling Clear Task");
+                Logger.LogDebug("Cancelling Clear Task", LoggerType.GameObjects);
                 _clearCts.CancelDispose();
                 _clearCts = null;
             }
@@ -138,16 +138,16 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             if (addrDiff || drawObjDiff)
             {
                 UpdatePlayerCharacterRef();
-                Logger.LogDebug("Object Address Changed, updating with name & world {NameWithWorld}", NameWithWorld);
+                Logger.LogDebug("Object Address Changed, updating with name & world "+NameWithWorld, LoggerType.GameObjects);
             }
 
-            // If the gameobject is not a player character and a visible pair. update the name with world if the address is different, and then return.
+            // If the game object is not a player character and a visible pair. update the name with world if the address is different, and then return.
             if (!IsOwnedObject) return;
 
             // Update the player characters cache in the cache creation service.
             if ((addrDiff || drawObjDiff) && IsOwnedObject)
             {
-                Logger.LogDebug("Changed, Sending CreateCacheObjectMessage");
+                Logger.LogDebug("Changed, Sending CreateCacheObjectMessage", LoggerType.GameObjects);
                 Mediator.Publish(new CreateCacheForObjectMessage(this)); // will update the player character cache from its previous data.
             }
         }
@@ -158,7 +158,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             // only fires when the change is from us.
             if (IsOwnedObject)
             {
-                Logger.LogDebug("[{this}] Calling upon ClearAsync due to an owned object vanishing.", this);
+                Logger.LogDebug("["+this+"] Calling upon ClearAsync due to an owned object vanishing.", LoggerType.GameObjects);
                 _clearCts?.CancelDispose();
                 _clearCts = new();
                 var token = _clearCts.Token;
@@ -171,9 +171,9 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
     /// <returns> Clears the cache for the object handler in the cache creation service via mediator publish. </returns>
     private async Task ClearAsync(CancellationToken token)
     {
-        Logger.LogDebug("Running Clear Task");
+        Logger.LogDebug("Running Clear Task", LoggerType.GameObjects);
         await Task.Delay(TimeSpan.FromSeconds(1), token).ConfigureAwait(false);
-        Logger.LogDebug("Sending ClearCachedForObjectMessage");
+        Logger.LogDebug("Sending ClearCachedForObjectMessage", LoggerType.GameObjects);
         Mediator.Publish(new ClearCacheForObjectMessage(this));
         _clearCts = null;
     }
@@ -200,7 +200,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
         if (!IsOwnedObject || _haltProcessing) return;
 
         _zoningCts = new();
-        Logger.LogDebug("[{obj}] Starting Delay After Zoning", this);
+        Logger.LogDebug("["+this+"] Starting Delay After Zoning", LoggerType.GameObjects);
         _delayedZoningTask = Task.Run(async () =>
         {
             try
@@ -210,7 +210,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
             catch { /* consume */ }
             finally
             {
-                Logger.LogDebug("[{this}] Delay after zoning complete", this);
+                Logger.LogDebug("["+this+"] Delay after zoning complete", LoggerType.GameObjects);
                 _zoningCts.Dispose();
             }
         });

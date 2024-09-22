@@ -1,17 +1,13 @@
-using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Ipc;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
-using GagSpeak.WebAPI;
-using GagspeakAPI.Data.IPC;
-using Microsoft.Extensions.Hosting;
-using GagspeakAPI.Dto.IPC;
-using System.Net.NetworkInformation;
 using GagspeakAPI.Data;
+using GagspeakAPI.Data.IPC;
+using GagspeakAPI.Dto.IPC;
+using Microsoft.Extensions.Hosting;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -60,7 +56,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
     private static ICallGateProvider<object>? GagSpeakDisposing;
 
     public IpcProvider(ILogger<IpcProvider> logger, GagspeakMediator mediator,
-        PairManager pairManager, OnFrameworkService frameworkUtils, 
+        PairManager pairManager, OnFrameworkService frameworkUtils,
         IDalamudPluginInterface pi)
     {
         _logger = logger;
@@ -83,14 +79,14 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
 
                 // notify the update
                 NotifyListChanged();
-            }            
+            }
         });
 
         Mediator.Subscribe<MoodlesUpdateNotifyMessage>(this, (_) => NotifyListChanged());
 
         Mediator.Subscribe<GameObjectHandlerCreatedMessage>(this, (msg) =>
         {
-            _logger.LogInformation("Received GameObjectHandlerCreatedMessage for {handler}", msg.GameObjectHandler.NameWithWorld);
+            _logger.LogInformation("Received GameObjectHandlerCreatedMessage for " + msg.GameObjectHandler.NameWithWorld, LoggerType.IpcGagSpeak);
             if (msg.OwnedObject)
             {
                 _playerObject = msg.GameObjectHandler;
@@ -104,7 +100,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         });
         Mediator.Subscribe<GameObjectHandlerDestroyedMessage>(this, (msg) =>
         {
-            _logger.LogInformation("Received GameObjectHandlerDestroyedMessage for {handler}", msg.GameObjectHandler.NameWithWorld);
+            _logger.LogInformation("Received GameObjectHandlerDestroyedMessage for " + msg.GameObjectHandler.NameWithWorld, LoggerType.IpcGagSpeak);
             if (msg.OwnedObject)
             {
                 _playerObject = null;
@@ -146,16 +142,12 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
         _logger.LogDebug("Stopping IpcProvider Service");
         NotifyDisposing();
 
-
         GagSpeakApiVersion?.UnregisterFunc();
-
         GagSpeakReady?.UnregisterFunc();
         GagSpeakDisposing?.UnregisterFunc();
 
         _handledVisiblePairs?.UnregisterFunc();
-
         _applyStatusesToPairRequest?.UnregisterAction();
-
         _listUpdated?.UnregisterAction();
 
         Mediator.UnsubscribeAll(this);
@@ -165,7 +157,6 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
 
     private static void NotifyReady() => GagSpeakReady?.SendMessage();
     private static void NotifyDisposing() => GagSpeakDisposing?.SendMessage();
-
     private static void NotifyListChanged() => _listUpdated?.SendMessage();
 
 
@@ -175,7 +166,7 @@ public class IpcProvider : IHostedService, IMediatorSubscriber
 
 
         return VisiblePairObjects.Where(g => g.Item1.NameWithWorld != string.Empty && g.Item1.Address != nint.Zero)
-            .Select(g => ((g.Item1.NameWithWorld),(g.Item2),(g.Item3)))
+            .Select(g => ((g.Item1.NameWithWorld), (g.Item2), (g.Item3)))
             .Distinct()
             .ToList();
     }

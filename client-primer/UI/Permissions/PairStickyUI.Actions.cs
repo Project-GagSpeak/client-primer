@@ -18,7 +18,7 @@ namespace GagSpeak.UI.Permissions;
 /// </summary>
 public partial class PairStickyUI
 {
-    public ActiveActionButton Opened = ActiveActionButton.None;
+    public InteractionType Opened = InteractionType.None;
     public void DrawPairActionFunctions()
     {
         /* ----------- GLOBAL SETTINGS ----------- */
@@ -148,7 +148,7 @@ public partial class PairStickyUI
 
             _ = _apiController.UserPushPairDataAliasStorageUpdate(new OnlineUserCharaAliasDataDto
                 (UserPairForPerms.UserData, dataToPush, DataUpdateKind.PuppeteerPlayerNameRegistered));
-            _logger.LogDebug("Sent Puppeteer Name to " + UserPairForPerms.UserData.AliasOrUID);
+            _logger.LogDebug("Sent Puppeteer Name to " + UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
         }
         UiSharedService.AttachToolTip("Sends your Name & World to this pair so their puppeteer will listen for messages from you.");
         ImGui.Separator();
@@ -160,7 +160,7 @@ public partial class PairStickyUI
 
         if (UserPairForPerms.IndividualPairStatus != IndividualPairStatus.None)
         {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", WindowMenuWidth, true, UiSharedService.CtrlPressed()))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", WindowMenuWidth, true, !UiSharedService.CtrlPressed()))
             {
                 _ = _apiController.UserRemovePair(new(UserPairForPerms.UserData));
             }

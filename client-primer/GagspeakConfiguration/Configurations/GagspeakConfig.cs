@@ -38,18 +38,16 @@ public class GagspeakConfig : IGagspeakConfiguration
     public float ProfileDelay { get; set; } = 1.5f;
     public bool ProfilePopoutRight { get; set; } = false;
     public bool ProfilesShow { get; set; } = true;
-    public List<ChatChannel.ChatChannels> ChannelsGagSpeak { get; set; } = [];
-    public List<ChatChannel.ChatChannels> ChannelsPuppeteer { get; set; } = [];
+    public bool ContextMenusShow { get; set; } = true;
+    public List<ChatChannels> ChannelsGagSpeak { get; set; } = [];
+    public List<ChatChannels> ChannelsPuppeteer { get; set; } = [];
 
     // logging (debug)
     public bool ShowOnlineNotifications { get; set; } = false;
     public bool ShowOnlineNotificationsOnlyForIndividualPairs { get; set; } = false;
     public bool ShowOnlineNotificationsOnlyForNamedPairs { get; set; } = false;
     public LogLevel LogLevel { get; set; } = LogLevel.Trace;
-    public bool LogBatteryAndAlarmChecks { get; set; } = false;
-    public bool LogResourceManagement { get; set; } = false;
-    public bool LogActionEffects { get; set; } = false;
-    public bool LogServerConnectionHealth { get; set; } = false;
+    public HashSet<LoggerType> LoggerFilters { get; set; } = new HashSet<LoggerType>();
     public NotificationLocation InfoNotification { get; set; } = NotificationLocation.Both;
     public NotificationLocation WarningNotification { get; set; } = NotificationLocation.Both;
     public NotificationLocation ErrorNotification { get; set; } = NotificationLocation.Both;

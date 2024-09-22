@@ -29,7 +29,7 @@ public unsafe partial class ResourceLoader
     {
         var vfx = ActorVfxCreateHook.Original(path, a2, a3, a4, a5, a6, a7);
 
-        if (_mainConfig.Current.LogResourceManagement) _logger.LogTrace($"New Actor: {path} {vfx:X8}");
+        _logger.LogTrace($"New Actor: {path} {vfx:X8}", LoggerType.SpatialAudioLogger);
         return vfx;
     }
 
@@ -38,7 +38,7 @@ public unsafe partial class ResourceLoader
         // remove from vfxSpawns
         _mediator.Publish(new VfxActorRemoved(vfx));
 
-        if (_mainConfig.Current.LogResourceManagement) _logger.LogTrace($"Removed Actor: {vfx:X8}");
+        _logger.LogTrace($"Removed Actor: {vfx:X8}", LoggerType.SpatialAudioLogger);
         return ActorVfxRemoveHook.Original(vfx, a2);
     }
 
@@ -47,7 +47,7 @@ public unsafe partial class ResourceLoader
         // use dat trigger in dat timeline.
         var timeline = VfxUseTriggerHook.Original(vfx, triggerId);
 
-        if (_mainConfig.Current.LogResourceManagement) _logger.LogTrace($"Trigger {triggerId} on {vfx:X8}, timeline: {timeline:X8}");
+        _logger.LogTrace($"Trigger {triggerId} on {vfx:X8}, timeline: {timeline:X8}", LoggerType.SpatialAudioLogger);
         return timeline;
     }
 }

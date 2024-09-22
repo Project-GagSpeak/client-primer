@@ -21,6 +21,10 @@ public sealed class DalamudLoggingProvider : ILoggerProvider
         _gagspeakConfigService = gagspeakConfigService;
         _pluginLog = pluginLog;
         _pluginLog.MinimumLogLevel = LogEventLevel.Verbose;
+
+        // initialize the static logger filter with the stored filter list in the config service
+        LoggerFilter.ClearAllowedCategories();
+        LoggerFilter.AddAllowedCategories(_gagspeakConfigService.Current.LoggerFilters);
     }
 
     public ILogger CreateLogger(string categoryName)

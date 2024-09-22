@@ -42,7 +42,7 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
 
     public Task Client_UserReceiveRoomInvite(RoomInviteDto dto)
     {
-        Logger.LogDebug("Client_UserReceiveRoomInvite: {dto}", dto);
+        Logger.LogDebug("Client_UserReceiveRoomInvite: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _privateRoomManager.InviteRecieved(dto));
         return Task.CompletedTask;
     }
@@ -50,7 +50,7 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     /// <summary> For whenever you join a new room. </summary>
     public Task Client_PrivateRoomJoined(RoomInfoDto dto)
     {
-        Logger.LogDebug("Client_PrivateRoomJoined: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomJoined: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _privateRoomManager.ClientJoinRoom(dto));
         return Task.CompletedTask;
     }
@@ -60,7 +60,7 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     /// </summary>
     public Task Client_PrivateRoomOtherUserJoined(RoomParticipantDto dto)
     {
-        Logger.LogDebug("Client_PrivateRoomOtherUserJoined: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomOtherUserJoined: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _privateRoomManager.AddParticipantToRoom(dto));
         return Task.CompletedTask;
     }
@@ -70,42 +70,42 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
     /// </summary>
     public Task Client_PrivateRoomOtherUserLeft(RoomParticipantDto dto)
     {
-        Logger.LogDebug("Client_PrivateRoomOtherUserLeft: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomOtherUserLeft: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _privateRoomManager.ParticipantLeftRoom(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_PrivateRoomRemovedUser(RoomParticipantDto dto)
     {
-        Logger.LogDebug("Client_PrivateRoomRemovedUser: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomRemovedUser: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _privateRoomManager.ParticipantRemovedFromRoom(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_PrivateRoomUpdateUser(RoomParticipantDto dto)
     {
-        Logger.LogDebug("Client_PrivateRoomUpdateUser: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomUpdateUser: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _privateRoomManager.ParticipantUpdated(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_PrivateRoomMessage(RoomMessageDto dto)
     {
-        Logger.LogDebug("Client_PrivateRoomMessage: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomMessage: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _privateRoomManager.AddChatMessage(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_PrivateRoomReceiveUserDevice(UserCharaDeviceInfoMessageDto dto)
     {
-        Logger.LogDebug("Client_PrivateRoomReceiveUserDevice: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomReceiveUserDevice: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _privateRoomManager.ReceiveParticipantDeviceData(dto));
         return Task.CompletedTask;
     }
 
     public Task Client_PrivateRoomDeviceUpdate(UpdateDeviceDto dto)
     {
-        Logger.LogDebug("Client_PrivateRoomDeviceUpdate: {dto}", dto);
+        Logger.LogDebug("Client_PrivateRoomDeviceUpdate: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _privateRoomManager.ApplyDeviceUpdate(dto));
         return Task.CompletedTask;
     }
@@ -119,14 +119,14 @@ public partial class ApiController // Partial cloass for ToyboxHub Callbacks.
 
     public Task Client_ToyboxUserSendOffline(UserDto dto)
     {
-        Logger.LogDebug("Client_ToyboxUserSendOffline: {dto}", dto);
+        Logger.LogDebug("Client_ToyboxUserSendOffline: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.MarkPairToyboxOffline(dto.User));
         return Task.CompletedTask;
     }
 
     public Task Client_ToyboxUserSendOnline(UserDto dto)
     {
-        Logger.LogDebug("Client_ToyboxUserSendOnline: {dto}", dto);
+        Logger.LogDebug("Client_ToyboxUserSendOnline: "+dto, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.MarkPairToyboxOnline(dto.User));
         return Task.CompletedTask;
     }

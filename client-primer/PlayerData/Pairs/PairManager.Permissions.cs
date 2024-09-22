@@ -43,7 +43,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         pair.UserPair.OtherPairPerms = dto.PairPermissions;
         pair.UserPair.OtherEditAccessPerms = dto.EditAccessPermissions;
 
-        Logger.LogTrace("Fresh update >> Paused: {paused}", pair.UserPair.OtherPairPerms.IsPaused);
+        Logger.LogTrace("Fresh update >> Paused: "+ pair.UserPair.OtherPairPerms.IsPaused, LoggerType.PairManagement);
 
         RecreateLazy(true);
 
@@ -54,7 +54,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             if (GetVisibleUsers().Contains(pair.UserData))
             {
                 // Handle Moodle permission change
-                Logger.LogTrace($"Moodle permissions were changed, pushing change to provider!");
+                Logger.LogTrace($"Moodle permissions were changed, pushing change to provider!", LoggerType.PairManagement);
                 Mediator.Publish(new MoodlesPermissionsUpdated(pair.PlayerNameWithWorld));
             }
         }
@@ -102,7 +102,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (forcedStayChanged) Mediator.Publish(new HardcoreForcedToStayMessage(pair, dto.UniquePerms.IsForcedToStay ? NewState.Enabled : NewState.Disabled));
         if (blindfoldChanged) Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, dto.UniquePerms.IsBlindfolded ? NewState.Enabled : NewState.Disabled));
 
-        Logger.LogDebug($"Updated own unique permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'");
+        Logger.LogDebug($"Updated own unique permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'", LoggerType.PairManagement);
     }
 
 
@@ -111,7 +111,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // update the pairs permissions.
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) { throw new InvalidOperationException("No such pair for " + dto); }
         pair.UserPair.OtherGlobalPerms = dto.GlobalPermissions;
-        Logger.LogDebug($"Updated global permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'");
+        Logger.LogDebug($"Updated global permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'", LoggerType.PairManagement);
     }
 
     public void UpdatePairUpdateOtherAllUniquePermissions(UserPairUpdateAllUniqueDto dto)
@@ -119,7 +119,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) { throw new InvalidOperationException("No such pair for " + dto); }
         pair.UserPair.OtherPairPerms = dto.UniquePerms;
         pair.UserPair.OtherEditAccessPerms = dto.UniqueAccessPerms;
-        Logger.LogDebug($"Updated pairs unique permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'");
+        Logger.LogDebug($"Updated pairs unique permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'", LoggerType.PairManagement);
     }
 
     /// <summary>
@@ -152,7 +152,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
                 propertyInfo.SetValue(pair.UserPair.OtherGlobalPerms, value);
-                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'");
+                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
             }
             else
             {
@@ -212,7 +212,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
                 propertyInfo.SetValue(pair.UserPair.OtherPairPerms, value);
-                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'");
+                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
             }
             else
             {
@@ -228,7 +228,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             if (GetVisibleUsers().Contains(pair.UserData))
             {
                 // Handle Moodle permission change
-                Logger.LogTrace($"Moodle permission '{ChangedPermission}' was changed to '{ChangedValue}', pushing change to provider!");
+                Logger.LogTrace($"Moodle permission '{ChangedPermission}' was changed to '{ChangedValue}', pushing change to provider!", LoggerType.PairManagement);
                 Mediator.Publish(new MoodlesPermissionsUpdated(pair.PlayerNameWithWorld));
             }
         }
@@ -263,7 +263,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
                 propertyInfo.SetValue(pair.UserPair.OtherEditAccessPerms, value);
-                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'");
+                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
             }
             else
             {
@@ -320,7 +320,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
                 propertyInfo.SetValue(pair.UserPair.OwnPairPerms, value);
-                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'");
+                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
             }
             else
             {
@@ -331,27 +331,27 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // Handle special cases AFTER the change was made.
         if (forcedFollowChanged)
         {
-            Logger.LogWarning("Forced follow changed");
+            Logger.LogInformation("Forced follow changed", LoggerType.PairManagement);
             Mediator.Publish(new HardcoreForcedToFollowMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
         }
         if (forcedSitChanged)
         {
-            Logger.LogWarning("Forced sit changed");
+            Logger.LogInformation("Forced sit changed", LoggerType.PairManagement);
             Mediator.Publish(new HardcoreForcedToSitMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
         }
         if (forcedGroundSitChanged)
         {
-            Logger.LogWarning("Forced ground sit changed");
+            Logger.LogInformation("Forced ground sit changed", LoggerType.PairManagement);
             Mediator.Publish(new HardcoreForcedToKneelMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
         }
         if (forcedStayChanged)
         {
-            Logger.LogWarning("Forced stay changed");
+            Logger.LogInformation("Forced stay changed", LoggerType.PairManagement);
             Mediator.Publish(new HardcoreForcedToStayMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
         }
         if (blindfoldChanged)
         {
-            Logger.LogWarning("Blindfold changed");
+            Logger.LogInformation("Blindfold changed", LoggerType.PairManagement);
             Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
         }
 
@@ -361,7 +361,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (IsMoodlePermission(ChangedPermission))
         {
             // Handle Moodle permission change
-            Logger.LogTrace($"Moodle permission '{ChangedPermission}' was changed to '{ChangedValue}', pushing change to provider!");
+            Logger.LogTrace($"Moodle permission '{ChangedPermission}' was changed to '{ChangedValue}', pushing change to provider!", LoggerType.PairManagement);
             Mediator.Publish(new MoodlesPermissionsUpdated(pair.PlayerNameWithWorld));
         }
     }
@@ -384,7 +384,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
                 propertyInfo.SetValue(pair.UserPair.OwnEditAccessPerms, value);
-                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'");
+                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
             }
             else
             {

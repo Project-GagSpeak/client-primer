@@ -57,12 +57,12 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
         });
     }
 
-    private string GagTypeOnePath => $"ItemMouth\\{_playerManager.AppearanceData!.GagSlots[0].GagType}.png" ?? $"ItemMouth\\None.png";
-    private string GagTypeTwoPath => $"ItemMouth\\{_playerManager.AppearanceData!.GagSlots[1].GagType}.png" ?? $"ItemMouth\\None.png";
-    private string GagTypeThreePath => $"ItemMouth\\{_playerManager.AppearanceData!.GagSlots[2].GagType}.png" ?? $"ItemMouth\\None.png";
-    private string GagPadlockOnePath => $"Padlocks\\{_playerManager.AppearanceData!.GagSlots[0].Padlock}.png" ?? $"Padlocks\\None.png";
-    private string GagPadlockTwoPath => $"Padlocks\\{_playerManager.AppearanceData!.GagSlots[1].Padlock}.png" ?? $"Padlocks\\None.png";
-    private string GagPadlockThreePath => $"Padlocks\\{_playerManager.AppearanceData!.GagSlots[2].Padlock}.png" ?? $"Padlocks\\None.png";
+    private string GagTypeOnePath => $"GagImages\\{_playerManager.AppearanceData!.GagSlots[0].GagType}.png" ?? $"ItemMouth\\None.png";
+    private string GagTypeTwoPath => $"GagImages\\{_playerManager.AppearanceData!.GagSlots[1].GagType}.png" ?? $"ItemMouth\\None.png";
+    private string GagTypeThreePath => $"GagImages\\{_playerManager.AppearanceData!.GagSlots[2].GagType}.png" ?? $"ItemMouth\\None.png";
+    private string GagPadlockOnePath => $"PadlockImages\\{_playerManager.AppearanceData!.GagSlots[0].Padlock}.png" ?? $"Padlocks\\None.png";
+    private string GagPadlockTwoPath => $"PadlockImages\\{_playerManager.AppearanceData!.GagSlots[1].Padlock}.png" ?? $"Padlocks\\None.png";
+    private string GagPadlockThreePath => $"PadlockImages\\{_playerManager.AppearanceData!.GagSlots[2].Padlock}.png" ?? $"Padlocks\\None.png";
 
     // the search filters for our gag dropdowns.
     public string[] Filters = new string[3] { "", "", "" };

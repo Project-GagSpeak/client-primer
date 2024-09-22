@@ -59,11 +59,11 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
             if (!_rooms.ContainsKey(dto.HostedRoom.NewRoomName))
             {
                 _rooms[dto.HostedRoom.NewRoomName] = _roomFactory.Create(dto.HostedRoom);
-                Logger.LogDebug("Creating Hosted Room [{room}] from connection dto", dto.HostedRoom.NewRoomName);
+                Logger.LogDebug("Creating Hosted Room [" + dto.HostedRoom.NewRoomName + "] from connection dto", LoggerType.PrivateRoom);
             }
             else
             {
-                Logger.LogDebug("The Hosted room [{room}] is already cached, skipping creation & Updating existing with details.", dto.HostedRoom.NewRoomName);
+                Logger.LogDebug("The Hosted room [" + dto.HostedRoom.NewRoomName + "] is already cached, skipping creation & Updating existing with details.", LoggerType.PrivateRoom);
 
                 // Update the room with the latest details
                 _rooms[dto.HostedRoom.NewRoomName].UpdateRoomInfo(dto.HostedRoom);
@@ -71,7 +71,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         }
         else
         {
-            Logger.LogInformation("Hosted room name is empty, skipping creation.");
+            Logger.LogInformation("Hosted room name is empty, skipping creation.", LoggerType.PrivateRoom);
         }
 
         // for each additional room we are in within the list of connected rooms, add it.
@@ -80,12 +80,12 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
             if (!_rooms.ContainsKey(room.NewRoomName))
             {
                 _rooms[room.NewRoomName] = _roomFactory.Create(room);
-                Logger.LogDebug("Adding previously joined Room [{room}] from connection dto", room.NewRoomName);
+                Logger.LogDebug("Adding previously joined Room ["+room.NewRoomName+"] from connection dto", LoggerType.PrivateRoom);
             }
             else
             {
-                Logger.LogDebug("The previously joined room [{room}] is already cached, skipping creation "+
-                    "& Updating existing with details.", room.NewRoomName);
+                Logger.LogDebug("The previously joined room ["+ room.NewRoomName + "] is already cached, skipping creation "+
+                    "& Updating existing with details.", LoggerType.PrivateRoom);
 
                 // update the room with the latest details.
                 _rooms[room.NewRoomName].UpdateRoomInfo(room);
@@ -149,7 +149,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
 
     public void InviteRecieved(RoomInviteDto latestRoomInvite)
     {
-        Logger.LogDebug("Invite Received to join room {room}", latestRoomInvite.RoomName);
+        Logger.LogDebug("Invite Received to join room "+latestRoomInvite.RoomName, LoggerType.PrivateRoom);
         // add the invite to the list of room invites.
         _roomInvites.Add(latestRoomInvite);
         // set the last room invite to the latest invite.
@@ -178,7 +178,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         // see if the _apiController.PlayerUser (client) is present in any other rooms currently
         if (ClientInAnyRoom)
         {
-            Logger.LogWarning("Client is already in a room, unable to join another.");
+            Logger.LogInformation("Client is already in a room, unable to join another.", LoggerType.PrivateRoom);
             return;
         }
 
@@ -186,7 +186,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         if (_rooms.TryGetValue(roomInfo.NewRoomName, out var privateRoom))
         {
             // if the room already exists, repopulate its room participants with everyone and join it
-            Logger.LogInformation("Pending Room Join [{room}] already cached. Repopulating host and online users!", roomInfo.NewRoomName);
+            Logger.LogInformation("Pending Room Join [" + roomInfo.NewRoomName + "] already cached. Repopulating host and online users!", LoggerType.PrivateRoom);
             // mark the room as Active, but update the users so we can keep the chat and connected devices from the last session.
             _rooms[roomInfo.NewRoomName].UpdateRoomInfo(roomInfo);
             // publish to mediator to open the respective remote controller UI.
@@ -196,7 +196,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         {
             // if we don't already have the room cached, create the room.
             AddRoom(roomInfo);
-            Logger.LogInformation("Creating new {room}", roomInfo.NewRoomName);
+            Logger.LogInformation("Creating new "+roomInfo.NewRoomName, LoggerType.PrivateRoom);
         }
         RecreateLazy();
     }
@@ -210,7 +210,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
             // if the participant is already in the room, apply the last received data to the participant.
             if (privateRoom.IsUserInRoom(dto.User.UserUID))
             {
-                Logger.LogDebug("User {user} found in participants, marking as active (unfinished).", dto.User);
+                Logger.LogDebug("User "+dto.User+" found in participants, marking as active (unfinished).", LoggerType.PrivateRoom);
                 return;
             }
             // user was not already stored, but room did exist, so add them to the room.
@@ -342,7 +342,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
         if (privateRoom.HostParticipant.User.UserUID != dto.User) throw new InvalidOperationException("Only the room host can update devices!");
 
         // Apply Device update
-        Logger.LogDebug("Applying Device Update from {user}", dto.User);
+        Logger.LogDebug("Applying Device Update from "+dto.User, LoggerType.PrivateRoom);
         // TODO: Inject this logic, currently participant name system is fucked up.
     }
 
@@ -357,22 +357,8 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     /// <summary> Clears all participants from the private room. </summary>
     public void ClearAllRooms()
     {
-        Logger.LogDebug("Clearing all Rooms from room manager");
-        DisposeRooms();
+        Logger.LogDebug("Clearing all Rooms from room manager", LoggerType.PrivateRoom);
         _rooms.Clear();
-        RecreateLazy();
-    }
-
-    private void DisposeRooms()
-    {
-        Logger.LogDebug("Disposing all Rooms");
-        // mark all rooms as inactive
-        Parallel.ForEach(_rooms, item =>
-        {
-            // im doing this wrong im sure.
-            /*item.Value.ChatHistory.Clear();*/
-        });
-
         RecreateLazy();
     }
 

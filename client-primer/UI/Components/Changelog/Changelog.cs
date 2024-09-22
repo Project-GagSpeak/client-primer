@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 7, 1)
+            .RegisterBugfix("Fixed Moodles dropdowns globally increasing the effected size of dropdowns.");
         VersionEntry(0, 8, 7, 0)
             .RegisterMain("Added a more Advanced Logger System that adds logger filter categories beyond provided ones.")
             .RegisterFeature("Switch on or off the individual logger categories in the settings window for helpful debugging.")

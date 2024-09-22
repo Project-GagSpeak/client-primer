@@ -260,6 +260,7 @@ public class MoodlesService
                 }
                 ImGui.EndTable();
             }
+            ImGui.SetWindowFontScale(1.0f);
             ImGui.EndCombo();
         }
         // Check if the item was right-clicked. If so, reset to default value.
@@ -270,8 +271,6 @@ public class MoodlesService
             SelectedMoodleComboGuids[comboLabel] = selectedItem!;
             onSelected?.Invoke(selectedItem!);
         }
-
-        ImGui.SetWindowFontScale(1f);
         return;
     }
     #endregion MoodlesStatusCombo

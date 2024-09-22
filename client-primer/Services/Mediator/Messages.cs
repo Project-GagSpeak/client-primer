@@ -66,7 +66,7 @@ public record ResumeScanMessage(string Source) : MessageBase; // know when we sh
 public record UpdateAllOnlineWithCompositeMessage : MessageBase; // for updating all online pairs with composite data.
 public record PairWentOnlineMessage(UserData UserData) : MessageBase; // a message indicating a pair has gone online.
 public record PairHandlerVisibleMessage(PairHandler Player) : MessageBase; // a message indicating the visibility of a pair handler.
-public record OpenUserPairPermissions(Pair? Pair, StickyWindowType PermsWindowType) : MessageBase; // fired upon request to open the permissions window for a pair
+public record OpenUserPairPermissions(Pair? Pair, StickyWindowType PermsWindowType, bool ForceOpenMainUI) : MessageBase; // fired upon request to open the permissions window for a pair
 public record TargetPairMessage(Pair Pair) : MessageBase; // called when publishing a targeted pair connection (see UI)
 public record CyclePauseMessage(UserData UserData) : MessageBase; // for cycling the paused state of self
 public record CreateCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase;

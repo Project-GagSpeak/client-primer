@@ -9,6 +9,7 @@ using GagSpeak.UI.UiRemote;
 using GagSpeak.UI.Permissions;
 using GagSpeak.Interop.IpcHelpers.Penumbra;
 using GagSpeak.UI.Profile;
+using GagSpeak.UI.Components;
 
 namespace GagSpeak.Services;
 
@@ -23,11 +24,13 @@ public sealed class UiService : DisposableMediatorSubscriberBase
     private readonly WindowSystem _windowSystem;                                // the window system for our dalamud plugin.
     private readonly UiFactory _uiFactory;                                      // the factory for the UI window creation.
     private readonly PenumbraChangedItemTooltip _penumbraChangedItemTooltip;    // the penumbra changed item tooltip for the plugin.
+    private readonly MainTabMenu _mainWindowTabMenu;                            // the main window tab menu for the plugin.
 
     public UiService(ILogger<UiService> logger, IUiBuilder uiBuilder,
         GagspeakConfigService gagspeakConfigService, WindowSystem windowSystem,
         IEnumerable<WindowMediatorSubscriberBase> windows, UiFactory uiFactory,
-        GagspeakMediator gagspeakMediator, FileDialogManager fileDialogManager,
+        MainTabMenu mainWindowTabMenu, GagspeakMediator gagspeakMediator, 
+        FileDialogManager fileDialogManager, 
         PenumbraChangedItemTooltip penumbraChangedItemTooltip) : base(logger, gagspeakMediator)
     {
         _logger = logger;
@@ -35,6 +38,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         _gagspeakConfigService = gagspeakConfigService;
         _windowSystem = windowSystem;
         _uiFactory = uiFactory;
+        _mainWindowTabMenu = mainWindowTabMenu;
         _fileDialogManager = fileDialogManager;
         _penumbraChangedItemTooltip = penumbraChangedItemTooltip;
 
@@ -72,8 +76,16 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         // subscribe to the event message for removing a window
         Mediator.Subscribe<RemoveWindowMessage>(this, (msg) =>
         {
-            // remove it from the system and the creaed windows list, then dispose of the window.
-            _windowSystem.RemoveWindow(msg.Window);
+            // Check if the window is registered in the WindowSystem before removing it
+            if (_windowSystem.Windows.Contains(msg.Window))
+            {
+                _windowSystem.RemoveWindow(msg.Window);
+            }
+            else
+            {
+                _logger.LogWarning("Attempted to remove a window that is not registered in the WindowSystem: " + msg.Window.WindowName, LoggerType.UiCore);
+            }
+
             _createdWindows.Remove(msg.Window);
             msg.Window.Dispose();
         });
@@ -99,7 +111,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
                                      stickyWindow.UserPairForPerms.UserData.AliasOrUID == msg.Pair?.UserData.AliasOrUID &&
                                      stickyWindow.DrawType == msg.PermsWindowType);
 
-            if (existingWindow != null)
+            if (existingWindow != null && !msg.ForceOpenMainUI)
             {
                 // If a matching window is found, toggle it
                 _logger.LogTrace("Toggling existing sticky window for pair "+msg.Pair?.UserData.AliasOrUID, LoggerType.Permissions);
@@ -125,6 +137,25 @@ public sealed class UiService : DisposableMediatorSubscriberBase
                 var newWindow = _uiFactory.CreateStickyPairPerms(msg.Pair!, msg.PermsWindowType);
                 _createdWindows.Add(newWindow);
                 _windowSystem.AddWindow(newWindow);
+            }
+
+            // if we are forcing the main UI, do so.
+            if (msg.ForceOpenMainUI)
+            {
+                // fetch the mainUI window.
+                var mainUi = _createdWindows.FirstOrDefault(p => p is MainWindowUI);
+                // if the mainUI window is not null, set the tab selection to whitelist.
+                if (mainUi != null)
+                {
+
+                    _logger.LogTrace("Forcing main UI to whitelist tab", LoggerType.Permissions);
+                    _mainWindowTabMenu.TabSelection = MainTabMenu.SelectedTab.Whitelist;
+                }
+                else
+                {
+                    Mediator.Publish(new UiToggleMessage(typeof(MainWindowUI), ToggleType.Show));
+                    _mainWindowTabMenu.TabSelection = MainTabMenu.SelectedTab.Whitelist;
+                }
             }
         });
 

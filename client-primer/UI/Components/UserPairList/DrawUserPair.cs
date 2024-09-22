@@ -200,14 +200,14 @@ public class DrawUserPair
         if (_uiSharedService.IconButton(FontAwesomeIcon.EllipsisV))
         {
             // open the permission setting window
-            _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairActionFunctions));
+            _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairActionFunctions, false));
         }
 
         currentRightSide -= permissionsButtonSize.X + spacingX;
         ImGui.SameLine(currentRightSide);
         if (_uiSharedService.IconButton(FontAwesomeIcon.Cog))
         {
-            if (Pair != null) _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.ClientPermsForPair));
+            if (Pair != null) _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.ClientPermsForPair, false));
         }
         UiSharedService.AttachToolTip("Set your Permissions for " + _pair.UserData.AliasOrUID);
 
@@ -216,7 +216,7 @@ public class DrawUserPair
         if (_uiSharedService.IconButton(FontAwesomeIcon.Search))
         {
             // if we press the cog, we should modify its appearance, and set that we are drawing for this pair to true
-            _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairPerms));
+            _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairPerms, false));
         }
         UiSharedService.AttachToolTip("Inspect " + _pair.UserData.AliasOrUID + "'s permissions");
 

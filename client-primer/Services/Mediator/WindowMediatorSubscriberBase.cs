@@ -13,14 +13,31 @@ public abstract class WindowMediatorSubscriberBase : Window, IMediatorSubscriber
         Mediator = mediator;
         _logger.LogTrace("Creating "+GetType(), LoggerType.Mediator);
 
-        // subscribe to the UI toggle message???? (likely dont need and is respective to gagspeak)
         Mediator.Subscribe<UiToggleMessage>(this, (msg) =>
         {
             if (msg.UiType == GetType())
             {
-                Toggle();
+                // Handle the toggle type (Toggle, Show, Hide)
+                switch (msg.ToggleType)
+                {
+                    case ToggleType.Toggle:
+                        Toggle();  // Toggles visibility (e.g., if visible, hide; if hidden, show)
+                        _logger.LogTrace("Toggling UI", LoggerType.Mediator);
+                        break;
+
+                    case ToggleType.Show:
+                        IsOpen = true;
+                        _logger.LogTrace("Showing UI", LoggerType.Mediator);
+                        break;
+
+                    case ToggleType.Hide:
+                        IsOpen = false;
+                        _logger.LogTrace("Hiding UI", LoggerType.Mediator);
+                        break;
+                }
             }
         });
+
     }
 
     // the gagspeak mediator

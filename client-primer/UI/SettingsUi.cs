@@ -668,6 +668,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         var showProfiles = _configService.Current.ProfilesShow;
         var profileDelay = _configService.Current.ProfileDelay;
         var profileOnRight = _configService.Current.ProfilePopoutRight;
+        var showContextMenus = _configService.Current.ContextMenusShow;
 
         if (ImGui.Checkbox("Display status and visible pair count in Server Info Bar", ref enableDtrEntry))
         {
@@ -742,7 +743,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         // how long we should need to hover over it in order for the profile to display?
         ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderFloat("Hover Delay", ref profileDelay, 1, 5))
+        if (ImGui.SliderFloat("Hover Delay", ref profileDelay, 0.3f, 5))
         {
             _configService.Current.ProfileDelay = profileDelay;
             _configService.Save();
@@ -751,7 +752,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (!showProfiles) ImGui.EndDisabled();
         ImGui.Unindent();
 
-        /* --------------- Seperator for moving onto the Notifications Section ----------- */
+        if(ImGui.Checkbox("Show Context Menus for Visible Pairs", ref showContextMenus))
+        {
+            _configService.Current.ContextMenusShow = showContextMenus;
+            _configService.Save();
+        }
+        _uiShared.DrawHelpText("If enabled, you will be able to right-click on visible pairs to access a context menu.");
+
+        /* --------------- Separator for moving onto the Notifications Section ----------- */
         ImGui.Separator();
         var onlineNotifs = _configService.Current.ShowOnlineNotifications;
         var onlineNotifsPairsOnly = _configService.Current.ShowOnlineNotificationsOnlyForIndividualPairs;

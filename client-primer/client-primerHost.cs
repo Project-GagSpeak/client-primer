@@ -148,7 +148,7 @@ public static class GagSpeakServiceExtensions
     #region GenericServices
     public static IServiceCollection AddGagSpeakGeneric(this IServiceCollection services,
         IDalamudPluginInterface pi, IAddonLifecycle alc, IClientState cs, IChatGui cg, ICondition con,
-        IContextMenu cm, IDataManager dm, IDtrBar dtr, IFramework fw, IKeyState ks, IGameGui gg, 
+        IContextMenu cm, IDataManager dm, IDtrBar dtr, IFramework fw, IKeyState ks, IGameGui gg,
         IGameInteropProvider gip, IObjectTable ot, ISigScanner ss, ITargetManager tm, ITextureProvider tp)
     => services
         // Events Services
@@ -262,6 +262,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ItemIdVars>()
 
         // UI Helpers
+        .AddSingleton<MainTabMenu>()
         .AddSingleton((s) => new DictBonusItems(pi, new Logger(), dm))
         .AddSingleton((s) => new DictStain(pi, new Logger(), dm))
         .AddSingleton<ItemData>()
@@ -438,7 +439,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<PairManager>(), s.GetRequiredService<ServerConfigurationManager>(),
             s.GetRequiredService<MainUiHomepage>(), s.GetRequiredService<MainUiWhitelist>(),
             s.GetRequiredService<MainUiPatternHub>(), s.GetRequiredService<MainUiChat>(), s.GetRequiredService<MainUiAccount>(),
-            s.GetRequiredService<DrawEntityFactory>(), pi))
+            s.GetRequiredService<MainTabMenu>(), s.GetRequiredService<DrawEntityFactory>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, EventViewerUI>()
         .AddScoped<WindowMediatorSubscriberBase, DtrVisibleWindow>()
@@ -466,7 +467,7 @@ public static class GagSpeakServiceExtensions
         .AddScoped<VisiblePairManager>()
         .AddScoped((s) => new TextureService(pi.UiBuilder, dm, tp))
         .AddScoped((s) => new UiService(s.GetRequiredService<ILogger<UiService>>(), pi.UiBuilder, s.GetRequiredService<GagspeakConfigService>(),
-            s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(), s.GetRequiredService<UiFactory>(),
+            s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(), s.GetRequiredService<UiFactory>(), s.GetRequiredService<MainTabMenu>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<FileDialogManager>(), s.GetRequiredService<PenumbraChangedItemTooltip>()))
         .AddScoped((s) => new CommandManagerService(s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(),
             s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<ChatBoxMessage>(), s.GetRequiredService<TriggerController>(), cg, cs, cm))

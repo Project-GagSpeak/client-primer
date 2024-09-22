@@ -44,7 +44,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         GagspeakConfigService configService, PairManager pairManager,
         ServerConfigurationManager serverManager, MainUiHomepage homepage,
         MainUiWhitelist whitelist, MainUiPatternHub patternHub,
-        MainUiChat globalChat, MainUiAccount account,
+        MainUiChat globalChat, MainUiAccount account, MainTabMenu tabMenu,
         DrawEntityFactory drawEntityFactory, IDalamudPluginInterface pi)
         : base(logger, mediator, "###GagSpeakMainUI")
     {
@@ -59,9 +59,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         _account = account;
         _pi = pi;
         _uiShared = uiShared;
-
-        // the bottomTabMenu
-        _tabMenu = new MainTabMenu(Mediator, _apiController, _pairManager, _uiShared);
+        _tabMenu = tabMenu;
 
         AllowPinning = false;
         AllowClickthrough = false;

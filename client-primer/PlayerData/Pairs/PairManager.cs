@@ -54,6 +54,8 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     private void OnOpenPairContextMenu(IMenuOpenedArgs args)
     {
         // make sure its a player context menu
+        Logger.LogInformation("Opening Pair Context Menu of type "+args.MenuType, LoggerType.ContextDtr);
+
         if (args.MenuType == ContextMenuType.Inventory) return;
         
         // don't open if we don't want to show context menus

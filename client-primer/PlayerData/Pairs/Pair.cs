@@ -95,30 +95,29 @@ public class Pair
     public void AddContextMenu(IMenuOpenedArgs args)
     {
         // if the visible player is not cached, not our target, or not a valid object, or paused, don't display./
-        if (CachedPlayer == null 
-        || (args.Target is not MenuTargetDefault target) 
-        || target.TargetObjectId != CachedPlayer.PairObject?.OwnerId 
-        || IsPaused) return;
+        if (CachedPlayer == null || (args.Target is not MenuTargetDefault target) || target.TargetObjectId != VisiblePairGameObject?.GameObjectId || IsPaused) return;
+
+        _logger.LogDebug("Adding Context Menu for " + UserData.UID, LoggerType.ContextDtr);
 
         // This only works when you create it prior to adding it to the args,
         // otherwise the += has trouble calling. (it would fall out of scope)
-        var subMenu = new MenuItem();
+        /*var subMenu = new MenuItem();
         subMenu.IsSubmenu = true;
         subMenu.Name = "SubMenu Test Item";
         subMenu.PrefixChar = 'G';
-        subMenu.PrefixColor = 526;
+        subMenu.PrefixColor = 561;
         subMenu.OnClicked += args => OpenSubMenuTest(args, _logger);
-        args.AddMenuItem(subMenu);
+        args.AddMenuItem(subMenu);*/
 
         args.AddMenuItem(new MenuItem()
         {
             Name = new SeStringBuilder().AddText("Open Actions").Build(),
             PrefixChar = 'G',
-            PrefixColor = 526,
+            PrefixColor = 561,
             OnClicked = (a) =>
             {
                 // see if we need to toggle the main UI before this.
-                _mediator.Publish(new OpenUserPairPermissions(this, StickyWindowType.PairActionFunctions));
+                _mediator.Publish(new OpenUserPairPermissions(this, StickyWindowType.PairActionFunctions, true));
             },
         });
     }

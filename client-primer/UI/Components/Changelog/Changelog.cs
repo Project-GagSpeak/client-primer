@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 7, 2)
+            .RegisterFeature("Added a quick Open Actions Button for visible pair context menus.");
         VersionEntry(0, 8, 7, 1)
             .RegisterBugfix("Fixed Moodles dropdowns globally increasing the effected size of dropdowns.");
         VersionEntry(0, 8, 7, 0)

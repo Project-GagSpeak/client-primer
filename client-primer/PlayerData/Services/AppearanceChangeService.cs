@@ -129,7 +129,12 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         finally
         {
             semaphore.Release();
-            OnFrameworkService.GlamourChangeFinishedDrawing = true;
+            // Schedule the re-enabling of glamour change events using RunOnFrameworkTickDelayed
+            await _frameworkUtils.RunOnFrameworkTickDelayed(() =>
+            {
+                Logger.LogDebug("Re-Allowing Glamour Change Event", LoggerType.IpcGlamourer);
+                OnFrameworkService.GlamourChangeEventsDisabled = false;
+            }, 1);
         }
     }
 

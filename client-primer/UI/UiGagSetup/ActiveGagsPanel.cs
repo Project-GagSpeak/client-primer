@@ -3,6 +3,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
+using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
 using GagspeakAPI.Enums;
@@ -17,15 +18,17 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
     private readonly UiSharedService _uiSharedService;
     private readonly PlayerCharacterData _playerManager; // for grabbing lock data
     private readonly GagManager _gagManager;
+    private readonly AppearanceChangeService _appearanceChangeService;
 
     public ActiveGagsPanel(ILogger<ActiveGagsPanel> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        GagManager gagManager, PlayerCharacterData playerManager)
-        : base(logger, mediator)
+        GagManager gagManager, PlayerCharacterData playerManager,
+        AppearanceChangeService appearanceChangeService) : base(logger, mediator)
     {
         _uiSharedService = uiSharedService;
         _playerManager = playerManager;
         _gagManager = gagManager;
+        _appearanceChangeService = appearanceChangeService;
 
         Mediator.Subscribe<ActiveGagsUpdated>(this, (_) =>
         {
@@ -171,16 +174,28 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                         var SelectedGag = i;
                         // obtain the previous gag prior to changing.
                         var PreviousGag = _playerManager.AppearanceData!.GagSlots[slotNumber].GagType.ToGagType();
-                        Mediator.Publish(new GagTypeChanged(SelectedGag, (GagLayer)slotNumber));
-                        // determine which glamour change to fire:
-                        if(SelectedGag == GagType.None)
+                        // if the previous gagtype was none, simply equip it.
+                        if(PreviousGag == GagType.None)
                         {
-                            Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Disabled, (GagLayer)slotNumber, PreviousGag));
-                        }
-                        else
-                        {
+                            Logger.LogDebug($"Equipping gag {SelectedGag}", LoggerType.GagManagement);
                             Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, (GagLayer)slotNumber, SelectedGag));
                         }
+                        // if the previous gagtype was not none, unequip the previous and equip the new.
+                        else
+                        {
+                            // set up a task for removing and reapplying the gag glamours, and the another for updating the GagManager.
+                            Logger.LogDebug($"Changing gag from {PreviousGag} to {SelectedGag}", LoggerType.GagManagement);
+                            // Run this an async task here over mediator call because we need to reliably wait for the glamour to be applied.
+                            Task.Run(async () =>
+                            {
+                                // unequip the previous gag.
+                                await _appearanceChangeService.UpdateGagsAppearance((GagLayer)slotNumber, PreviousGag, NewState.Disabled);
+                                // after its disabled, apply the new version.
+                                await _appearanceChangeService.UpdateGagsAppearance((GagLayer)slotNumber, SelectedGag, NewState.Enabled);
+                            });
+                        }
+                        // publish the logic update change
+                        Mediator.Publish(new GagTypeChanged(SelectedGag, (GagLayer)slotNumber));
                     }, gagType);
                 }
 

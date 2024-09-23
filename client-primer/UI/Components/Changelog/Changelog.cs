@@ -19,6 +19,12 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 7, 3)
+            .RegisterMain("This bug was such a big deal its now being posted as a Main Entry." + Environment.NewLine
+            + "FINALLY fixed the bug where GagSpeak would rapidly update glamour endlessly, due to completing an update on the same tick framework tick")
+            .RegisterFeature("Added framework foundation for cosmetic achievements.")
+            .RegisterBugfix("Fixed Gags not swapping properly anymore with the new server restructure.")
+            .RegisterBugfix("Fixed Gag Swaps not properly unequipping gags on a gag swap.");
         VersionEntry(0, 8, 7, 2)
             .RegisterFeature("Added a quick Open Actions Button for visible pair context menus.");
         VersionEntry(0, 8, 7, 1)

@@ -133,12 +133,17 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                 // pop pushed style variables and draw next column.
                 ImGui.PopStyleVar();
                 ImGui.TableNextColumn();
+                // Change the selected Tab to Restraint Sets if ActiveSet is null.
+                if (_handler.ActiveSet is null)
+                    _tabMenu.SelectedTab = WardrobeTabs.Tabs.ManageSets;
+                
                 // display right half viewport based on the tab selection
                 using (var rightChild = ImRaii.Child($"###WardrobeSetupRight", Vector2.Zero, false))
                 {
                     switch (_tabMenu.SelectedTab)
                     {
                         case WardrobeTabs.Tabs.ActiveSet:
+
                             _activePanel.DrawActiveSet();
                             break;
                         case WardrobeTabs.Tabs.ManageSets:

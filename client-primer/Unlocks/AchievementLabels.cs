@@ -355,7 +355,5 @@ public static class AchievementNames
 
         // Slave presentation . doing the fashion report while being restrained and gagged
         public const string SlavePresentation = "Slave Presentation";
-
-
     }
 }

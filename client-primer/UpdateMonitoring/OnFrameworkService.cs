@@ -41,7 +41,6 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     public uint _playerClassJobId = 0; // the player class job id
     public IntPtr _playerAddr; // player address
     public static bool GlamourChangeEventsDisabled = false; // 1st variable responsible for handling glamour change events
-    public static bool GlamourChangeFinishedDrawing = false; // 2nd variable responsible for handling glamour change events
 
     // the mediator for Gagspeak's event services
     public GagspeakMediator Mediator { get; }
@@ -340,6 +339,13 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         return result;
     }
 
+    /// <summary> Run An action on the Framework Delayed by a set number of ticks. </summary>
+    public async Task RunOnFrameworkTickDelayed(Action act, int ticks)
+    {
+        await _framework.RunOnTick(() => act(), delayTicks: ticks);
+    }
+
+
     /// <summary> The method that is called when the framework updates </summary>
     private void FrameworkOnUpdate(IFramework framework) => FrameworkOnUpdateInternal();
     #endregion FrameworkMethods
@@ -349,24 +355,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         // dont do anything if the localplayer is dead.
         if (_clientState.LocalPlayer?.IsDead ?? false) return;
 
-        // check glamour change variables.
-        if (GlamourChangeFinishedDrawing)
-        {
-            // and we have disabled the glamour change event still
-            if (GlamourChangeEventsDisabled)
-            {
-                // make sure to turn that off and reset it
-                GlamourChangeFinishedDrawing = false;
-                GlamourChangeEventsDisabled = false;
-                _logger.LogDebug($"Re-Allowing Glamour Change Event", LoggerType.IpcGlamourer);
-            }
-        }
-
-
-        // This takes a heavy toll on framework runtime. Try and mitigate it if possible. Especially considering it plays
-        // little roll in gagspeak itself. Since we dont rely too heavily on visible players.
-
-        // we need to update our stored playercharacters to know if they are still valid, and to update our pair handlers
+        // we need to update our stored player characters to know if they are still valid, and to update our pair handlers
         // Begin by adding the range of existing player character keys
         var playerCharacters = _objectTable.OfType<IPlayerCharacter>().ToList();
         _notUpdatedCharas.AddRange(_playerCharas.Keys);

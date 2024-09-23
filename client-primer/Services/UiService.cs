@@ -105,6 +105,25 @@ public sealed class UiService : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<OpenUserPairPermissions>(this, (msg) =>
         {
+            // if we are forcing the main UI, do so.
+            if (msg.ForceOpenMainUI)
+            {
+                // fetch the mainUI window.
+                var mainUi = _createdWindows.FirstOrDefault(p => p is MainWindowUI);
+                // if the mainUI window is not null, set the tab selection to whitelist.
+                if (mainUi != null)
+                {
+
+                    _logger.LogTrace("Forcing main UI to whitelist tab", LoggerType.Permissions);
+                    _mainWindowTabMenu.TabSelection = MainTabMenu.SelectedTab.Whitelist;
+                }
+                else
+                {
+                    Mediator.Publish(new UiToggleMessage(typeof(MainWindowUI), ToggleType.Show));
+                    _mainWindowTabMenu.TabSelection = MainTabMenu.SelectedTab.Whitelist;
+                }
+            }
+
             // Find existing PairStickyUI windows with the same window type and pair UID
             var existingWindow = _createdWindows
                 .FirstOrDefault(p => p is PairStickyUI stickyWindow &&
@@ -138,25 +157,6 @@ public sealed class UiService : DisposableMediatorSubscriberBase
                 _createdWindows.Add(newWindow);
                 _windowSystem.AddWindow(newWindow);
             }
-
-            // if we are forcing the main UI, do so.
-            if (msg.ForceOpenMainUI)
-            {
-                // fetch the mainUI window.
-                var mainUi = _createdWindows.FirstOrDefault(p => p is MainWindowUI);
-                // if the mainUI window is not null, set the tab selection to whitelist.
-                if (mainUi != null)
-                {
-
-                    _logger.LogTrace("Forcing main UI to whitelist tab", LoggerType.Permissions);
-                    _mainWindowTabMenu.TabSelection = MainTabMenu.SelectedTab.Whitelist;
-                }
-                else
-                {
-                    Mediator.Publish(new UiToggleMessage(typeof(MainWindowUI), ToggleType.Show));
-                    _mainWindowTabMenu.TabSelection = MainTabMenu.SelectedTab.Whitelist;
-                }
-            }
         });
 
         Mediator.Subscribe<OpenPrivateRoomRemote>(this, (msg) =>
@@ -182,20 +182,23 @@ public sealed class UiService : DisposableMediatorSubscriberBase
             }
         });
 
-        Mediator.Subscribe<ClosedMainUiMessage>(this, (msg) =>
-        {
-            var pairPermissionWindows = _createdWindows
-                .Where(p => p is PairStickyUI)
-                .ToList();
+        Mediator.Subscribe<ClosedMainUiMessage>(this, (msg) => CloseExistingPairWindow());
+        Mediator.Subscribe<MainWindowTabChangeMessage>(this, (msg) => { if (msg.NewTab != MainTabMenu.SelectedTab.Whitelist) CloseExistingPairWindow(); });
+    }
 
-            foreach (var window in pairPermissionWindows)
-            {
-                _logger.LogTrace("Closing pair permission window for pair " + ((PairStickyUI)window).UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
-                _windowSystem.RemoveWindow(window);
-                _createdWindows.Remove(window);
-                window.Dispose();
-            }
-        });
+    private void CloseExistingPairWindow()
+    {
+        var pairPermissionWindows = _createdWindows
+            .Where(p => p is PairStickyUI)
+            .ToList();
+
+        foreach (var window in pairPermissionWindows)
+        {
+            _logger.LogTrace("Closing pair permission window for pair " + ((PairStickyUI)window).UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
+            _windowSystem.RemoveWindow(window);
+            _createdWindows.Remove(window);
+            window.Dispose();
+        }
     }
 
     /// <summary>

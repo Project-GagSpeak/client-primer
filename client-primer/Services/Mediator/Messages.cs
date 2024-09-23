@@ -20,6 +20,8 @@ using GagSpeak.PlayerData.PrivateRooms;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Dto.IPC;
 using GagspeakAPI.Data.Permissions;
+using GagSpeak.UI.Components;
+using GagSpeak.Achievements;
 
 namespace GagSpeak.Services.Mediator;
 
@@ -168,6 +170,7 @@ public record UiToggleMessage(Type UiType, ToggleType ToggleType = ToggleType.To
 public record SwitchToIntroUiMessage : MessageBase; // indicates that we are in the introduction UI.
 public record SwitchToMainUiMessage : MessageBase; // indicates we are in the main UI.
 public record OpenSettingsUiMessage : MessageBase; // indicates we are in the settings UI.
+public record MainWindowTabChangeMessage(MainTabMenu.SelectedTab NewTab) : MessageBase; // for changing the main window tab.
 public record ClosedMainUiMessage : MessageBase; // indicates the main UI has been closed.
 public record RemoveWindowMessage(WindowMediatorSubscriberBase Window) : MessageBase; // fired upon request to remove a window from the UI service.
 public record CompactUiChange(Vector2 Size, Vector2 Position) : MessageBase; // fired whenever we change the window size or position
@@ -184,5 +187,9 @@ public record ToggleDtrBarMessage : MessageBase;
 public record GlobalChatMessage(GlobalChatMessageDto ChatMessage, bool FromSelf) : MessageBase;
 public record SafewordUsedMessage : MessageBase; // for when the safeword is used.
 public record SafewordHardcoreUsedMessage : MessageBase; // for when the hardcore safeword is used.
+
+/* --------------------- COSMETICS & ACHIEVEMENTS RECORDS --------------------- */
+public record AchievementProgressMessage<T>(AchievementType Component, string AchievementName, T NewProgressMade) : MessageBase; // for updating achievement progress.
+
 
 #pragma warning restore S2094, MA0048

@@ -46,22 +46,22 @@ public sealed class CommandManagerService : IDisposable
         // Add handlers to the main commands
         _commands.AddHandler(MainCommand, new CommandInfo(OnGagSpeak)
         {
-            HelpMessage = "Toggles main UI when used without arguments. Use with 'help' or '?' to view sub-commands.",
+            HelpMessage = "Toggles the UI. Use with 'help' or '?' to view sub-commands.",
             ShowInHelp = true
         });
         _commands.AddHandler(SafewordCommand, new CommandInfo(OnSafeword)
         {
-            HelpMessage = "revert all settings to false and disable any active components. For emergency uses.",
+            HelpMessage = "reverts all active features. For emergency uses.",
             ShowInHelp = true
         });
         _commands.AddHandler(SafewordHardcoreCommand, new CommandInfo(OnSafewordHardcore)
         {
-            HelpMessage = "revert all hardcore settings to false and disable any hardcore predicaments. For emergency uses.",
+            HelpMessage = "reverts all hardcore settings. For emergency uses.",
             ShowInHelp = true
         });
         _commands.AddHandler(DeathRollShortcutCommand, new CommandInfo(OnDeathRollShortcut)
         {
-            HelpMessage = "DeathRoll shortcut command. '/dr' begins a DeathRoll. '/dr r' responds to the last seen or interacted DeathRoll",
+            HelpMessage = "DeathRoll Shortcut '/dr' to Start, '/dr r' to respond",
             ShowInHelp = true
         });
     }

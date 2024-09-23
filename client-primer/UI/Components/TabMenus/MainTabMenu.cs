@@ -50,6 +50,7 @@ public class MainTabMenu
         set
         {
             _selectedTab = value;
+            _mediator.Publish(new MainWindowTabChangeMessage(value));
         }
     }
 

@@ -95,6 +95,7 @@ public record HardcoreForcedToSitMessage(Pair Pair, NewState State) : MessageBas
 public record HardcoreForcedToKneelMessage(Pair Pair, NewState State) : MessageBase;
 public record HardcoreForcedToStayMessage(Pair Pair, NewState State) : MessageBase;
 public record HardcoreForcedBlindfoldMessage(Pair Pair, NewState State) : MessageBase;
+public record HardcoreRemoveBlindfoldMessage : MessageBase;
 public record HardcoreUpdatedShareCodeForPair(Pair pair, string ShareCode) : MessageBase;
 public record MovementRestrictionChangedMessage(MovementRestrictionType Type, NewState NewState) : MessageBase;
 public record MoodlesPermissionsUpdated(string NameWithWorld) : MessageBase;

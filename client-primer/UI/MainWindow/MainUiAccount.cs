@@ -81,6 +81,7 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
                 if (!(pfpWrap is { } wrap))
                 {
                     /* Consume Wrap until Generated */
+                    Logger.LogInformation("Profile Image Wrap is not generated yet.");
                 }
                 else
                 {

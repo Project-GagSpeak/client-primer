@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 7, 5)
+            .RegisterMain("Hardcore Blindfolds now function properly.")
+            .RegisterFeature("WARNING: DO NOT TRY FORCED TO STAY OR FORCED TO SIT JUST QUITE YET THEY ARE UNTESTED.");
         VersionEntry(0, 8, 7, 4)
             .RegisterMain("Adding a testing interaction of a hardcore chat restrictor to the homepage.");
         VersionEntry(0, 8, 7, 3)

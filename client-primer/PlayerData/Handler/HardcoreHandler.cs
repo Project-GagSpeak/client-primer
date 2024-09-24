@@ -49,7 +49,6 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     private bool _isFollowingForAnyPair;
     private bool _isSittingForAnyPair;
     private bool _isStayingForAnyPair;
-    private bool _isBlindfoldedByAnyPair;
     public bool IsForcedFollow => _isFollowingForAnyPair;
     public Pair? ForceFollowedPair => _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow) ?? null;
     public bool IsCurrentlyForcedToFollow() => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
@@ -59,7 +58,6 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     public bool IsForcedStay => _isStayingForAnyPair;
     public Pair? ForceStayPair => _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsForcedToStay) ?? null;
     public bool IsCurrentlyForcedToStay() => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay);
-    public bool IsBlindfolded => _isBlindfoldedByAnyPair;
     public Pair? BlindfoldPair => _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsBlindfolded) ?? null;
     public bool IsCurrentlyBlindfolded() => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded);
 
@@ -242,7 +240,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     {
         if (IsForcedStay && newState == NewState.Enabled) { Logger.LogError("Already Forced to Stay by someone else. Cannot Enable!"); return; }
         if (!IsForcedStay && newState == NewState.Disabled) { Logger.LogError("Not Forced to Stay by Anyone, Cannot Disable!"); return; }
-        if (pairToStayFor == null) { Logger.LogError("Cannot follow nothing."); return; }
+        if (pairToStayFor == null) { Logger.LogError("Cannot stay nothing."); return; }
 
         // updates in either state are already set for the pair before its called, so we just need to update the boolean.
         if (newState == NewState.Enabled && !IsForcedFollow)
@@ -256,39 +254,32 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         {
             if (pairToStayFor.UserData.UID != ForceStayPair?.UserData.UID)
             {
-                Logger.LogError("Cannot unfollow a pair that is not the pair we are following.");
+                Logger.LogError("Cannot unfollow a pair that is not the pair we are stay.");
                 return;
             }
             _isStayingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay);
-            Logger.LogDebug("Disabled forced follow for pair.", LoggerType.HardcoreMovement);
+            Logger.LogDebug("Disabled forced stay for pair.", LoggerType.HardcoreMovement);
             return;
         }
     }
 
-    public async void SetBlindfoldState(NewState newState, Pair? pairBlindfolding = null)
+    private async void SetBlindfoldState(NewState newState, Pair? pairBlindfolding = null)
     {
-        if (IsBlindfolded && newState == NewState.Enabled) { Logger.LogError("Already Blindfolded by someone else. Cannot Enable!"); return; }
-        if (!IsBlindfolded && newState == NewState.Disabled) { Logger.LogError("Not Blindfolded by Anyone, Cannot Disable!"); return; }
-        if (pairBlindfolding == null) { Logger.LogError("Cannot follow nothing."); return; }
+        Logger.LogWarning("This was called by something?!");
 
-        if (newState == NewState.Enabled && !IsBlindfolded)
+        if (pairBlindfolding == null) { Logger.LogError("Pair does not exist."); return; }
+
+        if (newState == NewState.Enabled && !BlindfoldUI.IsWindowOpen)
         {
-            _isBlindfoldedByAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded);
             await HandleBlindfoldLogic(NewState.Enabled, pairBlindfolding.UserData.UID);
-            Logger.LogDebug("Enabled forced follow for pair.", LoggerType.HardcoreActions);
+            Logger.LogDebug("Enabled Forced Blindfold for pair.", LoggerType.HardcoreActions);
             return;
         }
 
-        if (newState == NewState.Disabled && IsForcedFollow)
+        if (newState == NewState.Disabled && BlindfoldUI.IsWindowOpen)
         {
-            if (pairBlindfolding.UserData.UID != BlindfoldPair?.UserData.UID)
-            {
-                Logger.LogError("Cannot unfollow a pair that is not the pair we are following.");
-                return;
-            }
-            _isBlindfoldedByAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded);
             await HandleBlindfoldLogic(NewState.Disabled, pairBlindfolding.UserData.UID);
-            Logger.LogDebug("Disabled forced follow for pair.", LoggerType.HardcoreMovement);
+            Logger.LogDebug("Disabled Forced Blindfold for pair.", LoggerType.HardcoreMovement);
             return;
         }
     }
@@ -322,7 +313,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         }
         if (newState == NewState.Disabled && BlindfoldUI.IsWindowOpen)
         {
-            Mediator.Publish(new UiToggleMessage(typeof(MainWindowUI), ToggleType.Hide));
+            Mediator.Publish(new HardcoreRemoveBlindfoldMessage());
         }
         if (NewState.Enabled == newState)
         {

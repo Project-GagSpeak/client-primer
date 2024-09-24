@@ -137,7 +137,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         // load the image on startup, so it always appears while we load other profiles. Ensure we dispose of it upon plugin close.
         Logger.LogDebug("Fetching Logo");
-        Task.Run(async () => await frameworkUtil.RunOnFrameworkThread(() => { GagSpeakLogoNoRadial = RentImageFromFile(Logo256bgPath); }));
+        Task.Run(async () =>
+        {
+            await frameworkUtil.RunOnFrameworkThread(() =>
+            {
+                GagSpeakLogoNoRadial = RentImageFromFile(Logo256bgPath);
+            });
+        });
     }
 
     public ApiController ApiController => _apiController;   // a public accessible api controller for the plugin, pulled from the private field

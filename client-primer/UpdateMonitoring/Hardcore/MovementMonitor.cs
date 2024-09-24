@@ -79,7 +79,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             // There was logic here to reenable forced follow, but in reality, we should disable forced follow on dispose to prevent following a null target we cant escape.
 
             // if we are blindfolded by anyone, we should apply that as well
-            if (_handler.IsBlindfolded && _handler.BlindfoldPair != null)
+            if (_handler.IsCurrentlyBlindfolded() && _handler.BlindfoldPair != null)
             {
                 await _handler.HandleBlindfoldLogic(NewState.Enabled, _handler.BlindfoldPair.UserData.UID);
             }
@@ -201,7 +201,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         }
 
         // I'm aware the if statements are cancer, but its useful for the framework update to be as fast as possible.
-        if (_handler.IsBlindfolded)
+        if (_handler.IsCurrentlyBlindfolded())
         {
             // if we are blindfolded and have forced first-person to true, force first person
             if (_handler.BlindfoldPair != null && _handler.BlindfoldPair.UserPair.OwnPairPerms.ForceLockFirstPerson)

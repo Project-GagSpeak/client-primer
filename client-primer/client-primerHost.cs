@@ -174,13 +174,10 @@ public static class GagSpeakServiceExtensions
         // Hardcore services.
         .AddSingleton<HotbarLocker>()
         .AddSingleton((s) => new AtkHelpers(gg))
-        .AddSingleton((s) => new SettingsHardcore(s.GetRequiredService<ILogger<SettingsHardcore>>(),
-            s.GetRequiredService<ApiController>(), s.GetRequiredService<UiSharedService>(),
-            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<HardcoreHandler>(),
-            s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<PairManager>(),
-            s.GetRequiredService<TextureService>(), s.GetRequiredService<DictStain>(),
-            s.GetRequiredService<ItemData>(), dm))
-
+        .AddSingleton((s) => new SettingsHardcore(s.GetRequiredService<ILogger<SettingsHardcore>>(), s.GetRequiredService<GagspeakMediator>(),
+            s.GetRequiredService<ApiController>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ClientConfigurationManager>(), 
+            s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<PairManager>(),
+            s.GetRequiredService<TextureService>(), s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(), dm))
 
         // PlayerData Services
         .AddSingleton<GagManager>()
@@ -453,8 +450,8 @@ public static class GagSpeakServiceExtensions
         .AddScoped<WindowMediatorSubscriberBase, ToyboxUI>()
         .AddScoped<WindowMediatorSubscriberBase, OrdersUI>()
         .AddScoped<WindowMediatorSubscriberBase, BlindfoldUI>((s) => new BlindfoldUI(s.GetRequiredService<ILogger<BlindfoldUI>>(),
-            s.GetRequiredService<GagspeakMediator>(), pi, s.GetRequiredService<ClientConfigurationManager>(),
-            s.GetRequiredService<UiSharedService>(), tp))
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<OnFrameworkService>(),
+            s.GetRequiredService<UiSharedService>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, EditProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, PopupHandler>()
         .AddScoped<IPopupHandler, VerificationPopupHandler>()

@@ -1,7 +1,10 @@
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
+using GagSpeak.PlayerData.Handlers;
+using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Dto.Connection;
@@ -19,12 +22,13 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
     private readonly IpcManager _ipcManager;
     private readonly IpcFastUpdates _ipcFastUpdates;
     private readonly AppearanceChangeService _visualUpdater;
+    private readonly HardcoreHandler _blindfold;
 
     public OnConnectedService(ILogger<OnConnectedService> logger,
         GagspeakMediator mediator, PlayerCharacterData playerData,
         ClientConfigurationManager clientConfigs, GagManager gagManager,
         IpcManager ipcManager, IpcFastUpdates ipcFastUpdates,
-        AppearanceChangeService visualUpdater) : base(logger, mediator)
+        AppearanceChangeService visualUpdater, HardcoreHandler blindfold) : base(logger, mediator)
     {
         _playerData = playerData;
         _clientConfigs = clientConfigs;
@@ -32,8 +36,11 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         _ipcManager = ipcManager;
         _ipcFastUpdates = ipcFastUpdates;
         _visualUpdater = visualUpdater;
+        _blindfold = blindfold;
 
         Mediator.Subscribe<ConnectedMessage>(this, (msg) => OnConnected(msg.Connection));
+
+        Mediator.Subscribe<OnlinePairsLoadedMessage>(this, _ => CheckBlindfold());
 
         Mediator.Subscribe<CustomizeReady>(this, _ => _playerData.CustomizeProfiles = _ipcManager.CustomizePlus.GetProfileList());
 
@@ -97,6 +104,16 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
                     _clientConfigs.LockRestraintSet(setIdx, serverData.Padlock, serverData.Password, serverData.Timer, serverData.Assigner);
                 }
             }
+        }
+    }
+
+    private async void CheckBlindfold()
+    { 
+        // equip any blindfolds.
+        if(_blindfold.IsCurrentlyBlindfolded())
+        {
+            if(_blindfold.BlindfoldPair != null)
+                await _blindfold.HandleBlindfoldLogic(NewState.Enabled, _blindfold.BlindfoldPair.UserData.UID);
         }
     }
 

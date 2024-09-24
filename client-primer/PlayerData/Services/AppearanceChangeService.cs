@@ -329,33 +329,40 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
                 return;
             }
 
+            var matchedPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserData.UID == msg.AssignerName);
+            if (matchedPair == null)
+            {
+                Logger.LogDebug("Assigner is not on your whitelist, so not setting item.", LoggerType.HardcoreActions);
+                return;
+            }
+
             if (msg.NewState == NewState.Enabled)
             {
                 Logger.LogDebug($"Processing Blindfold Equipped", LoggerType.HardcoreActions);
-                // get the index of the person who equipped it onto you (FIXLOGIC TODO)
-                if (_pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded))
+                // verify that they have permission to do so.
+                if (matchedPair.UserPairOwnUniquePairPerms.AllowBlindfold)
                 {
-                    Logger.LogInformation("You are blindfolded by :" + 
-                        _pairManager.DirectPairs.First(x => x.UserPairOwnUniquePairPerms.IsBlindfolded).UserData.AliasOrUID, LoggerType.HardcoreActions);
+                    Logger.LogInformation("You are blindfolded by :" + matchedPair.UserData.AliasOrUID, LoggerType.HardcoreActions);
                     await EquipBlindfold();
                 }
                 else
                 {
-                    Logger.LogDebug($"Assigner is not on your whitelist, so not setting item.", LoggerType.HardcoreActions);
+                    Logger.LogDebug("You haven't given this assigner permission to apply blindfolds to you!", LoggerType.HardcoreActions);
                 }
             }
 
             if (msg.NewState == NewState.Disabled)
             {
                 Logger.LogDebug($"Processing Blindfold UnEquip", LoggerType.HardcoreActions);
-                // get the index of the person who equipped it onto you (FIXLOGIC TODO)
-                if (_pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded))
+                // verify that they have permission to do so.
+                if (matchedPair.UserPairOwnUniquePairPerms.AllowBlindfold)
                 {
+                    Logger.LogInformation("You are no longer blindfolded by :" + matchedPair.UserData.AliasOrUID, LoggerType.HardcoreActions);
                     await UnequipBlindfold();
                 }
                 else
                 {
-                    Logger.LogDebug($"Assigner is not on your whitelist, so not setting item.", LoggerType.HardcoreActions);
+                    Logger.LogDebug("You haven't given this assigner permission to apply blindfolds to you!", LoggerType.HardcoreActions);
                 }
             }
         });

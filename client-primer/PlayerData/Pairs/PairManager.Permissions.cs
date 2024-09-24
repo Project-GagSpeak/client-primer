@@ -212,7 +212,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
                 propertyInfo.SetValue(pair.UserPair.OtherPairPerms, value);
-                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
+                Logger.LogDebug($"Updated other pair permission permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
             }
             else
             {
@@ -263,7 +263,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
                 propertyInfo.SetValue(pair.UserPair.OtherEditAccessPerms, value);
-                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
+                Logger.LogDebug($"Updated other pair access perm '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
             }
             else
             {
@@ -320,7 +320,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
                 propertyInfo.SetValue(pair.UserPair.OwnPairPerms, value);
-                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
+                Logger.LogDebug($"Updated self pair permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
             }
             else
             {
@@ -351,7 +351,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
         if (blindfoldChanged)
         {
-            Logger.LogInformation("Blindfold changed", LoggerType.PairManagement);
+            Logger.LogInformation("Blindfold changed to: "+(bool)ChangedValue, LoggerType.PairManagement);
             Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
         }
 
@@ -384,7 +384,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 // convert the value to the appropriate type before setting.
                 object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
                 propertyInfo.SetValue(pair.UserPair.OwnEditAccessPerms, value);
-                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
+                Logger.LogDebug($"Updated self pair access permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
             }
             else
             {

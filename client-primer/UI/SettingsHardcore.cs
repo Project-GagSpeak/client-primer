@@ -8,6 +8,7 @@ using GagSpeak.Hardcore;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components.Combos;
 using GagSpeak.Utils;
@@ -28,6 +29,7 @@ namespace GagSpeak.UI;
 public class SettingsHardcore
 {
     private readonly ILogger<SettingsHardcore> _logger;
+    private readonly GagspeakMediator _mediator;
     private readonly ApiController _apiController;
     private readonly UiSharedService _uiShared;
     private readonly ClientConfigurationManager _clientConfigs;
@@ -39,20 +41,21 @@ public class SettingsHardcore
     private readonly ItemData ItemData;
     private readonly IDataManager _gameData;
 
-    private string _lastTab = string.Empty;
     private const float ComboWidth = 200;
     private Vector2 IconSize;
     private float ComboLength;
     private readonly GameItemCombo[] GameItemCombo;
     private readonly StainColorCombo StainCombo;
 
-    public SettingsHardcore(ILogger<SettingsHardcore> logger, ApiController apiController,
+    public SettingsHardcore(ILogger<SettingsHardcore> logger, 
+        GagspeakMediator mediator, ApiController apiController,
         UiSharedService uiShared, ClientConfigurationManager clientConfigs,
         HardcoreHandler hardcoreHandler, WardrobeHandler blindfoldHandler,
         PairManager pairManager, TextureService textures, DictStain stainData,
         ItemData itemData, IDataManager gameData)
     {
         _logger = logger;
+        _mediator = mediator;
         _apiController = apiController;
         _uiShared = uiShared;
         _clientConfigs = clientConfigs;
@@ -75,23 +78,18 @@ public class SettingsHardcore
         {
             if (ImGui.BeginTabItem("Blindfold Item"))
             {
-                _lastTab = "Blindfold Item";
                 DrawBlindfoldItem();
                 ImGui.EndTabItem();
             }
             if (ImGui.BeginTabItem("Lock 1st Person Whitelist"))
             {
-                _lastTab = "Lock 1st Person Whitelist";
                 DrawBlindfoldSettings();
                 ImGui.EndTabItem();
             }
             if (ImGui.BeginTabItem("Forced To Stay Filters"))
             {
-                _lastTab = "Forced To Stay Filters";
-                // spacing
                 DisplayTextButtons();
                 ImGui.Spacing();
-                // draw the text list
                 DisplayTextNodes();
                 ImGui.EndTabItem();
             }
@@ -150,6 +148,24 @@ public class SettingsHardcore
             if (DrawDataChanged)
             {
                 _blindfoldHandler.SetBlindfoldDrawData(BlindfoldDrawData);
+            }
+
+            ImGui.Separator();
+            _uiShared.BigText("Blindfold Type");
+            var selectedBlindfoldType = _clientConfigs.GagspeakConfig.BlindfoldStyle;
+            _uiShared.DrawCombo("Lace Style", 150f, Enum.GetValues<BlindfoldType>(), (type) => type.ToString(),
+                (i) => { _clientConfigs.GagspeakConfig.BlindfoldStyle = i; _clientConfigs.Save(); }, selectedBlindfoldType);
+
+            string filePath = _clientConfigs.GagspeakConfig.BlindfoldStyle switch
+            {
+                BlindfoldType.Light => "RequiredImages\\Blindfold_Light.png",
+                BlindfoldType.Sensual => "RequiredImages\\Blindfold_Sensual.png",
+                _ => "INVALID_FILE",
+            };
+            var previewImage = _uiShared.GetImageFromDirectoryFile(filePath);
+            if ((previewImage is { } wrap))
+            {
+                ImGui.Image(wrap.ImGuiHandle, new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y));
             }
         }
     }

@@ -23,24 +23,12 @@ public class WardrobeTabMenu : TabMenuBase
 
         return "Unknown"; // Fallback for tabs that don't match the expected type.
     }
-
-    protected override bool ShouldDisplayTab(Enum tab)
-    {
-        if (tab is WardrobeTabs.Tabs.ActiveSet && tab.Equals(WardrobeTabs.Tabs.ActiveSet))
-        {
-            // Hide "Active Set" tab if ActiveSet is null.
-            return _wardrobeHandler.ActiveSet != null;
-        }
-        return base.ShouldDisplayTab(tab);
-    }
-
 }
 
 public static class WardrobeTabs
 {
     public enum Tabs
     {
-        ActiveSet, // lets you see info about the active set
         ManageSets, // view the list of your sets and see combined overview.
         StruggleSim, // for trying to struggle out of your restraints.
         ManageMoodles, // Manage the permissions for your Moodles.
@@ -51,7 +39,6 @@ public static class WardrobeTabs
     {
         return tab switch
         {
-            Tabs.ActiveSet => "Active Set",
             Tabs.ManageSets => "Restraint Sets",
             Tabs.StruggleSim => "Struggle Sim",
             Tabs.ManageMoodles => "Moodles",

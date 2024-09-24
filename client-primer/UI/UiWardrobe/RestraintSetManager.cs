@@ -32,13 +32,13 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
     private readonly TextureService _textures;
     private readonly DictStain _stainDictionary;
     private readonly ItemIdVars _itemHelper;
-    private readonly PadlockHandler _padlockHandler;
+    private readonly GagManager _padlockHandler;
 
     public RestraintSetManager(ILogger<RestraintSetManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         IpcCallerGlamourer ipcGlamourer, RestraintSetEditor editor, 
         WardrobeHandler handler, TextureService textureService, DictStain stainDictionary,
-        ItemIdVars itemHelper, PadlockHandler padlockHandler) : base(logger, mediator)
+        ItemIdVars itemHelper, GagManager padlockHandler) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
         _ipcGlamourer = ipcGlamourer;
@@ -416,18 +416,10 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 ImGui.SetCursorPosY(originalCursorPos.Y + 2.5f);
                 // Draw the text with the desired color
                 UiSharedService.ColorText(name, ImGuiColors.DalamudWhite2);
-                if(GenericHelpers.TimerPadlocks.Contains(set.LockType))
+                if(set.LockType == Padlocks.FiveMinutesPadlock.ToName() || set.LockType == Padlocks.TimerPasswordPadlock.ToName() || set.LockType == Padlocks.OwnerTimerPadlock.ToName())
                 {
                     ImGui.SameLine();
-                    TimeSpan remainingTime = (set.LockedUntil - DateTimeOffset.UtcNow);
-                    var sb = new StringBuilder();
-                    if (remainingTime.Days > 0) sb.Append($"{remainingTime.Days}d ");
-                    if (remainingTime.Hours > 0) sb.Append($"{remainingTime.Hours}h ");
-                    if (remainingTime.Minutes > 0) sb.Append($"{remainingTime.Minutes}m ");
-                    if (remainingTime.Seconds > 0 || sb.Length == 0) sb.Append($"{remainingTime.Seconds}s ");
-                    string remainingTimeStr = sb.ToString().Trim();
-
-                    UiSharedService.ColorText(remainingTimeStr +" left..", ImGuiColors.ParsedPink);
+                    UiSharedService.DrawTimeLeftFancy(set.LockedUntil);
                 }
                 // Restore the original cursor position
                 ImGui.SetCursorPos(originalCursorPos);
@@ -508,34 +500,53 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 string remainingTimeStr = $"{remainingTime.Days}d{remainingTime.Hours}h{remainingTime.Minutes}m{remainingTime.Seconds}s";
                 var lockedDescription = set.Locked ? $"Locked for {remainingTimeStr}" : "Self-lock: XdXhXmXs format..";
                 // draw the padlock dropdown
-                var padlockType = set.LockType.ToPadlock() != Padlocks.None ? set.LockType.ToPadlock() : _padlockHandler.PadlockPrevs[3];
+                var isLockedByPair = set.LockedBy != "SelfApplied" && set.LockType.ToPadlock() != Padlocks.None;
+                var padlockType = set.Locked ? set.LockType.ToPadlock() : _padlockHandler.ActiveSlotPadlocks[3];
+
+                var padlockList = isLockedByPair
+                    ? Enum.GetValues<Padlocks>() 
+                    : Enum.GetValues<Padlocks>().Cast<Padlocks>().Where(p => p != Padlocks.OwnerPadlock && p != Padlocks.OwnerTimerPadlock).ToArray();
+
                 using (ImRaii.Disabled(set.Locked || set.LockType != "None"))
                 {
-                    _uiShared.DrawCombo($"RestraintSetLock {set.Name}", (width - 1 - _uiShared.GetIconButtonSize(FontAwesomeIcon.Lock).X - ImGui.GetStyle().ItemInnerSpacing.X),
-                        Enum.GetValues<Padlocks>().Cast<Padlocks>().Where(p => p != Padlocks.OwnerPadlock && p != Padlocks.OwnerTimerPadlock).ToArray(),
-                        (padlock) => padlock.ToName(),
+                    _uiShared.DrawCombo("RestraintSetLock"+set.Name, (width - 1 - _uiShared.GetIconButtonSize(FontAwesomeIcon.Lock).X - ImGui.GetStyle().ItemInnerSpacing.X),
+                        padlockList, (padlock) => padlock.ToName(),
                     (i) =>
                     {
-                        _padlockHandler.PadlockPrevs[3] = i;
+                        _padlockHandler.ActiveSlotPadlocks[3] = i;
                     }, padlockType, false);
+
+                    // if we have been locked by a pair, and our combo's selected padlock doesn't match the locked padlock, we should update it.
+                    if (isLockedByPair && _uiShared.GetSelectedComboItem<Padlocks>("RestraintSetLock" + set.Name) != set.LockType.ToPadlock())
+                    {
+                        // update the padlock previews and selected combo item.
+                        _uiShared.SetSelectedComboItem("RestraintSetLock" + set.Name, set.LockType.ToPadlock());
+                        _padlockHandler.ActiveSlotPadlocks[3] = set.LockType.ToPadlock();
+                    }
                 }
                 ImUtf8.SameLineInner();
                 // draw the lock button
                 if (_uiShared.IconButton(set.Locked ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock, null, set.Name.ToString(), padlockType == Padlocks.None))
                 {
-                    if (_padlockHandler.RestraintPasswordValidate(_handler.GetRestraintSetIndexByName(set.Name), set.Locked))
+                    if (_padlockHandler.RestraintPasswordValidate(set, set.Locked))
                     {
                         if (set.Locked)
                         {
                             Logger.LogTrace($"Unlocking Restraint Set {set.Name}");
                             // allow using set.EnabledBy here because it will check against the assigner when unlocking.
                             _handler.UnlockRestraintSet(_handler.GetRestraintSetIndexByName(set.Name), set.EnabledBy);
+                            _padlockHandler.ActiveSlotPadlocks[3] = Padlocks.None;
                         }
                         else
                         {
                             Logger.LogTrace($"Locking Restraint Set {set.Name}");
-                            _handler.LockRestraintSet(_handler.GetRestraintSetIndexByName(set.Name), _padlockHandler.PadlockPrevs[3].ToString(),
-                                _padlockHandler.Passwords[3], UiSharedService.GetEndTimeUTC(_padlockHandler.Timers[3]), "SelfApplied");
+                            Logger.LogTrace("Parsing Timer with value["+_padlockHandler.ActiveSlotTimers[3]+"]");
+                            _handler.LockRestraintSet(
+                                _handler.GetRestraintSetIndexByName(set.Name), 
+                                _padlockHandler.ActiveSlotPadlocks[3].ToName(),
+                                _padlockHandler.ActiveSlotPasswords[3], 
+                                UiSharedService.GetEndTimeUTC(_padlockHandler.ActiveSlotTimers[3]), 
+                                "SelfApplied");
                         }
                     }
                     else
@@ -543,14 +554,13 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                         Logger.LogDebug($"Failed to validate password for Restraint Set {set.Name}");
                     }
                     // reset the password and timer
-                    _padlockHandler.Passwords[3] = string.Empty;
-                    _padlockHandler.Timers[3] = string.Empty;
+                    _padlockHandler.ResetInputs();
                 }
-                UiSharedService.AttachToolTip(_padlockHandler.PadlockPrevs[3] == Padlocks.None ? "Select a padlock type before locking" :
+                UiSharedService.AttachToolTip(_padlockHandler.ActiveSlotPadlocks[3] == Padlocks.None ? "Select a padlock type before locking" :
                     set.Locked == false ? "Self-Lock this Restraint Set" : 
                     set.LockedBy != "SelfApplied" ? "Only" + set.LockedBy + "can unlock your set." : "Unlock this set.");
                 // display associated password field for padlock type.
-                _padlockHandler.DisplayPasswordField(3, set.Locked, width);
+                _padlockHandler.DisplayPadlockFields(3, set.Locked, width);
             }
             ImGui.Separator();
         }

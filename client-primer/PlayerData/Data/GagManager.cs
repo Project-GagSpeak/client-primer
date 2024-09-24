@@ -1,13 +1,17 @@
+using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.MufflerCore.Handler;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
-using GagspeakAPI.Enums;
+using GagspeakAPI.Data.Interfaces;
 using GagspeakAPI.Extensions;
+using ImGuiNET;
+using OtterGui.Text;
+using System.Text.RegularExpressions;
 
 namespace GagSpeak.PlayerData.Data;
 
-public class GagManager : DisposableMediatorSubscriberBase
+public partial class GagManager : DisposableMediatorSubscriberBase
 {
     private readonly PlayerCharacterData _characterManager;
     private readonly GagDataHandler _gagDataHandler;
@@ -36,19 +40,15 @@ public class GagManager : DisposableMediatorSubscriberBase
     }
 
     public bool AnyGagActive => _activeGags.Any(gag => gag.Name != "None");
-    public bool AnyGagLocked => _characterManager.AppearanceData?.GagSlots.Any(x => x.Padlock != "None") ?? false; 
-    public List<Padlocks> PadlockPrevs => _padlockHandler.PadlockPrevs;
-    public string[] Passwords => _padlockHandler.Passwords;
-    public string[] Timers => _padlockHandler.Timers;
-
-    public bool ValidatePassword(int gagLayer, bool currentlyLocked) => _padlockHandler.PasswordValidated(gagLayer, currentlyLocked);
-
-    public bool DisplayPasswordField(int slot, bool currentlyLocked) => _padlockHandler.DisplayPasswordField(slot, currentlyLocked);
+    public bool AnyGagLocked => _characterManager.AppearanceData?.GagSlots.Any(x => x.Padlock != "None") ?? false;
+    public Padlocks[] ActiveSlotPadlocks { get; set; } = new Padlocks[4] { Padlocks.None, Padlocks.None, Padlocks.None, Padlocks.None };
+    public string[] ActiveSlotPasswords { get; set; } = new string[4] { "", "", "", "" };
+    public string[] ActiveSlotTimers { get; set; } = new string[4] { "", "", "", "" };
 
     /// <summary> ONLY UPDATES THE LOGIC CONTROLLING GARBLE SPEECH, NOT APPEARNACE DATA </summary>
     public Task UpdateActiveGags()
     {
-        Logger.LogTrace("GagTypeOne: "+_characterManager.AppearanceData.GagSlots[0].GagType
+        Logger.LogTrace("GagTypeOne: " + _characterManager.AppearanceData.GagSlots[0].GagType
             + "GagTypeTwo: " + _characterManager.AppearanceData.GagSlots[1].GagType
             + "GagTypeThree: " + _characterManager.AppearanceData.GagSlots[2].GagType, LoggerType.GagManagement);
 
@@ -81,7 +81,7 @@ public class GagManager : DisposableMediatorSubscriberBase
         if (Layer is GagLayer.UnderLayer)
         {
             _characterManager.AppearanceData!.GagSlots[0].GagType = NewGagType.GagName();
-            if(publish) Mediator.Publish(new PlayerCharAppearanceChanged(IsApplying ? DataUpdateKind.AppearanceGagAppliedLayerOne : DataUpdateKind.AppearanceGagRemovedLayerOne));
+            if (publish) Mediator.Publish(new PlayerCharAppearanceChanged(IsApplying ? DataUpdateKind.AppearanceGagAppliedLayerOne : DataUpdateKind.AppearanceGagRemovedLayerOne));
         }
         if (Layer is GagLayer.MiddleLayer)
         {
@@ -107,12 +107,12 @@ public class GagManager : DisposableMediatorSubscriberBase
         if (gagLockNewState is NewState.Unlocked)
         {
             DisableLock(layerIndex);
-            if(publish) PublishAppearanceChange(layerIndex, isUnlocked: true);
+            if (publish) PublishAppearanceChange(layerIndex, isUnlocked: true);
         }
         else
         {
             UpdateGagSlot(layerIndex, padlockInfo);
-            if(publish) PublishAppearanceChange(layerIndex, isUnlocked: false);
+            if (publish) PublishAppearanceChange(layerIndex, isUnlocked: false);
             Mediator.Publish(new ActiveLocksUpdated());
         }
     }
@@ -144,8 +144,8 @@ public class GagManager : DisposableMediatorSubscriberBase
         gagSlot.Password = string.Empty;
         gagSlot.Timer = DateTimeOffset.MinValue;
         gagSlot.Assigner = string.Empty;
-
-        PadlockPrevs[layerIndex] = Padlocks.None;
+        // update the shown gag type in the UI to none.
+        ActiveSlotPadlocks[layerIndex] = Padlocks.None;
         Mediator.Publish(new ActiveLocksUpdated());
     }
 
@@ -171,136 +171,226 @@ public class GagManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new PlayerCharAppearanceChanged(updateKind));
     }
 
-    /// <summary>
-    /// Processes the input message by converting it to GagSpeak format
-    /// </summary> 
-    public string ProcessMessage(string inputMessage)
+    public bool PadlockVerifyLock<T>(T item, GagLayer layer, bool allowExtended, bool allowOwner) where T : IPadlockable
     {
-        if (_activeGags == null || _activeGags.All(gag => gag.Name == "None")) return inputMessage;
-        string outputStr = "";
-        try
+
+        var result = false;
+        switch (ActiveSlotPadlocks[(int)layer])
         {
-            outputStr = ConvertToGagSpeak(inputMessage);
-            Logger.LogTrace($"Converted message to GagSpeak: {outputStr}", LoggerType.GarblerCore);
+            case Padlocks.None:
+                return false;
+            case Padlocks.MetalPadlock:
+            case Padlocks.FiveMinutesPadlock:
+                ActiveSlotTimers[(int)layer] = "5m";
+                return true;
+            case Padlocks.CombinationPadlock:
+                result = ValidateCombination(ActiveSlotPasswords[(int)layer]);
+                if (!result) Logger.LogWarning("Invalid combination entered: {Password}", ActiveSlotPasswords[(int)layer]);
+                return result;
+            case Padlocks.PasswordPadlock:
+                result = ValidatePassword(ActiveSlotPasswords[(int)layer]);
+                if (!result) Logger.LogWarning("Invalid password entered: {Password}", ActiveSlotPasswords[(int)layer]);
+                return result;
+            case Padlocks.TimerPasswordPadlock:
+                if (TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var test))
+                {
+                    if (test > TimeSpan.FromHours(1) && !allowExtended)
+                    {
+                        Logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
+                        return false;
+                    }
+                    result = ValidatePassword(ActiveSlotPasswords[(int)layer]) && test > TimeSpan.Zero;
+                }
+                if (!result) Logger.LogWarning("Invalid password or time entered: {Password} {Timer}", ActiveSlotPasswords[(int)layer], ActiveSlotTimers[(int)layer]);
+                return result;
+            case Padlocks.OwnerPadlock:
+                return allowOwner;
+            case Padlocks.OwnerTimerPadlock:
+                var validTime = TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var test2);
+                if (!validTime)
+                {
+                    Logger.LogWarning("Invalid time entered: {Timer}", ActiveSlotTimers[(int)layer]);
+                    return false;
+                }
+                // Check if the TimeSpan is longer than one hour and extended locks are not allowed
+                if (test2 > TimeSpan.FromHours(1) && !allowExtended)
+                {
+                    Logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
+                    return false;
+                }
+                // return base case.
+                return validTime && allowOwner;
         }
-        catch (Exception e)
-        {
-            Logger.LogError($"Error processing message: {e}");
-        }
-        return outputStr;
+        return false;
     }
 
-    /// <summary>
-    /// Internal convert for gagspeak
-    public string ConvertToGagSpeak(string inputMessage)
+    public void ResetInputs()
     {
+        ActiveSlotTimers = new string[4] { "", "", "", "" };
+        ActiveSlotPasswords = new string[4] { "", "", "", "" };
+    }
 
-
-        // If all gags are None, return the input message as is
-        if (_activeGags.All(gag => gag.Name == "None"))
+    public bool PadlockVerifyUnlock<T>(T data, GagLayer layer, bool allowOwnerLocks) where T : IPadlockable
+    {
+        switch (ActiveSlotPadlocks[(int)layer])
         {
-            return inputMessage;
+            case Padlocks.None:
+                return false;
+            case Padlocks.MetalPadlock:
+            case Padlocks.FiveMinutesPadlock:
+                return true;
+            case Padlocks.CombinationPadlock:
+                var resCombo = ValidateCombination(ActiveSlotPasswords[(int)layer]) && ActiveSlotPasswords[(int)layer] == data.Password;
+                return resCombo;
+            case Padlocks.PasswordPadlock:
+            case Padlocks.TimerPasswordPadlock:
+                var resPass = ValidatePassword(ActiveSlotPasswords[(int)layer]) && ActiveSlotPasswords[(int)layer] == data.Password;
+                return resPass;
+            case Padlocks.OwnerPadlock:
+            case Padlocks.OwnerTimerPadlock:
+                var resOwner = allowOwnerLocks && "SelfApplied" == data.Assigner;
+                return resOwner;
         }
+        return false;
+    }
 
-        // Initialize the algorithm scoped variables 
-        Logger.LogDebug($"Converting message to GagSpeak, at least one gag is not None.", LoggerType.GarblerCore);
-        StringBuilder finalMessage = new StringBuilder(); // initialize a stringbuilder object so we dont need to make a new string each time
-        bool skipTranslation = false;
-        try
+    public void DisplayPadlockFields(int layer, bool unlocking = false, float totalWidth = 250)
+    {
+        float width = totalWidth;
+        switch (ActiveSlotPadlocks[layer])
         {
-            // Convert the message to a list of phonetics for each word
-            List<Tuple<string, List<string>>> wordsAndPhonetics = _IPAParser.ToIPAList(inputMessage);
-            // Iterate over each word and its phonetics
-            foreach (Tuple<string, List<string>> entry in wordsAndPhonetics)
-            {
-                string word = entry.Item1; // create a variable to store the word (which includes its puncuation)
-                // If the word is "*", then toggle skip translations
-                if (word == "*")
+            case Padlocks.CombinationPadlock:
+                ImGui.SetNextItemWidth(width);
+                ImGui.InputTextWithHint("##Combination_Input", "Enter 4 digit combination...", ref ActiveSlotPasswords[layer], 4);
+                break;
+            case Padlocks.PasswordPadlock:
+                ImGui.SetNextItemWidth(width);
+                ImGui.InputTextWithHint("##Password_Input", "Enter password...", ref ActiveSlotPasswords[layer], 20);
+                break;
+            case Padlocks.TimerPasswordPadlock:
+                if (unlocking)
                 {
-                    skipTranslation = !skipTranslation;
-                    finalMessage.Append(word + " "); // append the word to the string
-                    continue; // Skip the rest of the loop for this word
-                }
-                // If the word starts with "*", toggle skip translations and remove the "*"
-                if (word.StartsWith("*"))
-                {
-                    skipTranslation = !skipTranslation;
-                }
-                // If the word ends with "*", remove the "*" and set a flag to toggle skip translations after processing the word
-                bool toggleAfter = false;
-                if (word.EndsWith("*"))
-                {
-                    toggleAfter = true;
-                }
-                // If the word is not to be translated, just add the word to the final message and continue
-                if (!skipTranslation && word.Any(char.IsLetter))
-                {
-                    // do checks for punctuation stuff
-                    bool isAllCaps = word.All(c => !char.IsLetter(c) || char.IsUpper(c));       // Set to true if the full letter is in caps
-                    bool isFirstLetterCaps = char.IsUpper(word[0]);
-                    // Extract all leading and trailing punctuation
-                    string leadingPunctuation = new string(word.TakeWhile(char.IsPunctuation).ToArray());
-                    string trailingPunctuation = new string(word.Reverse().TakeWhile(char.IsPunctuation).Reverse().ToArray());
-                    // Remove leading and trailing punctuation from the word
-                    string wordWithoutPunctuation = word.Substring(leadingPunctuation.Length, word.Length - leadingPunctuation.Length - trailingPunctuation.Length);
-                    // Convert the phonetics to GagSpeak if the list is not empty, otherwise use the original word
-                    string gaggedSpeak = entry.Item2.Any() ? ConvertPhoneticsToGagSpeak(entry.Item2, isAllCaps, isFirstLetterCaps) : wordWithoutPunctuation;
-                    // Add the GagSpeak to the final message
-
-                    /* ---- THE BELOW LINE WILL CAUSE LOTS OF SPAM, ONLY FOR USE WHEN DEVELOPER DEBUGGING ---- */
-                    //Logger.LogTrace($"[GagGarbleManager] Converted [{leadingPunctuation}] + [{word}] + [{trailingPunctuation}]");
-                    finalMessage.Append(leadingPunctuation + gaggedSpeak + trailingPunctuation + " ");
+                    ImGui.SetNextItemWidth(width);
+                    ImGui.InputTextWithHint("##Password_Input", "Enter password...", ref ActiveSlotPasswords[layer], 20);
+                    break;
                 }
                 else
                 {
-                    finalMessage.Append(word + " "); // append the word to the string
+                    ImGui.SetNextItemWidth(width * .65f);
+                    ImGui.InputTextWithHint("##Password_Input", "Enter password...", ref ActiveSlotPasswords[layer], 20);
+                    ImUtf8.SameLineInner();
+                    ImGui.SetNextItemWidth(width * .35f - ImGui.GetStyle().ItemInnerSpacing.X);
+                    ImGui.InputTextWithHint("##Timer_Input", "Ex: 0h2m7s", ref ActiveSlotTimers[layer], 12); ;
                 }
-                // If the word ended with "*", toggle skip translations now
-                if (toggleAfter)
-                {
-                    skipTranslation = !skipTranslation;
-                }
-            }
+                break;
+            case Padlocks.OwnerTimerPadlock:
+                ImGui.SetNextItemWidth(width);
+                ImGui.InputTextWithHint("##Timer_Input", "Ex: 0h2m7s", ref ActiveSlotTimers[layer], 12);
+                break;
         }
-        catch (Exception e)
-        {
-            Logger.LogError($"[GagGarbleManager] Error converting from IPA Spaced to final output. Puncutation error or other type possible : {e.Message}");
-        }
-        return finalMessage.ToString().Trim();
     }
 
-    /// <summary>
-    /// Phonetic IPA -> Garbled sound equivalent in selected language
-    /// </summary>
-    public string ConvertPhoneticsToGagSpeak(List<string> phonetics, bool isAllCaps, bool isFirstLetterCapitalized)
+    public bool PasswordValidated(int slot, bool currentlyLocked)
     {
-        StringBuilder outputString = new StringBuilder();
-        foreach (string phonetic in phonetics)
+        Logger.LogDebug($"Validating Password for Slot {slot} which has padlock type {ActiveSlotPadlocks[slot]}", LoggerType.PadlockManagement);
+        switch (ActiveSlotPadlocks[slot])
         {
-            try
-            {
-                var gagWithMaxMuffle = _activeGags
-                    .Where(gag => gag.Phonemes.ContainsKey(phonetic) && !string.IsNullOrEmpty(gag.Phonemes[phonetic].Sound))
-                    .OrderByDescending(gag => gag.Phonemes[phonetic].Muffle)
-                    .FirstOrDefault();
-                if (gagWithMaxMuffle != null)
+            case Padlocks.None:
+                return false;
+            case Padlocks.MetalPadlock:
+            case Padlocks.FiveMinutesPadlock:
+                ActiveSlotTimers[slot] = "0h5m0s";
+                return true;
+            case Padlocks.CombinationPadlock:
+                if (currentlyLocked)
+                    return ActiveSlotPasswords[slot] == _characterManager.AppearanceData?.GagSlots[slot].Password;
+                else
+                    return ValidateCombination(ActiveSlotPasswords[slot]);
+            case Padlocks.PasswordPadlock:
+                if (currentlyLocked)
+                    return ActiveSlotPasswords[slot] == _characterManager.AppearanceData?.GagSlots[slot].Password;
+                else
+                    return ValidatePassword(ActiveSlotPasswords[slot]);
+            case Padlocks.TimerPasswordPadlock:
+                if (currentlyLocked)
+                    return ActiveSlotPasswords[slot] == _characterManager.AppearanceData?.GagSlots[slot].Password;
+                else
+                    return ValidatePassword(ActiveSlotPasswords[slot]) && TryParseTimeSpan(ActiveSlotTimers[slot], out TimeSpan test);
+        }
+        return false;
+    }
+
+    public bool RestraintPasswordValidate(RestraintSet set, bool currentlyLocked)
+    {
+        Logger.LogDebug($"Validating Password restraintSet {set.Name} which has padlock type preview {ActiveSlotPadlocks[3]}", LoggerType.PadlockManagement);
+        switch (ActiveSlotPadlocks[3])
+        {
+            case Padlocks.None:
+                return false;
+            case Padlocks.MetalPadlock:
+            case Padlocks.FiveMinutesPadlock:
+                ActiveSlotTimers[3] = "5m";
+                return true;
+            case Padlocks.CombinationPadlock:
+                if (currentlyLocked)
                 {
-                    string translationSound = gagWithMaxMuffle.Phonemes[phonetic].Sound;
-                    outputString.Append(translationSound);
+                    Logger.LogTrace($"Checking if {ActiveSlotPasswords[3]} is equal to {set.LockPassword}", LoggerType.PadlockManagement);
+                    return string.Equals(ActiveSlotPasswords[3], set.LockPassword, StringComparison.Ordinal);
                 }
-            }
-            catch (Exception e)
-            {
-                Logger.LogError($"Error converting phonetic {phonetic} to GagSpeak: {e.Message}");
-            }
+                else
+                    return ValidateCombination(ActiveSlotPasswords[3]);
+            case Padlocks.PasswordPadlock:
+                if (currentlyLocked)
+                {
+                    Logger.LogTrace($"Checking if {ActiveSlotPasswords[3]} is equal to {set.LockPassword}", LoggerType.PadlockManagement);
+                    return string.Equals(ActiveSlotPasswords[3], set.LockPassword, StringComparison.Ordinal);
+                }
+                else
+                    return ValidatePassword(ActiveSlotPasswords[3]);
+            case Padlocks.TimerPasswordPadlock:
+                if (currentlyLocked)
+                {
+                    Logger.LogTrace($"Checking if {ActiveSlotPasswords[3]} is equal to {set.LockPassword}", LoggerType.PadlockManagement);
+                    return string.Equals(ActiveSlotPasswords[3], set.LockPassword, StringComparison.Ordinal);
+                }
+                else
+                    return ValidatePassword(ActiveSlotPasswords[3]) && TryParseTimeSpan(ActiveSlotTimers[3], out TimeSpan test);
         }
-        string result = outputString.ToString();
-        if (isAllCaps) result = result.ToUpper();
-        if (isFirstLetterCapitalized && result.Length > 0)
+        return false;
+    }
+
+    /// <summary> Validates a password </summary>
+    private bool ValidatePassword(string password)
+    {
+        Logger.LogDebug($"Validating Password {password}", LoggerType.PadlockManagement);
+        return !string.IsNullOrWhiteSpace(password) && password.Length <= 20 && !password.Contains(" ");
+    }
+
+    /// <summary> Validates a 4 digit combination </summary>
+    private bool ValidateCombination(string combination)
+    {
+        Logger.LogDebug($"Validating Combination {combination}", LoggerType.PadlockManagement);
+        return int.TryParse(combination, out _) && combination.Length == 4;
+    }
+
+    private bool TryParseTimeSpan(string input, out TimeSpan result)
+    {
+        result = TimeSpan.Zero;
+        var regex = new Regex(@"(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?");
+        var match = regex.Match(input);
+
+        if (!match.Success)
         {
-            result = char.ToUpper(result[0]) + result.Substring(1);
+            return false;
         }
-        return result;
+
+        int days = match.Groups[1].Success ? int.Parse(match.Groups[1].Value) : 0;
+        int hours = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
+        int minutes = match.Groups[3].Success ? int.Parse(match.Groups[3].Value) : 0;
+        int seconds = match.Groups[4].Success ? int.Parse(match.Groups[4].Value) : 0;
+
+        result = new TimeSpan(days, hours, minutes, seconds);
+        return true;
     }
 
     private void CheckForExpiredTimers()

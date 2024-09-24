@@ -81,9 +81,9 @@ public static class GenericHelpers
 
     public static readonly HashSet<string> TimerPadlocks = new HashSet<string>
     {
-        nameof(Padlocks.FiveMinutesPadlock),
-        nameof(Padlocks.TimerPasswordPadlock),
-        nameof(Padlocks.OwnerTimerPadlock)
+        Padlocks.FiveMinutesPadlock.ToName(),
+        Padlocks.TimerPasswordPadlock.ToName(),
+        Padlocks.OwnerTimerPadlock.ToName()
     };
 
 

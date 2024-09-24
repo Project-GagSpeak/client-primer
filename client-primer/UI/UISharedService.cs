@@ -9,6 +9,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Common.Lua;
 using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Localization;
@@ -669,6 +670,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             int.TryParse(match.Groups[2].Value, out int hours);
             int.TryParse(match.Groups[3].Value, out int minutes);
             int.TryParse(match.Groups[4].Value, out int seconds);
+            
             // Create a TimeSpan from the parsed values
             TimeSpan duration = new TimeSpan(days, hours, minutes, seconds);
             // Add the duration to the current DateTime to get a DateTimeOffset
@@ -703,6 +705,25 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         result = new TimeSpan(days, hours, minutes, seconds);
         return true;
+    }
+
+    public static void DrawTimeLeftFancy(DateTimeOffset lockEndTime, Vector4? color = null)
+    {
+        TimeSpan remainingTime = (lockEndTime - DateTimeOffset.UtcNow);
+        // if the remaining timespan is not a negative value, output the time.
+        if (remainingTime.TotalSeconds <= 0)
+        {
+            ColorText("Expired", ImGuiColors.DalamudRed);
+            return;
+        }
+        
+        var sb = new StringBuilder();
+        if (remainingTime.Days > 0) sb.Append($"{remainingTime.Days}d ");
+        if (remainingTime.Hours > 0) sb.Append($"{remainingTime.Hours}h ");
+        if (remainingTime.Minutes > 0) sb.Append($"{remainingTime.Minutes}m ");
+        if (remainingTime.Seconds > 0 || sb.Length == 0) sb.Append($"{remainingTime.Seconds}s ");
+        string remainingTimeStr = sb.ToString().Trim();
+        ColorText(remainingTimeStr + " left..", color is null ? ImGuiColors.ParsedPink : color.Value);
     }
 
 
@@ -969,6 +990,24 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             IconText(falseIcon);
         }
     }
+
+    /// <summary>
+    /// Use with caution, as this allows null entries.
+    /// </summary>
+    public void SetSelectedComboItem<T>(string comboName, T selectedItem)
+    {
+        _selectedComboItems[comboName] = selectedItem!;
+    }
+
+    /// <summary>
+    /// Get the selected item from the combo box.
+    /// </summary>
+    public T GetSelectedComboItem<T>(string comboName)
+    {
+        return (T)_selectedComboItems[comboName];
+    }
+
+
 
     public void DrawCombo<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName,
         Action<T?>? onSelected = null, T? initialSelectedItem = default, bool shouldShowLabel = true,

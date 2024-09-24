@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 7, 4)
+            .RegisterMain("Adding a testing interaction of a hardcore chat restrictor to the homepage.");
         VersionEntry(0, 8, 7, 3)
             .RegisterMain("This bug was such a big deal its now being posted as a Main Entry." + Environment.NewLine
             + "FINALLY fixed the bug where GagSpeak would rapidly update glamour endlessly, due to completing an update on the same tick framework tick")

@@ -16,7 +16,7 @@ namespace GagSpeak.UI.Permissions;
 // A helper class to make the permission actions less repetitive and obnoxious.
 public class PermActionsComponents
 {
-    private readonly ILogger<PermActionsComponents> logger;
+    private readonly ILogger<PermActionsComponents> _logger;
     private readonly ApiController _apiController;
     private readonly UiSharedService _uiShared;
     private readonly MoodlesService _moodlesService;
@@ -31,6 +31,7 @@ public class PermActionsComponents
         ApiController apiController, UiSharedService uiShared, 
         MoodlesService moodlesService)
     {
+        _logger = logger;
         _apiController = apiController;
         _uiShared = uiShared;
         _moodlesService = moodlesService;
@@ -184,26 +185,27 @@ public class PermActionsComponents
                 return false;
             case Padlocks.MetalPadlock:
             case Padlocks.FiveMinutesPadlock:
+                _timer = "5m";
                 return true;
             case Padlocks.CombinationPadlock:
                 result = _uiShared.ValidateCombination(Password);
-                if (!result) logger.LogWarning("Invalid combination entered: {Password}", Password);
+                if (!result) _logger.LogWarning("Invalid combination entered: {Password}", Password);
                 return result;
             case Padlocks.PasswordPadlock:
                 result = _uiShared.ValidatePassword(Password);
-                if (!result) logger.LogWarning("Invalid password entered: {Password}", Password);
+                if (!result) _logger.LogWarning("Invalid password entered: {Password}", Password);
                 return result;
             case Padlocks.TimerPasswordPadlock:
                 if (_uiShared.TryParseTimeSpan(Timer, out var test))
                 {
                     if (test > TimeSpan.FromHours(1) && !allowExtended)
                     {
-                        logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
+                        _logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
                         return false;
                     }
                     result = _uiShared.ValidatePassword(Password) && test > TimeSpan.Zero;
                 }
-                if (!result) logger.LogWarning("Invalid password or time entered: {Password} {Timer}", Password, Timer);
+                if (!result) _logger.LogWarning("Invalid password or time entered: {Password} {Timer}", Password, Timer);
                 return result;
             case Padlocks.OwnerPadlock:
                 return allowOwner;
@@ -211,13 +213,13 @@ public class PermActionsComponents
                 var validTime = _uiShared.TryParseTimeSpan(Timer, out var test2);
                 if (!validTime)
                 {
-                    logger.LogWarning("Invalid time entered: {Timer}", Timer);
+                    _logger.LogWarning("Invalid time entered: {Timer}", Timer);
                     return false;
                 }
                 // Check if the TimeSpan is longer than one hour and extended locks are not allowed
                 if (test2 > TimeSpan.FromHours(1) && !allowExtended)
                 {
-                    logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
+                    _logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
                     return false;
                 }
                 // return base case.

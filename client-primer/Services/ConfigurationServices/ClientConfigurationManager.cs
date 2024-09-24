@@ -5,6 +5,7 @@ using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
@@ -484,6 +485,9 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = endLockTimeUTC;
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = UIDofPair;
         _wardrobeConfig.Save();
+
+        Logger.LogDebug("Restraint Set "+setIndex+" Locked by "+UIDofPair+" with a Padlock of Type: "+lockType
+            + "and a password ["+password+"] with ["+(endLockTimeUTC- DateTimeOffset.UtcNow) +"] by "+UIDofPair, LoggerType.Restraints);
 
         Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Locked, pushToServer));
     }
@@ -993,8 +997,12 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             ImGui.Text($"Description: {ActiveSet.Description}");
             ImGui.Text($"Enabled By: {ActiveSet.EnabledBy}");
             ImGui.Text($"Is Locked: {ActiveSet.Locked}");
+            ImGui.Text($"Lock Type: {ActiveSet.LockType}");
+            ImGui.Text($"Lock Password: {ActiveSet.LockPassword}");
             ImGui.Text($"Locked By: {ActiveSet.LockedBy}");
-            ImGui.Text($"Locked Until: {ActiveSet.LockedUntil}");
+            ImGui.Text($"Locked Until: ");
+            ImGui.SameLine();
+            UiSharedService.DrawTimeLeftFancy(ActiveSet.LockedUntil);
             ImGui.Unindent();
         }
     }

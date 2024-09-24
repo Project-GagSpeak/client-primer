@@ -1,20 +1,18 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
-using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI.Permissions;
 using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UI.UiOrders;
 using GagSpeak.UI.UiPuppeteer;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.UI.UiToybox;
 using GagSpeak.UI.UiWardrobe;
-using GagSpeak.UpdateMonitoring;
+using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.Utils;
-using GagspeakAPI.Enums;
 using ImGuiNET;
-using Penumbra.GameData.Enums;
-using Penumbra.GameData.Structs;
+using OtterGui.Text;
 using System.Numerics;
 
 namespace GagSpeak.UI.MainWindow;
@@ -29,7 +27,7 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
     private readonly ItemIdVars _itemHelpers;
 
     public MainUiHomepage(ILogger<MainUiHomepage> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService, 
+        GagspeakMediator mediator, UiSharedService uiSharedService,
         ItemIdVars itemHelpers) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
@@ -113,5 +111,31 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         {
             Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
         }
+
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        bool isVisible = ChatLogAddonHelper.IsChatInputVisible;
+        bool isPanelsVisible = ChatLogAddonHelper.IsChatPanelVisible(0);
+
+        float width = (ImGui.GetContentRegionAvail().X - ImGui.GetFrameHeight() - ImGui.GetStyle().ItemInnerSpacing.X*2) / 2;
+        if (ImGui.Button("Toggle Chat Input", new Vector2(width, ImGui.GetFrameHeight())))
+        {
+            ChatLogAddonHelper.SetMainChatLogVisibility(!isVisible);
+        }
+        ImUtf8.SameLineInner();
+        if(ImGui.Button("Toggle Chat Panels", new Vector2(width, ImGui.GetFrameHeight())))
+        {
+            ChatLogAddonHelper.SetChatLogPanelsVisibility(!isPanelsVisible);
+        }
+        ImUtf8.SameLineInner();
+        ImGui.Checkbox("##Block Chat Input", ref BlockChatInput);
+        UiSharedService.AttachToolTip("Toggle if chat input is blocked or not");
+
+        if (BlockChatInput)
+            ChatLogAddonHelper.DiscardCursorNodeWhenFocused();
     }
+
+    private bool BlockChatInput = false;
 }

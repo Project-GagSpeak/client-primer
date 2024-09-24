@@ -7,7 +7,7 @@
         <TargetFramework>net8.0-windows</TargetFramework>
         <Copyright>Copyright © 2024</Copyright>
         <LangVersion>preview</LangVersion>
-        <Version>0.8.7.3</Version>
+        <Version>0.8.7.4</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
@@ -151,6 +151,7 @@
       <Folder Include="Unlocks\AchivementNames\" />
     </ItemGroup>
 </Project>
+
 
 
 

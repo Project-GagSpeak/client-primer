@@ -50,9 +50,9 @@ public record RestraintSet : IMoodlesAssociable
     public string EnabledBy { get; set; } = string.Empty;
 
     [JsonIgnore]
-    public bool Locked => LockType != "None";
+    public bool Locked => LockType != Padlocks.None.ToName();
 
-    public string LockType { get; set; } = "None";
+    public string LockType { get; set; } = Padlocks.None.ToName();
     public string LockPassword { get; set; } = string.Empty;
     public DateTimeOffset LockedUntil { get; set; } = DateTimeOffset.MinValue;
     public string LockedBy { get; set; } = string.Empty;

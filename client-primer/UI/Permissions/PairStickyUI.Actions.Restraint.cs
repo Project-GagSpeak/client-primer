@@ -70,6 +70,9 @@ public partial class PairStickyUI
 
         ////////// LOCK RESTRAINT SET //////////
         string DisplayText = unlockButtonDisabled ? "Lock Restraint Set" : "Locked with a " + lastWardrobeData.Padlock;
+        string tooltipText = unlockButtonDisabled
+            ? "Locks the Restraint Set applied to " + UserPairForPerms.UserData.AliasOrUID + ". Click to view options."
+            : "Set is currently locked with a " + lastWardrobeData.Padlock;
         // push text style
         using (var color = ImRaii.PushColor(ImGuiCol.Text, (lastWardrobeData.Padlock == Padlocks.None.ToName()) ? ImGuiColors.DalamudWhite : ImGuiColors.DalamudYellow))
         {
@@ -78,7 +81,15 @@ public partial class PairStickyUI
                 Opened = Opened == InteractionType.LockRestraint ? InteractionType.None : InteractionType.LockRestraint;
             }
         }
-        UiSharedService.AttachToolTip("Locks the Restraint Set applied to " + UserPairForPerms.UserData.AliasOrUID + ". Click to view options.");
+        if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
+        {
+            ImGui.BeginTooltip();
+            ImGui.Text(tooltipText); // first half.
+            if (!unlockButtonDisabled)
+                UiSharedService.DrawTimeLeftFancy(lastWardrobeData.Timer);
+            ImGui.EndTooltip();
+        }
+
         if (Opened is InteractionType.LockRestraint)
         {
             Padlocks selected = _permActions.GetSelectedItem<Padlocks>("LockRestraintSetForPairPermCombo", UserPairForPerms.UserData.UID);

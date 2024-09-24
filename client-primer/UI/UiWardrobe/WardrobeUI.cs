@@ -15,21 +15,18 @@ public class WardrobeUI : WindowMediatorSubscriberBase
     private readonly UiSharedService _uiSharedService;
     private readonly WardrobeTabMenu _tabMenu;
     private readonly WardrobeHandler _handler;
-    private readonly ActiveRestraintSet _activePanel;
     private readonly RestraintSetManager _overviewPanel;
     private readonly StruggleSim _struggleSimPanel;
     private readonly MoodlesManager _moodlesPanel;
     private readonly RestraintCosmetics _cosmeticsPanel;
     public WardrobeUI(ILogger<WardrobeUI> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        WardrobeHandler handler, ActiveRestraintSet activeSet, 
-        RestraintSetManager restraintOverview, StruggleSim struggleSim,
-        MoodlesManager moodlesManager, RestraintCosmetics restraintCosmetics) 
-        : base(logger, mediator, "Wardrobe UI")
+        WardrobeHandler handler, RestraintSetManager restraintOverview, 
+        StruggleSim struggleSim, MoodlesManager moodlesManager, 
+        RestraintCosmetics restraintCosmetics) : base(logger, mediator, "Wardrobe UI")
     {
         _uiSharedService = uiSharedService;
         _handler = handler;
-        _activePanel = activeSet;
         _overviewPanel = restraintOverview;
         _struggleSimPanel = struggleSim;
         _moodlesPanel = moodlesManager;
@@ -66,8 +63,6 @@ public class WardrobeUI : WindowMediatorSubscriberBase
         };
         RespectCloseHotkey = false;
     }
-
-    private bool IsAnySetActive => _activePanel.ActiveSet != null;
 
     protected override void PreDrawInternal()
     {
@@ -133,19 +128,12 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                 // pop pushed style variables and draw next column.
                 ImGui.PopStyleVar();
                 ImGui.TableNextColumn();
-                // Change the selected Tab to Restraint Sets if ActiveSet is null.
-                if (_handler.ActiveSet is null)
-                    _tabMenu.SelectedTab = WardrobeTabs.Tabs.ManageSets;
                 
                 // display right half viewport based on the tab selection
                 using (var rightChild = ImRaii.Child($"###WardrobeSetupRight", Vector2.Zero, false))
                 {
                     switch (_tabMenu.SelectedTab)
                     {
-                        case WardrobeTabs.Tabs.ActiveSet:
-
-                            _activePanel.DrawActiveSet();
-                            break;
                         case WardrobeTabs.Tabs.ManageSets:
                             _overviewPanel.DrawManageSets(cellPadding);
                             break;

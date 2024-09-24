@@ -14,8 +14,6 @@ public static class AchievementNames
         // TBD: Add achievement names related to orders here
     }
 
-
-
     public static class Gags
     {
         // apply a gag to yourself. (not another user)
@@ -49,9 +47,6 @@ public static class AchievementNames
         // Quiet Now, Dear - using /shush while targeting a gagged player
         public const string QuietNowDear = "Quiet Now, Dear";
     }
-
-
-
 
     public static class Wardrobe
     {
@@ -129,10 +124,6 @@ public static class AchievementNames
         public const string SoldSlave = "Sold Slave";
     }
 
-
-
-
-
     public static class Puppeteer
     {
         // Be ordered to sit by another pair through puppeteer. (can work both ways)
@@ -161,9 +152,6 @@ public static class AchievementNames
 
     }
 
-
-
-
     public static class Toybox
     {
         // Create a Publish a pattern for the first time.
@@ -187,9 +175,6 @@ public static class AchievementNames
         // Nothing can stop me -  Kill 500 enemies in pvp front while restrained7vibed
         public const string NothingCanStopMe = "Nothing can stop me";
     }
-
-
-
 
     public static class Hardcore
     {
@@ -247,9 +232,6 @@ public static class AchievementNames
         public const string TamedBrat = "Tamed Brat";
     }
 
-
-
-
     public static class Remotes
     {
         // Just Vibing - use the remote window for the first time
@@ -262,9 +244,6 @@ public static class AchievementNames
         public const string VibingWithTheGroup = "Vibing with the Group";
 
     }
-
-
-
 
     public static class Generic
     {
@@ -289,9 +268,6 @@ public static class AchievementNames
         // Warrior of Lewd: View a cutscene while bound (be in one for 30s
         public const string WarriorOfLewd = "Warrior of Lewd";
     }
-
-
-
 
     public static class Secrets
     {

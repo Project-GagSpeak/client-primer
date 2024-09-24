@@ -28,8 +28,6 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     private readonly IClientState _clientState;
     private readonly IDataManager _dataManager;
 
-    public Control* gameControl = Control.Instance(); // instance to have control over our walking
-
     // attempt to get the rapture hotbar module so we can modify the display of hotbar items
     public RaptureHotbarModule* raptureHotbarModule = Framework.Instance()->GetUIModule()->GetRaptureHotbarModule();
 

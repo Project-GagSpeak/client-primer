@@ -100,7 +100,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             }
             // Selection 1
             DrawGagAndLockSection(0, GagTypeOnePath, GagPadlockOnePath, (lock1 != Padlocks.None),
-                _playerManager.AppearanceData.GagSlots[0].GagType.ToGagType(), (lock1 == Padlocks.None ? _gagManager.PadlockPrevs[0] : lock1));
+                _playerManager.AppearanceData.GagSlots[0].GagType.ToGagType(), (lock1 == Padlocks.None ? _gagManager.ActiveSlotPadlocks[0] : lock1));
 
             // Gag Label 2
             _uiSharedService.BigText("Central Gag:");
@@ -114,7 +114,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             }
             // Selection 2
             DrawGagAndLockSection(1, GagTypeTwoPath, GagPadlockTwoPath, (lock2 != Padlocks.None),
-                _playerManager.AppearanceData.GagSlots[1].GagType.ToGagType(), (lock2 == Padlocks.None ? _gagManager.PadlockPrevs[1] : lock2));
+                _playerManager.AppearanceData.GagSlots[1].GagType.ToGagType(), (lock2 == Padlocks.None ? _gagManager.ActiveSlotPadlocks[1] : lock2));
 
             // Gag Label 3
             _uiSharedService.BigText("Outer Gag:");
@@ -128,7 +128,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             }
             // Selection 3
             DrawGagAndLockSection(2, GagTypeThreePath, GagPadlockThreePath, (lock3 != Padlocks.None),
-                _playerManager.AppearanceData.GagSlots[2].GagType.ToGagType(), (lock3 == Padlocks.None ? _gagManager.PadlockPrevs[2] : lock3));
+                _playerManager.AppearanceData.GagSlots[2].GagType.ToGagType(), (lock3 == Padlocks.None ? _gagManager.ActiveSlotPadlocks[2] : lock3));
         }
         catch (Exception ex)
         {
@@ -179,6 +179,8 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                         {
                             Logger.LogDebug($"Equipping gag {SelectedGag}", LoggerType.GagManagement);
                             Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, (GagLayer)slotNumber, SelectedGag));
+                            // publish the logic update change
+                            Mediator.Publish(new GagTypeChanged(SelectedGag, (GagLayer)slotNumber));
                         }
                         // if the previous gagtype was not none, unequip the previous and equip the new.
                         else
@@ -192,10 +194,10 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                                 await _appearanceChangeService.UpdateGagsAppearance((GagLayer)slotNumber, PreviousGag, NewState.Disabled);
                                 // after its disabled, apply the new version.
                                 await _appearanceChangeService.UpdateGagsAppearance((GagLayer)slotNumber, SelectedGag, NewState.Enabled);
+                                // publish the logic update change
+                                Mediator.Publish(new GagTypeChanged(SelectedGag, (GagLayer)slotNumber));
                             });
                         }
-                        // publish the logic update change
-                        Mediator.Publish(new GagTypeChanged(SelectedGag, (GagLayer)slotNumber));
                     }, gagType);
                 }
 
@@ -207,7 +209,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                         (padlock) => padlock.ToName(),
                     (i) =>
                     {
-                        _gagManager.PadlockPrevs[slotNumber] = i;
+                        _gagManager.ActiveSlotPadlocks[slotNumber] = i;
                     }, padlockType, false);
                 }
                 ImGui.SameLine(0, 2);
@@ -217,25 +219,24 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                     // draw the lock button
                     if (_uiSharedService.IconButton(currentlyLocked ? FontAwesomeIcon.Unlock : FontAwesomeIcon.Lock, null, slotNumber.ToString()))
                     {
-                        if (_gagManager.ValidatePassword(slotNumber, currentlyLocked))
+                        if (_gagManager.PasswordValidated(slotNumber, currentlyLocked))
                         {
                             Mediator.Publish(new GagLockToggle(
                                 new PadlockData(
                                     (GagLayer)slotNumber, 
-                                    _gagManager.PadlockPrevs[slotNumber], 
-                                    _gagManager.Passwords[slotNumber],
-                                    UiSharedService.GetEndTimeUTC(_gagManager.Timers[slotNumber]),
+                                    _gagManager.ActiveSlotPadlocks[slotNumber], 
+                                    _gagManager.ActiveSlotPasswords[slotNumber],
+                                    UiSharedService.GetEndTimeUTC(_gagManager.ActiveSlotTimers[slotNumber]),
                                     "SelfApplied"),
                                 currentlyLocked ? NewState.Unlocked : NewState.Locked));
                         }
                         // reset the password and timer
-                        _gagManager.Passwords[slotNumber] = string.Empty;
-                        _gagManager.Timers[slotNumber] = string.Empty;
+                        _gagManager.ResetInputs();
                     }
                     UiSharedService.AttachToolTip(currentlyLocked ? "Attempt Unlocking " : "Lock " +  "this gag.");
                 }
                 // display associated password field for padlock type.
-                _gagManager.DisplayPasswordField(slotNumber, currentlyLocked);
+                _gagManager.DisplayPadlockFields(slotNumber, currentlyLocked);
             }
             // Display lock image if we should
             if (padlockType != Padlocks.None && currentlyLocked)

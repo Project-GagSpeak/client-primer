@@ -288,7 +288,6 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<LockPickerSim>()
 
         // Wardrobe UI
-        .AddSingleton<ActiveRestraintSet>()
         .AddSingleton<RestraintSetManager>()
         .AddSingleton<StruggleSim>()
         .AddSingleton((s) => new MoodlesService(s.GetRequiredService<ILogger<MoodlesService>>(), dm, tp))

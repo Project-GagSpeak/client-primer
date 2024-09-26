@@ -30,10 +30,10 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         _IPAParser = IPAParser;
 
         // Triggered whenever the client updated the gagType from the dropdown menus in the UI
-        Mediator.Subscribe<GagTypeChanged>(this, (msg) => OnGagTypeChanged(msg.Layer, msg.NewGagType, true));
+        Mediator.Subscribe<GagTypeChanged>(this, (msg) => OnGagTypeChanged(msg.Layer, msg.NewGagType, true, msg.SelfApplied));
 
         // Triggered whenever the client updated the padlockType from the dropdown menus in the UI
-        Mediator.Subscribe<GagLockToggle>(this, (msg) => OnGagLockChanged(msg.PadlockInfo, msg.newGagLockState, true));
+        Mediator.Subscribe<GagLockToggle>(this, (msg) => OnGagLockChanged(msg.PadlockInfo, msg.newGagLockState, true, msg.SelfApplied));
 
         // check for any locked gags on delayed framework to see if their timers expired.
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => CheckForExpiredTimers());
@@ -70,7 +70,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
     /// <summary>
     /// Handles the GagTypeChanged event, updating the active gags list accordingly.
     /// </summary>
-    public void OnGagTypeChanged(GagLayer Layer, GagType NewGagType, bool publish)
+    public void OnGagTypeChanged(GagLayer Layer, GagType NewGagType, bool publish, bool SelfApplied = false)
     {
         if (_characterManager.CoreDataNull) return;
 
@@ -98,7 +98,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         UpdateActiveGags();
     }
 
-    public void OnGagLockChanged(PadlockData padlockInfo, NewState gagLockNewState, bool publish)
+    public void OnGagLockChanged(PadlockData padlockInfo, NewState gagLockNewState, bool publish, bool SelfApplied = false)
     {
         if (_characterManager.CoreDataNull) return;
 

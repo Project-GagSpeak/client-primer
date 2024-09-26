@@ -128,7 +128,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         SizeConstraints = new WindowSizeConstraints()
         {
             MinimumSize = new Vector2(325, 400),
-            MaximumSize = new Vector2(325, 2000),
+            MaximumSize = new Vector2(600, 2000),
         };
     }
 

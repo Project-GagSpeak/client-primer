@@ -48,7 +48,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
                 // if any of them wanted a redraw, do so.
                 if (_handler.GetAssociatedMods(msg.SetIdx).Any(x => x.RedrawAfterToggle))
                 {
-                    IGameObject? playerCharObj = await _frameworkUtils.CreateGameObjectAsync(_frameworkUtils._playerAddr).ConfigureAwait(false) ?? null;
+                    IGameObject? playerCharObj = await _frameworkUtils.CreateGameObjectAsync(_frameworkUtils.ClientPlayerAddress).ConfigureAwait(false) ?? null;
                     if (playerCharObj == null)
                     {
                         Logger.LogError("Could not find player object. This only happens when you are loading between zones! If it isn't Report this!");
@@ -67,7 +67,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
                 // if any of them wanted a redraw, do so.
                 if (_handler.GetAssociatedMods(msg.SetIdx).Any(x => x.RedrawAfterToggle))
                 {
-                    IGameObject? playerCharObj = await _frameworkUtils.CreateGameObjectAsync(_frameworkUtils._playerAddr).ConfigureAwait(false) ?? null;
+                    IGameObject? playerCharObj = await _frameworkUtils.CreateGameObjectAsync(_frameworkUtils.ClientPlayerAddress).ConfigureAwait(false) ?? null;
                     if (playerCharObj == null)
                     {
                         Logger.LogError("Could not find player object. This only happens when you are loading between zones! If it isn't Report this!");

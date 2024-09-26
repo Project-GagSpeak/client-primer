@@ -55,14 +55,15 @@ public record OpenPrivateRoomRemote(PrivateRoom PrivateRoom) : MessageBase; // u
 /* ------------- DALAMUD FRAMEWORK UPDATE RECORDS ------------- */
 public record DalamudLoginMessage : MessageBase; // record indicating the moment the client logs into the game instance.
 public record DalamudLogoutMessage : MessageBase; // record indicating the moment the client logs out of the game instance.
-public record PriorityFrameworkUpdateMessage : SameThreadMessage; // a message indicating the need for a priority framework update.
 public record FrameworkUpdateMessage : SameThreadMessage; // a message indicating the need for a framework update.
 public record DelayedFrameworkUpdateMessage : SameThreadMessage; // a message indicating the need for a delayed framework update.
+public record GPoseStartMessage : MessageBase ; // a message indicating the start of gpose.
+public record GPoseEndMessage : MessageBase; // a message indicating the end of gpose.
+public record CutsceneBeginMessage : MessageBase;
 public record CutsceneEndMessage : MessageBase; // helps us know when to reapply data like moodles.
 public record ZoneSwitchStartMessage : MessageBase; // know when we are beginning to switch zones
 public record ZoneSwitchEndMessage : MessageBase; // know when we have finished switching zones
-public record ResumeScanMessage(string Source) : MessageBase; // know when we should resume scanning
-
+public record CommendationsIncreasedMessage(int amount) : MessageBase;
 
 /* ------------------ PLAYER DATA RELATED RECORDS------------------ */
 public record UpdateAllOnlineWithCompositeMessage : MessageBase; // for updating all online pairs with composite data.
@@ -79,8 +80,8 @@ public record MufflerLanguageChanged : MessageBase; // called whenever the clien
 public record UpdateActiveGags(TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase;
 public record ActiveGagsUpdated : MessageBase;
 public record ActiveLocksUpdated : MessageBase;
-public record GagTypeChanged(GagType NewGagType, GagLayer Layer) : MessageBase; // called whenever the client changes their gag type.
-public record GagLockToggle(PadlockData PadlockInfo, NewState newGagLockState) : MessageBase; // called whenever the client changes their padlock.
+public record GagTypeChanged(GagType NewGagType, GagLayer Layer, bool SelfApplied = false) : MessageBase; // called whenever the client changes their gag type.
+public record GagLockToggle(PadlockData PadlockInfo, NewState newGagLockState, bool SelfApplied = false) : MessageBase; // called whenever the client changes their padlock.
 public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase;
 public record HelmetStateChangedMessage(bool ChangedState) : MessageBase; // called whenever the client changes their helmet state.
 public record VisorStateChangedMessage(bool ChangedState) : MessageBase; // called whenever the client changes their visor state.

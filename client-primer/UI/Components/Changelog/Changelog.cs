@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 8, 7, 6)
+            .RegisterMain("Warning this version is very cursed. Mainly meant for debugging while i sleep.")
+            .RegisterFeature("Some debugging variables spawn in the homepage to help with some achievement scouting.");
         VersionEntry(0, 8, 7, 5)
             .RegisterMain("Hardcore Blindfolds now function properly.")
             .RegisterFeature("WARNING: DO NOT TRY FORCED TO STAY OR FORCED TO SIT JUST QUITE YET THEY ARE UNTESTED.");

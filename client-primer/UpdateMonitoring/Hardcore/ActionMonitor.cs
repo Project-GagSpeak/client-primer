@@ -24,7 +24,6 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     private readonly HardcoreHandler _hardcoreHandler;
     private readonly WardrobeHandler _wardrobeHandler;
     private readonly OnFrameworkService _frameworkUtils;
-    private readonly IpcFastUpdates _glamourFastEvent;
     private readonly IClientState _clientState;
     private readonly IDataManager _dataManager;
 
@@ -44,8 +43,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     public unsafe ActionMonitor(ILogger<ActionMonitor> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, HotbarLocker hotbarLocker,
         HardcoreHandler handler, WardrobeHandler wardrobeHandler,
-        OnFrameworkService frameworkUtils, IpcFastUpdates fastUpdate,
-        IClientState clientState, IDataManager dataManager,
+        OnFrameworkService frameworkUtils, IClientState clientState, IDataManager dataManager,
         IGameInteropProvider interop) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
@@ -53,7 +51,6 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         _hardcoreHandler = handler;
         _wardrobeHandler = wardrobeHandler;
         _frameworkUtils = frameworkUtils;
-        _glamourFastEvent = fastUpdate;
         _clientState = clientState;
         _dataManager = dataManager;
 
@@ -293,12 +290,12 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         if (AllowFrameworkHardcoreUpdates())
         {
             // if the class job is different than the one stored, then we have a class job change (CRITICAL TO UPDATING PROPERLY)
-            if (_clientState.LocalPlayer!.ClassJob.Id != _frameworkUtils._playerClassJobId)
+            if (_clientState.LocalPlayer!.ClassJob.Id != _frameworkUtils.PlayerClassJobId)
             {
                 // update the stored class job
-                _frameworkUtils._playerClassJobId = _clientState.LocalPlayer.ClassJob.Id;
+                _frameworkUtils.PlayerClassJobId = _clientState.LocalPlayer.ClassJob.Id;
                 // invoke jobChangedEvent to call the job changed glamour event
-                _glamourFastEvent.InvokeGlamourer(GlamourUpdateType.JobChange);
+                IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.JobChange);
                 // regenerate our slots
                 UpdateJobList();
                 RestoreSavedSlots();

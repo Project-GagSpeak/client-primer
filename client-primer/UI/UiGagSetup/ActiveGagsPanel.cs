@@ -180,7 +180,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                             Logger.LogDebug($"Equipping gag {SelectedGag}", LoggerType.GagManagement);
                             Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, (GagLayer)slotNumber, SelectedGag));
                             // publish the logic update change
-                            Mediator.Publish(new GagTypeChanged(SelectedGag, (GagLayer)slotNumber));
+                            Mediator.Publish(new GagTypeChanged(SelectedGag, (GagLayer)slotNumber, true));
                         }
                         // if the previous gagtype was not none, unequip the previous and equip the new.
                         else
@@ -195,7 +195,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                                 // after its disabled, apply the new version.
                                 await _appearanceChangeService.UpdateGagsAppearance((GagLayer)slotNumber, SelectedGag, NewState.Enabled);
                                 // publish the logic update change
-                                Mediator.Publish(new GagTypeChanged(SelectedGag, (GagLayer)slotNumber));
+                                Mediator.Publish(new GagTypeChanged(SelectedGag, (GagLayer)slotNumber, true));
                             });
                         }
                     }, gagType);

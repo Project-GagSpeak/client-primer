@@ -43,8 +43,8 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
         _cts = new CancellationTokenSource(); // for handling gearset changes
 
         // subscribe to our mediator for glamour changed
-        _ipcFastUpdates.GlamourEventFired += (sender, updateType) => UpdateGenericAppearance(updateType);
-        _ipcFastUpdates.CustomizeEventFired += EnsureForcedCustomizeProfile;
+        IpcFastUpdates.GlamourEventFired += UpdateGenericAppearance;
+        IpcFastUpdates.CustomizeEventFired += EnsureForcedCustomizeProfile;
 
         // gag glamour updates
         Mediator.Subscribe<UpdateGlamourGagsMessage>(this, async (msg) =>
@@ -64,13 +64,11 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-
-        // unsub
-        _ipcFastUpdates.GlamourEventFired -= (sender, updateType) => UpdateGenericAppearance(updateType);
-        _ipcFastUpdates.CustomizeEventFired -= EnsureForcedCustomizeProfile;
+        IpcFastUpdates.GlamourEventFired -= UpdateGenericAppearance;
+        IpcFastUpdates.CustomizeEventFired -= EnsureForcedCustomizeProfile;
     }
 
-    private void EnsureForcedCustomizeProfile(object sender, Guid e)
+    private void EnsureForcedCustomizeProfile(Guid e)
     {
         // return if appearance data is not valid.
         if (_playerManager.AppearanceData == null || !IpcCallerCustomize.APIAvailable) return;

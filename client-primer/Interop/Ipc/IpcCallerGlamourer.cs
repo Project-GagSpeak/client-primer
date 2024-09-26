@@ -158,7 +158,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             await _onFrameworkService.RunOnFrameworkThread(() =>
             {
                 // grab character pointer (do this here so we do it inside the framework thread)
-                var characterAddr = _onFrameworkService._playerAddr;
+                var characterAddr = _onFrameworkService.ClientPlayerAddress;
                 // set the game object to the character
                 var gameObj = _onFrameworkService.CreateGameObject(characterAddr);
                 // if the game object is the character, then get the customization for it.
@@ -390,7 +390,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private void GlamourerChanged(nint address, StateChangeType changeType)
     {
         // do not accept if coming from other player besides us.
-        if (address != _onFrameworkService._playerAddr || !PlayerIsPresent()) return;
+        if (address != _onFrameworkService.ClientPlayerAddress || !PlayerIsPresent()) return;
 
         // block if we are not desiring to listen to changes yet.
         if (OnFrameworkService.GlamourChangeEventsDisabled)
@@ -403,7 +403,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         if (changeType is StateChangeType.Design or StateChangeType.Reapply or StateChangeType.Reset or StateChangeType.Equip or StateChangeType.Stains)
         {
             Logger.LogTrace($"StateChangeType is {changeType}", LoggerType.IpcGlamourer);
-            _fastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
+            IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
             return;
         }
         

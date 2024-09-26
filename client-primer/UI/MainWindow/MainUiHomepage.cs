@@ -2,6 +2,8 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
+using FFXIVClientStructs.FFXIV.Client.Game.GoldSaucer;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UI.UiOrders;
@@ -135,7 +137,86 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
 
         if (BlockChatInput)
             ChatLogAddonHelper.DiscardCursorNodeWhenFocused();
+
+        bool fashionCheckVisible = false;
+        unsafe
+        {
+            var fashionCheckOpen = (AtkUnitBase*)GenericHelpers.GetAddonByName("FashionCheck");
+            if (fashionCheckOpen != null)
+                fashionCheckVisible = fashionCheckOpen->RootNode->IsVisible();
+        };
+        ImGui.Text("FashionCheck Open:" + fashionCheckVisible);
+        ImGui.Separator();
+        try
+        {
+            unsafe
+            {
+                ImGui.Text("Gold Saucer Information:");
+                var GateDirector = GSManager->CurrentGFateDirector;
+                var markerToolTip = GateDirector->MapMarkerTooltipText;
+                var mapLvlId = GateDirector->MapMarkerLevelId;
+                var EndTimeStamp = GateDirector->EndTimestamp;
+                var GateType = GateDirector->GateType;
+                var GatePosType = GateDirector->GatePositionType;
+                var GateDirectorFlags = GateDirector->Flags;
+                ImGui.Text("Marker Tooltip: " + markerToolTip);
+                ImGui.Text("Map Level ID: " + mapLvlId);
+                ImGui.Text("End Time Stamp: " + EndTimeStamp);
+                ImGui.Text("Gate Type: " + (GateType)GateType);
+                ImGui.Text("Gate Position Type: " + GatePosType);
+                ImGui.Text("Gate Director Flags: " + ((GFateDirectorFlag)GateDirectorFlags).ToString());
+                ImGui.Text("IsRunningGate: " + GateDirector->IsRunningGate());
+                ImGui.Text("IsAcceptingGate: " + GateDirector->IsAcceptingGate());
+                if(GateDirector->IsAcceptingGate() && (uint)GFateDirectorFlag.IsJoined != 0)
+                {
+                    if(!GagReflexReady)
+                    {
+                        GagReflexReady = true;
+                        Logger.LogWarning("Gag Reflex is ready to be used.");
+                    }
+                }
+                if(GateDirector->IsAcceptingGate() && (uint)GFateDirectorFlag.IsJoined != 0 && (uint)GFateDirectorFlag.IsFinished != 0)
+                {
+                    if(GagReflexReady)
+                    {
+                        GagReflexReady = false;
+                        Logger.LogWarning("Gag Reflex is no longer ready to be used.");
+                    }
+                }
+            };
+        }
+        catch (Exception e)
+        {
+            ImGui.Text("Error: " + e.Message);
+        }
     }
+
+    private bool GagReflexReady = false;
+
+    // Gate Flags:
+    // IsJoined = We have joined the gate.
+    // IsFinished = Our Attempt in the Gate is finished.
+    // Unk2 = We failed the attempt???
+    // Unk3 = ???
+    // Unk4 = ???
+    // Unk5 = ???
+
+    private enum GateType : byte
+    {
+        Something1 = 0,
+        Something2 = 1,
+        Something3 = 2,
+        Something4 = 3,
+        Something5 = 4,
+        AnyWayTheWindBlows = 5, // fungai event.
+        LeapOfFaith = 6,
+    }
+
+    // When joining an event:
+    // IsAccepting Gate goes to true
+    // The flag IsJoined is set,
+
+    private unsafe GoldSaucerManager* GSManager = FFXIVClientStructs.FFXIV.Client.Game.GoldSaucer.GoldSaucerManager.Instance();
 
     private bool BlockChatInput = false;
 }

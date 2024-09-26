@@ -56,6 +56,7 @@ public class GagspeakConfig : IGagspeakConfiguration
     public string Safeword { get; set; } = "";
     public string Language { get; set; } = "English"; // MuffleCore
     public string LanguageDialect { get; set; } = "IPA_US"; // MuffleCore
+    public bool CursedDungeonLoot { get; set; } = false; // CursedDungeonLoot
     public bool LiveGarblerZoneChangeWarn { get; set; } = true; // LiveChatGarbler Warnings
     public bool RemoveGagUponLockExpiration { get; set; } = false; // Auto-Remove Gags
     public RevertStyle RevertStyle { get; set; } = RevertStyle.RevertToAutomation; // How to revert Character when reset

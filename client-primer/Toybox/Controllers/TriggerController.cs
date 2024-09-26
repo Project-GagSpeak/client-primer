@@ -456,7 +456,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         }
         else
         {
-            _receiveActionEffectHookManager.DisableHook();
+            //_receiveActionEffectHookManager.DisableHook();
         }
 
         try

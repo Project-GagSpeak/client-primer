@@ -153,7 +153,7 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
         if(c == 0) // if the character is our own character
         {
             // publish a message to our mediator to let our other services know that our profile has changed.
-            _fastUpdates.InvokeCustomize(g);
+            IpcFastUpdates.InvokeCustomize(g);
         }
     }
 }

@@ -1,17 +1,35 @@
-using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
-using Lumina.Excel.GeneratedSheets2;
-using System.Net.Sockets;
 using System.Windows.Forms;
-using System.Windows.Forms.Design;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace GagSpeak.Achievements;
 
-public static class AchievementNames
+public static class Achievements
 {
     public static class Orders
     {
-        // TBD: Add achievement names related to orders here
+        // Just a Volunteer - Finish 1 Order
+        public const string JustAVolunteer = "Just a Volunteer";
+        // As You Command - Finish 10 Orders
+        public const string AsYouCommand = "As You Command";
+        // Anything For My Owner - Finish 100 Orders
+        public const string AnythingForMyOwner = "Anything For My Owner";
+        // Good Drone - Finish 1000 Orders
+        public const string GoodDrone = "Good Drone";
+
+        // Bad Slut - Fail 1 Order
+        public const string BadSlut = "Bad Slut";
+        // Needs Training - Fail 10 Orders
+        public const string NeedsTraining = "Needs Training";
+        // Useful In Other Ways - Fail 100 Orders
+        public const string UsefulInOtherWays = "Useful In Other Ways";
+
+        // New Slave Owner - Create 1 Order
+        public const string NewSlaveOwner = "New Slave Owner";
+        // Task Manager - Create 10 Orders
+        public const string TaskManager = "Task Manager";
+        // Maid Master - Create 100 Orders
+        public const string MaidMaster = "Maid Master";
+        // Queen of Drones - Create 1000 Orders
+        public const string QueenOfDrones = "Queen of Drones";
     }
 
     public static class Gags
@@ -35,6 +53,9 @@ public static class AchievementNames
         public const string CantHearYou = "I Can't Hear you";// /yell
         public const string OneMoreForTheCrowd = "I Can't Hear you"; // /shout
 
+        // Speech is Silver, Silence is Golden - Wear a gag for a full week.
+        public const string SpeechSilverSilenceGolden = "Speech is Silver, Silence is Golden";
+
         // The Kinky Legend - Wear a gag for 2 weeks
         public const string TheKinkyLegend = "The Kinky Legend";
 
@@ -46,6 +67,12 @@ public static class AchievementNames
 
         // Quiet Now, Dear - using /shush while targeting a gagged player
         public const string QuietNowDear = "Quiet Now, Dear";
+
+        // our Favorite Nurse - Play a pattern, apply a restraint set, or apply a gag to another pair while you have the Mask Gag Equipped 20 times
+        public const string YourFavoriteNurse = "Your Favorite Nurse";
+
+        // Say Mmmph! - take a screenshot in /gpose while gagged
+        public const string SayMmmph = "Say Mmmph!~";
     }
 
     public static class Wardrobe
@@ -63,15 +90,17 @@ public static class AchievementNames
         // Apply a restraint to yourself 100 times.
         public const string SelfBondageEnthusiast = "DIY DiD";
 
-        // Apply a restraint set to someone else 
         // Apply a restraint set to someone else 100 times.
         public const string DiDEnthusiast = "Making a Damsel out of You."; // 100 times.
 
-        // Crowd pleaser - Be restrained with more than 10 people around you
+        // Crowd pleaser - Be restrained with more than 15 people around you
         public const string CrowdPleaser = "Crowd Pleaser";
 
         // Be Restrained with at least 5 other visible GagSpeak Pairs around you
         public const string Humiliation = "Lesson in Humiliation";
+
+        // Bondage Bunny - Be Restraintd by 5 different people in less than 2 hours.
+        public const string BondageBunny = "Bondage Bunny";
 
         // Dye a restraint set:
         public const string ToDyeFor = "To Dye For"; // once
@@ -122,6 +151,9 @@ public static class AchievementNames
 
         // Sold Slave - Have a Password Locked Restraint set on you that was locked by one GagSpeak user, be unlocked by another GagSpeak use
         public const string SoldSlave = "Sold Slave";
+
+        // Bondodge - Within 2 seconds of having a restraint set applied to you, remove it from yourself
+        public const string Bondodge = "Bondodge";
     }
 
     public static class Puppeteer
@@ -132,8 +164,8 @@ public static class AchievementNames
         // Control my body - Have another pair enable All Motions in puppeteer for you.
         public const string ControlMyBody = "Control My Body";
 
-        // Fully Trusted - have a pair enable puppeteer all commands for you
-        public const string FullyTrusted = "Fully Entrusted";
+        // Complete Devotion - have a pair enable puppeteer all commands for you
+        public const string CompleteDevotion = "Complete Devotion";
 
         // Master of Puppets - puppeteer someone 10 times in an hour
         public const string MasterOfPuppets = "Master of Puppets";
@@ -146,10 +178,6 @@ public static class AchievementNames
 
         // Showing Off - Order someone to execute any emote with "dance" in it X times
         public const string ShowingOff = "Showing Off";
-
-        // Presnting Yourself - Be ordered to execute any emote with "dance" in it X times
-        public const string PresentingYourself = "Presenting Yourself";
-
     }
 
     public static class Toybox
@@ -157,11 +185,20 @@ public static class AchievementNames
         // Create a Publish a pattern for the first time.
         public const string FunForAll = "Fun for all";
 
-        // Endurance King/Queen - Play a pattern for an hour without pause
-        public const string EnduranceKing = "Endurance King/Queen";
+        // DeviousComposer - Create 10 patterns
+        public const string DeviousComposer = "Devious Composer";
 
-        // My Favorite Toy - Connect a real device (vibrator, pishock, etc) to Gagspeak
-        public const string MyFavoriteToy = "My Favorite Toy";
+        // Craving Pleasure - Download 30 patterns.
+        public const string CravingPleasure = "Craving Pleasure";
+
+        // Like 30 Patterns
+        public const string PatternLover = "Pattern Lover";
+
+        // Endurance King/Queen - Play a pattern for an hour without pause
+        public const string EnduranceQueen = "Endurance King/Queen";
+
+        // My Favorite Toys - Connect a real device (vibrator, pishock, etc) to Gagspeak
+        public const string MyFavoriteToys = "My Favorite Toys";
 
         // Motivation for Restoration: Play a pattern for over 30 minutes in Diadem
         public const string MotivationForRestoration = "Motivation for Restoration";
@@ -169,8 +206,17 @@ public static class AchievementNames
         // Kinky Gambler - complete a deathroll (win or loss) while you have at least one trigger active for losing it
         public const string KinkyGambler = "Kinky Gambler";
 
-        // Good Morning - Have an alarm go off
-        public const string GoodMorning = "Good Morning";
+        // SubtleReminders - Have a trigger fire off successfully 10 times.
+        public const string SubtleReminders = "Subtle Reminders";
+
+        // FingerOnTheTrigger - Have a trigger fire off successfully 100 times.
+        public const string FingerOnTheTrigger = "Finger on the Trigger";
+
+        // TriggerHappy - Have a trigger fire off successfully 1000 times.
+        public const string TriggerHappy = "Trigger Happy";
+
+        // HornyMornings - Have an alarm go off
+        public const string HornyMornings = "Horny Mornings";
 
         // Nothing can stop me -  Kill 500 enemies in pvp front while restrained7vibed
         public const string NothingCanStopMe = "Nothing can stop me";
@@ -241,7 +287,7 @@ public static class AchievementNames
         public const string DontKillMyVibe = "Don't Kill My Vibe";
 
         // Vibing with the Group - Host a Vibe Server Vibe Room.
-        public const string VibingWithTheGroup = "Vibing with the Group";
+        public const string VibingWithFriends = "Vibing with Friends";
 
     }
 
@@ -251,22 +297,37 @@ public static class AchievementNames
         public const string TutorialComplete = "Welcome To GagSpeak!";
 
         // Add your first pair.
-        public const string AddedFirstPair = "Your First Kinkster";
+        public const string AddedFirstPair = "Social Kinkster";
+
+        // Have 20 pairs.
+        public const string TheCollector = "The Collector";
 
         // Apply a preset for a pair, defining the boundaries of your contact.
-        public const string AppliedFirstPreset = "Defining Boundaries";
+        public const string AppliedFirstPreset = "Boundary Definer";
 
         // Knows My Limits - Use the safeword for the first time
         public const string KnowsMyLimits = "Knows My Limits";
 
+        // Kinky Explorer - Run a dungeon with Cursed Bondage Loot enabled.
+        public const string KinkyExplorer = "Kinky Explorer";
+
+        // Tempting Fate's Treasure - Be Caught in Cursed Bondage Loot for the first time.
+        public const string TemptingFatesTreasure = "Tempting Fate's Treasure";
+
+        // Bad End Seeker - Get trapped in Cursed Bondage Loot 25 times..
+        public const string BadEndSeeker = "Bad End Seeker";
+
         // Escaping Isn't Easy - change your equipment/change job while locked in a restraint set 
-        public const string EscapingIsntEasy = "Escaping Isn't Easy";
+        public const string EscapingIsNotEasy = "Escaping Isn't Easy";
 
         // Hello Kinky World! - use the gagspeak global chat for the first time
         public const string HelloKinkyWorld = "Hello Kinky World!";
 
         // Warrior of Lewd: View a cutscene while bound (be in one for 30s
         public const string WarriorOfLewd = "Warrior of Lewd";
+
+        // I can't believe you've done this. - Get /slapped while bound
+        public const string ICantBelieveYouveDoneThis = "Can't believe you've done this";
     }
 
     public static class Secrets
@@ -287,11 +348,8 @@ public static class AchievementNames
         // Bondage Club - have at least 8 pairs visible/near you at the same time
         public const string BondageClub = "Bondage Club";
 
-        // Devious Cursed Loot - have a gag/restraint set applied to you within X seconds of obtaining an item
-        public const string DeviousCursedLoot = "Devious Cursed Loot";
-
-        // Lewd Bad End - get KO'd while in a restraint set
-        public const string LewdBadEnd = "Lewd Bad End";
+        // BadEndHostage - Get KO'd while in a restraint set
+        public const string BadEndHostage = "Bad End Hostage";
 
         // World Tour - Visit every major city Aetheryte plaza while bound, with no breaks in between 2m in each city.
         public const string WorldTour = "World Tour";
@@ -302,15 +360,21 @@ public static class AchievementNames
         // Jump off a cliff while in bondage: "Boundgee Jumping" (Fall Damage spawns an action effect from it)
         public const string BoundgeeJumping = "Boundgee Jumping";
 
-        // perverted mentor where you need to get atleast 10 commends while bound?
-        public const string PervertedMentor = "Perverted Mentor";
+        // Perverted teacher - Get 10 commendations while bound
+        public const string KinkyTeacher = "Perverted Teacher";
+
+        // Kinky Professor - Get 50 commendations while bound
+        public const string KinkyProfessor = "Kinky Professor";
+
+        // perverted mentor - Get 100 commends while bound
+        public const string KinkyMentor = "Kinky Mentor";
 
         // How did we get here - Have a Restraint set Active while having the max allowed statuses on you (possible?)
         public const string HowDidWeGetHere = "How Did We Get Here";
 
         // As if things couldnt get any worse - Get 90k'ed while in bondage.
         public const string AsIfThingsCouldntGetAnyWorse = "As If Things Couldn't Get Any Worse";
-    
+
         // "Overkill - Bind someone on all available slots"...
         public const string Overkill = "Overkill";
 

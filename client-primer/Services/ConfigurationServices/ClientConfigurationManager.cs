@@ -222,7 +222,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal List<RestraintSet> StoredRestraintSets => WardrobeConfig.WardrobeStorage.RestraintSets;
     public List<string> GetRestraintSetNames() => WardrobeConfig.WardrobeStorage.RestraintSets.Select(set => set.Name).ToList();
     internal int GetActiveSetIdx() => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Enabled);
-    internal RestraintSet GetActiveSet() => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.Enabled)!; // this can be null.
+    internal RestraintSet? GetActiveSet() => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.Enabled)!; // this can be null.
     internal RestraintSet GetRestraintSet(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
     internal int GetRestraintSetIdxByName(string name) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Name == name);
 
@@ -676,6 +676,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     #endregion Pattern Config Methods
     /* --------------------- Toybox Alarm Configs --------------------- */
     #region Alarm Config Methods
+    public int ActiveAlarmCount => AlarmConfig.AlarmStorage.Alarms.Count(x => x.Enabled);
     public Alarm FetchAlarm(int idx) => AlarmConfig.AlarmStorage.Alarms[idx];
     public int FetchAlarmCount() => AlarmConfig.AlarmStorage.Alarms.Count;
     public string GetAlarmPatternName(Guid id) => PatternConfig.PatternStorage.Patterns.FirstOrDefault(p => p.UniqueIdentifier == id)?.Name ?? string.Empty;

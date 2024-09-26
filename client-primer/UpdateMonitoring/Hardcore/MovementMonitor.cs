@@ -4,12 +4,10 @@ using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.Movement;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
-using GagspeakAPI.Enums;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -229,8 +227,8 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         if (baseObj->GetIsTargetable()) TargetSystem.Instance()->InteractWithObject(baseObj, true);
     }
 
-    private bool isImmobile() 
-        => _outfitHandler.ActiveSet != null 
+    private bool isImmobile()
+        => _outfitHandler.ActiveSet != null
         && _outfitHandler.ActiveSet.SetProperties.ContainsKey(_outfitHandler.ActiveSet.EnabledBy)
         && _outfitHandler.ActiveSet.SetProperties[_outfitHandler.ActiveSet.EnabledBy].Immobile;
 
@@ -298,7 +296,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                 _keyState.SetRawValue(x, 0);
                 // set was canceled to true
                 WasCancelled = true;
-                Logger.LogTrace("Cancelling key: "+x, LoggerType.HardcoreMovement);
+                Logger.LogTrace("Cancelling key: " + x, LoggerType.HardcoreMovement);
             }
         });
     }

@@ -264,7 +264,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     {
         if (!APIAvailable) return;
 
-        string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
+        string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil.ClientPlayerAddress).GetAwaiter().GetResult()!.GetNameWithWorld();
         if (string.IsNullOrEmpty(playerNameWithWorld))
         {
             _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);
@@ -301,7 +301,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         {
             await _frameworkUtil.RunOnFrameworkThread(() =>
             {
-                string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
+                string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil.ClientPlayerAddress).GetAwaiter().GetResult()!.GetNameWithWorld();
                 if (string.IsNullOrEmpty(playerNameWithWorld))
                 {
                     _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);
@@ -339,7 +339,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         {
             await _frameworkUtil.RunOnFrameworkThread(() =>
             {
-                string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
+                string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil.ClientPlayerAddress).GetAwaiter().GetResult()!.GetNameWithWorld();
                 if (string.IsNullOrEmpty(playerNameWithWorld))
                 {
                     _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);
@@ -372,7 +372,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
 
     public async Task ClearStatusAsync()
     {
-        string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil._playerAddr).GetAwaiter().GetResult()!.GetNameWithWorld();
+        string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil.ClientPlayerAddress).GetAwaiter().GetResult()!.GetNameWithWorld();
         if (string.IsNullOrEmpty(playerNameWithWorld))
         {
             _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);

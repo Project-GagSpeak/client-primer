@@ -113,7 +113,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             Logger.LogInformation("Everything Disabled.", LoggerType.Safeword);
 
             // reverting character.
-            _glamourFastEvent.InvokeGlamourer(GlamourUpdateType.Safeword);
+            IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.Safeword);
 
             Logger.LogInformation("Character reverted.", LoggerType.Safeword);
         }

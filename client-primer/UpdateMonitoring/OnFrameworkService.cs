@@ -2,14 +2,15 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
 using Microsoft.Extensions.Hosting;
-using System.Net;
 
 namespace GagSpeak.UpdateMonitoring;
 
@@ -18,36 +19,53 @@ namespace GagSpeak.UpdateMonitoring;
 /// </summary>
 public class OnFrameworkService : IHostedService, IMediatorSubscriber
 {
+    private readonly ILogger<OnFrameworkService> _logger;
     private readonly IClientState _clientState;
     private readonly ICondition _condition;
     private readonly IDataManager _gameData;
     private readonly IFramework _framework;
     private readonly IGameGui _gameGui;
-    private readonly ILogger<OnFrameworkService> _logger;
     private readonly IObjectTable _objectTable;
+    private readonly IPartyList _partyList;
+    private readonly ITargetManager _targetManager;
     private ushort _lastZone = 0;
     public bool _sentBetweenAreas = false;
+    public bool _hasDied = false;
+    public uint PlayerClassJobId = 0;
     public bool IsLoggedIn { get; private set; }
+    public short LastCommendationsCount { get; private set; } = 0;
+
     private DateTime _delayedFrameworkUpdateCheck = DateTime.Now; // for letting us know if we are in a delayed framework check
+
 
     // The list of player characters, to associate their hashes with the player character name and addresses. Useful for indicating if they are visible or not.
     private readonly Dictionary<string, (string Name, nint Address)> _playerCharas;
     private readonly List<string> _notUpdatedCharas = [];
-
-    // the world data associated with the world ID
     public Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
 
+    public ulong TargetObjectId => _targetManager.Target?.GameObjectId ?? ulong.MaxValue;
+    public bool IsInCutscene { get; private set; } = false;
     public bool IsZoning => _condition[ConditionFlag.BetweenAreas] || _condition[ConditionFlag.BetweenAreas51];
-    public uint _playerClassJobId = 0; // the player class job id
-    public IntPtr _playerAddr; // player address
+    public ActionRoles PlayerJobRole => (ActionRoles)(_clientState.LocalPlayer?.ClassJob?.GameData?.Role ?? 0);
+    public IntPtr ClientPlayerAddress; // player address
     public static bool GlamourChangeEventsDisabled = false; // 1st variable responsible for handling glamour change events
+    public byte PlayerLevel => _clientState.LocalPlayer?.Level ?? byte.MaxValue;
+    public bool InPvP => _clientState.IsPvP;
+    public bool InDungeonOrDuty => _condition[ConditionFlag.BoundByDuty] || _condition[ConditionFlag.BoundByDuty56] || _condition[ConditionFlag.BoundByDuty95];
+    public int PartyListSize => _partyList.Count;
+    public IClientState ClientState => _clientState;
+    public ICondition Condition => _condition;
+    public bool IsInMainCity => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Aetheryte>()?
+        .Any(x => x.IsAetheryte && x.Territory.Row == _clientState.TerritoryType && x.Territory.Value?.TerritoryIntendedUse == 0) ?? false;
+    public string MainCityName => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Aetheryte>()?
+        .FirstOrDefault(x => x.IsAetheryte && x.Territory.Row == _clientState.TerritoryType && x.Territory.Value?.TerritoryIntendedUse == 0)?.PlaceName.ToString() ?? "Unknown";
 
     // the mediator for Gagspeak's event services
     public GagspeakMediator Mediator { get; }
 
-    public OnFrameworkService(ILogger<OnFrameworkService> logger, IClientState clientState,
-        ICondition condition, IDataManager gameData, IFramework framework, IGameGui gameGui,
-        ITargetManager targetManager, IObjectTable objectTable, GagspeakMediator mediator)
+    public OnFrameworkService(ILogger<OnFrameworkService> logger, GagspeakMediator mediator,
+        IClientState clientState, ICondition condition, IDataManager gameData, IFramework framework, 
+        IGameGui gameGui, IObjectTable objectTable, IPartyList partyList, ITargetManager targetManager)
     {
         _logger = logger;
         _clientState = clientState;
@@ -56,9 +74,11 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         _framework = framework;
         _gameGui = gameGui;
         _objectTable = objectTable;
+        _partyList = partyList;
+        _targetManager = targetManager;
         Mediator = mediator;
-        
-        _playerAddr = GetPlayerPointerAsync().GetAwaiter().GetResult();
+
+        ClientPlayerAddress = GetPlayerPointerAsync().GetAwaiter().GetResult();
 
         _playerCharas = new(StringComparer.Ordinal);
 
@@ -84,12 +104,24 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         });
     }
 
-    public void OpenMapWithMapLink(MapLinkPayload mapLink)
+    public void OpenMapWithMapLink(MapLinkPayload mapLink) => _gameGui.OpenMapWithMapLink(mapLink);
+    public string GetEmoteName(uint emoteId) => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Emote>()?.GetRow(emoteId)?.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") ?? $"Emote#{emoteId}";
+    public static unsafe short GetCurrentCommendationCount() => PlayerState.Instance()->PlayerCommendations;
+
+    public DeepDungeonType? GetDeepDungeonType()
     {
-        _gameGui.OpenMapWithMapLink(mapLink);
+        if (_gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.TerritoryType>()?.GetRow(_clientState.TerritoryType) is { } territoryInfo)
+        {
+            return territoryInfo switch
+            {
+                { TerritoryIntendedUse: 31, ExVersion.Row: 0 or 1 } => DeepDungeonType.PalaceOfTheDead,
+                { TerritoryIntendedUse: 31, ExVersion.Row: 2 } => DeepDungeonType.HeavenOnHigh,
+                { TerritoryIntendedUse: 31, ExVersion.Row: 4 } => DeepDungeonType.EurekaOrthos,
+                _ => null
+            };
+        }
+        return null;
     }
-
-
 
     #region FrameworkMethods
     /// <summary> Ensures that we are running on the games framework thread. Throws exception if we are not. </summary>
@@ -295,31 +327,17 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         return func.Invoke();
     }
 
-    /// <summary> The startAsync method called by the IHostedService.
-    /// <para> This is what subscribes us to dalamuds framework updates </para>
-    /// </summary>
-    /// <param name="cancellationToken">The token to cancel the task</param>
-    /// <returns></returns>
+
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting OnFrameworkService");
         // subscribe to the framework updates
         _framework.Update += FrameworkOnUpdate;
-        if (IsLoggedIn)
-        {
-            _logger.LogInformation("Already logged in, starting up");
-            //_classJobId = _clientState.LocalPlayer!.ClassJob.Id;
-        }
 
         _logger.LogInformation("Started OnFrameworkService");
         return Task.CompletedTask;
     }
 
-    /// <summary> The stopAsync method called by the IHostedService.
-    /// <para> This will stop the hosted server and unsubscribe from all mediator actions </para>
-    /// </summary>
-    /// <param name="cancellationToken">The token that is used to stop the process</param>
-    /// <returns>A successfully disconnected server?</returns>
     public Task StopAsync(CancellationToken cancellationToken)
     {
         _logger.LogTrace("Stopping {type}", GetType());
@@ -345,15 +363,21 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         await _framework.RunOnTick(() => act(), delayTicks: ticks);
     }
 
-
     /// <summary> The method that is called when the framework updates </summary>
     private void FrameworkOnUpdate(IFramework framework) => FrameworkOnUpdateInternal();
     #endregion FrameworkMethods
     /// <summary> the unsafe internal framework update method </summary>
     private unsafe void FrameworkOnUpdateInternal()
     {
-        // dont do anything if the localplayer is dead.
-        if (_clientState.LocalPlayer?.IsDead ?? false) return;
+        // If the local player is dead or null, return after setting the hasDied flag to true
+        if (_clientState.LocalPlayer is null) return;
+
+        // if player has died, set hasDied to true.
+        if(_clientState.LocalPlayer.IsDead) { _hasDied = true; return; }
+
+        // if the player is no longer dead but hasDied is true, set it back to false.
+        if (_hasDied) { _hasDied = false; }
+
 
         // we need to update our stored player characters to know if they are still valid, and to update our pair handlers
         // Begin by adding the range of existing player character keys
@@ -399,6 +423,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                     _logger.LogDebug("Zone switch/Gpose start");
                     _sentBetweenAreas = true;
                     Mediator.Publish(new ZoneSwitchStartMessage());
+                    if (_clientState.IsGPosing) Mediator.Publish(new GPoseStartMessage());
                 }
             }
             // do an early return so we dont hit the sentBetweenAreas conditional below
@@ -408,22 +433,43 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         // this is called while are zoning between areas has ended
         if (_sentBetweenAreas)
         {
-            // log that we are ending the zone switch/gpose
             _logger.LogDebug("Zone switch/Gpose end");
             _sentBetweenAreas = false;
             Mediator.Publish(new ZoneSwitchEndMessage());
-            Mediator.Publish(new ResumeScanMessage(nameof(ConditionFlag.BetweenAreas))); // remove later maybe, nobody is subscribed to this.
+            // if our commendation count is different, update it and invoke the event with the difference.
+            var newCommendations = PlayerState.Instance()->PlayerCommendations;
+            if (newCommendations != LastCommendationsCount)
+            {
+                LastCommendationsCount = newCommendations;
+                _logger.LogInformation("Commendations increased by {0}", newCommendations - LastCommendationsCount);
+                Mediator.Publish(new CommendationsIncreasedMessage(newCommendations - LastCommendationsCount));
+            }
+
+            if (!_clientState.IsGPosing) Mediator.Publish(new GPoseEndMessage());
         }
+
+        if (_condition[ConditionFlag.WatchingCutscene] && !IsInCutscene)
+        {
+            _logger.LogDebug("Cutscene start");
+            IsInCutscene = true;
+            Mediator.Publish(new CutsceneBeginMessage());
+        }
+        else if (!_condition[ConditionFlag.WatchingCutscene] && IsInCutscene)
+        {
+            _logger.LogDebug("Cutscene end");
+            IsInCutscene = false;
+            Mediator.Publish(new CutsceneEndMessage());
+        }
+
 
         // publish the framework update message
         Mediator.Publish(new FrameworkUpdateMessage());
 
-        Mediator.Publish(new PriorityFrameworkUpdateMessage());
-
         // if this is a normal framework update, then return
-        if (isNormalFrameworkUpdate) 
+        if (isNormalFrameworkUpdate)
             return;
-
+        //_logger.LogInformation("Zone: " + (_gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.TerritoryType>()!
+        //    .GetRow(_clientState.TerritoryType)!.PlaceName.Value!.Name ?? "UnknownZone") + " ("+ _clientState.TerritoryType + ")"); 
         // otherwise, if it is abnormal, then try to fetch the local player
         var localPlayer = _clientState.LocalPlayer;
 
@@ -434,8 +480,9 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
             _logger.LogDebug("Logged in");
             IsLoggedIn = true;
             _lastZone = _clientState.TerritoryType;
-            _playerAddr = GetPlayerPointerAsync().GetAwaiter().GetResult();
-            _playerClassJobId = _clientState.LocalPlayer?.ClassJob.Id ?? 0;
+            ClientPlayerAddress = GetPlayerPointerAsync().GetAwaiter().GetResult();
+            PlayerClassJobId = _clientState.LocalPlayer?.ClassJob.Id ?? 0;
+            LastCommendationsCount = PlayerState.Instance()->PlayerCommendations;
             Mediator.Publish(new DalamudLoginMessage());
         }
         // otherwise, if the local player is null and isLoggedIn is true, meaning they just logged out

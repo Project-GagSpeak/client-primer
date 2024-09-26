@@ -26,7 +26,7 @@ public unsafe class ActionEffectMonitor : IDisposable
     public delegate void ProcessActionEffect(uint sourceId, Character* sourceCharacter, Vector3* pos, ActionEffectHandler.Header* effectHeader, EffectEntry* effectArray, ulong* effectTail);
     internal static Hook<ProcessActionEffect> ProcessActionEffectHook = null!;
 
-    private static event Action<List<ActionEffectEntry>> _actionEffectEntryEvent;
+    public static event Action<List<ActionEffectEntry>> _actionEffectEntryEvent;
     public static event Action<List<ActionEffectEntry>> ActionEffectEntryEvent
     {
         add => _actionEffectEntryEvent += value;

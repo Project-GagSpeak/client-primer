@@ -79,6 +79,24 @@ public static class GenericHelpers
         return str.ToString();
     }
 
+    public static unsafe IntPtr GetAddonByName(string name)
+    {
+        var atkStage = AtkStage.Instance();
+        if (atkStage == null)
+            return IntPtr.Zero;
+
+        var unitMgr = atkStage->RaptureAtkUnitManager;
+        if (unitMgr == null)
+            return IntPtr.Zero;
+
+        var addon = unitMgr->GetAddonByName(name, 1);
+        if (addon == null)
+            return IntPtr.Zero;
+
+        return (IntPtr)addon;
+    }
+
+
     public static readonly HashSet<string> TimerPadlocks = new HashSet<string>
     {
         Padlocks.FiveMinutesPadlock.ToName(),

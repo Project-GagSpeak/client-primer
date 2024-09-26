@@ -147,7 +147,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     {
         Logger.LogDebug("Client_UserApplyMoodlesByStatus: "+dto, LoggerType.Callbacks);
         // obtain the localplayername and world
-        string NameWithWorld = _frameworkUtils.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtils._playerAddr).GetAwaiter().GetResult()?.GetNameWithWorld() ?? string.Empty;
+        string NameWithWorld = _frameworkUtils.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtils.ClientPlayerAddress).GetAwaiter().GetResult()?.GetNameWithWorld() ?? string.Empty;
         ExecuteSafely(() => _clientCallbacks.ApplyStatusesToSelf(dto, NameWithWorld));
         return Task.CompletedTask;
     }

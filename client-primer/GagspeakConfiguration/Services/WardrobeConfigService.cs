@@ -169,6 +169,15 @@ public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
             {
                 wardrobeStorage.BlindfoldInfo = new BlindfoldModel(_itemHelper);
             }
+
+            // Deserialize CursedDungeonLoot
+            var cursedDungeonLoot = wardrobeStorageToken["CursedDungeonLoot"]?.ToObject<CursedLootModel>();
+            if (cursedDungeonLoot == null)
+            {
+                cursedDungeonLoot = new CursedLootModel();
+            }
+            wardrobeStorage.CursedDungeonLoot = cursedDungeonLoot;
+
             config.WardrobeStorage = wardrobeStorage; // loads the wardrobe storage into the stored config.
         }
         return config;
@@ -195,6 +204,9 @@ public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
 
         // Add blindfoldInfoObject to the WardrobeStorage JObject
         configObject["WardrobeStorage"]["BlindfoldInfo"] = blindfoldInfoObject;
+
+        // Add the cursed loot model.
+        configObject["WardrobeStorage"]["CursedDungeonLoot"] = JToken.FromObject(config.WardrobeStorage.CursedDungeonLoot);
 
         return configObject.ToString(Formatting.Indented);
     }

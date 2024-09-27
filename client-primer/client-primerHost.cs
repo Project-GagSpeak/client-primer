@@ -261,6 +261,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ItemIdVars>()
 
         // UI Helpers
+        .AddSingleton<SetPreviewComponent>()
         .AddSingleton<MainTabMenu>()
         .AddSingleton((s) => new DictBonusItems(pi, new Logger(), dm))
         .AddSingleton((s) => new DictStain(pi, new Logger(), dm))
@@ -289,6 +290,7 @@ public static class GagSpeakServiceExtensions
         // Wardrobe UI
         .AddSingleton<RestraintSetManager>()
         .AddSingleton<StruggleSim>()
+        .AddSingleton<CursedDungeonLoot>()
         .AddSingleton((s) => new MoodlesService(s.GetRequiredService<ILogger<MoodlesService>>(), dm, tp))
         .AddSingleton<MoodlesManager>()
         .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
@@ -341,6 +343,10 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<PiShockProvider>()
 
         // Service Services
+        .AddSingleton((s) => new CursedLootService(s.GetRequiredService<ILogger<CursedLootService>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
+            s.GetRequiredService<GagManager>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<OnFrameworkService>(),
+            s.GetRequiredService<AppearanceChangeService>(), cg, dm, ot, tm))
         .AddSingleton<SafewordService>()
         .AddSingleton<ToyboxVibeService>()
         .AddSingleton<ToyboxRemoteService>()
@@ -488,6 +494,7 @@ public static class GagSpeakServiceExtensions
         .AddHostedService(p => p.GetRequiredService<IpcProvider>())
         .AddHostedService(p => p.GetRequiredService<SafewordService>())
         .AddHostedService(p => p.GetRequiredService<OnConnectedService>())
+        .AddHostedService(p => p.GetRequiredService<CursedLootService>())
 
         // add our main Plugin.cs file as a hosted ;
         .AddHostedService<GagSpeakHost>();

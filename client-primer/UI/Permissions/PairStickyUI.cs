@@ -5,6 +5,7 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI.Components;
 using GagSpeak.UI.Handlers;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;

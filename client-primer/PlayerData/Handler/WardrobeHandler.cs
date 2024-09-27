@@ -1,3 +1,4 @@
+using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
@@ -60,7 +61,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     }
 
     /// <summary> The current restraint set that is active on the client. Null if none. </summary>
-    public RestraintSet ActiveSet { get; private set; }
+    public RestraintSet? ActiveSet { get; private set; }
 
     // Store an accessor of the alarm being edited.
     private RestraintSet? _setBeingEdited;
@@ -78,9 +79,8 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         private set => _setBeingEdited = value;
     }
     public bool EditingSetNull => SetBeingEdited == null;
-
-    public bool WardrobeEnabled => _playerManager.GlobalPerms != null && _playerManager.GlobalPerms.WardrobeEnabled;
-    public bool RestraintSetsEnabled => _playerManager.GlobalPerms != null && _playerManager.GlobalPerms.RestraintSetAutoEquip;
+    public bool WardrobeEnabled => !_playerManager.CoreDataNull && _playerManager.GlobalPerms!.WardrobeEnabled;
+    public bool RestraintSetsEnabled => !_playerManager.CoreDataNull && _playerManager.GlobalPerms!.RestraintSetAutoEquip;
 
     public void SetEditingRestraintSet(RestraintSet set)
     {
@@ -94,22 +94,16 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         SetBeingEdited = null!;
     }
 
-    public void UpdateActiveSet()
-        => ActiveSet = _clientConfigs.GetActiveSet();
+    public void UpdateActiveSet() => ActiveSet = _clientConfigs.GetActiveSet();
 
     public void UpdateEditedRestraintSet()
     {
-        // update the set in the client configs
         _clientConfigs.UpdateRestraintSet(EditingSetIndex, SetBeingEdited);
-        // clear the editing set
         ClearEditingRestraintSet();
     }
 
-    public void CloneRestraintSet(RestraintSet setToClone)
-        => _clientConfigs.CloneRestraintSet(setToClone);
-
-    public void AddNewRestraintSet(RestraintSet newSet)
-        => _clientConfigs.AddNewRestraintSet(newSet);
+    public void CloneRestraintSet(RestraintSet setToClone) => _clientConfigs.CloneRestraintSet(setToClone);
+    public void AddNewRestraintSet(RestraintSet newSet) => _clientConfigs.AddNewRestraintSet(newSet);
 
     public void RemoveRestraintSet(int idxToRemove)
     {
@@ -117,13 +111,9 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         ClearEditingRestraintSet();
     }
 
-    public int RestraintSetListSize()
-        => _clientConfigs.GetRestraintSetCount();
-
-    public List<RestraintSet> GetAllSetsForSearch()
-        => _clientConfigs.StoredRestraintSets;
-    public RestraintSet GetRestraintSet(int idx)
-        => _clientConfigs.GetRestraintSet(idx);
+    public int RestraintSetListSize() => _clientConfigs.GetRestraintSetCount();
+    public List<RestraintSet> GetAllSetsForSearch() => _clientConfigs.StoredRestraintSets;
+    public RestraintSet GetRestraintSet(int idx) => _clientConfigs.GetRestraintSet(idx);
 
     public async void EnableRestraintSet(int idx, string AssignerUID = "SelfApplied")
     {
@@ -147,33 +137,28 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public void LockRestraintSet(int idx, string lockType, string password, DateTimeOffset endLockTimeUTC, string AssignerUID)
         => _clientConfigs.LockRestraintSet(idx, lockType, password, endLockTimeUTC, AssignerUID, true);
 
-    public void UnlockRestraintSet(int idx, string AssignerUID)
-        => _clientConfigs.UnlockRestraintSet(idx, AssignerUID, true);
+    public void UnlockRestraintSet(int idx, string AssignerUID) => _clientConfigs.UnlockRestraintSet(idx, AssignerUID, true);
+    public int GetActiveSetIndex() => _clientConfigs.GetActiveSetIdx();
+    public List<string> GetRestraintSetsByName() => _clientConfigs.GetRestraintSetNames();
+    public int GetRestraintSetIndexByName(string setName) => _clientConfigs.GetRestraintSetIdxByName(setName);
+    public List<AssociatedMod> GetAssociatedMods(int setIndex) => _clientConfigs.GetAssociatedMods(setIndex);
+    public List<Guid> GetAssociatedMoodles(int setIndex) => _clientConfigs.GetAssociatedMoodles(setIndex);
+    public EquipDrawData GetBlindfoldDrawData() => _clientConfigs.GetBlindfoldItem();
+    public void SetBlindfoldDrawData(EquipDrawData drawData) => _clientConfigs.SetBlindfoldItem(drawData);
 
-    public int GetActiveSetIndex()
-        => _clientConfigs.GetActiveSetIdx();
 
-    public List<string> GetRestraintSetsByName()
-        => _clientConfigs.GetRestraintSetNames();
+    public CursedLootModel GetCursedLootModel() => _clientConfigs.CursedLootModel;
+    public List<CursedItem> GetCursedLootItems() => _clientConfigs.GetCursedLootList;
+    public List<RestraintSet> ActiveCursedSetList => _clientConfigs.GetActiveCursedLootSets();
+    public List<RestraintSet> NonCursedSetList => _clientConfigs.GetNonCursedLootSets();
+    public void AddSetToCursedLootList(Guid setId) => _clientConfigs.AddCursedLoot(setId);
+    public void RemoveSetFromCursedLootList(Guid setId) => _clientConfigs.RemoveCursedLoot(setId);
+    public void AddGagToCursedItem(int idx, GagType gag) => _clientConfigs.AddGagToCursedItem(idx, gag);
+    public void RemoveGagFromCursedItem(int idx) => _clientConfigs.RemoveGagFromCursedItem(idx);
+    public void SetCursedLootLowerRange(TimeSpan timeMin) => _clientConfigs.SetCursedLootLowerRange(timeMin);
+    public void SetCursedLootUpperRange(TimeSpan timeMax) => _clientConfigs.SetCursedLootUpperRange(timeMax);
+    public void SetCursedLootLockChance(int chance) => _clientConfigs.SetCursedLootLockChance(chance);
 
-    public int GetRestraintSetIndexByName(string setName)
-        => _clientConfigs.GetRestraintSetIdxByName(setName);
-
-    public List<AssociatedMod> GetAssociatedMods(int setIndex)
-        => _clientConfigs.GetAssociatedMods(setIndex);
-
-    public List<Guid> GetAssociatedMoodles(int setIndex)
-        => _clientConfigs.GetAssociatedMoodles(setIndex);
-
-    public EquipDrawData GetBlindfoldDrawData()
-        => _clientConfigs.GetBlindfoldItem();
-
-    public void SetBlindfoldDrawData(EquipDrawData drawData)
-        => _clientConfigs.SetBlindfoldItem(drawData);
-
-    /// <summary>
-    /// On each delayed framework check, verifies if the active restraint set has had its lock expire, and if so to unlock it.
-    /// </summary>
     private void CheckLockedSet()
     {
         if (ActiveSet == null) return;

@@ -1,4 +1,6 @@
+using GagSpeak.Utils;
 using GagspeakAPI.Enums;
+using Penumbra.GameData.Enums;
 using System.Diagnostics;
 
 namespace GagSpeak.GagspeakConfiguration.Models;

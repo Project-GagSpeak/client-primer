@@ -11,6 +11,7 @@ using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Enums;
+using GagspeakAPI.Extensions;
 using ImGuiNET;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
@@ -46,6 +47,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         // because this loads our configs before the logger initialized, we use a simply hack to set the static logger to the clientConfigManager logger.
         // its not ideal, but it works. If there is a better way please tell me.
         StaticLogger.Logger = logger;
+
         _itemHelper = itemHelper;
         _frameworkUtils = onFrameworkService;
         _configService = configService;
@@ -99,6 +101,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _configService.Save();
     }
 
+    // This is a terrible approach and there is probably a way to deal with it better,
+    // but at the moment this handles any commonly known possible holes in config generation.
     public void InitConfigs()
     {
         if (_configService.Current.LoggerFilters.Count == 0)
@@ -142,7 +146,19 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             }
         }
 
-        if (_wardrobeConfig.Current.WardrobeStorage == null) { _wardrobeConfig.Current.WardrobeStorage = new WardrobeStorage(_itemHelper); }
+        if (_wardrobeConfig.Current.WardrobeStorage == null)
+        {
+            _wardrobeConfig.Current.WardrobeStorage = new WardrobeStorage(_itemHelper); 
+        }
+        if (_wardrobeConfig.Current.WardrobeStorage.RestraintSets.Any(x => x.RestraintId == Guid.Empty))
+        {
+            Logger.LogWarning("Wardrobe Storage Config has a restraint set with an empty GUID. Creating a new GUID for it.");
+            foreach (var set in _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Where(x => x.RestraintId == Guid.Empty))
+            {
+                set.RestraintId = Guid.NewGuid();
+            }
+            _wardrobeConfig.Save();
+        }
 
         if (_aliasConfig.Current.AliasStorage == null) { _aliasConfig.Current.AliasStorage = new(); }
 
@@ -222,6 +238,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal List<RestraintSet> StoredRestraintSets => WardrobeConfig.WardrobeStorage.RestraintSets;
     public List<string> GetRestraintSetNames() => WardrobeConfig.WardrobeStorage.RestraintSets.Select(set => set.Name).ToList();
     internal int GetActiveSetIdx() => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Enabled);
+    internal int GetSetIdxByGuid(Guid id) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.RestraintId == id);
     internal RestraintSet? GetActiveSet() => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.Enabled)!; // this can be null.
     internal RestraintSet GetRestraintSet(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
     internal int GetRestraintSetIdxByName(string name) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Name == name);
@@ -269,6 +286,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(newSet);
         _wardrobeConfig.Save();
+        SyncCursedLootToNewSetList();
         Logger.LogInformation("Restraint Set added to wardrobe", LoggerType.Restraints);
         // publish to mediator
         Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
@@ -286,6 +304,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(newSet);
         }
         _wardrobeConfig.Save();
+        SyncCursedLootToNewSetList();
         Logger.LogInformation("Added "+ newSets.Count + " Restraint Sets to wardrobe", LoggerType.Restraints);
         // publish to mediator
         Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
@@ -296,6 +315,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     {
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.RemoveAt(setIndex);
         _wardrobeConfig.Save();
+        SyncCursedLootToNewSetList();
         Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
     }
 
@@ -511,6 +531,79 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal void SetBlindfoldItem(EquipDrawData drawData)
     {
         WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldItem = drawData;
+        _wardrobeConfig.Save();
+    }
+
+    internal CursedLootModel CursedLootModel => WardrobeConfig.WardrobeStorage.CursedDungeonLoot;
+    internal List<CursedItem> GetCursedLootList => WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems;
+    internal List<RestraintSet> GetActiveCursedLootSets()
+    {
+        return WardrobeConfig.WardrobeStorage.RestraintSets
+            .Where(set => WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems
+                .Any(cursedItem => cursedItem.RestraintGuid == set.RestraintId))
+            .ToList();
+    }
+
+    internal List<RestraintSet> GetNonCursedLootSets()
+    {
+        return WardrobeConfig.WardrobeStorage.RestraintSets
+            .Where(set => !WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems
+                .Any(cursedItem => cursedItem.RestraintGuid == set.RestraintId))
+            .ToList();
+    }
+
+    internal void AddCursedLoot(Guid lootId)
+    {
+        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems.Add(new CursedItem() { RestraintGuid = lootId });
+        _wardrobeConfig.Save();
+    }
+
+    internal void RemoveCursedLoot(Guid lootId)
+    {
+        // locate the index of the lootId in the cursed loot list and remove it.
+        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems.RemoveAll(x => x.RestraintGuid == lootId);
+        _wardrobeConfig.Save();
+    }
+
+    internal void AddGagToCursedItem(int cursedItemIdx, GagType gag)
+    {
+        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems[cursedItemIdx].AttachedGag = gag;
+        _wardrobeConfig.Save();
+    }
+
+    internal void RemoveGagFromCursedItem(int cursedItemIdx)
+    {
+        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems[cursedItemIdx].AttachedGag = GagType.None;
+        _wardrobeConfig.Save();
+    }
+
+    internal void SetCursedLootLowerRange(TimeSpan rangeLower)
+    {
+        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.LockRangeLower = rangeLower;
+        _wardrobeConfig.Save();
+    }
+
+    internal void SetCursedLootUpperRange(TimeSpan rangeUpper)
+    {
+        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.LockRangeUpper = rangeUpper;
+        _wardrobeConfig.Save();
+    }
+
+    internal void SetCursedLootLockChance(int lockChance)
+    {
+        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.LockChance = lockChance;
+        _wardrobeConfig.Save();
+    }
+
+    internal void SyncCursedLootToNewSetList()
+    {
+        // Because this is fetched whenever we need to update the cursed loot set,
+        // we need to check if any GUID's in our cursed loot list no longer exist in the restraint set list, and remove them.
+        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems =
+            WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems
+                .Where(cursedItem => WardrobeConfig.WardrobeStorage.RestraintSets
+                    .Any(restraintSet => restraintSet.RestraintId == cursedItem.RestraintGuid))
+                .ToList();
         _wardrobeConfig.Save();
     }
 

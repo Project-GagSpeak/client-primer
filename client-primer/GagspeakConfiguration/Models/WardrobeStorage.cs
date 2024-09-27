@@ -14,11 +14,15 @@ public class WardrobeStorage
     /// <summary> The DrawData for the Hardcore Blindfold Item </summary>
     public BlindfoldModel BlindfoldInfo { get; set; }
 
+    /// <summary> The currently set Identifier List for Cursed Bondage Loot </summary>
+    public CursedLootModel CursedDungeonLoot { get; set; }
+
     // Blank constructor to help with deserialization
     public WardrobeStorage(ItemIdVars itemHelper)
     {
         _itemHelper = itemHelper;
         RestraintSets = new List<RestraintSet>();
         BlindfoldInfo = new BlindfoldModel(_itemHelper);
+        CursedDungeonLoot = new CursedLootModel();
     }
 }

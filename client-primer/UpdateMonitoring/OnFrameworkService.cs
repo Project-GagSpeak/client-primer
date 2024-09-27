@@ -60,6 +60,8 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     public string MainCityName => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Aetheryte>()?
         .FirstOrDefault(x => x.IsAetheryte && x.Territory.Row == _clientState.TerritoryType && x.Territory.Value?.TerritoryIntendedUse == 0)?.PlaceName.ToString() ?? "Unknown";
 
+
+
     // the mediator for Gagspeak's event services
     public GagspeakMediator Mediator { get; }
 

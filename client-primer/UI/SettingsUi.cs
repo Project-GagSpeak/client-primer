@@ -180,6 +180,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         bool itemAutoEquip = PlayerGlobalPerms.ItemAutoEquip;
         bool restraintSetAutoEquip = PlayerGlobalPerms.RestraintSetAutoEquip;
         bool restraintSetDisableWhenUnlocked = _clientConfigs.GagspeakConfig.DisableSetUponUnlock;
+        bool cursedDungeonLoot = _clientConfigs.GagspeakConfig.CursedDungeonLoot;
         RevertStyle RevertState = _clientConfigs.GagspeakConfig.RevertStyle;
 
         bool puppeteerEnabled = PlayerGlobalPerms.PuppeteerEnabled;
@@ -267,6 +268,26 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 _clientConfigs.Save();
             }
             _uiShared.DrawHelpText("Let's the Active Restraint Set that is locked be automatically disabled when it's lock expires.");
+
+            if (ImGui.Checkbox("Enable Cursed Dungeon Loot", ref cursedDungeonLoot))
+            {
+                _clientConfigs.GagspeakConfig.CursedDungeonLoot = cursedDungeonLoot;
+                _clientConfigs.Save();
+            }
+            _uiShared.DrawHelpText("Provide the Cursed Loot Component with a list of sets to randomly apply."+Environment.NewLine
+                +"When opening Dungeon Chests, there is a random chance to apply & lock a set."+Environment.NewLine
+                +"Mimic Timer Locks are set in your defined range, and CANNOT be unlocked.");
+
+
+            if (ImGui.Checkbox("Enable Moodles", ref moodlesEnabled))
+            {
+                PlayerGlobalPerms.MoodlesEnabled = moodlesEnabled;
+                // if this creates a race condition down the line remove the above line.
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                new KeyValuePair<string, object>("MoodlesEnabled", moodlesEnabled)));
+
+            }
+            _uiShared.DrawHelpText("If enabled, the moodles component will become functional.");
         }
 
         // draw out revert style selection
@@ -348,21 +369,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
             }
             _uiShared.DrawHelpText("If enabled, the user will allow all requests to be sent to them.");
         }
-
-
-        ImGui.Separator();
-        _uiShared.BigText("Moodles");
-
-        if (ImGui.Checkbox("Enable Moodles", ref moodlesEnabled))
-        {
-            PlayerGlobalPerms.MoodlesEnabled = moodlesEnabled;
-            // if this creates a race condition down the line remove the above line.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
-            new KeyValuePair<string, object>("MoodlesEnabled", moodlesEnabled)));
-
-        }
-        _uiShared.DrawHelpText("If enabled, the moodles component will become functional.");
-
 
 
         ImGui.Separator();
@@ -997,7 +1003,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         { "Main", new[] { LoggerType.Mediator, LoggerType.GarblerCore } },
         { "Interop", new[] { LoggerType.IpcGagSpeak, LoggerType.IpcCustomize, LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra } },
         { "Hardcore", new[] { LoggerType.HardcoreActions, LoggerType.HardcoreMovement, LoggerType.HardcorePrompt } },
-        { "Player Data", new[] { LoggerType.GagManagement, LoggerType.PadlockManagement, LoggerType.ClientPlayerData, LoggerType.GameObjects, LoggerType.PairManagement, LoggerType.OnlinePairs, LoggerType.VisiblePairs } },
+        { "Player Data", new[] { LoggerType.GagManagement, LoggerType.PadlockManagement, LoggerType.ClientPlayerData, LoggerType.GameObjects, LoggerType.PairManagement, LoggerType.OnlinePairs, LoggerType.VisiblePairs, LoggerType.Restraints, LoggerType.Puppeteer } },
         { "Services", new[] { LoggerType.Notification, LoggerType.Profiles, LoggerType.Cosmetics, LoggerType.GlobalChat, LoggerType.ContextDtr, LoggerType.PatternHub, LoggerType.Safeword } },
         { "Toybox", new[] { LoggerType.ToyboxDevices, LoggerType.ToyboxPatterns, LoggerType.ToyboxTriggers, LoggerType.ToyboxAlarms, LoggerType.VibeControl, LoggerType.PrivateRoom } },
         { "Update Monitoring", new[] { LoggerType.ChatDetours, LoggerType.ActionEffects, LoggerType.SpatialAudioController, LoggerType.SpatialAudioLogger } },

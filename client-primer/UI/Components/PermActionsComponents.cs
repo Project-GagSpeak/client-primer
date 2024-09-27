@@ -11,7 +11,7 @@ using OtterGui;
 using OtterGui.Text;
 using System.Numerics;
 
-namespace GagSpeak.UI.Permissions;
+namespace GagSpeak.UI.Components;
 
 // A helper class to make the permission actions less repetitive and obnoxious.
 public class PermActionsComponents

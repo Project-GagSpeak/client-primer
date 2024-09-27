@@ -41,10 +41,8 @@ public record RestraintSet : IMoodlesAssociable
         );
     }
 
-    /// <summary> The name of the pattern </summary>
+    public Guid RestraintId { get; set; } = Guid.NewGuid();
     public string Name { get; set; } = "New Restraint Set";
-
-    /// <summary> The description of the pattern </summary>
     public string Description { get; set; } = "Enter Description Here...";
     public bool Enabled { get; set; } = false;
     public string EnabledBy { get; set; } = string.Empty;
@@ -88,6 +86,7 @@ public record RestraintSet : IMoodlesAssociable
         // Clone basic properties
         var clonedSet = new RestraintSet(_itemIdVars)
         {
+            // do not clone guid
             Name = this.Name,
             Description = this.Description,
             Enabled = this.Enabled,
@@ -179,6 +178,7 @@ public record RestraintSet : IMoodlesAssociable
 
         return new JObject()
         {
+            ["RestraintId"] = RestraintId.ToString(),
             ["Name"] = Name,
             ["Description"] = Description,
             ["Enabled"] = Enabled,
@@ -203,6 +203,7 @@ public record RestraintSet : IMoodlesAssociable
 
     public void Deserialize(JObject jsonObject)
     {
+        RestraintId = Guid.TryParse(jsonObject["RestraintId"]?.Value<string>(), out var guid) ? guid : Guid.Empty;
         Name = jsonObject["Name"]?.Value<string>() ?? string.Empty;
         Description = jsonObject["Description"]?.Value<string>() ?? string.Empty;
         Enabled = jsonObject["Enabled"]?.Value<bool>() ?? false;

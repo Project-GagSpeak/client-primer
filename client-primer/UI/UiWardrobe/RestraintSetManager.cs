@@ -8,18 +8,16 @@ using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
+using GagSpeak.UI.Components;
 using GagSpeak.UI.Components.Combos;
 using GagSpeak.Utils;
-using GagspeakAPI.Enums;
 using ImGuiNET;
-using OtterGui;
+using Microsoft.Extensions.Logging;
 using OtterGui.Classes;
 using OtterGui.Text;
-using OtterGui.Widgets;
 using Penumbra.GameData.DataContainers;
 using Penumbra.GameData.Enums;
 using System.Numerics;
-using static FFXIVClientStructs.FFXIV.Client.UI.Misc.AozNoteModule;
 
 namespace GagSpeak.UI.UiWardrobe;
 
@@ -28,31 +26,26 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
     private readonly UiSharedService _uiShared;
     private readonly IpcCallerGlamourer _ipcGlamourer;
     private readonly RestraintSetEditor _editor;
+    private readonly SetPreviewComponent _setPreview;
     private readonly WardrobeHandler _handler;
-    private readonly TextureService _textures;
-    private readonly DictStain _stainDictionary;
     private readonly ItemIdVars _itemHelper;
     private readonly GagManager _padlockHandler;
 
     public RestraintSetManager(ILogger<RestraintSetManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        IpcCallerGlamourer ipcGlamourer, RestraintSetEditor editor, 
-        WardrobeHandler handler, TextureService textureService, DictStain stainDictionary,
+        IpcCallerGlamourer ipcGlamourer, RestraintSetEditor editor,
+        SetPreviewComponent setPreview, WardrobeHandler handler,
         ItemIdVars itemHelper, GagManager padlockHandler) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
         _ipcGlamourer = ipcGlamourer;
         _editor = editor;
         _handler = handler;
-        _textures = textureService;
-        _stainDictionary = stainDictionary;
         _itemHelper = itemHelper;
         _padlockHandler = padlockHandler;
+        _setPreview = setPreview;
 
         CreatedRestraintSet = new RestraintSet(_itemHelper);
-
-        GameIconSize = new Vector2(2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y);
-        StainColorCombos = new StainColorCombo(0, _stainDictionary, logger);
 
         Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) => LastHoveredIndex = -1);
 
@@ -70,12 +63,8 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         });
     }
 
-    private Vector2 GameIconSize;
-    private readonly StainColorCombo StainColorCombos;
-
     private RestraintSet CreatedRestraintSet;
     public bool CreatingRestraintSet = false;
-    private string LockTimerInputString = string.Empty;
 
     private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
     private LowerString RestraintSetSearchString = LowerString.Empty;
@@ -92,8 +81,6 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             return enabledSet != null ? new List<RestraintSet> { enabledSet }.Concat(filteredSets).ToList() : filteredSets;
         }
     }
-
-
 
     public void DrawManageSets(Vector2 cellPadding)
     {
@@ -155,14 +142,32 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
             ImGui.TableNextColumn();
 
-            // Draw the preview based on the last hovered index
-            if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredSetList.Count)
+            regionSize = ImGui.GetContentRegionAvail();
+
+            using (var rightChild = ImRaii.Child($"###WardrobeSetPreview", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
             {
-                DrawRestraintSetPreview(FilteredSetList[LastHoveredIndex]);
-            }
-            else if (_handler.ActiveSet != null)
-            {
-                DrawRestraintSetPreview(_handler.ActiveSet);
+                var startYpos = ImGui.GetCursorPosY();
+                Vector2 textSize;
+                using (_uiShared.UidFont.Push()) { textSize = ImGui.CalcTextSize("Set Preview"); }
+
+                using (ImRaii.Child("PreviewRestraintSetChild", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 47)))
+                {
+                    // now calculate it so that the cursors Yposition centers the button in the middle height of the text
+                    ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X / 2 - textSize.X / 2));
+                    ImGui.SetCursorPosY(startYpos+3f);
+                    _uiShared.BigText("Set Preview");
+                }
+                ImGui.Separator();
+
+                var previewRegion = new Vector2(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X, ImGui.GetContentRegionAvail().Y);
+                if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredSetList.Count)
+                {
+                    _setPreview.DrawRestraintSetPreviewCentered(FilteredSetList[LastHoveredIndex], previewRegion);
+                }
+                else if (_handler.ActiveSet != null)
+                {
+                    _setPreview.DrawRestraintSetPreviewCentered(_handler.ActiveSet, previewRegion);
+                }
             }
         }
     }
@@ -295,7 +300,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             var currentYpos = ImGui.GetCursorPosY();
             // draw revert button at the same location but right below that button
-            if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import Gear", null, false, !IpcCallerGlamourer.APIAvailable || _handler.EditingSetNull))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import Gear", null, false, !IpcCallerGlamourer.APIAvailable || _handler.EditingSetNull || !UiSharedService.CtrlPressed()))
             {
                 _ipcGlamourer.SetRestraintEquipmentFromState(_handler.SetBeingEdited);
                 Logger.LogDebug("EquipmentImported from current State");
@@ -352,7 +357,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             var set = FilteredSetList[i];
             DrawRestraintSetSelectable(set, i);
 
-            if(ImGui.IsItemHovered())
+            if (ImGui.IsItemHovered())
                 LastHoveredIndex = i;
 
             // if the item is right clicked, open the popup
@@ -401,7 +406,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         var isLockedSet = (set.Locked == true);
 
         // if it is the active set, dont push the color, otherwise push the color
-        
+
         using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), !isActiveSet && LastHoveredIndex == idx);
         using (ImRaii.Child($"##EditRestraintSetHeader{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), ImGui.GetFrameHeight() * 2 - 5f)))
         {
@@ -416,7 +421,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 ImGui.SetCursorPosY(originalCursorPos.Y + 2.5f);
                 // Draw the text with the desired color
                 UiSharedService.ColorText(name, ImGuiColors.DalamudWhite2);
-                if(set.LockType == Padlocks.FiveMinutesPadlock.ToName() || set.LockType == Padlocks.TimerPasswordPadlock.ToName() || set.LockType == Padlocks.OwnerTimerPadlock.ToName())
+                if (set.LockType == Padlocks.FiveMinutesPadlock.ToName() || set.LockType == Padlocks.TimerPasswordPadlock.ToName() || set.LockType == Padlocks.OwnerTimerPadlock.ToName())
                 {
                     ImGui.SameLine();
                     UiSharedService.DrawTimeLeftFancy(set.LockedUntil);
@@ -464,7 +469,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             using (var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f))
             {
                 bool disabled = FilteredSetList.Any(x => x.Locked) || !_handler.WardrobeEnabled || !_handler.RestraintSetsEnabled;
-                string ttText = set.Enabled ? (set.Locked ? "Cannot Disable a Locked Set!" : "Disable Active Restraint Set") 
+                string ttText = set.Enabled ? (set.Locked ? "Cannot Disable a Locked Set!" : "Disable Active Restraint Set")
                                             : (!_handler.WardrobeEnabled || !_handler.RestraintSetsEnabled) ? "Wardrobe / Restraint set Permissions not Active."
                                             : (disabled ? "Can't Enable another Set while active Set is Locked!" : "Enable Restraint Set");
                 if (_uiShared.IconButton(set.Enabled ? FontAwesomeIcon.ToggleOn : FontAwesomeIcon.ToggleOff, null, set.Name, disabled))
@@ -504,12 +509,12 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 var padlockType = set.Locked ? set.LockType.ToPadlock() : _padlockHandler.ActiveSlotPadlocks[3];
 
                 var padlockList = isLockedByPair
-                    ? Enum.GetValues<Padlocks>() 
+                    ? Enum.GetValues<Padlocks>()
                     : Enum.GetValues<Padlocks>().Cast<Padlocks>().Where(p => p != Padlocks.OwnerPadlock && p != Padlocks.OwnerTimerPadlock).ToArray();
 
                 using (ImRaii.Disabled(set.Locked || set.LockType != "None"))
                 {
-                    _uiShared.DrawCombo("RestraintSetLock"+set.Name, (width - 1 - _uiShared.GetIconButtonSize(FontAwesomeIcon.Lock).X - ImGui.GetStyle().ItemInnerSpacing.X),
+                    _uiShared.DrawCombo("RestraintSetLock" + set.Name, (width - 1 - _uiShared.GetIconButtonSize(FontAwesomeIcon.Lock).X - ImGui.GetStyle().ItemInnerSpacing.X),
                         padlockList, (padlock) => padlock.ToName(),
                     (i) =>
                     {
@@ -540,12 +545,12 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                         else
                         {
                             Logger.LogTrace($"Locking Restraint Set {set.Name}");
-                            Logger.LogTrace("Parsing Timer with value["+_padlockHandler.ActiveSlotTimers[3]+"]");
+                            Logger.LogTrace("Parsing Timer with value[" + _padlockHandler.ActiveSlotTimers[3] + "]");
                             _handler.LockRestraintSet(
-                                _handler.GetRestraintSetIndexByName(set.Name), 
+                                _handler.GetRestraintSetIndexByName(set.Name),
                                 _padlockHandler.ActiveSlotPadlocks[3].ToName(),
-                                _padlockHandler.ActiveSlotPasswords[3], 
-                                UiSharedService.GetEndTimeUTC(_padlockHandler.ActiveSlotTimers[3]), 
+                                _padlockHandler.ActiveSlotPasswords[3],
+                                UiSharedService.GetEndTimeUTC(_padlockHandler.ActiveSlotTimers[3]),
                                 "SelfApplied");
                         }
                     }
@@ -557,72 +562,12 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                     _padlockHandler.ResetInputs();
                 }
                 UiSharedService.AttachToolTip(_padlockHandler.ActiveSlotPadlocks[3] == Padlocks.None ? "Select a padlock type before locking" :
-                    set.Locked == false ? "Self-Lock this Restraint Set" : 
+                    set.Locked == false ? "Self-Lock this Restraint Set" :
                     set.LockedBy != "SelfApplied" ? "Only" + set.LockedBy + "can unlock your set." : "Unlock this set.");
                 // display associated password field for padlock type.
                 _padlockHandler.DisplayPadlockFields(3, set.Locked, width);
             }
             ImGui.Separator();
-        }
-    }
-
-    private void DrawRestraintSetPreview(RestraintSet set)
-    {
-        // embed a new table within this table.
-        using (var equipIconsTable = ImRaii.Table("equipIconsTable", 2, ImGuiTableFlags.RowBg))
-        {
-            if (!equipIconsTable) return;
-            // Create the headers for the table
-            var width = GameIconSize.X + ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.X;
-            // setup the columns
-            ImGui.TableSetupColumn("EquipmentSlots", ImGuiTableColumnFlags.WidthFixed, width);
-            ImGui.TableSetupColumn("AccessorySlots", ImGuiTableColumnFlags.WidthStretch);
-
-            // draw out the equipment slots
-            ImGui.TableNextRow(); ImGui.TableNextColumn();
-
-            foreach (var slot in EquipSlotExtensions.EquipmentSlots)
-            {
-                set.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
-                ImGui.SameLine(0, 3);
-                using (var groupDraw = ImRaii.Group())
-                {
-                    DrawStain(set, slot);
-                }
-            }
-            foreach (var slot in BonusExtensions.AllFlags)
-            {
-                set.BonusDrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
-            }
-            // i am dumb and dont know how to place adjustable divider lengths
-            ImGui.TableNextColumn();
-            //draw out the accessory slots
-            foreach (var slot in EquipSlotExtensions.AccessorySlots)
-            {
-                set.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
-                ImGui.SameLine(0, 3);
-                using (var groupDraw = ImRaii.Group())
-                {
-                    DrawStain(set, slot);
-                }
-            }
-        }
-    }
-
-    private void DrawStain(RestraintSet refSet, EquipSlot slot)
-    {
-
-        // draw the stain combo for each of the 2 dyes (or just one)
-        foreach (var (stainId, index) in refSet.DrawData[slot].GameStain.WithIndex())
-        {
-            using var id = ImUtf8.PushId(index);
-            var found = _stainDictionary.TryGetValue(stainId, out var stain);
-            // draw the stain combo, but dont make it hoverable
-            using (var disabled = ImRaii.Disabled(true))
-            {
-                StainColorCombos.Draw($"##stain{refSet.DrawData[slot].Slot}",
-                    stain.RgbaColor, stain.Name, found, stain.Gloss, MouseWheelType.None);
-            }
         }
     }
 }

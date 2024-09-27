@@ -19,6 +19,14 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0,8,8,0)
+            .RegisterMain("Cursed Bondage Loot (Cursed Dungeon Loot) Is now a component of the Wardrobe Module.")
+            .RegisterFeature("Assign a pool of restraint sets that Cursed Loot can use when functioning.")
+            .RegisterFeature("Define the lower and upper lock period limits for customization.")
+            .RegisterFeature("Bind defined gags to each active cursed set in the pool.")
+            .RegisterFeature("Adjust the randomization / frequency Cursed Loot appears.")
+            .RegisterFeature("Relish in gambling your freedom away with the new Cursed Loot system.~ ♥")
+            .RegisterQol("Improved some backend logic for increased framework performance times.");
         VersionEntry(0, 8, 7, 6)
             .RegisterMain("Warning this version is very cursed. Mainly meant for debugging while i sleep.")
             .RegisterFeature("Some debugging variables spawn in the homepage to help with some achievement scouting.");

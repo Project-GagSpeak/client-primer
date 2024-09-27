@@ -9,11 +9,8 @@ namespace GagSpeak.Services;
 public class DiscoverService : DisposableMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
-
     public ChatLog GagspeakGlobalChat { get; private set; }
     private bool _connectedFirstTime = false;
-
-
     public DiscoverService(ILogger<DiscoverService> logger, GagspeakMediator mediator,
         PairManager pairManager) : base(logger, mediator)
     {
@@ -64,9 +61,4 @@ public class DiscoverService : DisposableMediatorSubscriberBase
 
         GagspeakGlobalChat.AddMessage(msgToAdd);
     }
-
-
-
-
-
 }

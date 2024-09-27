@@ -138,14 +138,6 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         if (BlockChatInput)
             ChatLogAddonHelper.DiscardCursorNodeWhenFocused();
 
-        bool fashionCheckVisible = false;
-        unsafe
-        {
-            var fashionCheckOpen = (AtkUnitBase*)GenericHelpers.GetAddonByName("FashionCheck");
-            if (fashionCheckOpen != null)
-                fashionCheckVisible = fashionCheckOpen->RootNode->IsVisible();
-        };
-        ImGui.Text("FashionCheck Open:" + fashionCheckVisible);
         ImGui.Separator();
         try
         {
@@ -167,22 +159,9 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
                 ImGui.Text("Gate Director Flags: " + ((GFateDirectorFlag)GateDirectorFlags).ToString());
                 ImGui.Text("IsRunningGate: " + GateDirector->IsRunningGate());
                 ImGui.Text("IsAcceptingGate: " + GateDirector->IsAcceptingGate());
-                if(GateDirector->IsAcceptingGate() && (uint)GFateDirectorFlag.IsJoined != 0)
-                {
-                    if(!GagReflexReady)
-                    {
-                        GagReflexReady = true;
-                        Logger.LogWarning("Gag Reflex is ready to be used.");
-                    }
-                }
-                if(GateDirector->IsAcceptingGate() && (uint)GFateDirectorFlag.IsJoined != 0 && (uint)GFateDirectorFlag.IsFinished != 0)
-                {
-                    if(GagReflexReady)
-                    {
-                        GagReflexReady = false;
-                        Logger.LogWarning("Gag Reflex is no longer ready to be used.");
-                    }
-                }
+                ImGui.Text("IsJoinedFlag Set: " + ((GateDirectorFlags & GFateDirectorFlag.IsJoined) != 0));
+                ImGui.Text("IsFinishedFlag Set: " + ((GateDirectorFlags & GFateDirectorFlag.IsFinished) != 0));
+                ImGui.Text("Unk2Flag Set: " + ((GateDirectorFlags & GFateDirectorFlag.Unk2) != 0));
             };
         }
         catch (Exception e)
@@ -204,13 +183,18 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
     private enum GateType : byte
     {
         Something1 = 0,
-        Something2 = 1,
+        CliffHanger = 1,
         Something3 = 2,
         Something4 = 3,
         Something5 = 4,
         AnyWayTheWindBlows = 5, // fungai event.
         LeapOfFaith = 6,
+        AirForceOne = 7,
     }
+
+    // Gag Reflex Conditions: 
+    // - Must Be in GateType 1 or 5 (CliffHanger or AnyWayTheWindBlows)
+    // - IsJoined flag must be true (Or IsAcceptingGate must be true)
 
     // When joining an event:
     // IsAccepting Gate goes to true

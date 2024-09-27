@@ -1,5 +1,4 @@
 using Dalamud.Plugin.Services;
-using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.PrivateRooms;
@@ -7,13 +6,13 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagSpeak.UI;
+using GagSpeak.UI.Components;
 using GagSpeak.UI.Handlers;
 using GagSpeak.UI.Permissions;
 using GagSpeak.UI.Profile;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
-using GagspeakAPI.Enums;
 
 namespace GagSpeak.Services;
 
@@ -82,7 +81,7 @@ public class UiFactory
     public PairStickyUI CreateStickyPairPerms(Pair pair, StickyWindowType drawType)
     {
         return new PairStickyUI(_loggerFactory.CreateLogger<PairStickyUI>(), _gagspeakMediator, pair,
-            drawType, _frameworkUtils, _clientConfigs, _playerManager, _displayHandler, _uiSharedService, 
+            drawType, _frameworkUtils, _clientConfigs, _playerManager, _displayHandler, _uiSharedService,
             _apiController, _pairManager, _moodlesService, _presetService, _permActionHelpers, _clientState);
     }
 }

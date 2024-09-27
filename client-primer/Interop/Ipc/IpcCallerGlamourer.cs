@@ -110,8 +110,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     private bool PlayerIsPresent()
         => _clientState.LocalPlayer != null
-        && _clientState.LocalPlayer.Address != nint.Zero
-        && _clientState.LocalPlayer.IsValid();
+        && _clientState.LocalPlayer.Address != nint.Zero;
 
     protected override void Dispose(bool disposing)
     {

@@ -661,7 +661,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     /// <summary> Helper function to convert a timespan object into a string with format XdXhXmXs. </summary>
     public string TimeSpanToString(TimeSpan timeSpan)
     {
-        return $"{timeSpan.Days}d{timeSpan.Hours}h{timeSpan.Minutes}m{timeSpan.Seconds}s";
+        var sb = new StringBuilder();
+        if (timeSpan.Days > 0) sb.Append($"{timeSpan.Days}d ");
+        if (timeSpan.Hours > 0) sb.Append($"{timeSpan.Hours}h ");
+        if (timeSpan.Minutes > 0) sb.Append($"{timeSpan.Minutes}m ");
+        if (timeSpan.Seconds > 0 || sb.Length == 0) sb.Append($"{timeSpan.Seconds}s ");
+        return sb.ToString();
     }
 
     public static DateTimeOffset GetEndTimeUTC(string input)
@@ -780,6 +785,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public static bool ShiftPressed() => (GetKeyState(0xA1) & 0x8000) != 0 || (GetKeyState(0xA0) & 0x8000) != 0;
+
+    public static bool Numpad0Pressed() => (GetKeyState(0x60) & 0x8000) != 0;
 
     public static bool RightMouseButtonDown() => (GetKeyState(0x02) & 0x8000) != 0;
 

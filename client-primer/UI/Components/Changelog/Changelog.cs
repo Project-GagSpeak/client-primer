@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0,8,8,1)
+            .RegisterBugfix("Fixed crash when getting cursed loot due to a bad index match.")
         VersionEntry(0,8,8,0)
             .RegisterMain("Cursed Bondage Loot (Cursed Dungeon Loot) Is now a component of the Wardrobe Module.")
             .RegisterFeature("Assign a pool of restraint sets that Cursed Loot can use when functioning.")

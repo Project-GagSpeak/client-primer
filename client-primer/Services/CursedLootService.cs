@@ -190,7 +190,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
             );
 
         // check if the cursed items gag item is not GagType.None
-        if (cursedSets[cursedSetIdx].AttachedGag is not GagType.None)
+        if (cursedSets[randomIndex].AttachedGag is not GagType.None)
         {
             _chatGui.PrintError(new SeStringBuilder().AddItalics("Before you can even attempt to escape, the coffer spits out a gag, "+
                 "it's buckle wrapping around your head, fastening it firmly in place!").BuiltString);
@@ -201,8 +201,8 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
 
             // Apply the gag to that slot.
             Logger.LogDebug($"Cursed Gag Equipped!", LoggerType.GagManagement);
-            await _appearanceChange.UpdateGagsAppearance((GagLayer)availableLayer, cursedSets[cursedSetIdx].AttachedGag, NewState.Enabled);
-            _gagManager.OnGagTypeChanged((GagLayer)availableLayer, cursedSets[cursedSetIdx].AttachedGag, true);
+            await _appearanceChange.UpdateGagsAppearance((GagLayer)availableLayer, cursedSets[randomIndex].AttachedGag, NewState.Enabled);
+            _gagManager.OnGagTypeChanged((GagLayer)availableLayer, cursedSets[randomIndex].AttachedGag, true);
 
             // now lock it.
             var padlockData = new PadlockData(

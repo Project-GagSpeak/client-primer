@@ -1,3 +1,5 @@
+using Dalamud.Plugin.Services;
+
 namespace GagSpeak.Achievements;
 
 public class TimedProgressAchievement : Achievement
@@ -6,11 +8,6 @@ public class TimedProgressAchievement : Achievement
     /// The Current Progress made towards the achievement.
     /// </summary>
     public int Progress { get; private set; }
-
-    /// <summary>
-    /// The Milestone that must be met to complete the achievement.
-    /// </summary>
-    public int MilestoneGoal { get; private set; }
 
     /// <summary>
     /// The DateTime when the progress went from 0 to 1
@@ -23,13 +20,14 @@ public class TimedProgressAchievement : Achievement
     private TimeSpan TimeToComplete;
 
 
-    public TimedProgressAchievement(string title, string description, int goal, TimeSpan timeLimit)
-        : base(title, description)
+    public TimedProgressAchievement(INotificationManager notify, string title, string desc, int goal, TimeSpan timeLimit, string unit = "")
+        : base(notify, title, desc, goal, unit)
     {
-        MilestoneGoal = goal;
         TimeToComplete = timeLimit;
         Progress = 0;
     }
+
+    public override int CurrentProgress() => IsCompleted ? MilestoneGoal : Progress;
 
     /// <summary>
     /// Increments the progress towards the achievement.

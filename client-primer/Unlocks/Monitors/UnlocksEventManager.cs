@@ -1,7 +1,18 @@
+using GagSpeak;
 using GagSpeak.Achievements;
 #nullable disable
 public class UnlocksEventManager
 {
+    private readonly ILoggerFactory _loggerFactory;
+    public static ILogger AchievementLogger { get; set; }
+
+    public UnlocksEventManager(ILoggerFactory loggerFactory)
+    {
+        _loggerFactory = loggerFactory;
+        // assign the logger.
+        AchievementLogger = _loggerFactory.CreateLogger("Achievements");
+    }
+
     private static Dictionary<UnlocksEvent, Delegate> EventDictionary = new Dictionary<UnlocksEvent, Delegate>();
 
     // Subscribe with no parameters
@@ -145,50 +156,55 @@ public class UnlocksEventManager
     }
 
     // Trigger event with no parameter
-    public static void TriggerEvent(UnlocksEvent eventName)
+    public static void AchievementEvent(UnlocksEvent eventName)
     {
         if (EventDictionary.TryGetValue(eventName, out var action))
         {
+            AchievementLogger.LogDebug("AchievementEvent Fired: " + eventName, LoggerType.Achievements);
             var eventHandler = (Action)action;
             eventHandler?.Invoke();
         }
     }
 
     // Trigger event with one parameter
-    public static void TriggerEvent<T>(UnlocksEvent eventName, T param)
+    public static void AchievementEvent<T>(UnlocksEvent eventName, T param)
     {
         if (EventDictionary.TryGetValue(eventName, out var action))
         {
+            AchievementLogger.LogDebug("AchievementEvent Fired: " + eventName, LoggerType.Achievements);
             var eventHandler = (Action<T>)action;
             eventHandler?.Invoke(param);
         }
     }
 
     // Trigger event with two parameters
-    public void TriggerEvent<T1, T2>(UnlocksEvent eventName, T1 param1, T2 param2)
+    public static void AchievementEvent<T1, T2>(UnlocksEvent eventName, T1 param1, T2 param2)
     {
         if (EventDictionary.TryGetValue(eventName, out var action))
         {
+            AchievementLogger.LogDebug("AchievementEvent Fired: " + eventName, LoggerType.Achievements);
             var eventHandler = (Action<T1, T2>)action;
             eventHandler?.Invoke(param1, param2);
         }
     }
 
     // Trigger event with three parameters
-    public void TriggerEvent<T1, T2, T3>(UnlocksEvent eventName, T1 param1, T2 param2, T3 param3)
+    public static void AchievementEvent<T1, T2, T3>(UnlocksEvent eventName, T1 param1, T2 param2, T3 param3)
     {
         if (EventDictionary.TryGetValue(eventName, out var action))
         {
+            AchievementLogger.LogDebug("AchievementEvent Fired: " + eventName, LoggerType.Achievements);
             var eventHandler = (Action<T1, T2, T3>)action;
             eventHandler?.Invoke(param1, param2, param3);
         }
     }
 
     // Trigger event with four parameters
-    public void TriggerEvent<T1, T2, T3, T4>(UnlocksEvent eventName, T1 param1, T2 param2, T3 param3, T4 param4)
+    public static void AchievementEvent<T1, T2, T3, T4>(UnlocksEvent eventName, T1 param1, T2 param2, T3 param3, T4 param4)
     {
         if (EventDictionary.TryGetValue(eventName, out var action))
         {
+            AchievementLogger.LogDebug("AchievementEvent Fired: "+eventName, LoggerType.Achievements);
             var eventHandler = (Action<T1, T2, T3, T4>)action;
             eventHandler?.Invoke(param1, param2, param3, param4);
         }

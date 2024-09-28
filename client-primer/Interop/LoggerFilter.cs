@@ -49,7 +49,7 @@ public static class LoggerFilter
     {
         return new HashSet<LoggerType>
         {
-            LoggerType.None, LoggerType.Mediator, LoggerType.IpcGagSpeak, LoggerType.IpcCustomize,
+            LoggerType.None, LoggerType.Achievements, LoggerType.Mediator, LoggerType.IpcGagSpeak, LoggerType.IpcCustomize,
             LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra,
             LoggerType.GagManagement, LoggerType.PadlockManagement, LoggerType.ClientPlayerData, LoggerType.GameObjects,
             LoggerType.PairManagement, LoggerType.OnlinePairs, LoggerType.VisiblePairs, LoggerType.PrivateRoom,

@@ -1,3 +1,5 @@
+using Dalamud.Plugin.Services;
+
 namespace GagSpeak.Achievements;
 
 public class ConditionalProgressAchievement : Achievement
@@ -6,11 +8,6 @@ public class ConditionalProgressAchievement : Achievement
     /// The Current Progress made towards the achievement.
     /// </summary>
     public int Progress { get; private set; }
-
-    /// <summary>
-    /// The Milestone that must be met to complete the achievement.
-    /// </summary>
-    public int MilestoneGoal { get; private set; }
 
     /// <summary>
     /// What is required to be true throughout the progress from start to end
@@ -32,13 +29,15 @@ public class ConditionalProgressAchievement : Achievement
     /// </summary>
     public bool ConditionalTaskFinished { get; set; }
 
-    public ConditionalProgressAchievement(string title, string description, int requiredProgress,
-        Func<bool> requiredState, bool requireTaskBeginAndFinish = true) : base(title, description)
+    public ConditionalProgressAchievement(INotificationManager notify, string title, string description, int goal,
+        Func<bool> requiredState, bool requireTaskBeginAndFinish = true, string unit = "") 
+        : base(notify, title, description, goal, unit)
     {
-        MilestoneGoal = requiredProgress;
         RequiredCondition = requiredState;
         Progress = 0;
     }
+
+    public override int CurrentProgress() => IsCompleted ? MilestoneGoal : Progress;
 
     public void BeginConditionalTask()
     {

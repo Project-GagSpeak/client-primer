@@ -1000,7 +1000,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     /// <summary> Displays the Debug section within the settings, where we can set our debug level </summary>
     private static readonly Dictionary<string, LoggerType[]> loggerSections = new Dictionary<string, LoggerType[]>
     {
-        { "Main", new[] { LoggerType.Mediator, LoggerType.GarblerCore } },
+        { "Main", new[] { LoggerType.Achievements, LoggerType.Mediator, LoggerType.GarblerCore } },
         { "Interop", new[] { LoggerType.IpcGagSpeak, LoggerType.IpcCustomize, LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra } },
         { "Hardcore", new[] { LoggerType.HardcoreActions, LoggerType.HardcoreMovement, LoggerType.HardcorePrompt } },
         { "Player Data", new[] { LoggerType.GagManagement, LoggerType.PadlockManagement, LoggerType.ClientPlayerData, LoggerType.GameObjects, LoggerType.PairManagement, LoggerType.OnlinePairs, LoggerType.VisiblePairs, LoggerType.Restraints, LoggerType.Puppeteer } },
@@ -1068,8 +1068,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                             _configService.Save();
                             LoggerFilter.AddAllowedCategories(_configService.Current.LoggerFilters);
                         }
-
-                        ImGui.TableNextColumn();
+                        ImUtf8.SameLineInner();
                         if (ImGui.Button("All Off"))
                         {
                             _configService.Current.LoggerFilters.Clear();

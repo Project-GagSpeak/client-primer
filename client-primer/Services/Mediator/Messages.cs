@@ -172,7 +172,8 @@ public record UiToggleMessage(Type UiType, ToggleType ToggleType = ToggleType.To
 public record SwitchToIntroUiMessage : MessageBase; // indicates that we are in the introduction UI.
 public record SwitchToMainUiMessage : MessageBase; // indicates we are in the main UI.
 public record OpenSettingsUiMessage : MessageBase; // indicates we are in the settings UI.
-public record MainWindowTabChangeMessage(MainTabMenu.SelectedTab NewTab) : MessageBase; // for changing the main window tab.
+public record MainWindowTabChangeMessage(MainTabMenu.SelectedTab NewTab) : MessageBase;
+public record AchievementWindowTabChangeMessage(AchievementTabsMenu.SelectedTab NewTab) : MessageBase;
 public record ClosedMainUiMessage : MessageBase; // indicates the main UI has been closed.
 public record RemoveWindowMessage(WindowMediatorSubscriberBase Window) : MessageBase; // fired upon request to remove a window from the UI service.
 public record CompactUiChange(Vector2 Size, Vector2 Position) : MessageBase; // fired whenever we change the window size or position

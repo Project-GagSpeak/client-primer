@@ -48,11 +48,6 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
         });
     }
 
-    // until we find a way to inject image data byte arrays into a shared ImmediateTexture, we need to aquire it via this route.
-    // This is basically was the sharedImmediateTexture does already, but if we can convert it, it would be cleaner.
-    private IDalamudTextureWrap? _profileImageWrap = null;
-    private byte[] _profileImageData = [];
-
     /// <summary> Main Draw function for this tab </summary>
     public void DrawAccountSection()
     {

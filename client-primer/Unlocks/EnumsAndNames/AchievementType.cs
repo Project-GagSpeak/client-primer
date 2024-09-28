@@ -1,16 +1,22 @@
 namespace GagSpeak.Achievements;
-
+public enum DurationTimeUnit
+{
+    Seconds,
+    Minutes,
+    Hours,
+    Days
+}
 public enum AchievementType
 {
-    OrdersModule,
-    GagsModule,
-    WardrobeModule,
-    PuppeteerModule,
-    ToyboxModule,
-    HardcoreModule,
-    RemotesModule,
-    GenericModule,
-    SecretsModule,
+    Orders,
+    Gags,
+    Wardrobe,
+    Puppeteer,
+    Toybox,
+    Hardcore,
+    Remotes,
+    Generic,
+    Secrets,
 }
 
 public enum UnlocksEvent

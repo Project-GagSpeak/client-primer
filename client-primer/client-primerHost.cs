@@ -4,6 +4,7 @@ using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using GagSpeak.Achievements;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.Hotbar;
@@ -125,7 +126,7 @@ public sealed class GagSpeak : IDalamudPlugin
             .AddSingleton<FileDialogManager>()
             .AddSingleton(new Dalamud.Localization("GagSpeak.Localization.", "", useEmbedded: true))
             // add the generic services for GagSpeak
-            .AddGagSpeakGeneric(pi, alc, cs, cg, con, cmu, dm, bar, fw, ks, gg, gip, ot, plt, ss, tm, tp)
+            .AddGagSpeakGeneric(pi, alc, cs, cg, con, cmu, dm, bar, fw, ks, gg, gip, nm, ot, plt, ss, tm, tp)
             // add the services related to the IPC calls for GagSpeak
             .AddGagSpeakIPC(pi, cs)
             // add the services related to the configs for GagSpeak
@@ -149,7 +150,8 @@ public static class GagSpeakServiceExtensions
     public static IServiceCollection AddGagSpeakGeneric(this IServiceCollection services,
         IDalamudPluginInterface pi, IAddonLifecycle alc, IClientState cs, IChatGui cg, ICondition con,
         IContextMenu cm, IDataManager dm, IDtrBar dtr, IFramework fw, IKeyState ks, IGameGui gg,
-        IGameInteropProvider gip, IObjectTable ot, IPartyList pl, ISigScanner ss, ITargetManager tm, ITextureProvider tp)
+        IGameInteropProvider gip, INotificationManager nm, IObjectTable ot, IPartyList pl, ISigScanner ss, 
+        ITargetManager tm, ITextureProvider tp)
     => services
         // Events Services
         .AddSingleton((s) => new EventAggregator(pi.ConfigDirectory.FullName,
@@ -208,6 +210,14 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<AlarmHandler>()
         .AddSingleton<TriggerHandler>()
 
+        // Unlocks / Achievements
+        .AddSingleton((s) => new AchievementManager(s.GetRequiredService<ILogger<AchievementManager>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
+            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(),
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<ToyboxVibeService>(), 
+            s.GetRequiredService<UnlocksEventManager>(), s.GetRequiredService<ItemIdVars>(), nm))
+        .AddSingleton<UnlocksEventManager>()
+
         // UpdateMonitoring Services
         .AddSingleton((s) => new ActionMonitor(s.GetRequiredService<ILogger<ActionMonitor>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
@@ -263,6 +273,7 @@ public static class GagSpeakServiceExtensions
         // UI Helpers
         .AddSingleton<SetPreviewComponent>()
         .AddSingleton<MainTabMenu>()
+        .AddSingleton<AchievementTabsMenu>()
         .AddSingleton((s) => new DictBonusItems(pi, new Logger(), dm))
         .AddSingleton((s) => new DictStain(pi, new Logger(), dm))
         .AddSingleton<ItemData>()
@@ -437,6 +448,7 @@ public static class GagSpeakServiceExtensions
         .AddScoped<SelectTagForPairUi>()
         .AddScoped<WindowMediatorSubscriberBase, SettingsUi>()
         .AddScoped<WindowMediatorSubscriberBase, IntroUi>()
+        .AddScoped<WindowMediatorSubscriberBase, AchievementsUI>()
         .AddScoped<WindowMediatorSubscriberBase, MainWindowUI>((s) => new MainWindowUI(s.GetRequiredService<ILogger<MainWindowUI>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(),
             s.GetRequiredService<ApiController>(), s.GetRequiredService<GagspeakConfigService>(),
@@ -480,11 +492,13 @@ public static class GagSpeakServiceExtensions
         .AddScoped((s) => new UiSharedService(s.GetRequiredService<ILogger<UiSharedService>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<Dalamud.Localization>(), s.GetRequiredService<ApiController>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ServerConfigurationManager>(),
-            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<IpcManager>(), pi, tp));
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<IpcManager>(), pi, tp))
+        .AddScoped((s) => new CosmeticTextureService(s.GetRequiredService<ILogger<CosmeticTextureService>>(), s.GetRequiredService<GagspeakMediator>(),
+            s.GetRequiredService<OnFrameworkService>(), pi, tp));
 
 
     #endregion ScopedServices
-    #region HostedServices
+        #region HostedServices
     public static IServiceCollection AddGagSpeakHosted(this IServiceCollection services)
     => services
         .AddHostedService(p => p.GetRequiredService<StaticLoggerInit>())

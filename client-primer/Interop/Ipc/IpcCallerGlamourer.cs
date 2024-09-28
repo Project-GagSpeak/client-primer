@@ -311,11 +311,17 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         {
             await _onFrameworkService.RunOnFrameworkThread(() =>
             {
+                // grab the initial state.
+                Logger.LogTrace("Grabbing Pre State", LoggerType.IpcGlamourer);
+                var preRevertState = GetState();
                 Logger.LogTrace("Calling on IPC: GlamourerRevertToAutomation", LoggerType.IpcGlamourer);
                 var result = _RevertToAutomation.Invoke(0, 0);
 
-                // do a fallback to a base reset if the automation fails.
-                if (result != GlamourerApiEc.Success)
+                // get the post state.
+                Logger.LogTrace("Grabbing Post State", LoggerType.IpcGlamourer);
+                var postRevertState = GetState();
+
+                if(result != GlamourerApiEc.Success || JToken.DeepEquals(preRevertState, postRevertState))
                 {
                     Logger.LogWarning($"Revert to automation failed, reverting to game instead", LoggerType.IpcGlamourer);
                     _RevertCharacter.Invoke(0, 0);

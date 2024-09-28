@@ -148,7 +148,7 @@
     </ItemGroup>
     <ItemGroup>
       <Folder Include="Hardcore\PromptHandler\NewFolder\" />
-      <Folder Include="Unlocks\AchivementNames\" />
+      <Folder Include="UI\Components\Achievements\" />
     </ItemGroup>
 </Project>
 

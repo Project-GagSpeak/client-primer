@@ -114,6 +114,12 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
             Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
         }
 
+        // Opens the Achievements Window
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Trophy, "Achievements", buttonX))
+        {
+            Mediator.Publish(new UiToggleMessage(typeof(AchievementsUI)));
+        }
+
         ImGui.Spacing();
         ImGui.Separator();
         ImGui.Spacing();
@@ -121,13 +127,13 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         bool isVisible = ChatLogAddonHelper.IsChatInputVisible;
         bool isPanelsVisible = ChatLogAddonHelper.IsChatPanelVisible(0);
 
-        float width = (ImGui.GetContentRegionAvail().X - ImGui.GetFrameHeight() - ImGui.GetStyle().ItemInnerSpacing.X*2) / 2;
+        float width = (ImGui.GetContentRegionAvail().X - ImGui.GetFrameHeight() - ImGui.GetStyle().ItemInnerSpacing.X * 2) / 2;
         if (ImGui.Button("Toggle Chat Input", new Vector2(width, ImGui.GetFrameHeight())))
         {
             ChatLogAddonHelper.SetMainChatLogVisibility(!isVisible);
         }
         ImUtf8.SameLineInner();
-        if(ImGui.Button("Toggle Chat Panels", new Vector2(width, ImGui.GetFrameHeight())))
+        if (ImGui.Button("Toggle Chat Panels", new Vector2(width, ImGui.GetFrameHeight())))
         {
             ChatLogAddonHelper.SetChatLogPanelsVisibility(!isPanelsVisible);
         }
@@ -137,70 +143,7 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
 
         if (BlockChatInput)
             ChatLogAddonHelper.DiscardCursorNodeWhenFocused();
-
-        ImGui.Separator();
-        try
-        {
-            unsafe
-            {
-                ImGui.Text("Gold Saucer Information:");
-                var GateDirector = GSManager->CurrentGFateDirector;
-                var markerToolTip = GateDirector->MapMarkerTooltipText;
-                var mapLvlId = GateDirector->MapMarkerLevelId;
-                var EndTimeStamp = GateDirector->EndTimestamp;
-                var GateType = GateDirector->GateType;
-                var GatePosType = GateDirector->GatePositionType;
-                var GateDirectorFlags = GateDirector->Flags;
-                ImGui.Text("Marker Tooltip: " + markerToolTip);
-                ImGui.Text("Map Level ID: " + mapLvlId);
-                ImGui.Text("End Time Stamp: " + EndTimeStamp);
-                ImGui.Text("Gate Type: " + (GateType)GateType);
-                ImGui.Text("Gate Position Type: " + GatePosType);
-                ImGui.Text("Gate Director Flags: " + ((GFateDirectorFlag)GateDirectorFlags).ToString());
-                ImGui.Text("IsRunningGate: " + GateDirector->IsRunningGate());
-                ImGui.Text("IsAcceptingGate: " + GateDirector->IsAcceptingGate());
-                ImGui.Text("IsJoinedFlag Set: " + ((GateDirectorFlags & GFateDirectorFlag.IsJoined) != 0));
-                ImGui.Text("IsFinishedFlag Set: " + ((GateDirectorFlags & GFateDirectorFlag.IsFinished) != 0));
-                ImGui.Text("Unk2Flag Set: " + ((GateDirectorFlags & GFateDirectorFlag.Unk2) != 0));
-            };
-        }
-        catch (Exception e)
-        {
-            ImGui.Text("Error: " + e.Message);
-        }
     }
-
-    private bool GagReflexReady = false;
-
-    // Gate Flags:
-    // IsJoined = We have joined the gate.
-    // IsFinished = Our Attempt in the Gate is finished.
-    // Unk2 = We failed the attempt???
-    // Unk3 = ???
-    // Unk4 = ???
-    // Unk5 = ???
-
-    private enum GateType : byte
-    {
-        Something1 = 0,
-        CliffHanger = 1,
-        Something3 = 2,
-        Something4 = 3,
-        Something5 = 4,
-        AnyWayTheWindBlows = 5, // fungai event.
-        LeapOfFaith = 6,
-        AirForceOne = 7,
-    }
-
-    // Gag Reflex Conditions: 
-    // - Must Be in GateType 1 or 5 (CliffHanger or AnyWayTheWindBlows)
-    // - IsJoined flag must be true (Or IsAcceptingGate must be true)
-
-    // When joining an event:
-    // IsAccepting Gate goes to true
-    // The flag IsJoined is set,
-
-    private unsafe GoldSaucerManager* GSManager = FFXIVClientStructs.FFXIV.Client.Game.GoldSaucer.GoldSaucerManager.Instance();
 
     private bool BlockChatInput = false;
 }

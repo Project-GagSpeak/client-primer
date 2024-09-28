@@ -1,3 +1,5 @@
+using Dalamud.Plugin.Services;
+
 namespace GagSpeak.Achievements;
 
 public class ProgressAchievement : Achievement
@@ -7,17 +9,13 @@ public class ProgressAchievement : Achievement
     /// </summary>
     public int Progress { get; private set; }
 
-    /// <summary>
-    /// The Milestone that must be met to complete the achievement.
-    /// </summary>
-    public int MilestoneGoal { get; private set; }
-
-    public ProgressAchievement(string title, string description, int requiredProgress)
-        : base(title, description)
+    public ProgressAchievement(INotificationManager notify, string title, string desc, int goal, string unit = "")
+        : base(notify, title, desc, goal, unit)
     {
-        MilestoneGoal = requiredProgress;
         Progress = 0;
     }
+
+    public override int CurrentProgress() => IsCompleted ? MilestoneGoal : Progress;
 
     /// <summary>
     /// Increments the progress towards the achievement.

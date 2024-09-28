@@ -1,3 +1,5 @@
+using Dalamud.Plugin.Services;
+
 namespace GagSpeak.Achievements;
 
 public class ConditionalAchievement : Achievement
@@ -7,11 +9,13 @@ public class ConditionalAchievement : Achievement
     /// </summary>
     private Func<bool> Condition;
 
-    public ConditionalAchievement(string title, string description, Func<bool> condition) 
-        : base(title, description)
+    public ConditionalAchievement(INotificationManager notify, string title, string desc, Func<bool> condition, string unit = "") 
+        : base(notify, title, desc, 1, unit)
     {
         Condition = condition;
     }
+
+    public override int CurrentProgress() => IsCompleted ? 1 : 0;
 
     /// <summary>
     /// Check if the condition is satisfied

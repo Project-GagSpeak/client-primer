@@ -1,3 +1,5 @@
+using Dalamud.Plugin.Services;
+
 namespace GagSpeak.Achievements;
 
 public class ConditionalDurationAchievement : Achievement
@@ -11,16 +13,57 @@ public class ConditionalDurationAchievement : Achievement
     // Requirement that must remain true while tracking.
     public Func<bool> RequiredCondition;
 
+    public DurationTimeUnit TimeUnit { get; init; }
+
     public bool CompleteWithinTimeSpan { get; init; }
 
-    public ConditionalDurationAchievement(string name, string description, TimeSpan duration, 
-        Func<bool> condition, bool completeWithinTimeSpan = false)
-        : base(name, description)
+    public ConditionalDurationAchievement(INotificationManager notify, 
+        string name, 
+        string description, 
+        TimeSpan duration, 
+        Func<bool> condition,
+        DurationTimeUnit timeUnit,
+        bool completeWithinTimeSpan = false,  
+        string unit = ""
+        ) : base(notify, name, description, ConvertToUnit(duration, timeUnit), unit)
     {
         MilestoneDuration = duration;
         RequiredCondition = condition;
+        TimeUnit = timeUnit;
         CompleteWithinTimeSpan = completeWithinTimeSpan;
     }
+
+    private static int ConvertToUnit(TimeSpan duration, DurationTimeUnit unit)
+    {
+        return unit switch
+        {
+            DurationTimeUnit.Seconds => (int)duration.TotalSeconds,
+            DurationTimeUnit.Minutes => (int)duration.TotalMinutes,
+            DurationTimeUnit.Hours => (int)duration.TotalHours,
+            DurationTimeUnit.Days => (int)duration.TotalDays,
+            _ => throw new ArgumentOutOfRangeException(nameof(unit), "Invalid time unit")
+        };
+    }
+
+    public override int CurrentProgress()
+    {
+        // if completed, return the milestone goal.
+        if (IsCompleted) return MilestoneGoal;
+
+        // Calculate elapsed time
+        var elapsed = StartPoint != DateTime.MinValue ? DateTime.UtcNow - StartPoint : TimeSpan.Zero;
+
+        // Return progress based on the specified unit
+        return TimeUnit switch
+        {
+            DurationTimeUnit.Seconds => (int)elapsed.TotalSeconds,
+            DurationTimeUnit.Minutes => (int)elapsed.TotalMinutes,
+            DurationTimeUnit.Hours => (int)elapsed.TotalHours,
+            DurationTimeUnit.Days => (int)elapsed.TotalDays,
+            _ => 0 // Default case, should not be hit
+        };
+    }
+
 
     /// <summary>
     /// Check if the condition is satisfied

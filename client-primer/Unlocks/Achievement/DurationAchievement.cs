@@ -1,3 +1,6 @@
+using Dalamud.Plugin.Services;
+using System;
+
 namespace GagSpeak.Achievements;
 
 public class DurationAchievement : Achievement
@@ -7,10 +10,45 @@ public class DurationAchievement : Achievement
     // The Current Active Item(s) being tracked. (can be multiple because of gags.
     public readonly Dictionary<string, DateTime> ActiveItems = new();
 
-    public DurationAchievement(string name, string description, TimeSpan duration)
-        : base(name, description)
+    public DurationTimeUnit TimeUnit { get; init; }
+
+    public DurationAchievement(INotificationManager notify, string name, string desc, 
+        TimeSpan duration, DurationTimeUnit timeUnit = DurationTimeUnit.Minutes, string unit = "")
+        : base(notify, name, desc, ConvertToUnit(duration, timeUnit), unit)
     {
         MilestoneDuration = duration;
+    }
+
+    private static int ConvertToUnit(TimeSpan duration, DurationTimeUnit unit)
+    {
+        return unit switch
+        {
+            DurationTimeUnit.Seconds => (int)duration.TotalSeconds,
+            DurationTimeUnit.Minutes => (int)duration.TotalMinutes,
+            DurationTimeUnit.Hours => (int)duration.TotalHours,
+            DurationTimeUnit.Days => (int)duration.TotalDays,
+            _ => throw new ArgumentOutOfRangeException(nameof(unit), "Invalid time unit")
+        };
+    }
+
+    public override int CurrentProgress()
+    {
+        // if completed, return the milestone goal.
+        if (IsCompleted) return MilestoneGoal;
+
+        // otherwise, return the ActiveItem with the longest duration from the DateTime.UtcNow and return its value in total minutes.
+        var elapsed = ActiveItems.Any() ? (DateTime.UtcNow - ActiveItems.Values.Max()) : TimeSpan.Zero;
+
+        // Return progress based on the specified unit
+        return TimeUnit switch
+        {
+            DurationTimeUnit.Seconds => (int)elapsed.TotalSeconds,
+            DurationTimeUnit.Minutes => (int)elapsed.TotalMinutes,
+            DurationTimeUnit.Hours => (int)elapsed.TotalHours,
+            DurationTimeUnit.Days => (int)elapsed.TotalDays,
+            _ => 0 // Default case, should not be hit
+        };
+
     }
 
     /// <summary>

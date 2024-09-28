@@ -212,10 +212,9 @@ public static class GagSpeakServiceExtensions
 
         // Unlocks / Achievements
         .AddSingleton((s) => new AchievementManager(s.GetRequiredService<ILogger<AchievementManager>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
-            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(),
-            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<ToyboxVibeService>(), 
-            s.GetRequiredService<UnlocksEventManager>(), s.GetRequiredService<ItemIdVars>(), nm))
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(), s.GetRequiredService<ClientConfigurationManager>(),
+            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<OnFrameworkService>(), 
+            s.GetRequiredService<ToyboxVibeService>(), s.GetRequiredService<UnlocksEventManager>(), s.GetRequiredService<ItemIdVars>(), nm))
         .AddSingleton<UnlocksEventManager>()
 
         // UpdateMonitoring Services
@@ -309,7 +308,6 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(),
             s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(), s.GetRequiredService<MoodlesAssociations>(),
             s.GetRequiredService<PairManager>(), dm))
-        .AddSingleton<RestraintCosmetics>()
         .AddSingleton<WardrobeHandler>()
 
         // Puppeteer UI
@@ -324,7 +322,6 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ToyboxPrivateRooms>()
         .AddSingleton<ToyboxTriggerManager>()
         .AddSingleton<ToyboxAlarmManager>()
-        .AddSingleton<ToyboxCosmetics>()
         .AddSingleton((s) => new VibeSimAudio(s.GetRequiredService<ILogger<VibeSimAudio>>(), pi))
 
         // Orders UI
@@ -493,7 +490,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<Dalamud.Localization>(), s.GetRequiredService<ApiController>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ServerConfigurationManager>(),
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<IpcManager>(), pi, tp))
-        .AddScoped((s) => new CosmeticTextureService(s.GetRequiredService<ILogger<CosmeticTextureService>>(), s.GetRequiredService<GagspeakMediator>(),
+        .AddScoped((s) => new CosmeticService(s.GetRequiredService<ILogger<CosmeticService>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<OnFrameworkService>(), pi, tp));
 
 

@@ -27,7 +27,6 @@ public static class GagSetupTabs
         ActiveGags,
         LockPicker,
         GagStorage,
-        Cosmetics,
     }
 
     public static string GetTabName(Tabs tab)
@@ -37,7 +36,6 @@ public static class GagSetupTabs
             Tabs.ActiveGags => "Active Gags",
             Tabs.LockPicker => "Lock Picker",
             Tabs.GagStorage => "Gag Storage",
-            Tabs.Cosmetics  => "Gag Cosmetics",
             _ => "None",
         };
     }

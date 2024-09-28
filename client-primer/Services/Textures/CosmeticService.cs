@@ -9,7 +9,7 @@ namespace GagSpeak.Services.Textures;
 
 // Friendly Reminded, this is a scoped service, and IDalamudTextureWraps will only return values on the framework thread.
 // Attempting to use or access this class to obtain information outside the framework draw update thread will result in a null return.
-public class CosmeticTextureService : DisposableMediatorSubscriberBase
+public class CosmeticService : DisposableMediatorSubscriberBase
 {
     private readonly OnFrameworkService _frameworkUtils;
     private readonly ITextureProvider _textures;
@@ -18,7 +18,7 @@ public class CosmeticTextureService : DisposableMediatorSubscriberBase
     // This is shared across all states of our plugin, so should attach to the one in UISharedService
     private ISharedImmediateTexture _sharedTextures;
 
-    public CosmeticTextureService(ILogger<CosmeticTextureService> logger, GagspeakMediator mediator,
+    public CosmeticService(ILogger<CosmeticService> logger, GagspeakMediator mediator,
         OnFrameworkService frameworkUtils, IDalamudPluginInterface pi, ITextureProvider tp) 
         : base(logger, mediator)
     {

@@ -18,15 +18,13 @@ public class ToyboxUI : WindowMediatorSubscriberBase
     private readonly ToyboxPatterns _patterns;
     private readonly ToyboxTriggerManager _triggerManager;
     private readonly ToyboxAlarmManager _alarmManager;
-    private readonly ToyboxCosmetics _cosmetics;
     private readonly PatternPlayback _patternPlayback;
 
     public ToyboxUI(ILogger<ToyboxUI> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService, ToyboxOverview toysOverview,
         ToyboxPrivateRooms vibeServer, ToyboxPatterns patterns,
         ToyboxTriggerManager triggerManager, ToyboxAlarmManager alarmManager,
-        ToyboxCosmetics cosmetics, PatternPlayback playback) 
-        : base(logger, mediator, "Toybox UI")
+        PatternPlayback playback) : base(logger, mediator, "Toybox UI")
     {
         _uiShared = uiSharedService;
         _toysOverview = toysOverview;
@@ -34,7 +32,6 @@ public class ToyboxUI : WindowMediatorSubscriberBase
         _patterns = patterns;
         _triggerManager = triggerManager;
         _alarmManager = alarmManager;
-        _cosmetics = cosmetics;
         _patternPlayback = playback;
 
         AllowPinning = false;
@@ -155,9 +152,6 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                             break;
                         case ToyboxTabs.Tabs.AlarmManager:
                             _alarmManager.DrawAlarmManagerPanel();
-                            break;
-                        case ToyboxTabs.Tabs.ToyboxCosmetics:
-                            _cosmetics.DrawCosmeticsPanel();
                             break;
                         default:
                             break;

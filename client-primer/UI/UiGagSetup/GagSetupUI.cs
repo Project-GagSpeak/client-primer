@@ -144,9 +144,6 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                         case GagSetupTabs.Tabs.GagStorage: // fancy WIP thingy to give players access to features based on achievements or unlocks.
                             _gagStorage.DrawGagStoragePanel();
                             break;
-                        case GagSetupTabs.Tabs.Cosmetics:
-                            DrawGagDisplayEditsPanel();
-                            break;
                         default:
                             break;
                     };
@@ -161,13 +158,5 @@ public class GagSetupUI : WindowMediatorSubscriberBase
         {
             ImGui.PopStyleVar();
         }
-    }
-
-    // Draw the profile display edits tab
-    private void DrawGagDisplayEditsPanel()
-    {
-        ImGui.TextWrapped("Here you will be able to unlock some progressive based achievements to unlock cosmetic features for your profile.");
-
-        ImGui.TextWrapped("Below are some of the following progress goals:");
     }
 }

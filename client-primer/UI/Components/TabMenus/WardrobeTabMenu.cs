@@ -33,7 +33,6 @@ public static class WardrobeTabs
         StruggleSim, // for trying to struggle out of your restraints.
         CursedLoot, // Cursed Bondage Loot.
         ManageMoodles, // Manage the permissions for your Moodles.
-        Cosmetics, // lets you add custom effects to restraint set display in profile.
     }
 
     public static string GetTabName(Tabs tab)
@@ -44,7 +43,6 @@ public static class WardrobeTabs
             Tabs.StruggleSim => "Struggle Sim",
             Tabs.CursedLoot => "Cursed Loot",
             Tabs.ManageMoodles => "Moodles",
-            Tabs.Cosmetics  => "Outfit Cosmetics",
             _ => "None",
         };
     }

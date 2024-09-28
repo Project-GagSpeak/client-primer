@@ -28,7 +28,6 @@ public static class ToyboxTabs
         PatternManager, // manage, create, or send patterns.
         TriggerManager, // create a new trigger.
         AlarmManager, // manage, create, or send alarms.
-        ToyboxCosmetics, // lets you add custom display effects related to toybox actions.
     }
 
     public static string GetTabName(Tabs tab)
@@ -40,7 +39,6 @@ public static class ToyboxTabs
             Tabs.PatternManager => "Patterns",
             Tabs.TriggerManager => "Triggers",
             Tabs.AlarmManager => "Alarms",
-            Tabs.ToyboxCosmetics => "Vibe Cosmetics",
             _ => "None",
         };
     }

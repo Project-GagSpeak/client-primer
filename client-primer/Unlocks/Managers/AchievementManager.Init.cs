@@ -27,8 +27,8 @@ public partial class AchievementManager
         orderComponent.AddProgress(OrderLabels.TaskManager, "Create 10 Orders", 10, "Orders Created");
         orderComponent.AddProgress(OrderLabels.MaidMaster, "Create 100 Orders", 100, "Orders Created");
         orderComponent.AddProgress(OrderLabels.QueenOfDrones, "Create 1000 Orders", 1000, "Orders Created");
-        
-        Achievements[AchievementType.Orders] = orderComponent;
+
+        SaveData.Achievements[AchievementType.Orders] = orderComponent;
         #endregion ORDERS MODULE
 
         // Module Finished
@@ -76,7 +76,7 @@ public partial class AchievementManager
 
         gagComponent.AddConditionalProgress(GagLabels.SayMmmph, "Take a screenshot in /gpose while gagged", 1, () => _playerData.IsPlayerGagged(), "Photos Taken");
 
-        Achievements[AchievementType.Gags] = gagComponent;
+        SaveData.Achievements[AchievementType.Gags] = gagComponent;
         #endregion GAG MODULE
 
         #region WARDROBE MODULE
@@ -220,7 +220,7 @@ public partial class AchievementManager
         wardrobeComponent.AddConditionalDuration(WardrobeLabels.Bondodge, "Within 2 seconds of having a restraint set applied to you, remove it from yourself",
             TimeSpan.FromSeconds(2), () => _clientConfigs.GetActiveSetIdx() != -1, DurationTimeUnit.Seconds, "Seconds (Within)", true);
 
-        Achievements[AchievementType.Wardrobe] = wardrobeComponent;
+        SaveData.Achievements[AchievementType.Wardrobe] = wardrobeComponent;
         #endregion WARDROBE MODULE
 
         // Module Finished
@@ -240,7 +240,7 @@ public partial class AchievementManager
 
         puppeteerComponent.AddProgress(PuppeteerLabels.ShowingOff, "Order someone to execute any emote with 'dance' in it 10 times.", 10, "Dances Ordered");
 
-        Achievements[AchievementType.Puppeteer] = puppeteerComponent;
+        SaveData.Achievements[AchievementType.Puppeteer] = puppeteerComponent;
         #endregion PUPPETEER MODULE
 
         // Module Finished
@@ -272,7 +272,7 @@ public partial class AchievementManager
 
         toyboxComponent.AddConditionalProgress(ToyboxLabels.NothingCanStopMe, "Kill 500 enemies in PvP Frontlines while restrained or vibed.", 500, () => _frameworkUtils.ClientState.IsPvP, "Players Slain While Bound", false);
 
-        Achievements[AchievementType.Toybox] = toyboxComponent;
+        SaveData.Achievements[AchievementType.Toybox] = toyboxComponent;
         #endregion TOYBOX MODULE
 
         #region HARDCORE MODULE
@@ -340,7 +340,7 @@ public partial class AchievementManager
 
         // Tamed Brat - Shock collar beep or vibrate 10 times without a follow-up shock (Look into this later)
         // AddDuration(HardcoreLabels.TamedBrat, "Shock collar beep or vibrate 10 times without a follow-up shock for another few minutes.", TimeSpan.FromMinutes(2));
-        Achievements[AchievementType.Hardcore] = hardcoreComponent;
+        SaveData.Achievements[AchievementType.Hardcore] = hardcoreComponent;
         #endregion HARDCORE MODULE
 
         #region REMOTES MODULE
@@ -352,7 +352,7 @@ public partial class AchievementManager
         remoteComponent.AddProgress(RemoteLabels.DontKillMyVibe, "Dial the remotes intensity from 100% to 0% in under a second", 1, "Vibes Killed");
 
         remoteComponent.AddProgress(RemoteLabels.VibingWithFriends, "Host a Vibe Server Vibe Room.", 1, "Rooms Joined");
-        Achievements[AchievementType.Remotes] = remoteComponent;
+        SaveData.Achievements[AchievementType.Remotes] = remoteComponent;
         #endregion REMOTES MODULE
 
         #region GENERIC MODULE
@@ -376,7 +376,7 @@ public partial class AchievementManager
 
         genericComponent.AddConditional(GenericLabels.ICantBelieveYouveDoneThis, "Get /slapped while bound", () => _clientConfigs.GetActiveSetIdx() != -1, "Slaps Received");
 
-        Achievements[AchievementType.Generic] = genericComponent;
+        SaveData.Achievements[AchievementType.Generic] = genericComponent;
         #endregion GENERIC MODULE
 
         #region SECRETS MODULE
@@ -474,7 +474,7 @@ public partial class AchievementManager
             return fashionCheckVisible && _clientConfigs.GetActiveSetIdx() != -1 && _playerData.IsPlayerGagged();
         }, "Presentations Given on Stage"); // dont require them for now, but could be a fun one to add later.
 
-        Achievements[AchievementType.Secrets] = secretsComponent;
+        SaveData.Achievements[AchievementType.Secrets] = secretsComponent;
         #endregion SECRETS MODULE
     }
 }

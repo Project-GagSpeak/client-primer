@@ -6,35 +6,22 @@ public class AchievementComponent
 {
     [JsonIgnore]
     private readonly INotificationManager _notificationPinger;
-
-
-    // Sorted Achievements.
-    public Dictionary<string, Achievement> Achievements { get; }
-
-/*    public Dictionary<string, ProgressAchievement> Progress { get; }
-    public Dictionary<string, ConditionalAchievement> Conditional { get; }
-    public Dictionary<string, DurationAchievement> Duration { get; }
-    public Dictionary<string, TimedProgressAchievement> TimedProgress { get; }
-    public Dictionary<string, ConditionalProgressAchievement> ConditionalProgress { get; }
-    public Dictionary<string, ConditionalDurationAchievement> ConditionalDuration { get; }*/
-
-    public AchievementComponent(INotificationManager completionNotification)
-    {
-        _notificationPinger = completionNotification;
-
-        Progress = new Dictionary<string, ProgressAchievement>();
-        Conditional = new Dictionary<string, ConditionalAchievement>();
-        Duration = new Dictionary<string, DurationAchievement>();
-        TimedProgress = new Dictionary<string, TimedProgressAchievement>();
-        ConditionalProgress = new Dictionary<string, ConditionalProgressAchievement>();
-        ConditionalDuration = new Dictionary<string, ConditionalDurationAchievement>();
-    }
-
+    
     [JsonIgnore]
     public int Total => Achievements.Count;
 
     [JsonIgnore]
     public List<Achievement> All => Achievements.Values.Cast<Achievement>().ToList();
+
+
+    // Abstract Achievements Dictionary, stores all other types of achievements within it.
+    public Dictionary<string, Achievement> Achievements { get; }
+
+    public AchievementComponent(INotificationManager completionNotification)
+    {
+        _notificationPinger = completionNotification;
+        Achievements = new Dictionary<string, Achievement>();
+    }
 
     public void AddProgress(string title, string description, int targetProgress, string suffix)
     {
@@ -75,5 +62,4 @@ public class AchievementComponent
         var achievement = new TimedProgressAchievement(_notificationPinger, title, description, targetProgress, timeLimit, suffix);
         Achievements.Add(achievement.Title, achievement);
     }
-
 }

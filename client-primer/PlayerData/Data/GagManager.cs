@@ -97,7 +97,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         // Update the list of active gags
         UpdateActiveGags();
 
-        UnlocksEventManager.AchievementEvent(Achievements.UnlocksEvent.GagAction, Layer, NewGagType, SelfApplied);
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, Layer, NewGagType, SelfApplied);
     }
 
     public void OnGagLockChanged(PadlockData padlockInfo, NewState gagLockNewState, bool publish, bool SelfApplied = false)

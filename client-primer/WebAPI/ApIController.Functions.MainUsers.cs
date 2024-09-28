@@ -124,10 +124,12 @@ public partial class ApiController // Partial class for MainHub User Functions.
     }
 
 
-    /// <summary> 
-    /// Send a request to the server asking it to provide the profile of the user defined in the UserDto.
-    /// </summary>
-    /// <returns>The user profile Dto belonging to the UserDto we sent</returns>
+    public async Task UserUpdateAchievementData(UserAchievementsDto dto)
+    {
+        if (!IsConnected) return;
+        await _gagspeakHub!.InvokeAsync(nameof(UserUpdateAchievementData), dto).ConfigureAwait(false);
+    }
+
     public async Task<UserProfileDto> UserGetProfile(UserDto dto)
     {
         // if we are not connected, return a new user profile dto with the user data and disabled set to false

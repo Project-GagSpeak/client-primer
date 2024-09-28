@@ -5,9 +5,9 @@ using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
 using Lumina.Excel.GeneratedSheets;
 using System.Windows.Forms;
 
-namespace GagSpeak.Achievements;
+namespace GagSpeak.Utils;
 
-public static class UnlocksHelpers
+public static class AchievementHelpers
 {
 
     #region Deep Dungeon Helpers

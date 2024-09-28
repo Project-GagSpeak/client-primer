@@ -6,9 +6,7 @@ using GagSpeak.Achievements;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components;
-using GagSpeak.Utils;
 using ImGuiNET;
-using Microsoft.Extensions.Logging;
 using OtterGui.Text;
 using System.Numerics;
 
@@ -19,14 +17,14 @@ public class AchievementsUI : WindowMediatorSubscriberBase
 {
     private readonly AchievementManager _achievementManager;
     private readonly AchievementTabsMenu _tabMenu;
-    private readonly CosmeticTextureService _cosmeticTextures;
+    private readonly CosmeticService _cosmeticTextures;
     private readonly UiSharedService _uiShared;
     // for theme management
     public bool ThemePushed = false;
 
     public AchievementsUI(ILogger<AchievementsUI> logger, GagspeakMediator mediator,
         AchievementManager achievementManager, AchievementTabsMenu tabMenu,
-        CosmeticTextureService cosmeticTextures, UiSharedService uiShared) 
+        CosmeticService cosmeticTextures, UiSharedService uiShared)
         : base(logger, mediator, "###GagSpeakAchievementsUI")
     {
         _achievementManager = achievementManager;
@@ -126,7 +124,7 @@ public class AchievementsUI : WindowMediatorSubscriberBase
         {
             var uidTextSize = ImGui.CalcTextSize(text);
             ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y/2);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y / 2);
             // display it, it should be green if connected and red when not.
             ImGui.TextColored(ImGuiColors.ParsedGold, text);
         }
@@ -163,9 +161,9 @@ public class AchievementsUI : WindowMediatorSubscriberBase
         using var borderColor = ImRaii.PushColor(ImGuiCol.Border, ImGuiColors.ParsedPink);
         using var bgColor = ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.25f, 0.2f, 0.2f, 0.4f));
 
-        var imageTabWidth = AchievementIconSize.X + ImGui.GetStyle().ItemSpacing.X*2;
+        var imageTabWidth = AchievementIconSize.X + ImGui.GetStyle().ItemSpacing.X * 2;
 
-        var size = new Vector2(ImGui.GetContentRegionAvail().X, AchievementIconSize.Y + ImGui.GetStyle().WindowPadding.Y * 2 + ImGui.GetStyle().CellPadding.Y*2);
+        var size = new Vector2(ImGui.GetContentRegionAvail().X, AchievementIconSize.Y + ImGui.GetStyle().WindowPadding.Y * 2 + ImGui.GetStyle().CellPadding.Y * 2);
         using (ImRaii.Child("##Achievement-" + achievementItem.Title, size, true, ImGuiWindowFlags.ChildWindow))
         {
             try
@@ -184,7 +182,7 @@ public class AchievementsUI : WindowMediatorSubscriberBase
                     using (ImRaii.Group())
                     {
                         var progress = achievementItem.CurrentProgress();
-                        var icon  = achievementItem.IsCompleted ? FontAwesomeIcon.Trophy : (progress != 0 ? FontAwesomeIcon.Stopwatch : FontAwesomeIcon.Trophy);
+                        var icon = achievementItem.IsCompleted ? FontAwesomeIcon.Trophy : (progress != 0 ? FontAwesomeIcon.Stopwatch : FontAwesomeIcon.Trophy);
                         var color = achievementItem.IsCompleted ? ImGuiColors.ParsedGold : (progress != 0 ? ImGuiColors.DalamudGrey : ImGuiColors.DalamudGrey3);
                         var tooltip = achievementItem.IsCompleted ? "Achievement Completed!" : (progress != 0 ? "Achievement in Progress" : "Achievement Not Started");
                         ImGui.AlignTextToFramePadding();
@@ -194,19 +192,19 @@ public class AchievementsUI : WindowMediatorSubscriberBase
                         // beside it, draw out the achievement's Title in white text.
                         ImUtf8.SameLineInner();
                         ImGui.AlignTextToFramePadding();
-                        using (ImRaii.PushFont(UiBuilder.MonoFont)) ImGui.TextUnformatted(achievementItem.Title);
-                        
+                        using (ImRaii.PushFont(UiBuilder.MonoFont)) UiSharedService.ColorText(achievementItem.Title, ImGuiColors.ParsedGold);
+
                         // Split between the title and description
                         ImGui.Separator();
 
                         ImGui.AlignTextToFramePadding();
                         _uiShared.IconText(FontAwesomeIcon.InfoCircle, ImGuiColors.TankBlue);
-                        
+
                         ImUtf8.SameLineInner();
                         ImGui.AlignTextToFramePadding();
                         var descText = achievementItem.IsSecretAchievement ? "????" : achievementItem.Description;
-                        UiSharedService.ColorTextWrapped(descText, ImGuiColors.DalamudGrey);
-                        if(achievementItem.IsSecretAchievement)
+                        UiSharedService.TextWrapped(descText);
+                        if (achievementItem.IsSecretAchievement)
                         {
                             UiSharedService.AttachToolTip("Explore GagSpeak's Features or work together with others to uncover how you obtain this Achievement!)");
                         }
@@ -230,21 +228,21 @@ public class AchievementsUI : WindowMediatorSubscriberBase
                             ImGui.Image(wrap.ImGuiHandle, AchievementIconSize);
 
                         }
-                        catch(Exception e)
+                        catch (Exception e)
                         {
                             _logger.LogError(e, "Failed to draw achievement icon.");
                         }
                     }
                 } // End of Table
-                
-/*                // underneath this, we should draw the current progress towards the goal.
-                DrawProgressForAchievement(achievementItem);*/
+
+                /*                // underneath this, we should draw the current progress towards the goal.
+                                DrawProgressForAchievement(achievementItem);*/
             }
             catch (Exception e)
             {
                 _logger.LogError(e, "Failed to draw achievement progress box.");
             }
-            
+
         } // End of Achievement Child Window
     }
 
@@ -266,10 +264,10 @@ public class AchievementsUI : WindowMediatorSubscriberBase
         var milestone = achievement.MilestoneGoal;
 
         // calculate the text size
-        var textSize = ImGui.CalcTextSize(progress + " / " + milestone + " "+achievement.MeasurementUnit);
+        var textSize = ImGui.CalcTextSize(progress + " / " + milestone + " " + achievement.MeasurementUnit);
 
         // move the cursor screen pos to the bottom of the content region - the progress bar height.
-        ImGui.SetCursorScreenPos(new Vector2(ImGui.GetCursorScreenPos().X+ImGuiHelpers.GlobalScale, ImGui.GetCursorScreenPos().Y + region.Y - ((int)textSize.Y + 5)));
+        ImGui.SetCursorScreenPos(new Vector2(ImGui.GetCursorScreenPos().X + ImGuiHelpers.GlobalScale, ImGui.GetCursorScreenPos().Y + region.Y - ((int)textSize.Y + 5)));
 
         // grab the current cursor screen pos.
         var pos = ImGui.GetCursorScreenPos();
@@ -283,7 +281,7 @@ public class AchievementsUI : WindowMediatorSubscriberBase
 
         // mark the ending position of the progress bar in the drawlist.
         var progressBarDrawEnd = new Vector2(pos.X + progressWidth, pos.Y + progressHeight);
-        
+
         // grab the WINDOW draw list
         var drawList = ImGui.GetWindowDrawList();
 
@@ -293,14 +291,14 @@ public class AchievementsUI : WindowMediatorSubscriberBase
         drawList.AddRectFilled( // The Outer Border of the progress bar
             progressBarDrawStart with { X = progressBarDrawStart.X - ProgressBarBorder - 1, Y = progressBarDrawStart.Y - ProgressBarBorder - 1 },
             progressBarDrawEnd with { X = progressBarDrawEnd.X + ProgressBarBorder + 1, Y = progressBarDrawEnd.Y + ProgressBarBorder + 1 },
-            UiSharedService.Color(0, 0, 0, Transparency), 
+            UiSharedService.Color(0, 0, 0, Transparency),
             25f,
             ImDrawFlags.RoundCornersAll);
 
         drawList.AddRectFilled( // The inner Border of the progress bar
             progressBarDrawStart with { X = progressBarDrawStart.X - ProgressBarBorder, Y = progressBarDrawStart.Y - ProgressBarBorder },
             progressBarDrawEnd with { X = progressBarDrawEnd.X + ProgressBarBorder, Y = progressBarDrawEnd.Y + ProgressBarBorder },
-            UiSharedService.Color(220, 220,220, Transparency),
+            UiSharedService.Color(220, 220, 220, Transparency),
             25f,
             ImDrawFlags.RoundCornersAll);
 
@@ -316,7 +314,7 @@ public class AchievementsUI : WindowMediatorSubscriberBase
         {
             drawList.AddRectFilled( // The progress bar fill
                 progressBarDrawStart,
-                progressBarDrawEnd with { X = progressBarDrawStart.X + (float)((progress/milestone) * progressWidth) },
+                progressBarDrawEnd with { X = progressBarDrawStart.X + (float)((progress / milestone) * progressWidth) },
                 UiSharedService.Color(225, 104, 168, 255),
                 45f,
                 ImDrawFlags.RoundCornersAll);

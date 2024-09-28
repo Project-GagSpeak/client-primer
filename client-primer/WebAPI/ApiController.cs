@@ -1,22 +1,19 @@
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Utility;
-using GagspeakAPI.Data;
-using GagspeakAPI.Enums;
-using GagspeakAPI.SignalR;
-using GagspeakAPI.Dto.Connection;
-using GagspeakAPI.Dto.Permissions;
 using GagSpeak.GagspeakConfiguration;
-using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.PlayerData.PrivateRooms;
+using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UpdateMonitoring;
+using GagspeakAPI.Data;
+using GagspeakAPI.Dto.Connection;
+using GagspeakAPI.Dto.Permissions;
+using GagspeakAPI.SignalR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Reflection;
-using GagSpeak.UpdateMonitoring;
-using GagSpeak.PlayerData.PrivateRooms;
-using GagSpeak.PlayerData.Services;
-using GagspeakAPI.Enums;
 
 namespace GagSpeak.WebAPI;
 
@@ -55,8 +52,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     private ServerState _toyboxServerState;                         // the current state of the toybox server
 
     public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, OnFrameworkService frameworkService,
-        ClientCallbackService clientCallbacks, PrivateRoomManager roomManager, PairManager pairManager, 
-        ServerConfigurationManager serverManager, GagspeakMediator gagspeakMediator, PiShockProvider piShockProvider, 
+        ClientCallbackService clientCallbacks, PrivateRoomManager roomManager, PairManager pairManager,
+        ServerConfigurationManager serverManager, GagspeakMediator gagspeakMediator, PiShockProvider piShockProvider,
         TokenProvider tokenProvider, GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
     {
         _frameworkUtils = frameworkService;
@@ -293,8 +290,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 ToyboxServerState = ServerState.Connected;
 
                 // declare the current client version from the executing assembly
-                Logger.LogInformation("Client Version for server: "+IGagspeakHub.ApiVersion, LoggerType.HubFactory);
-                Logger.LogInformation("Server Version: "+_toyboxConnectionDto.ServerVersion, LoggerType.HubFactory);
+                Logger.LogInformation("Client Version for server: " + IGagspeakHub.ApiVersion, LoggerType.HubFactory);
+                Logger.LogInformation("Server Version: " + _toyboxConnectionDto.ServerVersion, LoggerType.HubFactory);
 
                 // if the server version is not the same as the API version
                 if (_toyboxConnectionDto.ServerVersion != IGagspeakHub.ApiVersion)
@@ -313,9 +310,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 await LoadToyboxOnlinePairs().ConfigureAwait(false);
 
                 // initialize the connectionDto information to the privateRoomManager.
-                Logger.LogInformation("Toybox Connection DTO ServerVersion: "+_toyboxConnectionDto.ServerVersion, LoggerType.HubFactory);
-                Logger.LogInformation("Toybox Connection DTO HostedRoom: "+_toyboxConnectionDto.HostedRoom.NewRoomName, LoggerType.HubFactory);
-                Logger.LogInformation("Toybox Connection DTO ConnectedRooms: "+_toyboxConnectionDto.ConnectedRooms.Count, LoggerType.HubFactory);
+                Logger.LogInformation("Toybox Connection DTO ServerVersion: " + _toyboxConnectionDto.ServerVersion, LoggerType.HubFactory);
+                Logger.LogInformation("Toybox Connection DTO HostedRoom: " + _toyboxConnectionDto.HostedRoom.NewRoomName, LoggerType.HubFactory);
+                Logger.LogInformation("Toybox Connection DTO ConnectedRooms: " + _toyboxConnectionDto.ConnectedRooms.Count, LoggerType.HubFactory);
             }
             catch (OperationCanceledException) { Logger.LogWarning("Toybox Connection attempt cancelled", LoggerType.ApiCore); return; }
             catch (HttpRequestException ex)
@@ -377,7 +374,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         // get the currently stored secretkey from the server manager
         var secretKey = _serverConfigs.GetSecretKeyForCharacter();
         // log the secret key
-        Logger.LogDebug("Secret Key fetched: "+secretKey, LoggerType.ApiCore);
+        Logger.LogDebug("Secret Key fetched: " + secretKey, LoggerType.ApiCore);
         // if the secret key is null or empty
         if (secretKey.IsNullOrEmpty())
         {
@@ -472,8 +469,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
                 // declare the current client version from the executing assembly
                 var currentClientVer = Assembly.GetExecutingAssembly().GetName().Version!;
-                Logger.LogInformation("Current Client Version: "+currentClientVer, LoggerType.ApiCore);
-                Logger.LogInformation("Server Version: "+_connectionDto.CurrentClientVersion, LoggerType.ApiCore);
+                Logger.LogInformation("Current Client Version: " + currentClientVer, LoggerType.ApiCore);
+                Logger.LogInformation("Server Version: " + _connectionDto.CurrentClientVersion, LoggerType.ApiCore);
 
                 // if the server version is not the same as the API version
                 if (_connectionDto.ServerVersion != IGagspeakHub.ApiVersion)
@@ -484,7 +481,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                         // publish a notification message to the client that their client is incompatible
                         Mediator.Publish(new NotificationMessage("Client incompatible",
                             $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}.{currentClientVer.Revision}), current is: " +
-                            $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}."+
+                            $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}." +
                             $"{_connectionDto.CurrentClientVersion.Revision}" +
                             $"This client version is incompatible and will not be able to connect. Please update your Gagspeak client.",
                             NotificationType.Error));
@@ -501,7 +498,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                     // publish a notification message that the client is outdated
                     Mediator.Publish(new NotificationMessage("Client outdated",
                             $"Your client is outdated ({currentClientVer.Major}.{currentClientVer.Minor}.{currentClientVer.Build}.{currentClientVer.Revision}), current is: " +
-                            $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}."+
+                            $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}." +
                             $"{_connectionDto.CurrentClientVersion.Revision} Please keep your Gagspeak client up-to-date.", NotificationType.Warning));
                     // stop connection
                     Logger.LogInformation("_connectionDto.CurrentClientVersion > currentClientVer", LoggerType.ApiCore);
@@ -575,7 +572,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             while (pair.UserPair!.OwnPairPerms != perm)
             {
                 await Task.Delay(250, cts.Token).ConfigureAwait(false);
-                Logger.LogTrace("Waiting for permissions change for "+userData.UID, LoggerType.ApiCore);
+                Logger.LogTrace("Waiting for permissions change for " + userData.UID, LoggerType.ApiCore);
             }
             // set it back to false;
             perm.IsPaused = false;
@@ -687,10 +684,10 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     private void FrameworkUtilOnLogIn()
     {
         // do an update check on the authentications to check and see if the current players local content ID has no current authentications.
-        if(!_serverConfigs.CharacterHasSecretKey())
+        if (!_serverConfigs.CharacterHasSecretKey())
         {
             // check to see if we have an authentication for this local content ID. If we dont, create a new one.
-            if(!_serverConfigs.AuthExistsForCurrentLocalContentId())
+            if (!_serverConfigs.AuthExistsForCurrentLocalContentId())
             {
                 // then we can safely assume this is an alt account character of the Primary account.
                 // so, we can create a empty authentication template by storing ContentID, name, world.
@@ -797,7 +794,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             OnPrivateRoomOtherUserJoined(dto => _ = Client_PrivateRoomOtherUserJoined(dto));
             OnPrivateRoomOtherUserLeft(dto => _ = Client_PrivateRoomOtherUserLeft(dto));
             OnPrivateRoomRemovedUser(dto => _ = Client_PrivateRoomRemovedUser(dto));
-            OnPrivateRoomUpdateUser( dto => _ = Client_PrivateRoomUpdateUser(dto));
+            OnPrivateRoomUpdateUser(dto => _ = Client_PrivateRoomUpdateUser(dto));
             OnPrivateRoomMessage(dto => _ = Client_PrivateRoomMessage(dto));
             OnPrivateRoomReceiveUserDevice(dto => _ = Client_PrivateRoomReceiveUserDevice(dto));
             OnPrivateRoomDeviceUpdate(dto => _ = Client_PrivateRoomDeviceUpdate(dto));
@@ -823,7 +820,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         foreach (var userPair in await UserGetPairedClients().ConfigureAwait(false))
         {
             // debug the pair, then add it to the pair manager.
-            Logger.LogTrace("Individual Pair Found: "+userPair.User.AliasOrUID, LoggerType.ApiCore);
+            Logger.LogTrace("Individual Pair Found: " + userPair.User.AliasOrUID, LoggerType.ApiCore);
             _pairManager.AddUserPair(userPair);
         }
     }
@@ -835,7 +832,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         foreach (var entry in await UserGetOnlinePairs().ConfigureAwait(false))
         {
             // debug the pair, then mark it as online in the pair manager.
-            Logger.LogDebug("Pair online: "+entry, LoggerType.ApiCore);
+            Logger.LogDebug("Pair online: " + entry, LoggerType.ApiCore);
             _pairManager.MarkPairOnline(entry, sendNotif: false);
         }
         Mediator.Publish(new OnlinePairsLoadedMessage());
@@ -849,7 +846,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         foreach (var entry in await ToyboxUserGetOnlinePairs(UidList).ConfigureAwait(false))
         {
             // debug the pair, then mark it as online in the pair manager.
-            Logger.LogDebug("Pair online: "+entry, LoggerType.ApiCore);
+            Logger.LogDebug("Pair online: " + entry, LoggerType.ApiCore);
             _pairManager.MarkPairToyboxOnline(entry);
         }
     }
@@ -896,7 +893,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             {
                 // publish a notification message that the client is outdated
                 Mediator.Publish(new NotificationMessage("Client outdated",
-                    $"Your client is outdated ({Assembly.GetExecutingAssembly().GetName().Version!.Major}."+
+                    $"Your client is outdated ({Assembly.GetExecutingAssembly().GetName().Version!.Major}." +
                     $"{Assembly.GetExecutingAssembly().GetName().Version!.Minor}.{Assembly.GetExecutingAssembly().GetName().Version!.Build}.{Assembly.GetExecutingAssembly().GetName().Version!.Revision}), current is: " +
                     $"{_connectionDto.CurrentClientVersion.Major}.{_connectionDto.CurrentClientVersion.Minor}.{_connectionDto.CurrentClientVersion.Build}.{_connectionDto.CurrentClientVersion.Revision} " +
                     $"Please keep your Gagspeak client up-to-date.",

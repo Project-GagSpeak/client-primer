@@ -115,7 +115,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public List<RestraintSet> GetAllSetsForSearch() => _clientConfigs.StoredRestraintSets;
     public RestraintSet GetRestraintSet(int idx) => _clientConfigs.GetRestraintSet(idx);
 
-    public async void EnableRestraintSet(int idx, string AssignerUID = "SelfApplied")
+    public async void EnableRestraintSet(int idx, string AssignerUID = Globals.SelfApplied)
     {
         if (!WardrobeEnabled || !RestraintSetsEnabled)
         {
@@ -124,7 +124,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         }
         await _clientConfigs.SetRestraintSetState(idx, AssignerUID, NewState.Enabled, true);
     }
-    public async void DisableRestraintSet(int idx, string AssignerUID = "SelfApplied")
+    public async void DisableRestraintSet(int idx, string AssignerUID = Globals.SelfApplied)
     {
         if (!WardrobeEnabled || !RestraintSetsEnabled)
         {

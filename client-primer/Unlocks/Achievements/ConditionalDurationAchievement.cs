@@ -8,7 +8,7 @@ public class ConditionalDurationAchievement : Achievement
     private readonly TimeSpan MilestoneDuration;
 
     // Tracked Start Time
-    public DateTime StartPoint { get; private set; } = DateTime.MinValue;
+    public DateTime StartPoint { get; set; } = DateTime.MinValue;
 
     // Requirement that must remain true while tracking.
     public Func<bool> RequiredCondition;
@@ -149,6 +149,8 @@ public class ConditionalDurationAchievement : Achievement
             }
         }
     }
+
+    public override AchievementType GetAchievementType() => AchievementType.ConditionalDuration;
 }
 
 

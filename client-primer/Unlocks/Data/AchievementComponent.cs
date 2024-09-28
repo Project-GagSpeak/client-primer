@@ -23,6 +23,56 @@ public class AchievementComponent
         Achievements = new Dictionary<string, Achievement>();
     }
 
+    public void LoadFromLightAchievements(List<LightAchievement> lightAchievements)
+    {
+        foreach (var lightAchievement in lightAchievements)
+        {
+            if (lightAchievement.Type is AchievementType.Progress && Achievements[lightAchievement.Title] is ProgressAchievement progressAchievement)
+            {
+                progressAchievement.IsCompleted = lightAchievement.IsCompleted;
+                progressAchievement.Progress = lightAchievement.Progress;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.Conditional && Achievements[lightAchievement.Title] is ConditionalAchievement conditionalAchievement)
+            {
+                conditionalAchievement.IsCompleted = lightAchievement.IsCompleted;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.Duration && Achievements[lightAchievement.Title] is DurationAchievement durationAchievement)
+            {
+                durationAchievement.IsCompleted = lightAchievement.IsCompleted;
+                durationAchievement.ActiveItems = lightAchievement.ActiveItems;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.ConditionalDuration && Achievements[lightAchievement.Title] is ConditionalDurationAchievement conditionalDurationAchievement)
+            {
+                conditionalDurationAchievement.IsCompleted = lightAchievement.IsCompleted;
+                conditionalDurationAchievement.StartPoint = lightAchievement.StartTime;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.ConditionalProgress && Achievements[lightAchievement.Title] is ConditionalProgressAchievement conditionalProgressAchievement)
+            {
+                conditionalProgressAchievement.IsCompleted = lightAchievement.IsCompleted;
+                conditionalProgressAchievement.Progress = lightAchievement.Progress;
+                conditionalProgressAchievement.ConditionalTaskBegun = lightAchievement.ConditionalTaskBegun;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.TimedProgress && Achievements[lightAchievement.Title] is TimedProgressAchievement timedProgressAchievement)
+            {
+                timedProgressAchievement.IsCompleted = lightAchievement.IsCompleted;
+                timedProgressAchievement.Progress = lightAchievement.Progress;
+                timedProgressAchievement.StartTime = lightAchievement.StartTime;
+                continue; // skip to next achievement
+            }
+
+        }
+    }
+
     public void AddProgress(string title, string description, int targetProgress, string suffix)
     {
         var achievement = new ProgressAchievement(_notificationPinger, title, description, targetProgress, suffix);

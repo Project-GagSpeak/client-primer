@@ -193,7 +193,7 @@ public class ClientCallbackService
                 if (_playerData.CoreDataNull || !_playerData.GlobalPerms!.RestraintSetAutoEquip) return;
 
                 int activeSetIdx = _clientConfigs.GetRestraintSetIdxByName(callbackDto.WardrobeData.ActiveSetName);
-                await _clientConfigs.SetRestraintSetState(activeSetIdx, "SelfApplied", NewState.Disabled, true);
+                await _clientConfigs.SetRestraintSetState(activeSetIdx, Globals.SelfApplied, NewState.Disabled, true);
             }
             _logger.LogDebug("Received Callback for Self-Wardrobe Data with DataUpdateKind: "+callbackDto.UpdateKind.ToName(), LoggerType.Callbacks);
             return;

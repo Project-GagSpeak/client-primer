@@ -227,11 +227,17 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                                     _gagManager.ActiveSlotPadlocks[slotNumber], 
                                     _gagManager.ActiveSlotPasswords[slotNumber],
                                     UiSharedService.GetEndTimeUTC(_gagManager.ActiveSlotTimers[slotNumber]),
-                                    "SelfApplied"),
+                                    Globals.SelfApplied),
                                 currentlyLocked ? NewState.Unlocked : NewState.Locked));
                         }
-                        // reset the password and timer
-                        _gagManager.ResetInputs();
+                        else
+                        {
+                            // reset the inputs
+                            _gagManager.ResetInputs();
+                            // if the padlock was a timer padlock and we are currently locked trying to unlock, fire the event for it.
+                            if (padlockType is Padlocks.PasswordPadlock or Padlocks.TimerPasswordPadlock or Padlocks.CombinationPadlock)
+                                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagUnlockGuessFailed);
+                        }
                     }
                     UiSharedService.AttachToolTip(currentlyLocked ? "Attempt Unlocking " : "Lock " +  "this gag.");
                 }
@@ -268,6 +274,6 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
     {
         TimeSpan remainingTime = (endTime - DateTimeOffset.UtcNow);
         string remainingTimeStr = $"{remainingTime.Days}d {remainingTime.Hours}h {remainingTime.Minutes}m {remainingTime.Seconds}s";
-        return (userWhoSetLock != "SelfApplied") ? "Locked by" + userWhoSetLock + "for" + remainingTimeStr : "Self-locked for " + remainingTimeStr;
+        return (userWhoSetLock != Globals.SelfApplied) ? "Locked by" + userWhoSetLock + "for" + remainingTimeStr : "Self-locked for " + remainingTimeStr;
     }
 }

@@ -1,4 +1,7 @@
 using Dalamud.Plugin.Services;
+using static FFXIVClientStructs.FFXIV.Client.Game.UI.Achievement.Delegates;
+using System.ComponentModel;
+using System;
 
 namespace GagSpeak.Achievements;
 
@@ -8,14 +11,12 @@ public class AchievementSaveData
 {
     public AchievementSaveData(INotificationManager _completionNotifier)
     {
-        // create a blank achievements dictionary for each type of achievement.
-        foreach (AchievementType type in Enum.GetValues(typeof(AchievementType)))
-        {
+        foreach (AchievementModuleKind type in Enum.GetValues(typeof(AchievementModuleKind)))
             Achievements[type] = new AchievementComponent(_completionNotifier);
-        }
     }
+
     // Our Stored Achievements.
-    public Dictionary<AchievementType, AchievementComponent> Achievements = new();
+    public Dictionary<AchievementModuleKind, AchievementComponent> Achievements = new();
 
     // Our Stored Easter Egg Icons Discovery Progress.
     public Dictionary<string, bool> EasterEggIcons { get; set; } = new Dictionary<string, bool>()
@@ -26,4 +27,130 @@ public class AchievementSaveData
         {"Puppeteer", false },
         {"Toybox", false }
     };
+
+    public LightSaveDataDto ToLightSaveDataDto()
+    {
+        var dto = new LightSaveDataDto
+        {
+            LightAchievementData = new List<LightAchievement>(),
+            EasterEggIcons = this.EasterEggIcons
+        };
+
+        foreach (var achievementComponent in Achievements)
+        {
+            var componentKind = achievementComponent.Key;
+            var component = achievementComponent.Value;
+
+            foreach (var achievement in component.Achievements.Values)
+            {
+                var lightAchievement = new LightAchievement
+                {
+                    Component = componentKind,
+                    Type = achievement.GetAchievementType(),
+                    Title = achievement.Title,
+                    IsCompleted = achievement.IsCompleted,
+                    Progress = GetProgress(achievement) ?? 0,
+                    ConditionalTaskBegun = achievement is ConditionalProgressAchievement conditionalProgressAchievement ? conditionalProgressAchievement.ConditionalTaskBegun : false,
+                    StartTime = GetStartTime(achievement) ?? DateTime.MinValue,
+                    ActiveItems = achievement is DurationAchievement durationAchievement ? durationAchievement.ActiveItems : new Dictionary<string, DateTime>()
+                };
+
+                dto.LightAchievementData.Add(lightAchievement);
+            }
+        }
+        return dto;
+    }
+
+    public void LoadFromLightSaveDataDto(LightSaveDataDto dto)
+    {
+        // Update Easter Egg Icons
+        EasterEggIcons = new Dictionary<string, bool>(dto.EasterEggIcons);
+
+        // Group LightAchievements by AchievementModuleKind
+        var groupedAchievements = dto.LightAchievementData
+            .GroupBy(a => a.Component)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // Iterate through each component of the Achievements dictionary.
+        // For each component, get the list of light data, and call the Components function to update the achievements.
+        foreach (var component in Achievements)
+            if (groupedAchievements.TryGetValue(component.Key, out var lightAchievements))
+                component.Value.LoadFromLightAchievements(lightAchievements);
+    }
+
+    private int? GetProgress(Achievement achievement)
+    {
+        if (achievement is TimedProgressAchievement timedProgressAchievement)
+            return timedProgressAchievement.Progress;
+        if (achievement is ConditionalProgressAchievement conditionalProgressAchievement)
+            return conditionalProgressAchievement.Progress;
+        if (achievement is ProgressAchievement progressAchievement)
+            return progressAchievement.Progress;
+        return null;
+    }
+
+    private DateTime? GetStartTime(Achievement achievement)
+    {
+        if (achievement is TimedProgressAchievement timedProgressAchievement)
+            return timedProgressAchievement.StartTime;
+        if (achievement is ConditionalDurationAchievement conditionalDurationAchievement)
+            return conditionalDurationAchievement.StartPoint;
+        return null;
+    }
+}
+
+public class LightSaveDataDto
+{
+    /// <summary>
+    /// a lightweight version that is easily compressible for IPC Transfer.
+    /// </summary>
+    public List<LightAchievement> LightAchievementData { get; set; }
+
+    /// <summary>
+    /// easter egg icons
+    /// </summary>
+    public Dictionary<string, bool> EasterEggIcons { get; set; }
+}
+
+public struct LightAchievement
+{
+    /// <summary>
+    /// The component the achievement belongs to.
+    /// </summary>
+    public AchievementModuleKind Component { get; set; }
+
+    /// <summary>
+    /// The kind of achievement it is. (Useful for type casting)
+    /// </summary>
+    public AchievementType Type { get; set; }
+
+    /// <summary>
+    /// The name of the Achievement (Relevant to know which to replace) ((Also reflects the KEY in the component dictionary))
+    /// </summary>
+    public string Title { get; set; }
+
+    /// <summary>
+    /// Gets if the achievement was completed or not.
+    /// </summary>
+    public bool IsCompleted { get; set; }
+
+    /// <summary>
+    /// latest progress (for ProgressAchievements & ConditionalProgressAchievements & TimedProgress)
+    /// </summary>
+    public int Progress { get; set; }
+
+    /// <summary>
+    /// Gets if the conditionalTaskBegin is true (for ConditionalProgressAchievements)
+    /// </summary>
+    public bool ConditionalTaskBegun { get; set; }
+
+    /// <summary>
+    /// Gets StartTime (for TimedProgressAchievements & ConditionalDurationAchievements)
+    /// </summary>
+    public DateTime StartTime { get; set; }
+
+    /// <summary>
+    /// the list of items that are being monitored (for duration achievements)
+    /// </summary>
+    public Dictionary<string, DateTime> ActiveItems { get; set; }
 }

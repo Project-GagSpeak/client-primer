@@ -166,7 +166,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
             "forth, binding you tightly in an inescapable snare of restraints!").BuiltString);
 
         // Enable the set for the player. Await for the Application to Occur.
-        await _clientConfigs.SetRestraintSetState(cursedSetIdx, "SelfApplied", NewState.Enabled, true);
+        await _clientConfigs.SetRestraintSetState(cursedSetIdx, Globals.SelfApplied, NewState.Enabled, true);
 
         // After it has occured, log the event.
         Logger.LogInformation($"Cursed Loot Applied!");
@@ -186,7 +186,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
             Padlocks.TimerPasswordPadlock.ToName(),
             randomString,
             lockUntil,
-            "SelfApplied"
+            Globals.SelfApplied
             );
 
         // check if the cursed items gag item is not GagType.None
@@ -210,7 +210,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 Padlocks.TimerPasswordPadlock,
                 randomString,
                 lockUntil,
-                "SelfApplied");
+                Globals.SelfApplied);
             _gagManager.OnGagLockChanged(padlockData, NewState.Locked, false);
         }
     }

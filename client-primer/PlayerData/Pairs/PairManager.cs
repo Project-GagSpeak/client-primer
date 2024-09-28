@@ -86,7 +86,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     /// </summary>
     public void AddUserPair(UserPairDto dto)
     {
-        Logger.LogTrace("Scanning all client pairs to see if added user already exists");
+        Logger.LogTrace("Scanning all client pairs to see if added user already exists", LoggerType.PairManagement);
         // if the user is not in the client's pair list, create a new pair for them.
         if (!_allClientPairs.ContainsKey(dto.User))
         {

@@ -19,6 +19,11 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 0, 0)
+            .RegisterMain("Achievements are now implemented into GagSpeak.")
+            .RegisterFeature("The Achievements Menu has been added to the homepage.")
+            .RegisterFeature("Achievements sync with the server every 30m, and retain data through server interrupts and restarts.")
+            .RegisterQol("Note: Most Achievements don't work yet, i need to heavily test out the actions with other beta testers to get it right");
         VersionEntry(0, 8, 8, 2)
             .RegisterBugfix("Fixed crash when getting cursed loot due to a bad index match.");
         VersionEntry(0,8,8,0)

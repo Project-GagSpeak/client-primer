@@ -2,7 +2,6 @@ using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
-using FFXIVClientStructs.FFXIV.Client.System.Framework;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.Interop;
 using GagSpeak.GagspeakConfiguration.Models;
@@ -14,6 +13,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using System.Collections.Immutable;
+using ClientStructFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
 namespace UpdateMonitoring;
 public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
@@ -28,7 +28,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     private readonly IDataManager _dataManager;
 
     // attempt to get the rapture hotbar module so we can modify the display of hotbar items
-    public RaptureHotbarModule* raptureHotbarModule = Framework.Instance()->GetUIModule()->GetRaptureHotbarModule();
+    public RaptureHotbarModule* raptureHotbarModule = ClientStructFramework.Instance()->GetUIModule()->GetRaptureHotbarModule();
 
     // hook creation for the action manager
     // if sigs fuck up, reference https://github.com/PunishXIV/Orbwalker/blob/f850e04eb9371aa5d7f881e3024d7f5d0953820a/Orbwalker/Memory.cs#L15

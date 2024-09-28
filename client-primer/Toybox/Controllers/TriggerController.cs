@@ -353,7 +353,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 }
                 Logger.LogInformation("Applying Restraint Set "+trigger.RestraintNameAction+" with state "+NewState.Enabled, LoggerType.ToyboxTriggers);
                 var idx = _clientConfigs.GetRestraintSetIdxByName(trigger.RestraintNameAction);
-                await _clientConfigs.SetRestraintSetState(idx, "SelfApplied", NewState.Enabled, true);
+                await _clientConfigs.SetRestraintSetState(idx, Globals.SelfApplied, NewState.Enabled, true);
                 break;
 
             case TriggerActionKind.Gag:

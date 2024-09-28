@@ -30,6 +30,8 @@ public class ConditionalAchievement : Achievement
             MarkCompleted();
         }
     }
+
+    public override AchievementType GetAchievementType() => AchievementType.Conditional;
 }
 
 

@@ -148,9 +148,9 @@
     </ItemGroup>
     <ItemGroup>
       <Folder Include="Hardcore\PromptHandler\NewFolder\" />
-      <Folder Include="UI\Components\Achievements\" />
     </ItemGroup>
 </Project>
+
 
 
 

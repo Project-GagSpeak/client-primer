@@ -38,7 +38,7 @@ public abstract class Achievement
     /// <summary>
     /// If the achievement has been completed.
     /// </summary>
-    public bool IsCompleted { get; protected set; } = false;
+    public bool IsCompleted { get; set; } = false;
 
     public bool IsSecretAchievement { get; init; }
 
@@ -81,4 +81,9 @@ public abstract class Achievement
             InitialDuration = TimeSpan.FromSeconds(5)
         });
     }
+
+    /// <summary>
+    /// Useful for quick compression when doing data transfer
+    /// </summary>
+    public abstract AchievementType GetAchievementType();
 }

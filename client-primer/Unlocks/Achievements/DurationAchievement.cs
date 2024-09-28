@@ -8,7 +8,7 @@ public class DurationAchievement : Achievement
     private readonly TimeSpan MilestoneDuration; // Required duration to achieve
     
     // The Current Active Item(s) being tracked. (can be multiple because of gags.
-    public readonly Dictionary<string, DateTime> ActiveItems = new();
+    public Dictionary<string, DateTime> ActiveItems { get; set; } = new Dictionary<string, DateTime>();
 
     public DurationTimeUnit TimeUnit { get; init; }
 
@@ -90,6 +90,8 @@ public class DurationAchievement : Achievement
             MarkCompleted();
         }
     }
+
+    public override AchievementType GetAchievementType() => AchievementType.Duration;
 }
 
 

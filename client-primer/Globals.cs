@@ -1,23 +1,17 @@
-/*
- * A Simple file for storing global using variables 
- * so I don't need to be redundant all the time in headers. 
- */
 
+
+/// Global Usings
 global using Newtonsoft.Json;
 global using Newtonsoft.Json.Linq;
 global using Microsoft.Extensions.Logging;
-global using System;
 global using System.Collections.Concurrent;
-global using System.Collections.Generic;
 global using System.Collections;
 global using System.Diagnostics;
-global using System.IO;
-global using System.Linq;
 global using System.Text;
-global using System.Threading;
-global using System.Threading.Tasks;
 global using GagspeakAPI.Enums;
+global using GagspeakAPI;
 
+/// Global Tuples
 global using MoodlesStatusInfo = (
     System.Guid GUID,
     int IconID,
@@ -48,7 +42,6 @@ global using MoodlesGSpeakPairPerms = (
     );
 
 global using IPCProfileDataTuple = (System.Guid UniqueId, string Name, string VirtualPath, string CharacterName, bool IsEnabled);
-
 
 // See later https://github.com/xivdev/Penumbra/blob/5c5e45114f25f9429d8757b6edf852ecc37173c9/Penumbra/UI/LaunchButton.cs#L27
 

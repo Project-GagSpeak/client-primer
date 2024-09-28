@@ -136,7 +136,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         IconFont = _pi.UiBuilder.IconFontFixedWidthHandle;
 
         // load the image on startup, so it always appears while we load other profiles. Ensure we dispose of it upon plugin close.
-        Logger.LogDebug("Fetching Logo");
         Task.Run(async () =>
         {
             await frameworkUtil.RunOnFrameworkThread(() =>

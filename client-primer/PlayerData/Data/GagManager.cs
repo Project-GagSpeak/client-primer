@@ -250,7 +250,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
                 return resPass;
             case Padlocks.OwnerPadlock:
             case Padlocks.OwnerTimerPadlock:
-                var resOwner = allowOwnerLocks && "SelfApplied" == data.Assigner;
+                var resOwner = allowOwnerLocks && Globals.SelfApplied == data.Assigner;
                 return resOwner;
         }
         return false;

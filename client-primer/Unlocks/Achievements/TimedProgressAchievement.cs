@@ -7,17 +7,16 @@ public class TimedProgressAchievement : Achievement
     /// <summary>
     /// The Current Progress made towards the achievement.
     /// </summary>
-    public int Progress { get; private set; }
+    public int Progress { get; set; }
 
     /// <summary>
     /// The DateTime when the progress went from 0 to 1
     /// </summary>
-    private DateTime StartTime;
-
+    public DateTime StartTime { get; set; }
     /// <summary>
     /// How long you have to earn the achievement in.
     /// </summary>
-    private TimeSpan TimeToComplete;
+    public TimeSpan TimeToComplete { get; private set; }
 
 
     public TimedProgressAchievement(INotificationManager notify, string title, string desc, int goal, TimeSpan timeLimit, string unit = "")
@@ -71,4 +70,6 @@ public class TimedProgressAchievement : Achievement
             MarkCompleted();
         }
     }
+
+    public override AchievementType GetAchievementType() => AchievementType.TimedProgress;
 }

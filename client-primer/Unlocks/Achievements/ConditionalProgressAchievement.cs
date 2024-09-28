@@ -7,7 +7,7 @@ public class ConditionalProgressAchievement : Achievement
     /// <summary>
     /// The Current Progress made towards the achievement.
     /// </summary>
-    public int Progress { get; private set; }
+    public int Progress { get; set; }
 
     /// <summary>
     /// What is required to be true throughout the progress from start to end
@@ -94,4 +94,6 @@ public class ConditionalProgressAchievement : Achievement
             MarkCompleted();
         }
     }
+
+    public override AchievementType GetAchievementType() => AchievementType.ConditionalProgress;
 }

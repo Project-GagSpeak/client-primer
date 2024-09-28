@@ -7,7 +7,7 @@ public class ProgressAchievement : Achievement
     /// <summary>
     /// The Current Progress made towards the achievement.
     /// </summary>
-    public int Progress { get; private set; }
+    public int Progress { get; set; }
 
     public ProgressAchievement(INotificationManager notify, string title, string desc, int goal, string unit = "")
         : base(notify, title, desc, goal, unit)
@@ -49,4 +49,5 @@ public class ProgressAchievement : Achievement
             MarkCompleted();
         }
     }
+    public override AchievementType GetAchievementType() => AchievementType.Progress;
 }

@@ -505,7 +505,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 string remainingTimeStr = $"{remainingTime.Days}d{remainingTime.Hours}h{remainingTime.Minutes}m{remainingTime.Seconds}s";
                 var lockedDescription = set.Locked ? $"Locked for {remainingTimeStr}" : "Self-lock: XdXhXmXs format..";
                 // draw the padlock dropdown
-                var isLockedByPair = set.LockedBy != "SelfApplied" && set.LockType.ToPadlock() != Padlocks.None;
+                var isLockedByPair = set.LockedBy != Globals.SelfApplied && set.LockType.ToPadlock() != Padlocks.None;
                 var padlockType = set.Locked ? set.LockType.ToPadlock() : _padlockHandler.ActiveSlotPadlocks[3];
 
                 var padlockList = isLockedByPair
@@ -551,7 +551,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                                 _padlockHandler.ActiveSlotPadlocks[3].ToName(),
                                 _padlockHandler.ActiveSlotPasswords[3],
                                 UiSharedService.GetEndTimeUTC(_padlockHandler.ActiveSlotTimers[3]),
-                                "SelfApplied");
+                                Globals.SelfApplied);
                         }
                     }
                     else
@@ -563,7 +563,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 }
                 UiSharedService.AttachToolTip(_padlockHandler.ActiveSlotPadlocks[3] == Padlocks.None ? "Select a padlock type before locking" :
                     set.Locked == false ? "Self-Lock this Restraint Set" :
-                    set.LockedBy != "SelfApplied" ? "Only" + set.LockedBy + "can unlock your set." : "Unlock this set.");
+                    set.LockedBy != Globals.SelfApplied ? "Only" + set.LockedBy + "can unlock your set." : "Unlock this set.");
                 // display associated password field for padlock type.
                 _padlockHandler.DisplayPadlockFields(3, set.Locked, width);
             }

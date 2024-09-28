@@ -330,7 +330,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal bool PropertiesEnabledForSet(int setIndexToCheck, string UIDtoCheckPropertiesFor)
     {
         // do not allow hardcore properties for self.
-        if (UIDtoCheckPropertiesFor == "SelfApplied") return false;
+        if (UIDtoCheckPropertiesFor == Globals.SelfApplied) return false;
 
         HardcoreSetProperties setProperties = WardrobeConfig.WardrobeStorage.RestraintSets[setIndexToCheck].SetProperties[UIDtoCheckPropertiesFor];
         // if no object for this exists, return false
@@ -463,12 +463,13 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             Mediator.Publish(new RestraintSetToggleMoodlesMessage(setIndex, NewState.Enabled, enableMoodlesTask));
             await enableMoodlesTask.Task;
         }
-
         // The glamour task always must fire
         var enableRestraintGlamourTask = new TaskCompletionSource<bool>();
         Mediator.Publish(new RestraintSetToggledMessage(setIndex, set.EnabledBy, NewState.Enabled, pushToServer, enableRestraintGlamourTask));
         await enableRestraintGlamourTask.Task;
         Logger.LogInformation("----- Enabling ["+set.Name+"] End -----", LoggerType.Restraints);
+
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplied, set, (AssignerUid == Globals.SelfApplied));
     }
     internal async Task SetRestraintSetState(int setIndex, string UIDofPair, NewState newState, bool pushToServer = true)
     {
@@ -499,6 +500,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal void LockRestraintSet(int setIndex, string lockType, string password,
         DateTimeOffset endLockTimeUTC, string UIDofPair, bool pushToServer = true)
     {
+        var set = GetRestraintSet(setIndex);
         // set the locked and locked-by status.
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockType = lockType;
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockPassword = password;
@@ -506,14 +508,17 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = UIDofPair;
         _wardrobeConfig.Save();
 
-        Logger.LogDebug("Restraint Set "+setIndex+" Locked by "+UIDofPair+" with a Padlock of Type: "+lockType
+        Logger.LogDebug("Restraint Set "+ set .Name+ " Locked by "+UIDofPair+" with a Padlock of Type: "+lockType
             + "and a password ["+password+"] with ["+(endLockTimeUTC- DateTimeOffset.UtcNow) +"] by "+UIDofPair, LoggerType.Restraints);
 
         Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Locked, pushToServer));
+        // EVENT CHECK: might need to place in the callback if possible?
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, set, false, (UIDofPair == Globals.SelfApplied));
     }
 
     internal void UnlockRestraintSet(int setIndex, string UIDofPair, bool pushToServer = true)
     {
+        var set = GetRestraintSet(setIndex);
         // Clear all locked states. (making the assumption this is only called when the UIDofPair matches the LockedBy)
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockType = Padlocks.None.ToName();
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockPassword = string.Empty;
@@ -522,6 +527,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _wardrobeConfig.Save();
 
         Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Unlocked, pushToServer));
+        // EVENT CHECK: might need to place in the callback if possible?
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, set, true, (UIDofPair == Globals.SelfApplied));
     }
 
     internal int GetRestraintSetCount() => WardrobeConfig.WardrobeStorage.RestraintSets.Count;

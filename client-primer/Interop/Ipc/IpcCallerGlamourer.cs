@@ -26,7 +26,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private readonly IDalamudPluginInterface _pi;
     private readonly IClientState _clientState;
     private readonly GagspeakConfigService _gagspeakConfig;
-    private readonly OnFrameworkService _onFrameworkService;
+    private readonly OnFrameworkService _frameworkUtils;
     private readonly ItemIdVars _itemHelper;
     private readonly IpcFastUpdates _fastUpdates;
     private bool _shownGlamourerUnavailable = false; // safety net to prevent notification spam.
@@ -52,7 +52,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     {
         _pi = pluginInterface;
         _gagspeakConfig = clientConfigs;
-        _onFrameworkService = OnFrameworkService;
+        _frameworkUtils = OnFrameworkService;
         _clientState = clientState;
         _itemHelper = itemHelper;
         _fastUpdates = fastUpdates;
@@ -108,10 +108,6 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         Mediator.Publish(new GlamourerReady());
     }
 
-    private bool PlayerIsPresent()
-        => _clientState.LocalPlayer != null
-        && _clientState.LocalPlayer.Address != nint.Zero;
-
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
@@ -120,7 +116,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         _glamourChanged?.Dispose();
         // revert our character back to the base game state (But dont if we are closing the game)
         // now perform a revert based on our customization option
-        if (PlayerIsPresent())
+        if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.Address != IntPtr.Zero)
         {
             Task.Run(async () =>
             {
@@ -150,21 +146,13 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task SetItemToCharacterAsync(ApiEquipSlot slot, ulong item, IReadOnlyList<byte> dye, uint variant)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return;
+        if (!APIAvailable || _frameworkUtils.IsZoning) return;
         try
         {
             // await for us to be running on the framework thread. Once we are:
-            await _onFrameworkService.RunOnFrameworkThread(() =>
+            await _frameworkUtils.RunOnFrameworkThread(() =>
             {
-                // grab character pointer (do this here so we do it inside the framework thread)
-                var characterAddr = _onFrameworkService.ClientPlayerAddress;
-                // set the game object to the character
-                var gameObj = _onFrameworkService.CreateGameObject(characterAddr);
-                // if the game object is the character, then get the customization for it.
-                if (gameObj is ICharacter c)
-                {
-                    _SetItem!.Invoke(c.ObjectIndex, slot, item, dye, 1337);
-                }
+                _SetItem!.Invoke(0, slot, item, dye, 1337);
             }).ConfigureAwait(true);
         }
         catch (Exception ex)
@@ -179,7 +167,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     {
         try
         {
-            var success = _glamourerGetState.Invoke(_clientState.LocalPlayer!.ObjectIndex);
+            var success = _glamourerGetState.Invoke(0);
             return success.Item2;
         }
         catch (Exception ex)
@@ -233,10 +221,10 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task<bool> ForceSetMetaData(MetaData metaData, bool? forcedState = null)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return false;
+        if (!APIAvailable || _frameworkUtils.IsZoning) return false;
         try
         {
-            return await _onFrameworkService.RunOnFrameworkThread(() =>
+            return await _frameworkUtils.RunOnFrameworkThread(() =>
             {
                 // grab the JObject of the character state.
                 var playerState = GetState();
@@ -265,11 +253,11 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public async Task GlamourerRevertToAutomationEquipOnly()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return;
+        if (!APIAvailable || _frameworkUtils.IsZoning) return;
 
         try
         {
-            await _onFrameworkService.RunOnFrameworkThread(() =>
+            await _frameworkUtils.RunOnFrameworkThread(() =>
             {
                 Logger.LogTrace("Calling on IPC: RevertToAutomationEquipOnly", LoggerType.IpcGlamourer);
                 JObject? playerState = GetState();
@@ -303,25 +291,23 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     }
 
 
+    // Seriously though i hate that this doesnt have a reapply to automation function. Its a pain in the ass.
     public async Task GlamourerRevertToAutomation()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return;
+        if (!APIAvailable || _frameworkUtils.IsZoning) return;
 
         try
         {
-            await _onFrameworkService.RunOnFrameworkThread(() =>
+            await _frameworkUtils.RunOnFrameworkThread(() =>
             {
-                // grab the initial state.
-                Logger.LogTrace("Grabbing Pre State", LoggerType.IpcGlamourer);
-                var preRevertState = GetState();
                 Logger.LogTrace("Calling on IPC: GlamourerRevertToAutomation", LoggerType.IpcGlamourer);
+
+                // we need to verify player validity because glamourer doesnt, apparently.
+                if (_frameworkUtils.ClientState.LocalPlayer is not ICharacter) return;
+
                 var result = _RevertToAutomation.Invoke(0, 0);
 
-                // get the post state.
-                Logger.LogTrace("Grabbing Post State", LoggerType.IpcGlamourer);
-                var postRevertState = GetState();
-
-                if(result != GlamourerApiEc.Success || JToken.DeepEquals(preRevertState, postRevertState))
+                if(result != GlamourerApiEc.Success)
                 {
                     Logger.LogWarning($"Revert to automation failed, reverting to game instead", LoggerType.IpcGlamourer);
                     _RevertCharacter.Invoke(0, 0);
@@ -336,11 +322,11 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public async Task GlamourerRevertToGameEquipOnly()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return;
+        if (!APIAvailable || _frameworkUtils.IsZoning) return;
 
         try
         {
-            await _onFrameworkService.RunOnFrameworkThread(() =>
+            await _frameworkUtils.RunOnFrameworkThread(() =>
             {
                 Logger.LogTrace("Calling on IPC: GlamourerRevertToGameEquipOnly", LoggerType.IpcGlamourer);
                 JObject? playerState = GetState();
@@ -373,11 +359,11 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public async Task GlamourerRevertToGame()
     {
-        if (!APIAvailable || _onFrameworkService.IsZoning || !PlayerIsPresent()) return;
+        if (!APIAvailable || _frameworkUtils.IsZoning) return;
 
         try
         {
-            await _onFrameworkService.RunOnFrameworkThread(() =>
+            await _frameworkUtils.RunOnFrameworkThread(() =>
             {
                 Logger.LogTrace("Calling on IPC: GlamourerRevertToGame", LoggerType.IpcGlamourer);
                 _RevertCharacter.Invoke(0, 0);
@@ -395,7 +381,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private void GlamourerChanged(nint address, StateChangeType changeType)
     {
         // do not accept if coming from other player besides us.
-        if (address != _onFrameworkService.ClientPlayerAddress || !PlayerIsPresent()) return;
+        if (address != _frameworkUtils.ClientPlayerAddress) return;
 
         // block if we are not desiring to listen to changes yet.
         if (OnFrameworkService.GlamourChangeEventsDisabled)

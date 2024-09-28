@@ -86,31 +86,31 @@ public class AchievementsUI : WindowMediatorSubscriberBase
             switch (_tabMenu.TabSelection)
             {
                 case AchievementTabsMenu.SelectedTab.Generic:
-                    using (ImRaii.PushId("UnlocksComponentGeneric")) DrawAchievementList(AchievementType.Generic);
+                    using (ImRaii.PushId("UnlocksComponentGeneric")) DrawAchievementList(AchievementModuleKind.Generic);
                     break;
                 case AchievementTabsMenu.SelectedTab.Orders:
-                    using (ImRaii.PushId("UnlocksComponentOrders")) DrawAchievementList(AchievementType.Orders);
+                    using (ImRaii.PushId("UnlocksComponentOrders")) DrawAchievementList(AchievementModuleKind.Orders);
                     break;
                 case AchievementTabsMenu.SelectedTab.Gags:
-                    using (ImRaii.PushId("UnlocksComponentGags")) DrawAchievementList(AchievementType.Gags);
+                    using (ImRaii.PushId("UnlocksComponentGags")) DrawAchievementList(AchievementModuleKind.Gags);
                     break;
                 case AchievementTabsMenu.SelectedTab.Wardrobe:
-                    using (ImRaii.PushId("UnlocksComponentWardrobe")) DrawAchievementList(AchievementType.Wardrobe);
+                    using (ImRaii.PushId("UnlocksComponentWardrobe")) DrawAchievementList(AchievementModuleKind.Wardrobe);
                     break;
                 case AchievementTabsMenu.SelectedTab.Puppeteer:
-                    using (ImRaii.PushId("UnlocksComponentPuppeteer")) DrawAchievementList(AchievementType.Puppeteer);
+                    using (ImRaii.PushId("UnlocksComponentPuppeteer")) DrawAchievementList(AchievementModuleKind.Puppeteer);
                     break;
                 case AchievementTabsMenu.SelectedTab.Toybox:
-                    using (ImRaii.PushId("UnlocksComponentToybox")) DrawAchievementList(AchievementType.Toybox);
+                    using (ImRaii.PushId("UnlocksComponentToybox")) DrawAchievementList(AchievementModuleKind.Toybox);
                     break;
                 case AchievementTabsMenu.SelectedTab.Hardcore:
-                    using (ImRaii.PushId("UnlocksComponentHardcore")) DrawAchievementList(AchievementType.Hardcore);
+                    using (ImRaii.PushId("UnlocksComponentHardcore")) DrawAchievementList(AchievementModuleKind.Hardcore);
                     break;
                 case AchievementTabsMenu.SelectedTab.Remotes:
-                    using (ImRaii.PushId("UnlocksComponentRemotes")) DrawAchievementList(AchievementType.Remotes);
+                    using (ImRaii.PushId("UnlocksComponentRemotes")) DrawAchievementList(AchievementModuleKind.Remotes);
                     break;
                 case AchievementTabsMenu.SelectedTab.Secrets:
-                    using (ImRaii.PushId("UnlocksComponentSecrets")) DrawAchievementList(AchievementType.Secrets);
+                    using (ImRaii.PushId("UnlocksComponentSecrets")) DrawAchievementList(AchievementModuleKind.Secrets);
                     break;
             }
         }
@@ -130,7 +130,7 @@ public class AchievementsUI : WindowMediatorSubscriberBase
         }
     }
 
-    private void DrawAchievementList(AchievementType type)
+    private void DrawAchievementList(AchievementModuleKind type)
     {
         // We likely want to avoid pushing the style theme here if we are swapping the colors based on the state of an achievement.
         // If that is not the case. move them here.

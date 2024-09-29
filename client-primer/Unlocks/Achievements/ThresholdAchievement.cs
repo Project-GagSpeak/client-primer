@@ -24,6 +24,8 @@ public class ThresholdAchievement : Achievement
 
     public void UpdateThreshold(int threshold)
     {
+        if (IsCompleted) return;
+
         LastRecordedThreshold = threshold;
         CheckCompletion();
     }

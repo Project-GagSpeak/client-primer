@@ -71,6 +71,9 @@ public static class GagLabels
 
     // Say Mmmph! - take a screenshot in /gpose while gagged
     public const string SayMmmph = "Say Mmmph!~";
+
+    // get knocked back in a gold saucer event with a gag equipped.
+    public const string GagReflex = "Gag Reflex";
 }
 
 public static class WardrobeLabels

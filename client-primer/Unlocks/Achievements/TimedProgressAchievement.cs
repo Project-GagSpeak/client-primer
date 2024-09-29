@@ -32,6 +32,8 @@ public class TimedProgressAchievement : Achievement
     /// </summary>
     public void IncrementProgress(int amount = 1)
     {
+        if (IsCompleted) return;
+
         CheckTimeLimit();
         Progress += amount;
         // check for completion after incrementing progress
@@ -40,6 +42,8 @@ public class TimedProgressAchievement : Achievement
 
     private void CheckTimeLimit()
     {
+        if (IsCompleted) return;
+
         // start the timer if the progress is 0
         if (Progress == 0)
         {
@@ -63,6 +67,8 @@ public class TimedProgressAchievement : Achievement
     /// </summary>
     public override void CheckCompletion()
     {
+        if (IsCompleted) return;
+
         if (Progress >= MilestoneGoal)
         {
             // Mark the achievement as completed

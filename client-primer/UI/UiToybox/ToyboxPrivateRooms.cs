@@ -278,6 +278,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                 // if the room creation was successful, set the room creation to false.
                 if (RoomCreatedSuccessful)
                 {
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.VibeRoomCreated);
                     CreatingNewHostRoom = false;
                     RoomCreatedSuccessful = false;
                 }

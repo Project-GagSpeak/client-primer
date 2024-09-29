@@ -57,7 +57,8 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
     public bool IpcDataNull => LastIpcData is null;
     private bool CustomizeNull => CustomizeProfiles is null || CustomizeProfiles.Count == 0;
     private bool ShockPermsNull => GlobalPiShockPerms.MaxIntensity == -1;
-    public bool IsPlayerGagged() => AppearanceData?.GagSlots.Any(x => x.GagType != GagType.None.GagName()) ?? false;
+    public bool IsPlayerGagged => AppearanceData?.GagSlots.Any(x => x.GagType != GagType.None.GagName()) ?? false;
+    public int TotalGagsEquipped => AppearanceData?.GagSlots.Count(x => x.GagType != GagType.None.GagName()) ?? 0;
 
     // Method Helpers For Data Compilation
     public async Task<PiShockPermissions> GetGlobalPiShockPerms()

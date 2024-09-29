@@ -71,6 +71,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         var player = _frameworkUtils.ClientState.LocalPlayer;
         if (player == null)
             return;
+
         // we are in a dungeon, so check if there is a nearby coffer.
         var treasureNearby = _objects.Where(o => o.IsTargetable && o.ObjectKind == ObjectKind.Treasure)
             .FirstOrDefault(o =>
@@ -148,6 +149,17 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         int randomValue = random.Next(0, 101);
         // if we missed the chance to apply the cursed loot, return.
         if (randomValue > percentChange) return;
+
+        // TODO: Fix Restraint Sets to be stackable i guess.
+        // grab the active set to see if its locked.
+        var activeSet = _clientConfigs.GetActiveSet();
+        if (activeSet is null || activeSet.Locked)
+        {
+            Logger.LogWarning("Cannot Apply Cursed Loot If a Set is already locked.");
+            return;
+        }
+
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.CursedDungeonLootFound);
 
         // Otherwise, we can apply it. So Fetch the list of our cursed sets.
         var cursedSets = CursedLootStorage.CursedItems;

@@ -109,13 +109,14 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                         UtilsExtensions.ImGuiLineCentered("###GagSetupLogo", () =>
                         {
                             ImGui.Image(wrap.ImGuiHandle, new(125f * _uiSharedService.GetFontScalerFloat(), 125f * _uiSharedService.GetFontScalerFloat()));
-
                             if (ImGui.IsItemHovered())
                             {
                                 ImGui.BeginTooltip();
-                                ImGui.Text($"You found a wild easter egg, Y I P P E E !!!");
+                                ImGui.Text($"What's this? A tooltip hidden in plain sight?");
                                 ImGui.EndTooltip();
                             }
+                            if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                                UnlocksEventManager.AchievementEvent(UnlocksEvent.EasterEggFound, "Gags");
                         });
                     }
                     // add separator

@@ -30,7 +30,6 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     private readonly ITargetManager _targetManager;
     private ushort _lastZone = 0;
     public bool _sentBetweenAreas = false;
-    public bool _hasDied = false;
     public uint PlayerClassJobId = 0;
     public bool IsLoggedIn { get; private set; }
     public short LastCommendationsCount { get; private set; } = 0;
@@ -51,7 +50,8 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     public static bool GlamourChangeEventsDisabled = false; // 1st variable responsible for handling glamour change events
     public byte PlayerLevel => _clientState.LocalPlayer?.Level ?? byte.MaxValue;
     public bool InPvP => _clientState.IsPvP;
-    public bool InDungeonOrDuty => _condition[ConditionFlag.BoundByDuty] || _condition[ConditionFlag.BoundByDuty56] || _condition[ConditionFlag.BoundByDuty95];
+    public bool InDungeonOrDuty => _condition[ConditionFlag.BoundByDuty] || _condition[ConditionFlag.BoundByDuty56] 
+        || _condition[ConditionFlag.BoundByDuty95] || _condition[ConditionFlag.InDeepDungeon];
     public int PartyListSize => _partyList.Count;
     public IClientState ClientState => _clientState;
     public ICondition Condition => _condition;
@@ -374,11 +374,8 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         // If the local player is dead or null, return after setting the hasDied flag to true
         if (_clientState.LocalPlayer is null) return;
 
-        // if player has died, set hasDied to true.
-        if(_clientState.LocalPlayer.IsDead) { _hasDied = true; return; }
-
-        // if the player is no longer dead but hasDied is true, set it back to false.
-        if (_hasDied) { _hasDied = false; }
+        // if player has died return
+        if (_clientState.LocalPlayer.IsDead) return;
 
 
         // we need to update our stored player characters to know if they are still valid, and to update our pair handlers

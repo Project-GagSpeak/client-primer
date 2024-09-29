@@ -59,11 +59,11 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
 
     #region PuppeteerSettings
 
-    public bool MessageContainsTriggerFromPair(string message)
+    public bool MessageContainsPairTriggerPhrase(string message)
     {
         foreach (var pair in _pairManager.DirectPairs)
         {
-            string[] triggers = pair.UserPairUniquePairPerms.TriggerPhrase.Split("|");
+            string[] triggers = pair.UserPairUniquePairPerms.TriggerPhrase.Split("|").Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
             if (triggers.Any(trigger => message.Contains(trigger)))
             {
                 return true;
@@ -352,7 +352,11 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
             var emotes = _dataManager.GetExcelSheet<Emote>();
             if (emotes != null)
             {
-                if (emotes.Any(emotes => messageRecieved.TextValue == emotes.Name.RawString.Replace(" ", "").ToLower())) return true;
+                if (emotes.Any(emotes => messageRecieved.TextValue == emotes.Name.RawString.Replace(" ", "").ToLower()))
+                {
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerEmoteSent, messageRecieved.TextValue);
+                    return true;
+                }
 
                 if (messageRecieved.TextValue == "cpose") return true;
             }

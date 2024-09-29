@@ -88,7 +88,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
 
     public static List<MonitoredPlayerState> MonitoredPlayers { get; private set; } = new List<MonitoredPlayerState>();
-    private bool ShouldEnableActionEffectHooks => _clientConfigs.ActiveTriggers.Any(x => x.Type is TriggerKind.SpellAction);
+    private bool ShouldProcessActionEffectHooks => _clientConfigs.ActiveTriggers.Any(x => x.Type is TriggerKind.SpellAction);
 
     protected override void Dispose(bool disposing)
     {
@@ -428,6 +428,9 @@ public class TriggerController : DisposableMediatorSubscriberBase
             return;
         }
 
+        if (!ShouldProcessActionEffectHooks) // do not process the effect if we are not supposed to.
+            return;
+
         try
         {
             await _frameworkService.RunOnFrameworkThread(() =>
@@ -456,16 +459,6 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
     private void UpdateTriggerMonitors()
     {
-        // update the monitors for ActionSpell Triggers.
-        if (ShouldEnableActionEffectHooks)
-        {
-            _receiveActionEffectHookManager.EnableHook();
-        }
-        else
-        {
-            //_receiveActionEffectHookManager.DisableHook();
-        }
-
         try
         {
             if (_clientConfigs.ActiveHealthPercentTriggers.Any())

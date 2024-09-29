@@ -41,8 +41,7 @@ public partial class AchievementManager
         gagComponent.AddProgress(GagLabels.OralFixation, "Apply Gags to other GagSpeak Pairs, or have a Gag applied to you 100 times.", 100, "Gags Applied");
         gagComponent.AddProgress(GagLabels.AKinkForDrool, "Apply Gags to other GagSpeak Pairs, or have a Gag applied to you 1000 times.", 1000, "Gags Applied");
 
-        gagComponent.AddConditional(GagLabels.ShushtainableResource, "Have all three Gag Slots occupied at once.",
-            () => _playerData.AppearanceData?.GagSlots.All(x => x.GagType.ToGagType() != GagType.None) ?? false, "Gags Active");
+        gagComponent.AddThreshold(GagLabels.ShushtainableResource, "Have all three Gag Slots occupied at once.", 3, "Gags Active at Once");
 
         gagComponent.AddProgress(GagLabels.SpeakUpSlut, "Say anything longer than 5 words with LiveChatGarbler on in /say", 1, "Messages Sent");
         gagComponent.AddProgress(GagLabels.CantHearYou, "Say anything longer than 5 words with LiveChatGarbler on in /yell", 1, "Messages Sent");
@@ -55,6 +54,8 @@ public partial class AchievementManager
             () => _playerData.AppearanceData?.GagSlots.Any(x => x.GagType.ToGagType() != GagType.None) ?? false, "Roulettes Completed");
 
         gagComponent.AddTimedProgress(GagLabels.ATrueGagSlut, "Be gagged by 10 different people in less than 1 hour", 10, TimeSpan.FromHours(1), "Gags Received In Hour");
+
+        gagComponent.AddProgress(GagLabels.GagReflex, "Be blown away in a gold saucer GATE with any gag equipped.", 1, "Gag Reflexes Experienced");
 
         gagComponent.AddConditional(GagLabels.QuietNowDear, "Use /shush while targeting a gagged player", () =>
         {
@@ -73,7 +74,7 @@ public partial class AchievementManager
         gagComponent.AddConditionalProgress(GagLabels.YourFavoriteNurse, "Apply a restraint set or Gag to a GagSpeak pair while you have a Mask Gag Equipped 20 times", 20,
             () => _playerData.AppearanceData?.GagSlots.Any(x => x.GagType.ToGagType() == GagType.MedicalMask) ?? false, "Patients Serviced", false);
 
-        gagComponent.AddConditionalProgress(GagLabels.SayMmmph, "Take a screenshot in /gpose while gagged", 1, () => _playerData.IsPlayerGagged(), "Photos Taken");
+        gagComponent.AddConditionalProgress(GagLabels.SayMmmph, "Take a screenshot in /gpose while gagged", 1, () => _playerData.IsPlayerGagged, "Photos Taken");
 
         SaveData.Achievements[AchievementModuleKind.Gags] = gagComponent;
         #endregion GAG MODULE
@@ -134,7 +135,7 @@ public partial class AchievementManager
         // Start condition is entering a duty, end condition is leaving a duty 10 times.
         // TODO: Add Vibed as an option here
         wardrobeComponent.AddConditionalProgress(WardrobeLabels.HealSlut, "Complete a duty as a healer while wearing a gag, restraint, or using a vibe.", 1,
-            () => _playerData.IsPlayerGagged() || _clientConfigs.GetActiveSetIdx() != -1, "Duties Completed");
+            () => _playerData.IsPlayerGagged || _clientConfigs.GetActiveSetIdx() != -1, "Duties Completed");
 
         // Deep Dungeon Achievements
         wardrobeComponent.AddConditionalProgress(WardrobeLabels.BondagePalace, "Reach Floor 50 or 100 of Palace of the Dead while bound.", 1, () => _clientConfigs.GetActiveSetIdx() != -1, "FloorSets Cleared");
@@ -204,7 +205,7 @@ public partial class AchievementManager
                 // do a marshal read from this byte offset if it doesnt return proper value.
                 var result = movementDetection->IsPlayerMoving;
                 StaticLogger.Logger.LogInformation("IsPlayerMoving Result: " + result +" || IsWalking Byte: "+movementByte);
-                return _playerData.IsPlayerGagged() && _clientConfigs.GetActiveSetIdx() == -1 && result == 1 && movementByte == 0;
+                return _playerData.IsPlayerGagged && _clientConfigs.GetActiveSetIdx() == -1 && result == 1 && movementByte == 0;
             }
         }, "Funny Conditions Met");
 
@@ -372,7 +373,7 @@ public partial class AchievementManager
         genericComponent.AddProgress(GenericLabels.KnowsMyLimits, "Use your Safeword for the first time.", 1, "Safewords Used");
 
         genericComponent.AddRequiredTimeConditional(GenericLabels.WarriorOfLewd, "View a Cutscene while Bound and Gagged.", TimeSpan.FromSeconds(30),
-            () => _playerData.IsPlayerGagged() && _clientConfigs.GetActiveSetIdx() != -1, DurationTimeUnit.Seconds, suffix: "Seconds");
+            () => _playerData.IsPlayerGagged && _clientConfigs.GetActiveSetIdx() != -1, DurationTimeUnit.Seconds, suffix: "Seconds");
 
         genericComponent.AddConditional(GenericLabels.EscapingIsNotEasy, "Change your equipment/change job while locked in a restraint set ", () => _clientConfigs.GetActiveSetIdx() != -1, "Escape Attempts Made");
 
@@ -387,20 +388,20 @@ public partial class AchievementManager
 
         secretsComponent.AddConditional(SecretLabels.Experimentalist, "Activate a Gag, Restraint Set, Toy, Trigger, Alarm, and Pattern at the same time", () =>
         {
-            return _playerData.IsPlayerGagged() && _clientConfigs.GetActiveSetIdx() != -1 && _clientConfigs.ActivePatternGuid() != Guid.Empty
+            return _playerData.IsPlayerGagged && _clientConfigs.GetActiveSetIdx() != -1 && _clientConfigs.ActivePatternGuid() != Guid.Empty
             && _clientConfigs.ActiveTriggers.Count() > 0 && _clientConfigs.ActiveAlarmCount > 0 && _vibeService.ConnectedToyActive;
         }, "Conditions Met", isSecret: true);
 
         // Fire check upon sending a garbled message in chat
         secretsComponent.AddConditional(SecretLabels.HelplessDamsel, "While in hardcore mode, follow or sit while having a toy, restraint, and gag active, then send a garbled message in chat", () =>
         {
-            return _playerData.IsPlayerGagged() && _clientConfigs.GetActiveSetIdx() != -1 && _vibeService.ConnectedToyActive
+            return _playerData.IsPlayerGagged && _clientConfigs.GetActiveSetIdx() != -1 && _vibeService.ConnectedToyActive
             && _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.InHardcore
             && _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow || x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit));
         }, "Hardcore Conditions Met", isSecret: true);
 
         secretsComponent.AddConditional(SecretLabels.GaggedPleasure, "Be gagged and Vibrated at the same time", 
-            () => _vibeService.ConnectedToyActive && _playerData.IsPlayerGagged(), "Pleasure Requirements Met", isSecret: true);
+            () => _vibeService.ConnectedToyActive && _playerData.IsPlayerGagged, "Pleasure Requirements Met", isSecret: true);
 
         // Check whenever we receive a new player visible message
         secretsComponent.AddThreshold(SecretLabels.BondageClub, "Have at least 8 pairs near you at the same time", 8, "Club Members Gathered", isSecret: true);
@@ -414,16 +415,13 @@ public partial class AchievementManager
 
         // Listen for a chat message prompt requiring you to /say something, and once that occurs, check if the player is gagged.
         secretsComponent.AddConditionalProgress(SecretLabels.SilentProtagonist, "Be Gagged with the LiveChatGarbler active, while having an active quest requiring you to /say something", 1,
-            () => _playerData.IsPlayerGagged() && _playerData.GlobalPerms!.LiveChatGarblerActive, "MissTypes Made", isSecret: true);
+            () => _playerData.IsPlayerGagged && _playerData.GlobalPerms!.LiveChatGarblerActive, "MissTypes Made", isSecret: true);
         // DO THE ABOVE
         // VIA EXPERIMENTATION
         // AFTER WE GET THE PLUGIN TO RUN AGAIN.
 
-
-        // TRACK THE ACTION EFFECT
-        // THAT HAPPENS
-        // ON FALL DAMAGE CONDITION
-        secretsComponent.AddConditional(SecretLabels.BoundgeeJumping, "Jump off a cliff while in Bondage", () => _clientConfigs.GetActiveSetIdx() != -1, "Dangerous Acts Attempted", isSecret: true);
+        secretsComponent.AddConditional(SecretLabels.BoundgeeJumping, "Jump off a cliff while in Bondage, Drop to 1 HP", 
+            () => _clientConfigs.GetActiveSetIdx() != -1 && _frameworkUtils.ClientState.LocalPlayer?.CurrentHp is 1, "Dangerous Acts Attempted", isSecret: true);
 
         secretsComponent.AddConditionalProgress(SecretLabels.KinkyTeacher, "Receive 10 commendations while bound", 10, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", false, isSecret: true);
         secretsComponent.AddConditionalProgress(SecretLabels.KinkyProfessor, "Receive 50 commendations while bound", 50, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", false, isSecret: true);
@@ -476,7 +474,7 @@ public partial class AchievementManager
                 if (fashionCheckOpen != null)
                     fashionCheckVisible = fashionCheckOpen->RootNode->IsVisible();
             };
-            return fashionCheckVisible && _clientConfigs.GetActiveSetIdx() != -1 && _playerData.IsPlayerGagged();
+            return fashionCheckVisible && _clientConfigs.GetActiveSetIdx() != -1 && _playerData.IsPlayerGagged;
         }, "Presentations Given on Stage", isSecret: true);
 
         SaveData.Achievements[AchievementModuleKind.Secrets] = secretsComponent;

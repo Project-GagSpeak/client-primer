@@ -165,8 +165,8 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ClientConfigurationManager>(), pi))
 
         // Chat Services
-        .AddSingleton((s) => new ChatBoxMessage(s.GetRequiredService<ILogger<ChatBoxMessage>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PuppeteerHandler>(),
+        .AddSingleton((s) => new ChatBoxMessage(s.GetRequiredService<ILogger<ChatBoxMessage>>(), s.GetRequiredService<GagspeakMediator>(),
+            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PuppeteerHandler>(),
             s.GetRequiredService<ChatSender>(), s.GetRequiredService<TriggerController>(), cg, cs))
         .AddSingleton((s) => new ChatSender(ss))
         .AddSingleton((s) => new ChatInputDetour(ss, gip, s.GetRequiredService<ILogger<ChatInputDetour>>(),

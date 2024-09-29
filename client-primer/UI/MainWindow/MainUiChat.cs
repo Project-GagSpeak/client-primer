@@ -85,6 +85,8 @@ public class MainUiChat : DisposableMediatorSubscriberBase
             Logger.LogTrace($"Sending Message: {NextChatMessage}");
             _apiController.SendGlobalChat(new GlobalChatMessageDto(ApiController.PlayerUserData, NextChatMessage)).ConfigureAwait(false);
             NextChatMessage = string.Empty;
+            // Give Achievement Progress for sending message:
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.GlobalSent);
         }
         if (shouldFocusChatInput)
         {

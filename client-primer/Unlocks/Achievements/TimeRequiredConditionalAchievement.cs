@@ -108,10 +108,7 @@ public class TimeRequiredConditionalAchievement : Achievement
         }, token);
     }
 
-    private void Reset()
-    {
-        StartPoint = DateTime.MinValue;
-    }
+    private void Reset() => StartPoint = DateTime.MinValue;
 
     public override AchievementType GetAchievementType() => AchievementType.RequiredTimeConditional;
 }

@@ -193,7 +193,6 @@ public class AchievementsUI : WindowMediatorSubscriberBase
                         ImUtf8.SameLineInner();
                         ImGui.AlignTextToFramePadding();
                         using (ImRaii.PushFont(UiBuilder.MonoFont)) UiSharedService.ColorText(achievementItem.Title, ImGuiColors.ParsedGold);
-
                         // Split between the title and description
                         ImGui.Separator();
 
@@ -310,11 +309,11 @@ public class AchievementsUI : WindowMediatorSubscriberBase
             ImDrawFlags.RoundCornersAll);
 
         // Do not draw the progress bar fill if it is less than .02% of the progress bar width.
-        if ((progress / milestone) >= 0.025)
+        if (((float)progress / milestone) >= 0.025)
         {
             drawList.AddRectFilled( // The progress bar fill
                 progressBarDrawStart,
-                progressBarDrawEnd with { X = progressBarDrawStart.X + (float)((progress / milestone) * progressWidth) },
+                progressBarDrawEnd with { X = progressBarDrawStart.X + ((float)((float)progress / milestone) * progressWidth) },
                 UiSharedService.Color(225, 104, 168, 255),
                 45f,
                 ImDrawFlags.RoundCornersAll);

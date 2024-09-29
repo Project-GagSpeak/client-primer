@@ -113,8 +113,15 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                         // aligns the image in the center like we want.
                         UtilsExtensions.ImGuiLineCentered("###ToyboxLogo", () =>
                         {
-                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiShared.GetFontScalerFloat(),
-                                125f * _uiShared.GetFontScalerFloat()));
+                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiShared.GetFontScalerFloat(), 125f * _uiShared.GetFontScalerFloat()));
+                            if (ImGui.IsItemHovered())
+                            {
+                                ImGui.BeginTooltip();
+                                ImGui.Text($"What's this? A tooltip hidden in plain sight?");
+                                ImGui.EndTooltip();
+                            }
+                            if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                                UnlocksEventManager.AchievementEvent(UnlocksEvent.EasterEggFound, "Wardrobe");
                         });
                     }
                     // add separator

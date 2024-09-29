@@ -22,6 +22,7 @@ public class DurationAchievement : Achievement
         ) : base(notify, name, desc, ConvertToUnit(duration, timeUnit), unit, isSecret)
     {
         MilestoneDuration = duration;
+        TimeUnit = timeUnit;
     }
 
     private static int ConvertToUnit(TimeSpan duration, DurationTimeUnit unit)
@@ -61,6 +62,8 @@ public class DurationAchievement : Achievement
     /// </summary>
     public void StartTracking(string itemName)
     {
+        if (IsCompleted) return;
+
         if (!ActiveItems.ContainsKey(itemName))
         {
             ActiveItems[itemName] = DateTime.UtcNow; // Start tracking time
@@ -72,6 +75,8 @@ public class DurationAchievement : Achievement
     /// </summary>
     public void StopTracking(string itemName)
     {
+        if (IsCompleted) return;
+
         // check completion before we stop tracking.
         CheckCompletion();
         // if not completed, remove the item from tracking.

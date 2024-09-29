@@ -1,9 +1,11 @@
 using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
+using System.Numerics;
 
 namespace GagSpeak.Achievements.Services;
 
@@ -23,8 +25,22 @@ public class AchievementsService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, _ => CheckAchievementConditions());
     }
 
+    DateTime _lastCheck = DateTime.Now;
+    DateTime _lastPlayerCheck = DateTime.Now;
+
     private unsafe void CheckAchievementConditions()
     {
+        // only process this every 5 seconds.
+        if ((DateTime.Now - _lastCheck).TotalSeconds < 5)
+            return;
+
+        // check if our client is dead, but dont use IsDead, because it's unreliable.
+        if (_frameworkUtils.ClientState.LocalPlayer is null)
+            return;
+
+        if(_frameworkUtils.ClientState.LocalPlayer.CurrentHp is 0)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.ClientSlain);
+
         // check if in gold saucer (maybe do something better for this later.
         if (_frameworkUtils.ClientState.TerritoryType is 144)
         {
@@ -35,12 +51,23 @@ public class AchievementsService : DisposableMediatorSubscriberBase
                 if (resultMenu != null)
                 {
                     if (resultMenu->RootNode->IsVisible())
-                    {
-                        // invoke the thing.
-                        Logger.LogInformation("Would be invoking the achievement Check now");
-                    }
+                        UnlocksEventManager.AchievementEvent(UnlocksEvent.ChocoboRaceFinished);
                 }
             }
         }
+
+        // if 15 seconds has passed since the last player check, check the player.
+        if ((DateTime.Now - _lastPlayerCheck).TotalSeconds < 15)
+            return;
+
+        // update player count
+        _lastPlayerCheck = DateTime.Now;
+
+        // we should get the current player object count that is within the range required for crowd pleaser.
+        var playersInRange = _frameworkUtils.GetObjectTablePlayers()
+            .Where(player => player != _frameworkUtils.ClientState.LocalPlayer
+            && Vector3.Distance(_frameworkUtils.ClientState.LocalPlayer.Position, player.Position) < 30f)
+            .ToList();
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.PlayersInProximity, playersInRange);
     }
 }

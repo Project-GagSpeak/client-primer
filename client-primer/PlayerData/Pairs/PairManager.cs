@@ -140,6 +140,9 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         _allClientPairs[dto.User].ApplyLastReceivedIpcData();
         // recreate the lazy list of direct pairs.
         RecreateLazy();
+
+        // Since this SHOULD be the point at which a two-way condition is established, we should trigger achievement here.
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.PairAdded);
     }
 
     /// <summary> Clears all pairs from the client's pair list.</summary>

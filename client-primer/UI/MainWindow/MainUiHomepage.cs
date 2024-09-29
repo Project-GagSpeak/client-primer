@@ -81,6 +81,7 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
             // possibly use a factory to generate pair-unique remotes, or, if you want to incorporate multiple use functionality,
             // you can configure users in the remote menu.
             Mediator.Publish(new UiToggleMessage(typeof(RemotePersonal)));
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.RemoteOpened);
         }
         UiSharedService.AttachToolTip("Use your personal Lovense Remote to send vibrations to yourself or other pairs ");
 

@@ -1,6 +1,8 @@
 using Dalamud.Game.Text;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Extensions;
 using Penumbra.GameData.Enums;
 
@@ -16,7 +18,7 @@ public partial class AchievementManager
 
     private void OnIconClicked(string windowLabel)
     {
-        if (SaveData.EasterEggIcons.ContainsKey(windowLabel))
+        if (SaveData.EasterEggIcons.ContainsKey(windowLabel) && SaveData.EasterEggIcons[windowLabel] is false)
         {
             if (SaveData.EasterEggIcons[windowLabel])
                 return;
@@ -163,7 +165,8 @@ public partial class AchievementManager
 
             (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.ATrueGagSlut] as TimedProgressAchievement)?.IncrementProgress();
         }
-        
+
+        (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.ShushtainableResource] as ThresholdAchievement)?.UpdateThreshold(_playerData.TotalGagsEquipped);
         (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.ShushtainableResource] as ConditionalAchievement)?.CheckCompletion();
         (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SpeechSilverSilenceGolden] as DurationAchievement)?.StartTracking(gagType.GagName()); // no method for remove to stop this added?
         (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.TheKinkyLegend] as DurationAchievement)?.StartTracking(gagType.GagName()); // no method for remove to stop this added?
@@ -171,9 +174,18 @@ public partial class AchievementManager
         (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.GaggedPleasure] as ConditionalAchievement)?.CheckCompletion();
     }
 
+    private void OnGagRemoval(GagLayer layer, GagType gagType, bool isSelfApplied)
+    {
+        (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.ShushtainableResource] as ThresholdAchievement)?.UpdateThreshold(_playerData.TotalGagsEquipped);
+
+        (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SpeechSilverSilenceGolden] as DurationAchievement)?.StopTracking(gagType.GagName()); // no method for remove to stop this added?
+        (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.TheKinkyLegend] as DurationAchievement)?.StopTracking(gagType.GagName()); // no method for remove to stop this added?
+
+    }
+
     private void OnPairGagApplied(GagType gag)
     {
-        if(gag is not GagType.None)
+        if (gag is not GagType.None)
         {
             (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.ApplyToPair] as ProgressAchievement)?.IncrementProgress();
             (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.LookingForTheRightFit] as ProgressAchievement)?.IncrementProgress();
@@ -367,89 +379,114 @@ public partial class AchievementManager
         (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.TriggerHappy] as ProgressAchievement)?.IncrementProgress();
     }
 
-    private void OnHardcoreForcedPairAction(HardcorePairActionKind actionKind, NewState state, string pairUID, bool actionWasFromClient)
+    /// <summary>
+    /// For whenever a hardcore action begins or finishes on either the client or a pair of the client.
+    /// </summary>
+    /// <param name="actionKind"> The kind of hardcore action that was performed. </param>
+    /// <param name="state"> If the hardcore action began or ended. </param>
+    /// <param name="affectedPairUID"> who the target of the action is. </param>
+    /// <param name="enactorUID"> Who Called the action. </param>
+    private void OnHardcoreForcedPairAction(HardcorePairActionKind actionKind, NewState state, string enactorUID, string affectedPairUID)
     {
         switch (actionKind)
         {
             case HardcorePairActionKind.ForcedFollow:
-                // If we are forcing someone else to follow us
-                if (actionWasFromClient && state is NewState.Enabled)
+                // if we are the enactor and the pair is the target:
+                if (enactorUID == ApiController.UID)
                 {
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.AllTheCollarsOfTheRainbow] as ProgressAchievement)?.IncrementProgress();
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedFollow] as DurationAchievement)?.StartTracking(pairUID);
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedWalkies] as DurationAchievement)?.StartTracking(pairUID);
+                    // if the state is enabled, begin tracking the pair we forced.
+                    if (state is NewState.Enabled)
+                    {
+                        (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.AllTheCollarsOfTheRainbow] as ProgressAchievement)?.IncrementProgress();
+                        (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedFollow] as DurationAchievement)?.StartTracking(affectedPairUID);
+                        (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedWalkies] as DurationAchievement)?.StartTracking(affectedPairUID);
+                    }
                 }
-                // check if we have gone through the full dungeon in hardcore follow on.
-                if (state is NewState.Disabled && actionWasFromClient)
+                // if the affected pair is not our clients UID and the action is disabling, stop tracking for anything we started. (can ignore the enactor)
+                if (affectedPairUID != ApiController.UID && state is NewState.Disabled)
+                {
+                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedFollow] as DurationAchievement)?.StopTracking(affectedPairUID);
+                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedWalkies] as DurationAchievement)?.StopTracking(affectedPairUID);
+                }
+
+                // if UCanTieThis was active, but our follow stopped, we should check / reset our dungeon walkies achievement.
+                if (affectedPairUID == ApiController.UID && state is NewState.Disabled)
                     (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.CheckTaskProgress();
 
-                // if another user has sent us that their forced follow stopped, stop tracking the duration ones.
-                if (state is NewState.Disabled && !actionWasFromClient)
+                // if the affected pair was us:
+                if (affectedPairUID == ApiController.UID)
                 {
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedFollow] as DurationAchievement)?.StopTracking(pairUID);
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedWalkies] as DurationAchievement)?.StopTracking(pairUID);
-                }
-
-                // if someone else has ordered us to start following, begin tracking.
-                if (state is NewState.Enabled && !actionWasFromClient)
-                {
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.TimeForWalkies] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.GettingStepsIn] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkiesLover] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                }
-                // if our forced to follow order from another user has stopped, check for completion.
-                if (state is NewState.Disabled && !actionWasFromClient)
-                {
-                    if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.TimeForWalkies] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                    // if the new state is enabled, we should begin tracking the time required completion.
+                    if (state is NewState.Enabled)
+                    {
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.TimeForWalkies] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-
-                    if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.GettingStepsIn] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.GettingStepsIn] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-
-                    if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkiesLover] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkiesLover] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                }
+                    }
+                    else // and if our state switches to disabled, we should halt the progression.
+                    {
+                        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.TimeForWalkies] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.TimeForWalkies] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
+                        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.GettingStepsIn] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.GettingStepsIn] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+
+                        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkiesLover] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkiesLover] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                    }
+                }
                 break;
             case HardcorePairActionKind.ForcedSit:
-                if (!actionWasFromClient && state is NewState.Enabled)
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.LivingFurniture] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-
-                if (!actionWasFromClient && state is NewState.Disabled)
-                    if((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.LivingFurniture] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                // if we are the affected UID:
+                if (affectedPairUID == ApiController.UID)
+                {
+                    if (state is NewState.Enabled)
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.LivingFurniture] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+
+                    if (state is NewState.Disabled)
+                        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.LivingFurniture] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.LivingFurniture] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                }
                 break;
             case HardcorePairActionKind.ForcedStay:
-                if (!actionWasFromClient && state is NewState.Enabled)
+                // if we are the affected UID:
+                if (affectedPairUID == ApiController.UID)
                 {
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.PetTraining] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.NotGoingAnywhere] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.HouseTrained] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                }
-                if (!actionWasFromClient && state is NewState.Disabled)
-                {
-                    if((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.PetTraining] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                    // and we have been ordered to start being forced to stay:
+                    if (state is NewState.Enabled)
+                    {
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.PetTraining] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-
-                    if((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.NotGoingAnywhere] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.NotGoingAnywhere] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-
-                    if((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.HouseTrained] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.HouseTrained] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                    }
+                    else // our forced to stay has ended
+                    {
+                        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.PetTraining] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.PetTraining] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+
+                        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.NotGoingAnywhere] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.NotGoingAnywhere] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+
+                        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.HouseTrained] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.HouseTrained] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                    }
                 }
                 break;
             case HardcorePairActionKind.ForcedBlindfold:
-                // if we have had our blindfold set to enabled by another pair, perform the following:
-                if (!actionWasFromClient && state is NewState.Enabled)
+                // if we are the affected UID:
+                if (affectedPairUID == ApiController.UID)
                 {
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.BlindLeadingTheBlind] as ConditionalAchievement)?.CheckCompletion();
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WhoNeedsToSee] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                }
-                // if another pair is removing our blindfold, perform the following:
-                if (!actionWasFromClient && state is NewState.Disabled)
-                    if((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WhoNeedsToSee] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                    // if we have had our blindfold set to enabled by another pair, perform the following:
+                    if (state is NewState.Enabled)
+                    {
+                        (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.BlindLeadingTheBlind] as ConditionalAchievement)?.CheckCompletion();
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WhoNeedsToSee] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                    }
+                    // if another pair is removing our blindfold, perform the following:
+                    if (state is NewState.Disabled)
+                        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WhoNeedsToSee] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WhoNeedsToSee] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                }
                 break;
         }
     }
@@ -473,25 +510,22 @@ public partial class AchievementManager
     }
 
 
-    private void OnChatMessage(XivChatType channel, string message, string SenderName)
+    private void OnChatMessage(XivChatType channel)
     {
-        if (message.Split(' ').Count() > 5)
-        {
-            if (channel is XivChatType.Say)
-            {
-                (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SpeakUpSlut] as ProgressAchievement)?.IncrementProgress();
-            }
-            else if (channel is XivChatType.Yell)
-            {
-                (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.CantHearYou] as ProgressAchievement)?.IncrementProgress();
-            }
-            else if (channel is XivChatType.Shout)
-            {
-                (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.OneMoreForTheCrowd] as ProgressAchievement)?.IncrementProgress();
-            }
-        }
-        // check if we meet some of the secret requirements.
         (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.HelplessDamsel] as ConditionalAchievement)?.CheckCompletion();
+
+        if (channel is XivChatType.Say)
+        {
+            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SpeakUpSlut] as ProgressAchievement)?.IncrementProgress();
+        }
+        else if (channel is XivChatType.Yell)
+        {
+            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.CantHearYou] as ProgressAchievement)?.IncrementProgress();
+        }
+        else if (channel is XivChatType.Shout)
+        {
+            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.OneMoreForTheCrowd] as ProgressAchievement)?.IncrementProgress();
+        }
     }
 
     private void OnEmoteExecuted(ulong emoteCallerObjectId, ushort emoteId, string emoteName, ulong targetObjectId)
@@ -547,5 +581,33 @@ public partial class AchievementManager
     private void OnJobChange(GlamourUpdateType changeType)
     {
         (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.EscapingIsNotEasy] as ConditionalAchievement)?.CheckCompletion();
+    }
+
+    // We need to check for knockback effects in gold sacuer.
+    private void OnActionEffectEvent(List<ActionEffectEntry> actionEffects)
+    {
+        // Check if client player is null
+        if (_frameworkUtils.ClientState.LocalPlayer is null)
+            return;
+
+        // Return if not in the gold saucer
+        if (_frameworkUtils.ClientState.TerritoryType is not 144)
+            return;
+
+        // Check if the GagReflex achievement is already completed
+        var gagReflexAchievement = SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.GagReflex] as ProgressAchievement;
+        if (gagReflexAchievement?.IsCompleted == true)
+            return;
+
+        // Check if any effects were a knockback effect targeting the local player
+        if (actionEffects.Any(x => x.Type == LimitedActionEffectType.Knockback && x.TargetID == _frameworkUtils.ClientState.LocalPlayer.GameObjectId))
+        {
+            // Check if the player is in a gate with knockback
+            if (AchievementHelpers.IsInGateWithKnockback())
+            {
+                // Increment progress if the achievement is not yet completed
+                gagReflexAchievement?.IncrementProgress();
+            }
+        }
     }
 }

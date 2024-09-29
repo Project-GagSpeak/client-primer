@@ -8,6 +8,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagSpeak.UpdateMonitoring;
+using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Dto.Connection;
@@ -82,6 +83,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         #region Event Subscription
         _eventManager.Subscribe<OrderInteractionKind>(UnlocksEvent.OrderAction, OnOrderAction);
         _eventManager.Subscribe<GagLayer, GagType, bool>(UnlocksEvent.GagAction, OnGagApplied);
+        _eventManager.Subscribe<GagLayer, GagType, bool>(UnlocksEvent.GagRemoval, OnGagRemoval);
         _eventManager.Subscribe<GagType>(UnlocksEvent.PairGagAction, OnPairGagApplied);
         _eventManager.Subscribe(UnlocksEvent.GagUnlockGuessFailed, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RunningGag] as ConditionalAchievement)?.CheckCompletion());
 
@@ -104,15 +106,15 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Subscribe(UnlocksEvent.ShockSent, OnShockSent);
         _eventManager.Subscribe(UnlocksEvent.ShockReceived, OnShockReceived);
 
-        _eventManager.Subscribe<HardcorePairActionKind, NewState, string, bool>(UnlocksEvent.HardcoreForcedPairAction, OnHardcoreForcedPairAction);
+        _eventManager.Subscribe<HardcorePairActionKind, NewState, string, string>(UnlocksEvent.HardcoreForcedPairAction, OnHardcoreForcedPairAction);
 
         _eventManager.Subscribe(UnlocksEvent.RemoteOpened, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.JustVibing] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Subscribe(UnlocksEvent.VibeRoomCreated, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.VibingWithFriends] as ProgressAchievement)?.CheckCompletion());
 
         _eventManager.Subscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.NothingCanStopMe] as ConditionalProgressAchievement)?.CheckTaskProgress(1));
         _eventManager.Subscribe(UnlocksEvent.ClientSlain, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BadEndHostage] as ConditionalAchievement)?.CheckCompletion());
-        _eventManager.Subscribe<XivChatType, string, string>(UnlocksEvent.ChatMessageSent, OnChatMessage);
-        _eventManager.Subscribe<ulong, ushort, string, ulong>(UnlocksEvent.PlayerEmoteExecuted, OnEmoteExecuted);
+        _eventManager.Subscribe<XivChatType>(UnlocksEvent.ChatMessageSent, OnChatMessage);
+        _eventManager.Subscribe<ulong, ushort, string, ulong>(UnlocksEvent.EmoteExecuted, OnEmoteExecuted);
         _eventManager.Subscribe<string>(UnlocksEvent.PuppeteerEmoteSent, OnPuppeteerEmoteSent);
         _eventManager.Subscribe(UnlocksEvent.TutorialCompleted, () => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.TutorialComplete] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Subscribe(UnlocksEvent.PairAdded, OnPairAdded);
@@ -121,10 +123,12 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Subscribe(UnlocksEvent.CursedDungeonLootFound, OnCursedLootFound);
         _eventManager.Subscribe<string>(UnlocksEvent.EasterEggFound, OnIconClicked);
         _eventManager.Subscribe(UnlocksEvent.ChocoboRaceFinished, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.WildRide] as ConditionalAchievement)?.CheckCompletion());
+        _eventManager.Subscribe<int>(UnlocksEvent.PlayersInProximity, (count) => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CrowdPleaser] as ThresholdAchievement)?.UpdateThreshold(count));
 
         IpcFastUpdates.GlamourEventFired += OnJobChange;
+        ActionEffectMonitor.ActionEffectEntryEvent += OnActionEffectEvent;
 
-        Mediator.Subscribe<PairHandlerVisibleMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BondageClub] as ThresholdAchievement)?.CheckCompletion());
+        Mediator.Subscribe<PairHandlerVisibleMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BondageClub] as ThresholdAchievement)?.UpdateThreshold(_pairManager.GetVisibleUserCount()));
         Mediator.Subscribe<CommendationsIncreasedMessage>(this, (msg) => OnCommendationsGiven(msg.amount));
         Mediator.Subscribe<PlaybackStateToggled>(this, (msg) => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ConditionalAchievement)?.CheckCompletion());
 
@@ -157,6 +161,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
         _eventManager.Unsubscribe<OrderInteractionKind>(UnlocksEvent.OrderAction, OnOrderAction);
         _eventManager.Unsubscribe<GagLayer, GagType, bool>(UnlocksEvent.GagAction, OnGagApplied);
+        _eventManager.Unsubscribe<GagLayer, GagType, bool>(UnlocksEvent.GagRemoval, OnGagRemoval);
         _eventManager.Unsubscribe<GagType>(UnlocksEvent.PairGagAction, OnPairGagApplied);
         _eventManager.Unsubscribe(UnlocksEvent.GagUnlockGuessFailed, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RunningGag] as ConditionalAchievement)?.CheckCompletion());
 
@@ -179,16 +184,16 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Unsubscribe(UnlocksEvent.ShockSent, OnShockSent);
         _eventManager.Unsubscribe(UnlocksEvent.ShockReceived, OnShockReceived);
 
-        // assign this last i cant be bothered at 11pm...
-        _eventManager.Unsubscribe<HardcorePairActionKind, NewState, string, bool>(UnlocksEvent.HardcoreForcedPairAction, OnHardcoreForcedPairAction);
+        _eventManager.Unsubscribe<HardcorePairActionKind, NewState, string, string>(UnlocksEvent.HardcoreForcedPairAction, OnHardcoreForcedPairAction);
 
+        ///
         _eventManager.Unsubscribe(UnlocksEvent.RemoteOpened, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.JustVibing] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe(UnlocksEvent.VibeRoomCreated, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.VibingWithFriends] as ProgressAchievement)?.CheckCompletion());
 
         _eventManager.Unsubscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.NothingCanStopMe] as ConditionalProgressAchievement)?.CheckTaskProgress(1));
         _eventManager.Unsubscribe(UnlocksEvent.ClientSlain, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BadEndHostage] as ConditionalAchievement)?.CheckCompletion());
-        _eventManager.Unsubscribe<XivChatType, string, string>(UnlocksEvent.ChatMessageSent, OnChatMessage);
-        _eventManager.Unsubscribe<ulong, ushort, string, ulong>(UnlocksEvent.PlayerEmoteExecuted, OnEmoteExecuted);
+        _eventManager.Unsubscribe<XivChatType>(UnlocksEvent.ChatMessageSent, OnChatMessage);
+        _eventManager.Unsubscribe<ulong, ushort, string, ulong>(UnlocksEvent.EmoteExecuted, OnEmoteExecuted);
         _eventManager.Unsubscribe<string>(UnlocksEvent.PuppeteerEmoteSent, OnPuppeteerEmoteSent);
         _eventManager.Unsubscribe(UnlocksEvent.TutorialCompleted, () => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.TutorialComplete] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe(UnlocksEvent.PairAdded, OnPairAdded);
@@ -197,8 +202,11 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Unsubscribe(UnlocksEvent.CursedDungeonLootFound, OnCursedLootFound);
         _eventManager.Unsubscribe<string>(UnlocksEvent.EasterEggFound, OnIconClicked);
         _eventManager.Unsubscribe(UnlocksEvent.ChocoboRaceFinished, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.WildRide] as ConditionalAchievement)?.CheckCompletion());
+        _eventManager.Unsubscribe<int>(UnlocksEvent.PlayersInProximity, (count) => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CrowdPleaser] as ThresholdAchievement)?.UpdateThreshold(count));
 
         IpcFastUpdates.GlamourEventFired -= OnJobChange;
+        ActionEffectMonitor.ActionEffectEntryEvent -= OnActionEffectEvent;
+
     }
 
 
@@ -252,7 +260,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
                 ?? throw new Exception("Failed to deserialize achievement data from server.");
 
             // Update the local achievement data
-            //SaveData.LoadFromLightSaveDataDto(item);
+            SaveData.LoadFromLightSaveDataDto(item);
             Logger.LogInformation("Achievement Data Loaded from Server", LoggerType.Achievements);
         }
         catch (Exception ex)

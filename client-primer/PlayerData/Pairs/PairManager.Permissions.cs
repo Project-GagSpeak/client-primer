@@ -4,6 +4,7 @@ using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using System.Reflection;
 using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -102,12 +103,51 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // publish the mediator changes.
         if (motionPermsChanged) UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, false);
         if (allPermsChanged) UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, true);
-        if (forcedFollowChanged) Mediator.Publish(new HardcoreForcedToFollowMessage(pair, dto.UniquePerms.IsForcedToFollow ? NewState.Enabled : NewState.Disabled));
-        if (forcedSitChanged) Mediator.Publish(new HardcoreForcedToSitMessage(pair, dto.UniquePerms.IsForcedToSit ? NewState.Enabled : NewState.Disabled));
-        if (forcedGroundSitChanged) Mediator.Publish(new HardcoreForcedToKneelMessage(pair, dto.UniquePerms.IsForcedToGroundSit ? NewState.Enabled : NewState.Disabled));
-        if (forcedStayChanged) Mediator.Publish(new HardcoreForcedToStayMessage(pair, dto.UniquePerms.IsForcedToStay ? NewState.Enabled : NewState.Disabled));
-        if (blindfoldChanged) Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, dto.UniquePerms.IsBlindfolded ? NewState.Enabled : NewState.Disabled));
-
+        if (forcedFollowChanged)
+        {
+            Mediator.Publish(new HardcoreForcedToFollowMessage(pair, dto.UniquePerms.IsForcedToFollow ? NewState.Enabled : NewState.Disabled));
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedFollow, // Forced Follow Command Issued
+                (bool)dto.UniquePerms.IsForcedToFollow ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                pair.UserData.UID, // the pair was the enactor.
+                ApiController.UID); // and we were the target
+        }
+        if (forcedSitChanged)
+        {
+            Mediator.Publish(new HardcoreForcedToSitMessage(pair, dto.UniquePerms.IsForcedToSit ? NewState.Enabled : NewState.Disabled));
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedSit, // Forced Sit Command Issued
+                (bool)dto.UniquePerms.IsForcedToSit ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                pair.UserData.UID, // the pair was the enactor.
+                ApiController.UID); // and we were the target
+        }
+        if (forcedGroundSitChanged)
+        {
+            Mediator.Publish(new HardcoreForcedToKneelMessage(pair, dto.UniquePerms.IsForcedToGroundSit ? NewState.Enabled : NewState.Disabled));
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedSit, // Forced Sit Command Issued
+                (bool)dto.UniquePerms.IsForcedToGroundSit ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                pair.UserData.UID, // the pair was the enactor.
+                ApiController.UID); // and we were the target
+        }
+        if (forcedStayChanged)
+        {
+            Mediator.Publish(new HardcoreForcedToStayMessage(pair, dto.UniquePerms.IsForcedToStay ? NewState.Enabled : NewState.Disabled));
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedStay, // Forced Stay Command Issued
+                (bool)dto.UniquePerms.IsForcedToStay ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                pair.UserData.UID, // the pair was the enactor.
+                ApiController.UID); // and we were the target
+        }
+        if (blindfoldChanged)
+        {
+            Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, dto.UniquePerms.IsBlindfolded ? NewState.Enabled : NewState.Disabled));
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedBlindfold, // Forced Blindfold Command Issued
+                (bool)dto.UniquePerms.IsBlindfolded ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                pair.UserData.UID, // the pair was the enactor.
+                ApiController.UID); // and we were the target
+        }
         Logger.LogDebug($"Updated own unique permissions for '{pair.GetNickname() ?? pair.UserData.AliasOrUID}'", LoggerType.PairManagement);
     }
 
@@ -192,12 +232,37 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
         // has the person just paused us.
         if (ChangedPermission == "IsPaused")
-        {
             if (pair.UserPair.OtherPairPerms.IsPaused != (bool)ChangedValue)
-            {
                 Mediator.Publish(new ClearProfileDataMessage(dto.User));
-            }
-        }
+
+        // We were the applier, the pair is the target, and we disabled the action
+        if (ChangedPermission == "IsForcedToFollow" && (bool)ChangedValue is false)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedFollow, // Forced Follow Command Issued
+                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                ApiController.UID, // We are the enactor
+                pair.UserData.UID); // and the pair is the target
+
+        if (ChangedPermission == "IsForcedToSit" || ChangedPermission == "IsForcedToGroundSit" && (bool)ChangedValue is false)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedSit, // Forced Follow Command Issued
+                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                ApiController.UID, // We are the enactor
+                pair.UserData.UID); // and the pair is the target
+
+        if (ChangedPermission == "IsForcedToStay" && (bool)ChangedValue is false)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedStay, // Forced Follow Command Issued
+                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                ApiController.UID, // We are the enactor
+                pair.UserData.UID); // and the pair is the target
+
+        if (ChangedPermission == "IsBlindfolded" && (bool)ChangedValue is false)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedBlindfold, // Forced Follow Command Issued
+                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                ApiController.UID, // We are the enactor
+                pair.UserData.UID); // and the pair is the target
 
         PropertyInfo? propertyInfo = typeof(UserPairPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)
@@ -353,26 +418,51 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         {
             Logger.LogInformation("Forced follow changed", LoggerType.PairManagement);
             Mediator.Publish(new HardcoreForcedToFollowMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedFollow, // Forced Follow Command Issued
+                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                pair.UserData.UID, // the pair was the enactor.
+                ApiController.UID); // and we were the target
         }
         if (forcedSitChanged)
         {
             Logger.LogInformation("Forced sit changed", LoggerType.PairManagement);
             Mediator.Publish(new HardcoreForcedToSitMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedSit, // Forced Sit Command Issued
+                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                pair.UserData.UID, // the pair was the enactor.
+                ApiController.UID); // and we were the target
         }
         if (forcedGroundSitChanged)
         {
             Logger.LogInformation("Forced ground sit changed", LoggerType.PairManagement);
             Mediator.Publish(new HardcoreForcedToKneelMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedSit, // Forced Sit Command Issued
+                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                pair.UserData.UID, // the pair was the enactor.
+                ApiController.UID); // and we were the target
         }
         if (forcedStayChanged)
         {
             Logger.LogInformation("Forced stay changed", LoggerType.PairManagement);
             Mediator.Publish(new HardcoreForcedToStayMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedStay, // Forced Stay Command Issued
+                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                pair.UserData.UID, // the pair was the enactor.
+                ApiController.UID); // and we were the target
         }
         if (blindfoldChanged)
         {
             Logger.LogInformation("Blindfold changed to: "+(bool)ChangedValue, LoggerType.PairManagement);
             Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
+                HardcorePairActionKind.ForcedBlindfold, // Forced Blindfold Command Issued
+                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
+                pair.UserData.UID, // the pair was the enactor.
+                ApiController.UID); // and we were the target
         }
 
         RecreateLazy(false);

@@ -72,7 +72,7 @@ public class OnEmote : IDisposable
                 var targetName = (_frameworkUtils.SearchObjectTableByIdAsync((uint)targetId) as IPlayerCharacter)?.GetNameWithWorld() ?? "No Player Was Target";
                 _logger.LogDebug("Emote >> Emote Caller was "+ emoteCallerName + ", Used Emote: " + emoteName + " on Target: " + targetName, LoggerType.ChatDetours);
 
-                // throw our emote used here if valid.
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.EmoteExecuted, emoteCallerAddr, emoteId, emoteName, targetId);
             });
         }
         catch (Exception e)

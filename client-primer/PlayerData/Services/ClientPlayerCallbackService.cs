@@ -114,6 +114,7 @@ public class ClientCallbackService
 
         NewState callbackGagState = callbackDto.UpdateKind.ToNewState();
         GagLayer callbackGagLayer = callbackDto.UpdateKind.ToSlot();
+        var currentGagType = _playerData.AppearanceData!.GagSlots[(int)callbackGagLayer].GagType.ToGagType();
 
         if (callbackWasFromSelf)
         {
@@ -134,8 +135,13 @@ public class ClientCallbackService
                 _logger.LogDebug("SelfApplied GAG UNLOCK Verified by Server Callback.", LoggerType.Callbacks);
 
             if (callbackGagState is NewState.Disabled)
+            {
                 _logger.LogDebug("SelfApplied GAG DISABLED Verified by Server Callback.", LoggerType.Callbacks);
-
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval,
+                    callbackGagLayer,
+                    currentGagType,
+                    true);
+            }
             return;
         }
 
@@ -161,7 +167,6 @@ public class ClientCallbackService
         }
 
         var callbackGagSlot = callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer];
-        var currentGagType = _playerData.AppearanceData!.GagSlots[(int)callbackGagLayer].GagType.ToGagType();
 
         _logger.LogDebug(
             "Callback State: "+callbackGagState +
@@ -178,6 +183,10 @@ public class ClientCallbackService
                 _logger.LogDebug("Gag is already applied. Removing before reapplying.", LoggerType.Callbacks);
                 // set up a task for removing and reapplying the gag glamours, and the another for updating the GagManager.
                 await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, currentGagType, NewState.Disabled);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval,
+                    callbackGagLayer,
+                    currentGagType,
+                    true);
                 // after its disabled,...
             }
 
@@ -207,6 +216,10 @@ public class ClientCallbackService
         {
             await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, currentGagType, NewState.Disabled);
             _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None, false);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval,
+                callbackGagLayer,
+                currentGagType,
+                true);
         }
     }
 

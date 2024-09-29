@@ -3,6 +3,9 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
+using GagSpeak.ChatMessages;
+using GagSpeak.GagspeakConfiguration;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
@@ -21,6 +24,8 @@ namespace GagSpeak.UpdateMonitoring.Chat;
 /// </summary>
 public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
 {
+    private readonly GagspeakConfigService _mainConfig;
+    private readonly PlayerCharacterData _playerInfo;
     private readonly PuppeteerHandler _puppeteerHandler;
     private readonly ChatSender _chatSender;
     private readonly TriggerController _triggerController;
@@ -32,9 +37,12 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
 
     /// <summary> This is the constructor for the OnChatMsgManager class. </summary>
     public ChatBoxMessage(ILogger<ChatBoxMessage> logger, GagspeakMediator mediator,
-        PuppeteerHandler puppeteerHandler, ChatSender chatSender, TriggerController triggerController,
+        GagspeakConfigService mainConfig, PlayerCharacterData playerInfo,
+        PuppeteerHandler puppeteerHandler, ChatSender chatSender, TriggerController triggerController, 
         IChatGui clientChat, IClientState clientState) : base(logger, mediator)
     {
+        _mainConfig = mainConfig;
+        _playerInfo = playerInfo;
         _chatSender = chatSender;
         _puppeteerHandler = puppeteerHandler;
         _triggerController = triggerController;
@@ -80,6 +88,29 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
     {
         // Don't process messages if we ain't visible.
         if (_clientState.LocalPlayer == null) return;
+
+        // Handle PVP Kills for achievement.
+        if (type is (XivChatType)4922)
+        {
+            // only process if in pvp.
+            if (_clientState.IsPvP)
+            {
+                // get the player payloads.
+                Payload[] playerPayloads = message.Payloads.Where(x => x.Type == PayloadType.Player).ToArray();
+                Logger.LogTrace("["+type+"] {"+message+"Message}", LoggerType.Achievements);
+                if (playerPayloads.Length == 2)
+                {
+                    PlayerPayload player1 = (PlayerPayload)playerPayloads[0];
+                    PlayerPayload player2 = (PlayerPayload)playerPayloads[1];
+
+                    if(_clientState.LocalPlayer.GetNameWithWorld() == player1.PlayerName + "@" + player1.World.Name)
+                    {
+                        Logger.LogInformation("We were the killer. We just killed " + player2.PlayerName + "@" + player2.World.Name, LoggerType.Achievements);
+                        UnlocksEventManager.AchievementEvent(UnlocksEvent.PvpPlayerSlain);
+                    }
+                }
+            }
+        }
 
         // log all types of payloads included in the message.
         /*
@@ -137,9 +168,16 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         if (senderName + "@" + senderWorld == _clientState.LocalPlayer.GetNameWithWorld())
         {
             // check if the message we sent contains any of our pairs triggers.
-            if (_puppeteerHandler.MessageContainsTriggerFromPair(message.TextValue))
+            if (_puppeteerHandler.MessageContainsPairTriggerPhrase(message.TextValue))
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerMessageSend);
 
+            // if our message is longer than 5 words, fire our on-chat-message achievement.
+            if (message.TextValue.Split(' ').Length > 5 && _playerInfo.IsPlayerGagged)
+            {
+                var channel = ChatChannel.GetChatChannelFromXivChatType(type);
+                if (channel != null && _mainConfig.Current.ChannelsGagSpeak.Contains(channel.Value))
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.ChatMessageSent, type);
+            }
             return;
         }
 
@@ -173,13 +211,8 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
             {
                 //Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!");
                 // get the new message to send
-                SeString msgToSend = _puppeteerHandler.NewMessageFromPuppeteerTrigger(triggerPhrases, matchedPair.UserData.UID, matchedPair.UserPairOwnUniquePairPerms, message, type);
-
-                // convert any alias's set for this user if any are present.
-                //Logger.LogInformation("message before alias conversion: " + msgToSend.TextValue);
-                msgToSend = _puppeteerHandler.ConvertAliasCommandsIfAny(matchedPair.UserData.UID, msgToSend.TextValue);
-
-                //Logger.LogInformation("message after alias conversion: " + msgToSend.TextValue);
+                SeString msgToSend = _puppeteerHandler.NewMessageFromPuppeteerTrigger(
+                    triggerPhrases, matchedPair.UserData.UID, matchedPair.UserPairOwnUniquePairPerms, message, type);
 
                 if (!msgToSend.TextValue.IsNullOrEmpty())
                 {

@@ -19,6 +19,10 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 0, 2)
+            .RegisterMain("Added the rest of the event triggers into the achievement monitors.")
+            .RegisterFeature("Achievements now accurately display progression like they should.")
+            .RegisterBugfix("Fixed bugs where satisfying certain conditions caused crashes, these should now be handled within the event manager to prevent crashes.");
         VersionEntry(0, 9, 0, 1)
             .RegisterMain("WARNING: 0.9.0.0 CURRENTLY INTRODUCED SOME DX11 CRASHES FROM PERFORMING CERTAIN ACTIONS.")
             .RegisterFeature("I've done my best to catch all conditions that trigger dx11 crashes and contained them.")

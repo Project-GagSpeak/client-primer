@@ -30,19 +30,12 @@ public class ProgressAchievement : Achievement
     }
 
     /// <summary>
-    /// Reset the progression of the achievement.
-    /// </summary>
-    public void ResetProgress()
-    {
-        Progress = 0;
-    }
-
-
-    /// <summary>
     /// Check if the Milestone has been met.
     /// </summary>
     public override void CheckCompletion()
     {
+        if (IsCompleted) return;
+
         if (Progress >= MilestoneGoal)
         {
             // Mark the achievement as completed

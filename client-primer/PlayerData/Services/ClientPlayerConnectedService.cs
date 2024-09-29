@@ -63,7 +63,7 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         await _gagManager.UpdateActiveGags();
 
         // if the player is gagged, update their appearance.
-        if (_playerData.IsPlayerGagged())
+        if (_playerData.IsPlayerGagged)
         {
             // we should update the Gag Appearance.
             Logger.LogDebug("Player is Gagged. Updating Gag Appearance.", LoggerType.GagManagement);

@@ -79,7 +79,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
             .Where(gagType => gagType != GagType.None)
             .ToList();
 
-        if (!_playerManager.IsPlayerGagged()) return;
+        if (!_playerManager.IsPlayerGagged) return;
 
         // Fetch the drawData of gag with the highest Priority
         var highestPriorityData = _clientConfigs.GetDrawDataWithHighestPriority(gagTypes);
@@ -253,7 +253,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
                 await ApplyRestrainSetToCachedCharacterData();
 
                 // if they allow item auto equip and have any gags equipped, apply them after
-                if (_playerManager.GlobalPerms.ItemAutoEquip && _playerManager.IsPlayerGagged())
+                if (_playerManager.GlobalPerms.ItemAutoEquip && _playerManager.IsPlayerGagged)
                 {
                     // apply the gag items overtop.
                     await ApplyGagItemsToCachedCharacterData();
@@ -288,7 +288,7 @@ public class AppearanceChangeService : DisposableMediatorSubscriberBase
                 }
             }
             // now reapply the gags
-            if (_playerManager.GlobalPerms.ItemAutoEquip && _playerManager.IsPlayerGagged())
+            if (_playerManager.GlobalPerms.ItemAutoEquip && _playerManager.IsPlayerGagged)
             {
                 Logger.LogDebug($"Reapplying gags", LoggerType.GagManagement);
                 await ApplyGagItemsToCachedCharacterData();

@@ -252,7 +252,7 @@ public class PermActionsComponents
                 return resPass;
             case Padlocks.OwnerPadlock:
             case Padlocks.OwnerTimerPadlock:
-                var resOwner = allowOwnerLocks && _apiController.UID == data.Assigner;
+                var resOwner = allowOwnerLocks && ApiController.UID == data.Assigner;
                 return resOwner;
         }
         return false;

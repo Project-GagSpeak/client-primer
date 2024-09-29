@@ -12,15 +12,14 @@ public class TimedProgressAchievement : Achievement
     /// <summary>
     /// The DateTime when the progress went from 0 to 1
     /// </summary>
-    public DateTime StartTime { get; set; }
+    public DateTime StartTime { get; set; } = DateTime.MinValue;
     /// <summary>
     /// How long you have to earn the achievement in.
     /// </summary>
     public TimeSpan TimeToComplete { get; private set; }
 
-
-    public TimedProgressAchievement(INotificationManager notify, string title, string desc, int goal, TimeSpan timeLimit, string unit = "")
-        : base(notify, title, desc, goal, unit)
+    public TimedProgressAchievement(INotificationManager notify, string title, string desc, int goal, TimeSpan timeLimit, string unit = "", bool isSecret = false)
+        : base(notify, title, desc, goal, unit, isSecret)
     {
         TimeToComplete = timeLimit;
         Progress = 0;

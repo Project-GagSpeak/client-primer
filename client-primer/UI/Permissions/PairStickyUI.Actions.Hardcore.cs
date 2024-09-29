@@ -112,6 +112,7 @@ public partial class PairStickyUI
 
                         _logger.LogDebug("Sending Shock to Shock Collar with duration: " + newMaxDuration + "(milliseconds)");
                         _ = _apiController.UserShockActionOnPair(new ShockCollarActionDto(UserPairForPerms.UserData, 0, Intensity, newMaxDuration));
+                        UnlocksEventManager.AchievementEvent(UnlocksEvent.ShockSent);
                         Opened = InteractionType.None;
                     }
                 }

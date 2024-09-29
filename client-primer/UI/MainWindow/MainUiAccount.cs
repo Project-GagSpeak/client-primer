@@ -63,7 +63,7 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
             {
                 // fetch own profile data to store / display.
                 // This function itself does no API calls unless the requested UID is different.
-                var profileData = _profileManager.GetGagspeakProfile(new UserData(_apiController.UID));
+                var profileData = _profileManager.GetGagspeakProfile(new UserData(ApiController.UID));
 
                 // if the profile is flagged, say so.
                 if (profileData.Flagged)
@@ -191,15 +191,15 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
             UiSharedService.CopyableDisplayText(_apiController.DisplayName);
 
             // if the UID does not equal the display name
-            if (!string.Equals(_apiController.DisplayName, _apiController.UID, StringComparison.Ordinal))
+            if (!string.Equals(_apiController.DisplayName, ApiController.UID, StringComparison.Ordinal))
             {
                 // grab the original text size for the UID in the api controller
-                var origTextSize = ImGui.CalcTextSize(_apiController.UID);
+                var origTextSize = ImGui.CalcTextSize(ApiController.UID);
                 // adjust the cursor and redraw the UID (really not sure why this is here but we can trial and error later.
                 ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - origTextSize.X / 2);
-                ImGui.TextColored(_uiShared.GetUidColor(), _apiController.UID);
+                ImGui.TextColored(_uiShared.GetUidColor(), ApiController.UID);
                 // give it the same functionality.
-                UiSharedService.CopyableDisplayText(_apiController.UID);
+                UiSharedService.CopyableDisplayText(ApiController.UID);
             }
         }
     }

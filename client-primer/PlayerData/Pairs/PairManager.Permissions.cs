@@ -77,7 +77,9 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     {
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) { throw new InvalidOperationException("No such pair for " + dto); }
 
-        // fetch the current hardcore states
+        // fetch the current actions that fire events
+        var prevMotionPerms = pair.UserPair.OwnPairPerms.AllowMotionRequests;
+        var prevAllPerms = pair.UserPair.OwnPairPerms.AllowAllRequests;
         var prevForcedFollowState = pair.UserPair.OwnPairPerms.IsForcedToFollow;
         var prevForcedSitState = pair.UserPair.OwnPairPerms.IsForcedToSit;
         var prevForcedGroundSitState = pair.UserPair.OwnPairPerms.IsForcedToGroundSit;
@@ -85,6 +87,8 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         var prevBlindfoldState = pair.UserPair.OwnPairPerms.IsBlindfolded;
 
         // see if the states are different.
+        bool motionPermsChanged = prevMotionPerms != dto.UniquePerms.AllowMotionRequests;
+        bool allPermsChanged = prevAllPerms != dto.UniquePerms.AllowAllRequests;
         bool forcedFollowChanged = prevForcedFollowState != dto.UniquePerms.IsForcedToFollow;
         bool forcedSitChanged = prevForcedSitState != dto.UniquePerms.IsForcedToSit;
         bool forcedGroundSitChanged = prevForcedGroundSitState != dto.UniquePerms.IsForcedToGroundSit;
@@ -96,6 +100,8 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         pair.UserPair.OwnEditAccessPerms = dto.UniqueAccessPerms;
 
         // publish the mediator changes.
+        if (motionPermsChanged) UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, false);
+        if (allPermsChanged) UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, true);
         if (forcedFollowChanged) Mediator.Publish(new HardcoreForcedToFollowMessage(pair, dto.UniquePerms.IsForcedToFollow ? NewState.Enabled : NewState.Disabled));
         if (forcedSitChanged) Mediator.Publish(new HardcoreForcedToSitMessage(pair, dto.UniquePerms.IsForcedToSit ? NewState.Enabled : NewState.Disabled));
         if (forcedGroundSitChanged) Mediator.Publish(new HardcoreForcedToKneelMessage(pair, dto.UniquePerms.IsForcedToGroundSit ? NewState.Enabled : NewState.Disabled));
@@ -290,6 +296,10 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
 
         // store changes pre-apply.
+        bool motionPermsChanged = ChangedPermission == nameof(UserPairPermissions.AllowMotionRequests)
+            && (pair.UserPair.OwnPairPerms.AllowMotionRequests != (bool)ChangedValue);
+        bool allPermsChanged = ChangedPermission == nameof(UserPairPermissions.AllowAllRequests)
+            && (pair.UserPair.OwnPairPerms.AllowAllRequests != (bool)ChangedValue);
         bool forcedFollowChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToFollow)
             && (pair.UserPair.OwnPairPerms.IsForcedToFollow != (bool)ChangedValue);
         bool forcedSitChanged = ChangedPermission == nameof(UserPairPermissions.IsForcedToSit)
@@ -329,6 +339,16 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
 
         // Handle special cases AFTER the change was made.
+        if (motionPermsChanged)
+        {
+            Logger.LogInformation("Motion perms changed", LoggerType.PairManagement);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, false);
+        }
+        if (allPermsChanged)
+        {
+            Logger.LogInformation("All perms changed", LoggerType.PairManagement);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, true);
+        }
         if (forcedFollowChanged)
         {
             Logger.LogInformation("Forced follow changed", LoggerType.PairManagement);

@@ -9,8 +9,8 @@ public class ConditionalAchievement : Achievement
     /// </summary>
     private Func<bool> Condition;
 
-    public ConditionalAchievement(INotificationManager notify, string title, string desc, Func<bool> condition, string unit = "") 
-        : base(notify, title, desc, 1, unit)
+    public ConditionalAchievement(INotificationManager notify, string title, string desc, Func<bool> condition, string unit = "", bool isSecret = false)
+        : base(notify, title, desc, 1, unit, isSecret)
     {
         Condition = condition;
     }

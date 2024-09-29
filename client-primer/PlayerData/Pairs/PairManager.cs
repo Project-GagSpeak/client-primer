@@ -312,23 +312,23 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // if they are found, publish an event message that we have received character data from our paired User
         Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Composite Data")));
 
-        _allClientPairs[dto.User].ApplyAppearanceData(new OnlineUserCharaAppearanceDataDto(dto.User, dto.CompositeData.AppearanceData, dto.UpdateKind));
-        _allClientPairs[dto.User].ApplyWardrobeData(new OnlineUserCharaWardrobeDataDto(dto.User, dto.CompositeData.WardrobeData, dto.UpdateKind));
-        _allClientPairs[dto.User].ApplyToyboxData(new OnlineUserCharaToyboxDataDto(dto.User, dto.CompositeData.ToyboxData, dto.UpdateKind));
-        _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, dto.CompositeData.GlobalShockPermissions, DataUpdateKind.PiShockGlobalUpdated));
+        _allClientPairs[dto.User].ApplyAppearanceData(new(dto.User, dto.CompositeData.AppearanceData, dto.UpdateKind));
+        _allClientPairs[dto.User].ApplyWardrobeData(new(dto.User, dto.CompositeData.WardrobeData, dto.UpdateKind));
+        _allClientPairs[dto.User].ApplyToyboxData(new(dto.User, dto.CompositeData.ToyboxData, dto.UpdateKind));
+        _allClientPairs[dto.User].ApplyPiShockPermData(new(dto.User, dto.CompositeData.GlobalShockPermissions, DataUpdateKind.PiShockGlobalUpdated));
 
 
         // first see if our clientUID exists as a key in dto.CompositeData.AliasData. If it does not, define it as an empty data.
         if (dto.CompositeData.AliasData.ContainsKey(clientUID))
-            _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, dto.CompositeData.AliasData[clientUID], dto.UpdateKind));
+            _allClientPairs[dto.User].ApplyAliasData(new(dto.User, dto.CompositeData.AliasData[clientUID], dto.UpdateKind));
         else
-            _allClientPairs[dto.User].ApplyAliasData(new OnlineUserCharaAliasDataDto(dto.User, new CharacterAliasData(), dto.UpdateKind));
+            _allClientPairs[dto.User].ApplyAliasData(new(dto.User, new CharacterAliasData(), dto.UpdateKind));
 
         // pishock perms for pair.
         if (dto.CompositeData.PairShockPermissions.ContainsKey(clientUID))
-            _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, dto.CompositeData.PairShockPermissions[clientUID], DataUpdateKind.PiShockPairPermsForUserUpdated));
+            _allClientPairs[dto.User].ApplyPiShockPermData(new(dto.User, dto.CompositeData.PairShockPermissions[clientUID], DataUpdateKind.PiShockPairPermsForUserUpdated));
         else
-            _allClientPairs[dto.User].ApplyPiShockPermData(new OnlineUserCharaPiShockPermDto(dto.User, new PiShockPermissions(), DataUpdateKind.PiShockPairPermsForUserUpdated));
+            _allClientPairs[dto.User].ApplyPiShockPermData(new(dto.User, new PiShockPermissions(), DataUpdateKind.PiShockPairPermsForUserUpdated));
     }
 
     /// <summary> Method similar to compositeData, but this will only update the IPC data of the user pair. </summary>

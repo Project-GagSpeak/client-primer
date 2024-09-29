@@ -133,6 +133,16 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
             senderWorld = senderPlayerPayload.World.Name;
         }
 
+        // if we are the sender, return after checking if what we sent matches any of our pairs triggers.
+        if (senderName + "@" + senderWorld == _clientState.LocalPlayer.GetNameWithWorld())
+        {
+            // check if the message we sent contains any of our pairs triggers.
+            if (_puppeteerHandler.MessageContainsTriggerFromPair(message.TextValue))
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerMessageSend);
+
+            return;
+        }
+
         // route to scan for any active triggers. (block outgoing tells because otherwise they always come up as from the recipient).
         if (type != XivChatType.TellOutgoing)
         {

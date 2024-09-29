@@ -97,7 +97,7 @@ public static class WardrobeLabels
     // Be Restrained with at least 5 other visible GagSpeak Pairs around you
     public const string Humiliation = "Lesson in Humiliation";
 
-    // Bondage Bunny - Be Restraintd by 5 different people in less than 2 hours.
+    // Bondage Bunny - Be Restrainted by 5 different people in less than 2 hours.
     public const string BondageBunny = "Bondage Bunny";
 
     // Dye a restraint set:

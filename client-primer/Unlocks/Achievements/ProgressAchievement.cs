@@ -9,8 +9,8 @@ public class ProgressAchievement : Achievement
     /// </summary>
     public int Progress { get; set; }
 
-    public ProgressAchievement(INotificationManager notify, string title, string desc, int goal, string unit = "")
-        : base(notify, title, desc, goal, unit)
+    public ProgressAchievement(INotificationManager notify, string title, string desc, int goal, string unit = "", bool isSecret = false)
+        : base(notify, title, desc, goal, unit, isSecret)
     {
         Progress = 0;
     }

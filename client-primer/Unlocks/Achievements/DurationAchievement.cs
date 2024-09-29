@@ -12,9 +12,14 @@ public class DurationAchievement : Achievement
 
     public DurationTimeUnit TimeUnit { get; init; }
 
-    public DurationAchievement(INotificationManager notify, string name, string desc, 
-        TimeSpan duration, DurationTimeUnit timeUnit = DurationTimeUnit.Minutes, string unit = "")
-        : base(notify, name, desc, ConvertToUnit(duration, timeUnit), unit)
+    public DurationAchievement(INotificationManager notify, 
+        string name, 
+        string desc, 
+        TimeSpan duration, 
+        DurationTimeUnit timeUnit = DurationTimeUnit.Minutes, 
+        string unit = "", 
+        bool isSecret = false
+        ) : base(notify, name, desc, ConvertToUnit(duration, timeUnit), unit, isSecret)
     {
         MilestoneDuration = duration;
     }

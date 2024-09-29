@@ -162,7 +162,7 @@ public class RemoteController : RemoteBase
                 // Send the message to the server
                 _logger.LogInformation($"Sending Message: {NextChatMessage}");
                 _apiController.PrivateRoomSendMessage(new RoomMessageDto
-                    (PrivateRoomData.GetParticipant(_apiController.UID).User, PrivateRoomData.RoomName, NextChatMessage)).ConfigureAwait(false);
+                    (PrivateRoomData.GetParticipant(ApiController.UID).User, PrivateRoomData.RoomName, NextChatMessage)).ConfigureAwait(false);
                 NextChatMessage = string.Empty;
             }
         }

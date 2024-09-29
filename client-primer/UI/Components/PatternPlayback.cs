@@ -10,6 +10,7 @@ using ImPlotNET;
 using System.Timers;
 using GagSpeak.Utils;
 using GagspeakAPI.Enums;
+using GagSpeak.GagspeakConfiguration.Models;
 
 namespace GagSpeak.UI.Components;
 
@@ -203,6 +204,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
             else
             {
                 _playbackService.StopPattern(_playbackService.GetGuidOfActivePattern(), true);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Stopped, _playbackService.GetGuidOfActivePattern(), false);
                 return;
             }
         }

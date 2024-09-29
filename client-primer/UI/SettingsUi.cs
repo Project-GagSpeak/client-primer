@@ -215,7 +215,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             if (ImGui.Checkbox("Enable Live Chat Garbler", ref liveChatGarblerActive))
             {
                 // Perform a mediator call that we have updated a permission.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
                     new KeyValuePair<string, object>("LiveChatGarblerActive", liveChatGarblerActive)));
 
             }
@@ -226,7 +226,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.ItemAutoEquip = itemAutoEquip;
             // if this creates a race condition down the line remove the above line.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
             new KeyValuePair<string, object>("ItemAutoEquip", itemAutoEquip)));
         }
         _uiShared.DrawHelpText("Allows Glamourer to bind your chosen Gag Glamour's upon becoming gagged!");
@@ -245,7 +245,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.WardrobeEnabled = wardrobeEnabled;
             // if this creates a race condition down the line remove the above line.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
             new KeyValuePair<string, object>("WardrobeEnabled", wardrobeEnabled)));
 
         }
@@ -257,7 +257,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.RestraintSetAutoEquip = restraintSetAutoEquip;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
                 new KeyValuePair<string, object>("RestraintSetAutoEquip", restraintSetAutoEquip)));
             }
             _uiShared.DrawHelpText("Allows Glamourer to bind restraint sets to your character.\nRestraint sets can be created in the Wardrobe Interface.");
@@ -283,7 +283,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.MoodlesEnabled = moodlesEnabled;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
                 new KeyValuePair<string, object>("MoodlesEnabled", moodlesEnabled)));
 
             }
@@ -317,7 +317,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.PuppeteerEnabled = puppeteerEnabled;
             // if this creates a race condition down the line remove the above line.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
             new KeyValuePair<string, object>("PuppeteerEnabled", puppeteerEnabled)));
 
         }
@@ -332,7 +332,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.GlobalTriggerPhrase = globalTriggerPhrase;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
                 new KeyValuePair<string, object>("GlobalTriggerPhrase", globalTriggerPhrase)));
 
             }
@@ -343,7 +343,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.GlobalAllowSitRequests = globalAllowSitRequests;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
                 new KeyValuePair<string, object>("GlobalAllowSitRequests", globalAllowSitRequests)));
 
             }
@@ -353,7 +353,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.GlobalAllowMotionRequests = globalAllowMotionRequests;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
                 new KeyValuePair<string, object>("GlobalAllowMotionRequests", globalAllowMotionRequests)));
 
             }
@@ -363,7 +363,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.GlobalAllowAllRequests = globalAllowAllRequests;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
                 new KeyValuePair<string, object>("GlobalAllowAllRequests", globalAllowAllRequests)));
 
             }
@@ -378,7 +378,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.ToyboxEnabled = toyboxEnabled;
             // if this creates a race condition down the line remove the above line.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
             new KeyValuePair<string, object>("ToyboxEnabled", toyboxEnabled)));
 
         }
@@ -419,7 +419,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.SpatialVibratorAudio = spatialVibratorAudio;
             // if this creates a race condition down the line remove the above line.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
             new KeyValuePair<string, object>("SpatialVibratorAudio", spatialVibratorAudio)));
         }
         _uiShared.DrawHelpText("If enabled, you will emit vibrator audio while your sex toys are active to other paired players around you.");
@@ -451,7 +451,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.GlobalShockShareCode = globalShockCollarShareCode;
 
-            _ = _apiController.UserUpdateOwnGlobalPerm(new(_apiController.PlayerUserData,
+            _ = _apiController.UserUpdateOwnGlobalPerm(new(ApiController.PlayerUserData,
             new KeyValuePair<string, object>("GlobalShockShareCode", globalShockCollarShareCode)));
         }
         ImUtf8.SameLineInner();
@@ -475,7 +475,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             // Convert TimeSpan to ticks and send as UInt64
             ulong ticks = (ulong)PlayerGlobalPerms.GlobalShockVibrateDuration.Ticks;
-            _ = _apiController.UserUpdateOwnGlobalPerm(new(_apiController.PlayerUserData,
+            _ = _apiController.UserUpdateOwnGlobalPerm(new(ApiController.PlayerUserData,
             new KeyValuePair<string, object>("GlobalShockVibrateDuration", ticks)));
         }
         _uiShared.DrawHelpText("The maximum time in seconds that your shock collar can vibrate for.");

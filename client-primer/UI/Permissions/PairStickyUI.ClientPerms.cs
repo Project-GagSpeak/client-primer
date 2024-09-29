@@ -2,6 +2,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 using GagSpeak.Services.Mediator;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Enums;
 using ImGuiNET;
@@ -404,7 +405,7 @@ public partial class PairStickyUI
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to update permissions for {_uiShared.ApiController.PlayerUserData.AliasOrUID} :: {ex}");
+            _logger.LogError($"Failed to update permissions for {ApiController.PlayerUserData.AliasOrUID} :: {ex}");
         }
     }
 
@@ -534,7 +535,7 @@ public partial class PairStickyUI
             case PermissionType.Global:
                 {
                     _logger.LogTrace($"Updated own global permission: {permissionName} to {newValue}", LoggerType.Permissions);
-                    _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(_apiController.PlayerUserData,
+                    _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
                         new KeyValuePair<string, object>(permissionName, newValue)));
                 }
                 break;

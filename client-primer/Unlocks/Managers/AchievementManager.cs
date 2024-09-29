@@ -82,21 +82,25 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         #region Event Subscription
         _eventManager.Subscribe<OrderInteractionKind>(UnlocksEvent.OrderAction, OnOrderAction);
         _eventManager.Subscribe<GagLayer, GagType, bool>(UnlocksEvent.GagAction, OnGagApplied);
+        _eventManager.Subscribe<GagType>(UnlocksEvent.PairGagAction, OnPairGagApplied);
         _eventManager.Subscribe(UnlocksEvent.GagUnlockGuessFailed, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RunningGag] as ConditionalAchievement)?.CheckCompletion());
 
-        _eventManager.Subscribe<RestraintSet, bool>(UnlocksEvent.RestraintApplied, OnRestraintApplied);
-        _eventManager.Subscribe<RestraintSet, bool>(UnlocksEvent.RestraintLockChange, OnRestraintLock);
-        // stopped here.
-        _eventManager.Subscribe<Padlocks, bool, bool>(UnlocksEvent.PairRestraintLockChange, OnPairRestraintLockChange);
+        _eventManager.Subscribe<RestraintSet>(UnlocksEvent.RestraintUpdated, OnRestraintSetUpdated);
+        _eventManager.Subscribe<RestraintSet, bool, string>(UnlocksEvent.RestraintApplicationChanged, OnRestraintApplied); // Apply on US
+        _eventManager.Subscribe<RestraintSet, Padlocks, bool, string>(UnlocksEvent.RestraintLockChange, OnRestraintLock); // Lock on US
 
-        _eventManager.Subscribe(UnlocksEvent.PuppeteerMessageSend, () => (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.MasterOfPuppets] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Subscribe(UnlocksEvent.PairRestraintApplied, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.DiDEnthusiast] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Subscribe<Padlocks, bool, string>(UnlocksEvent.PairRestraintLockChange, OnPairRestraintLockChange);
+
+        _eventManager.Subscribe(UnlocksEvent.PuppeteerMessageSend, () => (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.MasterOfPuppets] as TimedProgressAchievement)?.IncrementProgress());
         _eventManager.Subscribe<bool>(UnlocksEvent.PuppeteerAccessGiven, OnPuppetAccessGiven);
 
         _eventManager.Subscribe<PatternInteractionKind, Guid, bool>(UnlocksEvent.PatternAction, OnPatternAction);
+
         _eventManager.Subscribe(UnlocksEvent.DeviceConnected, OnDeviceConnected);
         _eventManager.Subscribe(UnlocksEvent.TriggerFired, OnTriggerFired);
         _eventManager.Subscribe(UnlocksEvent.DeathRollCompleted, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.KinkyGambler] as ConditionalAchievement)?.CheckCompletion());
-        _eventManager.Subscribe<NewState>(UnlocksEvent.AlarmToggled, _ => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Subscribe<NewState>(UnlocksEvent.AlarmToggled, _ => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ConditionalAchievement)?.CheckCompletion());
         _eventManager.Subscribe(UnlocksEvent.ShockSent, OnShockSent);
         _eventManager.Subscribe(UnlocksEvent.ShockReceived, OnShockReceived);
 
@@ -105,7 +109,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Subscribe(UnlocksEvent.RemoteOpened, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.JustVibing] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Subscribe(UnlocksEvent.VibeRoomCreated, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.VibingWithFriends] as ProgressAchievement)?.CheckCompletion());
 
-        _eventManager.Subscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.NothingCanStopMe] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Subscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.NothingCanStopMe] as ConditionalProgressAchievement)?.CheckTaskProgress(1));
         _eventManager.Subscribe(UnlocksEvent.ClientSlain, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BadEndHostage] as ConditionalAchievement)?.CheckCompletion());
         _eventManager.Subscribe<XivChatType, string, string>(UnlocksEvent.ChatMessageSent, OnChatMessage);
         _eventManager.Subscribe<ulong, ushort, string, ulong>(UnlocksEvent.PlayerEmoteExecuted, OnEmoteExecuted);
@@ -120,7 +124,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
         IpcFastUpdates.GlamourEventFired += OnJobChange;
 
-        Mediator.Subscribe<PairHandlerVisibleMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BondageClub] as ConditionalAchievement)?.CheckCompletion());
+        Mediator.Subscribe<PairHandlerVisibleMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BondageClub] as ThresholdAchievement)?.CheckCompletion());
         Mediator.Subscribe<CommendationsIncreasedMessage>(this, (msg) => OnCommendationsGiven(msg.amount));
         Mediator.Subscribe<PlaybackStateToggled>(this, (msg) => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ConditionalAchievement)?.CheckCompletion());
 
@@ -128,8 +132,8 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<GPoseStartMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SayMmmph] as ConditionalProgressAchievement)?.BeginConditionalTask());
         Mediator.Subscribe<GPoseEndMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SayMmmph] as ConditionalProgressAchievement)?.FinishConditionalTask());
-        Mediator.Subscribe<CutsceneBeginMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as ConditionalDurationAchievement)?.CheckCompletion());
-        Mediator.Subscribe<CutsceneEndMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as ConditionalDurationAchievement)?.ResetOrComplete());
+        Mediator.Subscribe<CutsceneBeginMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as TimeRequiredConditionalAchievement)?.CheckCompletion()); // starts Timer
+        Mediator.Subscribe<CutsceneEndMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as TimeRequiredConditionalAchievement)?.CheckCompletion()); // ends/completes progress.
 
         Mediator.Subscribe<ZoneSwitchEndMessage>(this, _ =>
         {
@@ -153,29 +157,35 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
         _eventManager.Unsubscribe<OrderInteractionKind>(UnlocksEvent.OrderAction, OnOrderAction);
         _eventManager.Unsubscribe<GagLayer, GagType, bool>(UnlocksEvent.GagAction, OnGagApplied);
+        _eventManager.Unsubscribe<GagType>(UnlocksEvent.PairGagAction, OnPairGagApplied);
         _eventManager.Unsubscribe(UnlocksEvent.GagUnlockGuessFailed, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RunningGag] as ConditionalAchievement)?.CheckCompletion());
 
-        _eventManager.Unsubscribe<RestraintSet, bool>(UnlocksEvent.RestraintApplied, OnRestraintApplied);
-        _eventManager.Unsubscribe<RestraintSet, bool>(UnlocksEvent.RestraintLockChange, OnRestraintLock);
-        _eventManager.Unsubscribe<Padlocks, bool, bool>(UnlocksEvent.PairRestraintLockChange, OnPairRestraintLockChange);
+        _eventManager.Unsubscribe<RestraintSet>(UnlocksEvent.RestraintUpdated, OnRestraintSetUpdated);
+        _eventManager.Unsubscribe<RestraintSet, bool, string>(UnlocksEvent.RestraintApplicationChanged, OnRestraintApplied); // Apply on US
+        _eventManager.Unsubscribe<RestraintSet, Padlocks, bool, string>(UnlocksEvent.RestraintLockChange, OnRestraintLock); // Lock on US
 
-        _eventManager.Unsubscribe(UnlocksEvent.PuppeteerMessageSend, () => (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.MasterOfPuppets] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Unsubscribe(UnlocksEvent.PairRestraintApplied, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.DiDEnthusiast] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Unsubscribe<Padlocks, bool, string>(UnlocksEvent.PairRestraintLockChange, OnPairRestraintLockChange);
+
+        _eventManager.Unsubscribe(UnlocksEvent.PuppeteerMessageSend, () => (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.MasterOfPuppets] as TimedProgressAchievement)?.IncrementProgress());
         _eventManager.Unsubscribe<bool>(UnlocksEvent.PuppeteerAccessGiven, OnPuppetAccessGiven);
 
         _eventManager.Unsubscribe<PatternInteractionKind, Guid, bool>(UnlocksEvent.PatternAction, OnPatternAction);
+        
         _eventManager.Unsubscribe(UnlocksEvent.DeviceConnected, OnDeviceConnected);
         _eventManager.Unsubscribe(UnlocksEvent.TriggerFired, OnTriggerFired);
         _eventManager.Unsubscribe(UnlocksEvent.DeathRollCompleted, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.KinkyGambler] as ConditionalAchievement)?.CheckCompletion());
-        _eventManager.Unsubscribe<NewState>(UnlocksEvent.AlarmToggled, _ => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Unsubscribe<NewState>(UnlocksEvent.AlarmToggled, _ => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ConditionalAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe(UnlocksEvent.ShockSent, OnShockSent);
         _eventManager.Unsubscribe(UnlocksEvent.ShockReceived, OnShockReceived);
 
+        // assign this last i cant be bothered at 11pm...
         _eventManager.Unsubscribe<HardcorePairActionKind, NewState, string, bool>(UnlocksEvent.HardcoreForcedPairAction, OnHardcoreForcedPairAction);
 
         _eventManager.Unsubscribe(UnlocksEvent.RemoteOpened, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.JustVibing] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe(UnlocksEvent.VibeRoomCreated, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.VibingWithFriends] as ProgressAchievement)?.CheckCompletion());
 
-        _eventManager.Unsubscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.NothingCanStopMe] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Unsubscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.NothingCanStopMe] as ConditionalProgressAchievement)?.CheckTaskProgress(1));
         _eventManager.Unsubscribe(UnlocksEvent.ClientSlain, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BadEndHostage] as ConditionalAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe<XivChatType, string, string>(UnlocksEvent.ChatMessageSent, OnChatMessage);
         _eventManager.Unsubscribe<ulong, ushort, string, ulong>(UnlocksEvent.PlayerEmoteExecuted, OnEmoteExecuted);
@@ -226,7 +236,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
         // Logic to send base64Data to the server
         Logger.LogInformation("Sending updated achievement data to the server", LoggerType.Achievements);
-        await _apiController.UserUpdateAchievementData(new(new(_apiController.UID), base64Data));
+        await _apiController.UserUpdateAchievementData(new(new(ApiController.UID), base64Data));
     }
 
     private void LoadSaveDataDto(string Base64saveDataToLoad)
@@ -242,7 +252,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
                 ?? throw new Exception("Failed to deserialize achievement data from server.");
 
             // Update the local achievement data
-            SaveData.LoadFromLightSaveDataDto(item);
+            //SaveData.LoadFromLightSaveDataDto(item);
             Logger.LogInformation("Achievement Data Loaded from Server", LoggerType.Achievements);
         }
         catch (Exception ex)

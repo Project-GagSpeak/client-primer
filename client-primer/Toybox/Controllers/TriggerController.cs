@@ -295,6 +295,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
             {
                 ExecuteTriggerAction(trigger);
             }
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.DeathRollCompleted);
             ActiveDeathDeathRollSessions.RemoveAll(x => completedLostDeathRolls.Contains(x));
             Logger.LogDebug("DeathRoll Trigger Executed, and Session Removed.", LoggerType.ToyboxTriggers);
         }
@@ -332,6 +333,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         {
             case TriggerActionKind.SexToy:
                 _vibeService.DeviceHandler.ExecuteVibeTrigger(trigger);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                 Logger.LogInformation("Vibe Trigger Executed", LoggerType.ToyboxTriggers);
                 break;
 
@@ -341,6 +343,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                     Logger.LogError("Cannot apply a shock collar action without global permissions set.\n These are used for Trigger Limitations.");
                 }
                 _vibeService.ExecuteShockAction(_playerManager.GlobalPerms!.GlobalShockShareCode, trigger.ShockTriggerAction);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                 Logger.LogInformation("Applied Shock Collar action.", LoggerType.ToyboxTriggers);
                 break;
 
@@ -354,6 +357,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 Logger.LogInformation("Applying Restraint Set "+trigger.RestraintNameAction+" with state "+NewState.Enabled, LoggerType.ToyboxTriggers);
                 var idx = _clientConfigs.GetRestraintSetIdxByName(trigger.RestraintNameAction);
                 await _clientConfigs.SetRestraintSetState(idx, Globals.SelfApplied, NewState.Enabled, true);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                 break;
 
             case TriggerActionKind.Gag:
@@ -369,6 +373,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 Logger.LogInformation("Applying Gag Type "+trigger.GagTypeAction+" to layer "+trigger.GagLayerAction);
                 Mediator.Publish(new GagTypeChanged(trigger.GagTypeAction, trigger.GagLayerAction));
                 Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, trigger.GagLayerAction, trigger.GagTypeAction));
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                 break;
 
             case TriggerActionKind.Moodle:
@@ -383,6 +388,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                     // we have a valid moodle to set, so go ahead and try to apply it!
                     Logger.LogInformation("Applying moodle status with GUID "+trigger.MoodlesIdentifier, LoggerType.ToyboxTriggers);
                     await _moodlesIpc.ApplyOwnStatusByGUID(new List<Guid>() { trigger.MoodlesIdentifier });
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                     return;
                 }
                 break;
@@ -399,6 +405,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                     // we have a valid Moodle to set, so go ahead and try to apply it!
                     Logger.LogInformation("Applying Moodle preset with GUID "+trigger.MoodlesIdentifier, LoggerType.ToyboxTriggers);
                     await _moodlesIpc.ApplyOwnPresetByGUID(trigger.MoodlesIdentifier);
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                     return;
                 }
                 Logger.LogDebug("Moodle preset with GUID "+trigger.MoodlesIdentifier+" not found in the list of presets.", LoggerType.ToyboxTriggers);

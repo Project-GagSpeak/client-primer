@@ -63,19 +63,26 @@ public class AchievementSaveData
 
     public void LoadFromLightSaveDataDto(LightSaveDataDto dto)
     {
-        // Update Easter Egg Icons
-        EasterEggIcons = new Dictionary<string, bool>(dto.EasterEggIcons);
+        try
+        {
+            // Update Easter Egg Icons
+            EasterEggIcons = new Dictionary<string, bool>(dto.EasterEggIcons);
 
-        // Group LightAchievements by AchievementModuleKind
-        var groupedAchievements = dto.LightAchievementData
-            .GroupBy(a => a.Component)
-            .ToDictionary(g => g.Key, g => g.ToList());
+            // Group LightAchievements by AchievementModuleKind
+            var groupedAchievements = dto.LightAchievementData
+                .GroupBy(a => a.Component)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
-        // Iterate through each component of the Achievements dictionary.
-        // For each component, get the list of light data, and call the Components function to update the achievements.
-        foreach (var component in Achievements)
-            if (groupedAchievements.TryGetValue(component.Key, out var lightAchievements))
-                component.Value.LoadFromLightAchievements(lightAchievements);
+            // Iterate through each component of the Achievements dictionary.
+            // For each component, get the list of light data, and call the Components function to update the achievements.
+            foreach (var component in Achievements)
+                if (groupedAchievements.TryGetValue(component.Key, out var lightAchievements))
+                    component.Value.LoadFromLightAchievements(lightAchievements);
+        }
+        catch (Exception e)
+        {
+            StaticLogger.Logger.LogError(e, "Failed to load achievement data from save data.");
+        }
     }
 
     private int? GetProgress(Achievement achievement)
@@ -93,8 +100,10 @@ public class AchievementSaveData
     {
         if (achievement is TimedProgressAchievement timedProgressAchievement)
             return timedProgressAchievement.StartTime;
-        if (achievement is ConditionalDurationAchievement conditionalDurationAchievement)
-            return conditionalDurationAchievement.StartPoint;
+        if (achievement is TimeLimitConditionalAchievement timeLimited)
+            return timeLimited.StartPoint;
+        if (achievement is TimeRequiredConditionalAchievement timeRequired)
+            return timeRequired.StartPoint;
         return null;
     }
 }
@@ -145,7 +154,7 @@ public struct LightAchievement
     public bool ConditionalTaskBegun { get; set; }
 
     /// <summary>
-    /// Gets StartTime (for TimedProgressAchievements & ConditionalDurationAchievements)
+    /// Gets StartTime (for TimedProgressAchievements & TimeRequired/TimeLimited)
     /// </summary>
     public DateTime StartTime { get; set; }
 

@@ -3,6 +3,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
 using GagspeakAPI.Data;
+using Microsoft.Extensions.FileSystemGlobbing.Internal;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -88,7 +89,10 @@ public class AlarmHandler : MediatorSubscriberBase
         => _clientConfigs.FetchAlarm(idx);
 
     public void EnableAlarm(int idx)
-        => _clientConfigs.SetAlarmState(idx, true);
+    {
+        _clientConfigs.SetAlarmState(idx, true);
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.AlarmToggled);
+    }
 
     public void DisableAlarm(int idx)
         => _clientConfigs.SetAlarmState(idx, false);
@@ -168,6 +172,7 @@ public class AlarmHandler : MediatorSubscriberBase
             {
                 Logger.LogInformation("Playing Pattern : "+alarm.PatternToPlay, LoggerType.ToyboxAlarms);
                 _playbackService.PlayPattern(alarm.PatternToPlay, alarm.PatternStartPoint, alarm.PatternDuration, true);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Started, alarm.PatternToPlay, true);
             }
         }
     }

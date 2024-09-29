@@ -17,6 +17,7 @@ using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Text;
 using System.Numerics;
+using System.Security.Claims;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace GagSpeak.UI.UiToybox;
@@ -217,6 +218,7 @@ public class ToyboxPatterns
                         else
                         {
                             _patternHubService.UploadPatternToServer(_handler.EditingPatternIndex);
+                            UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Published, Guid.Empty, false);
                         }
                         ImGui.CloseCurrentPopup();
                     }
@@ -350,10 +352,12 @@ public class ToyboxPatterns
                 if (pattern.IsActive)
                 {
                     _playbackService.StopPattern(pattern.UniqueIdentifier, true);
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Stopped, pattern.UniqueIdentifier, false);
                 }
                 else
                 {
                     _playbackService.PlayPattern(pattern.UniqueIdentifier, pattern.StartPoint, pattern.Duration, true);
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Started, pattern.UniqueIdentifier, false);
                 }
                 // toggle the state & early return so we dont access the childclicked button
                 return;

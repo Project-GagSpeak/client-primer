@@ -59,6 +59,20 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
 
     #region PuppeteerSettings
 
+    public bool MessageContainsTriggerFromPair(string message)
+    {
+        foreach (var pair in _pairManager.DirectPairs)
+        {
+            string[] triggers = pair.UserPairUniquePairPerms.TriggerPhrase.Split("|");
+            if (triggers.Any(trigger => message.Contains(trigger)))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
     public void UpdateDisplayForNewPair(Pair pair)
     {
         // for firstime generations

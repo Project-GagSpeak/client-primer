@@ -95,6 +95,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
             // set that it is successfully connected and append it
             newDevice.IsConnected = true;
             Devices.Add(newDevice);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.DeviceConnected);
         }
         catch (Exception ex)
         {

@@ -19,6 +19,12 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 0, 1)
+            .RegisterMain("WARNING: 0.9.0.0 CURRENTLY INTRODUCED SOME DX11 CRASHES FROM PERFORMING CERTAIN ACTIONS.")
+            .RegisterFeature("I've done my best to catch all conditions that trigger dx11 crashes and contained them.")
+            .RegisterFeature("I've plugged in more event handles for triggers on achievement conditions.")
+            .RegisterFeature("I've applied trigger conditions for 20/37 total triggers, will do more when i wake up tomorrow.")
+            .RegisterBugfix("There are a lots, i know. Im panicking because of the deadline for open beta. Be gentle. Thanks.");
         VersionEntry(0, 9, 0, 0)
             .RegisterMain("Achievements are now implemented into GagSpeak.")
             .RegisterFeature("The Achievements Menu has been added to the homepage.")

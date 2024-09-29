@@ -82,28 +82,31 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
             {
                 Logger.LogInformation("The stored active Restraint Set is locked with a Timer Padlock. Unlocking Set.", LoggerType.Restraints);
                 // while this doesn't do anything client side, it will bump an update to the server, updating the active state data.
-                _clientConfigs.UnlockRestraintSet(setIdx, serverData.Assigner);
+                _clientConfigs.UnlockRestraintSet(setIdx, serverData.Assigner, false);
 
                 // if we have it set to remove sets that are unlocked automatically, do so.
                 if (_clientConfigs.GagspeakConfig.DisableSetUponUnlock)
                 {
                     Logger.LogInformation("Disabling Unlocked Set due to Config Setting.", LoggerType.Restraints);
                     // we should also update the active state data to disable the set.
-                    await _clientConfigs.SetRestraintSetState(setIdx, serverData.WardrobeActiveSetAssigner, NewState.Disabled);
+                    await _clientConfigs.SetRestraintSetState(setIdx, serverData.WardrobeActiveSetAssigner, NewState.Disabled, false);
                 }
             }
             // if it is not a set that had its time expired, then we should re-enable it, and re-lock it if it was locked.
             else
             {
                 Logger.LogInformation("Re-Enabling the stored active Restraint Set", LoggerType.Restraints);
-                await _clientConfigs.SetRestraintSetState(setIdx, serverData.WardrobeActiveSetAssigner, NewState.Enabled);
+                await _clientConfigs.SetRestraintSetState(setIdx, serverData.WardrobeActiveSetAssigner, NewState.Enabled, false);
                 // relock it if it had a timer.
                 if (serverData.Padlock != Padlocks.None.ToName())
                 {
                     Logger.LogInformation("Re-Locking the stored active Restraint Set", LoggerType.Restraints);
-                    _clientConfigs.LockRestraintSet(setIdx, serverData.Padlock, serverData.Password, serverData.Timer, serverData.Assigner);
+                    _clientConfigs.LockRestraintSet(setIdx, serverData.Padlock, serverData.Password, serverData.Timer, serverData.Assigner, false);
                 }
             }
+            // update the data. (Note, setting these to false may trigger a loophole by skipping over the monitored achievements,
+            // but its the only way to ensure that achievements are not cheesed upon connection. That I know of at least. Look into later.
+            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.FullDataUpdate));
         }
     }
 

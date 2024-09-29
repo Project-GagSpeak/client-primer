@@ -83,7 +83,7 @@ public class MainUiChat : DisposableMediatorSubscriberBase
             if (string.IsNullOrWhiteSpace(NextChatMessage)) return;
             // Send the message to the server
             Logger.LogTrace($"Sending Message: {NextChatMessage}");
-            _apiController.SendGlobalChat(new GlobalChatMessageDto(_apiController.PlayerUserData, NextChatMessage)).ConfigureAwait(false);
+            _apiController.SendGlobalChat(new GlobalChatMessageDto(ApiController.PlayerUserData, NextChatMessage)).ConfigureAwait(false);
             NextChatMessage = string.Empty;
         }
         if (shouldFocusChatInput)

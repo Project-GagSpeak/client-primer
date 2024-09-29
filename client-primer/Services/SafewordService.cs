@@ -83,6 +83,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             {
                 Logger.LogInformation("Stopping active pattern.", LoggerType.Safeword);
                 _patternPlaybackService.StopPattern(_patternPlaybackService.ActivePattern.UniqueIdentifier, false);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Stopped, _patternPlaybackService.ActivePattern.UniqueIdentifier, false);
                 Logger.LogInformation("Active pattern stopped.", LoggerType.Safeword);
             }
 
@@ -107,7 +108,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
                 _playerManager.GlobalPerms.SpatialVibratorAudio = false;
 
                 Logger.LogInformation("Pushing Global updates to the server.", LoggerType.Safeword);
-                _ = _apiController.UserPushAllGlobalPerms(new(_apiController.PlayerUserData, _playerManager.GlobalPerms));
+                _ = _apiController.UserPushAllGlobalPerms(new(ApiController.PlayerUserData, _playerManager.GlobalPerms));
                 Logger.LogInformation("Global updates pushed to the server.", LoggerType.Safeword);
             }
             Logger.LogInformation("Everything Disabled.", LoggerType.Safeword);
@@ -143,7 +144,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
 
         if (ApiController.ServerState is ServerState.Connected)
         {
-            _ = _apiController.UserUpdateOwnGlobalPerm(new(_apiController.PlayerUserData, new KeyValuePair<string, object>("HardcoreSafewordUsed", true)));
+            _ = _apiController.UserUpdateOwnGlobalPerm(new(ApiController.PlayerUserData, new KeyValuePair<string, object>("HardcoreSafewordUsed", true)));
         }
 
         // for each pair in our direct pairs, we should update any and all unique pair permissions to be set regarding Hardcore Status.

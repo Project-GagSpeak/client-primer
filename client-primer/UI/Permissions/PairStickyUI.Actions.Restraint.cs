@@ -1,6 +1,7 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.WebAPI;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data.Interfaces;
 using GagspeakAPI.Enums;
@@ -57,7 +58,7 @@ public partial class PairStickyUI
                         if (newWardrobe == null || onButtonPress == null) throw new Exception("Wardrobe data is null, not sending");
 
                         newWardrobe.ActiveSetName = onButtonPress;
-                        newWardrobe.ActiveSetEnabledBy = _apiController.UID;
+                        newWardrobe.ActiveSetEnabledBy = ApiController.UID;
                         _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobe, DataUpdateKind.WardrobeRestraintApplied));
                         _logger.LogDebug("Applying Restraint Set with GagPadlock "+onButtonPress.ToString()+" to "+PairNickOrAliasOrUID, LoggerType.Permissions);
                         Opened = InteractionType.ApplyRestraint;
@@ -125,7 +126,7 @@ public partial class PairStickyUI
                             newWardrobeData.Padlock = onButtonPress.ToName();
                             newWardrobeData.Password = _permActions.Password;
                             newWardrobeData.Timer = UiSharedService.GetEndTimeUTC(_permActions.Timer);
-                            newWardrobeData.Assigner = _apiController.UID;
+                            newWardrobeData.Assigner = ApiController.UID;
                             _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, DataUpdateKind.WardrobeRestraintLocked));
                             _logger.LogDebug("Locking Restraint Set with GagPadlock " + onButtonPress.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;
@@ -178,7 +179,7 @@ public partial class PairStickyUI
                             newWardrobeData.Padlock = selected.ToName();
                             newWardrobeData.Password = _permActions.Password;
                             newWardrobeData.Timer = DateTimeOffset.UtcNow;
-                            newWardrobeData.Assigner = _apiController.UID;
+                            newWardrobeData.Assigner = ApiController.UID;
                             _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, DataUpdateKind.WardrobeRestraintUnlocked));
                             _logger.LogDebug("Unlocking Restraint Set with GagPadlock " + selected.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;

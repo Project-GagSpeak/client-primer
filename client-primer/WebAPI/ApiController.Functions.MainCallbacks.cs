@@ -504,11 +504,15 @@ public partial class ApiController // Partial class for MainHub Callbacks
                 {
                     Logger.LogDebug("Executing Shock Instruction to UniquePair ShareCode", LoggerType.Callbacks);
                     _piShockProvider.ExecuteOperation(pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode, dto.OpCode, dto.Intensity, dto.Duration);
+                    if(dto.OpCode is 0)
+                        UnlocksEventManager.AchievementEvent(UnlocksEvent.ShockReceived);
                 }
                 else if (_clientCallbacks.ShockCodePresent)
                 {
                     Logger.LogDebug("Executing Shock Instruction to Global ShareCode", LoggerType.Callbacks);
                     _piShockProvider.ExecuteOperation(_clientCallbacks.GlobalPiShockShareCode, dto.OpCode, dto.Intensity, dto.Duration);
+                    if (dto.OpCode is 0)
+                        UnlocksEventManager.AchievementEvent(UnlocksEvent.ShockReceived);
                 }
                 else
                 {

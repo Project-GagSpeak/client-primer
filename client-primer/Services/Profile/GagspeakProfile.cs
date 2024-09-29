@@ -1,6 +1,7 @@
 using Dalamud.Interface.Textures.TextureWraps;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.Services;
 public class GagspeakProfile : DisposableMediatorSubscriberBase
@@ -28,7 +29,7 @@ public class GagspeakProfile : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<ClearProfileDataMessage>(this, (msg) =>
         {
-            if (msg.UserData == null || string.Equals(msg.UserData.UID, _uiShared.ApiController.UID, StringComparison.Ordinal))
+            if (msg.UserData == null || string.Equals(msg.UserData.UID, ApiController.UID, StringComparison.Ordinal))
             {
                 _lastProfileImage?.Dispose();
                 _lastProfileImage = null;

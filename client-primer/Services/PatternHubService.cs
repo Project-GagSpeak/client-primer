@@ -177,6 +177,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 string baseName = _clientConfigs.EnsureUniquePatternName(pattern.Name);
                 // Set the active pattern
                 _clientConfigs.AddNewPattern(pattern);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Downloaded, pattern.UniqueIdentifier, false);
             }
             _ = ClearTaskInOneSecond(() => DownloadPatternTask, () => DownloadPatternTask = null);
         }, TaskScheduler.Default);
@@ -204,6 +205,9 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 {
                     pattern.Likes += pattern.HasLiked ? -1 : 1;
                     pattern.HasLiked = !pattern.HasLiked;
+
+                    if (pattern.HasLiked)
+                        UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Liked, pattern.Identifier, false);
                 }
             }
             else
@@ -245,7 +249,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             UsesOscillation = false,
         };
         // construct the dto for the upload.
-        PatternUploadDto patternDto = new(_apiController.PlayerUserData, patternInfo, base64Pattern);
+        PatternUploadDto patternDto = new(ApiController.PlayerUserData, patternInfo, base64Pattern);
         // perform the api call for the upload.
         UploadPatternTask = _apiController.UploadPattern(patternDto);
         UploadPatternTask.ContinueWith(task =>

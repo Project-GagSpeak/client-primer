@@ -340,7 +340,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             || setProperties.Weighty || setProperties.LightStimulation || setProperties.MildStimulation || setProperties.HeavyStimulation;
     }
 
-    private async Task DisableRestraintSetHelper(int setIndex, bool pushToServer = true)
+    private async Task DisableRestraintSetHelper(int setIndex, bool pushToServer = true, string uidOfPair = Globals.SelfApplied)
     {
         var set = WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
         Logger.LogInformation("----- Disabling ["+set.Name+"] Begin -----", LoggerType.Restraints);
@@ -402,6 +402,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new RestraintSetToggledMessage(setIndex, set.EnabledBy, NewState.Disabled, pushToServer, disableRestraintGlamourTask));
         await disableRestraintGlamourTask.Task;
 
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, set, false, uidOfPair);
         set.Enabled = false;
         set.EnabledBy = string.Empty;
         Logger.LogInformation("----- Disabling ["+set.Name+"] End -----", LoggerType.Restraints);
@@ -468,8 +469,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new RestraintSetToggledMessage(setIndex, set.EnabledBy, NewState.Enabled, pushToServer, enableRestraintGlamourTask));
         await enableRestraintGlamourTask.Task;
         Logger.LogInformation("----- Enabling ["+set.Name+"] End -----", LoggerType.Restraints);
-
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplied, set, (AssignerUid == Globals.SelfApplied));
     }
     internal async Task SetRestraintSetState(int setIndex, string UIDofPair, NewState newState, bool pushToServer = true)
     {
@@ -478,7 +477,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         // lets us know when we have finished toggling the restraint set.
         if (newState == NewState.Disabled)
         {
-            await DisableRestraintSetHelper(setIndex, pushToServer);
+            await DisableRestraintSetHelper(setIndex, pushToServer, UIDofPair);
         }
         else
         {
@@ -488,7 +487,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             {
                 Logger.LogTrace("Another set was found to be active when attempting to enabling this set. " +
                     "Disabling other active sets first.", LoggerType.Restraints);
-                await DisableRestraintSetHelper(activeSetIdx, false);
+                await DisableRestraintSetHelper(activeSetIdx, false, UIDofPair);
             }
 
             // enable the restraint set.
@@ -512,8 +511,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             + "and a password ["+password+"] with ["+(endLockTimeUTC- DateTimeOffset.UtcNow) +"] by "+UIDofPair, LoggerType.Restraints);
 
         Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Locked, pushToServer));
-        // EVENT CHECK: might need to place in the callback if possible?
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, set, false, (UIDofPair == Globals.SelfApplied));
     }
 
     internal void UnlockRestraintSet(int setIndex, string UIDofPair, bool pushToServer = true)
@@ -527,8 +524,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _wardrobeConfig.Save();
 
         Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Unlocked, pushToServer));
-        // EVENT CHECK: might need to place in the callback if possible?
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, set, true, (UIDofPair == Globals.SelfApplied));
     }
 
     internal int GetRestraintSetCount() => WardrobeConfig.WardrobeStorage.RestraintSets.Count;

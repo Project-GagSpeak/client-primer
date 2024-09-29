@@ -49,7 +49,6 @@ public partial class AchievementManager
         gagComponent.AddProgress(GagLabels.OneMoreForTheCrowd, "Say anything longer than 5 words with LiveChatGarbler on in /shout", 1, "Messages Sent");
 
         gagComponent.AddDuration(GagLabels.SpeechSilverSilenceGolden, "Wear a gag continuously for 1 week", TimeSpan.FromDays(7), DurationTimeUnit.Hours, "Hours");
-
         gagComponent.AddDuration(GagLabels.TheKinkyLegend, "Wear a gag continuously for 2 weeks", TimeSpan.FromDays(14), DurationTimeUnit.Hours, "Hours");
 
         gagComponent.AddConditionalProgress(GagLabels.SilentButDeadly, "Complete 10 roulettes with a gag equipped", 10,
@@ -97,7 +96,7 @@ public partial class AchievementManager
 
         // fire event whenever iplayerchara object size changes????
         // Look into how to track this since we use the general object table.
-        wardrobeComponent.AddProgress(WardrobeLabels.CrowdPleaser, "Be restrained with 15 or more people around you.", 1, "Crowds Pleased");
+        wardrobeComponent.AddThreshold(WardrobeLabels.CrowdPleaser, "Be restrained with 15 or more people around you.", 15, "People Nearby");
 
         // fire trigger whenever a new visible pair is visible.
         wardrobeComponent.AddConditional(WardrobeLabels.Humiliation, "Be restrained with 5 or more GagSpeak Pairs nearby.", 
@@ -217,7 +216,7 @@ public partial class AchievementManager
         wardrobeComponent.AddProgress(WardrobeLabels.SoldSlave, "Have a password-locked restraint set locked by one GagSpeak user be unlocked by another.", 1, "Freedom Relinquished");
 
         // Bondodge - Within 2 seconds of having a restraint set applied to you, remove it from yourself (might want to add a duration conditional but idk?)
-        wardrobeComponent.AddConditionalDuration(WardrobeLabels.Bondodge, "Within 2 seconds of having a restraint set applied to you, remove it from yourself",
+        wardrobeComponent.AddTimeLimitedConditional(WardrobeLabels.Bondodge, "Within 2 seconds of having a restraint set applied to you, remove it from yourself",
             TimeSpan.FromSeconds(2), () => _clientConfigs.GetActiveSetIdx() != -1, DurationTimeUnit.Seconds, "Seconds (Within)", true);
 
         SaveData.Achievements[AchievementModuleKind.Wardrobe] = wardrobeComponent;
@@ -259,10 +258,11 @@ public partial class AchievementManager
         toyboxComponent.AddConditional(ToyboxLabels.MyFavoriteToys, "Connect a real device (Intiface / PiShock Device) to GagSpeak.", () =>
             { return _playerData.GlobalPiShockPerms != null || _vibeService.DeviceHandler.AnyDeviceConnected; }, "Devices Connected");
 
-        toyboxComponent.AddConditionalDuration(ToyboxLabels.MotivationForRestoration, "Play a pattern for over 30 minutes in Diadem.", TimeSpan.FromMinutes(30),
-            () => _clientConfigs.ActivePatternGuid() != Guid.Empty, DurationTimeUnit.Minutes, suffix: "Minutes");
+        toyboxComponent.AddRequiredTimeConditional(ToyboxLabels.MotivationForRestoration, "Play a pattern for over 30 minutes in Diadem.", TimeSpan.FromMinutes(30),
+            () => _clientConfigs.ActivePatternGuid() != Guid.Empty, DurationTimeUnit.Minutes, suffix: "Minutes vibrated in Diadem");
 
-        toyboxComponent.AddConditional(ToyboxLabels.KinkyGambler, "Complete a DeathRoll (win or loss) while having a DeathRoll trigger on.", () => _clientConfigs.ActiveSocialTriggers.Count() > 0, "DeathRolls Gambled");
+        toyboxComponent.AddConditional(ToyboxLabels.KinkyGambler, "Complete a DeathRoll (win or loss) while having a DeathRoll trigger on.", 
+            () => _clientConfigs.ActiveSocialTriggers.Count() > 0, "DeathRolls Gambled");
 
         toyboxComponent.AddProgress(ToyboxLabels.SubtleReminders, "Have 10 Triggers go off.", 10, "Triggers Fired");
         toyboxComponent.AddProgress(ToyboxLabels.FingerOnTheTrigger, "Have 100 Triggers go off.", 100, "Triggers Fired");
@@ -270,7 +270,8 @@ public partial class AchievementManager
 
         toyboxComponent.AddProgress(ToyboxLabels.HornyMornings, "Have an alarm go off.", 1, "Alarms Went Off");
 
-        toyboxComponent.AddConditionalProgress(ToyboxLabels.NothingCanStopMe, "Kill 500 enemies in PvP Frontlines while restrained or vibed.", 500, () => _frameworkUtils.ClientState.IsPvP, "Players Slain While Bound", false);
+        toyboxComponent.AddConditionalProgress(ToyboxLabels.NothingCanStopMe, "Kill 500 enemies in PvP Frontlines while restrained or vibed.", 500, 
+            () => _frameworkUtils.ClientState.IsPvP, "Players Slain While Bound", false);
 
         SaveData.Achievements[AchievementModuleKind.Toybox] = toyboxComponent;
         #endregion TOYBOX MODULE
@@ -287,16 +288,17 @@ public partial class AchievementManager
         hardcoreComponent.AddDuration(HardcoreLabels.ForcedWalkies, "Force someone to follow you for 5 minutes.", TimeSpan.FromMinutes(5), DurationTimeUnit.Seconds, "Seconds");
 
         // Time for Walkies achievements
-        hardcoreComponent.AddConditionalDuration(HardcoreLabels.TimeForWalkies, "Be forced to follow someone for 1 minute.", TimeSpan.FromMinutes(1),
+        hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.TimeForWalkies, "Be forced to follow someone for 1 minute.", TimeSpan.FromMinutes(1),
             () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow), DurationTimeUnit.Seconds, suffix: "Seconds");
-        hardcoreComponent.AddConditionalDuration(HardcoreLabels.GettingStepsIn, "Be forced to follow someone for 5 minutes.", TimeSpan.FromMinutes(5),
+        hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.GettingStepsIn, "Be forced to follow someone for 5 minutes.", TimeSpan.FromMinutes(5),
             () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow), DurationTimeUnit.Minutes, suffix: "Minutes");
-        hardcoreComponent.AddConditionalDuration(HardcoreLabels.WalkiesLover, "Be forced to follow someone for 10 minutes.", TimeSpan.FromMinutes(10),
+        hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.WalkiesLover, "Be forced to follow someone for 10 minutes.", TimeSpan.FromMinutes(10),
             () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow), DurationTimeUnit.Minutes, suffix: "Minutes");
 
         //Part of the Furniture - Be forced to sit for 1 hour or more
-        hardcoreComponent.AddConditionalDuration(HardcoreLabels.LivingFurniture, "Be forced to sit for 1 hour or more.", TimeSpan.FromHours(1),
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit), DurationTimeUnit.Minutes, suffix: "Minutes");
+        hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.LivingFurniture, "Be forced to sit for 1 hour or more.", TimeSpan.FromHours(1),
+            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit), 
+            DurationTimeUnit.Minutes, suffix: "Minutes Forced to Sit");
 
         hardcoreComponent.AddConditional(HardcoreLabels.WalkOfShame, "Be bound, blindfolded, and leashed in a major city.",
             () => _clientConfigs.GetActiveSetIdx() != -1
@@ -312,15 +314,15 @@ public partial class AchievementManager
         hardcoreComponent.AddConditional(HardcoreLabels.WhatAView, "Use the /lookout emote while wearing a blindfold.",
             () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded), "Blind Lookouts Performed");
 
-        hardcoreComponent.AddConditionalDuration(HardcoreLabels.WhoNeedsToSee, "Be blindfolded in hardcore mode for 3 hours.", TimeSpan.FromHours(3),
+        hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.WhoNeedsToSee, "Be blindfolded in hardcore mode for 3 hours.", TimeSpan.FromHours(3),
             () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded), DurationTimeUnit.Minutes, suffix: "Minutes");
 
 
-        hardcoreComponent.AddConditionalDuration(HardcoreLabels.PetTraining, "Be forced to stay in someone's house for 30 minutes.", TimeSpan.FromMinutes(30),
+        hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.PetTraining, "Be forced to stay in someone's house for 30 minutes.", TimeSpan.FromMinutes(30),
             () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay), DurationTimeUnit.Minutes, suffix: "Minutes");
-        hardcoreComponent.AddConditionalDuration(HardcoreLabels.NotGoingAnywhere, "Be forced to stay in someone's house for 1 hour.", TimeSpan.FromHours(1),
+        hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.NotGoingAnywhere, "Be forced to stay in someone's house for 1 hour.", TimeSpan.FromHours(1),
             () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay), DurationTimeUnit.Minutes, suffix: "Minutes");
-        hardcoreComponent.AddConditionalDuration(HardcoreLabels.HouseTrained, "Be forced to stay in someone's house for 1 day.", TimeSpan.FromDays(1),
+        hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.HouseTrained, "Be forced to stay in someone's house for 1 day.", TimeSpan.FromDays(1),
             () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay), DurationTimeUnit.Hours, suffix: "Hours");
 
         // Shock-related achievements - Give out shocks
@@ -369,7 +371,7 @@ public partial class AchievementManager
 
         genericComponent.AddProgress(GenericLabels.KnowsMyLimits, "Use your Safeword for the first time.", 1, "Safewords Used");
 
-        genericComponent.AddConditionalDuration(GenericLabels.WarriorOfLewd, "View a Cutscene while Bound and Gagged.", TimeSpan.FromSeconds(30),
+        genericComponent.AddRequiredTimeConditional(GenericLabels.WarriorOfLewd, "View a Cutscene while Bound and Gagged.", TimeSpan.FromSeconds(30),
             () => _playerData.IsPlayerGagged() && _clientConfigs.GetActiveSetIdx() != -1, DurationTimeUnit.Seconds, suffix: "Seconds");
 
         genericComponent.AddConditional(GenericLabels.EscapingIsNotEasy, "Change your equipment/change job while locked in a restraint set ", () => _clientConfigs.GetActiveSetIdx() != -1, "Escape Attempts Made");
@@ -381,13 +383,13 @@ public partial class AchievementManager
 
         #region SECRETS MODULE
         var secretsComponent = new AchievementComponent(_completionNotifier);
-        secretsComponent.AddProgress(SecretLabels.TooltipLogos, "Click on all module logo icons to unlock this achievement", 8, "Easter Eggs Found");
+        secretsComponent.AddProgress(SecretLabels.TooltipLogos, "Click on all module logo icons to unlock this achievement", 8, "Easter Eggs Found", isSecret: true);
 
         secretsComponent.AddConditional(SecretLabels.Experimentalist, "Activate a Gag, Restraint Set, Toy, Trigger, Alarm, and Pattern at the same time", () =>
         {
             return _playerData.IsPlayerGagged() && _clientConfigs.GetActiveSetIdx() != -1 && _clientConfigs.ActivePatternGuid() != Guid.Empty
             && _clientConfigs.ActiveTriggers.Count() > 0 && _clientConfigs.ActiveAlarmCount > 0 && _vibeService.ConnectedToyActive;
-        }, "Conditions Met");
+        }, "Conditions Met", isSecret: true);
 
         // Fire check upon sending a garbled message in chat
         secretsComponent.AddConditional(SecretLabels.HelplessDamsel, "While in hardcore mode, follow or sit while having a toy, restraint, and gag active, then send a garbled message in chat", () =>
@@ -395,22 +397,24 @@ public partial class AchievementManager
             return _playerData.IsPlayerGagged() && _clientConfigs.GetActiveSetIdx() != -1 && _vibeService.ConnectedToyActive
             && _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.InHardcore
             && _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow || x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit));
-        }, "Hardcore Conditions Met");
+        }, "Hardcore Conditions Met", isSecret: true);
 
-        secretsComponent.AddConditional(SecretLabels.GaggedPleasure, "Be gagged and Vibrated at the same time", () => _vibeService.ConnectedToyActive && _playerData.IsPlayerGagged(), "Pleasure Requirements Met");
+        secretsComponent.AddConditional(SecretLabels.GaggedPleasure, "Be gagged and Vibrated at the same time", 
+            () => _vibeService.ConnectedToyActive && _playerData.IsPlayerGagged(), "Pleasure Requirements Met", isSecret: true);
 
         // Check whenever we receive a new player visible message
-        secretsComponent.AddConditional(SecretLabels.BondageClub, "Have at least 8 pairs near you at the same time", () => _pairManager.GetVisiblePairGameObjects().Count >= 8, "BondageClub Formed");
+        secretsComponent.AddThreshold(SecretLabels.BondageClub, "Have at least 8 pairs near you at the same time", 8, "Club Members Gathered", isSecret: true);
 
-        secretsComponent.AddConditional(SecretLabels.BadEndHostage, "Get KO'd while in a Restraint Set", () => _clientConfigs.GetActiveSetIdx() != -1 && (_frameworkUtils.ClientState.LocalPlayer?.IsDead ?? false), "Times you Became a Hostage");
+        secretsComponent.AddConditional(SecretLabels.BadEndHostage, "Get KO'd while in a Restraint Set", 
+            () => _clientConfigs.GetActiveSetIdx() != -1 && (_frameworkUtils.ClientState.LocalPlayer?.IsDead ?? false), "Hostage BadEnd's Occurred", isSecret: true);
 
         // track these in a helper function of sorts, compare against the list of preset id's and make sure all are contained in it. Each time the condition is achieved, increase the point.
         // TODO: Come back to this one later, requires setting up a custom list for it. We will have a special helper for this.
-        secretsComponent.AddTimedProgress(SecretLabels.WorldTour, "Visit every major city Aetheryte plaza while bound, 2 minutes in each", 7, TimeSpan.FromMinutes(2), "Tours Taken");
+        secretsComponent.AddTimedProgress(SecretLabels.WorldTour, "Visit every major city Aetheryte plaza while bound, 2 minutes in each", 7, TimeSpan.FromMinutes(2), "Tours Taken", isSecret: true);
 
         // Listen for a chat message prompt requiring you to /say something, and once that occurs, check if the player is gagged.
         secretsComponent.AddConditionalProgress(SecretLabels.SilentProtagonist, "Be Gagged with the LiveChatGarbler active, while having an active quest requiring you to /say something", 1,
-            () => _playerData.IsPlayerGagged() && _playerData.GlobalPerms!.LiveChatGarblerActive, "MissTypes Made");
+            () => _playerData.IsPlayerGagged() && _playerData.GlobalPerms!.LiveChatGarblerActive, "MissTypes Made", isSecret: true);
         // DO THE ABOVE
         // VIA EXPERIMENTATION
         // AFTER WE GET THE PLUGIN TO RUN AGAIN.
@@ -419,21 +423,22 @@ public partial class AchievementManager
         // TRACK THE ACTION EFFECT
         // THAT HAPPENS
         // ON FALL DAMAGE CONDITION
-        secretsComponent.AddConditional(SecretLabels.BoundgeeJumping, "Jump off a cliff while in Bondage", () => _clientConfigs.GetActiveSetIdx() != -1, "Dangerous Acts Attempted");
+        secretsComponent.AddConditional(SecretLabels.BoundgeeJumping, "Jump off a cliff while in Bondage", () => _clientConfigs.GetActiveSetIdx() != -1, "Dangerous Acts Attempted", isSecret: true);
 
-        secretsComponent.AddConditionalProgress(SecretLabels.KinkyTeacher, "Receive 10 commendations while bound", 10, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", false);
-        secretsComponent.AddConditionalProgress(SecretLabels.KinkyProfessor, "Receive 50 commendations while bound", 50, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", false);
-        secretsComponent.AddConditionalProgress(SecretLabels.KinkyMentor, "Receive 100 commendations while bound", 100, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", false);
+        secretsComponent.AddConditionalProgress(SecretLabels.KinkyTeacher, "Receive 10 commendations while bound", 10, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", false, isSecret: true);
+        secretsComponent.AddConditionalProgress(SecretLabels.KinkyProfessor, "Receive 50 commendations while bound", 50, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", false, isSecret: true);
+        secretsComponent.AddConditionalProgress(SecretLabels.KinkyMentor, "Receive 100 commendations while bound", 100, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", false, isSecret: true);
 
         // Make this more logical later, but for now just see if you're restrained while no longer logged in.
         // WILL ADD
         // THIS LATER
         // AND STUFF
         secretsComponent.AddConditional(SecretLabels.AsIfThingsCouldntGetAnyWorse, "Get disconnected (90k) while in bondage", () =>
-        { return _clientConfigs.GetActiveSetIdx() != -1 && !_frameworkUtils.ClientState.IsLoggedIn; }, "Fatal Strikes Blown");
+        { return _clientConfigs.GetActiveSetIdx() != -1 && !_frameworkUtils.ClientState.IsLoggedIn; }, "Fatal Strikes Blown", isSecret: true);
 
         // Overkill - Bind someone in all available slots
-        secretsComponent.AddProgress(SecretLabels.Overkill, "Get Bound by someone with a restraint set that takes up all available slots", 1, "Restriction Conditions Satisfied"); // <-- Would need to handle the conditional here in the action resolution prior to the call.
+        // <-- Would need to handle the conditional here in the action resolution prior to the call.
+        secretsComponent.AddProgress(SecretLabels.Overkill, "Get Bound by someone with a restraint set that takes up all available slots", 1, "Restriction Conditions Satisfied", isSecret: true); 
 
         // Opportunist - Bind someone who just recently restrained anyone
         // AddProgress(SecretLabels.Opportunist, "Bind someone who recently restrained another", 1); <---- Unsure how to do this, unless they are binding another pair you have.
@@ -450,7 +455,7 @@ public partial class AchievementManager
                     raceEndVisible = raceEnded->RootNode->IsVisible();
             };
             return isRacing && raceEndVisible && _clientConfigs.GetActiveSetIdx() != -1;
-        }, "Races Won In Unusual Conditions");
+        }, "Races Won In Unusual Conditions", isSecret: true);
 
         // Bound Triad - Win a Triple Triad match against another GagSpeak user (both bound)
         // AddProgress(SecretLabels.BoundTriad, "Win a Triple Triad match against another GagSpeak user, both bound", 1); <---- Unsure how to atm.
@@ -472,7 +477,7 @@ public partial class AchievementManager
                     fashionCheckVisible = fashionCheckOpen->RootNode->IsVisible();
             };
             return fashionCheckVisible && _clientConfigs.GetActiveSetIdx() != -1 && _playerData.IsPlayerGagged();
-        }, "Presentations Given on Stage"); // dont require them for now, but could be a fun one to add later.
+        }, "Presentations Given on Stage", isSecret: true);
 
         SaveData.Achievements[AchievementModuleKind.Secrets] = secretsComponent;
         #endregion SECRETS MODULE

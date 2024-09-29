@@ -61,6 +61,7 @@ public sealed class PlaybackService
             {
                 // stop the active pattern (maybe set this to false since we are sending another update right after)
                 StopPattern(activeId, true);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Stopped, activeId, false);
             }
         }
 

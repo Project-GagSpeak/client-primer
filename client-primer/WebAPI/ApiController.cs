@@ -35,7 +35,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
     private bool _doNotNotifyOnNextInfo = false;                    // flag to not notify on next info
     // gagspeak hub variables
-    private ConnectionDto? _connectionDto;                          // dto of our connection to main server
+    private static ConnectionDto? _connectionDto = null; // The static instance of our connectionDto.
     private CancellationTokenSource _connectionCTS;                 // token for connection creation
     private CancellationTokenSource? _healthCTS = new();            // token for health check
     private bool _initialized;                                      // flag for if the hub is initialized
@@ -89,7 +89,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     }
 
     public string AuthFailureMessage { get; private set; } = string.Empty;                                  // the authentication failure msg
-    public Version CurrentClientVersion => _connectionDto?.CurrentClientVersion ?? new Version(0, 0, 0);    // current client version
+    public static Version CurrentClientVersion => _connectionDto?.CurrentClientVersion ?? new Version(0, 0, 0);    // current client version
     public string DisplayName => _connectionDto?.User.AliasOrUID ?? string.Empty;                           // display name of user (the UID you see in the UI for yourself)
     public bool IsConnected => ServerState == ServerState.Connected;                                        // if we are connected to the server
     public bool IsToyboxConnected => ToyboxServerState == ServerState.Connected;                            // if we are connected to the toybox server
@@ -98,8 +98,8 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     public int OnlineUsers => SystemInfoDto.OnlineUsers;                                                    // the number of online users logged into the server
     public int ToyboxOnlineUsers => SystemInfoDto.OnlineToyboxUsers;
     public SystemInfoDto SystemInfoDto { get; private set; } = new();                                       // the system info data transfer object
-    public string UID => _connectionDto?.User.UID ?? string.Empty;                                          // the UID of the connected client user
-    public UserData PlayerUserData => _connectionDto!.User;                                                        // the user data of the connected client user
+    public static string UID => _connectionDto?.User.UID ?? string.Empty;                                          // the UID of the connected client user
+    public static UserData PlayerUserData => _connectionDto!.User;                                                        // the user data of the connected client user
     public static ServerState ServerState
     {
         get => _serverState;

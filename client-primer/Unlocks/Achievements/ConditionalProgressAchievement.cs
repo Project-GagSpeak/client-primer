@@ -30,11 +30,14 @@ public class ConditionalProgressAchievement : Achievement
     public bool ConditionalTaskFinished { get; set; }
 
     public ConditionalProgressAchievement(INotificationManager notify, string title, string description, int goal,
-        Func<bool> requiredState, bool requireTaskBeginAndFinish = true, string unit = "") 
-        : base(notify, title, description, goal, unit)
+        Func<bool> requiredState, bool requireTaskBeginAndFinish = true, string unit = "", bool isSecret = false)
+        : base(notify, title, description, goal, unit, isSecret)
     {
         RequiredCondition = requiredState;
         Progress = 0;
+        RequireTaskBeginAndFinish = requireTaskBeginAndFinish;
+        ConditionalTaskBegun = false;
+        ConditionalTaskFinished = false;
     }
 
     public override int CurrentProgress() => IsCompleted ? MilestoneGoal : Progress;

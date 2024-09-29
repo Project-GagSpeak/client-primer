@@ -214,6 +214,18 @@ public class Pair
     {
         _logger.LogDebug("Applying updated wardrobe data for "+data.User.UID, LoggerType.PairManagement);
         LastReceivedWardrobeData = data.WardrobeData;
+
+        // depend on the EnabledBy field to know if we applied.
+        if (data.UpdateKind == DataUpdateKind.WardrobeRestraintApplied)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintApplied);
+
+        // We can only detect the lock uid by listening for the assigner UID. Unlocks are processed via the actions tab.
+        if (data.UpdateKind is DataUpdateKind.WardrobeRestraintLocked)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintLockChange, data.WardrobeData.Padlock.ToPadlock(), true, data.User.UID);
+
+        // We can only detect the unlock uid by listening for the assigner UID. Unlocks are processed via the actions tab.
+        if (data.UpdateKind is DataUpdateKind.WardrobeRestraintUnlocked)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintLockChange, data.WardrobeData.Padlock.ToPadlock(), false, data.User.UID);
     }
 
     /// <summary>

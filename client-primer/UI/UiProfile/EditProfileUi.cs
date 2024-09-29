@@ -84,7 +84,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     {
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         // grab our profile.
-        var profile = _gagspeakProfileManager.GetGagspeakProfile(new UserData(_apiController.UID));
+        var profile = _gagspeakProfileManager.GetGagspeakProfile(new UserData(ApiController.UID));
 
         // check if flagged
         if (profile.Flagged)
@@ -194,7 +194,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             _uploadedImageToShow = null;
             _croppedImageToShow = null;
             _useCompressedImage = false;
-            _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, "", Description: null));
+            _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(ApiController.UID), Disabled: false, "", Description: null));
         }
         UiSharedService.AttachToolTip("Clear your currently uploaded profile picture");
         if (_showFileDialogError)
@@ -219,7 +219,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         /*
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, "Save Profile"))
         {
-            // _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, profile.Base64ProfilePicture, profile.Description));
+            // _ = _apiController.UserSetProfile(new UserProfileDto(new UserData(ApiController.UID), Disabled: false, profile.Base64ProfilePicture, profile.Description));
         }*/
         UiSharedService.AttachToolTip("Updated your stored profile with latest information");
     }
@@ -340,7 +340,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                     }
                     try
                     {
-                        await _apiController.UserSetProfile(new UserProfileDto(new UserData(_apiController.UID), Disabled: false, Convert.ToBase64String(_croppedImageData!), Description: null)).ConfigureAwait(false);
+                        await _apiController.UserSetProfile(new UserProfileDto(new UserData(ApiController.UID), Disabled: false, Convert.ToBase64String(_croppedImageData!), Description: null)).ConfigureAwait(false);
                         _logger.LogInformation("Image Sent to server successfully.");
                     }
                     catch (Exception ex)

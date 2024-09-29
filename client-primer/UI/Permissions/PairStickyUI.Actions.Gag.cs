@@ -1,6 +1,7 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.WebAPI;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data.Interfaces;
 using GagspeakAPI.Enums;
@@ -64,6 +65,7 @@ public partial class PairStickyUI
                         };
                         _ = _apiController.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
                         _logger.LogDebug("Applying Selected Gag "+onButtonPress.GagName()+" to "+UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
+                        UnlocksEventManager.AchievementEvent(UnlocksEvent.PairGagAction, onButtonPress.GagName());
                         Opened = InteractionType.None;
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated appearance data: " + e.Message); }
@@ -111,7 +113,7 @@ public partial class PairStickyUI
                             newAppearance.GagSlots[_permActions.GagLayer].Padlock = onButtonPress.ToName();
                             newAppearance.GagSlots[_permActions.GagLayer].Password = _permActions.Password;
                             newAppearance.GagSlots[_permActions.GagLayer].Timer = UiSharedService.GetEndTimeUTC(_permActions.Timer);
-                            newAppearance.GagSlots[_permActions.GagLayer].Assigner = _apiController.UID;
+                            newAppearance.GagSlots[_permActions.GagLayer].Assigner = ApiController.UID;
                             DataUpdateKind updateKind = _permActions.GagLayer switch
                             {
                                 0 => DataUpdateKind.AppearanceGagLockedLayerOne,
@@ -170,7 +172,7 @@ public partial class PairStickyUI
                             newAppearance.GagSlots[_permActions.GagLayer].Padlock = selected.ToName();
                             newAppearance.GagSlots[_permActions.GagLayer].Password = _permActions.Password;
                             newAppearance.GagSlots[_permActions.GagLayer].Timer = DateTimeOffset.UtcNow;
-                            newAppearance.GagSlots[_permActions.GagLayer].Assigner = _apiController.UID;
+                            newAppearance.GagSlots[_permActions.GagLayer].Assigner = ApiController.UID;
                             DataUpdateKind updateKind = _permActions.GagLayer switch
                             {
                                 0 => DataUpdateKind.AppearanceGagUnlockedLayerOne,

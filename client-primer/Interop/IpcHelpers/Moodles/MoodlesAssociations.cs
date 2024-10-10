@@ -1,5 +1,6 @@
 using Dalamud.Interface;
 using Dalamud.Utility;
+using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services;
@@ -7,11 +8,13 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
 using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Character;
+using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Enums;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Raii;
 using System.Numerics;
+using System.Xml.Linq;
 
 namespace GagSpeak.Interop.IpcHelpers.Moodles;
 public class MoodlesAssociations : DisposableMediatorSubscriberBase
@@ -196,8 +199,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
 
         ImGui.TableNextColumn();
         var length = ImGui.GetContentRegionAvail().X;
-        string label = ipcData.MoodlesStatuses.FirstOrDefault(x => x.GUID == SelectedStatusGuid).Title ?? "None";
-        _moodlesService.DrawMoodleStatusCombo(label + "##StatusSelector", length, ipcData.MoodlesStatuses, 
+        _moodlesService.DrawMoodleStatusCombo("##MoodlesAssociationStatusSelector", length, ipcData.MoodlesStatuses, 
             (i) => SelectedStatusGuid = i ?? Guid.Empty, 1.25f);
     }
 
@@ -224,5 +226,19 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
         var length = ImGui.GetContentRegionAvail().X;
         _moodlesService.DrawMoodlesPresetCombo("RestraintSetPresetSelector", length, ipcData.MoodlesPresets, 
             ipcData.MoodlesStatuses, (i) => SelectedPresetGuid = i ?? Guid.Empty);
+    }
+
+    public void MoodlesStatusSelectorForCursedItem(CursedItem cursedItem, CharacterIPCData ipcData, float width)
+    {
+        if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus)
+        {
+            _moodlesService.DrawMoodleStatusCombo("##CursedItemMoodleStatusSelector", width, ipcData.MoodlesStatuses,
+                (i) => cursedItem.MoodleIdentifier = i ?? Guid.Empty, 1.25f);
+        }
+        else
+        {
+            _moodlesService.DrawMoodlesPresetCombo("##CursedItemMoodlePresetSelector", width, ipcData.MoodlesPresets,
+                ipcData.MoodlesStatuses, (i) => cursedItem.MoodleIdentifier = i ?? Guid.Empty);
+        }
     }
 }

@@ -13,17 +13,12 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 [Serializable]
 public record RestraintSet : IMoodlesAssociable
 {
-    [JsonIgnore]
-    private readonly ItemIdVars _itemIdVars;
-
-    public RestraintSet(ItemIdVars itemHelpers)
+    public RestraintSet()
     {
-        _itemIdVars = itemHelpers;
-
         // Initialize DrawData in the constructor
         DrawData = EquipSlotExtensions.EqdpSlots.ToDictionary(
             slot => slot,
-            slot => new EquipDrawData(_itemIdVars, ItemIdVars.NothingItem(slot))
+            slot => new EquipDrawData(ItemIdVars.NothingItem(slot))
             {
                 Slot = slot,
                 IsEnabled = false,
@@ -66,8 +61,6 @@ public record RestraintSet : IMoodlesAssociable
     public List<Guid> AssociatedMoodles { get; private set; } = new List<Guid>();
     public List<Guid> AssociatedMoodlePresets { get; private set; } = new List<Guid>();
 
-    // Customize+ preset to activate here soon when it stops being a bitch.
-
     // Spatial Audio Sound Type to use while this restraint set is active. [WIP]
 
 
@@ -84,7 +77,7 @@ public record RestraintSet : IMoodlesAssociable
     public RestraintSet DeepCloneSet()
     {
         // Clone basic properties
-        var clonedSet = new RestraintSet(_itemIdVars)
+        var clonedSet = new RestraintSet()
         {
             // do not clone guid
             Name = this.Name,
@@ -255,11 +248,11 @@ public record RestraintSet : IMoodlesAssociable
                             gameStain = StainIds.None;
                         }
 
-                        var drawData = new EquipDrawData(_itemIdVars, ItemIdVars.NothingItem(equipmentSlot))
+                        var drawData = new EquipDrawData(ItemIdVars.NothingItem(equipmentSlot))
                         {
                             Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), itemObject["Slot"]?.Value<string>() ?? string.Empty),
                             IsEnabled = itemObject["IsEnabled"]?.Value<bool>() ?? false,
-                            GameItem = _itemIdVars.Resolve(equipmentSlot, new CustomItemId(customItemId)),
+                            GameItem = ItemIdVars.Resolve(equipmentSlot, new CustomItemId(customItemId)),
                             GameStain = gameStain
                         };
 

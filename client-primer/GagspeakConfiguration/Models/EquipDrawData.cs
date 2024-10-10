@@ -13,23 +13,16 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 [Serializable]
 public record EquipDrawData
 {
-    [JsonIgnore]
-    private readonly ItemIdVars _itemHelpers;
-
     public bool IsEnabled { get; set; } = false; // determines if it will be applied during event handling.
     public EquipSlot Slot { get; set; } = EquipSlot.Head;
     public EquipItem GameItem { get; set; } = new EquipItem();
     public StainIds GameStain { get; set; } = StainIds.None;
 
-    public EquipDrawData(ItemIdVars itemHelper, EquipItem gameItem)
-    {
-        _itemHelpers = itemHelper;
-        GameItem = gameItem;
-    }
+    public EquipDrawData(EquipItem gameItem) => GameItem = gameItem;
 
     public EquipDrawData DeepCloneDrawData()
     {
-        return new EquipDrawData(_itemHelpers, GameItem)
+        return new EquipDrawData(GameItem)
         {
             IsEnabled = this.IsEnabled,
             Slot = this.Slot,
@@ -54,7 +47,7 @@ public record EquipDrawData
         IsEnabled = jsonObject["IsEnabled"]?.Value<bool>() ?? false;
         Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
         ulong customItemId = jsonObject["CustomItemId"]?.Value<ulong>() ?? 4294967164;
-        GameItem = _itemHelpers.Resolve(Slot, new CustomItemId(customItemId));
+        GameItem = ItemIdVars.Resolve(Slot, new CustomItemId(customItemId));
         // Parse the StainId
         var gameStainString = jsonObject["GameStain"]?.Value<string>() ?? "0,0";
         var stainParts = gameStainString.Split(',');

@@ -7,15 +7,11 @@ using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components;
-using GagSpeak.UI.Components.Combos;
 using GagSpeak.Utils;
 using ImGuiNET;
-using Microsoft.Extensions.Logging;
 using OtterGui.Classes;
 using OtterGui.Text;
-using Penumbra.GameData.DataContainers;
 using Penumbra.GameData.Enums;
 using System.Numerics;
 
@@ -28,24 +24,22 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
     private readonly RestraintSetEditor _editor;
     private readonly SetPreviewComponent _setPreview;
     private readonly WardrobeHandler _handler;
-    private readonly ItemIdVars _itemHelper;
     private readonly GagManager _padlockHandler;
 
     public RestraintSetManager(ILogger<RestraintSetManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         IpcCallerGlamourer ipcGlamourer, RestraintSetEditor editor,
         SetPreviewComponent setPreview, WardrobeHandler handler,
-        ItemIdVars itemHelper, GagManager padlockHandler) : base(logger, mediator)
+        GagManager padlockHandler) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
         _ipcGlamourer = ipcGlamourer;
         _editor = editor;
         _handler = handler;
-        _itemHelper = itemHelper;
         _padlockHandler = padlockHandler;
         _setPreview = setPreview;
 
-        CreatedRestraintSet = new RestraintSet(_itemHelper);
+        CreatedRestraintSet = new RestraintSet();
 
         Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) => LastHoveredIndex = -1);
 
@@ -154,7 +148,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 {
                     // now calculate it so that the cursors Yposition centers the button in the middle height of the text
                     ImGui.SetCursorPosX(ImGui.GetCursorPosX() + (ImGui.GetContentRegionAvail().X / 2 - textSize.X / 2));
-                    ImGui.SetCursorPosY(startYpos+3f);
+                    ImGui.SetCursorPosY(startYpos + 3f);
                     _uiShared.BigText("Set Preview");
                 }
                 ImGui.Separator();
@@ -194,7 +188,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             if (_uiShared.IconButton(FontAwesomeIcon.Plus))
             {
                 // reset the createdRestraintSet to a new restraintSet, and set editing restraintSet to true
-                CreatedRestraintSet = new RestraintSet(_itemHelper);
+                CreatedRestraintSet = new RestraintSet();
                 CreatingRestraintSet = true;
             }
             UiSharedService.AttachToolTip("Create a new Restraint Set");
@@ -227,7 +221,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             if (_uiShared.IconButton(FontAwesomeIcon.ArrowLeft))
             {
                 // reset the createdRestraintSet to a new restraintSet, and set editing restraintSet to true
-                CreatedRestraintSet = new RestraintSet(_itemHelper);
+                CreatedRestraintSet = new RestraintSet();
                 CreatingRestraintSet = false;
             }
             UiSharedService.AttachToolTip("Exit to Restraint Set List");
@@ -250,7 +244,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                     // add the newly created restraintSet to the list of restraintSets
                     _handler.AddNewRestraintSet(CreatedRestraintSet);
                     // reset to default and turn off creating status.
-                    CreatedRestraintSet = new RestraintSet(_itemHelper);
+                    CreatedRestraintSet = new RestraintSet();
                     CreatingRestraintSet = false;
                 }
                 UiSharedService.AttachToolTip("Save and Create Restraint Set");

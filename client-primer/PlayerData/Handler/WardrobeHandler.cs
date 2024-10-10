@@ -146,19 +146,6 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public EquipDrawData GetBlindfoldDrawData() => _clientConfigs.GetBlindfoldItem();
     public void SetBlindfoldDrawData(EquipDrawData drawData) => _clientConfigs.SetBlindfoldItem(drawData);
 
-
-    public CursedLootModel GetCursedLootModel() => _clientConfigs.CursedLootModel;
-    public List<CursedItem> GetCursedLootItems() => _clientConfigs.GetCursedLootList;
-    public List<RestraintSet> ActiveCursedSetList => _clientConfigs.GetActiveCursedLootSets();
-    public List<RestraintSet> NonCursedSetList => _clientConfigs.GetNonCursedLootSets();
-    public void AddSetToCursedLootList(Guid setId) => _clientConfigs.AddCursedLoot(setId);
-    public void RemoveSetFromCursedLootList(Guid setId) => _clientConfigs.RemoveCursedLoot(setId);
-    public void AddGagToCursedItem(int idx, GagType gag) => _clientConfigs.AddGagToCursedItem(idx, gag);
-    public void RemoveGagFromCursedItem(int idx) => _clientConfigs.RemoveGagFromCursedItem(idx);
-    public void SetCursedLootLowerRange(TimeSpan timeMin) => _clientConfigs.SetCursedLootLowerRange(timeMin);
-    public void SetCursedLootUpperRange(TimeSpan timeMax) => _clientConfigs.SetCursedLootUpperRange(timeMax);
-    public void SetCursedLootLockChance(int chance) => _clientConfigs.SetCursedLootLockChance(chance);
-
     private void CheckLockedSet()
     {
         if (ActiveSet == null) return;

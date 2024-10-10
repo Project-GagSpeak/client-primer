@@ -7,12 +7,13 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 [Serializable]
 public class BlindfoldModel
 {
-    [JsonIgnore]
-    private readonly ItemIdVars _itemHelper;
-    public BlindfoldModel(ItemIdVars itemHelper)
+    public BlindfoldModel()
     {
-        _itemHelper = itemHelper;
-        BlindfoldItem = new EquipDrawData(_itemHelper, (ItemIdVars.NothingItem(EquipSlot.Head))) { Slot = EquipSlot.Head, IsEnabled = false };
+        BlindfoldItem = new EquipDrawData(ItemIdVars.NothingItem(EquipSlot.Head)) 
+        { 
+            Slot = EquipSlot.Head, 
+            IsEnabled = false 
+        };
     }
 
     public bool ForceHeadgearOnEnable { get; set; } = false;

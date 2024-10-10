@@ -11,6 +11,7 @@ using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace GagSpeak.Utils;
 
@@ -114,6 +115,20 @@ public static class UtilsExtensions
 
     public static string GetNameWithWorld(this IPlayerCharacter pc)
         => pc == null ? null : (pc.Name.ToString() + "@" + pc.HomeWorld.GameData.Name);
+
+
+    public static string StripColorTags(this string input)
+    {
+        // Define a regex pattern to match any [color=...] and [/color] tags
+        string pattern = @"\[\/?color(=[^\]]*)?\]";
+
+        // Use Regex.Replace to remove the tags
+        string result = Regex.Replace(input, pattern, string.Empty);
+
+        return result;
+    }
+
+
 
     public static unsafe AtkUnitBase* Base(this AddonArgs args) => (AtkUnitBase*)args.Addon;
 

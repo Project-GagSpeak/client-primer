@@ -6,7 +6,6 @@ using Penumbra.GameData.Structs;
 namespace GagSpeak.GagspeakConfiguration.Models;
 
 /// <summary> Model for the draw data of a players equipment slot </summary>
-/// <param name="gameItem"> the game item we are storing the drawdata of.</param>
 [Serializable]
 public record BonusDrawData
 {

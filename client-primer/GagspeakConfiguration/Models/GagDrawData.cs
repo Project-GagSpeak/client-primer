@@ -10,9 +10,6 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 [Serializable]
 public record GagDrawData : IMoodlesAssociable
 {
-    [JsonIgnore]
-    private readonly ItemIdVars _itemHelpers;
-
     public bool IsEnabled { get; set; } = true;
     public EquipSlot Slot { get; set; } = EquipSlot.Head;
     public EquipItem GameItem { get; set; }
@@ -30,14 +27,7 @@ public record GagDrawData : IMoodlesAssociable
 
     // Spatial Audio type to use while gagged. (May not use since will just have one type?)
 
-
-    [JsonIgnore]
-    public int ActiveSlotId => Array.IndexOf(EquipSlotExtensions.EqdpSlots.ToArray(), Slot);
-    public GagDrawData(ItemIdVars itemHelper, EquipItem gameItem)
-    {
-        _itemHelpers = itemHelper;
-        GameItem = gameItem;
-    }
+    public GagDrawData(EquipItem gameItem) => GameItem = gameItem;
 
     // In EquipDrawData
     public JObject Serialize()
@@ -76,7 +66,7 @@ public record GagDrawData : IMoodlesAssociable
 
         Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
         ulong customItemId = jsonObject["CustomItemId"]?.Value<ulong>() ?? 4294967164;
-        GameItem = _itemHelpers.Resolve(Slot, new CustomItemId(customItemId));
+        GameItem = ItemIdVars.Resolve(Slot, new CustomItemId(customItemId));
 
         // Parse the StainId
         var gameStainString = jsonObject["GameStain"]?.Value<string>() ?? "0,0";

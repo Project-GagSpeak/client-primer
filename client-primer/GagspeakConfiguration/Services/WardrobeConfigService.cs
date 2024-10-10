@@ -6,11 +6,9 @@ namespace GagSpeak.GagspeakConfiguration;
 
 public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
 {
-    private readonly ItemIdVars _itemHelper;
-
     public const string ConfigName = "wardrobe.json";
     public const bool PerCharacterConfig = true;
-    public WardrobeConfigService(ItemIdVars itemHelper, string configDir) : base(configDir) { _itemHelper = itemHelper; }
+    public WardrobeConfigService(string configDir) : base(configDir) { }
 
     protected override string ConfigurationName => ConfigName;
     protected override bool PerCharacterConfigPath => PerCharacterConfig;
@@ -133,7 +131,7 @@ public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
         JToken wardrobeStorageToken = configJson["WardrobeStorage"];
         if (wardrobeStorageToken != null)
         {
-            WardrobeStorage wardrobeStorage = new WardrobeStorage(_itemHelper);
+            WardrobeStorage wardrobeStorage = new WardrobeStorage();
 
             var restraintSetsArray = wardrobeStorageToken["RestraintSets"]?.Value<JArray>();
             if (restraintSetsArray == null)
@@ -144,7 +142,7 @@ public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
             // we are in version 1, so we should deserialize appropriately
             foreach (var item in restraintSetsArray)
             {
-                var restraintSet = new RestraintSet(_itemHelper);
+                var restraintSet = new RestraintSet();
                 var ItemValue = item.Value<JObject>();
                 if (ItemValue != null)
                 {
@@ -161,22 +159,14 @@ public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
             JToken blindfoldInfoToken = wardrobeStorageToken["BlindfoldInfo"];
             if (blindfoldInfoToken != null)
             {
-                BlindfoldModel blindfoldModel = new BlindfoldModel(_itemHelper);
+                BlindfoldModel blindfoldModel = new BlindfoldModel();
                 blindfoldModel.Deserialize((JObject)blindfoldInfoToken);
                 wardrobeStorage.BlindfoldInfo = blindfoldModel;
             }
             else
             {
-                wardrobeStorage.BlindfoldInfo = new BlindfoldModel(_itemHelper);
+                wardrobeStorage.BlindfoldInfo = new BlindfoldModel();
             }
-
-            // Deserialize CursedDungeonLoot
-            var cursedDungeonLoot = wardrobeStorageToken["CursedDungeonLoot"]?.ToObject<CursedLootModel>();
-            if (cursedDungeonLoot == null)
-            {
-                cursedDungeonLoot = new CursedLootModel();
-            }
-            wardrobeStorage.CursedDungeonLoot = cursedDungeonLoot;
 
             config.WardrobeStorage = wardrobeStorage; // loads the wardrobe storage into the stored config.
         }
@@ -204,9 +194,6 @@ public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
 
         // Add blindfoldInfoObject to the WardrobeStorage JObject
         configObject["WardrobeStorage"]["BlindfoldInfo"] = blindfoldInfoObject;
-
-        // Add the cursed loot model.
-        configObject["WardrobeStorage"]["CursedDungeonLoot"] = JToken.FromObject(config.WardrobeStorage.CursedDungeonLoot);
 
         return configObject.ToString(Formatting.Indented);
     }

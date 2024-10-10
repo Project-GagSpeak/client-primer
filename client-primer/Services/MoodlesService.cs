@@ -186,21 +186,23 @@ public class MoodlesService
         }
 
         // Get the currently selected item or default to the first preset
-        if (!SelectedMoodleComboGuids.TryGetValue(comboLabel, out var selectedItem) || selectedItem == Guid.Empty)
+        if (!SelectedMoodleComboGuids.TryGetValue(comboLabel, out var selectedItem))
         {
-            selectedItem = statuses.First().GUID;
+            selectedItem = Guid.Empty;
             SelectedMoodleComboGuids[comboLabel] = selectedItem;
         }
 
         // Ensure the selected item still exists in the list, otherwise reset it
-        if (!statuses.Any(item => item.GUID == selectedItem))
+        if (!statuses.Any(item => item.GUID == selectedItem) && selectedItem != Guid.Empty)
         {
             selectedItem = statuses.First().Item1;
             SelectedMoodleComboGuids[comboLabel] = selectedItem;
         }
 
-
-        string selectedLabel = statuses.FirstOrDefault(x => x.GUID == selectedItem).Title ?? "None Selected";
+        var statusSelected = statuses.FirstOrDefault(x => x.GUID == selectedItem).Title;
+        string selectedLabel = "None Selected";
+        if(!statusSelected.IsNullOrEmpty())
+            selectedLabel = statusSelected.StripColorTags();            
 
         ImGui.SetNextItemWidth(width);
         if (ImGui.BeginCombo(comboLabel, selectedLabel))
@@ -228,10 +230,12 @@ public class MoodlesService
                     ImGui.TableNextColumn();
                     ImGui.SetNextItemWidth(width);
                     bool isSelected = item.GUID == selectedItem;
-                    if (ImGui.Selectable(item.Title, isSelected))
+                    if (ImGui.Selectable(item.Title.StripColorTags(), isSelected))
                     {
-                        SelectedMoodleComboGuids[comboLabel] = item.GUID;
+                        selectedItem = item.GUID;
+                        SelectedMoodleComboGuids[comboLabel] = selectedItem;
                         onSelected?.Invoke(item.GUID);
+                        _logger.LogTrace("Selected Item" + item.Title + ".", LoggerType.IpcMoodles);
                     }
 
                     if (ImGui.IsItemHovered())
@@ -267,7 +271,7 @@ public class MoodlesService
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             _logger.LogTrace("Right-clicked on " + comboLabel + ". Resetting to default value.", LoggerType.IpcMoodles);
-            selectedItem = statuses.First().GUID;
+            selectedItem = Guid.Empty;
             SelectedMoodleComboGuids[comboLabel] = selectedItem!;
             onSelected?.Invoke(selectedItem!);
         }

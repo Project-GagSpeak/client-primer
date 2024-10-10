@@ -25,34 +25,34 @@ namespace GagSpeak.Services.ConfigurationServices;
 /// </summary>
 public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 {
-    private readonly ItemIdVars _itemHelper;
     private readonly OnFrameworkService _frameworkUtils;            // a utilities class with methods that work with the Dalamud framework
     private readonly GagspeakConfigService _configService;          // the primary gagspeak config service.
-    private readonly GagStorageConfigService _gagStorageConfig;     // the config for the gag storage service (toybox gag storage)
+    private readonly GagStorageConfigService _gagStorageConfig;     // the config for the gag storage service (gag storage)
     private readonly WardrobeConfigService _wardrobeConfig;         // the config for the wardrobe service (restraint sets)
+    private readonly CursedLootConfigService _cursedLootConfig;     // the config for the cursed loot service (cursed loot storage)
     private readonly AliasConfigService _aliasConfig;               // the config for the alias lists (puppeteer stuff)
     private readonly PatternConfigService _patternConfig;           // the config for the pattern service (toybox pattern storage))
     private readonly AlarmConfigService _alarmConfig;               // the config for the alarm service (toybox alarm storage)
     private readonly TriggerConfigService _triggerConfig;           // the config for the triggers service (toybox triggers storage)
 
     public ClientConfigurationManager(ILogger<ClientConfigurationManager> logger,
-        GagspeakMediator GagspeakMediator, ItemIdVars itemHelper,
-        OnFrameworkService onFrameworkService, GagspeakConfigService configService,
-        GagStorageConfigService gagStorageConfig, WardrobeConfigService wardrobeConfig,
-        AliasConfigService aliasConfig, PatternConfigService patternConfig,
-        AlarmConfigService alarmConfig, TriggerConfigService triggersConfig)
-        : base(logger, GagspeakMediator)
+        GagspeakMediator GagspeakMediator, OnFrameworkService onFrameworkService, 
+        GagspeakConfigService configService, GagStorageConfigService gagStorageConfig, 
+        WardrobeConfigService wardrobeConfig, CursedLootConfigService cursedLootConfig, 
+        AliasConfigService aliasConfig, PatternConfigService patternConfig, 
+        AlarmConfigService alarmConfig, TriggerConfigService triggersConfig) : base(logger, GagspeakMediator)
     {
         // create a new instance of the static universal logger that pulls from the client logger.
-        // because this loads our configs before the logger initialized, we use a simply hack to set the static logger to the clientConfigManager logger.
+        // because this loads our configs before the logger initialized, we use a simply hack to
+        // set the static logger to the clientConfigManager logger.
         // its not ideal, but it works. If there is a better way please tell me.
         StaticLogger.Logger = logger;
 
-        _itemHelper = itemHelper;
         _frameworkUtils = onFrameworkService;
         _configService = configService;
         _gagStorageConfig = gagStorageConfig;
         _wardrobeConfig = wardrobeConfig;
+        _cursedLootConfig = cursedLootConfig;
         _aliasConfig = aliasConfig;
         _patternConfig = patternConfig;
         _alarmConfig = alarmConfig;
@@ -77,6 +77,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public GagspeakConfig GagspeakConfig => _configService.Current; // UNIVERSAL
     public GagStorageConfig GagStorageConfig => _gagStorageConfig.Current; // PER PLAYER
     public WardrobeConfig WardrobeConfig => _wardrobeConfig.Current; // PER PLAYER
+    public CursedLootConfig CursedLootConfig => _cursedLootConfig.Current; // PER PLAYER
     private AliasConfig AliasConfig => _aliasConfig.Current; // PER PLAYER
     private PatternConfig PatternConfig => _patternConfig.Current; // PER PLAYER
     private AlarmConfig AlarmConfig => _alarmConfig.Current; // PER PLAYER
@@ -86,6 +87,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     {
         _gagStorageConfig.UpdateUid(loggedInPlayerUID);
         _wardrobeConfig.UpdateUid(loggedInPlayerUID);
+        _cursedLootConfig.UpdateUid(loggedInPlayerUID);
         _aliasConfig.UpdateUid(loggedInPlayerUID);
         _triggerConfig.UpdateUid(loggedInPlayerUID);
         _alarmConfig.UpdateUid(loggedInPlayerUID);
@@ -135,7 +137,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             try
             {
                 _gagStorageConfig.Current.GagStorage.GagEquipData = Enum.GetValues(typeof(GagType))
-                    .Cast<GagType>().ToDictionary(gagType => gagType, gagType => new GagDrawData(_itemHelper, ItemIdVars.NothingItem(EquipSlot.Head)));
+                    .Cast<GagType>().ToDictionary(gagType => gagType, gagType => new GagDrawData(ItemIdVars.NothingItem(EquipSlot.Head)));
                 // print the keys in the dictionary
                 Logger.LogInformation("Gag Storage Config Created with "+_gagStorageConfig.Current.GagStorage.GagEquipData.Count+" keys", LoggerType.GagManagement);
                 _gagStorageConfig.Save();
@@ -146,10 +148,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             }
         }
 
-        if (_wardrobeConfig.Current.WardrobeStorage == null)
-        {
-            _wardrobeConfig.Current.WardrobeStorage = new WardrobeStorage(_itemHelper); 
-        }
         if (_wardrobeConfig.Current.WardrobeStorage.RestraintSets.Any(x => x.RestraintId == Guid.Empty))
         {
             Logger.LogWarning("Wardrobe Storage Config has a restraint set with an empty GUID. Creating a new GUID for it.");
@@ -160,10 +158,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             _wardrobeConfig.Save();
         }
 
-        if (_aliasConfig.Current.AliasStorage == null) { _aliasConfig.Current.AliasStorage = new(); }
-
-        if (_patternConfig.Current.PatternStorage == null) { _patternConfig.Current.PatternStorage = new(); }
-
+        // Correct any pattern storage errors that occurs between logins or version updates.
         if (_patternConfig.Current.PatternStorage.Patterns.Any(x => x.UniqueIdentifier == Guid.Empty))
         {
             Logger.LogWarning("Pattern Storage Config has a pattern with an empty GUID. Creating a new GUID for it.");
@@ -173,12 +168,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             }
             _patternConfig.Save();
         }
-
-        if (_alarmConfig.Current.AlarmStorage == null) { _alarmConfig.Current.AlarmStorage = new(); }
-        // check to see if any loaded alarms contain a pattern no longer present.
-
-        if (_triggerConfig.Current.TriggerStorage == null) { _triggerConfig.Current.TriggerStorage = new(); }
-
     }
 
     public List<string> GetPlayersToListenFor()
@@ -286,7 +275,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(newSet);
         _wardrobeConfig.Save();
-        SyncCursedLootToNewSetList();
         Logger.LogInformation("Restraint Set added to wardrobe", LoggerType.Restraints);
         // publish to mediator
         Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
@@ -304,7 +292,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(newSet);
         }
         _wardrobeConfig.Save();
-        SyncCursedLootToNewSetList();
         Logger.LogInformation("Added "+ newSets.Count + " Restraint Sets to wardrobe", LoggerType.Restraints);
         // publish to mediator
         Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
@@ -315,7 +302,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     {
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.RemoveAt(setIndex);
         _wardrobeConfig.Save();
-        SyncCursedLootToNewSetList();
         Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
     }
 
@@ -536,80 +522,54 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _wardrobeConfig.Save();
     }
 
-    internal CursedLootModel CursedLootModel => WardrobeConfig.WardrobeStorage.CursedDungeonLoot;
-    internal List<CursedItem> GetCursedLootList => WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems;
-    internal List<RestraintSet> GetActiveCursedLootSets()
-    {
-        return WardrobeConfig.WardrobeStorage.RestraintSets
-            .Where(set => WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems
-                .Any(cursedItem => cursedItem.RestraintGuid == set.RestraintId))
-            .ToList();
-    }
-
-    internal List<RestraintSet> GetNonCursedLootSets()
-    {
-        return WardrobeConfig.WardrobeStorage.RestraintSets
-            .Where(set => !WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems
-                .Any(cursedItem => cursedItem.RestraintGuid == set.RestraintId))
-            .ToList();
-    }
-
-    internal void AddCursedLoot(Guid lootId)
-    {
-        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems.Add(new CursedItem() { RestraintGuid = lootId });
-        _wardrobeConfig.Save();
-    }
-
-    internal void RemoveCursedLoot(Guid lootId)
-    {
-        // locate the index of the lootId in the cursed loot list and remove it.
-        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems.RemoveAll(x => x.RestraintGuid == lootId);
-        _wardrobeConfig.Save();
-    }
-
-    internal void AddGagToCursedItem(int cursedItemIdx, GagType gag)
-    {
-        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems[cursedItemIdx].AttachedGag = gag;
-        _wardrobeConfig.Save();
-    }
-
-    internal void RemoveGagFromCursedItem(int cursedItemIdx)
-    {
-        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems[cursedItemIdx].AttachedGag = GagType.None;
-        _wardrobeConfig.Save();
-    }
-
-    internal void SetCursedLootLowerRange(TimeSpan rangeLower)
-    {
-        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.LockRangeLower = rangeLower;
-        _wardrobeConfig.Save();
-    }
-
-    internal void SetCursedLootUpperRange(TimeSpan rangeUpper)
-    {
-        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.LockRangeUpper = rangeUpper;
-        _wardrobeConfig.Save();
-    }
-
-    internal void SetCursedLootLockChance(int lockChance)
-    {
-        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.LockChance = lockChance;
-        _wardrobeConfig.Save();
-    }
-
-    internal void SyncCursedLootToNewSetList()
-    {
-        // Because this is fetched whenever we need to update the cursed loot set,
-        // we need to check if any GUID's in our cursed loot list no longer exist in the restraint set list, and remove them.
-        WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems =
-            WardrobeConfig.WardrobeStorage.CursedDungeonLoot.CursedItems
-                .Where(cursedItem => WardrobeConfig.WardrobeStorage.RestraintSets
-                    .Any(restraintSet => restraintSet.RestraintId == cursedItem.RestraintGuid))
-                .ToList();
-        _wardrobeConfig.Save();
-    }
-
     #endregion Wardrobe Config Methods
+
+    /* --------------------- Cursed Loot Config Methods --------------------- */
+    #region Cursed Loot Config Methods
+
+    internal string EnsureUniqueLootName(string baseName)
+    {
+        // Regex to match the base name and the (X) suffix if it exists
+        var suffixPattern = @"^(.*?)(?: \((\d+)\))?$";
+        var match = System.Text.RegularExpressions.Regex.Match(baseName, suffixPattern);
+
+        string namePart = match.Groups[1].Value; // The base part of the name
+        int currentNumber = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
+
+        // Increment current number for the new copy
+        currentNumber = Math.Max(1, currentNumber);
+
+        string newName = baseName;
+
+        // Ensure the name is unique by appending (X) and incrementing if necessary
+        while (CursedLootConfig.CursedLootStorage.CursedItems.Any(set => set.Name == newName))
+        {
+            newName = $"{namePart} ({currentNumber++})";
+        }
+
+        return newName;
+    }
+
+    internal void AddCursedItem(CursedItem newItem)
+    {
+        newItem.Name = EnsureUniqueLootName(newItem.Name);
+        CursedLootConfig.CursedLootStorage.CursedItems.Add(newItem);
+        _cursedLootConfig.Save();
+    }
+
+    internal void RemoveCursedItem(Guid lootIdToRemove) 
+    {
+        var idx = CursedLootConfig.CursedLootStorage.CursedItems.FindIndex(x => x.LootId == lootIdToRemove);
+        CursedLootConfig.CursedLootStorage.CursedItems.RemoveAt(idx);
+        _cursedLootConfig.Save();
+    }
+
+    internal void SaveCursedLoot() => _cursedLootConfig.Save();
+
+    #endregion Cursed Loot Config Methods
+
+
+
 
     /* --------------------- Puppeteer Alias Configs --------------------- */
     #region Alias Config Methods

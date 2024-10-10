@@ -11,15 +11,12 @@ public class MigrateGagStorage
 {
     private readonly ILogger<MigrateGagStorage> _logger;
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly ItemIdVars _ItemHelper;
     private readonly string _oldGagStorageDirectory;
     public MigrateGagStorage(ILogger<MigrateGagStorage> logger,
-        ClientConfigurationManager clientConfigs, ItemIdVars itemHelper,
-        string configDirectory)
+        ClientConfigurationManager clientConfigs, string configDirectory)
     {
         _logger = logger;
         _clientConfigs = clientConfigs;
-        _ItemHelper = itemHelper;
         _oldGagStorageDirectory = Path.Combine(configDirectory, "..", "GagSpeak", "GagStorage.json");
     }
 
@@ -52,7 +49,7 @@ public class MigrateGagStorage
                     {
                         string slotString = itemObject["Slot"]?.Value<string>() ?? string.Empty;
                         EquipSlot slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), slotString);
-                        var drawData = new OldEquipDrawData(_ItemHelper, ItemIdVars.NothingItem(slot));
+                        var drawData = new OldEquipDrawData(ItemIdVars.NothingItem(slot));
                         drawData.Deserialize(itemObject);
                         oldGagStorageFetched.OldGagEquipData.Add(gagType, drawData);
                     }
@@ -74,13 +71,13 @@ public class MigrateGagStorage
 
         newGagStoragetorageAll.GagEquipData = Enum.GetValues(typeof(GagType))
             .Cast<GagType>()
-            .ToDictionary(gagType => gagType, gagType => new GagDrawData(_ItemHelper, ItemIdVars.NothingItem(EquipSlot.Head)));
+            .ToDictionary(gagType => gagType, gagType => new GagDrawData(ItemIdVars.NothingItem(EquipSlot.Head)));
 
         foreach (var (gagType, oldDrawData) in OldGagStorage.OldGagEquipData)
         {
             if (newGagStoragetorageAll.GagEquipData.ContainsKey(gagType))
             {
-                newGagStoragetorageAll.GagEquipData[gagType] = new GagDrawData(_ItemHelper, oldDrawData.GameItem)
+                newGagStoragetorageAll.GagEquipData[gagType] = new GagDrawData(oldDrawData.GameItem)
                 {
                     IsEnabled = oldDrawData.IsEnabled,
                     Slot = oldDrawData.Slot,

@@ -20,8 +20,8 @@ public sealed class GameItemCombo : CustomFilterComboCache<EquipItem>
     private float _innerWidth;
     public PrimaryId CustomSetId { get; private set; }
     public Variant CustomVariant { get; private set; }
-    public GameItemCombo(IDataManager gameData, EquipSlot slot, ItemData itemData, ILogger log)
-        : base(() => GetItems(itemData, slot), MouseWheelType.Unmodified, log)
+    public GameItemCombo(IDataManager gameData, EquipSlot slot, ItemData itemData, ILogger log, MouseWheelType mouseType = MouseWheelType.Unmodified)
+        : base(() => GetItems(itemData, slot), mouseType, log)
     {
         Label = GetLabel(gameData, slot);
         _currentItem = ItemIdVars.NothingId(slot);

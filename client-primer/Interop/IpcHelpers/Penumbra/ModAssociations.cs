@@ -1,15 +1,18 @@
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Raii;
+using OtterGui.Text;
 using Penumbra.Api.Enums;
 using System.Numerics;
 
@@ -33,6 +36,8 @@ public class ModAssociations : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<RestraintSetToggleModsMessage>(this, (msg) => ApplyModsOnSetToggle(msg));
     }
+
+    public (Mod Mod, ModSettings Settings) CurrentSelection => _modCombo.CurrentSelection;
 
     /// <summary> Applies associated mods to the client when a restraint set is toggled. </summary>
     private async void ApplyModsOnSetToggle(RestraintSetToggleModsMessage msg)
@@ -284,5 +289,16 @@ public class ModAssociations : DisposableMediatorSubscriberBase
         ImGui.TableNextColumn();
         _modCombo.Draw("##new", currentName.IsNullOrEmpty() ? "Select new Mod..." : currentName, string.Empty,
             ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeight());
+    }
+
+    public void DrawCursedItemSelection(CursedItem cursedItem, float width)
+    {
+        // Get the current mod selection from the mod combo
+        var currentName = _modCombo.CurrentSelection.Mod.Name;
+
+        _modCombo.Draw("##modSelect", currentName.IsNullOrEmpty() ? "Select Mod..." : currentName, string.Empty, width, ImGui.GetTextLineHeight());
+
+        if (ImGui.IsItemHovered())
+            UiSharedService.AttachToolTip("Select a Mod to bind to this Cursed Item");
     }
 }

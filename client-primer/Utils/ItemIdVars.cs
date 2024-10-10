@@ -1,16 +1,17 @@
+using GagSpeak.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Penumbra.GameData.Data;
+using Penumbra.GameData.DataContainers.Bases;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 
 namespace GagSpeak.Utils;
-public class ItemIdVars
+public static class ItemIdVars
 {
-    private ItemData _itemData;
-
-    public ItemIdVars(ItemData itemData)
-    {
-        _itemData = itemData;
-    }
+    // Fantastic hack that pulls from the itemdata stored in the _host services to pull directly.
+    // As its singleton and only needed to be made once, there isnt a reason it should need to be
+    // included everywhere else for use. Especially on every clone action done in the plugin.
+    private static ItemData Data = GagSpeak.ServiceProvider.GetService<ItemData>()!;
 
     public static ItemId NothingId(EquipSlot slot) // used
         => uint.MaxValue - 128 - (uint)slot.ToSlot();
@@ -30,7 +31,7 @@ public class ItemIdVars
     public static EquipItem SmallClothesItem(EquipSlot slot) // used
         => new("Smallclothes (NPC)", SmallclothesId(slot), 0, 9903, 0, 1, slot.ToEquipType(), 0, 0, 0);
 
-    public EquipItem Resolve(EquipSlot slot, CustomItemId itemId)
+    public static EquipItem Resolve(EquipSlot slot, CustomItemId itemId)
     {
         slot = slot.ToSlot();
         if (itemId == NothingId(slot))
@@ -43,7 +44,7 @@ public class ItemIdVars
             var item = EquipItem.FromId(itemId);
             return item;
         }
-        else if (!_itemData.TryGetValue(itemId.Item, slot, out var item))
+        else if (!Data.TryGetValue(itemId.Item, slot, out var item))
         {
             return EquipItem.FromId(itemId);
         }

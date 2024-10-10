@@ -128,9 +128,9 @@ public partial class AchievementManager
         // Make the below conditional progress.
         wardrobeComponent.AddProgress(WardrobeLabels.TemptingFatesTreasure, "Be Caught in Cursed Bondage Loot for the first time.", 1, "Cursed Loot Discovered");
         wardrobeComponent.AddConditionalProgress(WardrobeLabels.BadEndSeeker, "Get trapped in Cursed Bondage Loot 25 times. (Chance must be 25% or lower)", 25,
-            () => _clientConfigs.CursedLootModel.LockChance > 25, "Cursed Loot Discovered");
+            () => _clientConfigs.CursedLootConfig.CursedLootStorage.LockChance > 25, "Cursed Loot Discovered");
         wardrobeComponent.AddConditionalProgress(WardrobeLabels.EverCursed, "Get trapped in Cursed Bondage Loot 100 times. (Chance must be 25% or lower)", 100,
-            () => _clientConfigs.CursedLootModel.LockChance > 25, "Cursed Loot Discovered");
+            () => _clientConfigs.CursedLootConfig.CursedLootStorage.LockChance > 25, "Cursed Loot Discovered");
 
         // Start condition is entering a duty, end condition is leaving a duty 10 times.
         // TODO: Add Vibed as an option here

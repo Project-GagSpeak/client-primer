@@ -1,6 +1,7 @@
 using GagSpeak.GagspeakConfiguration.Configurations;
 
 namespace GagSpeak.GagspeakConfiguration;
+
 /// <summary>
 /// An abstract class that provides a base for configuration services.
 /// <para> This is the part of the configurations that all configs are linked to, so it handles serialization deserialization and saving.</para>

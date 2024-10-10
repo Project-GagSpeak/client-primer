@@ -27,7 +27,6 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     private readonly OnFrameworkService _frameworkUtils;
     private readonly ToyboxVibeService _vibeService;
     private readonly UnlocksEventManager _eventManager;
-    private readonly ItemIdVars _itemHelpers;
     private readonly INotificationManager _completionNotifier;
     
     private CancellationTokenSource? _saveDataUpdateCTS; // The token for updating achievement data.
@@ -37,7 +36,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     public AchievementManager(ILogger<AchievementManager> logger, GagspeakMediator mediator,
         ApiController apiController, ClientConfigurationManager clientConfigs, 
         PlayerCharacterData playerData, PairManager pairManager, OnFrameworkService frameworkUtils, 
-        ToyboxVibeService vibeService, UnlocksEventManager eventManager, ItemIdVars itemHelpers, 
+        ToyboxVibeService vibeService, UnlocksEventManager eventManager,
         INotificationManager completionNotifier) : base(logger, mediator)
     {
         _apiController = apiController;
@@ -47,7 +46,6 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _frameworkUtils = frameworkUtils;
         _vibeService = vibeService;
         _eventManager = eventManager;
-        _itemHelpers = itemHelpers;
         _completionNotifier = completionNotifier;
 
         Logger.LogInformation("Initializing Achievement Save Data", LoggerType.Achievements);

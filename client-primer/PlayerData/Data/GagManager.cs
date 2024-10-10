@@ -15,18 +15,16 @@ public partial class GagManager : DisposableMediatorSubscriberBase
 {
     private readonly PlayerCharacterData _characterManager;
     private readonly GagDataHandler _gagDataHandler;
-    private readonly PadlockHandler _padlockHandler;
     private readonly Ipa_EN_FR_JP_SP_Handler _IPAParser;
+
     public List<GagData> _activeGags;
 
     public GagManager(ILogger<GagManager> logger, GagspeakMediator mediator,
         PlayerCharacterData characterManager, GagDataHandler gagDataHandler,
-        PadlockHandler padlockHandler, Ipa_EN_FR_JP_SP_Handler IPAParser)
-        : base(logger, mediator)
+        Ipa_EN_FR_JP_SP_Handler IPAParser) : base(logger, mediator)
     {
         _characterManager = characterManager;
         _gagDataHandler = gagDataHandler;
-        _padlockHandler = padlockHandler;
         _IPAParser = IPAParser;
 
         // Triggered whenever the client updated the gagType from the dropdown menus in the UI

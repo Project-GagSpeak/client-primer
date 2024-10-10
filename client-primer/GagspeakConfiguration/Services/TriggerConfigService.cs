@@ -4,7 +4,6 @@ using GagspeakAPI.Enums;
 
 namespace GagSpeak.GagspeakConfiguration;
 
-// will probably change this in the future considering we use a different config storage approach in gagspeak
 public class TriggerConfigService : ConfigurationServiceBase<TriggerConfig>
 {
     public const string ConfigName = "triggers.json";

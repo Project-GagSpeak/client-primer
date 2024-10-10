@@ -1,22 +1,16 @@
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Services;
 using GagSpeak.Utils;
-using GagspeakAPI.Enums;
 using GagspeakAPI.Extensions;
 using Penumbra.GameData.Enums;
-using System.Security.Cryptography;
 
 namespace GagSpeak.GagspeakConfiguration;
 
-// will probably change this in the future considering we use a different config storage approach in gagspeak
 public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig>
 {
-    private readonly ItemIdVars _itemHelper;
-
     public const string ConfigName = "gag-storage.json";
     public const bool PerCharacterConfig = true;
-    public GagStorageConfigService(ItemIdVars itemHelper, string configDir) : base(configDir) { _itemHelper = itemHelper; }
+    public GagStorageConfigService(string configDir) : base(configDir) { }
 
     protected override string ConfigurationName => ConfigName;
     protected override bool PerCharacterConfigPath => PerCharacterConfig;
@@ -108,7 +102,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
         foreach (var gagData in gagEquipDataObject)
         {
             GagType gagType;
-            if(gagData.Key.IsValidGagName())
+            if (gagData.Key.IsValidGagName())
             {
                 gagType = Enum.GetValues(typeof(GagType))
                     .Cast<GagType>()
@@ -130,7 +124,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
             {
                 string? slotString = itemObject["Slot"].Value<string>();
                 EquipSlot slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), slotString);
-                var gagDrawData = new GagDrawData(_itemHelper, ItemIdVars.NothingItem(slot));
+                var gagDrawData = new GagDrawData(ItemIdVars.NothingItem(slot));
                 gagDrawData.Deserialize(itemObject);
                 config.GagStorage.GagEquipData.Add(gagType, gagDrawData);
                 i++;

@@ -27,7 +27,6 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private readonly IClientState _clientState;
     private readonly GagspeakConfigService _gagspeakConfig;
     private readonly OnFrameworkService _frameworkUtils;
-    private readonly ItemIdVars _itemHelper;
     private readonly IpcFastUpdates _fastUpdates;
     private bool _shownGlamourerUnavailable = false; // safety net to prevent notification spam.
 
@@ -47,14 +46,12 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public IpcCallerGlamourer(ILogger<IpcCallerGlamourer> logger,
         IDalamudPluginInterface pluginInterface, IClientState clientState,
         GagspeakConfigService clientConfigs, OnFrameworkService OnFrameworkService, 
-        GagspeakMediator mediator, ItemIdVars itemHelper, 
-        IpcFastUpdates fastUpdates) : base(logger, mediator)
+        GagspeakMediator mediator, IpcFastUpdates fastUpdates) : base(logger, mediator)
     {
         _pi = pluginInterface;
         _gagspeakConfig = clientConfigs;
         _frameworkUtils = OnFrameworkService;
         _clientState = clientState;
-        _itemHelper = itemHelper;
         _fastUpdates = fastUpdates;
 
         // set IPC callers
@@ -209,11 +206,11 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         var stain2 = item["Stain2"]?.Value<int>() ?? 0;
 
         StainIds gameStain = new StainIds((StainId)stain, (StainId)stain2);
-        return new EquipDrawData(_itemHelper, ItemIdVars.NothingItem((EquipSlot)Enum.Parse(typeof(EquipSlot), slotName)))
+        return new EquipDrawData(ItemIdVars.NothingItem((EquipSlot)Enum.Parse(typeof(EquipSlot), slotName)))
         {
             Slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), slotName),
             IsEnabled = true,
-            GameItem = _itemHelper.Resolve((EquipSlot)Enum.Parse(typeof(EquipSlot), slotName), new CustomItemId(customItemId)),
+            GameItem = ItemIdVars.Resolve((EquipSlot)Enum.Parse(typeof(EquipSlot), slotName), new CustomItemId(customItemId)),
             GameStain = gameStain
         };
     }

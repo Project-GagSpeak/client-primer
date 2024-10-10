@@ -55,7 +55,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
 
     private static ulong LastOpenedChestId = 0;
     private static DateTime LastInteraction = DateTime.MinValue;
-    private CursedLootModel CursedLootStorage => _clientConfigs.WardrobeConfig.WardrobeStorage.CursedDungeonLoot;
+    private CursedLootStorage CursedLootData => _clientConfigs.CursedLootConfig.CursedLootStorage;
 
     private unsafe void GetNearbyTreasure()
     {
@@ -142,7 +142,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     private async void ApplyCursedLoot()
     {
         // get the percent change to apply
-        var percentChange = CursedLootStorage.LockChance;
+        var percentChange = CursedLootData.LockChance;
 
         Random random = new Random();
         // Generates a number from 0 to 100
@@ -162,23 +162,21 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         UnlocksEventManager.AchievementEvent(UnlocksEvent.CursedDungeonLootFound);
 
         // Otherwise, we can apply it. So Fetch the list of our cursed sets.
-        var cursedSets = CursedLootStorage.CursedItems;
+        var cursedSets = CursedLootData.CursedItems;
 
-        // Select, at random, an index from the list of cursed sets.
+        // Select, at random, an index from the list of cursed items.
         var randomIndex = random.Next(0, cursedSets.Count);
-        int cursedSetIdx = _clientConfigs.GetSetIdxByGuid(cursedSets[randomIndex].RestraintGuid);
-        if (cursedSetIdx == -1)
-        {
-            Logger.LogWarning("The Set that was attempted to be applied was not found in the wardrobe!");
-            return;
-        }
+
+        Logger.LogInformation("Functionality beyond this point is currently disabled!");
+        return;
+
 
         // Notify them in chat they found Cursed Bondage Loot.
         _chatGui.PrintError(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
             "forth, binding you tightly in an inescapable snare of restraints!").BuiltString);
 
         // Enable the set for the player. Await for the Application to Occur.
-        await _clientConfigs.SetRestraintSetState(cursedSetIdx, Globals.SelfApplied, NewState.Enabled, true);
+        //await _clientConfigs.SetRestraintSetState(cursedSetIdx, Globals.SelfApplied, NewState.Enabled, true);
 
         // After it has occured, log the event.
         Logger.LogInformation($"Cursed Loot Applied!");
@@ -187,44 +185,10 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         var randomString = GenerateRandomString(40);
 
         // get the random timespan to lock the set for.
-        var lockTime = GetRandomTimeSpan(CursedLootStorage.LockRangeLower, CursedLootStorage.LockRangeUpper, random);
+        var lockTime = GetRandomTimeSpan(CursedLootData.LockRangeLower, CursedLootData.LockRangeUpper, random);
 
         // get the datetimeOffset from DateTime.UtcNow
         var lockUntil = DateTimeOffset.UtcNow.Add(lockTime);
-
-        // Construct a password timer padlock and lock the active restraint set with it.
-        _clientConfigs.LockRestraintSet(
-            cursedSetIdx,
-            Padlocks.TimerPasswordPadlock.ToName(),
-            randomString,
-            lockUntil,
-            Globals.SelfApplied
-            );
-
-        // check if the cursed items gag item is not GagType.None
-        if (cursedSets[randomIndex].AttachedGag is not GagType.None)
-        {
-            _chatGui.PrintError(new SeStringBuilder().AddItalics("Before you can even attempt to escape, the coffer spits out a gag, "+
-                "it's buckle wrapping around your head, fastening it firmly in place!").BuiltString);
-
-            // find the first available gag slot currently at GagType.None. if none are found, do not execute.
-            var availableLayer = _playerData.AppearanceData!.GagSlots.IndexOf(g => g.GagType.ToGagType() == GagType.None);
-            if (availableLayer == -1) return;
-
-            // Apply the gag to that slot.
-            Logger.LogDebug($"Cursed Gag Equipped!", LoggerType.GagManagement);
-            await _appearanceChange.UpdateGagsAppearance((GagLayer)availableLayer, cursedSets[randomIndex].AttachedGag, NewState.Enabled);
-            _gagManager.OnGagTypeChanged((GagLayer)availableLayer, cursedSets[randomIndex].AttachedGag, true);
-
-            // now lock it.
-            var padlockData = new PadlockData(
-                (GagLayer)availableLayer,
-                Padlocks.TimerPasswordPadlock,
-                randomString,
-                lockUntil,
-                Globals.SelfApplied);
-            _gagManager.OnGagLockChanged(padlockData, NewState.Locked, false);
-        }
     }
     public static TimeSpan GetRandomTimeSpan(TimeSpan min, TimeSpan max, Random random)
     {

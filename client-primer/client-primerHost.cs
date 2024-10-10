@@ -67,6 +67,13 @@ namespace GagSpeak;
 public sealed class GagSpeak : IDalamudPlugin
 {
     private readonly IHost _host;  // the host builder for the plugin instance. (What makes everything work)
+    
+    // This is useful for classes that should be static for for reasons out of my control are not.
+    // A little hack workaround for dealing with things like Glamourer's ItemData not being static and needing
+    // to be used everywhere, even though its only created once as singleton and should behave like a static.
+    // This stores a reference to the _host, so should not be storing duplicate of the data.
+    public static IServiceProvider ServiceProvider { get; private set; }
+
     public GagSpeak(IDalamudPluginInterface pi, IPluginLog pluginLog, IAddonLifecycle addonLifecycle,
         IChatGui chatGui, IClientState clientState, ICommandManager commandManager, ICondition condition,
         IContextMenu contextMenu, IDataManager dataManager, IDtrBar dtrBar, IFramework framework,
@@ -78,7 +85,10 @@ public sealed class GagSpeak : IDalamudPlugin
         _host = ConstructHostBuilder(pi, pluginLog, addonLifecycle, chatGui, clientState, commandManager,
             condition, contextMenu, dataManager, dtrBar, framework, gameGui, gameInteropProvider,
             keyState, notificationManager, objectTable, partyList, sigScanner, targetManager, textureProvider);
-
+        
+        // store the service provider for the plugin
+        ServiceProvider = _host.Services;
+        
         // start up the host
         _ = _host.StartAsync();
     }
@@ -183,7 +193,7 @@ public static class GagSpeakServiceExtensions
 
         // PlayerData Services
         .AddSingleton<GagManager>()
-        .AddSingleton<PadlockHandler>()
+        .AddSingleton<CursedLootHandler>()
         .AddSingleton<PatternHandler>()
         .AddSingleton((s) => new HardcoreHandler(s.GetRequiredService<ILogger<HardcoreHandler>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(),
@@ -214,7 +224,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new AchievementManager(s.GetRequiredService<ILogger<AchievementManager>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(), s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<OnFrameworkService>(), 
-            s.GetRequiredService<ToyboxVibeService>(), s.GetRequiredService<UnlocksEventManager>(), s.GetRequiredService<ItemIdVars>(), nm))
+            s.GetRequiredService<ToyboxVibeService>(), s.GetRequiredService<UnlocksEventManager>(), nm))
         .AddSingleton<UnlocksEventManager>()
 
         // UpdateMonitoring Services
@@ -267,10 +277,11 @@ public static class GagSpeakServiceExtensions
         // Register ObjectIdentification and ItemData
         .AddSingleton<ObjectIdentification>()
         .AddSingleton<ItemData>()
-        .AddSingleton<ItemIdVars>()
 
         // UI Helpers
-        .AddSingleton<SetPreviewComponent>()
+        .AddSingleton((s) => new SetPreviewComponent(s.GetRequiredService<ILogger<SetPreviewComponent>>(),
+            s.GetRequiredService<ItemData>(), s.GetRequiredService<DictStain>(),  
+            s.GetRequiredService<UiSharedService>(), s.GetRequiredService<TextureService>(), dm))
         .AddSingleton<MainTabMenu>()
         .AddSingleton<AchievementTabsMenu>()
         .AddSingleton((s) => new DictBonusItems(pi, new Logger(), dm))
@@ -386,7 +397,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
         .AddSingleton((s) => new IpcCallerGlamourer(s.GetRequiredService<ILogger<IpcCallerGlamourer>>(), pi, cs,
             s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>(),
-            s.GetRequiredService<ItemIdVars>(), s.GetRequiredService<IpcFastUpdates>()))
+             s.GetRequiredService<IpcFastUpdates>()))
         .AddSingleton((s) => new IpcCallerCustomize(s.GetRequiredService<ILogger<IpcCallerCustomize>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<OnFrameworkService>(),
             s.GetRequiredService<IpcFastUpdates>(), pi, cs))
@@ -409,8 +420,9 @@ public static class GagSpeakServiceExtensions
     => services
         // client-end configs
         .AddSingleton((s) => new GagspeakConfigService(pi.ConfigDirectory.FullName))
-        .AddSingleton((s) => new GagStorageConfigService(s.GetRequiredService<ItemIdVars>(), pi.ConfigDirectory.FullName))
-        .AddSingleton((s) => new WardrobeConfigService(s.GetRequiredService<ItemIdVars>(), pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new GagStorageConfigService( pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new WardrobeConfigService( pi.ConfigDirectory.FullName))
+        .AddSingleton((s) => new CursedLootConfigService( pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new AliasConfigService(pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new PatternConfigService(pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new AlarmConfigService(pi.ConfigDirectory.FullName))
@@ -422,9 +434,9 @@ public static class GagSpeakServiceExtensions
 
         // Configuration Migrators
         .AddSingleton((s) => new MigrateGagStorage(s.GetRequiredService<ILogger<MigrateGagStorage>>(),
-            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ItemIdVars>(), pi.ConfigDirectory.FullName))
+            s.GetRequiredService<ClientConfigurationManager>(),  pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new MigrateRestraintSets(s.GetRequiredService<ILogger<MigrateRestraintSets>>(),
-            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ItemIdVars>(), pi.ConfigDirectory.FullName))
+            s.GetRequiredService<ClientConfigurationManager>(),  pi.ConfigDirectory.FullName))
         .AddSingleton((s) => new MigratePatterns(s.GetRequiredService<ILogger<MigratePatterns>>(),
             s.GetRequiredService<ClientConfigurationManager>(), pi.ConfigDirectory.FullName));
 

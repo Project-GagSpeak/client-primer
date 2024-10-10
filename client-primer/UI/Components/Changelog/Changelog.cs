@@ -19,6 +19,10 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 1, 0)
+            .RegisterMain("I HIGHLY RECOMMEND YOU SET YOUR CURSED LOOT CHANCE TO 0%")
+            .RegisterFeature("New overhaul rework for cursed loot being implemented. Still IN PROGRESS.")
+            .RegisterFeature("You should be able to set up cursed items now in the cursed loot tab. Report any bugs you find.");
         VersionEntry(0, 9, 0, 2)
             .RegisterMain("Added the rest of the event triggers into the achievement monitors.")
             .RegisterFeature("Achievements now accurately display progression like they should.")

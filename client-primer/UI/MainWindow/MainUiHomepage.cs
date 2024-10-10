@@ -26,14 +26,10 @@ namespace GagSpeak.UI.MainWindow;
 public class MainUiHomepage : DisposableMediatorSubscriberBase
 {
     private readonly UiSharedService _uiShared;
-    private readonly ItemIdVars _itemHelpers;
-
     public MainUiHomepage(ILogger<MainUiHomepage> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
-        ItemIdVars itemHelpers) : base(logger, mediator)
+        GagspeakMediator mediator, UiSharedService uiSharedService) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
-        _itemHelpers = itemHelpers;
     }
 
     public float DrawHomepageSection(IDalamudPluginInterface pi)

@@ -294,7 +294,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             using (var group = ImRaii.Group())
             {
                 // display the wardrobe slot for this gag
-                var refValue = UnsavedDrawData.ActiveSlotId;
+                var refValue = Array.IndexOf(EquipSlotExtensions.EqdpSlots.ToArray(), UnsavedDrawData.Slot);
                 ImGui.SetNextItemWidth(ComboLength);
                 if (ImGui.Combo(" Equipment Slot##WardrobeEquipSlot", ref refValue,
                     EquipSlotExtensions.EqdpSlots.Select(slot => slot.ToName()).ToArray(), EquipSlotExtensions.EqdpSlots.Count))

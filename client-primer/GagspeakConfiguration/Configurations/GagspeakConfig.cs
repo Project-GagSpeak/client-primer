@@ -1,11 +1,7 @@
-using GagspeakAPI.Enums;
-using Microsoft.Extensions.Logging;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.UI;
-using GagSpeak.Hardcore.Movement;
-using GagSpeak.ChatMessages;
-using GagspeakAPI.Data;
 using GagSpeak.Hardcore;
+using GagSpeak.Hardcore.Movement;
+using GagSpeak.UI;
 
 namespace GagSpeak.GagspeakConfiguration.Configurations;
 
@@ -13,7 +9,7 @@ namespace GagSpeak.GagspeakConfiguration.Configurations;
 public class GagspeakConfig : IGagspeakConfiguration
 {
     // Internal data used for account checking and changelogs.
-    public static int CurrentVersion => 2;
+    public static int CurrentVersion => 3;
     public int Version { get; set; } = CurrentVersion;
     public Version? LastRunVersion { get; set; } = null;
     public string LastUidLoggedIn { get; set; } = "";

@@ -136,7 +136,27 @@ public class ClientCallbackService
                 _logger.LogDebug("SelfApplied GAG LOCK Verified by Server Callback.", LoggerType.Callbacks);
 
             if (callbackGagState is NewState.Unlocked)
+            {
                 _logger.LogDebug("SelfApplied GAG UNLOCK Verified by Server Callback.", LoggerType.Callbacks);
+                // If the gagType is not none, 
+                if (callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer].GagType.ToGagType() is not GagType.None)
+                {
+                    // This means the gag is still applied, so we should see if we want to auto remove it.
+                    _logger.LogDebug("Gag is still applied. Checking if we should remove it.", LoggerType.Callbacks);
+                    if (_clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration)
+                    {
+                        _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None, true, true);
+                        await _appearanceHandler.GagRemoved(currentGagType);
+                    }
+                }
+                else
+                {
+                    _logger.LogTrace("Gag is already removed. No need to remove again. Update ClientSide Only", LoggerType.Callbacks);
+                    // The GagType is none, meaning this was removed via a mimic, so only update client side removal.
+                    _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None, false, true);
+                    await _appearanceHandler.GagRemoved(_playerData.AppearanceData.GagSlots[(int)callbackGagLayer].GagType.ToGagType());
+                }
+            }
 
             if (callbackGagState is NewState.Disabled)
             {
@@ -215,7 +235,7 @@ public class ClientCallbackService
         {
             _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None, false);
             await _appearanceHandler.GagRemoved(currentGagType);
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, callbackGagLayer, currentGagType, true);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, callbackGagLayer, currentGagType, false);
         }
     }
 

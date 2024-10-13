@@ -6,8 +6,10 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
+using GagspeakAPI.Enums;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
+using OtterGui.Text;
 using System.Numerics;
 
 namespace GagSpeak.UI.UiGagSetup;
@@ -52,13 +54,16 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                 Logger.LogWarning("Appearance data is null, cannot update active locks.");
                 return;
             }
-            var lock0 = _playerManager.AppearanceData.GagSlots[0].Padlock.ToPadlock();
-            var lock1 = _playerManager.AppearanceData.GagSlots[1].Padlock.ToPadlock();
-            var lock2 = _playerManager.AppearanceData.GagSlots[2].Padlock.ToPadlock();
-            _uiSharedService._selectedComboItems["Lock Type 0"] = lock0;
-            _uiSharedService._selectedComboItems["Lock Type 1"] = lock1;
-            _uiSharedService._selectedComboItems["Lock Type 2"] = lock2;
-            Logger.LogInformation($"Lock 0: {lock0} || Lock 1: {lock1} || Lock 2: {lock2}");
+            _uiSharedService._selectedComboItems["Lock Type 0"] = _playerManager.AppearanceData.GagSlots[0].Padlock.ToPadlock();
+            _uiSharedService._selectedComboItems["Lock Type 1"] = _playerManager.AppearanceData.GagSlots[1].Padlock.ToPadlock();
+            _uiSharedService._selectedComboItems["Lock Type 2"] = _playerManager.AppearanceData.GagSlots[2].Padlock.ToPadlock();
+            _gagManager.ActiveSlotPadlocks[0] = _playerManager.AppearanceData.GagSlots[0].Padlock.ToPadlock();
+            _gagManager.ActiveSlotPadlocks[1] = _playerManager.AppearanceData.GagSlots[1].Padlock.ToPadlock();
+            _gagManager.ActiveSlotPadlocks[2] = _playerManager.AppearanceData.GagSlots[2].Padlock.ToPadlock();
+            Logger.LogInformation(
+                "Lock 0: " + _playerManager.AppearanceData.GagSlots[0].Padlock.ToPadlock() + " || " +
+                "Lock 1: " + _playerManager.AppearanceData.GagSlots[1].Padlock.ToPadlock() + " || " +
+                "Lock 2: " + _playerManager.AppearanceData.GagSlots[2].Padlock.ToPadlock());
         });
     }
 
@@ -93,12 +98,14 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             // Gag Label 1
             _uiSharedService.BigText("Inner Gag:");
             // Gag Timer 1
-            if (lock1 == Padlocks.FiveMinutesPadlock || lock1 == Padlocks.TimerPasswordPadlock || lock1 == Padlocks.OwnerTimerPadlock)
+            if (lock1 is Padlocks.FiveMinutesPadlock or Padlocks.TimerPasswordPadlock or Padlocks.OwnerTimerPadlock or Padlocks.DevotionalTimerPadlock or Padlocks.MimicPadlock)
             {
                 ImGui.SameLine();
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((bigTextSize.Y - ImGui.GetTextLineHeight()) / 2) + 5f);
-                UiSharedService.ColorText(GetRemainingTimeString(_playerManager.AppearanceData.GagSlots[0].Timer,
-                    _playerManager.AppearanceData.GagSlots[0].Assigner), ImGuiColors.ParsedGold);
+                DisplayTimeLeft(
+                    endTime: _playerManager.AppearanceData.GagSlots[0].Timer,
+                    padlock: _playerManager.AppearanceData.GagSlots[0].Padlock.ToPadlock(),
+                    userWhoSetLock: _playerManager.AppearanceData.GagSlots[0].Assigner,
+                    yPos: ImGui.GetCursorPosY() + ((bigTextSize.Y - ImGui.GetTextLineHeight()) / 2) + 5f);
             }
             // Selection 1
             DrawGagAndLockSection(0, GagTypeOnePath, GagPadlockOnePath, (lock1 != Padlocks.None),
@@ -107,12 +114,14 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             // Gag Label 2
             _uiSharedService.BigText("Central Gag:");
             // Gag Timer 2
-            if (lock2 == Padlocks.FiveMinutesPadlock || lock2 == Padlocks.TimerPasswordPadlock || lock2 == Padlocks.OwnerTimerPadlock)
+            if (lock2 is Padlocks.FiveMinutesPadlock or Padlocks.TimerPasswordPadlock or Padlocks.OwnerTimerPadlock or Padlocks.DevotionalTimerPadlock or Padlocks.MimicPadlock)
             {
                 ImGui.SameLine();
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((bigTextSize.Y - ImGui.GetTextLineHeight()) / 2) + 5f);
-                UiSharedService.ColorText(GetRemainingTimeString(_playerManager.AppearanceData.GagSlots[1].Timer,
-                    _playerManager.AppearanceData.GagSlots[1].Assigner), ImGuiColors.ParsedGold);
+                DisplayTimeLeft(
+                    endTime: _playerManager.AppearanceData.GagSlots[1].Timer,
+                    padlock: _playerManager.AppearanceData.GagSlots[1].Padlock.ToPadlock(),
+                    userWhoSetLock: _playerManager.AppearanceData.GagSlots[1].Assigner,
+                    yPos: ImGui.GetCursorPosY() + ((bigTextSize.Y - ImGui.GetTextLineHeight()) / 2) + 5f);
             }
             // Selection 2
             DrawGagAndLockSection(1, GagTypeTwoPath, GagPadlockTwoPath, (lock2 != Padlocks.None),
@@ -121,12 +130,14 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             // Gag Label 3
             _uiSharedService.BigText("Outer Gag:");
             // Gag Timer 3
-            if (lock3 == Padlocks.FiveMinutesPadlock || lock3 == Padlocks.TimerPasswordPadlock || lock3 == Padlocks.OwnerTimerPadlock)
+            if (lock3 is Padlocks.FiveMinutesPadlock or Padlocks.TimerPasswordPadlock or Padlocks.OwnerTimerPadlock or Padlocks.DevotionalTimerPadlock or Padlocks.MimicPadlock)
             {
                 ImGui.SameLine();
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((bigTextSize.Y - ImGui.GetTextLineHeight()) / 2) + 5f);
-                UiSharedService.ColorText(GetRemainingTimeString(_playerManager.AppearanceData.GagSlots[2].Timer,
-                    _playerManager.AppearanceData.GagSlots[2].Assigner), ImGuiColors.ParsedGold);
+                DisplayTimeLeft(
+                    endTime: _playerManager.AppearanceData.GagSlots[2].Timer,
+                    padlock: _playerManager.AppearanceData.GagSlots[2].Padlock.ToPadlock(),
+                    userWhoSetLock: _playerManager.AppearanceData.GagSlots[2].Assigner,
+                    yPos: ImGui.GetCursorPosY() + ((bigTextSize.Y - ImGui.GetTextLineHeight()) / 2) + 5f);
             }
             // Selection 3
             DrawGagAndLockSection(2, GagTypeThreePath, GagPadlockThreePath, (lock3 != Padlocks.None),
@@ -140,7 +151,8 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
 
     private static readonly HashSet<Padlocks> TwoRowLocks = new HashSet<Padlocks>
     {
-        Padlocks.None, Padlocks.MetalPadlock, Padlocks.FiveMinutesPadlock, Padlocks.OwnerPadlock, Padlocks.OwnerTimerPadlock
+        Padlocks.None, Padlocks.MetalPadlock, Padlocks.FiveMinutesPadlock, Padlocks.OwnerPadlock, Padlocks.OwnerTimerPadlock, 
+        Padlocks.DevotionalPadlock, Padlocks.DevotionalTimerPadlock, Padlocks.MimicPadlock
     };
 
 
@@ -170,7 +182,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                 {
                     _uiSharedService.DrawComboSearchable($"Gag Type {slotNumber}", 250f, ref Filters[slotNumber],
                     Enum.GetValues<GagType>(), (gag) => gag.GagName(), false,
-                    async (i) =>
+                    (i) =>
                     {
                         // locate the GagData that matches the alias of i
                         var SelectedGag = i;
@@ -272,11 +284,34 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             }
         }
     }
-
-    private string GetRemainingTimeString(DateTimeOffset endTime, string userWhoSetLock)
+    private void DisplayTimeLeft(DateTimeOffset endTime, Padlocks padlock, string userWhoSetLock, float yPos)
     {
-        TimeSpan remainingTime = (endTime - DateTimeOffset.UtcNow);
-        string remainingTimeStr = $"{remainingTime.Days}d {remainingTime.Hours}h {remainingTime.Minutes}m {remainingTime.Seconds}s";
-        return (userWhoSetLock != Globals.SelfApplied) ? "Locked by" + userWhoSetLock + "for" + remainingTimeStr : "Self-locked for " + remainingTimeStr;
+        var prefixText = userWhoSetLock != Globals.SelfApplied
+            ? userWhoSetLock +"'s " : (padlock is Padlocks.MimicPadlock ? "The Devious " : "Self-Applied ");
+        var gagText = padlock.ToName() + " has";
+        var color = ImGuiColors.ParsedGold;
+        switch(padlock)
+        {
+            case Padlocks.MetalPadlock:
+            case Padlocks.CombinationPadlock:
+            case Padlocks.PasswordPadlock:
+            case Padlocks.FiveMinutesPadlock:
+            case Padlocks.TimerPasswordPadlock:
+                color = ImGuiColors.ParsedGold; break;
+            case Padlocks.OwnerPadlock:
+            case Padlocks.OwnerTimerPadlock:
+                color = ImGuiColors.ParsedPink; break;
+            case Padlocks.DevotionalPadlock:
+            case Padlocks.DevotionalTimerPadlock:
+                color = ImGuiColors.TankBlue; break;
+            case Padlocks.MimicPadlock:
+                color = ImGuiColors.ParsedGreen; break;
+        }
+        ImGui.SameLine();
+        ImGui.SetCursorPosY(yPos);
+        UiSharedService.ColorText(prefixText + gagText, color);
+        ImUtf8.SameLineInner();
+        ImGui.SetCursorPosY(yPos);
+        UiSharedService.DrawTimeLeftFancy(endTime, color);
     }
 }

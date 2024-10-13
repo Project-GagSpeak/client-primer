@@ -1001,10 +1001,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private static readonly Dictionary<string, LoggerType[]> loggerSections = new Dictionary<string, LoggerType[]>
     {
         { "Main", new[] { LoggerType.Achievements, LoggerType.Mediator, LoggerType.GarblerCore } },
-        { "Interop", new[] { LoggerType.IpcGagSpeak, LoggerType.IpcCustomize, LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra } },
+        { "Interop", new[] { LoggerType.IpcGagSpeak, LoggerType.IpcCustomize, LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra, LoggerType.Appearance } },
         { "Hardcore", new[] { LoggerType.HardcoreActions, LoggerType.HardcoreMovement, LoggerType.HardcorePrompt } },
         { "Player Data", new[] { LoggerType.GagManagement, LoggerType.PadlockManagement, LoggerType.ClientPlayerData, LoggerType.GameObjects, LoggerType.PairManagement, LoggerType.OnlinePairs, LoggerType.VisiblePairs, LoggerType.Restraints, LoggerType.Puppeteer } },
-        { "Services", new[] { LoggerType.Notification, LoggerType.Profiles, LoggerType.Cosmetics, LoggerType.GlobalChat, LoggerType.ContextDtr, LoggerType.PatternHub, LoggerType.Safeword } },
+        { "Services", new[] { LoggerType.Notification, LoggerType.Profiles, LoggerType.Cosmetics, LoggerType.GlobalChat, LoggerType.ContextDtr, LoggerType.PatternHub, LoggerType.Safeword, LoggerType.CursedLoot } },
         { "Toybox", new[] { LoggerType.ToyboxDevices, LoggerType.ToyboxPatterns, LoggerType.ToyboxTriggers, LoggerType.ToyboxAlarms, LoggerType.VibeControl, LoggerType.PrivateRoom } },
         { "Update Monitoring", new[] { LoggerType.ChatDetours, LoggerType.ActionEffects, LoggerType.SpatialAudioController, LoggerType.SpatialAudioLogger } },
         { "UI", new[] { LoggerType.UiCore, LoggerType.UserPairDrawer, LoggerType.Permissions, LoggerType.Simulation } },

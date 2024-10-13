@@ -19,6 +19,15 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 3, 0)
+            .RegisterMain("Cursed Loot Gags are now functional.")
+            .RegisterMain("Majority of padlock fixes have been made.")
+            .RegisterFeature("DEVOTIONAL PADLOCKS are now a new type of padlock.")
+            .RegisterFeature("Mimic Padlocks are now a kind of padlock that can be applied by Mimics")
+            .RegisterQol("Your Gag's Lock in the ActiveGagsPanel is now colored base on the padlock kind.")
+            .RegisterBugfix("Your game no longer will crash when opening a coffer with no cursed items in your pool.")
+            .RegisterBugfix("Padlocks such as Owner Padlocks can now properly be removed.")
+            .RegisterBugfix("Padlocks applied by other players can now be removed from active gags panel if they normally should be.");
         VersionEntry(0, 9, 2, 0)
             .RegisterMain("Cursed loot functionality has been readded to the plugin.")
             .RegisterMain("The Appearance Updater has recieved an overhaul to work better.")

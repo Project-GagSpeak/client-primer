@@ -1,6 +1,3 @@
-using GagspeakAPI.Enums;
-using System.Collections.Generic;
-
 // intended to help with filtering out log message to certain types.
 public static class LoggerFilter
 {
@@ -50,11 +47,11 @@ public static class LoggerFilter
         return new HashSet<LoggerType>
         {
             LoggerType.None, LoggerType.Achievements, LoggerType.Mediator, LoggerType.IpcGagSpeak, LoggerType.IpcCustomize,
-            LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra,
+            LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra, LoggerType.Appearance,
             LoggerType.GagManagement, LoggerType.PadlockManagement, LoggerType.ClientPlayerData, LoggerType.GameObjects,
             LoggerType.PairManagement, LoggerType.OnlinePairs, LoggerType.VisiblePairs, LoggerType.PrivateRoom,
             LoggerType.Notification, LoggerType.Profiles, LoggerType.Cosmetics, LoggerType.ContextDtr, LoggerType.PatternHub,
-            LoggerType.Safeword, LoggerType.Restraints, LoggerType.Puppeteer, LoggerType.ToyboxDevices,
+            LoggerType.Safeword, LoggerType.CursedLoot, LoggerType.Restraints, LoggerType.Puppeteer, LoggerType.ToyboxDevices,
             LoggerType.ToyboxPatterns, LoggerType.ToyboxTriggers, LoggerType.ToyboxAlarms, LoggerType.VibeControl,
             LoggerType.SpatialAudioController, LoggerType.UiCore, LoggerType.UserPairDrawer, LoggerType.Permissions,
             LoggerType.Simulation, LoggerType.PiShock, LoggerType.ApiCore, LoggerType.Callbacks, LoggerType.HubFactory,
@@ -64,7 +61,7 @@ public static class LoggerFilter
 
     public static void LogTrace(this ILogger logger, string? message, LoggerType type = LoggerType.None)
     {
-        if (ShouldLog(type)) 
+        if (ShouldLog(type))
             logger.Log(LogLevel.Trace, message);
     }
 

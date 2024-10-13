@@ -62,15 +62,23 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     private bool AttemptedOpen = false;
     private unsafe void GetNearbyTreasure()
     {
+        // Do not run if we dont want to run it.
         if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot)
             return;
-
+        
+        // do not run if not in a duty
         if (_frameworkUtils._sentBetweenAreas || !_frameworkUtils.InDungeonOrDuty)
             return;
 
+        // Do not run if no active items are set.
+        if (!_handler.InactiveItemsInPool.Any())
+            return;
+
+        // do not run if time since last interaction is less than 5 seconds.
         if (DateTime.Now - LastInteraction < TimeSpan.FromSeconds(5))
             return;
 
+        // do not run if the player is null.
         var player = _frameworkUtils.ClientState.LocalPlayer;
         if (player == null)
             return;
@@ -84,7 +92,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
 
                 // skip if object is not in open-range to us.
                 var dis = Vector3.Distance(player.Position, o.Position) - player.HitboxRadius - o.HitboxRadius;
-                if (dis > 7f) return false;
+                if (dis > 12f) return false;
 
                 // If the treasure chest has already been opened, do not process a cursed loot function.
                 foreach (var item in Loot.Instance()->Items)
@@ -98,26 +106,35 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         if (NearestTreasureId == treasureNearby.GameObjectId) return;
         if (LastOpenedChestId == treasureNearby.GameObjectId) return;
 
-        Logger.LogInformation("Found New Treasure Nearby!");
+        Logger.LogInformation("Found New Treasure Nearby!", LoggerType.CursedLoot);
         NearestTreasureId = treasureNearby.GameObjectId;
     }
 
     // Detect for Cursed Dungeon Loot Interactions.
     private unsafe void CheckDungeonTreasureOpen()
     {
+        // Do not run if we dont want to run it.
         if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot)
             return;
 
+        // do not run if not in a duty
         if (_frameworkUtils._sentBetweenAreas || !_frameworkUtils.InDungeonOrDuty)
             return;
 
+        // Do not run if no active items are set.
+        if (!_handler.InactiveItemsInPool.Any())
+            return;
+
+        // do not run if time since last interaction is less than 10 seconds.
         if (DateTime.Now - LastInteraction < TimeSpan.FromSeconds(10))
             return;
 
+        // do not run if the player is null.
         var player = _frameworkUtils.ClientState.LocalPlayer;
         if (player == null)
             return;
 
+        // If the nearest treasure is not set, return.
         if (NearestTreasureId is ulong.MaxValue)
             return;
 
@@ -131,7 +148,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 if (_openTreasureTask != null && !_openTreasureTask.IsCompleted)
                     return;
 
-                Logger.LogTrace("Attempting to open coffer, checking loot instance on next framework tick");
+                Logger.LogTrace("Attempting to open coffer, checking loot instance on next framework tick", LoggerType.CursedLoot);
                 _openTreasureTask = CheckLootTables(NearestTreasureId);
                 return;
             }
@@ -142,24 +159,24 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     {
         try
         {
-            Logger.LogInformation("Checking tables in the next 500ms!");
+            Logger.LogInformation("Checking tables in the next 500ms!", LoggerType.CursedLoot);
             await Task.Delay(1000);
-            Logger.LogInformation("Checking tables!");
+            Logger.LogInformation("Checking tables!", LoggerType.CursedLoot);
             await _frameworkUtils.RunOnFrameworkThread(() =>
             {
                 unsafe
                 {
                     if (Loot.Instance()->Items.ToArray().Any(x => x.ChestObjectId == objectId) && objectId != LastOpenedChestId)
                     {
-                        Logger.LogTrace("One of the loot items is the nearest treasure and we just previously attempted to open one.");
+                        Logger.LogTrace("One of the loot items is the nearest treasure and we just previously attempted to open one.", LoggerType.CursedLoot);
                         LastOpenedChestId = NearestTreasureId;
                         NearestTreasureId = ulong.MaxValue;
                         LastInteraction = DateTime.Now;
-                        ApplyCursedLoot();
+                        ApplyCursedLoot().ConfigureAwait(false);
                     }
                     else
                     {
-                        Logger.LogTrace("No loot items are the nearest treasure, or we have already opened this chest.");
+                        Logger.LogTrace("No loot items are the nearest treasure, or we have already opened this chest.", LoggerType.CursedLoot);
                     }
                 }
             }).ConfigureAwait(false);
@@ -173,7 +190,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     /// <summary>
     /// Fired whenever we open a chest in a dungeon.
     /// </summary>
-    private async void ApplyCursedLoot()
+    private async Task ApplyCursedLoot()
     {
         // throw warning and return if our size is already capped at 6.
         if (_handler.ActiveItems.Count >= 6)
@@ -195,18 +212,18 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
 
         // Obtain a randomly selected cursed item from the inactive items in the pool.
         var enabledPoolCount = _handler.InactiveItemsInPool.Count;
-        Logger.LogDebug("Randomly selecting an index between 0 and " + enabledPoolCount + " for cursed loot.");
+        Logger.LogDebug("Randomly selecting an index between 0 and " + enabledPoolCount + " for cursed loot.", LoggerType.CursedLoot);
 
         Guid selectedLootId = Guid.Empty;
         var randomIndex = random.Next(0, enabledPoolCount);
-        Logger.LogDebug("Selected Index: " + randomIndex + " ("+ _handler.InactiveItemsInPool[randomIndex].Name+")");
+        Logger.LogDebug("Selected Index: " + randomIndex + " ("+ _handler.InactiveItemsInPool[randomIndex].Name+")", LoggerType.CursedLoot);
         if (_handler.InactiveItemsInPool[randomIndex].IsGag)
         {
             var availableSlot = _playerData.AppearanceData!.GagSlots.IndexOf(x => x.GagType.ToGagType() == GagType.None);
             // If no slot is available, make a new list that is without any items marked as IsGag, and roll again.
             if (availableSlot is not -1)
             {
-                Logger.LogDebug("A Gag Slot is available to apply and lock. Doing so now!");
+                Logger.LogDebug("A Gag Slot is available to apply and lock. Doing so now!", LoggerType.CursedLoot);
                 selectedLootId = _handler.InactiveItemsInPool[randomIndex].LootId;
                 // Notify the client of their impending fate~
                 _chatGui.PrintError(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
@@ -214,7 +231,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 // generate the length they will be locked for:
                 var lockTimeGag = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
                 // apply the gag via the gag manager at the available slot we found.
-                _gagManager.OnGagTypeChanged((GagLayer)availableSlot, _playerData.AppearanceData!.GagSlots[availableSlot].GagType.ToGagType(), true, true);
+                _gagManager.OnGagTypeChanged((GagLayer)availableSlot, _handler.InactiveItemsInPool[randomIndex].GagType, true, true);
                 // lock the gag.
                 var padlockData = new PadlockData()
                 {
@@ -223,10 +240,11 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                     Timer = DateTimeOffset.UtcNow.Add(lockTimeGag), 
                     Assigner = Globals.SelfApplied
                 };
-                _gagManager.OnGagLockChanged(padlockData, NewState.Enabled, true, true);
+                await Task.Delay(150);
+                _gagManager.OnGagLockChanged(padlockData, NewState.Locked, true, true);
                 // Activate the cursed loot item.
                 _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTimeGag));
-                Logger.LogInformation($"Cursed Loot Applied!");
+                Logger.LogInformation($"Cursed Loot Applied!", LoggerType.CursedLoot);
                 return;
             }
             else
@@ -234,7 +252,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 Logger.LogWarning("No Gag Slots Available, Rolling Again.");
                 var inactiveSetsWithoutGags = _handler.ItemsNotInPool.Where(x => !x.IsGag).ToList();
                 var randomIndexNoGag = random.Next(0, inactiveSetsWithoutGags.Count);
-                Logger.LogDebug("Selected Index: " + randomIndexNoGag + " (" + inactiveSetsWithoutGags[randomIndexNoGag].Name + ")");
+                Logger.LogDebug("Selected Index: " + randomIndexNoGag + " (" + inactiveSetsWithoutGags[randomIndexNoGag].Name + ")", LoggerType.CursedLoot);
                 selectedLootId = inactiveSetsWithoutGags[randomIndexNoGag].LootId;
                 // Notify the client of their impending fate~
                 _chatGui.PrintError(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
@@ -243,7 +261,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 var lockTime = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
                 // Activate the cursed loot item.
                 _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTime));
-                Logger.LogInformation($"Cursed Loot Applied!");
+                Logger.LogInformation($"Cursed Loot Applied!", LoggerType.CursedLoot);
                 return;
             }
         }
@@ -257,7 +275,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
             var lockTime = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
             // Activate the cursed loot item.
             _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTime));
-            Logger.LogInformation($"Cursed Loot Applied!");
+            Logger.LogInformation($"Cursed Loot Applied!", LoggerType.CursedLoot);
             return;
         }
     }

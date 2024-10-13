@@ -149,6 +149,8 @@ public partial class GagManager : DisposableMediatorSubscriberBase
 
     private void UpdateGagSlot(int layerIndex, PadlockData padlockInfo)
     {
+        Logger.LogDebug("Updating Gag Slotw with Padlock Data: " + padlockInfo.PadlockType.ToName() +
+            " || "+ padlockInfo.Password + " || " + padlockInfo.Timer + " || " + padlockInfo.Assigner, LoggerType.PadlockManagement);
         var gagSlot = _characterManager.AppearanceData!.GagSlots[layerIndex];
         gagSlot.Padlock = padlockInfo.PadlockType.ToName();
         gagSlot.Password = padlockInfo.Password;
@@ -299,7 +301,6 @@ public partial class GagManager : DisposableMediatorSubscriberBase
                 }
                 break;
             case Padlocks.OwnerTimerPadlock:
-            case Padlocks.MimicPadlock:
                 ImGui.SetNextItemWidth(width);
                 ImGui.InputTextWithHint("##Timer_Input", "Ex: 0h2m7s", ref ActiveSlotTimers[layer], 12);
                 break;
@@ -426,6 +427,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
             var gagSlot = _characterManager.AppearanceData.GagSlots[i];
             if (GenericHelpers.TimerPadlocks.Contains(gagSlot.Padlock) && gagSlot.Timer - DateTimeOffset.UtcNow <= TimeSpan.Zero)
             {
+                var padlockType = gagSlot.Padlock.ToPadlock();
                 DisableLock(i);
                 PublishAppearanceChange(i, isUnlocked: true);
             }

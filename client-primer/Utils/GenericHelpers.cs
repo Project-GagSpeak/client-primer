@@ -13,7 +13,9 @@ public static class GenericHelpers
 {
     public static IEnumerable<Padlocks> NoOwnerPadlockList = Enum.GetValues<Padlocks>()
         .Cast<Padlocks>()
-        .Where(p => p is not Padlocks.OwnerPadlock && p is not Padlocks.OwnerTimerPadlock && p is not Padlocks.MimicPadlock)
+        .Where(p => p is not Padlocks.OwnerPadlock && p is not Padlocks.OwnerTimerPadlock 
+            && p is not Padlocks.DevotionalPadlock && p is not Padlocks.DevotionalTimerPadlock
+            && p is not Padlocks.MimicPadlock)
         .ToArray();
 
     public static IEnumerable<Padlocks> NoMimicPadlockList = Enum.GetValues<Padlocks>()
@@ -112,6 +114,7 @@ public static class GenericHelpers
         Padlocks.FiveMinutesPadlock.ToName(),
         Padlocks.TimerPasswordPadlock.ToName(),
         Padlocks.OwnerTimerPadlock.ToName(),
+        Padlocks.DevotionalTimerPadlock.ToName(),
         Padlocks.MimicPadlock.ToName()
     };
 

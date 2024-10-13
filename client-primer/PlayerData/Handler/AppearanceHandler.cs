@@ -188,15 +188,6 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
     {
         Logger.LogTrace("CURSED-APPLIED Executed");
 
-        // If the cursed item is a gag, we need to handle it a little differenetly
-        if(cursedItem.IsGag)
-        {
-            // identify the first available slot, if any, that is set to GagType.None.
-            var availableSlot = _playerData.AppearanceData!.GagSlots.FirstOrDefault(x => x.GagType.ToGagType() == GagType.None);
-            
-        }
-
-
         await RecalculateAppearance();
         await _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll);
 
@@ -204,7 +195,10 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
 
     public async Task CursedItemRemoved(CursedItem cursedItem)
     {
+        // if the cursed item is a gag item, do not perform any operations, as the gag manager will handle it instead.
         Logger.LogTrace("CURSED-REMOVED Executed");
+        if (cursedItem.IsGag) return;
+
         if (!_playerData.IpcDataNull)
         {
             if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus && cursedItem.MoodleIdentifier != Guid.Empty)
@@ -402,6 +396,7 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
                 .Take(6)
                 .OrderBy(x => x.AppliedTime)
                 .ToList();
+            Logger.LogDebug("Found " + cursedItems.Count + " Cursed Items to Apply.", LoggerType.ClientPlayerData);
             var appliedItems = new Dictionary<EquipSlot, CursedItem>();
 
             foreach (var cursedItem in cursedItems)
@@ -410,11 +405,14 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
                 {
                     // if an item was already applied to that slot, only apply if it satisfied conditions.
                     if (existingItem.CanOverride && cursedItem.OverridePrecedence >= existingItem.OverridePrecedence)
+                    {
+                        Logger.LogInformation($"Storing Cursed Item As Override to Slot: {cursedItem.AppliedItem.Slot}", LoggerType.ClientPlayerData);
                         appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
+                    }
                 }
                 else
                 {
-                    Logger.LogInformation($"Applying Cursed Item to Slot: {cursedItem.AppliedItem.Slot}", LoggerType.ClientPlayerData);
+                    Logger.LogInformation($"Storing Cursed Item to Slot: {cursedItem.AppliedItem.Slot}", LoggerType.ClientPlayerData);
                     appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
                 }
 
@@ -435,7 +433,15 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
             foreach (var item in appliedItems)
             {
                 Logger.LogInformation($"Applying Cursed Item to Slot: {item.Key}", LoggerType.ClientPlayerData);
-                ItemsToApply[item.Key] = item.Value.AppliedItem;
+                if(item.Value.IsGag)
+                {
+                    var drawData = _clientConfigs.GetDrawData(item.Value.GagType);
+                    ItemsToApply[drawData.Slot] = drawData;
+                }
+                else
+                {
+                    ItemsToApply[item.Key] = item.Value.AppliedItem;
+                }
             }
         }
 

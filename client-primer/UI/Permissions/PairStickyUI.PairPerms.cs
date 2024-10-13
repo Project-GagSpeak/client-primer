@@ -82,6 +82,13 @@ public partial class PairStickyUI
             UserPairForPerms.UserPairEditAccess.OwnerLocksAllowed,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
+        DrawOtherPairSetting("DevotionalLocks", "DevotionalLocksAllowed",
+            UserPairForPerms.UserPairUniquePairPerms.DevotionalLocks ? (PairUID + " allows Devotional Locks") : (PairUID + " prevents Devotional Locks"),
+            UserPairForPerms.UserPairUniquePairPerms.DevotionalLocks ? FontAwesomeIcon.Lock : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairEditAccess.DevotionalLocksAllowed ? ("Press to Toggle" + PairNickOrAliasOrUID + "'s permission state.") : ("You Can't Change " + PairNickOrAliasOrUID + "'s Permission here."),
+            UserPairForPerms.UserPairEditAccess.DevotionalLocksAllowed,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
 
         ImGui.Separator();
         /* ----------- RESTRAINT SET PERMISSIONS ----------- */

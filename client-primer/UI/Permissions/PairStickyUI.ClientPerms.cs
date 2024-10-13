@@ -91,6 +91,14 @@ public partial class PairStickyUI
             UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
             PermissionType.UniquePairPerm, PermissionValueType.YesNo);
 
+
+        DrawOwnSetting("DevotionalLocks", "DevotionalLocksAllowed",
+            UserPairForPerms.UserPairOwnUniquePairPerms.DevotionalLocks ? "Allowing Devotional Padlocks" : "Preventing Devotional Padlocks",
+            UserPairForPerms.UserPairOwnUniquePairPerms.DevotionalLocks ? FontAwesomeIcon.CheckCircle : FontAwesomeIcon.Ban,
+            UserPairForPerms.UserPairOwnUniquePairPerms.DevotionalLocks ? $"Prevent {PairNickOrAliasOrUID} from using Devotion Padlocks." : $"Allow {PairNickOrAliasOrUID} to use Devotion Padlocks.",
+            UserPairForPerms.UserPairOwnUniquePairPerms.InHardcore,
+            PermissionType.UniquePairPerm, PermissionValueType.YesNo);
+
         ImGui.Separator();
         /* ----------- RESTRAINT SET PERMISSIONS ----------- */
         ImGui.TextUnformatted("Restraint Set Permissions");

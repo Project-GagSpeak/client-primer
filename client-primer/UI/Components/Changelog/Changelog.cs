@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 3, 1)
+            .RegisterFeature("Added in the permissions for devotional lock allowances")
+            .RegisterQol("Added images for devotionalLocks and Mimic Locks");
         VersionEntry(0, 9, 3, 0)
             .RegisterMain("Cursed Loot Gags are now functional.")
             .RegisterMain("Majority of padlock fixes have been made.")

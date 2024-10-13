@@ -87,7 +87,7 @@ public partial class PairStickyUI
         {
             ImGui.BeginTooltip();
             ImGui.Text(tooltipText); // first half.
-            if (!unlockButtonDisabled)
+            if (!unlockButtonDisabled && GenericHelpers.TimerPadlocks.Contains(lastWardrobeData.Padlock))
                 UiSharedService.DrawTimeLeftFancy(lastWardrobeData.Timer);
             ImGui.EndTooltip();
         }

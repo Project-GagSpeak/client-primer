@@ -416,7 +416,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 ImGui.SetCursorPosY(originalCursorPos.Y + 2.5f);
                 // Draw the text with the desired color
                 UiSharedService.ColorText(name, ImGuiColors.DalamudWhite2);
-                if (set.LockType == Padlocks.FiveMinutesPadlock.ToName() || set.LockType == Padlocks.TimerPasswordPadlock.ToName() || set.LockType == Padlocks.OwnerTimerPadlock.ToName())
+                if (GenericHelpers.TimerPadlocks.Contains(set.LockType))
                 {
                     ImGui.SameLine();
                     UiSharedService.DrawTimeLeftFancy(set.LockedUntil);

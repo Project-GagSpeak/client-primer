@@ -7,6 +7,7 @@ using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
@@ -25,11 +26,14 @@ namespace GagSpeak.Toybox.Controllers;
 // Trigger Controller helps manage the currently active triggers and listens in on the received action effects
 public class TriggerController : DisposableMediatorSubscriberBase
 {
-    private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerManager;
-    private readonly PairManager _pairManager;
-    private readonly ActionEffectMonitor _receiveActionEffectHookManager;
     private readonly ToyboxFactory _playerMonitorFactory;
+    private readonly ActionEffectMonitor _receiveActionEffectHookManager;
+    private readonly WardrobeHandler _wardrobeHandler;
+    private readonly ClientConfigurationManager _clientConfigs;
+    private readonly GagManager _gagManager;
+    private readonly PairManager _pairManager;
+    private readonly AppearanceHandler _appearanceHandler;
     private readonly OnFrameworkService _frameworkService;
     private readonly ToyboxVibeService _vibeService;
     private readonly IpcCallerMoodles _moodlesIpc;
@@ -38,23 +42,28 @@ public class TriggerController : DisposableMediatorSubscriberBase
     private readonly IDataManager _gameData;
 
     public TriggerController(ILogger<TriggerController> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfiguration, PlayerCharacterData playerManager,
-        PairManager pairManager, ActionEffectMonitor actionEffectMonitor,
-        ToyboxFactory playerMonitorFactory, OnFrameworkService frameworkUtils,
-        ToyboxVibeService vibeService, IpcCallerMoodles moodles, IChatGui chatGui,
-        IClientState clientState, IDataManager dataManager) : base(logger, mediator)
+        PlayerCharacterData playerManager, ToyboxFactory playerMonitorFactory,
+        ActionEffectMonitor receiveActionEffectHookManager, WardrobeHandler wardrobeHandler,
+        ClientConfigurationManager clientConfigs, GagManager gagManager,
+        PairManager pairManager, AppearanceHandler appearanceHandler, 
+        OnFrameworkService frameworkService, ToyboxVibeService vibeService,
+        IpcCallerMoodles moodlesIpc, IChatGui chatGui, IClientState clientState,
+        IDataManager gameData) : base(logger, mediator)
     {
-        _clientConfigs = clientConfiguration;
         _playerManager = playerManager;
-        _pairManager = pairManager;
-        _receiveActionEffectHookManager = actionEffectMonitor;
         _playerMonitorFactory = playerMonitorFactory;
-        _frameworkService = frameworkUtils;
+        _receiveActionEffectHookManager = receiveActionEffectHookManager;
+        _wardrobeHandler = wardrobeHandler;
+        _clientConfigs = clientConfigs;
+        _gagManager = gagManager;
+        _pairManager = pairManager;
+        _appearanceHandler = appearanceHandler;
+        _frameworkService = frameworkService;
         _vibeService = vibeService;
-        _moodlesIpc = moodles;
+        _moodlesIpc = moodlesIpc;
         _chatGui = chatGui;
         _clientState = clientState;
-        _gameData = dataManager;
+        _gameData = gameData;
 
         ActionEffectMonitor.ActionEffectEntryEvent += OnActionEffectEvent;
 
@@ -356,7 +365,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 }
                 Logger.LogInformation("Applying Restraint Set "+trigger.RestraintNameAction+" with state "+NewState.Enabled, LoggerType.ToyboxTriggers);
                 var idx = _clientConfigs.GetRestraintSetIdxByName(trigger.RestraintNameAction);
-                await _clientConfigs.SetRestraintSetState(idx, Globals.SelfApplied, NewState.Enabled, true);
+                await _wardrobeHandler.EnableRestraintSet(idx, Globals.SelfApplied, true);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                 break;
 
@@ -371,8 +380,8 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 }
                 // otherwise, we can change the gag type on that layer.
                 Logger.LogInformation("Applying Gag Type "+trigger.GagTypeAction+" to layer "+trigger.GagLayerAction);
-                Mediator.Publish(new GagTypeChanged(trigger.GagTypeAction, trigger.GagLayerAction));
-                Mediator.Publish(new UpdateGlamourGagsMessage(NewState.Enabled, trigger.GagLayerAction, trigger.GagTypeAction));
+                _gagManager.OnGagTypeChanged(trigger.GagLayerAction, trigger.GagTypeAction, true, SelfApplied: true);
+                await _appearanceHandler.GagApplied(trigger.GagTypeAction);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                 break;
 

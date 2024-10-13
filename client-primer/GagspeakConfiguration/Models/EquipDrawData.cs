@@ -1,4 +1,5 @@
 
+using GagSpeak.UI.Components;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
 using Newtonsoft.Json;
@@ -11,7 +12,7 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 /// <summary> Model for the draw data of a players equipment slot </summary>
 /// <param name="gameItem"> the game item we are storing the drawdata of.</param>
 [Serializable]
-public record EquipDrawData
+public record EquipDrawData : IGlamourItem
 {
     public bool IsEnabled { get; set; } = false; // determines if it will be applied during event handling.
     public EquipSlot Slot { get; set; } = EquipSlot.Head;
@@ -26,7 +27,7 @@ public record EquipDrawData
         {
             IsEnabled = this.IsEnabled,
             Slot = this.Slot,
-            GameItem = this.GameItem,
+            GameItem = this.GameItem, 
             GameStain = this.GameStain
         };
     }

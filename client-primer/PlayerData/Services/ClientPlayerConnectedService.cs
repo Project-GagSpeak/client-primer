@@ -1,14 +1,11 @@
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
-using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Dto.Connection;
-using GagspeakAPI.Enums;
 using Microsoft.Extensions.Hosting;
 
 namespace GagSpeak.PlayerData.Services;
@@ -20,23 +17,28 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly GagManager _gagManager;
     private readonly IpcManager _ipcManager;
+    private readonly WardrobeHandler _wardrobeHandler;
+    private readonly HardcoreHandler _blindfoldHandler;
+    private readonly AppearanceHandler _appearanceHandler;
+    private readonly AppearanceService _appearanceService;
     private readonly IpcFastUpdates _ipcFastUpdates;
-    private readonly AppearanceChangeService _visualUpdater;
-    private readonly HardcoreHandler _blindfold;
 
     public OnConnectedService(ILogger<OnConnectedService> logger,
         GagspeakMediator mediator, PlayerCharacterData playerData,
         ClientConfigurationManager clientConfigs, GagManager gagManager,
-        IpcManager ipcManager, IpcFastUpdates ipcFastUpdates,
-        AppearanceChangeService visualUpdater, HardcoreHandler blindfold) : base(logger, mediator)
+        IpcManager ipcManager, WardrobeHandler wardrobeHandler,
+        HardcoreHandler blindfold, AppearanceHandler appearanceHandler,
+        AppearanceService appearanceService, IpcFastUpdates ipcFastUpdates) : base(logger, mediator)
     {
         _playerData = playerData;
         _clientConfigs = clientConfigs;
         _gagManager = gagManager;
         _ipcManager = ipcManager;
+        _wardrobeHandler = wardrobeHandler;
+        _blindfoldHandler = blindfold;
+        _appearanceHandler = appearanceHandler;
+        _appearanceService = appearanceService;
         _ipcFastUpdates = ipcFastUpdates;
-        _visualUpdater = visualUpdater;
-        _blindfold = blindfold;
 
         Mediator.Subscribe<ConnectedMessage>(this, (msg) => OnConnected(msg.Connection));
 
@@ -62,14 +64,6 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         // update the active gags
         await _gagManager.UpdateActiveGags();
 
-        // if the player is gagged, update their appearance.
-        if (_playerData.IsPlayerGagged)
-        {
-            // we should update the Gag Appearance.
-            Logger.LogDebug("Player is Gagged. Updating Gag Appearance.", LoggerType.GagManagement);
-            await _visualUpdater.ApplyGagItemsToCachedCharacterData();
-        }
-
         Logger.LogInformation("Syncing Data with Connection DTO", LoggerType.ClientPlayerData);
         var serverData = connectionDto.CharacterActiveStateData;
         // We should sync the active Restraint Set with the server's Active Set Name.
@@ -89,14 +83,14 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
                 {
                     Logger.LogInformation("Disabling Unlocked Set due to Config Setting.", LoggerType.Restraints);
                     // we should also update the active state data to disable the set.
-                    await _clientConfigs.SetRestraintSetState(setIdx, serverData.WardrobeActiveSetAssigner, NewState.Disabled, false);
+                    await _wardrobeHandler.DisableRestraintSet(setIdx, serverData.WardrobeActiveSetAssigner, false);
                 }
             }
             // if it is not a set that had its time expired, then we should re-enable it, and re-lock it if it was locked.
             else
             {
                 Logger.LogInformation("Re-Enabling the stored active Restraint Set", LoggerType.Restraints);
-                await _clientConfigs.SetRestraintSetState(setIdx, serverData.WardrobeActiveSetAssigner, NewState.Enabled, false);
+                await _wardrobeHandler.EnableRestraintSet(setIdx, serverData.WardrobeActiveSetAssigner, false);
                 // relock it if it had a timer.
                 if (serverData.Padlock != Padlocks.None.ToName())
                 {
@@ -108,15 +102,19 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
             // but its the only way to ensure that achievements are not cheesed upon connection. That I know of at least. Look into later.
             Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.FullDataUpdate));
         }
+
+        // Run a refresh on appearance data.
+        await _appearanceHandler.RecalculateAppearance();
+        IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
     }
 
     private async void CheckBlindfold()
-    { 
+    {
         // equip any blindfolds.
-        if(_blindfold.IsCurrentlyBlindfolded())
+        if (_blindfoldHandler.IsCurrentlyBlindfolded())
         {
-            if(_blindfold.BlindfoldPair != null)
-                await _blindfold.HandleBlindfoldLogic(NewState.Enabled, _blindfold.BlindfoldPair.UserData.UID);
+            if (_blindfoldHandler.BlindfoldPair != null)
+                await _blindfoldHandler.HandleBlindfoldLogic(NewState.Enabled, _blindfoldHandler.BlindfoldPair.UserData.UID);
         }
     }
 

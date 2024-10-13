@@ -19,6 +19,17 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 2, 0)
+            .RegisterMain("Cursed loot functionality has been readded to the plugin.")
+            .RegisterMain("The Appearance Updater has recieved an overhaul to work better.")
+            .RegisterFeature("Cursed Loot UI Has been completely revamped for individual items.")
+            .RegisterFeature("Cursed Loot can be either gags or equipment items. (Gags Non-Functional ATM)")
+            .RegisterFeature("Appearance Updates have been overhauled and are now 15x faster than before.")
+            .RegisterFeature("Application inconsistancies have been fixed.")
+            .RegisterQol("Updates happen now as: RESTRAINT -> GAG -> CURSED ITEM -> BLINDFOLD")
+            .RegisterBugfix("Fixed cases where some calls updated things out of order.")
+            .RegisterBugfix("Fixed blindfolds taking forever to apply.")
+            .RegisterBugfix("Fixed game crashing on closing game");
         VersionEntry(0, 9, 1, 0)
             .RegisterMain("I HIGHLY RECOMMEND YOU SET YOUR CURSED LOOT CHANCE TO 0%")
             .RegisterFeature("New overhaul rework for cursed loot being implemented. Still IN PROGRESS.")

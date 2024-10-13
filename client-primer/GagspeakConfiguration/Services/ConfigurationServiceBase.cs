@@ -199,6 +199,7 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
         _currentUid = newUid;
         SaveUid(newUid); // Save the UID to persistent storage
         _currentConfigInternal = LazyConfig(); // Recalculate the configuration path
+        Save();
     }
 
     // Method to save the UID to persistent storage

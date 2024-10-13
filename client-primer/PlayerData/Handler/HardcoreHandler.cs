@@ -3,6 +3,7 @@ using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.UI.MainWindow;
@@ -307,29 +308,32 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     public async Task HandleBlindfoldLogic(NewState newState, string applierUID)
     {
         // toggle our window based on conditions
-        if (newState == NewState.Enabled && !BlindfoldUI.IsWindowOpen)
+        if (newState == NewState.Enabled)
         {
-            Mediator.Publish(new UiToggleMessage(typeof(BlindfoldUI), ToggleType.Show));
-        }
-        if (newState == NewState.Disabled && BlindfoldUI.IsWindowOpen)
-        {
-            Mediator.Publish(new HardcoreRemoveBlindfoldMessage());
-        }
-        if (NewState.Enabled == newState)
-        {
-            // go in right away
-            DoCameraVoodoo(newState);
-            // apply the blindfold
-            Mediator.Publish(new UpdateGlamourBlindfoldMessage(NewState.Enabled, applierUID));
+            IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
 
+            // if the window isnt open, open it.
+            if (!BlindfoldUI.IsWindowOpen)
+            {
+                Mediator.Publish(new UiToggleMessage(typeof(BlindfoldUI), ToggleType.Show));
+            }
+            // go in for camera voodoo.
+            DoCameraVoodoo(newState);
+            // log success.
+            Logger.LogDebug("Applying Blindfold to Character");
         }
-        else
+        else if (newState == NewState.Disabled)
         {
+            if (BlindfoldUI.IsWindowOpen)
+            {
+                //if the window is open, close it.
+                Mediator.Publish(new HardcoreRemoveBlindfoldMessage());
+            }
             // wait a bit before doing the camera voodoo
             await Task.Delay(2000);
             DoCameraVoodoo(newState);
             // call a refresh all
-            Mediator.Publish(new UpdateGlamourBlindfoldMessage(NewState.Disabled, applierUID));
+            IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
         }
     }
 

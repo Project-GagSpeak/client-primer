@@ -11,6 +11,16 @@ namespace GagSpeak.Utils;
 /// <summary> A class for all of the UI helpers, including basic functions for drawing repetative yet unique design elements </summary>
 public static class GenericHelpers
 {
+    public static IEnumerable<Padlocks> NoOwnerPadlockList = Enum.GetValues<Padlocks>()
+        .Cast<Padlocks>()
+        .Where(p => p is not Padlocks.OwnerPadlock && p is not Padlocks.OwnerTimerPadlock && p is not Padlocks.MimicPadlock)
+        .ToArray();
+
+    public static IEnumerable<Padlocks> NoMimicPadlockList = Enum.GetValues<Padlocks>()
+        .Cast<Padlocks>()
+        .Where(p => p is not Padlocks.MimicPadlock)
+        .ToArray();
+
     /// <summary> A generic function to iterate through a collection and perform an action on each item </summary>
     public static void Each<T>(this IEnumerable<T> collection, Action<T> function)
     {
@@ -101,7 +111,8 @@ public static class GenericHelpers
     {
         Padlocks.FiveMinutesPadlock.ToName(),
         Padlocks.TimerPasswordPadlock.ToName(),
-        Padlocks.OwnerTimerPadlock.ToName()
+        Padlocks.OwnerTimerPadlock.ToName(),
+        Padlocks.MimicPadlock.ToName()
     };
 
 

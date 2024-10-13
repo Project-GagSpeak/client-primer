@@ -1,7 +1,6 @@
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.Interop;
 using GagSpeak.GagspeakConfiguration.Models;
@@ -78,34 +77,8 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         // subscribe to events.
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
 
-        Mediator.Subscribe<RestraintSetToggleHardcoreTraitsMessage>(this, (msg) =>
-        {
-            if (msg.AssignerUID != "SelfAssigned" && msg.State == NewState.Enabled)
-            {
-                // apply stimulation modifier, if any (TODO)
-                _hardcoreHandler.ApplyMultiplier();
-                // activate hotbar lock, if we have any properties enabled (we always will since this subscriber is only called if there is)
-                _hotbarLocker.SetHotbarLockState(true);
-                // begin allowing monitoring of properties
-                MonitorHardcoreRestraintSetProperties = true;
-            }
-            if (msg.AssignerUID != "SelfAssigned" && msg.State == NewState.Disabled)
-            {
-                // reset multiplier
-                _hardcoreHandler.StimulationMultiplier = 1.0;
-                // we should also restore hotbar slots
-                RestoreSavedSlots();
-                // we should also unlock hotbar lock
-                _hotbarLocker.SetHotbarLockState(false);
-                // halt monitoring of properties
-                MonitorHardcoreRestraintSetProperties = false;
-            }
-
-            if (msg.HardcoreTraitsTask != null)
-            {
-                msg.HardcoreTraitsTask.SetResult(true);
-            }
-        });
+        IpcFastUpdates.GlamourEventFired += JobChanged;
+        IpcFastUpdates.HardcoreTraitsEventFired += ToggleHardcoreTraits;
     }
 
     public bool MonitorHardcoreRestraintSetProperties = false;
@@ -124,9 +97,33 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
             UseActionHook.Dispose();
             UseActionHook = null!;
         }
+
+        IpcFastUpdates.GlamourEventFired -= JobChanged;
+        IpcFastUpdates.HardcoreTraitsEventFired -= ToggleHardcoreTraits;
         // dispose of the base class
         base.Dispose(disposing);
     }
+
+    public void ToggleHardcoreTraits(NewState newState, string AssignerUID = Globals.SelfApplied)
+    {
+        if (AssignerUID is not Globals.SelfApplied && newState is NewState.Enabled)
+        {
+            _hardcoreHandler.ApplyMultiplier();
+            _hotbarLocker.SetHotbarLockState(true);
+            // Begin monitoring hardcore restraint properties.
+            MonitorHardcoreRestraintSetProperties = true;
+        }
+        else if (AssignerUID is not Globals.SelfApplied && newState is NewState.Disabled)
+        {
+            _hardcoreHandler.StimulationMultiplier = 1.0;
+            RestoreSavedSlots();
+            _hotbarLocker.SetHotbarLockState(false);
+            // Halt monitoring of properties
+            MonitorHardcoreRestraintSetProperties = false;
+        }
+    }
+
+
 
     public void RestoreSavedSlots()
     {
@@ -278,37 +275,28 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         }
     }
 
+    private void JobChanged(GlamourUpdateType updateKind)
+    {
+        if (updateKind != GlamourUpdateType.JobChange)
+            return;
+
+        Task.Run(() => _frameworkUtils.RunOnFrameworkThread(() =>
+        {
+            UpdateJobList();
+            RestoreSavedSlots();
+        }));
+    }
+
     #region Framework Updates
     private unsafe void FrameworkUpdate()
     {
         // make sure we only do checks when we are properly logged in and have a character loaded
         if (_clientState.LocalPlayer?.IsDead ?? false)
-        {
             return;
-        }
 
         if (AllowFrameworkHardcoreUpdates())
-        {
-            // if the class job is different than the one stored, then we have a class job change (CRITICAL TO UPDATING PROPERLY)
-            if (_clientState.LocalPlayer!.ClassJob.Id != _frameworkUtils.PlayerClassJobId)
-            {
-                // update the stored class job
-                _frameworkUtils.PlayerClassJobId = _clientState.LocalPlayer.ClassJob.Id;
-                // invoke jobChangedEvent to call the job changed glamour event
-                IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.JobChange);
-                // regenerate our slots
-                UpdateJobList();
-                RestoreSavedSlots();
-                return;
-            }
-
-            // see if any set is enabled
-            // TODO: Fix this logic
             if (_clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), _wardrobeHandler.ActiveSet.EnabledBy))
-            {
                 UpdateSlots(_wardrobeHandler.ActiveSet.SetProperties[_wardrobeHandler.ActiveSet.EnabledBy]);
-            }
-        }
     }
     #endregion Framework Updates
     private bool UseActionDetour(ActionManager* am, ActionType type, uint acId, long target, uint a5, uint a6, uint a7, void* a8)

@@ -45,7 +45,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public IpcCallerGlamourer(ILogger<IpcCallerGlamourer> logger,
         IDalamudPluginInterface pluginInterface, IClientState clientState,
-        GagspeakConfigService clientConfigs, OnFrameworkService OnFrameworkService, 
+        GagspeakConfigService clientConfigs, OnFrameworkService OnFrameworkService,
         GagspeakMediator mediator, IpcFastUpdates fastUpdates) : base(logger, mediator)
     {
         _pi = pluginInterface;
@@ -72,7 +72,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         _glamourChanged.Enable();
     }
 
-    public enum MetaData { Hat, Visor, Both }
+    public enum MetaData { None, Hat, Visor, Both }
     public static bool APIAvailable { get; private set; } = false;
 
     public void CheckAPI()
@@ -108,35 +108,28 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-
         _glamourChanged.Disable();
         _glamourChanged?.Dispose();
+
         // revert our character back to the base game state (But dont if we are closing the game)
-        // now perform a revert based on our customization option
-        if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.Address != IntPtr.Zero)
+        Task.Run(() => _frameworkUtils.RunOnFrameworkThread(() =>
         {
-            Task.Run(async () =>
+            // do not run this if we are closing out of the game.
+            if (_frameworkUtils.IsFrameworkUnloading)
             {
-                switch (_gagspeakConfig.Current.RevertStyle)
-                {
-                    case RevertStyle.RevertToGame:
-                        await GlamourerRevertToGame();
-                        break;
+                Logger.LogWarning("Not reverting character as we are closing the game.", LoggerType.IpcGlamourer);
+                return;
+            }
 
-                    case RevertStyle.RevertEquipToGame:
-                        await GlamourerRevertToGameEquipOnly();
-                        break;
-
-                    case RevertStyle.RevertToAutomation:
-                        await GlamourerRevertToAutomation();
-                        break;
-
-                    case RevertStyle.RevertEquipToAutomation:
-                        await GlamourerRevertToAutomationEquipOnly();
-                        break;
-                }
-            });
-        }
+            // revert the character. (for disabling the plugin)
+            switch (_gagspeakConfig.Current.RevertStyle)
+            {
+                case RevertStyle.RevertToGame: GlamourerRevertToGame().ConfigureAwait(false); break;
+                case RevertStyle.RevertEquipToGame: GlamourerRevertToGameEquipOnly().ConfigureAwait(false); break;
+                case RevertStyle.RevertToAutomation: GlamourerRevertToAutomation().ConfigureAwait(false); break;
+                case RevertStyle.RevertEquipToAutomation: GlamourerRevertToAutomationEquipOnly().ConfigureAwait(false); break;
+            }
+        }));
     }
 
     /// <summary> ========== BEGIN OUR IPC CALL MANAGEMENT UNDER ASYNC TASKS ========== </summary>
@@ -271,7 +264,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
                 // otherwise, get the new state POST-REVERT.
                 JObject? newState = GetState();
-                if(newState != null)
+                if (newState != null)
                 {
                     newState["Customize"] = playerState["Customize"];
                     newState["Parameters"] = playerState["Parameters"];
@@ -299,12 +292,9 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             {
                 Logger.LogTrace("Calling on IPC: GlamourerRevertToAutomation", LoggerType.IpcGlamourer);
 
-                // we need to verify player validity because glamourer doesnt, apparently.
-                if (_frameworkUtils.ClientState.LocalPlayer is not ICharacter) return;
-
                 var result = _RevertToAutomation.Invoke(0, 0);
 
-                if(result != GlamourerApiEc.Success)
+                if (result != GlamourerApiEc.Success)
                 {
                     Logger.LogWarning($"Revert to automation failed, reverting to game instead", LoggerType.IpcGlamourer);
                     _RevertCharacter.Invoke(0, 0);
@@ -394,7 +384,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
             return;
         }
-        
+
         Logger.LogTrace($"GlamourerChanged event was not a type we care about, so skipping (Type was: {changeType})", LoggerType.IpcGlamourer);
     }
 }

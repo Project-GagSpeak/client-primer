@@ -2,6 +2,7 @@ using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
@@ -24,30 +25,33 @@ public class ClientCallbackService
 {
     private readonly ILogger<ClientCallbackService> _logger;
     private readonly GagspeakMediator _mediator;
-    private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerData;
+    private readonly WardrobeHandler _wardrobeHandler;
+    private readonly ClientConfigurationManager _clientConfigs;
     private readonly PairManager _pairManager;
     private readonly GagManager _gagManager;
     private readonly IpcManager _ipcManager;
     private readonly IpcFastUpdates _ipcFastUpdates;
-    private readonly AppearanceChangeService _visualUpdater;
+    private readonly AppearanceHandler _appearanceHandler;
     private readonly PlaybackService _playbackService;
 
     public ClientCallbackService(ILogger<ClientCallbackService> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        PlayerCharacterData playerData, PairManager pairManager,
-        GagManager gagManager, IpcManager ipcManager, IpcFastUpdates ipcFastUpdates,
-        AppearanceChangeService visualUpdater, PlaybackService playbackService)
+        PlayerCharacterData playerData, WardrobeHandler wardrobeHandler,
+        PairManager pairManager, GagManager gagManager, IpcManager ipcManager, 
+        IpcFastUpdates ipcFastUpdates, AppearanceHandler appearanceHandler, 
+        PlaybackService playbackService)
     {
         _logger = logger;
         _mediator = mediator;
         _clientConfigs = clientConfigs;
         _playerData = playerData;
+        _wardrobeHandler = wardrobeHandler;
         _pairManager = pairManager;
         _gagManager = gagManager;
         _ipcManager = ipcManager;
         _ipcFastUpdates = ipcFastUpdates;
-        _visualUpdater = visualUpdater;
+        _appearanceHandler = appearanceHandler;
         _playbackService = playbackService;
     }
 
@@ -182,24 +186,19 @@ public class ClientCallbackService
             {
                 _logger.LogDebug("Gag is already applied. Removing before reapplying.", LoggerType.Callbacks);
                 // set up a task for removing and reapplying the gag glamours, and the another for updating the GagManager.
-                await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, currentGagType, NewState.Disabled);
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval,
-                    callbackGagLayer,
-                    currentGagType,
-                    true);
+                _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None, false);
+                await _appearanceHandler.GagRemoved(currentGagType);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, callbackGagLayer, currentGagType, true);
                 // after its disabled,...
             }
 
             // ...apply the new version.
             _logger.LogDebug("Applying Gag to Character Appearance.", LoggerType.Callbacks);
-            await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), NewState.Enabled);
             _gagManager.OnGagTypeChanged(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), false);
-
+            await _appearanceHandler.GagApplied(callbackGagSlot.GagType.ToGagType());
             // Send Event
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction,
-                callbackGagLayer,
-                callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer].GagType.ToGagType(),
-                false);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, callbackGagLayer,
+                callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer].GagType.ToGagType(), false);
 
         }
         else if (callbackGagState is NewState.Locked)
@@ -214,12 +213,9 @@ public class ClientCallbackService
         }
         else if (callbackGagState is NewState.Disabled)
         {
-            await _visualUpdater.UpdateGagsAppearance(callbackGagLayer, currentGagType, NewState.Disabled);
             _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None, false);
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval,
-                callbackGagLayer,
-                currentGagType,
-                true);
+            await _appearanceHandler.GagRemoved(currentGagType);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, callbackGagLayer, currentGagType, true);
         }
     }
 
@@ -265,7 +261,7 @@ public class ClientCallbackService
                 if (!_clientConfigs.GagspeakConfig.DisableSetUponUnlock) 
                     return;
 
-                await _clientConfigs.SetRestraintSetState(callbackSetIdx, Globals.SelfApplied, NewState.Disabled, true);
+                await _wardrobeHandler.DisableRestraintSet(callbackSetIdx, Globals.SelfApplied, true);
             }
 
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintDisabled)
@@ -298,7 +294,7 @@ public class ClientCallbackService
 
                 case DataUpdateKind.WardrobeRestraintApplied:
                     _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
-                    await _clientConfigs.SetRestraintSetState(callbackSetIdx, callbackDto.User.UID, NewState.Enabled, false);
+                    await _wardrobeHandler.EnableRestraintSet(callbackSetIdx, callbackDto.User.UID, false);
 
                     UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, callbackSet, true, callbackDto.User.UID);
                     break;
@@ -326,7 +322,7 @@ public class ClientCallbackService
                     var activeSet = _clientConfigs.GetRestraintSet(activeIdx);
                     if (activeIdx != -1)
                     {
-                        await _clientConfigs.SetRestraintSetState(activeIdx, callbackDto.User.UID, NewState.Disabled, false);
+                        await _wardrobeHandler.DisableRestraintSet(activeIdx, callbackDto.User.UID, false);
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, activeSet, false, callbackDto.User.UID);
                     }
                     break;

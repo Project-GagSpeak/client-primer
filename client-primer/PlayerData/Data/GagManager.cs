@@ -47,8 +47,8 @@ public partial class GagManager : DisposableMediatorSubscriberBase
     public Task UpdateActiveGags()
     {
         Logger.LogTrace("GagTypeOne: " + _characterManager.AppearanceData.GagSlots[0].GagType
-            + "GagTypeTwo: " + _characterManager.AppearanceData.GagSlots[1].GagType
-            + "GagTypeThree: " + _characterManager.AppearanceData.GagSlots[2].GagType, LoggerType.GagManagement);
+            + " || GagTypeTwo: " + _characterManager.AppearanceData.GagSlots[1].GagType
+            + " || GagTypeThree: " + _characterManager.AppearanceData.GagSlots[2].GagType, LoggerType.GagManagement);
 
         // compile the strings into a list of strings, then locate the names in the handler storage that match it.
         _activeGags = new List<string>
@@ -178,6 +178,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
             case Padlocks.None:
                 return false;
             case Padlocks.MetalPadlock:
+                return true;
             case Padlocks.FiveMinutesPadlock:
                 ActiveSlotTimers[(int)layer] = "5m";
                 return true;
@@ -189,6 +190,21 @@ public partial class GagManager : DisposableMediatorSubscriberBase
                 result = ValidatePassword(ActiveSlotPasswords[(int)layer]);
                 if (!result) Logger.LogWarning("Invalid password entered: {Password}", ActiveSlotPasswords[(int)layer]);
                 return result;
+            case Padlocks.MimicPadlock:
+                var validTimeMimic = TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var mimicTime);
+                if (!validTimeMimic)
+                {
+                    Logger.LogWarning("Invalid time entered: {Timer}", ActiveSlotTimers[(int)layer]);
+                    return false;
+                }
+                // Check if the TimeSpan is longer than one hour and extended locks are not allowed
+                if (mimicTime > TimeSpan.FromHours(1) && !allowExtended)
+                {
+                    Logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
+                    return false;
+                }
+                // return base case.
+                return validTimeMimic;
             case Padlocks.TimerPasswordPadlock:
                 if (TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var test))
                 {
@@ -233,6 +249,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         switch (ActiveSlotPadlocks[(int)layer])
         {
             case Padlocks.None:
+            case Padlocks.MimicPadlock: // Players cannot unlock Mimic Padlocks.
                 return false;
             case Padlocks.MetalPadlock:
             case Padlocks.FiveMinutesPadlock:
@@ -282,6 +299,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
                 }
                 break;
             case Padlocks.OwnerTimerPadlock:
+            case Padlocks.MimicPadlock:
                 ImGui.SetNextItemWidth(width);
                 ImGui.InputTextWithHint("##Timer_Input", "Ex: 0h2m7s", ref ActiveSlotTimers[layer], 12);
                 break;

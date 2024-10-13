@@ -1,4 +1,5 @@
 using GagSpeak.Interop.IpcHelpers.Moodles;
+using GagSpeak.UI.Components;
 using GagSpeak.Utils;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
@@ -8,7 +9,7 @@ namespace GagSpeak.GagspeakConfiguration.Models;
 /// <summary> Model for the draw data of a players equipment slot </summary>
 /// <param name="gameItem"> the game item we are storing the drawdata of.</param>
 [Serializable]
-public record GagDrawData : IMoodlesAssociable
+public record GagDrawData : IMoodlesAssociable, IGlamourItem
 {
     public bool IsEnabled { get; set; } = true;
     public EquipSlot Slot { get; set; } = EquipSlot.Head;
@@ -19,7 +20,7 @@ public record GagDrawData : IMoodlesAssociable
 
     // List of Moodles to apply while Gagged.
     public List<Guid> AssociatedMoodles { get; set; } = new List<Guid>();
-    public List<Guid> AssociatedMoodlePresets { get; set; } = new List<Guid>();
+    public Guid AssociatedMoodlePreset { get; set; } = Guid.Empty;
 
     // C+ Preset to force if not Guid.Empty
     public uint CustomizePriority { get; set; } = 0;
@@ -38,7 +39,7 @@ public record GagDrawData : IMoodlesAssociable
             ["ForceHeadgearOnEnable"] = ForceHeadgearOnEnable,
             ["ForceVisorOnEnable"] = ForceVisorOnEnable,
             ["GagMoodles"] = new JArray(AssociatedMoodles),
-            ["GagMoodlePresets"] = new JArray(AssociatedMoodlePresets),
+            ["GagMoodlePresets"] = AssociatedMoodlePreset,
             ["CustomizePriority"] = CustomizePriority,
             ["CustomizeGuid"] = CustomizeGuid,
             ["Slot"] = Slot.ToString(),
@@ -57,9 +58,14 @@ public record GagDrawData : IMoodlesAssociable
         if (jsonObject["GagMoodles"] is JArray associatedMoodlesArray)
             AssociatedMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
 
-        // Deserialize the AssociatedMoodlePresets
-        if (jsonObject["GagMoodlePresets"] is JArray associatedMoodlePresetsArray)
-            AssociatedMoodlePresets = associatedMoodlePresetsArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
+        // Deserialize the AssociatedMoodlePreset TODO: Remove this on full release (the array check)
+        var gagMoodlePresetsToken = jsonObject["GagMoodlePresets"];
+        if (gagMoodlePresetsToken is JArray)
+            AssociatedMoodlePreset = Guid.Empty;
+        else if (Guid.TryParse(gagMoodlePresetsToken?.Value<string>(), out var preset))
+            AssociatedMoodlePreset = preset;
+        else
+            AssociatedMoodlePreset = Guid.Empty;
 
         CustomizePriority = jsonObject["CustomizePriority"]?.Value<uint>() ?? 0;
         CustomizeGuid = Guid.TryParse(jsonObject["CustomizeGuid"]?.Value<string>(), out var guid) ? guid : Guid.Empty;

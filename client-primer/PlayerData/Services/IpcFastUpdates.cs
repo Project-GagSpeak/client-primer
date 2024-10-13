@@ -6,13 +6,22 @@ namespace GagSpeak.PlayerData.Services;
 /// </summary>
 public class IpcFastUpdates
 {
-    public delegate void GlamourFastUpdateHandler(GlamourUpdateType e); // define the event handler
+    public delegate void GlamourFastUpdateHandler(GlamourUpdateType updateKind); // define the event handler
     public static event GlamourFastUpdateHandler? GlamourEventFired; // define the static event
-    public static void InvokeGlamourer(GlamourUpdateType changeType) => GlamourEventFired?.Invoke(changeType);
+    public static void InvokeGlamourer(GlamourUpdateType updateKind) 
+        => GlamourEventFired?.Invoke(updateKind);
 
 
 
     public delegate void CustomizeFastUpdateHandler(Guid e);
     public static event CustomizeFastUpdateHandler? CustomizeEventFired;
-    public static void InvokeCustomize(Guid Guid) => CustomizeEventFired?.Invoke(Guid);
+    public static void InvokeCustomize(Guid Guid) 
+        => CustomizeEventFired?.Invoke(Guid);
+
+
+
+    public delegate void HardcoreRestraintTraitsHandler(NewState newState, string assignerUID);
+    public static event HardcoreRestraintTraitsHandler? HardcoreTraitsEventFired;
+    public static void InvokeHardcoreTraits(NewState newState, string assignerUID) 
+        => HardcoreTraitsEventFired?.Invoke(newState, assignerUID);
 }

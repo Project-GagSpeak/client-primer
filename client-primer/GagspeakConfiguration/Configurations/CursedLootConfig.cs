@@ -10,4 +10,6 @@ public class CursedLootConfig : IGagspeakConfiguration
     public static int CurrentVersion => 1;
 
     public int Version { get; set; } = CurrentVersion;
+
+    public CursedLootConfig() { }
 }

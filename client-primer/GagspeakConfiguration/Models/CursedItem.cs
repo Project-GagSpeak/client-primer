@@ -43,6 +43,16 @@ public record CursedItem
     public Precedence OverridePrecedence { get; set; } = Precedence.Default;
 
     /// <summary>
+    /// Determines if the cursed item is a glamour or gag item.
+    /// </summary>
+    public bool IsGag { get; set; } = false;
+
+    /// <summary>
+    /// What gag to apply, if IsGag is true.
+    /// </summary>
+    public GagType GagType { get; set; } = GagType.None;
+
+    /// <summary>
     /// The Game Item to apply for this item.
     /// </summary>
     public EquipDrawData AppliedItem { get; set; }
@@ -83,6 +93,8 @@ public record CursedItem
             ReleaseTime = this.ReleaseTime,
             CanOverride = this.CanOverride,
             OverridePrecedence = this.OverridePrecedence,
+            IsGag = this.IsGag,
+            GagType = this.GagType,
             AppliedItem = this.AppliedItem.DeepCloneDrawData(),
             AssociatedMod = this.AssociatedMod.DeepClone(),
             MoodleType = this.MoodleType,
@@ -102,6 +114,8 @@ public record CursedItem
             ["ReleaseTime"] = ReleaseTime.UtcDateTime.ToString("o"),
             ["CanOverride"] = CanOverride,
             ["OverridePrecedence"] = OverridePrecedence.ToString(),
+            ["IsGag"] = IsGag,
+            ["GagType"] = GagType.ToString(),
             ["AppliedItem"] = new JObject()
             {
                 ["IsEnabled"] = AppliedItem.IsEnabled,
@@ -121,30 +135,16 @@ public record CursedItem
         Name = jsonObject["Name"]?.Value<string>() ?? "Unnamed Cursed Item";
         InPool = jsonObject["InPool"]?.Value<bool>() ?? false;
 
-        // apply time
-        if (jsonObject["LockedUntil"]?.Type == JTokenType.String)
-        {
-            string lockedUntilStr = jsonObject["AppliedTime"].Value<string>();
-            if (DateTimeOffset.TryParse(lockedUntilStr, out DateTimeOffset result))
-                AppliedTime = result;
-            else
-                AppliedTime = DateTimeOffset.MinValue;
-        }
-        else AppliedTime = DateTimeOffset.MinValue;
-
-        // release time
-        if (jsonObject["ReleaseTime"]?.Type == JTokenType.String)
-        {
-            string releaseTimeStr = jsonObject["ReleaseTime"].Value<string>();
-            if (DateTimeOffset.TryParse(releaseTimeStr, out DateTimeOffset result))
-                ReleaseTime = result;
-            else
-                ReleaseTime = DateTimeOffset.MinValue;
-        }
-        else ReleaseTime = DateTimeOffset.MinValue;
+        var applyTime = jsonObject["AppliedTime"]?.Value<DateTime>() ?? DateTime.MinValue;
+        AppliedTime = new DateTimeOffset(applyTime, TimeSpan.Zero); // Zero indicates UTC
+        var releaseTime = jsonObject["ReleaseTime"]?.Value<DateTime>() ?? DateTime.MinValue;
+        ReleaseTime = new DateTimeOffset(releaseTime, TimeSpan.Zero); // Zero indicates UTC
 
         CanOverride = jsonObject["CanOverride"]?.Value<bool>() ?? false;
         OverridePrecedence = Enum.TryParse<Precedence>(jsonObject["OverridePrecedence"]?.Value<string>(), out var precedence) ? precedence : Precedence.Default;
+
+        IsGag = jsonObject["IsGag"]?.Value<bool>() ?? false;
+        GagType = Enum.TryParse<GagType>(jsonObject["GagType"]?.Value<string>(), out var gagType) ? gagType : GagType.None;
 
         // applied item.
         if (jsonObject["AppliedItem"] is JObject appliedItemObj)

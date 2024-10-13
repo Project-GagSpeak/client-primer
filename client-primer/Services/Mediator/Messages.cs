@@ -88,9 +88,8 @@ public record VisorStateChangedMessage(bool ChangedState) : MessageBase; // call
 
 ////////////// WARDROBE RELATED RECORDS //////////////
 public record RestraintSetToggleModsMessage(int SetIdx, NewState State, TaskCompletionSource<bool>? ModToggleTask = null) : MessageBase; 
-public record RestraintSetToggleMoodlesMessage(int SetIdx, NewState State, TaskCompletionSource<bool>? MoodlesTask = null) : MessageBase;
 public record RestraintSetToggleHardcoreTraitsMessage(int SetIdx, string AssignerUID, NewState State, TaskCompletionSource<bool>? HardcoreTraitsTask = null) : MessageBase;
-public record RestraintSetToggledMessage(int SetIdx, string AssignerUID, NewState State, bool pushChanges, TaskCompletionSource<bool>? GlamourChangeTask = null) : MessageBase; 
+public record RestraintSetToggledMessage(int SetIdx, string AssignerUID, NewState State) : MessageBase; 
 public record HardcoreForcedToFollowMessage(Pair Pair, NewState State) : MessageBase;
 public record HardcoreForcedToSitMessage(Pair Pair, NewState State) : MessageBase; 
 public record HardcoreForcedToKneelMessage(Pair Pair, NewState State) : MessageBase;
@@ -137,9 +136,6 @@ public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
 /* ------------------ IPC HANDLER RECORDS------------------ */
 public record PenumbraInitializedMessage : MessageBase;
 public record PenumbraDisposedMessage : MessageBase;
-public record UpdateGlamourGagsMessage(NewState NewState, GagLayer Layer, GagType GagType): MessageBase;
-public record UpdateGlamourRestraintsMessage(NewState NewState, TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase; // Restraint set updates.
-public record UpdateGlamourBlindfoldMessage(NewState NewState, string AssignerName) : MessageBase; // Blindfold updates.
 public record MoodlesReady : MessageBase;
 public record GlamourerReady : MessageBase;
 public record CustomizeReady : MessageBase;

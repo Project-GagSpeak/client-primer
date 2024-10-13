@@ -33,67 +33,9 @@ public class ModAssociations : DisposableMediatorSubscriberBase
         _penumbra = penumbra;
         _frameworkUtils = frameworkUtils;
         _modCombo = new CustomModCombo(penumbra, logger);
-
-        Mediator.Subscribe<RestraintSetToggleModsMessage>(this, (msg) => ApplyModsOnSetToggle(msg));
     }
 
     public (Mod Mod, ModSettings Settings) CurrentSelection => _modCombo.CurrentSelection;
-
-    /// <summary> Applies associated mods to the client when a restraint set is toggled. </summary>
-    private async void ApplyModsOnSetToggle(RestraintSetToggleModsMessage msg)
-    {
-        try
-        {
-            // if the set is being enabled, we should toggle on the mods
-            if (msg.State == NewState.Enabled)
-            {
-                // enable the mods.
-                foreach (var associatedMod in _handler.GetAssociatedMods(msg.SetIdx))
-                    _penumbra.SetMod(associatedMod, true);
-                // if any of them wanted a redraw, do so.
-                if (_handler.GetAssociatedMods(msg.SetIdx).Any(x => x.RedrawAfterToggle))
-                {
-                    IGameObject? playerCharObj = await _frameworkUtils.CreateGameObjectAsync(_frameworkUtils.ClientPlayerAddress).ConfigureAwait(false) ?? null;
-                    if (playerCharObj == null)
-                    {
-                        Logger.LogError("Could not find player object. This only happens when you are loading between zones! If it isn't Report this!");
-                    }
-                    else
-                    {
-                        _penumbra.RedrawObject(playerCharObj.ObjectIndex, RedrawType.Redraw);
-                    }
-                }
-            }
-            // otherwise, new set state is false, so toggle off the mods
-            else
-            {
-                foreach (var associatedMod in _handler.GetAssociatedMods(msg.SetIdx))
-                    _penumbra.SetMod(associatedMod, false);
-                // if any of them wanted a redraw, do so.
-                if (_handler.GetAssociatedMods(msg.SetIdx).Any(x => x.RedrawAfterToggle))
-                {
-                    IGameObject? playerCharObj = await _frameworkUtils.CreateGameObjectAsync(_frameworkUtils.ClientPlayerAddress).ConfigureAwait(false) ?? null;
-                    if (playerCharObj == null)
-                    {
-                        Logger.LogError("Could not find player object. This only happens when you are loading between zones! If it isn't Report this!");
-                    }
-                    else
-                    {
-                        _penumbra.RedrawObject(playerCharObj.ObjectIndex, RedrawType.Redraw);
-                    }
-                }
-            }
-        }
-        catch (Exception e)
-        {
-            Logger.LogError(e, "Error applying mods on set toggle.");
-        }
-
-        if (msg.ModToggleTask != null)
-        {
-            msg.ModToggleTask.SetResult(true);
-        }
-    }
 
     public void DrawUnstoredSetTable(RestraintSet unstoredSet, float paddingHeight)
     {
@@ -296,7 +238,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
         // Get the current mod selection from the mod combo
         var currentName = _modCombo.CurrentSelection.Mod.Name;
 
-        _modCombo.Draw("##modSelect", currentName.IsNullOrEmpty() ? "Select Mod..." : currentName, string.Empty, width, ImGui.GetTextLineHeight());
+        _modCombo.Draw("##modSelect"+cursedItem.LootId, currentName.IsNullOrEmpty() ? "Select Mod..." : currentName, string.Empty, width, ImGui.GetTextLineHeight());
 
         if (ImGui.IsItemHovered())
             UiSharedService.AttachToolTip("Select a Mod to bind to this Cursed Item");

@@ -45,10 +45,10 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<TooltipSetItemToRestraintSetMessage>(this, (msg) =>
         {
-            if (!_handler.EditingSetNull)
+            if (_handler.ClonedSetForEdit is not null)
             {
-                _handler.SetBeingEdited.DrawData[msg.Slot].GameItem = msg.Item;
-                Logger.LogDebug($"Set {msg.Slot} to {msg.Item.Name}");
+                _handler.ClonedSetForEdit.DrawData[msg.Slot].GameItem = msg.Item;
+                Logger.LogDebug($"Set ["+msg.Slot+"] to ["+msg.Item.Name+"] on edited set ["+_handler.ClonedSetForEdit.Name+"]", LoggerType.Restraints);
             }
             else
             {
@@ -88,20 +88,20 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         }
 
         // if we are simply viewing the main page       
-        if (_handler.EditingSetNull)
+        if (_handler.ClonedSetForEdit is null)
         {
             DrawSetListing(cellPadding);
             return; // perform early returns so we dont access other methods
         }
 
         // if we are editing an restraintSet
-        if (!_handler.EditingSetNull)
+        if (_handler.ClonedSetForEdit is not null)
         {
             DrawRestraintSetEditorHeader();
             ImGui.Separator();
-            if (_handler.RestraintSetListSize() > 0 && _handler.EditingSetIndex >= 0)
+            if (_handler.RestraintSetCount > 0 && _handler.ClonedSetForEdit is not null)
             {
-                _editor.DrawRestraintSetEditor(_handler.SetBeingEdited, cellPadding);
+                _editor.DrawRestraintSetEditor(_handler.ClonedSetForEdit, cellPadding);
             }
         }
     }
@@ -128,7 +128,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 ImGui.Separator();
                 DrawSearchFilter(regionSize.X, ImGui.GetStyle().ItemInnerSpacing.X);
                 ImGui.Separator();
-                if (_handler.RestraintSetListSize() > 0)
+                if (_handler.RestraintSetCount > 0)
                 {
                     DrawRestraintSetSelectableMenu();
                 }
@@ -262,7 +262,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         Vector2 textSize;
         using (_uiShared.UidFont.Push())
         {
-            textSize = ImGui.CalcTextSize($"{_handler.SetBeingEdited.Name}");
+            textSize = ImGui.CalcTextSize($"{_handler.ClonedSetForEdit.Name}");
         }
         var centerYpos = (textSize.Y - iconSize.Y);
         using (ImRaii.Child("EditRestraintSetHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + (centerYpos - startYpos) * 2)))
@@ -275,7 +275,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             if (_uiShared.IconButton(FontAwesomeIcon.ArrowLeft))
             {
                 // reset the createdRestraintSet to a new restraintSet, and set editing restraintSet to true
-                _handler.ClearEditingRestraintSet();
+                _handler.CancelEditingSet();
                 return;
             }
             UiSharedService.AttachToolTip("Revert edits and return to Restraint Set List");
@@ -284,7 +284,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             ImGui.SetCursorPosY(startYpos);
             using (_uiShared.UidFont.Push())
             {
-                UiSharedService.ColorText(_handler.SetBeingEdited.Name, ImGuiColors.ParsedPink);
+                UiSharedService.ColorText(_handler.ClonedSetForEdit.Name, ImGuiColors.ParsedPink);
             }
 
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
@@ -294,9 +294,10 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             var currentYpos = ImGui.GetCursorPosY();
             // draw revert button at the same location but right below that button
-            if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import Gear", null, false, !IpcCallerGlamourer.APIAvailable || _handler.EditingSetNull || !UiSharedService.CtrlPressed()))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import Gear", 
+                disabled: !IpcCallerGlamourer.APIAvailable || _handler.ClonedSetForEdit is null || !UiSharedService.CtrlPressed()))
             {
-                _ipcGlamourer.SetRestraintEquipmentFromState(_handler.SetBeingEdited);
+                _ipcGlamourer.SetRestraintEquipmentFromState(_handler.ClonedSetForEdit!);
                 Logger.LogDebug("EquipmentImported from current State");
             }
             UiSharedService.AttachToolTip("Imports your Actor's Equipment Data from your current appearance.");
@@ -306,8 +307,8 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             // for saving contents
             if (_uiShared.IconButton(FontAwesomeIcon.Save))
             {
-                // reset the createdRestraintSet to a new restraintSet, and set editing restraintSet to true
-                _handler.UpdateEditedRestraintSet();
+                // Save the changes from our edits and apply them to the set we cloned for edits
+                _handler.SaveEditedSet();
             }
             UiSharedService.AttachToolTip("Save changes to Restraint Set & Return to the main list");
 
@@ -317,7 +318,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             if (_uiShared.IconButton(FontAwesomeIcon.Trash, null, null, !UiSharedService.CtrlPressed()))
             {
                 // reset the createdPattern to a new pattern, and set editing pattern to true
-                _handler.RemoveRestraintSet(_handler.EditingSetIndex);
+                _handler.RemoveRestraintSet(_handler.ClonedSetForEdit!.RestraintId);
             }
             UiSharedService.AttachToolTip("Delete Restraint Set");
         }
@@ -371,7 +372,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 }
                 if (ImGui.Selectable("Delete Set") && FilteredSetList[LastHoveredIndex] != null)
                 {
-                    _handler.RemoveRestraintSet(_handler.GetRestraintSetIndexByName(FilteredSetList[LastHoveredIndex].Name));
+                    _handler.RemoveRestraintSet(FilteredSetList[LastHoveredIndex].RestraintId);
                 }
                 ImGui.EndPopup();
             }
@@ -483,7 +484,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         {
             if (ImGui.IsItemClicked())
             {
-                _handler.SetEditingRestraintSet(set);
+                _handler.StartEditingSet(set);
             }
         }
         // if this is the active set, draw a seperator below it
@@ -502,9 +503,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 var isLockedByPair = set.LockedBy != Globals.SelfApplied && set.LockType.ToPadlock() != Padlocks.None;
                 var padlockType = set.Locked ? set.LockType.ToPadlock() : _padlockHandler.ActiveSlotPadlocks[3];
 
-                var padlockList = isLockedByPair
-                    ? Enum.GetValues<Padlocks>()
-                    : Enum.GetValues<Padlocks>().Cast<Padlocks>().Where(p => p != Padlocks.OwnerPadlock && p != Padlocks.OwnerTimerPadlock).ToArray();
+                var padlockList = isLockedByPair ? GenericHelpers.NoMimicPadlockList : GenericHelpers.NoOwnerPadlockList;
 
                 using (ImRaii.Disabled(set.Locked || set.LockType != "None"))
                 {

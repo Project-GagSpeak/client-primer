@@ -21,14 +21,14 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly GagManager _gagManager; // for removing gags.
     private readonly PlaybackService _patternPlaybackService; // for stopping patterns.
-    private readonly WardrobeHandler _wardrobeHandler;
+    private readonly AppearanceHandler _appearanceHandler;
     private readonly IpcFastUpdates _glamourFastEvent; // for reverting character.
 
     public SafewordService(ILogger<SafewordService> logger, GagspeakMediator mediator,
         ApiController apiController, PlayerCharacterData playerManager,
         PairManager pairManager, ClientConfigurationManager clientConfigs,
         GagManager gagManager, PlaybackService playbackService,
-        WardrobeHandler wardrobeHandler, IpcFastUpdates glamourFastUpdate)
+        AppearanceHandler appearanceHandler, IpcFastUpdates glamourFastUpdate)
         : base(logger, mediator)
     {
         _apiController = apiController;
@@ -37,7 +37,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
         _clientConfigs = clientConfigs;
         _gagManager = gagManager;
         _patternPlaybackService = playbackService;
-        _wardrobeHandler = wardrobeHandler;
+        _appearanceHandler = appearanceHandler;
         _glamourFastEvent = glamourFastUpdate;
 
         // set the chat log up.
@@ -88,8 +88,8 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             }
 
             // disable all other active things.
+            await _appearanceHandler.DisableAllDueToSafeword();
             await _clientConfigs.DisableEverythingDueToSafeword();
-            _wardrobeHandler.UpdateActiveSet();
 
             // doesn't madder if we do direct updates, since after the push to the server the callback will set it back accordingly.
             if (_playerManager.GlobalPerms != null && _apiController.IsConnected)

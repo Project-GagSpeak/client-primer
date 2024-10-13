@@ -15,6 +15,7 @@ public class CursedLootConfigService : ConfigurationServiceBase<CursedLootConfig
 
     protected override CursedLootConfig DeserializeConfig(JObject configJson)
     {
+        StaticLogger.Logger.LogWarning("Deserializing CursedLootConfig");
         var config = new CursedLootConfig();
 
         // deserialize the CursedLootStorage into a JToken.

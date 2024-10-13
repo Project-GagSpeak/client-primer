@@ -24,4 +24,6 @@ public class CursedLootStorage
     /// The chance of a cursed item being found in an opened dungeon chest.
     /// </summary>
     public int LockChance { get; set; } = 0;
+
+    public CursedLootStorage() { }
 }

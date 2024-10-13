@@ -1,6 +1,5 @@
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
@@ -10,12 +9,10 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Enums;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
-using Penumbra.GameData.Structs;
 
 namespace GagSpeak.Services.ConfigurationServices;
 
@@ -36,10 +33,10 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     private readonly TriggerConfigService _triggerConfig;           // the config for the triggers service (toybox triggers storage)
 
     public ClientConfigurationManager(ILogger<ClientConfigurationManager> logger,
-        GagspeakMediator GagspeakMediator, OnFrameworkService onFrameworkService, 
-        GagspeakConfigService configService, GagStorageConfigService gagStorageConfig, 
-        WardrobeConfigService wardrobeConfig, CursedLootConfigService cursedLootConfig, 
-        AliasConfigService aliasConfig, PatternConfigService patternConfig, 
+        GagspeakMediator GagspeakMediator, OnFrameworkService onFrameworkService,
+        GagspeakConfigService configService, GagStorageConfigService gagStorageConfig,
+        WardrobeConfigService wardrobeConfig, CursedLootConfigService cursedLootConfig,
+        AliasConfigService aliasConfig, PatternConfigService patternConfig,
         AlarmConfigService alarmConfig, TriggerConfigService triggersConfig) : base(logger, GagspeakMediator)
     {
         // create a new instance of the static universal logger that pulls from the client logger.
@@ -128,8 +125,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             _configService.Save();
         }
 
-        // insure the nicknames and tag configs exist in the main server.
-        if (_gagStorageConfig.Current.GagStorage == null) { _gagStorageConfig.Current.GagStorage = new(); }
         // create a new storage file
         if (_gagStorageConfig.Current.GagStorage.GagEquipData.IsNullOrEmpty())
         {
@@ -139,7 +134,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
                 _gagStorageConfig.Current.GagStorage.GagEquipData = Enum.GetValues(typeof(GagType))
                     .Cast<GagType>().ToDictionary(gagType => gagType, gagType => new GagDrawData(ItemIdVars.NothingItem(EquipSlot.Head)));
                 // print the keys in the dictionary
-                Logger.LogInformation("Gag Storage Config Created with "+_gagStorageConfig.Current.GagStorage.GagEquipData.Count+" keys", LoggerType.GagManagement);
+                Logger.LogInformation("Gag Storage Config Created with " + _gagStorageConfig.Current.GagStorage.GagEquipData.Count + " keys", LoggerType.GagManagement);
                 _gagStorageConfig.Save();
             }
             catch (Exception e)
@@ -189,8 +184,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         => GagStorageConfig.GagStorage.GagEquipData.Where(x => gagTypes.Contains(x.Key)).OrderBy(x => x.Value.CustomizePriority).FirstOrDefault().Value;
     internal EquipSlot GetGagTypeEquipSlot(GagType gagType)
         => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.Slot;
-    internal EquipItem GetGagTypeEquipItem(GagType gagType)
-        => _gagStorageConfig.Current.GagStorage.GagEquipData.FirstOrDefault(x => x.Key == gagType).Value.GameItem;
 
     internal void UpdateGagStorageDictionary(Dictionary<GagType, GagDrawData> newGagStorage)
     {
@@ -292,7 +285,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(newSet);
         }
         _wardrobeConfig.Save();
-        Logger.LogInformation("Added "+ newSets.Count + " Restraint Sets to wardrobe", LoggerType.Restraints);
+        Logger.LogInformation("Added " + newSets.Count + " Restraint Sets to wardrobe", LoggerType.Restraints);
         // publish to mediator
         Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
     }
@@ -326,161 +319,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             || setProperties.Weighty || setProperties.LightStimulation || setProperties.MildStimulation || setProperties.HeavyStimulation;
     }
 
-    private async Task DisableRestraintSetHelper(int setIndex, bool pushToServer = true, string uidOfPair = Globals.SelfApplied)
-    {
-        var set = WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
-        Logger.LogInformation("----- Disabling ["+set.Name+"] Begin -----", LoggerType.Restraints);
-        if (!set.Enabled || set.Locked) { Logger.LogWarning("Set "+setIndex+" is already disabled or is locked. Skipping disabling", LoggerType.Restraints); return; }
-
-        set.Enabled = false;
-        set.EnabledBy = string.Empty;
-        _wardrobeConfig.Save();
-
-        TaskCompletionSource<bool>? disableModsTask = null;
-        TaskCompletionSource<bool>? disableMoodlesTask = null;
-        TaskCompletionSource<bool>? disableHardcorePropertiesTask = null;
-
-        // Check if any mod associations have DisableWhenInactive set to true
-        if (set.AssociatedMods.Any(mod => mod.DisableWhenInactive))
-        {
-            Logger.LogTrace($"{set.Name} contains at least one mod with DisableWhenInactive.", LoggerType.Restraints);
-            disableModsTask = new TaskCompletionSource<bool>();
-        }
-
-        if (set.AssociatedMoodles.Any())
-        {
-            Logger.LogTrace($"{set.Name} contains at least one moodle association.", LoggerType.Restraints);
-            disableMoodlesTask = new TaskCompletionSource<bool>();
-        }
-
-        // Check if the set has any hardcore properties active for the user
-        if (set.SetProperties.ContainsKey(set.EnabledBy) && PropertiesEnabledForSet(GetRestraintSetIdxByName(set.Name), set.EnabledBy))
-        {
-            Logger.LogTrace($"{set.Name} contains hardcore properties for the set enabler {set.EnabledBy}", LoggerType.Restraints);
-            disableHardcorePropertiesTask = new TaskCompletionSource<bool>();
-        }
-
-        // disable hardcore properties first
-        if (disableHardcorePropertiesTask != null)
-        {
-            Logger.LogTrace($"Disabling Hardcore Properties for {set.Name} for {set.EnabledBy}", LoggerType.Restraints);
-            Mediator.Publish(new RestraintSetToggleHardcoreTraitsMessage(setIndex, set.EnabledBy, NewState.Disabled, disableHardcorePropertiesTask));
-            await disableHardcorePropertiesTask.Task;
-        }
-
-        // we don't care who the UIDis that is 
-        if (disableModsTask != null)
-        {
-            Logger.LogTrace("Disabling Mods for "+set.Name, LoggerType.Restraints);
-            Mediator.Publish(new RestraintSetToggleModsMessage(setIndex, NewState.Disabled, disableModsTask));
-            await disableModsTask.Task;
-        }
-
-        if (disableMoodlesTask != null)
-        {
-            Logger.LogTrace("Disabling Moodles for "+set.Name, LoggerType.Restraints);
-            Mediator.Publish(new RestraintSetToggleMoodlesMessage(setIndex, NewState.Disabled, disableMoodlesTask));
-            await disableMoodlesTask.Task;
-        }
-
-        // The glamour task always must fire
-        var disableRestraintGlamourTask = new TaskCompletionSource<bool>();
-        Mediator.Publish(new RestraintSetToggledMessage(setIndex, set.EnabledBy, NewState.Disabled, pushToServer, disableRestraintGlamourTask));
-        await disableRestraintGlamourTask.Task;
-
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, set, false, uidOfPair);
-        set.Enabled = false;
-        set.EnabledBy = string.Empty;
-        Logger.LogInformation("----- Disabling ["+set.Name+"] End -----", LoggerType.Restraints);
-    }
-
-    private async Task EnableRestraintSetHelper(int setIndex, string AssignerUid, bool pushToServer = true)
-    {
-        var set = WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
-        Logger.LogInformation("----- Enabling ["+set.Name+"] Begin -----", LoggerType.Restraints);
-        Logger.LogInformation("Enabling: "+set.Name+", Assigner: "+AssignerUid+", NewState: Enabled, PushToServer: "+pushToServer, LoggerType.Restraints);
-
-        set.Enabled = true;
-        set.EnabledBy = AssignerUid;
-        _wardrobeConfig.Save();
-
-        TaskCompletionSource<bool>? enableModsTask = null;
-        TaskCompletionSource<bool>? enableMoodlesTask = null;
-        TaskCompletionSource<bool>? enableHardcorePropertiesTask = null;
-
-        // Check if any mod associations have DisableWhenInactive set to true
-        if (set.AssociatedMods.Any(mod => mod.DisableWhenInactive))
-        {
-            Logger.LogTrace($"{set.Name} contains at least one mod with DisableWhenInactive.", LoggerType.Restraints);
-            enableModsTask = new TaskCompletionSource<bool>();
-        }
-
-        if (set.AssociatedMoodles.Any())
-        {
-            Logger.LogTrace($"{set.Name} contains at least one moodle association.", LoggerType.Restraints);
-            enableMoodlesTask = new TaskCompletionSource<bool>();
-        }
-
-        // Check if the set has any hardcore properties active for the user
-        if (set.SetProperties.ContainsKey(set.EnabledBy) && PropertiesEnabledForSet(GetRestraintSetIdxByName(set.Name), set.EnabledBy))
-        {
-            Logger.LogTrace($"{set.Name} contains hardcore properties for the set enabler {set.EnabledBy}", LoggerType.Restraints);
-            enableHardcorePropertiesTask = new TaskCompletionSource<bool>();
-        }
-
-        // disable hardcore properties first
-        if (enableHardcorePropertiesTask != null)
-        {
-            Logger.LogTrace($"Enabling Hardcore Properties for {set.Name} for {set.EnabledBy}", LoggerType.Restraints);
-            Mediator.Publish(new RestraintSetToggleHardcoreTraitsMessage(setIndex, set.EnabledBy, NewState.Enabled, enableHardcorePropertiesTask));
-            await enableHardcorePropertiesTask.Task;
-        }
-
-        // we don't care who the UIDis that is 
-        if (enableModsTask != null)
-        {
-            Logger.LogTrace("Enabling Mods for "+set.Name, LoggerType.Restraints);
-            Mediator.Publish(new RestraintSetToggleModsMessage(setIndex, NewState.Enabled, enableModsTask));
-            await enableModsTask.Task;
-        }
-
-        if (enableMoodlesTask != null)
-        {
-            Logger.LogTrace("Enabling Moodles for "+set.Name, LoggerType.Restraints);
-            Mediator.Publish(new RestraintSetToggleMoodlesMessage(setIndex, NewState.Enabled, enableMoodlesTask));
-            await enableMoodlesTask.Task;
-        }
-        // The glamour task always must fire
-        var enableRestraintGlamourTask = new TaskCompletionSource<bool>();
-        Mediator.Publish(new RestraintSetToggledMessage(setIndex, set.EnabledBy, NewState.Enabled, pushToServer, enableRestraintGlamourTask));
-        await enableRestraintGlamourTask.Task;
-        Logger.LogInformation("----- Enabling ["+set.Name+"] End -----", LoggerType.Restraints);
-    }
-    internal async Task SetRestraintSetState(int setIndex, string UIDofPair, NewState newState, bool pushToServer = true)
-    {
-        Logger.LogInformation("---------------- Restraint Set State Start ---------------", LoggerType.Restraints);
-
-        // lets us know when we have finished toggling the restraint set.
-        if (newState == NewState.Disabled)
-        {
-            await DisableRestraintSetHelper(setIndex, pushToServer, UIDofPair);
-        }
-        else
-        {
-            // if a restraint set is currently active, disable it first.
-            var activeSetIdx = GetActiveSetIdx();
-            if (activeSetIdx != -1)
-            {
-                Logger.LogTrace("Another set was found to be active when attempting to enabling this set. " +
-                    "Disabling other active sets first.", LoggerType.Restraints);
-                await DisableRestraintSetHelper(activeSetIdx, false, UIDofPair);
-            }
-
-            // enable the restraint set.
-            await EnableRestraintSetHelper(setIndex, UIDofPair, pushToServer);
-        }
-        Logger.LogInformation("---------------- Restraint Set State Finish ---------------", LoggerType.Restraints);
-    }
+    internal void SaveWardrobe() => _wardrobeConfig.Save();
 
     internal void LockRestraintSet(int setIndex, string lockType, string password,
         DateTimeOffset endLockTimeUTC, string UIDofPair, bool pushToServer = true)
@@ -493,10 +332,12 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = UIDofPair;
         _wardrobeConfig.Save();
 
-        Logger.LogDebug("Restraint Set "+ set .Name+ " Locked by "+UIDofPair+" with a Padlock of Type: "+lockType
-            + "and a password ["+password+"] with ["+(endLockTimeUTC- DateTimeOffset.UtcNow) +"] by "+UIDofPair, LoggerType.Restraints);
+        Logger.LogDebug("Restraint Set " + set.Name + " Locked by " + UIDofPair + " with a Padlock of Type: " + lockType
+            + "and a password [" + password + "] with [" + (endLockTimeUTC - DateTimeOffset.UtcNow) + "] by " + UIDofPair, LoggerType.Restraints);
 
-        Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Locked, pushToServer));
+        Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Locked));
+
+        if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked));
     }
 
     internal void UnlockRestraintSet(int setIndex, string UIDofPair, bool pushToServer = true)
@@ -509,10 +350,12 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = string.Empty;
         _wardrobeConfig.Save();
 
-        Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Unlocked, pushToServer));
+        Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Unlocked));
+
+        if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked));
+
     }
 
-    internal int GetRestraintSetCount() => WardrobeConfig.WardrobeStorage.RestraintSets.Count;
     internal List<AssociatedMod> GetAssociatedMods(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods;
     internal List<Guid> GetAssociatedMoodles(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMoodles;
     internal EquipDrawData GetBlindfoldItem() => WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldItem;
@@ -557,14 +400,47 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _cursedLootConfig.Save();
     }
 
-    internal void RemoveCursedItem(Guid lootIdToRemove) 
+    internal void RemoveCursedItem(Guid lootIdToRemove)
     {
         var idx = CursedLootConfig.CursedLootStorage.CursedItems.FindIndex(x => x.LootId == lootIdToRemove);
         CursedLootConfig.CursedLootStorage.CursedItems.RemoveAt(idx);
         _cursedLootConfig.Save();
     }
 
+    internal void ActivateCursedItem(Guid lootId, DateTimeOffset endTimeUtc)
+    {
+        var idx = CursedLootConfig.CursedLootStorage.CursedItems.FindIndex(x => x.LootId == lootId);
+        if (idx != -1)
+        {
+            CursedLootConfig.CursedLootStorage.CursedItems[idx].AppliedTime = DateTimeOffset.UtcNow;
+            CursedLootConfig.CursedLootStorage.CursedItems[idx].ReleaseTime = endTimeUtc;
+            _cursedLootConfig.Save();
+        }
+    }
+
+    internal void DeactivateCursedItem(Guid lootId)
+    {
+        var idx = CursedLootConfig.CursedLootStorage.CursedItems.FindIndex(x => x.LootId == lootId);
+        if (idx != -1)
+        {
+            CursedLootConfig.CursedLootStorage.CursedItems[idx].AppliedTime = DateTimeOffset.MinValue;
+            CursedLootConfig.CursedLootStorage.CursedItems[idx].ReleaseTime = DateTimeOffset.MinValue;
+            _cursedLootConfig.Save();
+        }
+    }
+
     internal void SaveCursedLoot() => _cursedLootConfig.Save();
+
+    // Occurs due to safeword, will deactivate all active sets whose apply time is not dateTimeOffset.MinValue.
+    internal void ClearCursedItems()
+    {
+        foreach (var item in CursedLootConfig.CursedLootStorage.CursedItems.Where(x => x.AppliedTime != DateTimeOffset.MinValue))
+        {
+            item.AppliedTime = DateTimeOffset.MinValue;
+            item.ReleaseTime = DateTimeOffset.MinValue;
+        }
+        _cursedLootConfig.Save();
+    }
 
     #endregion Cursed Loot Config Methods
 
@@ -654,7 +530,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         PatternConfig.PatternStorage.Patterns.Add(newPattern);
         _patternConfig.Save();
         // publish to mediator one was added
-        Logger.LogInformation("Pattern Added: "+newPattern.Name, LoggerType.ToyboxPatterns);
+        Logger.LogInformation("Pattern Added: " + newPattern.Name, LoggerType.ToyboxPatterns);
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
@@ -670,7 +546,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         }
         _patternConfig.Save();
         // publish to mediator one was added
-        Logger.LogInformation("Added: "+newPattern.Count+" Patterns to Toybox", LoggerType.ToyboxPatterns);
+        Logger.LogInformation("Added: " + newPattern.Count + " Patterns to Toybox", LoggerType.ToyboxPatterns);
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
     }
 
@@ -764,13 +640,13 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         AlarmConfig.AlarmStorage.Alarms.Add(alarm);
         _alarmConfig.Save();
 
-        Logger.LogInformation("Alarm Added: "+alarm.Name, LoggerType.ToyboxAlarms);
+        Logger.LogInformation("Alarm Added: " + alarm.Name, LoggerType.ToyboxAlarms);
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
     }
 
     public void RemoveAlarm(int indexToRemove)
     {
-        Logger.LogInformation("Alarm Removed: "+AlarmConfig.AlarmStorage.Alarms[indexToRemove].Name, LoggerType.ToyboxAlarms);
+        Logger.LogInformation("Alarm Removed: " + AlarmConfig.AlarmStorage.Alarms[indexToRemove].Name, LoggerType.ToyboxAlarms);
         AlarmConfig.AlarmStorage.Alarms.RemoveAt(indexToRemove);
         _alarmConfig.Save();
 
@@ -849,13 +725,13 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         TriggerConfig.TriggerStorage.Triggers.Add(alarm);
         _triggerConfig.Save();
 
-        Logger.LogInformation("Trigger Added: "+alarm.Name, LoggerType.ToyboxTriggers);
+        Logger.LogInformation("Trigger Added: " + alarm.Name, LoggerType.ToyboxTriggers);
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerListUpdated));
     }
 
     public void RemoveTrigger(int indexToRemove)
     {
-        Logger.LogInformation("Trigger Removed: "+TriggerConfig.TriggerStorage.Triggers[indexToRemove].Name, LoggerType.ToyboxTriggers);
+        Logger.LogInformation("Trigger Removed: " + TriggerConfig.TriggerStorage.Triggers[indexToRemove].Name, LoggerType.ToyboxTriggers);
         TriggerConfig.TriggerStorage.Triggers.RemoveAt(indexToRemove);
         _triggerConfig.Save();
 
@@ -908,64 +784,16 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     #endregion Trigger Config Methods
 
-    public async Task DisableEverythingDueToSafeword()
+    public Task DisableEverythingDueToSafeword()
     {
-        // we need to first turn off any active restraint sets by disabling their active state, removing their locks, and removing any moodles attached to them.
-        var activeSetIdx = GetActiveSetIdx();
-        if (activeSetIdx != -1)
-        {
-            var set = WardrobeConfig.WardrobeStorage.RestraintSets[activeSetIdx];
-            set.LockedBy = string.Empty;
-            set.LockedUntil = DateTimeOffset.MinValue;
-            set.LockPassword = string.Empty;
-            set.LockType = Padlocks.None.ToName();
-            set.EnabledBy = string.Empty;
-            set.Enabled = false;
-
-            TaskCompletionSource<bool>? disableHardcorePropertiesTask = null;
-            TaskCompletionSource<bool>? disableModsTask = null;
-            TaskCompletionSource<bool>? disableMoodlesTask = null;
-
-            // If there are mods to disable
-            if (set.AssociatedMods.Any(mod => mod.DisableWhenInactive))
-            {
-                disableModsTask = new TaskCompletionSource<bool>();
-                Logger.LogTrace("Disabling Mods for "+set.Name, LoggerType.Safeword);
-                Mediator.Publish(new RestraintSetToggleModsMessage(activeSetIdx, NewState.Disabled, disableModsTask));
-            }
-
-            // If there are moodles to disable
-            if (set.AssociatedMoodles.Any())
-            {
-                disableMoodlesTask = new TaskCompletionSource<bool>();
-                Logger.LogTrace("Disabling Moodles for "+set.Name, LoggerType.Safeword);
-                Mediator.Publish(new RestraintSetToggleMoodlesMessage(activeSetIdx, NewState.Disabled, disableMoodlesTask));
-            }
-
-            // If there are hardcore properties to disable
-            if (set.SetProperties.ContainsKey(set.EnabledBy) && PropertiesEnabledForSet(GetRestraintSetIdxByName(set.Name), set.EnabledBy))
-            {
-                disableHardcorePropertiesTask = new TaskCompletionSource<bool>();
-                Logger.LogTrace($"Disabling Hardcore Properties for {set.Name} for {set.EnabledBy}", LoggerType.Safeword);
-                Mediator.Publish(new RestraintSetToggleHardcoreTraitsMessage(activeSetIdx, set.EnabledBy, NewState.Disabled, disableHardcorePropertiesTask));
-            }
-
-            // Wait for all tasks to complete concurrently
-            await Task.WhenAll(
-                disableHardcorePropertiesTask?.Task ?? Task.CompletedTask,
-                disableModsTask?.Task ?? Task.CompletedTask,
-                disableMoodlesTask?.Task ?? Task.CompletedTask
-            );
-        }
-        _wardrobeConfig.Save();
+        ClearCursedItems();
+        _cursedLootConfig.Save();
         Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.Safeword));
-
 
         // disable any active alarms.
         foreach (var alarm in AlarmConfig.AlarmStorage.Alarms)
             alarm.Enabled = false;
         _alarmConfig.Save();
-
 
         // disable any active triggers.
         foreach (var trigger in TriggerConfig.TriggerStorage.Triggers)
@@ -973,6 +801,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _triggerConfig.Save();
         Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.Safeword));
 
+        return Task.CompletedTask;
     }
 
 

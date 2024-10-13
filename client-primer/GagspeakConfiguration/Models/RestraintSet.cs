@@ -58,8 +58,8 @@ public record RestraintSet : IMoodlesAssociable
     public List<AssociatedMod> AssociatedMods { get; private set; } = new List<AssociatedMod>();
 
     // the list of Moodles to apply when the set is active, and remove when inactive.
-    public List<Guid> AssociatedMoodles { get; private set; } = new List<Guid>();
-    public List<Guid> AssociatedMoodlePresets { get; private set; } = new List<Guid>();
+    public List<Guid> AssociatedMoodles { get; set; } = new List<Guid>();
+    public Guid AssociatedMoodlePreset { get; set; } = Guid.Empty;
 
     // Spatial Audio Sound Type to use while this restraint set is active. [WIP]
 
@@ -92,7 +92,7 @@ public record RestraintSet : IMoodlesAssociable
             ForceVisorOnEnable = this.ForceVisorOnEnable,
             AssociatedMods = new List<AssociatedMod>(this.AssociatedMods.Select(mod => mod.DeepClone())),
             AssociatedMoodles = new List<Guid>(this.AssociatedMoodles),
-            AssociatedMoodlePresets = new List<Guid>(this.AssociatedMoodlePresets),
+            AssociatedMoodlePreset = this.AssociatedMoodlePreset,
             ViewAccess = new List<string>(this.ViewAccess),
             SetProperties = new Dictionary<string, HardcoreSetProperties>(this.SetProperties.ToDictionary(
                 kvp => kvp.Key,
@@ -100,14 +100,10 @@ public record RestraintSet : IMoodlesAssociable
         };
 
         // Deep clone DrawData
-        StaticLogger.Logger.LogWarning("Attempting DeepClone");
         clonedSet.DrawData = new Dictionary<EquipSlot, EquipDrawData>(
             this.DrawData.ToDictionary(
                 kvp => kvp.Key,
                 kvp => kvp.Value.DeepCloneDrawData()));
-        // log the drawdata after.
-        StaticLogger.Logger.LogWarning("DrawData after DeepClone: {0}", clonedSet.DrawData);
-
 
         // Deep clone BonusDrawData
         clonedSet.BonusDrawData = new Dictionary<BonusItemFlag, BonusDrawData>(
@@ -187,7 +183,7 @@ public record RestraintSet : IMoodlesAssociable
             ["BonusDrawData"] = bonusDrawDataArray,
             ["AssociatedMods"] = associatedModsArray,
             ["AssociatedMoodles"] = new JArray(AssociatedMoodles),
-            ["AssociatedMoodlePresets"] = new JArray(AssociatedMoodlePresets),
+            ["AssociatedMoodlePresets"] = AssociatedMoodlePreset,
             ["ViewAccess"] = new JArray(ViewAccess),
             ["SetProperties"] = setPropertiesArray
         };
@@ -204,22 +200,10 @@ public record RestraintSet : IMoodlesAssociable
         LockType = jsonObject["LockType"]?.Value<string>() ?? "None";
         if (LockType.IsNullOrEmpty()) LockType = "None"; // correct lockType if it is null or empty
         LockPassword = jsonObject["LockPassword"]?.Value<string>() ?? string.Empty;
-        if (jsonObject["LockedUntil"]?.Type == JTokenType.String)
-        {
-            string lockedUntilStr = jsonObject["LockedUntil"].Value<string>();
-            if (DateTimeOffset.TryParse(lockedUntilStr, out DateTimeOffset result))
-            {
-                LockedUntil = result;
-            }
-            else
-            {
-                LockedUntil = DateTimeOffset.MinValue; // Or handle the parse failure as appropriate
-            }
-        }
-        else
-        {
-            LockedUntil = DateTimeOffset.MinValue; // Default or error value if the token is not a string
-        }
+
+        var dateTime = jsonObject["LockedUntil"]?.Value<DateTime>() ?? DateTime.MinValue;
+        LockedUntil = new DateTimeOffset(dateTime, TimeSpan.Zero); // Zero indicates UTC
+
         LockedBy = jsonObject["LockedBy"]?.Value<string>() ?? string.Empty;
         ForceHeadgearOnEnable = jsonObject["ForceHeadgearOnEnable"]?.Value<bool>() ?? false;
         ForceVisorOnEnable = jsonObject["ForceVisorOnEnable"]?.Value<bool>() ?? false;
@@ -240,13 +224,9 @@ public record RestraintSet : IMoodlesAssociable
 
                         StainIds gameStain;
                         if (stainParts.Length == 2 && int.TryParse(stainParts[0], out int stain1) && int.TryParse(stainParts[1], out int stain2))
-                        {
                             gameStain = new StainIds((StainId)stain1, (StainId)stain2);
-                        }
                         else
-                        {
                             gameStain = StainIds.None;
-                        }
 
                         var drawData = new EquipDrawData(ItemIdVars.NothingItem(equipmentSlot))
                         {
@@ -277,27 +257,24 @@ public record RestraintSet : IMoodlesAssociable
 
             // Deserialize the AssociatedMods
             if (jsonObject["AssociatedMods"] is JArray associatedModsArray)
-            {
                 AssociatedMods = associatedModsArray.Select(mod => mod.ToObject<AssociatedMod>()).ToList();
-            }
 
             // Deserialize the AssociatedMoodles
             if (jsonObject["AssociatedMoodles"] is JArray associatedMoodlesArray)
-            {
                 AssociatedMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
-            }
 
-            // Deserialize the AssociatedMoodlePresets
-            if (jsonObject["AssociatedMoodlePresets"] is JArray associatedMoodlePresetsArray)
-            {
-                AssociatedMoodlePresets = associatedMoodlePresetsArray.Select(preset => preset.Value<Guid>()).ToList();
-            }
+            // Deserialize the AssociatedMoodlePreset
+            var moodlePreset = jsonObject["AssociatedMoodlePresets"];
+            if (moodlePreset is JArray)
+                AssociatedMoodlePreset = Guid.Empty;
+            else if (Guid.TryParse(moodlePreset?.Value<string>(), out var preset))
+                AssociatedMoodlePreset = preset;
+            else
+                AssociatedMoodlePreset = Guid.Empty;
 
             // Deserialize the ViewAccess
             if (jsonObject["ViewAccess"] is JArray viewAccessArray)
-            {
                 ViewAccess = viewAccessArray.Select(viewer => viewer.Value<string>()).ToList();
-            }
 
             // Deserialize the SetProperties
             if (jsonObject["SetProperties"] is JObject setPropertiesObj)

@@ -2,60 +2,26 @@ using Dalamud.Interface;
 using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
-using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI.Components;
-using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.IPC;
-using GagspeakAPI.Enums;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Raii;
 using System.Numerics;
-using System.Xml.Linq;
 
 namespace GagSpeak.Interop.IpcHelpers.Moodles;
 public class MoodlesAssociations : DisposableMediatorSubscriberBase
 {
-    private readonly WardrobeHandler _handler;
     private readonly IpcCallerMoodles _moodles;
     private readonly MoodlesService _moodlesService;
-    private readonly OnFrameworkService _frameworkUtils;
 
-    public MoodlesAssociations(ILogger<MoodlesAssociations> logger,
-        GagspeakMediator mediator, WardrobeHandler handler,
-        IpcCallerMoodles moodles, MoodlesService moodlesService,
-        OnFrameworkService frameworkUtils)
-        : base(logger, mediator)
+    public MoodlesAssociations(ILogger<MoodlesAssociations> logger, GagspeakMediator mediator,
+        IpcCallerMoodles moodles, MoodlesService moodlesService) : base(logger, mediator)
     {
-        _handler = handler;
         _moodles = moodles;
         _moodlesService = moodlesService;
-        _frameworkUtils = frameworkUtils;
-
-        Mediator.Subscribe<RestraintSetToggleMoodlesMessage>(this, async (msg) =>
-        {
-            var moodlesToApply = _handler.GetAssociatedMoodles(msg.SetIdx);
-            await ToggleMoodlesTask(moodlesToApply, msg.State);
-            if (msg.MoodlesTask != null)
-            {
-                msg.MoodlesTask.SetResult(true);
-            }
-        });
-    }
-
-    public async Task ToggleMoodlesTask(List<Guid> moodlesToToggle, NewState newState)
-    {
-        if (newState == NewState.Enabled)
-        {
-            await _moodles.ApplyOwnStatusByGUID(moodlesToToggle);
-        }
-        else
-        {
-            await _moodles.RemoveOwnStatusByGuid(moodlesToToggle);
-        }
     }
 
     private Guid SelectedStatusGuid = Guid.Empty;
@@ -85,19 +51,20 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
             associable.AssociatedMoodles.RemoveAll(x => !moodlesStatusList.Any(y => y.GUID == x));
 
             var moodlesPresetList = lastPlayerIpcData.MoodlesPresets;
-            associable.AssociatedMoodlePresets.RemoveAll(preset =>
-                moodlesPresetList.Any(x => x.Item1 == preset && x.Item2.Any(status => !associable.AssociatedMoodles.Any(y => y == status))));
+            if (!lastPlayerIpcData.MoodlesPresets.Any(x => x.Item1 == associable.AssociatedMoodlePreset))
+                associable.AssociatedMoodlePreset = Guid.Empty;
         }
 
         // Handle what we are drawing based on what the table is for.
         if (isPresets)
         {
             //////////////////// HANDLE PRESETS ////////////////////
-            foreach (var (associatedPreset, idx) in associable.AssociatedMoodlePresets.WithIndex())
+            var associatedPreset = associable.AssociatedMoodlePreset; // Assuming this is now a single Guid
+            if (associatedPreset != Guid.Empty)
             {
-                using var id = ImRaii.PushId(idx + "Presets");
+                using var id = ImRaii.PushId("Preset");
 
-                DrawAssociatedMoodlePresetRow(lastPlayerIpcData, associatedPreset, idx, out var removedPresetTmp);
+                DrawAssociatedMoodlePresetRow(lastPlayerIpcData, associatedPreset, 0, out var removedPresetTmp);
                 if (removedPresetTmp.HasValue)
                 {
                     removedMoodlePreset = removedPresetTmp;
@@ -108,7 +75,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
 
             if (removedMoodlePreset.HasValue)
             {
-                associable.AssociatedMoodlePresets.Remove(removedMoodlePreset.Value);
+                associable.AssociatedMoodlePreset = Guid.Empty;
                 // reset value
                 removedMoodlePreset = null;
             }
@@ -199,7 +166,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
 
         ImGui.TableNextColumn();
         var length = ImGui.GetContentRegionAvail().X;
-        _moodlesService.DrawMoodleStatusCombo("##MoodlesAssociationStatusSelector", length, ipcData.MoodlesStatuses, 
+        _moodlesService.DrawMoodleStatusCombo("##MoodlesAssociationStatusSelector", length, ipcData.MoodlesStatuses,
             (i) => SelectedStatusGuid = i ?? Guid.Empty, 1.25f);
     }
 
@@ -218,13 +185,13 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
             if (presetGuids != null)
             {
                 refSet.AssociatedMoodles.AddRange(presetGuids.Where(x => !refSet.AssociatedMoodles.Contains(x)));
-                refSet.AssociatedMoodlePresets.Add(SelectedPresetGuid);
+                refSet.AssociatedMoodlePreset = SelectedPresetGuid;
             }
         }
 
         ImGui.TableNextColumn();
         var length = ImGui.GetContentRegionAvail().X;
-        _moodlesService.DrawMoodlesPresetCombo("RestraintSetPresetSelector", length, ipcData.MoodlesPresets, 
+        _moodlesService.DrawMoodlesPresetCombo("RestraintSetPresetSelector", length, ipcData.MoodlesPresets,
             ipcData.MoodlesStatuses, (i) => SelectedPresetGuid = i ?? Guid.Empty);
     }
 
@@ -232,12 +199,12 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
     {
         if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus)
         {
-            _moodlesService.DrawMoodleStatusCombo("##CursedItemMoodleStatusSelector", width, ipcData.MoodlesStatuses,
+            _moodlesService.DrawMoodleStatusCombo("##CursedItemMoodleStatusSelector" + cursedItem.LootId, width, ipcData.MoodlesStatuses,
                 (i) => cursedItem.MoodleIdentifier = i ?? Guid.Empty, 1.25f);
         }
         else
         {
-            _moodlesService.DrawMoodlesPresetCombo("##CursedItemMoodlePresetSelector", width, ipcData.MoodlesPresets,
+            _moodlesService.DrawMoodlesPresetCombo("##CursedItemMoodlePresetSelector" + cursedItem.LootId, width, ipcData.MoodlesPresets,
                 ipcData.MoodlesStatuses, (i) => cursedItem.MoodleIdentifier = i ?? Guid.Empty);
         }
     }

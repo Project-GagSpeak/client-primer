@@ -7,6 +7,7 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
@@ -60,7 +61,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     public string MainCityName => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Aetheryte>()?
         .FirstOrDefault(x => x.IsAetheryte && x.Territory.Row == _clientState.TerritoryType && x.Territory.Value?.TerritoryIntendedUse == 0)?.PlaceName.ToString() ?? "Unknown";
 
-
+    public bool IsFrameworkUnloading => _framework.IsFrameworkUnloading;
 
     // the mediator for Gagspeak's event services
     public GagspeakMediator Mediator { get; }
@@ -91,6 +92,8 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                 .ToDictionary(w => (ushort)w.RowId, w => w.Name.ToString());
         });
 
+        _clientState.ClassJobChanged += OnJobChanged;
+
         // stores added pairs character name and addresses when added.
         mediator.Subscribe<TargetPairMessage>(this, (msg) =>
         {
@@ -104,6 +107,12 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                 targetManager.Target = CreateGameObject(addr);
             }).ConfigureAwait(false);
         });
+    }
+
+    private void OnJobChanged(uint jobId)
+    {
+        PlayerClassJobId = jobId;
+        IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.JobChange);
     }
 
     public void OpenMapWithMapLink(MapLinkPayload mapLink) => _gameGui.OpenMapWithMapLink(mapLink);
@@ -460,16 +469,13 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
             Mediator.Publish(new CutsceneEndMessage());
         }
 
-
         // publish the framework update message
         Mediator.Publish(new FrameworkUpdateMessage());
 
         // if this is a normal framework update, then return
         if (isNormalFrameworkUpdate)
             return;
-        //_logger.LogInformation("Zone: " + (_gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.TerritoryType>()!
-        //    .GetRow(_clientState.TerritoryType)!.PlaceName.Value!.Name ?? "UnknownZone") + " ("+ _clientState.TerritoryType + ")"); 
-        // otherwise, if it is abnormal, then try to fetch the local player
+
         var localPlayer = _clientState.LocalPlayer;
 
         // if it is not null (they exist) and isLoggedIn is not true

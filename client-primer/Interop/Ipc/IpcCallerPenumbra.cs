@@ -185,10 +185,71 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         => APIAvailable ? _currentCollection!.Invoke(ApiCollectionType.Current)!.Value : (Guid.Empty, "<Unavailable>"); // gets the current collection type
 
     /// <summary>
-    /// Try to set all mod settings as desired. Only sets when the mod should be enabled.
-    /// If it is disabled, ignore all other settings.
+    /// Used to modify the priority and enable/disable state of a given mod within the current collection.
     /// </summary>
-    public string SetMod(AssociatedMod AssociatedMod, bool newModState)
+    /// <param name="AssociatedMod">The mod to modify.</param>
+    /// <param name="modState">The new state of the mod. (ENABLED or DISABLED) </param>
+    public PenumbraApiEc ModifyModState(AssociatedMod AssociatedMod, NewState modState = NewState.Enabled, bool adjustPriorityOnly = false)
+    {
+        if (!APIAvailable) 
+            return PenumbraApiEc.NothingChanged;
+
+        // create error code, assume success
+        var errorCode = PenumbraApiEc.Success;
+        try
+        {
+            // get the collection of our character
+            var collection = _currentCollection!.Invoke(ApiCollectionType.Current)!.Value.Id;
+
+            // If we wanted to Enable the mod, and we are not only adjusting priority, enable it.
+            if (modState is NewState.Enabled && !adjustPriorityOnly)
+            {
+                errorCode = _setMod!.Invoke(collection, AssociatedMod.Mod.DirectoryName, true, AssociatedMod.Mod.Name);
+                switch (errorCode)
+                {
+                    case PenumbraApiEc.ModMissing: return PenumbraApiEc.ModMissing;
+                    case PenumbraApiEc.CollectionMissing: return PenumbraApiEc.CollectionMissing;
+                }
+
+                // Toggle was successfull, so we can now raise the priority of the mod
+                errorCode = _setModPriority!.Invoke(collection, AssociatedMod.Mod.DirectoryName, AssociatedMod.ModSettings.Priority + 50, AssociatedMod.Mod.Name);
+                if (errorCode is not PenumbraApiEc.Success and not PenumbraApiEc.NothingChanged)
+                    return PenumbraApiEc.UnknownError;
+            }
+
+            // If we wanted to disable the mod, and we are not only adjusting priority, disable it.
+            if (modState is NewState.Disabled)
+            {
+                // disable the mod, but ONLY if disabledMods is true
+                if (!adjustPriorityOnly)
+                {
+                    errorCode = _setMod!.Invoke(collection, AssociatedMod.Mod.DirectoryName, false, AssociatedMod.Mod.Name);
+                    switch (errorCode)
+                    {
+                        case PenumbraApiEc.ModMissing: return PenumbraApiEc.ModMissing;
+                        case PenumbraApiEc.CollectionMissing: return PenumbraApiEc.CollectionMissing;
+                    }
+                }
+
+                // Adjust the priority of the mod back to its original value
+                errorCode = _setModPriority!.Invoke(collection, AssociatedMod.Mod.DirectoryName, AssociatedMod.ModSettings.Priority, AssociatedMod.Mod.Name);
+                if (errorCode is not PenumbraApiEc.Success and not PenumbraApiEc.NothingChanged)
+                    return PenumbraApiEc.UnknownError;
+
+                // If we wanted to only adjust priority, return here.
+                if (adjustPriorityOnly)
+                    return errorCode;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError($"Error modifying mod state in Penumbra:\n{ex}");
+            return PenumbraApiEc.UnknownError;
+        }
+        // Default return.
+        return errorCode;
+    }
+/*    public string ModifyModState(AssociatedMod AssociatedMod, NewState modState = NewState.Enabled, bool adjustPriorityOnly = false)
     {
         if (!APIAvailable)
             return "Penumbra is not available.";
@@ -201,7 +262,7 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
             // create error code, assume success
             var errorCode = PenumbraApiEc.Success;
             // now, if the newsetstate is true, we should enable the mod
-            if (newModState == true)
+            if (modState is NewState.Enabled)
             {
                 // enable the mod
                 errorCode = _setMod!.Invoke(collection, AssociatedMod.Mod.DirectoryName, true, AssociatedMod.Mod.Name);
@@ -247,7 +308,7 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         {
             return sb.AppendLine(ex.Message).ToString();
         }
-    }
+    }*/
 
     /// <summary> 
     /// Try to redraw the given actor. 

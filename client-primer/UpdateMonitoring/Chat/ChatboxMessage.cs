@@ -8,9 +8,12 @@ using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Controllers;
 using GagSpeak.Utils;
+using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.GeneratedSheets2;
 using Territory = FFXIVClientStructs.FFXIV.Client.Game.UI.TerritoryInfo;
 
 namespace GagSpeak.UpdateMonitoring.Chat;
@@ -31,6 +34,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
     private readonly TriggerController _triggerController;
     private readonly IChatGui _chat;
     private readonly IClientState _clientState;
+    private readonly IDataManager _dataManager;
     private Stopwatch messageTimer; // Stopwatch Timer for time between messages sent (should no longer be needed since we are not sending chained messages)
 
     private unsafe Territory* info = Territory.Instance();
@@ -39,7 +43,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
     public ChatBoxMessage(ILogger<ChatBoxMessage> logger, GagspeakMediator mediator,
         GagspeakConfigService mainConfig, PlayerCharacterData playerInfo,
         PuppeteerHandler puppeteerHandler, ChatSender chatSender, TriggerController triggerController, 
-        IChatGui clientChat, IClientState clientState) : base(logger, mediator)
+        IChatGui clientChat, IClientState clientState, IDataManager dataManager) : base(logger, mediator)
     {
         _mainConfig = mainConfig;
         _playerInfo = playerInfo;
@@ -48,6 +52,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         _triggerController = triggerController;
         _chat = clientChat;
         _clientState = clientState;
+        _dataManager = dataManager;
         // set variables
         MessageQueue = new Queue<string>();
         messageTimer = new Stopwatch();
@@ -114,7 +119,6 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
 
         // log all types of payloads included in the message.
         /*
-
         Logger.LogDebug("---------------------");
         Logger.LogDebug("Chat Type: " + (int)type, LoggerType.ToyboxTriggers);
         foreach (var payloadType in message.Payloads)

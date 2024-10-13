@@ -5,6 +5,7 @@ using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.PlayerData.Handlers;
+using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
@@ -83,21 +84,6 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             }
         });
 
-        // subscribe to the mediator events
-        Mediator.Subscribe<RestraintSetToggleHardcoreTraitsMessage>(this, (msg) =>
-        {
-            if (msg.State == NewState.Disabled && msg.AssignerUID != "SelfAssigned")
-            {
-                // might need to add back in another variable to pass through that references if it had weighty or not?
-                Logger.LogDebug("Letting you run again", LoggerType.HardcoreMovement);
-                Task.Delay(200);
-                unsafe // temp fix to larger issue, if experiencing problems, refer to old code.
-                {
-                    Marshal.WriteByte((nint)gameControl, 24131, 0x0);
-                }
-            }
-        });
-
         Mediator.Subscribe<MovementRestrictionChangedMessage>(this, (msg) =>
         {
             // if the new state type is not disabled, we do not care about it.
@@ -113,6 +99,8 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         });
 
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
+
+        IpcFastUpdates.HardcoreTraitsEventFired += ToggleHardcoreTraits;
     }
 
     protected override void Dispose(bool disposing)
@@ -122,6 +110,22 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         // enable movement
         _MoveController.CompletelyEnableMovement();
         ResetCancelledMoveKeys();
+
+        IpcFastUpdates.HardcoreTraitsEventFired -= ToggleHardcoreTraits;
+    }
+
+    public void ToggleHardcoreTraits(NewState newState, string assignerUID = Globals.SelfApplied)
+    {
+        if (newState is NewState.Disabled && assignerUID is not Globals.SelfApplied)
+        {
+            // might need to add back in another variable to pass through that references if it had weighty or not?
+            Logger.LogDebug("Letting you run again", LoggerType.HardcoreMovement);
+            Task.Delay(200);
+            unsafe // temp fix to larger issue, if experiencing problems, refer to old code.
+            {
+                Marshal.WriteByte((nint)gameControl, 24131, 0x0);
+            }
+        }
     }
 
     #region Framework Updates

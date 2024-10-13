@@ -9,4 +9,6 @@ public class WardrobeConfig : IGagspeakConfiguration
     // Using Static to view version during initial load for migrations.
     public static int CurrentVersion => 3;
     public int Version { get; set; } = CurrentVersion;
+
+    public WardrobeConfig() { }
 }

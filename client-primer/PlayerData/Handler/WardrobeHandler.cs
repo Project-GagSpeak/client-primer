@@ -15,133 +15,97 @@ namespace GagSpeak.PlayerData.Handlers;
 public class WardrobeHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
+    private readonly AppearanceHandler _appearanceHandler;
     private readonly PlayerCharacterData _playerManager;
     private readonly PairManager _pairManager;
 
     public WardrobeHandler(ILogger<WardrobeHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfiguration, PlayerCharacterData playerManager,
-        PairManager pairManager) : base(logger, mediator)
+        AppearanceHandler appearanceHandler, PairManager pairManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfiguration;
+        _appearanceHandler = appearanceHandler;
         _playerManager = playerManager;
         _pairManager = pairManager;
 
-        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) =>
-        {
-            // handle changes
-            if (msg.State == NewState.Enabled)
-            {
-                Logger.LogInformation("ActiveSet Enabled at index "+msg.SetIdx, LoggerType.Restraints);
-                ActiveSet = _clientConfigs.GetActiveSet();
-                Mediator.Publish(new UpdateGlamourRestraintsMessage(NewState.Enabled, msg.GlamourChangeTask));
-            }
-
-            if (msg.State == NewState.Disabled)
-            {
-                Logger.LogInformation("ActiveSet Disabled at index " + msg.SetIdx, LoggerType.Restraints);
-                Mediator.Publish(new UpdateGlamourRestraintsMessage(NewState.Disabled, msg.GlamourChangeTask));
-                ActiveSet = null!;
-            }
-
-            // handle the updates if we should
-            if (!msg.pushChanges) return;
-
-            // push the wardrobe change
-            switch (msg.State)
-            {
-                case NewState.Enabled: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied)); break;
-                case NewState.Locked: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked)); break;
-                case NewState.Unlocked: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked)); break;
-                case NewState.Disabled: Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintDisabled)); break;
-            }
-        });
-
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => CheckLockedSet());
-
     }
 
-    /// <summary> The current restraint set that is active on the client. Null if none. </summary>
-    public RestraintSet? ActiveSet { get; private set; }
-
-    // Store an accessor of the alarm being edited.
-    private RestraintSet? _setBeingEdited;
-    public int EditingSetIndex { get; private set; } = -1;
-    public RestraintSet SetBeingEdited
-    {
-        get
-        {
-            if (_setBeingEdited == null && EditingSetIndex >= 0)
-            {
-                _setBeingEdited = _clientConfigs.GetRestraintSet(EditingSetIndex);
-            }
-            return _setBeingEdited!;
-        }
-        private set => _setBeingEdited = value;
-    }
-    public bool EditingSetNull => SetBeingEdited == null;
+    public RestraintSet? ActiveSet => _clientConfigs.GetActiveSet();
+    public RestraintSet? ClonedSetForEdit { get; private set; } = null;
     public bool WardrobeEnabled => !_playerManager.CoreDataNull && _playerManager.GlobalPerms!.WardrobeEnabled;
     public bool RestraintSetsEnabled => !_playerManager.CoreDataNull && _playerManager.GlobalPerms!.RestraintSetAutoEquip;
+    public int RestraintSetCount => _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets.Count;
 
-    public void SetEditingRestraintSet(RestraintSet set)
+    public void StartEditingSet(RestraintSet set)
     {
-        SetBeingEdited = set;
-        EditingSetIndex = GetRestraintSetIndexByName(set.Name);
+        ClonedSetForEdit = set.DeepCloneSet();
+        Guid originalID = set.RestraintId; // Prevent storing the set ID by reference.
+        ClonedSetForEdit.RestraintId = originalID; // Ensure the ID remains the same here.
     }
 
-    public void ClearEditingRestraintSet()
+    public void CancelEditingSet() => ClonedSetForEdit = null;
+    
+    public void SaveEditedSet()
     {
-        EditingSetIndex = -1;
-        SetBeingEdited = null!;
+        if(ClonedSetForEdit is null) return;
+        // locate the restraint set that contains the matching guid.
+        var setIdx = _clientConfigs.GetSetIdxByGuid(ClonedSetForEdit.RestraintId);
+        // update that set with the new cloned set.
+        _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[setIdx] = ClonedSetForEdit;
+        _clientConfigs.SaveWardrobe();
+        // make the cloned set null again.
+        ClonedSetForEdit = null;
     }
 
-    public void UpdateActiveSet() => ActiveSet = _clientConfigs.GetActiveSet();
-
-    public void UpdateEditedRestraintSet()
-    {
-        _clientConfigs.UpdateRestraintSet(EditingSetIndex, SetBeingEdited);
-        ClearEditingRestraintSet();
-    }
-
+    // For copying and pasting parts of the restraint set.
     public void CloneRestraintSet(RestraintSet setToClone) => _clientConfigs.CloneRestraintSet(setToClone);
     public void AddNewRestraintSet(RestraintSet newSet) => _clientConfigs.AddNewRestraintSet(newSet);
 
-    public void RemoveRestraintSet(int idxToRemove)
+    public void RemoveRestraintSet(Guid idToRemove)
     {
+        var idxToRemove = _clientConfigs.GetSetIdxByGuid(idToRemove);
         _clientConfigs.RemoveRestraintSet(idxToRemove);
-        ClearEditingRestraintSet();
+        CancelEditingSet();
     }
 
-    public int RestraintSetListSize() => _clientConfigs.GetRestraintSetCount();
     public List<RestraintSet> GetAllSetsForSearch() => _clientConfigs.StoredRestraintSets;
     public RestraintSet GetRestraintSet(int idx) => _clientConfigs.GetRestraintSet(idx);
 
-    public async void EnableRestraintSet(int idx, string AssignerUID = Globals.SelfApplied)
+    public async Task EnableRestraintSet(int idx, string AssignerUID = Globals.SelfApplied, bool pushToServer = true)
     {
-        if (!WardrobeEnabled || !RestraintSetsEnabled)
-        {
+        if (!WardrobeEnabled || !RestraintSetsEnabled) {
             Logger.LogInformation("Wardrobe or Restraint Sets are disabled, cannot enable restraint set.", LoggerType.Restraints);
             return;
         }
-        await _clientConfigs.SetRestraintSetState(idx, AssignerUID, NewState.Enabled, true);
-    }
-    public async void DisableRestraintSet(int idx, string AssignerUID = Globals.SelfApplied)
-    {
-        if (!WardrobeEnabled || !RestraintSetsEnabled)
+
+        // check to see if there is any active set currently. If there is, disable it.
+        if (ActiveSet != null)
         {
+            Logger.LogInformation("Disabling Active Set ["+ActiveSet.Name+"] before enabling new set.", LoggerType.Restraints);
+            await _appearanceHandler.DisableRestraintSet(ActiveSet.RestraintId, AssignerUID); // maybe add push to server here to prevent double send?
+        }
+        // Enable the new set.
+        await _appearanceHandler.EnableRestraintSet
+            (_clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[idx].RestraintId, AssignerUID, pushToServer);
+    }
+    public async Task DisableRestraintSet(int idx, string AssignerUID = Globals.SelfApplied, bool pushToServer = true)
+    {
+        if (!WardrobeEnabled || !RestraintSetsEnabled) {
             Logger.LogInformation("Wardrobe or Restraint Sets are disabled, cannot disable restraint set.", LoggerType.Restraints);
             return;
         }
-        await _clientConfigs.SetRestraintSetState(idx, AssignerUID, NewState.Disabled, true);
+        await _appearanceHandler.DisableRestraintSet
+            (_clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[idx].RestraintId, AssignerUID, pushToServer);
     }
 
     public void LockRestraintSet(int idx, string lockType, string password, DateTimeOffset endLockTimeUTC, string AssignerUID)
-        => _clientConfigs.LockRestraintSet(idx, lockType, password, endLockTimeUTC, AssignerUID, true);
+        => _clientConfigs.LockRestraintSet(idx, lockType, password, endLockTimeUTC, AssignerUID);
 
-    public void UnlockRestraintSet(int idx, string AssignerUID) => _clientConfigs.UnlockRestraintSet(idx, AssignerUID, true);
+    public void UnlockRestraintSet(int idx, string AssignerUID) => _clientConfigs.UnlockRestraintSet(idx, AssignerUID);
+
     public int GetActiveSetIndex() => _clientConfigs.GetActiveSetIdx();
-    public List<string> GetRestraintSetsByName() => _clientConfigs.GetRestraintSetNames();
     public int GetRestraintSetIndexByName(string setName) => _clientConfigs.GetRestraintSetIdxByName(setName);
-    public List<AssociatedMod> GetAssociatedMods(int setIndex) => _clientConfigs.GetAssociatedMods(setIndex);
     public List<Guid> GetAssociatedMoodles(int setIndex) => _clientConfigs.GetAssociatedMoodles(setIndex);
     public EquipDrawData GetBlindfoldDrawData() => _clientConfigs.GetBlindfoldItem();
     public void SetBlindfoldDrawData(EquipDrawData drawData) => _clientConfigs.SetBlindfoldItem(drawData);

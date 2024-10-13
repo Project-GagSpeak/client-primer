@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 3, 2)
+            .RegisterBugfix("Cursed Items now toggle the attached mod if they should.");
         VersionEntry(0, 9, 3, 1)
             .RegisterFeature("Added in the permissions for devotional lock allowances")
             .RegisterQol("Added images for devotionalLocks and Mimic Locks");

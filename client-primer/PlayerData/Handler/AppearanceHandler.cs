@@ -188,6 +188,8 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
     {
         Logger.LogTrace("CURSED-APPLIED Executed");
 
+        // Enable the Mod
+        await PenumbraModsToggle(NewState.Enabled, new List<AssociatedMod>() { cursedItem.AssociatedMod });
         await RecalculateAppearance();
         await _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll);
 
@@ -198,6 +200,9 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
         // if the cursed item is a gag item, do not perform any operations, as the gag manager will handle it instead.
         Logger.LogTrace("CURSED-REMOVED Executed");
         if (cursedItem.IsGag) return;
+
+        // Disable Mod (if we should)
+        await PenumbraModsToggle(NewState.Disabled, new List<AssociatedMod>() { cursedItem.AssociatedMod });
 
         if (!_playerData.IpcDataNull)
         {

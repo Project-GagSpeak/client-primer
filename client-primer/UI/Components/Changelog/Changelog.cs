@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 3, 4)
+            .RegisterFeature("You can now shift + middle click to set items from penumbra to expanded cursed item windows.");
         VersionEntry(0, 9, 3, 3)
             .RegisterMain("Gag Padlock Images now properly display")
             .RegisterFeature("All Moodles assignments and recalculations have been reworked to support layered bondage.")

@@ -48,14 +48,17 @@ public sealed class PenumbraChangedItemTooltip : DisposableMediatorSubscriberBas
             case EquipSlot.RFinger:
                 using (_ = !openTooltip ? null : ImRaii.Tooltip())
                 {
-                    ImGui.TextUnformatted($"{prefix}ALT + Left-Click to apply to selected Restraint Set (Right Finger).");
-                    ImGui.TextUnformatted($"{prefix}ALT + Shift + Left-Click to apply to selected Restraint Set (Left Finger).");
+                    ImGui.TextUnformatted($"{prefix} Middle-Click to apply to assign in Restraint Editor  (Right Finger).");
+                    ImGui.TextUnformatted($"{prefix} SHIFT + Middle-Click to assign to opened Cursed Item (Right Finger).");
+                    ImGui.TextUnformatted($"{prefix} CTRL + Middle-Click to assign in Restraint Editor (Left Finger).");
+                    ImGui.TextUnformatted($"{prefix} CTRL + SHIFT + Middle-Click to opened Cursed Item (Left Finger).");
                 }
                 break;
             default:
                 using (_ = !openTooltip ? null : ImRaii.Tooltip())
                 {
-                    ImGui.TextUnformatted($"{prefix}ALT + Left-Click to apply to selected Restraint Set.");
+                    ImGui.TextUnformatted($"{prefix} Middle-Click to apply to selected Restraint Set.");
+                    ImGui.TextUnformatted($"{prefix} SHIFT + Middle-Click to assign to opened Cursed Item.");
                 }
                 break;
         }
@@ -67,24 +70,38 @@ public sealed class PenumbraChangedItemTooltip : DisposableMediatorSubscriberBas
         switch (slot)
         {
             case EquipSlot.RFinger:
-                switch (ImGui.GetIO().KeyAlt, ImGui.GetIO().KeyShift)
+                switch (ImGui.GetIO().KeyShift, ImGui.GetIO().KeyCtrl)
                 {
-                    case (true, false):
+                    // Apply Restraint Right Finger
+                    case (false, false):
                         Logger.LogDebug($"Applying {item.Name} to Right Finger.", LoggerType.IpcPenumbra);
                         Mediator.Publish(new TooltipSetItemToRestraintSetMessage(EquipSlot.RFinger, item));
-                        break;
-                    case (true, true):
+                        return;
+                    // Apply Restraint Left Finger
+                    case (false, true):
                         Logger.LogDebug($"Applying {item.Name} to Left Finger.", LoggerType.IpcPenumbra);
                         Mediator.Publish(new TooltipSetItemToRestraintSetMessage(EquipSlot.LFinger, item));
-                        break;
+                        return;
+                    // Apply Cursed Item Right Finger
+                    case (true, false):
+                        Logger.LogDebug($"Applying {item.Name} to Right Finger in cursed items.", LoggerType.IpcPenumbra);
+                        Mediator.Publish(new TooltipSetItemToCursedItemMessage(EquipSlot.RFinger, item));
+                        return;
+                    // Apply Cursed Item Left Finger
+                    case (true, true):
+                        Logger.LogDebug($"Applying {item.Name} to Left Finger in cursed items.", LoggerType.IpcPenumbra);
+                        Mediator.Publish(new TooltipSetItemToCursedItemMessage(EquipSlot.LFinger, item));
+                        return;
                 }
-                return;
             default:
-                if (ImGui.GetIO().KeyAlt)
+                if (ImGui.GetIO().KeyShift)
                 {
-                    Logger.LogDebug($"Applying {item.Name} to {slot.ToName()}.", LoggerType.IpcPenumbra);
-                    Mediator.Publish(new TooltipSetItemToRestraintSetMessage(slot, item));
+                    Logger.LogDebug($"Applying {item.Name} to {slot.ToName()} in cursedItems.", LoggerType.IpcPenumbra);
+                    Mediator.Publish(new TooltipSetItemToCursedItemMessage(slot, item));
+                    return;
                 }
+                Logger.LogDebug($"Applying {item.Name} to {slot.ToName()}.", LoggerType.IpcPenumbra);
+                Mediator.Publish(new TooltipSetItemToRestraintSetMessage(slot, item));
                 return;
         }
     }
@@ -111,7 +128,7 @@ public sealed class PenumbraChangedItemTooltip : DisposableMediatorSubscriberBas
     private void OnPenumbraClick(MouseButton button, ChangedItemType type, uint id)
     {
         LastClick = DateTime.UtcNow;
-        if (button is not MouseButton.Left)
+        if (button is not MouseButton.Middle)
             return;
 
         if (!_clientState.IsLoggedIn || _clientState.LocalContentId == 0)

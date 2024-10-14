@@ -45,6 +45,28 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         _handler = handler;
         _mainConfig = mainConfig;
         _uiShared = uiShared;
+
+        Mediator.Subscribe<TooltipSetItemToCursedItemMessage>(this, (msg) =>
+        {
+            // Identify what window is expanded and add the item to that.
+            if(NewItem is not null)
+            {
+                NewItem.AppliedItem.Slot = msg.Slot;
+                NewItem.AppliedItem.GameItem = msg.Item;
+                Logger.LogDebug($"Set [" + msg.Slot + "] to [" + msg.Item.Name + "] on new cursed item", LoggerType.CursedLoot);
+
+            }
+            else
+            {
+                // apply it to the expanded window.
+                if (ExpandedItemIndex != -1)
+                {
+                    FilteredItemList[ExpandedItemIndex].AppliedItem.Slot = msg.Slot;
+                    FilteredItemList[ExpandedItemIndex].AppliedItem.GameItem = msg.Item;
+                    Logger.LogDebug($"Set [" + msg.Slot + "] to [" + msg.Item.Name + "] on expanded item [" + FilteredItemList[ExpandedItemIndex].Name + "]", LoggerType.CursedLoot);
+                }
+            }
+        });
     }
 
     // private vars used for searches or temp storage for handling hovers and value changes.
@@ -66,6 +88,10 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
 
     public void DrawCursedLootPanel()
     {
+        // If the expended item index is not -1, set creator expanded to false.
+        if (ExpandedItemIndex != -1)
+            CreatorExpanded = false;
+
         // inform user they dont have the settings enabled for it, and return.
         if (!_mainConfig.Current.CursedDungeonLoot)
         {

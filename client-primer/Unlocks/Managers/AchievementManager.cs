@@ -36,10 +36,10 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     public static DateTime _lastDisconnectTime = DateTime.MinValue;
 
     // Dictates if our connection occured after an exception (within 5 minutes).
-    private bool _reconnectedAfterException => _lastDisconnectTime - DateTime.UtcNow < TimeSpan.FromMinutes(5);
+    private bool _reconnectedAfterException => DateTime.UtcNow - _lastDisconnectTime < TimeSpan.FromMinutes(5);
 
     // The save data for the achievements.
-    public AchievementSaveData SaveData { get; init; }
+    public AchievementSaveData SaveData { get; private set; }
 
     public AchievementManager(ILogger<AchievementManager> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData, 
@@ -58,7 +58,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         SaveData = new AchievementSaveData(_completionNotifier);
         Logger.LogInformation("Initializing Achievement Save Data Achievements", LoggerType.Achievements);
         InitializeAchievements();
-        Logger.LogInformation("Achievement Save Data Loaded", LoggerType.Achievements);
+        Logger.LogInformation("Achievement Save Data Initialized", LoggerType.Achievements);
 
         // Check for when we are connected to the server, use the connection DTO to load our latest stored save data.
         Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
@@ -67,6 +67,8 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
             if (_reconnectedAfterException)
             {
                 Logger.LogInformation("Our Last Disconnect was due to an exception, loading from stored SaveData instead.", LoggerType.Achievements);
+                // May cause some bugs, fiddle around with it if it does.
+                _lastDisconnectTime = DateTime.MinValue;
             }
             else
             {
@@ -230,18 +232,29 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
             Logger.LogInformation("SaveData Update Task is running", LoggerType.Achievements);
             try
             {
-                // wait randomly between 1 and 15 seconds before sending the data.
-                await Task.Delay(TimeSpan.FromSeconds(random.Next(1, 16)), ct).ConfigureAwait(false);
+                // wait randomly between 4 and 16 seconds before sending the data.
+                // The 4 seconds gives us enough time to buffer any disconnects that inturrupt connection.
+                await Task.Delay(TimeSpan.FromSeconds(random.Next(4, 16)), ct).ConfigureAwait(false);
                 await SendUpdatedDataToServer();
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Failed to send updated achievement data to the server.");
+                Logger.LogWarning(ex, "Failed to send updated achievement data to the server, as we were disconnected");
             }
             int delayMinutes = random.Next(20, 31); // Random delay between 20 and 30 minutes
             Logger.LogInformation("SaveData Update Task Completed, Firing Again in "+delayMinutes+" Minutes");
             await Task.Delay(TimeSpan.FromMinutes(delayMinutes), ct).ConfigureAwait(false);
         }
+    }
+
+    public Task ResetAchievementData()
+    {
+        // Reset SaveData
+        SaveData = new AchievementSaveData(_completionNotifier);
+        // Send this off to the server.
+        SendUpdatedDataToServer();
+        Logger.LogInformation("Reset Achievement Data Completely!", LoggerType.Achievements);
+        return Task.CompletedTask;
     }
 
     // Your existing method to send updated data to the server

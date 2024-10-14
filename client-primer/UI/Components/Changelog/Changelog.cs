@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 3, 6)
+            .RegisterMain("Properly Syncronize Achievement Data on Connection, Reconnection, Pause, Logout, Game Close, and Unhandled Exceptions.");
         VersionEntry(0, 9, 3, 5)
             .RegisterBugfix("Fixed the damn timer padlock bug. I was missing one conditional *cries*");
         VersionEntry(0, 9, 3, 4)

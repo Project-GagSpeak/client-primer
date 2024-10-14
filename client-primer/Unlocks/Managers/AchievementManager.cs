@@ -230,6 +230,8 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
             Logger.LogInformation("SaveData Update Task is running", LoggerType.Achievements);
             try
             {
+                // wait randomly between 1 and 15 seconds before sending the data.
+                await Task.Delay(TimeSpan.FromSeconds(random.Next(1, 16)), ct).ConfigureAwait(false);
                 await SendUpdatedDataToServer();
             }
             catch (Exception ex)

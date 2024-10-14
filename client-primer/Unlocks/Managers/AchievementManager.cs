@@ -10,11 +10,6 @@ using GagSpeak.Toybox.Services;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
-using GagSpeak.WebAPI;
-using GagspeakAPI.Dto.Connection;
-using GagspeakAPI.Extensions;
-using Penumbra.GameData.Enums;
-using System;
 
 // if present in diadem (https://github.com/Infiziert90/DiademCalculator/blob/d74a22c58840a864cda12131fe2646dfc45209df/DiademCalculator/Windows/Main/MainWindow.cs#L12)
 
@@ -28,7 +23,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     private readonly ToyboxVibeService _vibeService;
     private readonly UnlocksEventManager _eventManager;
     private readonly INotificationManager _completionNotifier;
-    
+
     // Token used for updating achievement data.
     private CancellationTokenSource? _saveDataUpdateCTS;
 
@@ -42,8 +37,8 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     public AchievementSaveData SaveData { get; private set; }
 
     public AchievementManager(ILogger<AchievementManager> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfigs, PlayerCharacterData playerData, 
-        PairManager pairManager, OnFrameworkService frameworkUtils, ToyboxVibeService vibeService, 
+        ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
+        PairManager pairManager, OnFrameworkService frameworkUtils, ToyboxVibeService vibeService,
         UnlocksEventManager eventManager, INotificationManager completionNotifier) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
@@ -188,7 +183,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Unsubscribe<bool>(UnlocksEvent.PuppeteerAccessGiven, OnPuppetAccessGiven);
 
         _eventManager.Unsubscribe<PatternInteractionKind, Guid, bool>(UnlocksEvent.PatternAction, OnPatternAction);
-        
+
         _eventManager.Unsubscribe(UnlocksEvent.DeviceConnected, OnDeviceConnected);
         _eventManager.Unsubscribe(UnlocksEvent.TriggerFired, OnTriggerFired);
         _eventManager.Unsubscribe(UnlocksEvent.DeathRollCompleted, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.KinkyGambler] as ConditionalAchievement)?.CheckCompletion());
@@ -242,7 +237,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
                 Logger.LogWarning(ex, "Failed to send updated achievement data to the server, as we were disconnected");
             }
             int delayMinutes = random.Next(20, 31); // Random delay between 20 and 30 minutes
-            Logger.LogInformation("SaveData Update Task Completed, Firing Again in "+delayMinutes+" Minutes");
+            Logger.LogInformation("SaveData Update Task Completed, Firing Again in " + delayMinutes + " Minutes");
             await Task.Delay(TimeSpan.FromMinutes(delayMinutes), ct).ConfigureAwait(false);
         }
     }
@@ -288,7 +283,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
             var version = bytes[0];
             version = bytes.DecompressToString(out var decompressed);
 
-            LightSaveDataDto item = JsonConvert.DeserializeObject<LightSaveDataDto>(decompressed) 
+            LightSaveDataDto item = JsonConvert.DeserializeObject<LightSaveDataDto>(decompressed)
                 ?? throw new Exception("Failed to deserialize achievement data from server.");
 
             // Update the local achievement data

@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 3, 8)
+            .RegisterMain("OneTimeAccount Generation should work properly again now.")
+            .RegisterQol("Warns you if your live chat garbler is active when a mimic gags you in chat and notifications, for safety!");
         VersionEntry(0, 9, 3, 6)
             .RegisterMain("Properly Syncronize Achievement Data on Connection, Reconnection, Pause, Logout, Game Close, and Unhandled Exceptions.");
         VersionEntry(0, 9, 3, 5)

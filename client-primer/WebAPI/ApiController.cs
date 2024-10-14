@@ -192,7 +192,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
             // Invoke the method to fetch new account details
             // Replace "RequestNewAccountDetails" with the actual method name and adjust return type as necessary
-            var accountDetails = await _gagspeakHub.InvokeAsync<(string, string)>("OneTimeUseAccountGeneration", LoggerType.ApiCore);
+            var accountDetails = await _gagspeakHub.InvokeAsync<(string, string)>("OneTimeUseAccountGeneration");
             Logger.LogInformation("New Account Details Fetched.", LoggerType.ApiCore);
             // Return the fetched account details
             return accountDetails;

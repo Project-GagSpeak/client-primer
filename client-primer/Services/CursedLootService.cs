@@ -1,6 +1,7 @@
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
@@ -244,6 +245,13 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 };
                 _gagManager.OnGagLockChanged(padlockData, NewState.Locked, true, true);
                 Logger.LogInformation($"Cursed Loot Applied!", LoggerType.CursedLoot);
+                
+                if(!_playerData.CoreDataNull && _playerData.GlobalPerms!.LiveChatGarblerActive)
+                {
+                    Mediator.Publish(new NotificationMessage("Chat Garbler", "LiveChatGarbler Is Active and you were just Gagged! "+
+                        "Be cautious of chatting around strangers!", NotificationType.Warning));
+                }
+                
                 return;
             }
             else

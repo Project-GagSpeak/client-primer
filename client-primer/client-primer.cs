@@ -364,7 +364,7 @@ public static class GagSpeakServiceExtensions
         // Service Services
         .AddSingleton((s) => new CursedLootService(s.GetRequiredService<ILogger<CursedLootService>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<GagManager>(), s.GetRequiredService<PlayerCharacterData>(),
-            s.GetRequiredService<CursedLootHandler>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<AppearanceService>(), cg, dm, ot, tm))
+            s.GetRequiredService<CursedLootHandler>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<AppearanceHandler>(), cg, dm, ot, tm))
         .AddSingleton<SafewordService>()
         .AddSingleton<ToyboxVibeService>()
         .AddSingleton<ToyboxRemoteService>()

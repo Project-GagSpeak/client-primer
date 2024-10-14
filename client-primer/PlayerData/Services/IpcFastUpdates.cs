@@ -24,4 +24,10 @@ public class IpcFastUpdates
     public static event HardcoreRestraintTraitsHandler? HardcoreTraitsEventFired;
     public static void InvokeHardcoreTraits(NewState newState, string assignerUID) 
         => HardcoreTraitsEventFired?.Invoke(newState, assignerUID);
+
+
+    public delegate void MoodleStatusManagerChangedHandler(IntPtr playerCharaAddr);
+    public static event MoodleStatusManagerChangedHandler? StatusManagerChangedEventFired;
+    public static void InvokeStatusManagerChanged(IntPtr playerCharaAddr) 
+        => StatusManagerChangedEventFired?.Invoke(playerCharaAddr);
 }

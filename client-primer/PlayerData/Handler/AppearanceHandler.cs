@@ -12,6 +12,7 @@ using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Extensions;
 using Penumbra.Api.Enums;
 using Penumbra.GameData.Enums;
+using static FFXIVClientStructs.FFXIV.Component.GUI.AtkCounterNode.Delegates;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -23,24 +24,28 @@ namespace GagSpeak.PlayerData.Handlers;
 /// class remains synchronized with the most recent information.
 /// </para>
 /// </summary>
-public class AppearanceHandler : DisposableMediatorSubscriberBase
+public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerData;
+    private readonly GagManager _gagManager;
     private readonly PairManager _pairManager;
     private readonly IpcManager _ipcManager;
     private readonly AppearanceService _appearanceService;
 
     public AppearanceHandler(ILogger<AppearanceHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
-        PairManager pairManager, IpcManager ipcManager,
+        GagManager gagManager, PairManager pairManager, IpcManager ipcManager,
         AppearanceService appearanceService) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerData = playerData;
+        _gagManager = gagManager;
         _pairManager = pairManager;
         _ipcManager = ipcManager;
         _appearanceService = appearanceService;
+
+        //IpcFastUpdates.StatusManagerChangedEventFired += (addr) => UpdateLatestMoodleData(addr);
     }
 
     private List<RestraintSet> RestraintSets => _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets;
@@ -51,15 +56,38 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
     /// THIS CLASS IS RESPONCIBLE FOR MAINTAINING ITS SYNCRONIZATION.
     /// </summary>
     private Dictionary<EquipSlot, IGlamourItem> ItemsToApply => _appearanceService.ItemsToApply;
+    /// <summary>
+    /// Finalized MetaData to apply from highest priority item requesting it.
+    /// </summary>
     private IpcCallerGlamourer.MetaData MetaToApply => _appearanceService.MetaToApply;
+
+    /// <summary>
+    /// The collective expected list of Moodles that should be applied to the player.
+    /// </summary>
     private List<Guid> ExpectedMoodles => _appearanceService.ExpectedMoodles;
 
     /// <summary>
+    /// The Latest Client Moodles Status List since the last update.
+    /// This usually updates whenever the IPC updates, however if we need an immidate fast refresh, 
+    /// the fast updater here updates it directly.
+    /// </summary>
+    public static List<MoodlesStatusInfo> LatestClientMoodleStatusList = new();
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        //IpcFastUpdates.StatusManagerChangedEventFired -= (addr) => UpdateLatestMoodleData(addr);
+    }
+
+
+    private async Task UpdateLatestMoodleData()
+    {
+        LatestClientMoodleStatusList = await _ipcManager.Moodles.GetStatusInfoAsync() ?? new();
+    }
+
+
+    /// <summary>
     /// This logic will occur after a Restraint Set has been enabled via the WardrobeHandler.
-    /// <para> 
-    /// This will throw an error if you try executing it while another set is active. 
-    /// Handle this on your own. 
-    /// </para>
     /// </summary>
     public async Task EnableRestraintSet(Guid restraintID, string assignerUID = Globals.SelfApplied, bool pushToServer = true)
     {
@@ -86,15 +114,11 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
         _clientConfigs.SaveWardrobe();
 
         // Raise the priority of, and enable the mods bound to the active set.
-        Logger.LogTrace("Enabling Mods for Set [" + setRef.Name + "]", LoggerType.Restraints);
         await PenumbraModsToggle(NewState.Enabled, setRef.AssociatedMods);
-        Logger.LogTrace("Mods Enabled for Set [" + setRef.Name + "]", LoggerType.Restraints);
 
         // Enable the Hardcore Properties by invoking the ipc call.
-        Logger.LogTrace("Enabling Hardcore Traits", LoggerType.Restraints);
         if (setRef.SetProperties.ContainsKey(setRef.EnabledBy) && _clientConfigs.PropertiesEnabledForSet(setIdx, setRef.EnabledBy))
             IpcFastUpdates.InvokeHardcoreTraits(NewState.Enabled, setRef.EnabledBy);
-        Logger.LogTrace("Hardcore Traits Enabled", LoggerType.Restraints);
 
         UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, true, assignerUID);
         Logger.LogInformation("ENABLE SET [" + setRef.Name + "] END", LoggerType.Restraints);
@@ -117,9 +141,11 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
         if (!setRef.Enabled || setRef.Locked) { Logger.LogWarning(setRef.Name + " is already disabled or locked. Skipping!", LoggerType.Restraints); return; }
 
         Logger.LogInformation("DISABLE SET [" + setRef.Name + "] START", LoggerType.Restraints);
-        // Lower the priority of, and if desired, disable, the mods bound to the active set.
 
+        // Lower the priority of, and if desired, disable, the mods bound to the active set.
         await PenumbraModsToggle(NewState.Disabled, setRef.AssociatedMods);
+        // We dont put this inside the recalculation because we need to know what we
+        // are removing, since players have non-gagspeak moodles.
         await RemoveMoodles(setRef);
 
         // Disable the Hardcore Properties by invoking the ipc call.
@@ -136,7 +162,7 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
         if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintDisabled));
 
         // perform a recalculation to appearance data.
-        await RecalculateAppearance();
+        await RecalculateAppearance(fetchMoodlesManually: true);
         // refresh the appearance.
         await _appearanceService.RefreshAppearance(GlamourUpdateType.RefreshAll);
 
@@ -146,71 +172,105 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
     /// When a gag is applied, because its data has already been adjusted, we will simply
     /// need to do a refresh for appearance. The only thing that needs to be adjusted here is C+ Profile.
     /// </summary>
-    public async Task GagApplied(GagType gagType)
+    public async Task GagApplied(GagLayer layer, GagType gagType, bool publishApply = true, bool isSelfApplied = true)
     {
-        Logger.LogTrace("GAG-APPLIED Executed");
-        // return if the gag in gag storage is not enabled.
-        if (!_clientConfigs.IsGagEnabled(gagType)) return;
+        Logger.LogDebug("GAG-APPLIED triggered on slot ["+layer.ToString()+"] with a ["+gagType.GagName()+"]", LoggerType.GagManagement);
+        // We first must change the gag to its new type within the gag manager to update the appearance.
+        _gagManager.OnGagTypeChanged(layer, gagType, publishApply);
+        
+        // If the Gag is not Enabled, or our auto equip is disabled, dont do anything else and return.
+        if (!_clientConfigs.IsGagEnabled(gagType) || !_playerData.GlobalPerms!.ItemAutoEquip)
+            return;
 
         // perform a recalculation to appearance data.
         await RecalculateAppearance();
         await _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll);
 
+        // Update C+ Profile if applicable
         var drawData = _clientConfigs.GetDrawData(gagType);
-
-        // Enable the customize profile if one is set, (mess with priorities later? Idk)
         if (drawData.CustomizeGuid != Guid.Empty)
             _ipcManager.CustomizePlus.EnableProfile(drawData.CustomizeGuid);
+
+        // Send Achievement Event
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, layer, gagType, isSelfApplied);
     }
 
     /// <summary>
     /// When a gag is removed, because its data has already been adjusted, we will simply
     /// need to do a refresh for appearance. The only thing that needs to be adjusted here is C+ Profile.
     /// </summary>
-    public async Task GagRemoved(GagType gagType)
+    public async Task GagRemoved(GagLayer layer, GagType gagType, bool publishRemoval = true, bool isSelfApplied = true)
     {
-        Logger.LogTrace("GAG-REMOVED Executed");
+        Logger.LogDebug("GAG-REMOVE triggered on slot [" + layer.ToString() + "] with a [" + gagType.GagName() + "]", LoggerType.GagManagement);
+        // We first must change the gag to its new type within the gag manager to update the appearance.
+        _gagManager.OnGagTypeChanged(layer, GagType.None, publishRemoval);
+
+        // Once it's been set to inactive, we should also remove our moodles.
         var drawData = _clientConfigs.GetDrawData(gagType);
-        
         await RemoveMoodles(drawData);
 
-        // perform a recalculation to appearance data.
-        await RecalculateAppearance();
+        // Now Perform a recalculation to appearance data, with manual moodle fetching.
+        await RecalculateAppearance(fetchMoodlesManually: true);
         await _appearanceService.RefreshAppearance(GlamourUpdateType.RefreshAll);
 
-        // Apply the CustomizePlus profile if applicable
+        // Remove the CustomizePlus Profile if applicable
         if (drawData.CustomizeGuid != Guid.Empty)
             _ipcManager.CustomizePlus.DisableProfile(drawData.CustomizeGuid);
-
+        
+        // Send Achievement Event
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, layer, gagType, isSelfApplied);
     }
 
-    public async Task CursedItemApplied(CursedItem cursedItem)
+    public async Task GagSwapped(GagLayer layer, GagType curGag, GagType newGag, bool isSelfApplied = true)
+    {
+        Logger.LogTrace("GAG-SWAPPED Executed. Triggering GAG-REMOVE, then GAG-APPLIED");
+
+        // First, remove the current gag.
+        await GagRemoved(layer, curGag, publishRemoval: false, isSelfApplied: isSelfApplied);
+
+        // Then, apply the new gag.
+        await GagApplied(layer, newGag, isSelfApplied: isSelfApplied);
+    }
+
+    /// <summary>
+    /// For applying cursed items.
+    /// </summary>
+    /// <param name="gagLayer"> Ignore this if the cursed item's IsGag is false. </param>
+    public async Task CursedItemApplied(CursedItem cursedItem, GagLayer gagLayer = GagLayer.UnderLayer)
     {
         Logger.LogTrace("CURSED-APPLIED Executed");
-
-        // Enable the Mod
-        await PenumbraModsToggle(NewState.Enabled, new List<AssociatedMod>() { cursedItem.AssociatedMod });
-        await RecalculateAppearance();
-        await _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll);
-
+        // If the cursed item is a gag item, handle it via the gag manager, otherwise, handle through mod toggle
+        if(cursedItem.IsGag)
+        {
+            // Cursed Item was Gag, so handle it via GagApplied.
+            await GagApplied(gagLayer, cursedItem.GagType);
+        }
+        else
+        {
+            // Cursed Item was Equip, so handle attached Mod Enable and recalculation here.
+            await PenumbraModsToggle(NewState.Enabled, new List<AssociatedMod>() { cursedItem.AssociatedMod });
+            await RecalculateAppearance();
+            await _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll);
+        }
     }
 
     public async Task CursedItemRemoved(CursedItem cursedItem)
     {
-        // if the cursed item is a gag item, do not perform any operations, as the gag manager will handle it instead.
         Logger.LogTrace("CURSED-REMOVED Executed");
-        if (cursedItem.IsGag) return;
+        // If the Cursed Item is a GagItem, it will be handled automatically by lock expiration. 
+        // However, it also means none of the below will process, so we should return if it is.
+        if(cursedItem.IsGag)
+            return;
 
-        // Disable Mod (if we should)
+        // We are removing a Equip-based CursedItem
         await PenumbraModsToggle(NewState.Disabled, new List<AssociatedMod>() { cursedItem.AssociatedMod });
 
-        if (!_playerData.IpcDataNull)
+        // The attached Moodle will need to be removed as well. (need to handle seperately since it stores moodles differently)
+        if (!_playerData.IpcDataNull && cursedItem.MoodleIdentifier != Guid.Empty)
         {
-            if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus && cursedItem.MoodleIdentifier != Guid.Empty)
-            {
+            if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus)
                 await _ipcManager.Moodles.RemoveOwnStatusByGuid(new List<Guid>() { cursedItem.MoodleIdentifier });
-            }
-            else if (cursedItem.MoodleType is IpcToggleType.MoodlesPreset && cursedItem.MoodleIdentifier != Guid.Empty)
+            else if (cursedItem.MoodleType is IpcToggleType.MoodlesPreset)
             {
                 var statuses = _playerData.LastIpcData!.MoodlesPresets
                     .FirstOrDefault(p => p.Item1 == cursedItem.MoodleIdentifier).Item2;
@@ -218,7 +278,8 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
             }
         }
 
-        await RecalculateAppearance();
+        // perform a recalculation to appearance data.
+        await RecalculateAppearance(fetchMoodlesManually: true);
         await _appearanceService.RefreshAppearance(GlamourUpdateType.RefreshAll);
     }
 
@@ -258,6 +319,15 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
 
             // Disable the set, turning off any mods moodles ext and refreshing appearance.            
             await DisableRestraintSet(set.RestraintId, Globals.SelfApplied);
+        }
+
+        // Disable all Cursed Items.
+        var activeCursedItems = CursedItems.Where(x => x.AppliedTime != DateTimeOffset.MinValue).ToList();
+        Logger.LogInformation("Disabling all active Cursed Items due to Safeword.", LoggerType.Safeword);
+        foreach (var cursedItem in activeCursedItems)
+        {
+            _clientConfigs.DeactivateCursedItem(cursedItem.LootId);
+            await CursedItemRemoved(cursedItem);
         }
     }
 
@@ -302,11 +372,12 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
     /// <summary>
     /// Syncronizes the data to be updated with most recent information.
     /// </summary>
-    public Task RecalculateAppearance()
+    /// <param name="fetchMoodlesManually"> If true, will fetch moodles manually via IPC call for true latest data. </param>
+    public async Task RecalculateAppearance(bool fetchMoodlesManually = false)
     {
         // Return if the core data is null.
         if (_playerData.CoreDataNull)
-            return Task.CompletedTask;
+            return;
 
         Logger.LogDebug("Recalculating Appearance Data.", LoggerType.ClientPlayerData);
         // Temp Storage for Data Collection during reapply
@@ -332,15 +403,18 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
                 // Add the moodles from the active set.
                 if (!_playerData.IpcDataNull)
                 {
-                    ExpectedMoodles.AddRange(activeSetRef.AssociatedMoodles);
+                    if(activeSetRef.AssociatedMoodles.Count > 0)
+                        ExpectedMoodles.AddRange(activeSetRef.AssociatedMoodles);
                     if (activeSetRef.AssociatedMoodlePreset != Guid.Empty)
                     {
-                        var statuses = _playerData.LastIpcData!.MoodlesPresets
-                            .FirstOrDefault(p => p.Item1 == activeSetRef.AssociatedMoodlePreset).Item2;
+                        var statuses = _playerData.LastIpcData!.MoodlesPresets.FirstOrDefault(p => p.Item1 == activeSetRef.AssociatedMoodlePreset).Item2;
                         if (statuses is not null)
                             ExpectedMoodles.AddRange(statuses);
                     }
                 }
+
+                // Apply meta changes if any were on.
+
             }
         }
 
@@ -362,25 +436,21 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
                     // continue if moodles data is not present.
                     if (!_playerData.IpcDataNull)
                     {
-                        ExpectedMoodles.AddRange(data.AssociatedMoodles);
+                        if(data.AssociatedMoodles.Count > 0)
+                            ExpectedMoodles.AddRange(data.AssociatedMoodles);
                         if (data.AssociatedMoodlePreset != Guid.Empty)
                         {
-                            var statuses = _playerData.LastIpcData!.MoodlesPresets
-                                .FirstOrDefault(p => p.Item1 == data.AssociatedMoodlePreset).Item2;
+                            var statuses = _playerData.LastIpcData!.MoodlesPresets.FirstOrDefault(p => p.Item1 == data.AssociatedMoodlePreset).Item2;
                             if (statuses is not null)
                                 ExpectedMoodles.AddRange(statuses);
                         }
                     }
 
-                    // Apply metadata if needed
-                    if (MetaToApply is IpcCallerGlamourer.MetaData.None && data.ForceHeadgearOnEnable)
-                        MetaToApply = IpcCallerGlamourer.MetaData.Hat;
-                    else if (MetaToApply is IpcCallerGlamourer.MetaData.None && data.ForceVisorOnEnable)
-                        MetaToApply = IpcCallerGlamourer.MetaData.Visor;
-                    else if (MetaToApply is IpcCallerGlamourer.MetaData.Visor && data.ForceHeadgearOnEnable)
-                        MetaToApply = IpcCallerGlamourer.MetaData.Both;
-                    else if (MetaToApply is IpcCallerGlamourer.MetaData.Hat && data.ForceVisorOnEnable)
-                        MetaToApply = IpcCallerGlamourer.MetaData.Both;
+                    // Apply the metadata stored in this gag item. Any gags after it will overwrite previous meta set.
+                    MetaToApply = (data.ForceHeadgearOnEnable && data.ForceVisorOnEnable) 
+                        ? IpcCallerGlamourer.MetaData.Both : (data.ForceHeadgearOnEnable) 
+                            ? IpcCallerGlamourer.MetaData.Hat : (data.ForceVisorOnEnable) 
+                                ? IpcCallerGlamourer.MetaData.Visor : IpcCallerGlamourer.MetaData.None;
                 }
             }
         }
@@ -411,13 +481,14 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
                     // if an item was already applied to that slot, only apply if it satisfied conditions.
                     if (existingItem.CanOverride && cursedItem.OverridePrecedence >= existingItem.OverridePrecedence)
                     {
-                        Logger.LogInformation($"Storing Cursed Item As Override to Slot: {cursedItem.AppliedItem.Slot}", LoggerType.ClientPlayerData);
+                        Logger.LogDebug($"Slot: "+cursedItem.AppliedItem.Slot+" already had an item ["+existingItem.Name+"]. "
+                            + "but ["+cursedItem.Name+"] had higher precedence", LoggerType.ClientPlayerData);
                         appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
                     }
                 }
                 else
                 {
-                    Logger.LogInformation($"Storing Cursed Item to Slot: {cursedItem.AppliedItem.Slot}", LoggerType.ClientPlayerData);
+                    Logger.LogDebug($"Storing Cursed Item ["+cursedItem.Name+"] to Slot: "+cursedItem.AppliedItem.Slot, LoggerType.ClientPlayerData);
                     appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
                 }
 
@@ -450,12 +521,15 @@ public class AppearanceHandler : DisposableMediatorSubscriberBase
             }
         }
 
+        // if we are fetching moodles manually, we should do so now.
+        await UpdateLatestMoodleData();
+
         // Update the stored data.
         _appearanceService.ItemsToApply = ItemsToApply;
         _appearanceService.MetaToApply = MetaToApply;
         _appearanceService.ExpectedMoodles = ExpectedMoodles;
 
         Logger.LogDebug("Appearance Data Recalculated.", LoggerType.ClientPlayerData);
-        return Task.CompletedTask;
+        return;
     }
 }

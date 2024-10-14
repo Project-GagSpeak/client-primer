@@ -144,27 +144,20 @@ public class ClientCallbackService
                     // This means the gag is still applied, so we should see if we want to auto remove it.
                     _logger.LogDebug("Gag is still applied. Checking if we should remove it.", LoggerType.Callbacks);
                     if (_clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration)
-                    {
-                        _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None, true, true);
-                        await _appearanceHandler.GagRemoved(currentGagType);
-                    }
+                        await _appearanceHandler.GagRemoved(callbackGagLayer, currentGagType, isSelfApplied: true);
                 }
                 else
                 {
                     _logger.LogTrace("Gag is already removed. No need to remove again. Update ClientSide Only", LoggerType.Callbacks);
-                    // The GagType is none, meaning this was removed via a mimic, so only update client side removal.
-                    _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None, false, true);
-                    await _appearanceHandler.GagRemoved(_playerData.AppearanceData.GagSlots[(int)callbackGagLayer].GagType.ToGagType());
+                    // The GagType is none, meaning this was removed via a mimic, so only update client side removal
+                    await _appearanceHandler.GagRemoved(callbackGagLayer, currentGagType, publishRemoval: false, isSelfApplied: true);
                 }
             }
 
             if (callbackGagState is NewState.Disabled)
             {
                 _logger.LogDebug("SelfApplied GAG DISABLED Verified by Server Callback.", LoggerType.Callbacks);
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval,
-                    callbackGagLayer,
-                    currentGagType,
-                    true);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, callbackGagLayer, currentGagType, true);
             }
             return;
         }
@@ -204,22 +197,15 @@ public class ClientCallbackService
             // handle the case where we need to reapply, then...
             if (_playerData.AppearanceData!.GagSlots[(int)callbackGagLayer].GagType.ToGagType() != GagType.None)
             {
-                _logger.LogDebug("Gag is already applied. Removing before reapplying.", LoggerType.Callbacks);
-                // set up a task for removing and reapplying the gag glamours, and the another for updating the GagManager.
-                _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None, false);
-                await _appearanceHandler.GagRemoved(currentGagType);
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, callbackGagLayer, currentGagType, true);
-                // after its disabled,...
+                _logger.LogDebug("Gag is already applied. Swapping Gag.", LoggerType.Callbacks);
+                await _appearanceHandler.GagSwapped(callbackGagLayer, currentGagType, callbackGagSlot.GagType.ToGagType(), isSelfApplied: false);
             }
-
-            // ...apply the new version.
-            _logger.LogDebug("Applying Gag to Character Appearance.", LoggerType.Callbacks);
-            _gagManager.OnGagTypeChanged(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), false);
-            await _appearanceHandler.GagApplied(callbackGagSlot.GagType.ToGagType());
-            // Send Event
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, callbackGagLayer,
-                callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer].GagType.ToGagType(), false);
-
+            else
+            {
+                // Apply Gag
+                _logger.LogDebug("Applying Gag to Character Appearance.", LoggerType.Callbacks);
+                await _appearanceHandler.GagApplied(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), isSelfApplied: false);
+            }
         }
         else if (callbackGagState is NewState.Locked)
         {
@@ -233,9 +219,7 @@ public class ClientCallbackService
         }
         else if (callbackGagState is NewState.Disabled)
         {
-            _gagManager.OnGagTypeChanged(callbackGagLayer, GagType.None, false);
-            await _appearanceHandler.GagRemoved(currentGagType);
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, callbackGagLayer, currentGagType, false);
+            await _appearanceHandler.GagRemoved(callbackGagLayer, currentGagType, isSelfApplied: false);
         }
     }
 

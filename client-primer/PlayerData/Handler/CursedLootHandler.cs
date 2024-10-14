@@ -40,7 +40,7 @@ public class CursedLootHandler : DisposableMediatorSubscriberBase
     /// </summary>
     public List<CursedItem> ActiveItems => Data.CursedItems
         .Where(x => x.AppliedTime != DateTimeOffset.MinValue)
-        .Take(6)
+        .Take(10)
         .OrderBy(x => x.AppliedTime)
         .ToList();
 
@@ -90,13 +90,13 @@ public class CursedLootHandler : DisposableMediatorSubscriberBase
     public void RemoveItem(Guid idToRemove)
         => _clientConfigs.RemoveCursedItem(idToRemove);
 
-    public async void ActivateCursedItem(Guid idToActivate, DateTimeOffset releaseTimeUTC)
+    public async void ActivateCursedItem(Guid idToActivate, DateTimeOffset releaseTimeUTC, GagLayer gagLayer = GagLayer.UnderLayer)
     {
         // activate it, then refresh.
         _clientConfigs.ActivateCursedItem(idToActivate, releaseTimeUTC);
         var item = CursedItems.FirstOrDefault(x => x.LootId == idToActivate);
         if (item != null)
-            await _appearanceHandler.CursedItemApplied(item);
+            await _appearanceHandler.CursedItemApplied(item, gagLayer);
     }
 
     public async void DeactivateCursedItem(Guid idToDeactivate)

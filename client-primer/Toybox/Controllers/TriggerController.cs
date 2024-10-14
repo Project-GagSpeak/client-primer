@@ -380,8 +380,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 }
                 // otherwise, we can change the gag type on that layer.
                 Logger.LogInformation("Applying Gag Type "+trigger.GagTypeAction+" to layer "+trigger.GagLayerAction);
-                _gagManager.OnGagTypeChanged(trigger.GagLayerAction, trigger.GagTypeAction, true, SelfApplied: true);
-                await _appearanceHandler.GagApplied(trigger.GagTypeAction);
+                await _appearanceHandler.GagApplied(trigger.GagLayerAction, trigger.GagTypeAction, isSelfApplied: true);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                 break;
 

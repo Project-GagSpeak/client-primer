@@ -28,7 +28,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         _IPAParser = IPAParser;
 
         // Triggered whenever the client updated the gagType from the dropdown menus in the UI
-        Mediator.Subscribe<GagTypeChanged>(this, (msg) => OnGagTypeChanged(msg.Layer, msg.NewGagType, true, msg.SelfApplied));
+        Mediator.Subscribe<GagTypeChanged>(this, (msg) => OnGagTypeChanged(msg.Layer, msg.NewGagType, true));
 
         // Triggered whenever the client updated the padlockType from the dropdown menus in the UI
         Mediator.Subscribe<GagLockToggle>(this, (msg) => OnGagLockChanged(msg.PadlockInfo, msg.newGagLockState, true, msg.SelfApplied));
@@ -39,9 +39,9 @@ public partial class GagManager : DisposableMediatorSubscriberBase
 
     public bool AnyGagActive => _activeGags.Any(gag => gag.Name != "None");
     public bool AnyGagLocked => _characterManager.AppearanceData?.GagSlots.Any(x => x.Padlock != "None") ?? false;
-    public Padlocks[] ActiveSlotPadlocks { get; set; } = new Padlocks[4] { Padlocks.None, Padlocks.None, Padlocks.None, Padlocks.None };
-    public string[] ActiveSlotPasswords { get; set; } = new string[4] { "", "", "", "" };
-    public string[] ActiveSlotTimers { get; set; } = new string[4] { "", "", "", "" };
+    public static Padlocks[] ActiveSlotPadlocks { get; set; } = new Padlocks[4] { Padlocks.None, Padlocks.None, Padlocks.None, Padlocks.None };
+    public static string[] ActiveSlotPasswords { get; set; } = new string[4] { "", "", "", "" };
+    public static string[] ActiveSlotTimers { get; set; } = new string[4] { "", "", "", "" };
 
     /// <summary> ONLY UPDATES THE LOGIC CONTROLLING GARBLE SPEECH, NOT APPEARNACE DATA </summary>
     public Task UpdateActiveGags()
@@ -68,7 +68,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
     /// <summary>
     /// Handles the GagTypeChanged event, updating the active gags list accordingly.
     /// </summary>
-    public void OnGagTypeChanged(GagLayer Layer, GagType NewGagType, bool publish, bool SelfApplied = false)
+    public void OnGagTypeChanged(GagLayer Layer, GagType NewGagType, bool publish)
     {
         if (_characterManager.CoreDataNull) return;
 

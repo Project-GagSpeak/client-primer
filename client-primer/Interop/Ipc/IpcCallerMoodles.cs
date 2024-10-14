@@ -5,6 +5,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
 using GagSpeak.UpdateMonitoring;
 using GagspeakAPI.Enums;
+using GagSpeak.PlayerData.Services;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -97,10 +98,10 @@ public sealed class IpcCallerMoodles : IIpcCaller
         _gagspeakMediator.Publish(new MoodlesReady());
     }
 
-    /// <summary> This method is called when the moodles change </summary>
+    /// <summary> This method is called when the moodles status list changes </summary>
     /// <param name="character">The character that had modified moodles.</param>
-    private void OnStatusManagerModified(IPlayerCharacter character) => 
-        _gagspeakMediator.Publish(new MoodlesStatusManagerChangedMessage(character.Address));
+    private void OnStatusManagerModified(IPlayerCharacter character)
+        => IpcFastUpdates.InvokeStatusManagerChanged(character.Address);
 
     /// <summary> This method is called when the moodles change </summary>
     private void OnStatusModified(Guid guid) 

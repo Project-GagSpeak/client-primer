@@ -25,7 +25,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     private readonly PlayerCharacterData _playerData;
     private readonly CursedLootHandler _handler;
     private readonly OnFrameworkService _frameworkUtils;
-    private readonly AppearanceService _appearanceChange;
+    private readonly AppearanceHandler _appearanceHandler;
     private readonly IChatGui _chatGui;
     private readonly IDataManager _gameData;
     private readonly IObjectTable _objects;
@@ -34,7 +34,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     public CursedLootService(ILogger<CursedLootService> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, GagManager gagManager,
         PlayerCharacterData playerData, CursedLootHandler handler,
-        OnFrameworkService frameworkUtils, AppearanceService appearanceChange,
+        OnFrameworkService frameworkUtils, AppearanceHandler appearanceHandler,
         IChatGui chatGui, IDataManager gameData, IObjectTable objects,
         ITargetManager targets) : base(logger, mediator)
     {
@@ -43,7 +43,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         _playerData = playerData;
         _handler = handler;
         _frameworkUtils = frameworkUtils;
-        _appearanceChange = appearanceChange;
+        _appearanceHandler = appearanceHandler;
         _chatGui = chatGui;
         _gameData = gameData;
         _objects = objects;
@@ -193,7 +193,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     private async Task ApplyCursedLoot()
     {
         // throw warning and return if our size is already capped at 6.
-        if (_handler.ActiveItems.Count >= 6)
+        if (_handler.ActiveItems.Count >= 10)
         {
             Logger.LogWarning("Cannot apply Cursed Loot, as the player already has 6 active cursed items.");
             return;
@@ -231,7 +231,9 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 // generate the length they will be locked for:
                 var lockTimeGag = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
                 // apply the gag via the gag manager at the available slot we found.
-                _gagManager.OnGagTypeChanged((GagLayer)availableSlot, _handler.InactiveItemsInPool[randomIndex].GagType, true, true);
+                await _appearanceHandler.GagApplied((GagLayer)availableSlot, _handler.InactiveItemsInPool[randomIndex].GagType);
+                // Add a small delay to avoid race conditions (idk a better way to failsafe this yet)
+                await Task.Delay(150);
                 // lock the gag.
                 var padlockData = new PadlockData()
                 {
@@ -240,10 +242,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                     Timer = DateTimeOffset.UtcNow.Add(lockTimeGag), 
                     Assigner = Globals.SelfApplied
                 };
-                await Task.Delay(150);
                 _gagManager.OnGagLockChanged(padlockData, NewState.Locked, true, true);
-                // Activate the cursed loot item.
-                _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTimeGag));
                 Logger.LogInformation($"Cursed Loot Applied!", LoggerType.CursedLoot);
                 return;
             }

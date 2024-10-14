@@ -786,10 +786,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     public Task DisableEverythingDueToSafeword()
     {
-        ClearCursedItems();
-        _cursedLootConfig.Save();
-        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.Safeword));
-
         // disable any active alarms.
         foreach (var alarm in AlarmConfig.AlarmStorage.Alarms)
             alarm.Enabled = false;

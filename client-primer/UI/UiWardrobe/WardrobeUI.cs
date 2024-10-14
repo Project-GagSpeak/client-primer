@@ -60,7 +60,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
         this.SizeConstraints = new WindowSizeConstraints
         {
             MinimumSize = new Vector2(760, 445),
-            MaximumSize = new Vector2(760*1.5f, 445*1.5f)
+            MaximumSize = new Vector2(760*1.5f, 1000f)
         };
         RespectCloseHotkey = false;
     }

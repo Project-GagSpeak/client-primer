@@ -1,6 +1,7 @@
 using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
@@ -195,23 +196,23 @@ public class AppearanceService : DisposableMediatorSubscriberBase
 
         // Queue the task to apply glamour items and metadata.
         if (ItemsToApply.Any())
-            tasks.Add(UpdateGlamour(ItemsToApply, MetaToApply));
+            tasks.Add(UpdateGlamour());
 
         // Queue the task to apply moodles.
         if (ExpectedMoodles.Any())
-            tasks.Add(UpdateMoodles(ExpectedMoodles));
+            tasks.Add(UpdateMoodles());
 
         // Run all tasks concurrently
         await Task.WhenAll(tasks);
         Logger.LogDebug("Appearance Refresh Completed", LoggerType.ClientPlayerData);
     }
 
-    public async Task UpdateGlamour(Dictionary<EquipSlot, IGlamourItem> glamourItems, IpcCallerGlamourer.MetaData metadata)
+    public async Task UpdateGlamour()
     {
         if (!IpcCallerGlamourer.APIAvailable) return;
 
         // configure the tasks to execute together instead of one by one.
-        var tasks = glamourItems
+        var tasks = ItemsToApply
         .Select(pair =>
         {
             var equipSlot = (ApiEquipSlot)pair.Key;
@@ -231,15 +232,15 @@ public class AppearanceService : DisposableMediatorSubscriberBase
         await Task.WhenAll(tasks);
 
         // update the meta data.
-        await _Interop.Glamourer.ForceSetMetaData(metadata, true);
+        await _Interop.Glamourer.ForceSetMetaData(MetaToApply, true);
         Logger.LogDebug("Glamour Update Completed", LoggerType.ClientPlayerData);
     }
 
-    public async Task UpdateMoodles(List<Guid> ExpectedMoodles)
+    public async Task UpdateMoodles()
     {
         if (_playerManager.IpcDataNull || !IpcCallerMoodles.APIAvailable) return;
         // Fetch the current list of moodles on our character
-        var currentMoodles = _playerManager.LastIpcData!.MoodlesDataStatuses.Select(x => x.GUID).ToList();
+        var currentMoodles = AppearanceHandler.LatestClientMoodleStatusList.Select(x => x.GUID).ToList();
 
         // take the Expected moodles minus the current moodles to get the moodles we are missing.
         var missingMoodles = ExpectedMoodles.Except(currentMoodles).ToList();

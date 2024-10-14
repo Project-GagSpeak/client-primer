@@ -19,6 +19,11 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 3, 3)
+            .RegisterMain("Gag Padlock Images now properly display")
+            .RegisterFeature("All Moodles assignments and recalculations have been reworked to support layered bondage.")
+            .RegisterFeature("Moodles have been heavily reworked for maximum precision.")
+            .RegisterBugfix("Fixed issues where moodles would not properly be removed when they should have been.");
         VersionEntry(0, 9, 3, 2)
             .RegisterBugfix("Cursed Items now toggle the attached mod if they should.");
         VersionEntry(0, 9, 3, 1)

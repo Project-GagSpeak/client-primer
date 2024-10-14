@@ -24,7 +24,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
     private readonly RestraintSetEditor _editor;
     private readonly SetPreviewComponent _setPreview;
     private readonly WardrobeHandler _handler;
-    private readonly GagManager _padlockHandler;
+    private readonly GagManager _gagManager;
 
     public RestraintSetManager(ILogger<RestraintSetManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
@@ -36,7 +36,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         _ipcGlamourer = ipcGlamourer;
         _editor = editor;
         _handler = handler;
-        _padlockHandler = padlockHandler;
+        _gagManager = padlockHandler;
         _setPreview = setPreview;
 
         CreatedRestraintSet = new RestraintSet();
@@ -471,9 +471,9 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 {
                     // set the enabled state of the restraintSet based on its current state so that we toggle it
                     if (set.Enabled)
-                        _handler.DisableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name));
+                        _handler.DisableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name)).ConfigureAwait(false);
                     else
-                        _handler.EnableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name));
+                        _handler.EnableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name)).ConfigureAwait(false);
                     // toggle the state & early return so we dont access the child clicked button
                     return;
                 }
@@ -501,7 +501,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 var lockedDescription = set.Locked ? $"Locked for {remainingTimeStr}" : "Self-lock: XdXhXmXs format..";
                 // draw the padlock dropdown
                 var isLockedByPair = set.LockedBy != Globals.SelfApplied && set.LockType.ToPadlock() != Padlocks.None;
-                var padlockType = set.Locked ? set.LockType.ToPadlock() : _padlockHandler.ActiveSlotPadlocks[3];
+                var padlockType = set.Locked ? set.LockType.ToPadlock() : GagManager.ActiveSlotPadlocks[3];
 
                 var padlockList = isLockedByPair ? GenericHelpers.NoMimicPadlockList : GenericHelpers.NoOwnerPadlockList;
 
@@ -511,7 +511,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                         padlockList, (padlock) => padlock.ToName(),
                     (i) =>
                     {
-                        _padlockHandler.ActiveSlotPadlocks[3] = i;
+                        GagManager.ActiveSlotPadlocks[3] = i;
                     }, padlockType, false);
 
                     // if we have been locked by a pair, and our combo's selected padlock doesn't match the locked padlock, we should update it.
@@ -519,31 +519,31 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                     {
                         // update the padlock previews and selected combo item.
                         _uiShared.SetSelectedComboItem("RestraintSetLock" + set.Name, set.LockType.ToPadlock());
-                        _padlockHandler.ActiveSlotPadlocks[3] = set.LockType.ToPadlock();
+                        GagManager.ActiveSlotPadlocks[3] = set.LockType.ToPadlock();
                     }
                 }
                 ImUtf8.SameLineInner();
                 // draw the lock button
                 if (_uiShared.IconButton(set.Locked ? FontAwesomeIcon.Lock : FontAwesomeIcon.Unlock, null, set.Name.ToString(), padlockType == Padlocks.None))
                 {
-                    if (_padlockHandler.RestraintPasswordValidate(set, set.Locked))
+                    if (_gagManager.RestraintPasswordValidate(set, set.Locked))
                     {
                         if (set.Locked)
                         {
                             Logger.LogTrace($"Unlocking Restraint Set {set.Name}");
                             // allow using set.EnabledBy here because it will check against the assigner when unlocking.
                             _handler.UnlockRestraintSet(_handler.GetRestraintSetIndexByName(set.Name), set.EnabledBy);
-                            _padlockHandler.ActiveSlotPadlocks[3] = Padlocks.None;
+                            GagManager.ActiveSlotPadlocks[3] = Padlocks.None;
                         }
                         else
                         {
                             Logger.LogTrace($"Locking Restraint Set {set.Name}");
-                            Logger.LogTrace("Parsing Timer with value[" + _padlockHandler.ActiveSlotTimers[3] + "]");
+                            Logger.LogTrace("Parsing Timer with value[" + GagManager.ActiveSlotTimers[3] + "]");
                             _handler.LockRestraintSet(
                                 _handler.GetRestraintSetIndexByName(set.Name),
-                                _padlockHandler.ActiveSlotPadlocks[3].ToName(),
-                                _padlockHandler.ActiveSlotPasswords[3],
-                                UiSharedService.GetEndTimeUTC(_padlockHandler.ActiveSlotTimers[3]),
+                                GagManager.ActiveSlotPadlocks[3].ToName(),
+                                GagManager.ActiveSlotPasswords[3],
+                                UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[3]),
                                 Globals.SelfApplied);
                         }
                     }
@@ -552,13 +552,13 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                         Logger.LogDebug($"Failed to validate password for Restraint Set {set.Name}");
                     }
                     // reset the password and timer
-                    _padlockHandler.ResetInputs();
+                    _gagManager.ResetInputs();
                 }
-                UiSharedService.AttachToolTip(_padlockHandler.ActiveSlotPadlocks[3] == Padlocks.None ? "Select a padlock type before locking" :
+                UiSharedService.AttachToolTip(GagManager.ActiveSlotPadlocks[3] == Padlocks.None ? "Select a padlock type before locking" :
                     set.Locked == false ? "Self-Lock this Restraint Set" :
                     set.LockedBy != Globals.SelfApplied ? "Only" + set.LockedBy + "can unlock your set." : "Unlock this set.");
                 // display associated password field for padlock type.
-                _padlockHandler.DisplayPadlockFields(3, set.Locked, width);
+                _gagManager.DisplayPadlockFields(3, set.Locked, width);
             }
             ImGui.Separator();
         }

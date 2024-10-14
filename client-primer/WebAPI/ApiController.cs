@@ -1,5 +1,6 @@
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Utility;
+using GagSpeak.Achievements;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.PrivateRooms;
@@ -23,6 +24,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     public const string MainServer = "GagSpeak Main";
     public const string MainServiceUri = "wss://gagspeak.kinkporium.studio";
 
+    private readonly AchievementManager _achievementManager;        // the achievement manager
     private readonly OnFrameworkService _frameworkUtils;            // the on framework service
     private readonly HubFactory _hubFactory;                        // the hub factory
     private readonly ClientCallbackService _clientCallbacks;        // the player character manager
@@ -51,12 +53,15 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     private HubConnection? _toyboxHub;                              // the toybox hub connection
     private ServerState _toyboxServerState;                         // the current state of the toybox server
 
-    public ApiController(ILogger<ApiController> logger, HubFactory hubFactory, OnFrameworkService frameworkService,
+    public ApiController(ILogger<ApiController> logger, GagspeakMediator mediator,
+        AchievementManager achievementManager, OnFrameworkService frameworkUtils, HubFactory hubFactory, 
         ClientCallbackService clientCallbacks, PrivateRoomManager roomManager, PairManager pairManager,
-        ServerConfigurationManager serverManager, GagspeakMediator gagspeakMediator, PiShockProvider piShockProvider,
-        TokenProvider tokenProvider, GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
+        ServerConfigurationManager serverManager, GagspeakMediator gagspeakMediator, 
+        PiShockProvider piShockProvider, TokenProvider tokenProvider, 
+        GagspeakConfigService gagspeakConfigService) : base(logger, gagspeakMediator)
     {
-        _frameworkUtils = frameworkService;
+        _achievementManager = achievementManager;
+        _frameworkUtils = frameworkUtils;
         _hubFactory = hubFactory;
         _clientCallbacks = clientCallbacks;
         _privateRoomManager = roomManager;
@@ -79,6 +84,9 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         Mediator.Subscribe<ToyboxHubClosedMessage>(this, (msg) => ToyboxHubOnClosed(msg.Exception));
         Mediator.Subscribe<ToyboxHubReconnectedMessage>(this, (msg) => _ = ToyboxHubOnReconnected());
         Mediator.Subscribe<ToyboxHubReconnectingMessage>(this, (msg) => ToyboxHubOnReconnecting(msg.Exception));
+
+        Mediator.Subscribe<AchievementDataUpdateMessage>(this, (data) => _ = UserUpdateAchievementData(new(new(UID), data.base64Data)));
+
         // initially set the server state to offline.
         ServerState = ServerState.Offline;
         ToyboxServerState = ServerState.Offline;
@@ -365,6 +373,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
                 _ = CreateToyboxConnection();
             }
 
+            if (ServerState is ServerState.Connected)
+            {
+                Logger.LogInformation("Sending off a final update before closing the hub connections on logout.", LoggerType.Achievements);
+                await UserUpdateAchievementData(new(new(UID), _achievementManager.GetSaveDataDtoString()));
+            }
+
+            Logger.LogInformation("Disconnecting from GagSpeak Hub", LoggerType.ApiCore);
             _connectionDto = null;
             await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
             _connectionCTS?.Cancel();
@@ -620,14 +635,40 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     {
         // dispose of the base
         base.Dispose(disposing);
-        // cancel the tokens and stop the connection
-        _healthCTS?.Cancel();
-        _toyboxHealthCTS?.Cancel();
 
-        _ = Task.Run(async () => await StopConnection(ServerState.Disconnected, HubType.MainHub).ConfigureAwait(false));
-        _ = Task.Run(async () => await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false));
-        _connectionCTS?.Cancel();
-        _connectionToyboxCTS?.Cancel();
+        // Continue the disposal in Asyncronous function.
+        _ = DisposeAsync();
+    }
+
+    /// <summary>
+    /// Make the Disposal Asyncronous so that we perform nessisary operations requiring awaiters to finish.
+    /// </summary>
+    public async Task DisposeAsync()
+    {
+        // Push the achievement data update before shutting down
+        try
+        {
+            if(ServerState == ServerState.Connected)
+            {
+                Logger.LogWarning("Sending off a final update before closing the hub connections.", LoggerType.Achievements);
+                await UserUpdateAchievementData(new(new(UID), _achievementManager.GetSaveDataDtoString()));
+            }
+
+            Logger.LogInformation("Closing Hub Connections", LoggerType.ApiCore);
+            _healthCTS?.Cancel();
+            _toyboxHealthCTS?.Cancel();
+
+            await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
+            await StopConnection(ServerState.Disconnected, HubType.MainHub).ConfigureAwait(false);
+            
+            _connectionCTS?.Cancel();
+            _connectionToyboxCTS?.Cancel();
+
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to send updated achievement data before shutdown.");
+        }
     }
 
     /// <summary>
@@ -703,11 +744,19 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// <summary> GagSpeakMediator will call this function when the client logs out of the game instance.
     /// <para> This will stop our connection to the servers and set the state to offline upon logout </para>
     /// </summary>
-    private void FrameworkUtilOnLogOut()
+    private async void FrameworkUtilOnLogOut()
     {
+        if(ServerState == ServerState.Connected)
+        {
+            Logger.LogInformation("Sending off a final update before closing the hub connections on logout.", LoggerType.Achievements);
+            await UserUpdateAchievementData(new(new(UID), _achievementManager.GetSaveDataDtoString()));
+        }
+        
         // would run to stop the connection on logout
-        _ = Task.Run(async () => await StopConnection(ServerState.Disconnected).ConfigureAwait(false));
-        _ = Task.Run(async () => await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false));
+        Logger.LogInformation("Stopping connection on logout", LoggerType.ApiCore);
+        await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
+        await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
+        
         ServerState = ServerState.Offline; // switch the state to offline.
         ToyboxServerState = ServerState.Offline; // switch the toybox state to offline.
     }
@@ -855,6 +904,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// <summary> When the hub is closed, this function will be called. </summary>
     private void GagspeakHubOnClosed(Exception? arg)
     {
+        Logger.LogWarning("Hub Closed");
         // cancel the health token
         _healthCTS?.Cancel();
         // publish a disconnected message to the mediator, and set the server state to offline. Then log the result
@@ -928,6 +978,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         _healthCTS?.Cancel();
         // set the state to reconnecting
         ServerState = ServerState.Reconnecting;
+
+        if (arg is System.Net.WebSockets.WebSocketException)
+        {
+            Logger.LogInformation("System closed unexpectedly, flagging Achievement Manager to not set data on reconnection.");
+            AchievementManager._lastDisconnectTime = DateTime.UtcNow;
+        }
+
         Logger.LogWarning($"{arg} Connection closed... Reconnecting");
         // publish a event message to the mediator alerting us of the reconnection
         Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Warning,

@@ -222,7 +222,7 @@ public static class GagSpeakServiceExtensions
 
         // Unlocks / Achievements
         .AddSingleton((s) => new AchievementManager(s.GetRequiredService<ILogger<AchievementManager>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ApiController>(), s.GetRequiredService<ClientConfigurationManager>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<OnFrameworkService>(),
             s.GetRequiredService<ToyboxVibeService>(), s.GetRequiredService<UnlocksEventManager>(), nm))
         .AddSingleton<UnlocksEventManager>()

@@ -188,7 +188,7 @@ public record SafewordUsedMessage : MessageBase; // for when the safeword is use
 public record SafewordHardcoreUsedMessage : MessageBase; // for when the hardcore safeword is used.
 
 /* --------------------- COSMETICS & ACHIEVEMENTS RECORDS --------------------- */
-public record AchievementProgressMessage<T>(AchievementModuleKind Component, string AchievementName, T NewProgressMade) : MessageBase; // for updating achievement progress.
+public record AchievementDataUpdateMessage(string base64Data) : MessageBase; // Sent from Achievement Manager to APIController for data update.
 
 
 #pragma warning restore S2094, MA0048

@@ -20,15 +20,12 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
     private readonly WardrobeHandler _wardrobeHandler;
     private readonly HardcoreHandler _blindfoldHandler;
     private readonly AppearanceHandler _appearanceHandler;
-    private readonly AppearanceService _appearanceService;
-    private readonly IpcFastUpdates _ipcFastUpdates;
 
     public OnConnectedService(ILogger<OnConnectedService> logger,
         GagspeakMediator mediator, PlayerCharacterData playerData,
         ClientConfigurationManager clientConfigs, GagManager gagManager,
         IpcManager ipcManager, WardrobeHandler wardrobeHandler,
-        HardcoreHandler blindfold, AppearanceHandler appearanceHandler,
-        AppearanceService appearanceService, IpcFastUpdates ipcFastUpdates) : base(logger, mediator)
+        HardcoreHandler blindfold, AppearanceHandler appearanceHandler) : base(logger, mediator)
     {
         _playerData = playerData;
         _clientConfigs = clientConfigs;
@@ -37,8 +34,6 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         _wardrobeHandler = wardrobeHandler;
         _blindfoldHandler = blindfold;
         _appearanceHandler = appearanceHandler;
-        _appearanceService = appearanceService;
-        _ipcFastUpdates = ipcFastUpdates;
 
         Mediator.Subscribe<ConnectedMessage>(this, (msg) => OnConnected(msg.Connection));
 
@@ -99,13 +94,30 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
                 }
             }
             // update the data. (Note, setting these to false may trigger a loophole by skipping over the monitored achievements,
-            // but its the only way to ensure that achievements are not cheesed upon connection. That I know of at least. Look into later.
             Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.FullDataUpdate));
+        }
+        else
+        {
+            // if the active set is empty, but we have a set that is on or locked, we should unlock and remove it.
+            var activeSetIdx = _clientConfigs.GetActiveSetIdx();
+            if (activeSetIdx != -1)
+            {
+                Logger.LogInformation("The Stored Restraint Set was Empty, yet you have one equipped. Unlocking and unequipping.", LoggerType.Restraints);
+                var activeSet = _clientConfigs.GetActiveSet();
+                if (activeSet != null)
+                {
+                    if (activeSet.LockType.ToPadlock() is not Padlocks.None)
+                        _clientConfigs.UnlockRestraintSet(activeSetIdx, activeSet.LockedBy, false);
+                    // disable it.
+                    await _wardrobeHandler.DisableRestraintSet(activeSetIdx, activeSet.LockedBy, false);
+                    // update the data. (Note, setting these to false may trigger a loophole by skipping over the monitored achievements,
+                    Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.FullDataUpdate));
+                }
+            }
         }
 
         // Run a refresh on appearance data.
-        await _appearanceHandler.RecalculateAppearance();
-        IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
+        await _appearanceHandler.RecalcAndReload(true, true);
     }
 
     private async void CheckBlindfold()

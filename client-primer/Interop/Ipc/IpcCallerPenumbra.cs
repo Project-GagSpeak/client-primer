@@ -17,6 +17,8 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.GagspeakConfiguration.Models;
 using Lumina.Excel.GeneratedSheets;
+using GagSpeak.PlayerData.Services;
+using GagSpeak.PlayerData.Handlers;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -57,6 +59,8 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
     private readonly EventSubscriber _penumbraDisposed;
     private readonly EventSubscriber<ChangedItemType, uint> _tooltipSubscriber;
     private readonly EventSubscriber<MouseButton, ChangedItemType, uint> _clickSubscriber;
+    private readonly EventSubscriber<nint, int> _penumbraObjectRedrawnSubscriber;
+
 
     /* -------- Penumbra IPC Event Subscribers */
     private RedrawObject? _redrawSubscriber;           // when a target redraws
@@ -78,7 +82,9 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
 
         _penumbraInitialized = Initialized.Subscriber(pi, PenumbraInitialized);
         _penumbraDisposed = Disposed.Subscriber(pi, PenumbraDisposed);
-        
+        _penumbraObjectRedrawnSubscriber = GameObjectRedrawn.Subscriber(pi, ObjectRedrawnEvent);
+
+
         _tooltipSubscriber = ChangedItemTooltip.Subscriber(pi);
         _clickSubscriber = ChangedItemClicked.Subscriber(pi);
 
@@ -150,6 +156,37 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         add => _tooltipSubscriber.Event += value;
         remove => _tooltipSubscriber.Event -= value;
     }
+
+    /// <summary> 
+    /// Try to redraw the given actor. 
+    /// We force this method to trigger a immediate redraw from Mare, so it can redraw a player the moment their changes are applied.
+    /// This allows animation mods to be updated instantly.
+    /// </summary>
+    public void RedrawObject(int objectIndex, RedrawType settings)
+    {
+        Logger.LogInformation("Redrawing ClientPlayer object due to set toggle!", LoggerType.IpcPenumbra);
+        // Let us know that we are manually invoking a redraw.
+        if(objectIndex is 0)
+            AppearanceHandler.ManualRedrawProcessing = true;
+        // Invoke the subscriber
+        _redrawSubscriber!.Invoke(objectIndex, settings);
+    }
+
+
+    private void ObjectRedrawnEvent(IntPtr objectAddress, int objectTableIndex)
+    {
+        // if the object index is 0, perform a reapply all
+        if (objectTableIndex is 0)
+        {
+            Logger.LogInformation("Redrawing Called via command or has finished a redraw", LoggerType.IpcPenumbra);
+            AppearanceHandler.ManualRedrawProcessing = false;
+            // Invoke a reapply all here. This will ensure that we reapply all information once we are valid.
+            IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.ReapplyAll);
+        }
+    }
+
+
+
 
     // for our get mod list for the table
     public IReadOnlyList<(Mod Mod, ModSettings Settings)> GetMods()
@@ -249,77 +286,6 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         // Default return.
         return errorCode;
     }
-/*    public string ModifyModState(AssociatedMod AssociatedMod, NewState modState = NewState.Enabled, bool adjustPriorityOnly = false)
-    {
-        if (!APIAvailable)
-            return "Penumbra is not available.";
-
-        var sb = new StringBuilder();
-        try
-        {
-            // get the collection of our character
-            var collection = _currentCollection!.Invoke(ApiCollectionType.Current)!.Value.Id;
-            // create error code, assume success
-            var errorCode = PenumbraApiEc.Success;
-            // now, if the newsetstate is true, we should enable the mod
-            if (modState is NewState.Enabled)
-            {
-                // enable the mod
-                errorCode = _setMod!.Invoke(collection, AssociatedMod.Mod.DirectoryName, true, AssociatedMod.Mod.Name);
-                // get the recieved message
-                switch (errorCode)
-                {
-                    case PenumbraApiEc.ModMissing: return $"The mod {AssociatedMod.Mod.Name} [{AssociatedMod.Mod.DirectoryName}] could not be found.";
-                    case PenumbraApiEc.CollectionMissing: return $"The collection {collection} could not be found.";
-                }
-                // after this, raise the priority to 99
-                errorCode = _setModPriority!.Invoke(collection, AssociatedMod.Mod.DirectoryName, AssociatedMod.ModSettings.Priority + 50, AssociatedMod.Mod.Name);
-                Debug.Assert(errorCode is PenumbraApiEc.Success or PenumbraApiEc.NothingChanged, "Setting Priority should not be able to fail.");
-            }
-            // otherwise, we are attempting to disable the mod
-            else
-            {
-                // disable the mod, but ONLY if disabledMods is true
-                if (AssociatedMod.DisableWhenInactive == true)
-                {
-                    errorCode = _setMod!.Invoke(collection, AssociatedMod.Mod.DirectoryName, false, AssociatedMod.Mod.Name);
-                    // get the recieved message
-                    switch (errorCode)
-                    {
-                        case PenumbraApiEc.ModMissing: return $"The mod {AssociatedMod.Mod.Name} [{AssociatedMod.Mod.DirectoryName}] could not be found.";
-                        case PenumbraApiEc.CollectionMissing: return $"The collection {collection} could not be found.";
-                    }
-                }
-                // regardless of if that was on or not, we want to reset it back to their original priority
-                errorCode = _setModPriority!.Invoke(collection, AssociatedMod.Mod.DirectoryName, AssociatedMod.ModSettings.Priority, AssociatedMod.Mod.Name);
-                Debug.Assert(errorCode is PenumbraApiEc.Success or PenumbraApiEc.NothingChanged, "Setting Priority should not be able to fail.");
-            }
-
-            // get the recieved message
-            switch (errorCode)
-            {
-                case PenumbraApiEc.ModMissing: return $"The mod {AssociatedMod.Mod.Name} [{AssociatedMod.Mod.DirectoryName}] could not be found.";
-                case PenumbraApiEc.CollectionMissing: return $"The collection {collection} could not be found.";
-            }
-            // return the invoke message code now built as an SE string
-            return sb.ToString();
-        }
-        catch (Exception ex)
-        {
-            return sb.AppendLine(ex.Message).ToString();
-        }
-    }*/
-
-    /// <summary> 
-    /// Try to redraw the given actor. 
-    /// We force this method to trigger a immediate redraw from Mare, so it can redraw a player the moment their changes are applied.
-    /// This allows animation mods to be updated instantly.
-    /// </summary>
-    public void RedrawObject(int objectIndex, RedrawType settings)
-    {
-        Logger.LogInformation($"Redrawing object {objectIndex} due to set toggle!");
-        _redrawSubscriber!.Invoke(objectIndex, settings);
-    }
 
     /// <summary> Reattach to the currently running Penumbra IPC provider. Unattaches before if necessary. </summary>
     public void PenumbraInitialized()
@@ -373,5 +339,6 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         _clickSubscriber.Dispose();
         _penumbraInitialized.Dispose();
         _penumbraDisposed.Dispose();
+        _penumbraObjectRedrawnSubscriber.Dispose();
     }
 }

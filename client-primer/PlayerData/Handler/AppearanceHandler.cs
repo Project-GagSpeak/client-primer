@@ -7,11 +7,13 @@ using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
+using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Extensions;
 using Penumbra.Api.Enums;
 using Penumbra.GameData.Enums;
+using System.Threading;
 using static FFXIVClientStructs.FFXIV.Component.GUI.AtkCounterNode.Delegates;
 
 namespace GagSpeak.PlayerData.Handlers;
@@ -32,11 +34,12 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly IpcManager _ipcManager;
     private readonly AppearanceService _appearanceService;
+    private readonly OnFrameworkService _frameworkUtils;
 
     public AppearanceHandler(ILogger<AppearanceHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
         GagManager gagManager, PairManager pairManager, IpcManager ipcManager,
-        AppearanceService appearanceService) : base(logger, mediator)
+        AppearanceService appearanceService, OnFrameworkService frameworkUtils) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerData = playerData;
@@ -44,26 +47,21 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         _pairManager = pairManager;
         _ipcManager = ipcManager;
         _appearanceService = appearanceService;
+        _frameworkUtils = frameworkUtils;
 
-        //IpcFastUpdates.StatusManagerChangedEventFired += (addr) => UpdateLatestMoodleData(addr);
+        IpcFastUpdates.StatusManagerChangedEventFired += (addr) => RefreshMoodles(addr);
     }
 
     private List<RestraintSet> RestraintSets => _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets;
     private List<CursedItem> CursedItems => _clientConfigs.CursedLootConfig.CursedLootStorage.CursedItems;
 
-    /// <summary>
-    /// The Finalized Glamourer Appearance that should be visible on the player.
-    /// THIS CLASS IS RESPONCIBLE FOR MAINTAINING ITS SYNCRONIZATION.
-    /// </summary>
+    /// <summary> Finalized Glamourer Appearance that should be visible on the player. </summary>
     private Dictionary<EquipSlot, IGlamourItem> ItemsToApply => _appearanceService.ItemsToApply;
-    /// <summary>
-    /// Finalized MetaData to apply from highest priority item requesting it.
-    /// </summary>
+    
+    /// <summary> Finalized MetaData to apply from highest priority item requesting it. </summary>
     private IpcCallerGlamourer.MetaData MetaToApply => _appearanceService.MetaToApply;
 
-    /// <summary>
-    /// The collective expected list of Moodles that should be applied to the player.
-    /// </summary>
+    /// <summary> The collective expected list of Moodles that should be applied to the player. </summary>
     private List<Guid> ExpectedMoodles => _appearanceService.ExpectedMoodles;
 
     /// <summary>
@@ -73,16 +71,30 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
     /// </summary>
     public static List<MoodlesStatusInfo> LatestClientMoodleStatusList = new();
 
+    /// <summary> Static accessor to know if we're processing a redraw from a mod toggle </summary>
+    public static bool ManualRedrawProcessing = false;
+
+    private CancellationTokenSource RedrawTokenSource = new();
+
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        //IpcFastUpdates.StatusManagerChangedEventFired -= (addr) => UpdateLatestMoodleData(addr);
+        IpcFastUpdates.StatusManagerChangedEventFired -= (addr) => RefreshMoodles(addr);
     }
 
 
     private async Task UpdateLatestMoodleData()
     {
         LatestClientMoodleStatusList = await _ipcManager.Moodles.GetStatusInfoAsync() ?? new();
+    }
+
+    public async Task RecalcAndReload(bool refreshing, bool manualMoodles = false)
+    {
+        // perform a recalculation to appearance data. 
+        // (Doing this prior to redraw wait benifits us as we can use part of that time to recalculate)
+        await RecalculateAppearance(fetchMoodlesManually: manualMoodles);
+        await WaitForRedrawCompletion();
+        await _appearanceService.RefreshAppearance(refreshing ? GlamourUpdateType.RefreshAll : GlamourUpdateType.ReapplyAll);
     }
 
 
@@ -125,10 +137,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
 
         if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied));
 
-        // perform a recalculation to appearance data.
-        await RecalculateAppearance();
-        // refresh the appearance.
-        await _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll);
+        await RecalcAndReload(false);
     }
 
     public async Task DisableRestraintSet(Guid restraintID, string disablerUID = Globals.SelfApplied, bool pushToServer = true)
@@ -161,11 +170,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
 
         if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintDisabled));
 
-        // perform a recalculation to appearance data.
-        await RecalculateAppearance(fetchMoodlesManually: true);
-        // refresh the appearance.
-        await _appearanceService.RefreshAppearance(GlamourUpdateType.RefreshAll);
-
+        await RecalcAndReload(true, true);
     }
 
     /// <summary>
@@ -182,9 +187,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         if (!_clientConfigs.IsGagEnabled(gagType) || !_playerData.GlobalPerms!.ItemAutoEquip)
             return;
 
-        // perform a recalculation to appearance data.
-        await RecalculateAppearance();
-        await _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll);
+        await RecalcAndReload(false);
 
         // Update C+ Profile if applicable
         var drawData = _clientConfigs.GetDrawData(gagType);
@@ -209,9 +212,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         var drawData = _clientConfigs.GetDrawData(gagType);
         await RemoveMoodles(drawData);
 
-        // Now Perform a recalculation to appearance data, with manual moodle fetching.
-        await RecalculateAppearance(fetchMoodlesManually: true);
-        await _appearanceService.RefreshAppearance(GlamourUpdateType.RefreshAll);
+        await RecalcAndReload(true, true);
 
         // Remove the CustomizePlus Profile if applicable
         if (drawData.CustomizeGuid != Guid.Empty)
@@ -249,8 +250,8 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         {
             // Cursed Item was Equip, so handle attached Mod Enable and recalculation here.
             await PenumbraModsToggle(NewState.Enabled, new List<AssociatedMod>() { cursedItem.AssociatedMod });
-            await RecalculateAppearance();
-            await _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll);
+
+            await RecalcAndReload(false);
         }
     }
 
@@ -278,9 +279,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
             }
         }
 
-        // perform a recalculation to appearance data.
-        await RecalculateAppearance(fetchMoodlesManually: true);
-        await _appearanceService.RefreshAppearance(GlamourUpdateType.RefreshAll);
+        await RecalcAndReload(true, true);
     }
 
     private async Task RemoveMoodles(IMoodlesAssociable data)
@@ -531,5 +530,60 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
 
         Logger.LogDebug("Appearance Data Recalculated.", LoggerType.ClientPlayerData);
         return;
+    }
+
+    private async Task RecalculateMoodles()
+    {
+
+    }
+
+    private async Task RefreshMoodles(IntPtr address)
+    {
+        if (address != _frameworkUtils.ClientPlayerAddress)
+            return;
+
+        // Recalculate the moodles list.
+    }
+
+    /// <summary>
+    /// Cycle a while loop to wait for when we are finished redrawing, if we are currently redrawing.
+    /// </summary>
+    private async Task WaitForRedrawCompletion()
+    {
+        // Return if we are not redrawing.
+        if(!ManualRedrawProcessing)
+            return;
+
+        RedrawTokenSource?.Cancel();
+        RedrawTokenSource = new CancellationTokenSource();
+
+        var token = RedrawTokenSource.Token;
+        int delay = 20; // Initial delay of 20 ms
+        const int maxDelay = 1280; // Max allowed delay
+
+        while (AppearanceHandler.ManualRedrawProcessing)
+        {
+            // Check if cancellation is requested
+            if (token.IsCancellationRequested)
+            {
+                Logger.LogWarning("Manual redraw processing wait was cancelled due to timeout.");
+                return;
+            }
+
+            // Wait for the current delay period
+            await Task.Delay(delay, token);
+
+            // Double the delay for the next iteration
+            delay *= 2;
+
+            // If the delay exceeds the maximum limit, log a warning and exit the loop
+            if (delay > maxDelay)
+            {
+                Logger.LogWarning("Player redraw is taking too long. Exiting wait.");
+                return;
+            }
+        }
+
+        Logger.LogInformation("Manual redraw processing completed. Proceeding with refresh.");
     }
 }

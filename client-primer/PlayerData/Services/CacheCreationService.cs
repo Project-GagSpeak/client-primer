@@ -1,3 +1,4 @@
+using Dalamud.Interface;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Factories;

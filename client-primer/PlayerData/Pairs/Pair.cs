@@ -270,7 +270,7 @@ public class Pair
     public void ApplyToyboxData(OnlineUserCharaToyboxDataDto data)
     {
         _logger.LogDebug("Applying updated toybox data for " + data.User.UID, LoggerType.PairManagement);
-        _logger.LogTrace("Toybox Information: "+data.ToyboxInfo.ParseToString(), LoggerType.PairManagement);
+        //_logger.LogTrace("Toybox Information: "+data.ToyboxInfo.ParseToString(), LoggerType.PairManagement);
         LastReceivedToyboxData = data.ToyboxInfo;
     }
 

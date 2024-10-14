@@ -209,6 +209,7 @@ public class ClientCallbackService
         }
         else if (callbackGagState is NewState.Locked)
         {
+            _logger.LogTrace("A Padlock has been applied that will expire in : " + (callbackGagSlot.Timer - DateTime.UtcNow).TotalSeconds, LoggerType.Callbacks);
             var padlockData = new PadlockData(callbackGagLayer, callbackGagSlot.Padlock.ToPadlock(), callbackGagSlot.Password, callbackGagSlot.Timer, callbackDto.User.UID);
             _gagManager.OnGagLockChanged(padlockData, callbackGagState, false);
         }

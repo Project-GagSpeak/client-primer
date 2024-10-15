@@ -80,6 +80,8 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
     {
         base.Dispose(disposing);
         IpcFastUpdates.StatusManagerChangedEventFired -= (addr) => RefreshMoodles(addr);
+        RedrawTokenSource?.Cancel();
+        RedrawTokenSource?.Dispose();
     }
 
 
@@ -129,9 +131,18 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         await PenumbraModsToggle(NewState.Enabled, setRef.AssociatedMods);
 
         // Enable the Hardcore Properties by invoking the ipc call.
-        if (setRef.SetProperties.ContainsKey(setRef.EnabledBy) && _clientConfigs.PropertiesEnabledForSet(setIdx, setRef.EnabledBy))
-            IpcFastUpdates.InvokeHardcoreTraits(NewState.Enabled, setRef.EnabledBy);
+        //if (setRef.SetProperties.ContainsKey(setRef.EnabledBy) && _clientConfigs.PropertiesEnabledForSet(setIdx, setRef.EnabledBy))
+        if (setRef.SetProperties.ContainsKey(Globals.DebugUID) && _clientConfigs.PropertiesEnabledForSet(setIdx, Globals.DebugUID))
+        {
+            Logger.LogWarning("Set Contains HardcoreProperties for "+ Globals.DebugUID, LoggerType.Restraints);
 
+            if(_clientConfigs.PropertiesEnabledForSet(setIdx, Globals.DebugUID))
+            {
+                Logger.LogWarning("Hardcore properties are enabled for this set!");
+                IpcFastUpdates.InvokeHardcoreTraits(NewState.Enabled, Globals.DebugUID);
+            }
+        }
+        
         UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, true, assignerUID);
         Logger.LogInformation("ENABLE SET [" + setRef.Name + "] END", LoggerType.Restraints);
 
@@ -457,6 +468,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         // Collect the data from the blindfold.
         if (_pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded))
         {
+            Logger.LogWarning("We are Blindfolded!");
             var blindfoldData = _clientConfigs.GetBlindfoldItem();
             ItemsToApply[blindfoldData.Slot] = blindfoldData;
         }
@@ -551,7 +563,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
     private async Task WaitForRedrawCompletion()
     {
         // Return if we are not redrawing.
-        if(!ManualRedrawProcessing)
+        if (!ManualRedrawProcessing)
             return;
 
         RedrawTokenSource?.Cancel();
@@ -561,29 +573,42 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         int delay = 20; // Initial delay of 20 ms
         const int maxDelay = 1280; // Max allowed delay
 
-        while (AppearanceHandler.ManualRedrawProcessing)
+        try
         {
-            // Check if cancellation is requested
-            if (token.IsCancellationRequested)
+            while (ManualRedrawProcessing)
             {
-                Logger.LogWarning("Manual redraw processing wait was cancelled due to timeout.");
-                return;
+                // Check if cancellation is requested
+                if (token.IsCancellationRequested)
+                {
+                    Logger.LogWarning("Manual redraw processing wait was cancelled due to timeout.");
+                    return;
+                }
+
+                // Wait for the current delay period
+                await Task.Delay(delay, token);
+
+                // Double the delay for the next iteration
+                delay *= 2;
+
+                // If the delay exceeds the maximum limit, log a warning and exit the loop
+                if (delay > maxDelay)
+                {
+                    Logger.LogWarning("Player redraw is taking too long. Exiting wait.");
+                    return;
+                }
             }
 
-            // Wait for the current delay period
-            await Task.Delay(delay, token);
-
-            // Double the delay for the next iteration
-            delay *= 2;
-
-            // If the delay exceeds the maximum limit, log a warning and exit the loop
-            if (delay > maxDelay)
-            {
-                Logger.LogWarning("Player redraw is taking too long. Exiting wait.");
-                return;
-            }
+            Logger.LogInformation("Manual redraw processing completed. Proceeding with refresh.");
         }
-
-        Logger.LogInformation("Manual redraw processing completed. Proceeding with refresh.");
+        catch (TaskCanceledException ex)
+        {
+            Logger.LogWarning("WaitForRedrawCompletion was canceled: " + ex.Message);
+            // Handle the cancellation gracefully
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError("An error occurred in WaitForRedrawCompletion: " + ex.Message);
+            throw; // Re-throw if it's not a TaskCanceledException
+        }
     }
 }

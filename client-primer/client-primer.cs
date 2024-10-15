@@ -4,6 +4,7 @@ using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.STD;
 using GagSpeak.Achievements;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Hardcore;
@@ -183,7 +184,6 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagManager>()))
 
         // Hardcore services.
-        .AddSingleton<HotbarLocker>()
         .AddSingleton((s) => new AtkHelpers(gg))
         .AddSingleton((s) => new SettingsHardcore(s.GetRequiredService<ILogger<SettingsHardcore>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ApiController>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ClientConfigurationManager>(),
@@ -228,9 +228,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<UnlocksEventManager>()
 
         // UpdateMonitoring Services
-        .AddSingleton((s) => new ActionMonitor(s.GetRequiredService<ILogger<ActionMonitor>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(),
-            s.GetRequiredService<HotbarLocker>(), s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<WardrobeHandler>(),
+        .AddSingleton((s) => new ActionMonitor(s.GetRequiredService<ILogger<ActionMonitor>>(), s.GetRequiredService<GagspeakMediator>(), 
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<WardrobeHandler>(),
             s.GetRequiredService<OnFrameworkService>(), cs, dm, gip))
 
         .AddSingleton((s) => new MovementMonitor(s.GetRequiredService<ILogger<MovementMonitor>>(),
@@ -316,9 +315,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<MoodlesManager>()
         .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<WardrobeHandler>(),
-            s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(), s.GetRequiredService<DictBonusItems>(),
-            s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(), s.GetRequiredService<MoodlesAssociations>(),
-            s.GetRequiredService<PairManager>(), dm))
+            s.GetRequiredService<UserPairListHandler>(), s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(), 
+            s.GetRequiredService<DictBonusItems>(), s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(), 
+            s.GetRequiredService<MoodlesAssociations>(), s.GetRequiredService<PairManager>(), dm))
         .AddSingleton<WardrobeHandler>()
 
         // Puppeteer UI
@@ -480,6 +479,8 @@ public static class GagSpeakServiceExtensions
         .AddScoped<WindowMediatorSubscriberBase, BlindfoldUI>((s) => new BlindfoldUI(s.GetRequiredService<ILogger<BlindfoldUI>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<OnFrameworkService>(),
             s.GetRequiredService<UiSharedService>(), pi))
+        .AddScoped<WindowMediatorSubscriberBase, JobActionDataFetcherUI>((s) => new JobActionDataFetcherUI(s.GetRequiredService<ILogger<JobActionDataFetcherUI>>(),
+            s.GetRequiredService<GagspeakMediator>(), dm, tp))
         .AddScoped<WindowMediatorSubscriberBase, EditProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, PopupHandler>()
         .AddScoped<IPopupHandler, VerificationPopupHandler>()

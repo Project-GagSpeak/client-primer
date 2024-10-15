@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 3, 9)
+            .RegisterFeature("Preliminary Hardcore Functionality preparation has been added.")
+            .RegisterMain("DO NOT TEST HARDCORE FEATURES RIGHT NOW, THEY ARE NOT READY.");
         VersionEntry(0, 9, 3, 8)
             .RegisterMain("OneTimeAccount Generation should work properly again now.")
             .RegisterQol("Warns you if your live chat garbler is active when a mimic gags you in chat and notifications, for safety!");

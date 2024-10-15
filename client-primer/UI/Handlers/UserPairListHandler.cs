@@ -5,12 +5,10 @@ using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components.UserPairList;
-using GagSpeak.WebAPI;
 using ImGuiNET;
 using OtterGui.Text;
 using System.Collections.Immutable;
 using System.Numerics;
-using static FFXIVClientStructs.FFXIV.Client.LayoutEngine.LayoutManager;
 
 namespace GagSpeak.UI.Handlers;
 
@@ -32,8 +30,8 @@ public class UserPairListHandler
     private string _filter = string.Empty;
 
     public UserPairListHandler(ILogger<UserPairListHandler> logger,
-        GagspeakMediator mediator, TagHandler tagHandler, 
-        PairManager pairManager, DrawEntityFactory drawEntityFactory, 
+        GagspeakMediator mediator, TagHandler tagHandler,
+        PairManager pairManager, DrawEntityFactory drawEntityFactory,
         GagspeakConfigService configService, UiSharedService uiSharedService)
     {
         _logger = logger;
@@ -77,7 +75,7 @@ public class UserPairListHandler
         // span the height of the pair list to be the height of the window minus the transfer section, which we are removing later anyways.
         var ySize = ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y
                 + ImGui.GetTextLineHeight() - ImGui.GetStyle().WindowPadding.Y - ImGui.GetStyle().WindowBorderSize - ImGui.GetCursorPosY();
-        
+
 
         // begin the list child, with no border and of the height calculated above
         ImGui.BeginChild("list", new Vector2(windowContentWidth, ySize), border: false, ImGuiWindowFlags.NoScrollbar);
@@ -97,16 +95,17 @@ public class UserPairListHandler
     }
 
     /// <summary> Draws all bi-directionally paired users (online or offline) without any tag header. </summary>
-    public void DrawPairsPuppeteer(float windowContentWidth)
+    public void DrawPairListSelectable(float windowContentWidth, bool useCustomOnlineTag)
     {
-        // Assuming _drawFolders is your list of IDrawFolder
+        var tagToUse = useCustomOnlineTag ? TagHandler.CustomOnlineTag : TagHandler.CustomAllTag;
+
         var allTagFolder = _drawFolders
-            .FirstOrDefault(folder => folder is DrawFolderBase && ((DrawFolderBase)folder).ID == TagHandler.CustomOnlineTag);
+            .FirstOrDefault(folder => folder is DrawFolderBase && ((DrawFolderBase)folder).ID == tagToUse);
 
         if (allTagFolder == null) return;
 
         var drawFolderBase = (DrawFolderBase)allTagFolder; // Cast to DrawFolderBase
-        
+
         using var indent = ImRaii.PushIndent(_uiSharedService.GetIconData(FontAwesomeIcon.EllipsisV).X + ImGui.GetStyle().ItemSpacing.X, false);
 
         if (!drawFolderBase.DrawPairs.Any())
@@ -121,26 +120,28 @@ public class UserPairListHandler
             using (var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), useColor))
             {
                 // if its selected, set the selected UID.
-                if(item.DrawPairedClient(true,true,false,false,false,true,false))
-                {
+                if (item.DrawPairedClient(true, true, false, false, false, true, false))
                     SelectedPair = item.Pair;
-                }
             }
         }
     }
 
     /// <summary> Draws the search filter for our user pair list (whitelist) </summary>
-    public void DrawSearchFilter(float availableWidth, float spacingX, bool showClear = true)
+    public void DrawSearchFilter(float availableWidth, float spacingX, bool showClear = true, bool showButton = true)
     {
         var buttonSize = showClear
             ? _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear")
             : _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Ban).X;
-        ImGui.SetNextItemWidth(availableWidth - buttonSize - spacingX);
+        ImGui.SetNextItemWidth(availableWidth - (showButton ? buttonSize + spacingX : 0));
         string filter = Filter;
         if (ImGui.InputTextWithHint("##filter", "Filter for UID/notes", ref filter, 255))
         {
             Filter = filter;
         }
+
+        if(!showButton) 
+            return;
+
         ImUtf8.SameLineInner();
         if (showClear)
         {
@@ -243,7 +244,7 @@ public class UserPairListHandler
         // for each tag
         foreach (var tag in tags)
         {
-            _logger.LogDebug("Adding Pair Section List Tag: "+tag, LoggerType.UserPairDrawer);
+            _logger.LogDebug("Adding Pair Section List Tag: " + tag, LoggerType.UserPairDrawer);
             // display the pairs that have the tag, and are not one sided pairs, and are online or paused
             var allTagPairs = ImmutablePairList(allPairs
                 .Where(u => FilterTagusers(u, tag)));
@@ -264,7 +265,7 @@ public class UserPairListHandler
         var bidirectionalTaggedPairs = BasicSortedList(filteredPairs
             .Where(u => FilterNotTaggedUsers(u) && FilterPairedOrPausedSelf(u)));
 
-        _logger.LogDebug("Adding Pair Section List Tag: "+TagHandler.CustomAllTag, LoggerType.UserPairDrawer);
+        _logger.LogDebug("Adding Pair Section List Tag: " + TagHandler.CustomAllTag, LoggerType.UserPairDrawer);
         drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomAllTag,
             bidirectionalTaggedPairs, allOnlineNotTaggedPairs));
 
@@ -273,7 +274,7 @@ public class UserPairListHandler
         if (_configService.Current.ShowOfflineUsersSeparately)
         {
             // create the draw folders for the online untagged pairs
-            _logger.LogDebug("Adding Pair Section List Tag: "+TagHandler.CustomOnlineTag, LoggerType.UserPairDrawer);
+            _logger.LogDebug("Adding Pair Section List Tag: " + TagHandler.CustomOnlineTag, LoggerType.UserPairDrawer);
             drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomOnlineTag,
                 onlineNotTaggedPairs, allOnlineNotTaggedPairs));
 
@@ -284,14 +285,14 @@ public class UserPairListHandler
                 .Where(FilterOfflineUsers));
 
             // add the folder.
-            _logger.LogDebug("Adding Pair Section List Tag: "+TagHandler.CustomOfflineTag, LoggerType.UserPairDrawer);
+            _logger.LogDebug("Adding Pair Section List Tag: " + TagHandler.CustomOfflineTag, LoggerType.UserPairDrawer);
             drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomOfflineTag, filteredOfflinePairs,
                 allOfflinePairs));
 
         }
 
         // finally, add the unpaired users to the list.
-        _logger.LogDebug("Adding Pair Section List Tag: "+TagHandler.CustomUnpairedTag, LoggerType.UserPairDrawer);
+        _logger.LogDebug("Adding Pair Section List Tag: " + TagHandler.CustomUnpairedTag, LoggerType.UserPairDrawer);
         drawFolders.Add(_drawEntityFactory.CreateDrawTagFolder(TagHandler.CustomUnpairedTag,
             BasicSortedList(filteredPairs.Where(u => u.IsOneSidedPair)),
             ImmutablePairList(allPairs.Where(u => u.IsOneSidedPair))));

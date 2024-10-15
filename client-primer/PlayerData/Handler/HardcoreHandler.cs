@@ -315,7 +315,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             // if the window isnt open, open it.
             if (!BlindfoldUI.IsWindowOpen)
             {
-                Mediator.Publish(new UiToggleMessage(typeof(BlindfoldUI), ToggleType.Show));
+                // Mediator.Publish(new UiToggleMessage(typeof(BlindfoldUI), ToggleType.Show));
             }
             // go in for camera voodoo.
             DoCameraVoodoo(newState);

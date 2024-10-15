@@ -17,9 +17,7 @@ using ClientStructFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.F
 namespace UpdateMonitoring;
 public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
 {
-    #region ClassIncludes
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly HotbarLocker _hotbarLocker;
     private readonly HardcoreHandler _hardcoreHandler;
     private readonly WardrobeHandler _wardrobeHandler;
     private readonly OnFrameworkService _frameworkUtils;
@@ -34,19 +32,15 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     internal delegate bool UseActionDelegate(ActionManager* am, ActionType type, uint acId, long target, uint a5, uint a6, uint a7, void* a8);
     internal Hook<UseActionDelegate> UseActionHook;
 
-    #endregion ClassIncludes
-
     public Dictionary<uint, AcReqProps[]> CurrentJobBannedActions = new Dictionary<uint, AcReqProps[]>(); // stores the current job actions
     public Dictionary<int, Tuple<float, DateTime>> CooldownList = new Dictionary<int, Tuple<float, DateTime>>(); // stores the recast timers for each action
 
     public unsafe ActionMonitor(ILogger<ActionMonitor> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfigs, HotbarLocker hotbarLocker,
-        HardcoreHandler handler, WardrobeHandler wardrobeHandler,
-        OnFrameworkService frameworkUtils, IClientState clientState, IDataManager dataManager,
-        IGameInteropProvider interop) : base(logger, mediator)
+        ClientConfigurationManager clientConfigs, HardcoreHandler handler, 
+        WardrobeHandler wardrobeHandler, OnFrameworkService frameworkUtils, IClientState clientState, 
+        IDataManager dataManager, IGameInteropProvider interop) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
-        _hotbarLocker = hotbarLocker;
         _hardcoreHandler = handler;
         _wardrobeHandler = wardrobeHandler;
         _frameworkUtils = frameworkUtils;
@@ -59,15 +53,20 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
 
         // initialize
         UpdateJobList();
-        // see if we should enable the sets incase we load this prior to the restraint set manager loading.
-        if (_wardrobeHandler.ActiveSet != null && _wardrobeHandler.ActiveSet.EnabledBy != "SelfAssigned" &&
-            _clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), _wardrobeHandler.ActiveSet.EnabledBy))
+        // if we currently have an active restraint set...
+        if (_wardrobeHandler.ActiveSet is not null)
         {
-            Logger.LogDebug("Hardcore RestraintSet is now active", LoggerType.HardcoreActions);
-            // apply stimulation modifier, if any (TODO)
-            _hardcoreHandler.ApplyMultiplier();
-            // activate hotbar lock, if we have any properties enabled (we always will since this subscriber is only called if there is)
-            _hotbarLocker.SetHotbarLockState(true);
+            if (_wardrobeHandler.ActiveSet.EnabledBy is not Globals.SelfApplied)
+            {
+                if (_clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), Globals.DebugUID))//_wardrobeHandler.ActiveSet.EnabledBy))
+                {
+                    Logger.LogDebug("Hardcore RestraintSet is now active", LoggerType.HardcoreActions);
+                    // apply stimulation modifier, if any (TODO)
+                    _hardcoreHandler.ApplyMultiplier();
+                    // activate hotbar lock, if we have any properties enabled (we always will since this subscriber is only called if there is)
+                    HotbarLocker.SetHotbarLockState(NewState.Locked);
+                }
+            }
         }
         else
         {
@@ -86,7 +85,9 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     protected override void Dispose(bool disposing)
     {
         // set lock to visable again
-        _hotbarLocker.SetHotbarLockState(false);
+        HotbarLocker.SetHotbarLockState(NewState.Unlocked);
+        // restore saved slots
+        RestoreSavedSlots();
         // dispose of the hook
         if (UseActionHook != null)
         {
@@ -108,16 +109,18 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     {
         if (AssignerUID is not Globals.SelfApplied && newState is NewState.Enabled)
         {
+            Logger.LogWarning(AssignerUID + " has enabled hardcore traits", LoggerType.HardcoreActions);
             _hardcoreHandler.ApplyMultiplier();
-            _hotbarLocker.SetHotbarLockState(true);
+            HotbarLocker.SetHotbarLockState(NewState.Locked);
             // Begin monitoring hardcore restraint properties.
             MonitorHardcoreRestraintSetProperties = true;
         }
         else if (AssignerUID is not Globals.SelfApplied && newState is NewState.Disabled)
         {
+            Logger.LogWarning(AssignerUID + " has disabled hardcore traits", LoggerType.HardcoreActions);
             _hardcoreHandler.StimulationMultiplier = 1.0;
             RestoreSavedSlots();
-            _hotbarLocker.SetHotbarLockState(false);
+            HotbarLocker.SetHotbarLockState(NewState.Unlocked);
             // Halt monitoring of properties
             MonitorHardcoreRestraintSetProperties = false;
         }
@@ -137,7 +140,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
                 // if the hotbar is not null, we can get the slots data
                 if (hotbarRow != null)
                 {
-                    raptureHotbarModule->LoadSavedHotbar(_clientState.LocalPlayer.ClassJob.Id, (uint)i);
+                    raptureHotbarModule->LoadSavedHotbar(_frameworkUtils.PlayerClassJobId, (uint)i);
                 }
             }
         }
@@ -211,8 +214,8 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         // this will be called by the job changed event. When it does, we will update our job list with the new job.
         if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.ClassJob != null)
         {
-            Logger.LogDebug("Updating job list", LoggerType.HardcoreActions);
-            ActionData.GetJobActionProperties((JobType)_clientState.LocalPlayer.ClassJob.Id, out var bannedJobActions);
+            Logger.LogDebug("Updating job list to : "+ (JobType)_frameworkUtils.PlayerClassJobId, LoggerType.HardcoreActions);
+            ActionData.GetJobActionProperties((JobType)_frameworkUtils.PlayerClassJobId, out var bannedJobActions);
             CurrentJobBannedActions = bannedJobActions; // updated our job list
             // only do this if we are logged in
             if (_clientState.IsLoggedIn
@@ -280,11 +283,8 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         if (updateKind != GlamourUpdateType.JobChange)
             return;
 
-        Task.Run(() => _frameworkUtils.RunOnFrameworkThread(() =>
-        {
-            UpdateJobList();
-            RestoreSavedSlots();
-        }));
+        UpdateJobList();
+        RestoreSavedSlots();
     }
 
     #region Framework Updates

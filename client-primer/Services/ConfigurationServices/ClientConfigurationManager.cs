@@ -309,7 +309,11 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal bool PropertiesEnabledForSet(int setIndexToCheck, string UIDtoCheckPropertiesFor)
     {
         // do not allow hardcore properties for self.
-        if (UIDtoCheckPropertiesFor == Globals.SelfApplied) return false;
+        if (UIDtoCheckPropertiesFor == Globals.SelfApplied || UIDtoCheckPropertiesFor == string.Empty)
+        {
+            Logger.LogTrace("Self or empty UID detected, returning false for hardcore properties.", LoggerType.Restraints);
+            return false;
+        }
 
         HardcoreSetProperties setProperties = WardrobeConfig.WardrobeStorage.RestraintSets[setIndexToCheck].SetProperties[UIDtoCheckPropertiesFor];
         // if no object for this exists, return false

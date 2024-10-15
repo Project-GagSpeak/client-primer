@@ -25,6 +25,9 @@ using GagspeakAPI.Data.Character;
 using static System.ComponentModel.Design.ObjectSelectorEditor;
 using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.Services;
+using GagSpeak.UI.Handlers;
+using GagSpeak.WebAPI;
+using GagspeakAPI.Dto.Permissions;
 
 namespace GagSpeak.UI.UiWardrobe;
 
@@ -33,6 +36,7 @@ public class RestraintSetEditor : IMediatorSubscriber
     private readonly ILogger<RestraintSetEditor> Logger;
     private readonly UiSharedService _uiShared;
     private readonly WardrobeHandler _handler;
+    private readonly UserPairListHandler _userPairListHandler;
     private readonly DictStain _stainDictionary;
     private readonly ItemData _itemDictionary;
     private readonly DictBonusItems _bonusItemsDictionary;
@@ -45,15 +49,16 @@ public class RestraintSetEditor : IMediatorSubscriber
 
     public RestraintSetEditor(ILogger<RestraintSetEditor> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        WardrobeHandler handler, DictStain stains, ItemData items,
-        DictBonusItems bonusItemsDictionary, TextureService textures,
-        ModAssociations relatedMods, MoodlesAssociations relatedMoodles,
-        PairManager pairManager, IDataManager gameData)
+        WardrobeHandler handler, UserPairListHandler userPairListHandler,
+        DictStain stains, ItemData items, DictBonusItems bonusItemsDictionary, 
+        TextureService textures, ModAssociations relatedMods, 
+        MoodlesAssociations relatedMoodles,PairManager pairManager, IDataManager gameData)
     {
         Logger = logger;
         Mediator = mediator;
         _uiShared = uiSharedService;
         _handler = handler;
+        _userPairListHandler = userPairListHandler;
         _stainDictionary = stains;
         _itemDictionary = items;
         _bonusItemsDictionary = bonusItemsDictionary;
@@ -143,7 +148,7 @@ public class RestraintSetEditor : IMediatorSubscriber
                 var visibilityAccess = ImRaii.TabItem("Pair Visibility & Hardcore");
                 if (visibilityAccess)
                 {
-                    DrawVisibilityAndProperties(ref refRestraint);
+                    DrawVisibilityAndProperties(refRestraint);
                 }
                 visibilityAccess.Dispose();
             }
@@ -352,214 +357,143 @@ public class RestraintSetEditor : IMediatorSubscriber
 
     public enum StimulationDegree { No, Light, Mild, Heavy }
 
-    private void DrawVisibilityAndProperties(ref RestraintSet refRestraintSet)
+    private void DrawVisibilityAndProperties(RestraintSet refRestraintSet)
     {
-        using var table = ImRaii.Table("userListForVisibility", 3, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingStretchProp | ImGuiTableFlags.ScrollY);
-        if (table)
+        var region = ImGui.GetContentRegionAvail();
+        var itemSpacing = ImGui.GetStyle().ItemSpacing;
+        var topLeftSideHeight = region.Y;
+        var cellPadding = ImGui.GetStyle().CellPadding;
+
+        // create the draw-table for the selectable and viewport displays
+        using var padding = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiShared.GetFontScalerFloat(), 0));
+        using (ImRaii.Table($"RestraintHardcoreTraitsVisibility", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
         {
-            ImGui.TableSetupColumn("Alias/UID", ImGuiTableColumnFlags.None, 2f);
-            ImGui.TableSetupColumn("Access", ImGuiTableColumnFlags.None, .75f);
-            ImGui.TableSetupColumn("Enabled Properties when Applied by Pair.", ImGuiTableColumnFlags.None, 7.25f);
-            ImGui.TableHeadersRow();
+            // setup the columns for the table
+            ImGui.TableSetupColumn("##LeftColumn", ImGuiTableColumnFlags.WidthFixed, 175f * ImGuiHelpers.GlobalScale);
+            ImGui.TableSetupColumn("##RightColumn", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableNextColumn();
 
-            var PairList = _pairManager.DirectPairs;
-
-            foreach (Pair pair in PairList.OrderBy(p => p.GetNickname() ?? p.UserData.AliasOrUID, StringComparer.OrdinalIgnoreCase))
+            var regionSize = ImGui.GetContentRegionAvail();
+            using (var leftChild = ImRaii.Child($"##RestraintHardcoreTraitsVisibilityLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
             {
-                using var tableId = ImRaii.PushId("userTable_" + pair.UserData.UID);
-
-                ImGui.TableNextColumn(); // alias or UID of user.
-                var nickname = pair.GetNickname();
-                var text = nickname == null ? pair.UserData.AliasOrUID : nickname;
-                ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted(text);
-
-                ImGui.TableNextColumn();
-                // display nothing if they are not in the list, otherwise display a check
-                var canSeeIcon = refRestraintSet.ViewAccess.IndexOf(pair.UserData.UID) == -1 ? FontAwesomeIcon.Times : FontAwesomeIcon.Check;
-                using (ImRaii.PushColor(ImGuiCol.Button, ImGui.ColorConvertFloat4ToU32(new(0, 0, 0, 0))))
+                float width = ImGui.GetContentRegionAvail().X;
+                using (var textAlign = ImRaii.PushStyle(ImGuiStyleVar.SelectableTextAlign, new Vector2(0.5f, 0.5f)))
                 {
-                    if (ImGuiUtil.DrawDisabledButton(canSeeIcon.ToIconString(), new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()),
-                    string.Empty, false, true))
+                    // show the search filter just above the contacts list to form a nice separation.
+                    _userPairListHandler.DrawSearchFilter(width, ImGui.GetStyle().ItemInnerSpacing.X, showButton: false);
+                    ImGui.Separator();
+                    using (var listChild = ImRaii.Child($"##RestraintHardcoreTraitsPairList", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoScrollbar))
                     {
-                        if (canSeeIcon == FontAwesomeIcon.Times)
-                        {
-                            // add them
-                            refRestraintSet.ViewAccess.Add(pair.UserData.UID);
-                            refRestraintSet.SetProperties[pair.UserData.UID] = new HardcoreSetProperties();
-                        }
-                        else
-                        {
-                            refRestraintSet.ViewAccess.Remove(pair.UserData.UID);
-                            refRestraintSet.SetProperties.Remove(pair.UserData.UID);
-                        }
+                        _userPairListHandler.DrawPairListSelectable(width, false);
                     }
-                }
-                ImGui.TableNextColumn();
-
-                // draw the properties, but dont allow access if not in hardcore for them or if they are not in the list.
-                if (!refRestraintSet.ViewAccess.Contains(pair.UserData.UID))
-                {
-                    ImGui.Text("Must Grant User View Access to Set Properties");
-                }
-                else if (refRestraintSet.ViewAccess.Contains(pair.UserData.UID) && !refRestraintSet.SetProperties.ContainsKey(pair.UserData.UID))
-                {
-                    // we have hit a case where we are editing a restraint with no saved hardcore properties, yet they have view access, so create one.
-                    refRestraintSet.SetProperties[pair.UserData.UID] = new HardcoreSetProperties();
-                }
-                else
-                {
-                    // grab a quick reference variable
-                    var properties = refRestraintSet.SetProperties[pair.UserData.UID];
-
-                    using (ImRaii.Disabled(!pair.UserPairOwnUniquePairPerms.InHardcore))
-                    {
-                        // draw the properties
-                        using (ImRaii.PushFont(UiBuilder.IconFont))
-                        {
-                            if (ImGui.Button(FontAwesomeIcon.Socks.ToIconString(), _uiShared.GetIconButtonSize(FontAwesomeIcon.Socks)))
-                            {
-                                // TODO: Add Logic for this to notify changes
-                                properties.LegsRestrained = !properties.LegsRestrained;
-                            }
-                        }
-                    }
-                    UiSharedService.AttachToolTip("Enables the Bound legs property for this set." +
-                        Environment.NewLine + "Restricts use of any actions which rely on your legs to execute.");
-                    ImGui.SameLine(0, 2);
-                    _uiShared.BooleanToColoredIcon(properties.LegsRestrained, false);
-
-                    using (ImRaii.Disabled(!pair.UserPairOwnUniquePairPerms.InHardcore))
-                    {
-                        ImGui.SameLine();
-                        using (ImRaii.PushFont(UiBuilder.IconFont))
-                        {
-                            if (ImGui.Button(FontAwesomeIcon.HandsBound.ToIconString(), _uiShared.GetIconButtonSize(FontAwesomeIcon.HandsBound)))
-                            {
-                                // TODO: Add Logic for this to notify changes
-                                properties.ArmsRestrained = !properties.ArmsRestrained;
-                            }
-                        }
-                    }
-                    UiSharedService.AttachToolTip("Enables the Bound arms property for this set." +
-                        Environment.NewLine + "Restricts use of any actions which rely on your arms to execute.");
-                    ImGui.SameLine(0, 2);
-                    _uiShared.BooleanToColoredIcon(properties.ArmsRestrained, false);
-
-                    using (ImRaii.Disabled(!pair.UserPairOwnUniquePairPerms.InHardcore))
-                    {
-                        ImGui.SameLine();
-                        using (ImRaii.PushFont(UiBuilder.IconFont))
-                        {
-                            if (ImGui.Button(FontAwesomeIcon.CommentSlash.ToIconString(), _uiShared.GetIconButtonSize(FontAwesomeIcon.CommentSlash)))
-                            {
-                                // TODO: Add Logic for this to notify changes
-                                properties.Gagged = !properties.Gagged;
-                            }
-                        }
-                    }
-                    UiSharedService.AttachToolTip("Enables the Gagged property for this set." +
-                        Environment.NewLine + "Restricts use of any actions which rely on your voice to execute.");
-                    ImGui.SameLine(0, 2);
-                    _uiShared.BooleanToColoredIcon(properties.Gagged, false);
-
-                    using (ImRaii.Disabled(!pair.UserPairOwnUniquePairPerms.InHardcore))
-                    {
-                        ImGui.SameLine();
-                        using (ImRaii.PushFont(UiBuilder.IconFont))
-                        {
-                            if (ImGui.Button(FontAwesomeIcon.LowVision.ToIconString(), _uiShared.GetIconButtonSize(FontAwesomeIcon.LowVision)))
-                            {
-                                // TODO: Add Logic for this to notify changes
-                                properties.Blindfolded = !properties.Blindfolded;
-                            }
-                        }
-                    }
-                    UiSharedService.AttachToolTip("Enables the Blinded property for this set." +
-                        Environment.NewLine + "Restricts use of any actions which rely on your sight to execute.");
-                    ImGui.SameLine(0, 2);
-                    _uiShared.BooleanToColoredIcon(properties.LegsRestrained, false);
-
-                    using (ImRaii.Disabled(!pair.UserPairOwnUniquePairPerms.InHardcore))
-                    {
-                        ImGui.SameLine();
-                        using (ImRaii.PushFont(UiBuilder.IconFont))
-                        {
-                            if (ImGui.Button(FontAwesomeIcon.PersonCircleExclamation.ToIconString(), _uiShared.GetIconButtonSize(FontAwesomeIcon.PersonCircleExclamation)))
-                            {
-                                // TODO: Add Logic for this to notify changes
-                                properties.Immobile = !properties.Immobile;
-                            }
-                        }
-                    }
-                    UiSharedService.AttachToolTip("Enables the Immobile property for this set." +
-                        Environment.NewLine + "You will become entirely unable to move while this is active (with exception of turning)");
-                    ImGui.SameLine(0, 2);
-                    _uiShared.BooleanToColoredIcon(properties.Immobile, false);
-
-                    using (ImRaii.Disabled(!pair.UserPairOwnUniquePairPerms.InHardcore))
-                    {
-                        ImGui.SameLine();
-                        using (ImRaii.PushFont(UiBuilder.IconFont))
-                        {
-                            if (ImGui.Button(FontAwesomeIcon.WeightHanging.ToIconString(), _uiShared.GetIconButtonSize(FontAwesomeIcon.WeightHanging)))
-                            {
-                                // TODO: Add Logic for this to notify changes
-                                properties.Weighty = !properties.Weighty;
-                            }
-                        }
-                    }
-                    UiSharedService.AttachToolTip("Enables the Weighty property for this set." +
-                        Environment.NewLine + "The Fastest movment you can perform while under this is RP walk.");
-                    ImGui.SameLine(0, 2);
-                    _uiShared.BooleanToColoredIcon(properties.Weighty, false);
-
-                    StimulationDegree StimulationType = properties.LightStimulation
-                        ? StimulationDegree.Light : properties.MildStimulation
-                        ? StimulationDegree.Mild : properties.HeavyStimulation
-                        ? StimulationDegree.Heavy : StimulationDegree.No;
-
-                    using (ImRaii.Disabled(!pair.UserPairOwnUniquePairPerms.InHardcore))
-                    {
-                        ImGui.SameLine();
-                        using (ImRaii.PushFont(UiBuilder.IconFont))
-                        {
-                            if (ImGui.Button(FontAwesomeIcon.Water.ToIconString(), _uiShared.GetIconButtonSize(FontAwesomeIcon.Water)))
-                            {
-                                // Increment the StimulationLevel, wrapping back to None after Heavy
-                                if (properties.LightStimulation)
-                                {
-                                    properties.LightStimulation = false;
-                                    properties.MildStimulation = true;
-                                }
-                                else if (properties.MildStimulation)
-                                {
-                                    properties.MildStimulation = false;
-                                    properties.HeavyStimulation = true;
-                                }
-                                else if (properties.HeavyStimulation)
-                                {
-                                    properties.HeavyStimulation = false;
-                                }
-                                else
-                                {
-                                    properties.LightStimulation = true;
-                                }
-                                // TODO: Add Logic for this to notify changes
-                            }
-                        }
-                    }
-                    UiSharedService.AttachToolTip("Enables the Stimulation property for this set." +
-                        Environment.NewLine + "The Stimulation property will slow down the cast time of any action requiring focus or concentration.");
-
-                    ImUtf8.SameLineInner();
-                    if (StimulationType == StimulationDegree.No) { _uiShared.BooleanToColoredIcon(false, false); }
-                    else if (StimulationType == StimulationDegree.Light) { _uiShared.BooleanToColoredIcon(properties.LightStimulation, false); }
-                    else if (StimulationType == StimulationDegree.Mild) { _uiShared.BooleanToColoredIcon(properties.MildStimulation, false); }
-                    else if (StimulationType == StimulationDegree.Heavy) { _uiShared.BooleanToColoredIcon(properties.HeavyStimulation, false); }
                 }
             }
+            ImGui.TableNextColumn();
+            // display right half viewport based on the tab selection
+            using (var rightChild = ImRaii.Child($"##RestraintHardcoreTraitsVisibilityRight", Vector2.Zero, false))
+            {
+                DrawTraits(refRestraintSet, cellPadding);
+            }
         }
+    }
+
+    private void DrawTraits(RestraintSet refRestraintSet, Vector2 cellPadding)
+    {
+        var selectedPairRef = _userPairListHandler.SelectedPair;
+        if (selectedPairRef is null)
+            return;
+
+        // draw a singular checkbox to grant a view access or remove them.
+        bool pairHasAccess = refRestraintSet.SetProperties.ContainsKey(selectedPairRef.UserData.UID);
+        FontAwesomeIcon icon = pairHasAccess ? FontAwesomeIcon.UserMinus : FontAwesomeIcon.UserPlus;
+        string text = pairHasAccess
+            ? "Prevent " + (selectedPairRef.GetNickname() ?? selectedPairRef.UserData.AliasOrUID) + " from interacting with this set."
+            : "Allow " + (selectedPairRef.GetNickname() ?? selectedPairRef.UserData.AliasOrUID) + " to interact with this set.";
+
+        if (_uiShared.IconTextButton(icon, text, ImGui.GetContentRegionAvail().X))
+        {
+            if (pairHasAccess)
+            {
+                refRestraintSet.SetProperties.Remove(selectedPairRef.UserData.UID);
+            }
+            else
+            {
+                refRestraintSet.SetProperties[selectedPairRef.UserData.UID] = new HardcoreSetProperties();
+            }
+        }
+
+        ImGui.Separator();
+
+        // if the pair is not in the list, return.
+        if (!refRestraintSet.SetProperties.ContainsKey(selectedPairRef.UserData.UID))
+            return;
+
+        bool legsBound = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LegsRestrained;
+        bool armsBound = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].ArmsRestrained;
+        bool gagged = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Gagged;
+        bool blindfolded = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Blindfolded;
+        bool immobile = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Immobile;
+        bool weighty = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Weighty;
+        bool lightStim = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LightStimulation;
+        bool mildStim = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].MildStimulation;
+        bool heavyStim = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].HeavyStimulation;
+
+        if (ImGui.Checkbox("Legs will be restrainted", ref legsBound))
+            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LegsRestrained = legsBound;
+        _uiShared.DrawHelpText("Any action which typically involves fast leg movement is restricted");
+
+        if (ImGui.Checkbox("Arms will be restrainted", ref armsBound))
+            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].ArmsRestrained = armsBound;
+        _uiShared.DrawHelpText("Any action which typically involves fast arm movement is restricted");
+
+        if (ImGui.Checkbox("Gagged", ref gagged))
+            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Gagged = gagged;
+        _uiShared.DrawHelpText("Any action requiring speech is restricted");
+
+        if (ImGui.Checkbox("Blindfolded", ref blindfolded))
+            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Blindfolded = blindfolded;
+        _uiShared.DrawHelpText("Any actions requiring awareness or sight is restricted");
+
+        if (ImGui.Checkbox("Immobile", ref immobile))
+            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Immobile = immobile;
+        _uiShared.DrawHelpText("Player becomes unable to move in this set");
+
+        if (ImGui.Checkbox("Weighty", ref weighty))
+            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Weighty = weighty;
+        _uiShared.DrawHelpText("Player is forced to only walk while wearing this restraint");
+
+        if (ImGui.Checkbox("Light Stimulation", ref lightStim))
+        {
+            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LightStimulation = lightStim;
+            if (lightStim)
+            {
+                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].MildStimulation = false;
+                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].HeavyStimulation = false;
+            }
+        }
+        _uiShared.DrawHelpText("Any action requiring focus or concentration has its cast time being slightly slower");
+
+        if (ImGui.Checkbox("Mild Stimulation", ref mildStim))
+        {
+            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].MildStimulation = mildStim;
+            if (mildStim)
+            {
+                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LightStimulation = false;
+                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].HeavyStimulation = false;
+            }
+        }
+        _uiShared.DrawHelpText("Any action requiring focus or concentration has its cast time being noticeably slower");
+
+        if (ImGui.Checkbox("Heavy Stimulation", ref heavyStim))
+        {
+            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].HeavyStimulation = heavyStim;
+            if (heavyStim)
+            {
+                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LightStimulation = false;
+                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].MildStimulation = false;
+            }
+        }
+        _uiShared.DrawHelpText("Any action requiring focus or concentration has its cast time being significantly slower");
     }
 
     // space for helper functions below

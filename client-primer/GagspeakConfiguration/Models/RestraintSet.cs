@@ -17,23 +17,14 @@ public record RestraintSet : IMoodlesAssociable
     {
         // Initialize DrawData in the constructor
         DrawData = EquipSlotExtensions.EqdpSlots.ToDictionary(
-            slot => slot,
-            slot => new EquipDrawData(ItemIdVars.NothingItem(slot))
-            {
-                Slot = slot,
-                IsEnabled = false,
-            }
-        );
+            slot => slot, slot => new EquipDrawData(ItemIdVars.NothingItem(slot)) { Slot = slot, IsEnabled = false });
 
         // Initialize BonusDrawData in the constructor
         BonusDrawData = BonusExtensions.AllFlags.ToDictionary(
-            slot => slot,
-            slot => new BonusDrawData(BonusItem.Empty(slot))
-            {
-                Slot = slot,
-                IsEnabled = false,
-            }
-        );
+            slot => slot, slot => new BonusDrawData(BonusItem.Empty(slot)) { Slot = slot, IsEnabled = false });
+
+        // Initialize SetProperties in the constructor
+        SetProperties = new Dictionary<string, HardcoreSetProperties>();
     }
 
     public Guid RestraintId { get; set; } = Guid.NewGuid();
@@ -63,15 +54,11 @@ public record RestraintSet : IMoodlesAssociable
 
     // Spatial Audio Sound Type to use while this restraint set is active. [WIP]
 
-
-    /// <summary> Controls which UID's are able to see this restraint set. </summary>
-    public List<string> ViewAccess { get; private set; } = new List<string>();
-
     /// <summary> 
-    /// The Hardcore Set Properties to apply when restraint set is toggled.
-    /// The string indicates the UID associated with the set properties.
+    /// If a key for a pair exists here, they are allowed to view the set.
+    /// If any properties for a key are enabled, they are applied when enabled by that pair.
     /// </summary>
-    public Dictionary<string, HardcoreSetProperties> SetProperties { get; set; } = new();
+    public Dictionary<string, HardcoreSetProperties> SetProperties { get; set; } = [];
 
 
     public RestraintSet DeepCloneSet()
@@ -93,10 +80,7 @@ public record RestraintSet : IMoodlesAssociable
             AssociatedMods = new List<AssociatedMod>(this.AssociatedMods.Select(mod => mod.DeepClone())),
             AssociatedMoodles = new List<Guid>(this.AssociatedMoodles),
             AssociatedMoodlePreset = this.AssociatedMoodlePreset,
-            ViewAccess = new List<string>(this.ViewAccess),
-            SetProperties = new Dictionary<string, HardcoreSetProperties>(this.SetProperties.ToDictionary(
-                kvp => kvp.Key,
-                kvp => kvp.Value.DeepClone()))
+            SetProperties = new Dictionary<string, HardcoreSetProperties>(this.SetProperties)
         };
 
         // Deep clone DrawData
@@ -156,14 +140,8 @@ public record RestraintSet : IMoodlesAssociable
         // for the set properties
         var setPropertiesArray = new JArray();
         // serialize each item in it
-        foreach (var pair in SetProperties)
-        {
-            setPropertiesArray.Add(new JObject()
-            {
-                ["UID"] = pair.Key,
-                ["HardcoreSetProperties"] = pair.Value.Serialize()
-            });
-        }
+        var setPropertiesObject = JObject.FromObject(SetProperties);
+
 
         return new JObject()
         {
@@ -184,8 +162,7 @@ public record RestraintSet : IMoodlesAssociable
             ["AssociatedMods"] = associatedModsArray,
             ["AssociatedMoodles"] = new JArray(AssociatedMoodles),
             ["AssociatedMoodlePresets"] = AssociatedMoodlePreset,
-            ["ViewAccess"] = new JArray(ViewAccess),
-            ["SetProperties"] = setPropertiesArray
+            ["SetProperties"] = setPropertiesObject
         };
     }
 
@@ -272,22 +249,14 @@ public record RestraintSet : IMoodlesAssociable
             else
                 AssociatedMoodlePreset = Guid.Empty;
 
-            // Deserialize the ViewAccess
-            if (jsonObject["ViewAccess"] is JArray viewAccessArray)
-                ViewAccess = viewAccessArray.Select(viewer => viewer.Value<string>()).ToList();
-
-            // Deserialize the SetProperties
+            // It should be JObject, so convert if it is not.
+            if (jsonObject["SetProperties"] is JArray dummyJArray)
+            {
+                SetProperties = new Dictionary<string, HardcoreSetProperties>();
+            }
             if (jsonObject["SetProperties"] is JObject setPropertiesObj)
             {
-                foreach (var (uid, setProperties) in SetProperties)
-                {
-                    if (setPropertiesObj[uid] is JObject uidObj)
-                    {
-                        setProperties.Deserialize(uidObj);
-                        // add it to the set properties
-                        SetProperties[uid] = setProperties;
-                    }
-                }
+                SetProperties = setPropertiesObj.ToObject<Dictionary<string, HardcoreSetProperties>>() ?? new Dictionary<string, HardcoreSetProperties>();
             }
         }
         catch (Exception e)

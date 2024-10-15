@@ -471,9 +471,9 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 {
                     // set the enabled state of the restraintSet based on its current state so that we toggle it
                     if (set.Enabled)
-                        _handler.DisableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name)).ConfigureAwait(false);
+                        _handler.DisableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name), Globals.DebugUID).ConfigureAwait(false);
                     else
-                        _handler.EnableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name)).ConfigureAwait(false);
+                        _handler.EnableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name), Globals.DebugUID).ConfigureAwait(false);
                     // toggle the state & early return so we dont access the child clicked button
                     return;
                 }

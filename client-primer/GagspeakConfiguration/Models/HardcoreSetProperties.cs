@@ -32,33 +32,4 @@ public record HardcoreSetProperties
 
     /// <summary> Any action requiring focus or concentration has its cast time being significantly slower </summary>
     public bool HeavyStimulation { get; set; }
-
-    public JObject Serialize()
-    {
-        return new JObject()
-        {
-            ["LegsRestrained"] = LegsRestrained,
-            ["ArmsRestrained"] = ArmsRestrained,
-            ["Gagged"] = Gagged,
-            ["Blindfolded"] = Blindfolded,
-            ["Immobile"] = Immobile,
-            ["Weighty"] = Weighty,
-            ["LightStimulation"] = LightStimulation,
-            ["MildStimulation"] = MildStimulation,
-            ["HeavyStimulation"] = HeavyStimulation,
-        };
-    }
-
-    public void Deserialize(JObject jsonObject)
-    {
-        LegsRestrained = jsonObject["LegsRestrained"]?.Value<bool>() ?? false;
-        ArmsRestrained = jsonObject["ArmsRestrained"]?.Value<bool>() ?? false;
-        Gagged = jsonObject["Gagged"]?.Value<bool>() ?? false;
-        Blindfolded = jsonObject["Blindfolded"]?.Value<bool>() ?? false;
-        Immobile = jsonObject["Immobile"]?.Value<bool>() ?? false;
-        Weighty = jsonObject["Weighty"]?.Value<bool>() ?? false;
-        LightStimulation = jsonObject["LightStimulation"]?.Value<bool>() ?? false;
-        MildStimulation = jsonObject["MildStimulation"]?.Value<bool>() ?? false;
-        HeavyStimulation = jsonObject["HeavyStimulation"]?.Value<bool>() ?? false;
-    }
 }

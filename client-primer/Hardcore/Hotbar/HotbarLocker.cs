@@ -1,42 +1,66 @@
-using GagSpeak.Utils;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using FFXIVClientStructs.FFXIV.Component.GUI;
+using GagSpeak.Utils;
 
-// taken from SimpleTweaksPlugin/Utility/Common.cs
-// controls the state of the UI
+// https://github.com/Caraxi/SimpleTweaksPlugin/blob/e42253ffde1e1b7e12ef8a6e4c8bf0de910f95b6/Tweaks/AutoLockHotbar.cs#L40
+// controls the state of hotbar lock
 namespace GagSpeak.Hardcore.Hotbar;
-public unsafe class HotbarLocker
+public unsafe static class HotbarLocker
 {
-    private readonly AtkHelpers _atkHelpers;
-    public bool _lockState;
-    public HotbarLocker(AtkHelpers atkHelpers)
+    public static NewState LockStatePriorToActivation = NewState.Disabled;
+
+    public static void StoreCurrentLockState()
     {
-        _atkHelpers = atkHelpers;
-    }
-    public void SetHotbarLockState(bool state)
-    {
-        // set the lock state
-        var actionBar = _atkHelpers.GetUnitBase("_ActionBar");
-        if (actionBar == null) return;
-        // only change lock state if _lockState == false
-        if (!state) AtkHelpers.GenerateCallback(actionBar, 8, 3, 51u, 0u, state);
-        // set the lock visibility
-        var lockNode = actionBar->GetNodeById(21);
-        if (lockNode == null) return;
-        var lockComponentNode = lockNode->GetAsAtkComponentNode();
-        if (lockComponentNode == null) return;
-        lockComponentNode->AtkResNode.ToggleVisibility(!state);
+        var hotbarBase = (AddonActionBarBase*)(AtkUnitBase*)GenericHelpers.GetAddonByName("_ActionBar");
+        if (hotbarBase != null)
+        {
+            // see if the node is locked or not.
+            var isLocked = hotbarBase->IsLocked;
+            StaticLogger.Logger.LogDebug("Hotbar Locked prior to application?: " + isLocked);
+            LockStatePriorToActivation = isLocked ? NewState.Locked : NewState.Unlocked;
+        }
     }
 
-    public void SetHotbarStateToCurrentState()
+    public static void SetHotbarLockState(NewState newState)
     {
-        var addon = _atkHelpers.GetUnitBase<AddonActionBarBase>("_ActionBar");
-        // if the addon is not null
-        if (addon != null)
+        if (newState is NewState.Disabled or NewState.Enabled)
+            return;
+
+        // First, grab our current hotbar state and store it.
+        StoreCurrentLockState();
+        // if for whatever god forsaken cursed reason it is not locked or unlocked, return.
+        if (LockStatePriorToActivation == NewState.Disabled)
+            return;
+
+        // Otherwise, if we want to lock, and are unlocked, or want to unlock, and are locked, we should do so.
+        var actionBar = (AtkUnitBase*)GenericHelpers.GetAddonByName("_ActionBar");
+        if (actionBar is null)
+            return;
+
+        // If we are trying to lock the hotbar, and it was unlocked before set activation, lock it.
+        if (newState is NewState.Locked && LockStatePriorToActivation is NewState.Unlocked)
         {
-            // get the lock node
-            var isLocked = addon->IsLocked;
-            // set the lock state to the hotbars _lockState
-            _lockState = isLocked;
+            AtkHelpers.GenerateCallback(actionBar, 9, 3, 51u, 0u, true);
         }
+        // if we are wishing to unlock, we should only unlock it if it was unlocked prior to activation.
+        if (newState is NewState.Unlocked && LockStatePriorToActivation is NewState.Unlocked)
+        {
+            AtkHelpers.GenerateCallback(actionBar, 9, 3, 51u, 0u, false);
+            // reset the lock state to disabled to prevent duplicate calls.
+            LockStatePriorToActivation = NewState.Disabled;
+        }
+
+        // in other words, if it was locked prior to toggling on or off, it will simply hide the lock button.
+        // Speaking of which, let's do that now.
+        var lockNode = actionBar->GetNodeById(21);
+        if (lockNode is null)
+            return;
+
+        var lockComponentNode = lockNode->GetAsAtkComponentNode();
+        if (lockComponentNode is null)
+            return;
+
+        // if we are going to lock it, hide it. If we are going to unlock it, show it.
+        lockComponentNode->AtkResNode.ToggleVisibility(newState is NewState.Locked ? false : true);
     }
 }

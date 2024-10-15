@@ -68,71 +68,60 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         var cellPadding = ImGui.GetStyle().CellPadding;
 
         // create the draw-table for the selectable and viewport displays
-        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiShared.GetFontScalerFloat(), 0));
-        try
+        using var padding = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiShared.GetFontScalerFloat(), 0));
+
+        using (ImRaii.Table($"PuppeteerUiWindowTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
         {
-            using (var table = ImRaii.Table($"PuppeteerUiWindowTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
+            // setup the columns for the table
+            ImGui.TableSetupColumn("##LeftColumn", ImGuiTableColumnFlags.WidthFixed, 200f * ImGuiHelpers.GlobalScale);
+            ImGui.TableSetupColumn("##RightColumn", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableNextColumn();
+
+            var regionSize = ImGui.GetContentRegionAvail();
+            ImGui.PushStyleVar(ImGuiStyleVar.SelectableTextAlign, new Vector2(0.5f, 0.5f));
+
+            using (var leftChild = ImRaii.Child($"###PuppeteerLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
             {
-                if (!table) return;
-                // setup the columns for the table
-                ImGui.TableSetupColumn("##LeftColumn", ImGuiTableColumnFlags.WidthFixed, 200f * ImGuiHelpers.GlobalScale);
-                ImGui.TableSetupColumn("##RightColumn", ImGuiTableColumnFlags.WidthStretch);
-                ImGui.TableNextColumn();
-
-                var regionSize = ImGui.GetContentRegionAvail();
-                ImGui.PushStyleVar(ImGuiStyleVar.SelectableTextAlign, new Vector2(0.5f, 0.5f));
-
-                using (var leftChild = ImRaii.Child($"###PuppeteerLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
+                var iconTexture = _uiShared.GetLogo();
+                if (!(iconTexture is { } wrap))
                 {
-                    var iconTexture = _uiShared.GetLogo();
-                    if (!(iconTexture is { } wrap))
-                    {
-                        /*_logger.LogWarning("Failed to render image!");*/
-                    }
-                    else
-                    {
-                        UtilsExtensions.ImGuiLineCentered("###PuppeteerLogo", () =>
-                        {
-                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiShared.GetFontScalerFloat(), 125f * _uiShared.GetFontScalerFloat()));
-                            if (ImGui.IsItemHovered())
-                            {
-                                ImGui.BeginTooltip();
-                                ImGui.Text($"What's this? A tooltip hidden in plain sight?");
-                                ImGui.EndTooltip();
-                            }
-                            if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
-                                UnlocksEventManager.AchievementEvent(UnlocksEvent.EasterEggFound, "Puppeteer");
-                        });
-                    }
-                    // add separator
-                    ImGui.Spacing();
-                    ImGui.Separator();
-                    float width = ImGui.GetContentRegionAvail().X;
-                    // show the search filter just above the contacts list to form a nice separation.
-                    _userPairListHandler.DrawSearchFilter(width, ImGui.GetStyle().ItemInnerSpacing.X, false);
-                    ImGui.Separator();
-                    using (var listChild = ImRaii.Child($"###PuppeteerList", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoScrollbar))
-                    {
-                        _userPairListHandler.DrawPairsPuppeteer(width);
-                    }
+                    /*_logger.LogWarning("Failed to render image!");*/
                 }
-                // pop pushed style variables and draw next column.
-                ImGui.PopStyleVar();
-                ImGui.TableNextColumn();
-                // display right half viewport based on the tab selection
-                using (var rightChild = ImRaii.Child($"###PuppeteerRightSide", Vector2.Zero, false))
+                else
                 {
-                    DrawPuppeteer(cellPadding);
+                    UtilsExtensions.ImGuiLineCentered("###PuppeteerLogo", () =>
+                    {
+                        ImGui.Image(wrap.ImGuiHandle, new(125f * _uiShared.GetFontScalerFloat(), 125f * _uiShared.GetFontScalerFloat()));
+                        if (ImGui.IsItemHovered())
+                        {
+                            ImGui.BeginTooltip();
+                            ImGui.Text($"What's this? A tooltip hidden in plain sight?");
+                            ImGui.EndTooltip();
+                        }
+                        if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
+                            UnlocksEventManager.AchievementEvent(UnlocksEvent.EasterEggFound, "Puppeteer");
+                    });
+                }
+                // add separator
+                ImGui.Spacing();
+                ImGui.Separator();
+                float width = ImGui.GetContentRegionAvail().X;
+                // show the search filter just above the contacts list to form a nice separation.
+                _userPairListHandler.DrawSearchFilter(width, ImGui.GetStyle().ItemInnerSpacing.X, false);
+                ImGui.Separator();
+                using (var listChild = ImRaii.Child($"###PuppeteerList", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoScrollbar))
+                {
+                    _userPairListHandler.DrawPairListSelectable(width, true);
                 }
             }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Error: {ex}");
-        }
-        finally
-        {
+            // pop pushed style variables and draw next column.
             ImGui.PopStyleVar();
+            ImGui.TableNextColumn();
+            // display right half viewport based on the tab selection
+            using (var rightChild = ImRaii.Child($"###PuppeteerRightSide", Vector2.Zero, false))
+            {
+                DrawPuppeteer(cellPadding);
+            }
         }
     }
 

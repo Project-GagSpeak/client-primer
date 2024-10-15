@@ -138,6 +138,13 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         ImGui.Checkbox("##Block Chat Input", ref BlockChatInput);
         UiSharedService.AttachToolTip("Toggle if chat input is blocked or not");
 
+        // Draw a button that toggles the JobActionDataFetcherUI UI.
+        if (_uiShared.IconTextButton(FontAwesomeIcon.UserCog, "Job Action Data Fetcher", buttonX))
+        {
+            Mediator.Publish(new UiToggleMessage(typeof(JobActionDataFetcherUI)));
+        }
+
+
         if (BlockChatInput)
             ChatLogAddonHelper.DiscardCursorNodeWhenFocused();
     }

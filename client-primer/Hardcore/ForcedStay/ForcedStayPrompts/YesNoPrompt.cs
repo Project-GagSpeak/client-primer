@@ -48,9 +48,11 @@ public class YesNoPrompt : BasePrompt
         var target = _targets.Target;
         var targetName = target != null ? target.Name.ExtractText() : string.Empty;
         _clientConfigs.LastSeenNodeName = targetName;
+        _logger.LogDebug("Node Name: " + targetName);
 
         // store the label of the node
         var yesNoNodeLabelText = _clientConfigs.LastSeenNodeLabel = AddonBaseYesNo.GetTextLegacy(addon);
+        _logger.LogDebug("Node Label Text: " + yesNoNodeLabelText, LoggerType.HardcorePrompt);
 
         _logger.LogDebug($"AddonSelectYesNo: text={yesNoNodeLabelText}", LoggerType.HardcorePrompt);
 
@@ -77,7 +79,7 @@ public class YesNoPrompt : BasePrompt
                 ForcedStayCallback.Fire((AtkUnitBase*)addon, true, 0);
                 _clientConfigs.LastSelectedListNode = node;
                 _clientConfigs.LastSeenListSelection = "Yes";
-                //_logger.LogTrace($"YesNoPrompt: LastSeenListSelection={_clientConfigs.LastSeenListSelection}, LastSeenListTarget={_clientConfigs.LastSeenNodeLabel}");
+                _logger.LogTrace($"YesNoPrompt: LastSeenListSelection={_clientConfigs.LastSeenListSelection}, LastSeenListTarget={_clientConfigs.LastSeenNodeLabel}");
 
             }
             else
@@ -85,7 +87,7 @@ public class YesNoPrompt : BasePrompt
                 ForcedStayCallback.Fire((AtkUnitBase*)addon, true, 1);
                 _clientConfigs.LastSelectedListNode = node;
                 _clientConfigs.LastSeenListSelection = "No";
-                //_logger.LogTrace($"YesNoPrompt: LastSeenListSelection={_clientConfigs.LastSeenListSelection}, LastSeenListTarget={_clientConfigs.LastSeenNodeLabel}");
+                _logger.LogTrace($"YesNoPrompt: LastSeenListSelection={_clientConfigs.LastSeenListSelection}, LastSeenListTarget={_clientConfigs.LastSeenNodeLabel}");
             }
             return;
         }

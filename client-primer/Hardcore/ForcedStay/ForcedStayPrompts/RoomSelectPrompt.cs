@@ -73,6 +73,7 @@ public class RoomSelectPrompt : BasePrompt
             var target = _targets.Target;
             var targetName = target != null ? target.Name.ExtractText() : string.Empty;
             _clientConfigs.LastSeenNodeName = targetName;
+            _logger.LogDebug("Node Name: " + targetName);
 
             // Try and locate if we have a match.
             var nodes = _clientConfigs.GetAllNodes().OfType<ChambersTextNode>();

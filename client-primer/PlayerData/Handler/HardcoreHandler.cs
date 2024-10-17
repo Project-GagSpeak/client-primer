@@ -161,12 +161,16 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     {
         if (newState is NewState.Enabled && !IsForcedToFollow)
         {
-            Logger.LogDebug("Enabled forced follow for pair.", LoggerType.HardcoreMovement);
+            IsForcedToStay = true;
+            ForceStayPair = pairToStayFor;
+            Logger.LogDebug("Enabled forced stay for pair.", LoggerType.HardcoreMovement);
             return;
         }
 
         if (newState is NewState.Disabled && IsForcedToFollow)
         {
+            IsForcedToStay = false;
+            ForceStayPair = null;
             Logger.LogDebug("Disabled forced stay for pair.", LoggerType.HardcoreMovement);
             return;
         }
@@ -176,6 +180,8 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     {
         if (newState is NewState.Enabled && !BlindfoldUI.IsWindowOpen)
         {
+            IsBlindfolded = true;
+            BlindfoldPair = pairBlindfolding;
             Logger.LogDebug("Enabled Forced Blindfold for pair.", LoggerType.HardcoreActions);
             await HandleBlindfoldLogic(NewState.Enabled, pairBlindfolding.UserData.UID);
             return;
@@ -183,6 +189,8 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
 
         if (newState is NewState.Disabled && BlindfoldUI.IsWindowOpen)
         {
+            IsBlindfolded = false;
+            BlindfoldPair = null;
             Logger.LogDebug("Disabled Forced Blindfold for pair.", LoggerType.HardcoreMovement);
             await HandleBlindfoldLogic(NewState.Disabled, pairBlindfolding.UserData.UID);
             return;

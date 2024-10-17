@@ -3,6 +3,8 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Hardcore;
+using GagSpeak.Hardcore.ForcedStay;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
@@ -80,6 +82,14 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     private AlarmConfig AlarmConfig => _alarmConfig.Current; // PER PLAYER
     private TriggerConfig TriggerConfig => _triggerConfig.Current; // PER PLAYER
 
+    // Handcore runtime variable storage.
+    internal string LastSeenNodeName { get; set; } = string.Empty; // The Node Visible Name
+    internal string LastSeenNodeLabel { get; set; } = string.Empty; // The Label of the nodes Prompt
+    internal (int Index, string Text)[] LastSeenListEntries { get; set; } = []; // The nodes Options
+    internal string LastSeenListSelection { get; set; } = string.Empty; // Option we last selected
+    internal int LastSeenListIndex { get; set; } // Index in the list that was selected
+    internal TextEntryNode LastSelectedListNode { get; set; } = new();
+
     public void UpdateConfigs(string loggedInPlayerUID)
     {
         _gagStorageConfig.UpdateUid(loggedInPlayerUID);
@@ -96,7 +106,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public void Save()
     {
         var caller = new StackTrace().GetFrame(1)?.GetMethod()?.ReflectedType?.Name ?? "Unknown";
-        Logger.LogDebug("{caller} Calling config save", caller);
+        //Logger.LogDebug("{caller} Calling config save", caller);
         _configService.Save();
     }
 
@@ -124,6 +134,11 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             _configService.Current.ChannelsPuppeteer = new List<ChatChannels> { ChatChannels.Say };
             _configService.Save();
         }
+
+        _configService.Current.ForcedStayPromptList.CheckAndInsertRequired();
+        _configService.Current.ForcedStayPromptList.PruneEmpty();
+        _configService.Save();
+
 
         // create a new storage file
         if (_gagStorageConfig.Current.GagStorage.GagEquipData.IsNullOrEmpty())
@@ -165,6 +180,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         }
     }
 
+    /* -------------------- Update Monitoring & Hardcore Methods -------------------- */
+    #region Update Monitoring And Hardcore
     public List<string> GetPlayersToListenFor()
     {
         // select from the aliasStorages, the character name and world where the values are not string.empty.
@@ -173,6 +190,89 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             .Select(x => x.Value.NameWithWorld)
             .ToList();
     }
+
+    public IEnumerable<ITextNode> GetAllNodes()
+    {
+        return new ITextNode[] { GagspeakConfig.ForcedStayPromptList }
+            .Concat(GetAllNodes(GagspeakConfig.ForcedStayPromptList.Children));
+    }
+
+    public IEnumerable<ITextNode> GetAllNodes(IEnumerable<ITextNode> nodes)
+    {
+        foreach (var node in nodes)
+        {
+            yield return node;
+            if (node is TextFolderNode folder)
+            {
+                var children = GetAllNodes(folder.Children);
+                foreach (var childNode in children)
+                    yield return childNode;
+            }
+        }
+    }
+
+    public bool TryFindParent(ITextNode node, out TextFolderNode? parent)
+    {
+        foreach (var candidate in GetAllNodes())
+        {
+            if (candidate is TextFolderNode folder && folder.Children.Contains(node))
+            {
+                parent = folder;
+                return true;
+            }
+        }
+
+        parent = null;
+        return false;
+    }
+
+    public void AddLastSeenNode()
+    {
+        var newNode = new TextEntryNode()
+        {
+            Enabled = false,
+            FriendlyName = (LastSeenNodeLabel.IsNullOrEmpty() ? LastSeenNodeName : LastSeenNodeLabel) + "(Friendly Name)",
+            TargetNodeName = LastSeenNodeName,
+            TargetRestricted = true,
+            TargetNodeLabel = LastSeenNodeLabel,
+            SelectedOptionText = LastSeenListSelection,
+        };
+        GagspeakConfig.ForcedStayPromptList.Children.Add(newNode);
+        _configService.Save();
+    }
+
+    public void CreateTextNode()
+    {
+        // create a new blank one
+        var newNode = new TextEntryNode()
+        {
+            Enabled = false,
+            FriendlyName = "Placeholder Friendly Name",
+            TargetNodeName = "Name Of Node You Interact With",
+            TargetRestricted = true,
+            TargetNodeLabel = "Label given to interacted node's prompt menu",
+            SelectedOptionText = "Option we select from the prompt.",
+        };
+        GagspeakConfig.ForcedStayPromptList.Children.Add(newNode);
+        _configService.Save();
+    }
+
+    public void CreateChamberNode()
+    {
+        var newNode = new ChambersTextNode()
+        {
+            Enabled = false,
+            FriendlyName = "New ChamberNode",
+            TargetRestricted = true,
+            TargetNodeName = "Name Of Node You Interact With",
+            ChamberRoomSet = 0,
+            ChamberListIdx = 0,
+        };
+        GagspeakConfig.ForcedStayPromptList.Children.Add(newNode);
+        _configService.Save();
+    }
+
+    #endregion Update Monitoring And Hardcore
 
     /* --------------------- Gag Storage Config Methods --------------------- */
     #region Gag Storage Methods
@@ -314,13 +414,11 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             Logger.LogTrace("Self or empty UID detected, returning false for hardcore properties.", LoggerType.Restraints);
             return false;
         }
-
-        HardcoreSetProperties setProperties = WardrobeConfig.WardrobeStorage.RestraintSets[setIndexToCheck].SetProperties[UIDtoCheckPropertiesFor];
-        // if no object for this exists, return false
-        if (setProperties == null) return false;
+        var setProperties = WardrobeConfig.WardrobeStorage.RestraintSets[setIndexToCheck].SetProperties[UIDtoCheckPropertiesFor];
+        if (setProperties is null) 
+            return false;
         // check if any properties are enabled
-        return setProperties.LegsRestrained || setProperties.ArmsRestrained || setProperties.Gagged || setProperties.Blindfolded || setProperties.Immobile
-            || setProperties.Weighty || setProperties.LightStimulation || setProperties.MildStimulation || setProperties.HeavyStimulation;
+        return setProperties.AnyEnabled();
     }
 
     internal void SaveWardrobe() => _wardrobeConfig.Save();

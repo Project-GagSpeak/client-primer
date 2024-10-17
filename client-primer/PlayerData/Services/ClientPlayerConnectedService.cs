@@ -1,12 +1,14 @@
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
+using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Dto.Connection;
 using Microsoft.Extensions.Hosting;
+using System.Reflection.Metadata;
 
 namespace GagSpeak.PlayerData.Services;
 
@@ -15,29 +17,31 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
 {
     private readonly PlayerCharacterData _playerData;
     private readonly ClientConfigurationManager _clientConfigs;
+    private readonly PairManager _pairManager;
     private readonly GagManager _gagManager;
     private readonly IpcManager _ipcManager;
     private readonly WardrobeHandler _wardrobeHandler;
-    private readonly HardcoreHandler _blindfoldHandler;
+    private readonly HardcoreHandler _hardcoreHandler;
     private readonly AppearanceHandler _appearanceHandler;
 
     public OnConnectedService(ILogger<OnConnectedService> logger,
         GagspeakMediator mediator, PlayerCharacterData playerData,
-        ClientConfigurationManager clientConfigs, GagManager gagManager,
-        IpcManager ipcManager, WardrobeHandler wardrobeHandler,
+        ClientConfigurationManager clientConfigs, PairManager pairManager,
+        GagManager gagManager, IpcManager ipcManager, WardrobeHandler wardrobeHandler,
         HardcoreHandler blindfold, AppearanceHandler appearanceHandler) : base(logger, mediator)
     {
         _playerData = playerData;
         _clientConfigs = clientConfigs;
+        _pairManager = pairManager;
         _gagManager = gagManager;
         _ipcManager = ipcManager;
         _wardrobeHandler = wardrobeHandler;
-        _blindfoldHandler = blindfold;
+        _hardcoreHandler = blindfold;
         _appearanceHandler = appearanceHandler;
 
         Mediator.Subscribe<ConnectedMessage>(this, (msg) => OnConnected(msg.Connection));
 
-        Mediator.Subscribe<OnlinePairsLoadedMessage>(this, _ => CheckBlindfold());
+        Mediator.Subscribe<OnlinePairsLoadedMessage>(this, _ => CheckHardcore());
 
         Mediator.Subscribe<CustomizeReady>(this, _ => _playerData.CustomizeProfiles = _ipcManager.CustomizePlus.GetProfileList());
 
@@ -120,14 +124,22 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         await _appearanceHandler.RecalcAndReload(true, true);
     }
 
-    private async void CheckBlindfold()
+    private async void CheckHardcore()
     {
+        // Set the hardcore Factors.
+        _hardcoreHandler.IsForcedToFollow = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
+        _hardcoreHandler.IsForcedToSit = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit);
+        _hardcoreHandler.IsForcedToStay = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay);
+        _hardcoreHandler.IsBlindfolded = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded);
+        _hardcoreHandler.ForceFollowedPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow) ?? null;
+        _hardcoreHandler.ForceSitPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit) ?? null;
+        _hardcoreHandler.ForceStayPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsForcedToStay) ?? null;
+        _hardcoreHandler.BlindfoldPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsBlindfolded) ?? null;
+
         // equip any blindfolds.
-        if (_blindfoldHandler.IsCurrentlyBlindfolded())
-        {
-            if (_blindfoldHandler.BlindfoldPair != null)
-                await _blindfoldHandler.HandleBlindfoldLogic(NewState.Enabled, _blindfoldHandler.BlindfoldPair.UserData.UID);
-        }
+        if (_hardcoreHandler.IsBlindfolded)
+            if (_hardcoreHandler.BlindfoldPair is not null)
+                await _hardcoreHandler.HandleBlindfoldLogic(NewState.Enabled, _hardcoreHandler.BlindfoldPair.UserData.UID);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)

@@ -1,19 +1,24 @@
+using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Keys;
+using Dalamud.Game.ClientState.Objects;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using GagSpeak.Hardcore;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using FFXIVClientStructs.FFXIV.Common.Lua;
+using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Hardcore.ForcedStay;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
+using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using Condition = Dalamud.Game.ClientState.Conditions.ConditionFlag;
 using XivControl = FFXIVClientStructs.FFXIV.Client.Game.Control;
 
 namespace GagSpeak.UpdateMonitoring;
@@ -22,13 +27,16 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly HardcoreHandler _handler;
     private readonly WardrobeHandler _outfitHandler;
-    private readonly OptionPromptListeners _autoDialogSelect;
+    private readonly SelectStringPrompt _promptsString;
+    private readonly YesNoPrompt _promptsYesNo;
+    private readonly RoomSelectPrompt _promptsRooms;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly MoveController _MoveController;
     private readonly ICondition _condition;
     private readonly IClientState _clientState;
     private readonly IKeyState _keyState;
     private readonly IObjectTable _objectTable;
+    private readonly ITargetManager _targetManager;
 
     // for controlling walking speed, follow movement manager, and sitting/standing.
     public unsafe GameCameraManager* cameraManager = GameCameraManager.Instance(); // for the camera manager object
@@ -42,20 +50,24 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
     // the list of keys that are blocked while movement is disabled. Req. to be static, must be set here.
     public MovementMonitor(ILogger<MovementMonitor> logger, GagspeakMediator mediator,
         HardcoreHandler hardcoreHandler, WardrobeHandler outfitHandler,
-        ClientConfigurationManager clientConfigs, OptionPromptListeners autoDialogSelect,
-        OnFrameworkService frameworkUtils, MoveController moveController, ICondition condition,
-        IClientState clientState, IKeyState keyState, IObjectTable objectTable) : base(logger, mediator)
+        ClientConfigurationManager clientConfigs, SelectStringPrompt stringPrompts,
+        YesNoPrompt yesNoPrompts, RoomSelectPrompt rooms, OnFrameworkService frameworkUtils,
+        MoveController moveController, ICondition condition, IClientState clientState,
+        IKeyState keyState, IObjectTable objectTable, ITargetManager targetManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _handler = hardcoreHandler;
         _outfitHandler = outfitHandler;
-        _autoDialogSelect = autoDialogSelect;
+        _promptsString = stringPrompts;
+        _promptsYesNo = yesNoPrompts;
+        _promptsRooms = rooms;
         _frameworkUtils = frameworkUtils;
         _MoveController = moveController;
         _condition = condition;
         _clientState = clientState;
         _keyState = keyState;
         _objectTable = objectTable;
+        _targetManager = targetManager;
 
         // attempt to set the value safely
         GenericHelpers.Safe(delegate
@@ -64,41 +76,10 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                             _keyState.GetType().GetMethod("GetRefValue", BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(int) }, null)!);
         });
 
-        // run an async task that will await to apply affects until we are logged in, after which it will fire the restraint effect logic
-        Task.Run(async () =>
-        {
-            if (!_frameworkUtils.IsLoggedIn)
-            {
-                Logger.LogDebug("Waiting for login to complete before activating restraint set", LoggerType.HardcoreMovement);
-                while (!_clientState.IsLoggedIn || _clientState.LocalPlayer == null || _clientState.LocalPlayer.Address == nint.Zero && _clientState.LocalContentId == 0)
-                {
-                    await Task.Delay(2000); // Wait for 1 second before checking the login status again
-                }
-            }
-            // There was logic here to reenable forced follow, but in reality, we should disable forced follow on dispose to prevent following a null target we cant escape.
+        // try and see if we can remove this????
+        Mediator.Subscribe<SafewordHardcoreUsedMessage>(this, _ => SafewordUsed());
 
-            // if we are blindfolded by anyone, we should apply that as well
-            if (_handler.IsCurrentlyBlindfolded() && _handler.BlindfoldPair != null)
-            {
-                await _handler.HandleBlindfoldLogic(NewState.Enabled, _handler.BlindfoldPair.UserData.UID);
-            }
-        });
-
-        Mediator.Subscribe<MovementRestrictionChangedMessage>(this, (msg) =>
-        {
-            // if the new state type is not disabled, we do not care about it.
-            if (msg.NewState != NewState.Disabled) return;
-
-            // Movement type shouldnt madder here since its's handled by the framework right away afterward?
-
-            // we don't need to worry about if ForcedSit or immobile is active here,
-            // because it will be reactivated if it is turned off right away.
-            Logger.LogDebug("ForcedFollow has been disabled, re-enabling movement", LoggerType.HardcoreMovement);
-            _MoveController.CompletelyEnableMovement();
-            ResetCancelledMoveKeys();
-        });
-
-        Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
+        Mediator.Subscribe<FrameworkUpdateMessage>(this, _ => FrameworkUpdate());
 
         IpcFastUpdates.HardcoreTraitsEventFired += ToggleHardcoreTraits;
     }
@@ -108,112 +89,132 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         base.Dispose(disposing);
 
         // enable movement
-        _MoveController.CompletelyEnableMovement();
+        HandleMovementRelease();
         ResetCancelledMoveKeys();
 
         IpcFastUpdates.HardcoreTraitsEventFired -= ToggleHardcoreTraits;
     }
 
-    public void ToggleHardcoreTraits(NewState newState, string assignerUID = Globals.SelfApplied)
+    public async void SafewordUsed()
     {
-        if (newState is NewState.Disabled && assignerUID is not Globals.SelfApplied)
-        {
-            // might need to add back in another variable to pass through that references if it had weighty or not?
-            Logger.LogDebug("Letting you run again", LoggerType.HardcoreMovement);
-            Task.Delay(200);
-            unsafe // temp fix to larger issue, if experiencing problems, refer to old code.
-            {
-                Marshal.WriteByte((nint)gameControl, 24131, 0x0);
-            }
-        }
+        // Wait 3 seconds to let everything else from the safeword process first.
+        Logger.LogDebug("Safeword has been used, re-enabling movement in 3 seconds");
+        await Task.Delay(3000);
+        // Fix walking state
+        HandleMovementRelease();
+        ResetCancelledMoveKeys();
+        HandleImmobilize = false;
     }
+
+    public void ToggleHardcoreTraits(NewState newState, RestraintSet restraintSet)
+    {
+        if (restraintSet.EnabledBy is Globals.SelfApplied)
+            return;
+
+        // Grab properties.
+        var properties = restraintSet.SetProperties[restraintSet.EnabledBy];
+        // if the set has a weighty property, we need to disable the walking state
+        if (properties.Weighty)
+            HandleWeighty = newState is NewState.Enabled ? true : false;
+
+        if(properties.Immobile)
+            HandleImmobilize = newState is NewState.Enabled ? true : false;
+    }
+
+    /// <summary>
+    /// A Static Accessor to be handled by the AppearanceHandler to know if we should handle immobilization or not.
+    /// </summary>
+    public static bool HandleImmobilize = false;
+    public static bool HandleWeighty = false;
 
     #region Framework Updates
     private unsafe void FrameworkUpdate()
     {
         // make sure we only do checks when we are properly logged in and have a character loaded
-        if (_clientState.LocalPlayer?.IsDead ?? false || _frameworkUtils._sentBetweenAreas)
-        {
+        if (_clientState.LocalPlayer is null || _clientState.LocalPlayer.IsDead)
             return;
+
+        // If we are immobile, forced to follow, or forced to sit, prevent movement
+        //Logger.LogDebug("Movement Monitor Update: " + _handler.MonitorSitLogic + " " + _handler.MonitorFollowLogic + " " + HandleImmobilize, LoggerType.HardcoreMovement);
+        //Logger.LogDebug("AllMovementForceDisabled:" + _MoveController.AllMovementForceDisabled + " Value: "+ _MoveController.ForceDisableMovement);
+        
+        if (_handler.MonitorFollowLogic || _handler.MonitorSitLogic || HandleImmobilize)
+        {
+            HandleMovementPrevention();
+        }
+        else
+        {
+            HandleMovementRelease();
+            ResetCancelledMoveKeys();
         }
 
-        // if we are able to update our hardcore effects
-        if (AllowFrameworkHardcoreUpdates())
+        // Handle forced Walk
+        if(HandleWeighty || _handler.MonitorFollowLogic)
         {
-            var immobile = isImmobile();
-            if (_handler.IsForcedFollow || _handler.IsForcedSit || immobile)
+            // get the byte that sees if the player is walking
+            uint isWalking = Marshal.ReadByte((nint)gameControl, 24131);
+            // and if they are not, force it.
+            if (isWalking is 0)
+                Marshal.WriteByte((nint)gameControl, 24131, 0x1);
+        }
+
+        // if player is in forced follow state, we need to track their position so we can auto turn it off if they are standing still for 6 seconds
+        if (_handler.MonitorFollowLogic)
+        {
+            // if this value is 1, it means the player is moving, so we should reset the idle timer and update position.
+            if (_clientState.LocalPlayer!.Position != _handler.LastPosition)
             {
-                HandleMovementPrevention(_handler.IsForcedFollow, _handler.IsForcedSit, immobile);
-            }
-            else
-            {
-                _MoveController.CompletelyEnableMovement();
-                ResetCancelledMoveKeys();
+                _handler.LastMovementTime = DateTimeOffset.Now;           // reset timer
+                _handler.LastPosition = _clientState.LocalPlayer.Position;// update last position
             }
 
-            // if any conditions that would affect your walking state are active, then force walking to occur
-            HandleWalkingState();
-
-            // if player is in forced follow state, we need to track their position so we can auto turn it off if they are standing still for 6 seconds
-            if (_handler.IsForcedFollow)
+            // if we have been idle for longer than 6 seconds, we should release the player.
+            if ((DateTimeOffset.UtcNow - _handler.LastMovementTime).TotalSeconds > 6)
             {
-                // if the player is not moving...
-                if (_clientState.LocalPlayer!.Position != _handler.LastPosition)
+                // set the forced follow to false if we are still being forced to follow.
+                if(_handler.ForceFollowedPair is not null)
                 {
-                    _handler.LastMovementTime = DateTimeOffset.Now;           // reset timer
-                    _handler.LastPosition = _clientState.LocalPlayer.Position;// update last position
+                    _handler.SetForcedFollow(NewState.Disabled, _handler.ForceFollowedPair);
+                    Logger.LogDebug("Player has been standing still for longer than 6 seconds. Allowing them to move again", LoggerType.HardcoreMovement);
                 }
-                // otherwise, they are not moving, so check if the timer has gone past 6000ms
-                else
-                {
-                    if ((DateTimeOffset.Now - _handler.LastMovementTime).TotalMilliseconds > 6000)
+            }
+        }
+
+        if (_handler.MonitorStayLogic)
+        {
+            // enable the hooks for the option prompts
+            if (!_promptsString.Enabled) _promptsString.Enable();
+            if (!_promptsYesNo.Enabled) _promptsYesNo.Enable();
+            if (!_promptsRooms.Enabled) _promptsRooms.Enable();
+
+            // while they are active, if we are not in a dialog prompt option, scan to see if we are by an estate entrance
+            if (!_condition[ConditionFlag.OccupiedInQuestEvent] && !_frameworkUtils._sentBetweenAreas)
+            {
+                // grab all the event object nodes (door interactions)
+                var nodes = _objectTable.Where(x => x.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.EventObj && GetTargetDistance(x) < 2f).ToList();
+                // Interact with the node Labeled "Entrance"
+                foreach (var obj in nodes)
+                    if (obj.Name.TextValue is "Entrance" or "Apartment Building Entrance" or "Entrance to Additional Chambers")
                     {
-                        // set the forced follow to false
-                        _handler.SetForcedFollow(NewState.Disabled, _handler.ForceFollowedPair);
-                        Logger.LogDebug("Player has been standing still for too long, forcing them to move again", LoggerType.HardcoreMovement);
+                        _targetManager.Target = obj;
+                        TargetSystem.Instance()->InteractWithObject((GameObject*)obj.Address, false);
                     }
-                }
             }
-
-            if (_handler.IsForcedStay)
-            {
-                // enable the hooks for the option prompts
-                _autoDialogSelect.Enable();
-                // while they are active, if we are not in a dialog prompt option, scan to see if we are by an estate entrance
-                if (_handler.IsForcedStay && !_condition[Condition.OccupiedInQuestEvent] && !_frameworkUtils._sentBetweenAreas)
-                {
-                    // grab all the event object nodes (door interactions)
-                    List<Dalamud.Game.ClientState.Objects.Types.IGameObject>? nodes =
-                        _objectTable.Where(x => x.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.EventObj && GetTargetDistance(x) < 3.5f).ToList();
-
-                    foreach (var obj in nodes)
-                    {
-                        // only follow through with the node named "Entrance"
-                        if (obj.Name.TextValue == "Entrance")
-                        {
-                            TargetSystem.Instance()->InteractWithObject((GameObject*)obj.Address, false);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                _autoDialogSelect.Disable();
-            }
+        }
+        else
+        {
+            if (_promptsString.Enabled) _promptsString.Disable();
+            if (_promptsYesNo.Enabled) _promptsYesNo.Disable();
+            if (_promptsRooms.Enabled) _promptsRooms.Disable();
         }
 
         // I'm aware the if statements are cancer, but its useful for the framework update to be as fast as possible.
-        if (_handler.IsCurrentlyBlindfolded())
+        if (_handler.IsBlindfolded)
         {
             // if we are blindfolded and have forced first-person to true, force first person
-            if (_handler.BlindfoldPair != null && _handler.BlindfoldPair.UserPair.OwnPairPerms.ForceLockFirstPerson)
-            {
-                if (cameraManager != null && cameraManager->Camera != null && cameraManager->Camera->Mode != (int)CameraControlMode.FirstPerson)
-                {
-                    // force first person
+            if (_handler.BlindfoldPair?.UserPair.OwnPairPerms.ForceLockFirstPerson ?? false)
+                if (cameraManager->Camera is not null && cameraManager->Camera->Mode is not (int)CameraControlMode.FirstPerson)
                     cameraManager->Camera->Mode = (int)CameraControlMode.FirstPerson;
-                }
-            }
         }
     }
 
@@ -226,68 +227,106 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         return Math.Max(0, Vector2.Distance(position, selfPosition) - target.HitboxRadius - _clientState.LocalPlayer.HitboxRadius);
     }
 
-    public unsafe void TryInteract(GameObject* baseObj)
+    // handle the prevention of our movement.
+    private void HandleMovementPrevention()
     {
-        if (baseObj->GetIsTargetable()) TargetSystem.Instance()->InteractWithObject(baseObj, true);
-    }
-
-    private bool isImmobile()
-        => _outfitHandler.ActiveSet != null
-        && _outfitHandler.ActiveSet.SetProperties.ContainsKey(_outfitHandler.ActiveSet.EnabledBy)
-        && _outfitHandler.ActiveSet.SetProperties[_outfitHandler.ActiveSet.EnabledBy].Immobile;
-
-    private bool AllowFrameworkHardcoreUpdates()
-    {
-        return _clientState.IsLoggedIn && _clientState.LocalPlayer != null && _clientState.LocalPlayer.Address != nint.Zero
-        && (_handler.IsForcedFollow || _handler.IsForcedSit || _handler.IsForcedStay || isImmobile());
-    }
-
-    // handles the walking state
-    private unsafe void HandleWalkingState()
-    {
-        if (_handler.IsForcedFollow || (_outfitHandler.ActiveSet != null && _outfitHandler.ActiveSet.SetProperties[_outfitHandler.ActiveSet.EnabledBy].Weighty))
+        //Logger.LogDebug("Both Mouse Buttons Pressed?:" + MoveController.IsBothMouseButtonsPressed());
+        if (_handler.MonitorSitLogic)
         {
-            // get the byte that sees if the player is walking
-            uint isWalking = Marshal.ReadByte((nint)gameControl, 24131);
-            // and if they are not, force it.
-            if (isWalking == 0)
+            // If we have not yet disabled Movement, we should do so.
+            if(!_MoveController.AllMovementForceDisabled)
             {
-                Marshal.WriteByte((nint)gameControl, 24131, 0x1);
+                Logger.LogDebug("Disabling All Movement due to ForcedSit", LoggerType.HardcoreMovement);
+                _MoveController.ForceDisableMovement++;
             }
         }
-    }
 
-    // handle the prevention of our movement.
-    private void HandleMovementPrevention(bool following, bool sitting, bool immobile)
-    {
-        if (sitting)
-        {
-            _MoveController.CompletelyDisableMovement(true, true); // set pointer and turn off mouse and disable emotes
-        }
-        else if (immobile)
-        {
-            _MoveController.CompletelyDisableMovement(true, true); // set pointer but dont turn off mouse
-        }
-        // otherwise if we are forced to follow
-        else if (following)
+        // if we are being forced to follow, we should toggle the unfollow hook
+        if (_handler.MonitorFollowLogic && MoveController.UnfollowHook is not null && MoveController.MovementUpdateHook is not null)
         {
             // in this case, we want to make sure to block players keys and force them to legacy mode.
-            if (GameConfig.UiControl.GetBool("MoveMode") == false)
-            {
+            if (GameConfig.UiControl.GetBool("MoveMode") is false)
                 GameConfig.UiControl.Set("MoveMode", (int)MovementMode.Legacy);
+
+            // If the controllers UnFollow Hook is Disabled, Enable it.
+            if(!MoveController.UnfollowHook.IsEnabled)
+            {
+                Logger.LogWarning("Enabling Unfollow Hook due to ForcedFollow ending", LoggerType.HardcoreMovement);
+                MoveController.UnfollowHook.Enable();
             }
-            // don't set pointer, but disable mouse
-            _MoveController.CompletelyDisableMovement(false, true); // disable mouse
+            if(!MoveController.MovementUpdateHook.IsEnabled)
+            {
+                Logger.LogWarning("Enabling Movement Update Hook due to ForcedFollow ending", LoggerType.HardcoreMovement);
+                MoveController.MovementUpdateHook.Enable();
+            }
         }
-        // otherwise, we should re-enable the mouse blocking and immobilization traits
-        else
+
+        // If we have been immobilized by our restraint set, we should block all movement when LMB+RMB.
+        if (HandleImmobilize)
         {
-            _MoveController.CompletelyEnableMovement(); // re-enable both
+            if(MoveController.IsBothMouseButtonsPressed())
+            {
+                if (!_MoveController.AllMovementForceDisabled)
+                {
+                    //Logger.LogDebug("Disabling All Movement due to LMB+RMB during Immobilize", LoggerType.HardcoreMovement);
+                    _MoveController.ForceDisableMovement++;
+                }
+            }
+            else
+            {
+                if(_MoveController.AllMovementForceDisabled)
+                {
+                    //Logger.LogDebug("Re-Enabling All Movement due to LMB+RMB during Immobilize ending", LoggerType.HardcoreMovement);
+                    _MoveController.ForceDisableMovement--;
+                }
+            }
         }
+
         // cancel our set keys such as auto run ext, immobilization skips previous two and falls under this
         CancelMoveKeys();
-
     }
+
+    private void HandleMovementRelease()
+    {
+        // if we are no longer being forced to sit.
+        if (!_handler.MonitorSitLogic)
+        {
+            // If we have disabled Movement, we should re-enable it.
+            if (_MoveController.AllMovementForceDisabled)
+            {
+                Logger.LogDebug("Re-Enabling All Movement due to ForcedSit ending", LoggerType.HardcoreMovement);
+                _MoveController.ForceDisableMovement--;
+            }
+        }
+
+        // if we are no longer being forced to follow.
+        if (!_handler.MonitorFollowLogic && MoveController.UnfollowHook is not null && MoveController.MovementUpdateHook is not null)
+        {
+            // If the controllers UnFollow Hook is Enabled, Disable it.
+            if (MoveController.UnfollowHook.IsEnabled)
+            {
+                Logger.LogWarning("Disabling Unfollow Hook due to ForcedFollow ending", LoggerType.HardcoreMovement);
+                MoveController.UnfollowHook.Disable();
+            }
+            if (MoveController.MovementUpdateHook.IsEnabled)
+            {
+                Logger.LogWarning("Disabling Movement Update Hook due to ForcedFollow ending", LoggerType.HardcoreMovement);
+                MoveController.MovementUpdateHook.Disable();
+            }
+        }
+
+        // if we are no longer immobile, re-enable movement
+        if (!HandleImmobilize)
+        {
+            if (_MoveController.AllMovementForceDisabled)
+            {
+                Logger.LogDebug("Re-Enabling All Movement due to LMB+RMB during Immobilize ending", LoggerType.HardcoreMovement);
+                _MoveController.ForceDisableMovement--;
+            }
+        }
+    }
+
+
 
     private void CancelMoveKeys()
     {
@@ -300,7 +339,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                 _keyState.SetRawValue(x, 0);
                 // set was canceled to true
                 WasCancelled = true;
-                Logger.LogTrace("Cancelling key: " + x, LoggerType.HardcoreMovement);
+                //Logger.LogTrace("Cancelling key: " + x, LoggerType.HardcoreMovement);
             }
         });
     }

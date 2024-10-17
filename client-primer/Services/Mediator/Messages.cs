@@ -77,28 +77,18 @@ public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : 
 public record MufflerLanguageChanged : MessageBase; // called whenever the client language changes to a new language.
 
 /* ------------- PLAYER DATA MODULE INTERACTIONS --------- */
-public record UpdateActiveGags(TaskCompletionSource<bool>? CompletionTaskSource = null) : MessageBase;
 public record ActiveGagsUpdated : MessageBase;
 public record ActiveLocksUpdated : MessageBase;
 public record GagTypeChanged(GagType NewGagType, GagLayer Layer, bool SelfApplied = false) : MessageBase; // called whenever the client changes their gag type.
 public record GagLockToggle(PadlockData PadlockInfo, NewState newGagLockState, bool SelfApplied = false) : MessageBase; // called whenever the client changes their padlock.
 public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase;
 public record TooltipSetItemToCursedItemMessage(EquipSlot Slot, EquipItem Item) : MessageBase;
-public record HelmetStateChangedMessage(bool ChangedState) : MessageBase; // called whenever the client changes their helmet state.
-public record VisorStateChangedMessage(bool ChangedState) : MessageBase; // called whenever the client changes their visor state.
 
 ////////////// WARDROBE RELATED RECORDS //////////////
-public record RestraintSetToggleModsMessage(int SetIdx, NewState State, TaskCompletionSource<bool>? ModToggleTask = null) : MessageBase; 
-public record RestraintSetToggleHardcoreTraitsMessage(int SetIdx, string AssignerUID, NewState State, TaskCompletionSource<bool>? HardcoreTraitsTask = null) : MessageBase;
 public record RestraintSetToggledMessage(int SetIdx, string AssignerUID, NewState State) : MessageBase; 
-public record HardcoreForcedToFollowMessage(Pair Pair, NewState State) : MessageBase;
-public record HardcoreForcedToSitMessage(Pair Pair, NewState State) : MessageBase; 
-public record HardcoreForcedToKneelMessage(Pair Pair, NewState State) : MessageBase;
-public record HardcoreForcedToStayMessage(Pair Pair, NewState State) : MessageBase;
-public record HardcoreForcedBlindfoldMessage(Pair Pair, NewState State) : MessageBase;
+public record HardcoreActionMessage(Pair Pair, HardcoreActionType type, NewState State) : MessageBase;
 public record HardcoreRemoveBlindfoldMessage : MessageBase;
 public record HardcoreUpdatedShareCodeForPair(Pair pair, string ShareCode) : MessageBase;
-public record MovementRestrictionChangedMessage(MovementRestrictionType Type, NewState NewState) : MessageBase;
 public record MoodlesPermissionsUpdated(string NameWithWorld) : MessageBase;
 
 ////////////// PUPPETEER RELATED RECORDS //////////////

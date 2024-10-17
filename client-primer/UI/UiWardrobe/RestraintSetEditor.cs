@@ -434,9 +434,6 @@ public class RestraintSetEditor : IMediatorSubscriber
         bool blindfolded = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Blindfolded;
         bool immobile = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Immobile;
         bool weighty = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Weighty;
-        bool lightStim = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LightStimulation;
-        bool mildStim = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].MildStimulation;
-        bool heavyStim = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].HeavyStimulation;
 
         if (ImGui.Checkbox("Legs will be restrainted", ref legsBound))
             refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LegsRestrained = legsBound;
@@ -462,38 +459,10 @@ public class RestraintSetEditor : IMediatorSubscriber
             refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Weighty = weighty;
         _uiShared.DrawHelpText("Player is forced to only walk while wearing this restraint");
 
-        if (ImGui.Checkbox("Light Stimulation", ref lightStim))
-        {
-            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LightStimulation = lightStim;
-            if (lightStim)
-            {
-                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].MildStimulation = false;
-                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].HeavyStimulation = false;
-            }
-        }
-        _uiShared.DrawHelpText("Any action requiring focus or concentration has its cast time being slightly slower");
-
-        if (ImGui.Checkbox("Mild Stimulation", ref mildStim))
-        {
-            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].MildStimulation = mildStim;
-            if (mildStim)
-            {
-                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LightStimulation = false;
-                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].HeavyStimulation = false;
-            }
-        }
-        _uiShared.DrawHelpText("Any action requiring focus or concentration has its cast time being noticeably slower");
-
-        if (ImGui.Checkbox("Heavy Stimulation", ref heavyStim))
-        {
-            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].HeavyStimulation = heavyStim;
-            if (heavyStim)
-            {
-                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LightStimulation = false;
-                refRestraintSet.SetProperties[selectedPairRef.UserData.UID].MildStimulation = false;
-            }
-        }
-        _uiShared.DrawHelpText("Any action requiring focus or concentration has its cast time being significantly slower");
+        _uiShared.DrawCombo("Stimulation Level##"+refRestraintSet.RestraintId+"stimulationLevel", 125f, Enum.GetValues<StimulationLevel>(), 
+            (name) => name.ToString(), (i) => refRestraintSet.SetProperties[selectedPairRef.UserData.UID].StimulationLevel = i,
+            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].StimulationLevel);
+        _uiShared.DrawHelpText("Any action requiring focus or concentration has its recast time slower and slower~");
     }
 
     // space for helper functions below

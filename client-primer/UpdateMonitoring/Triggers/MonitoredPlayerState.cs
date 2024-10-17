@@ -1,8 +1,5 @@
 using Dalamud.Game.ClientState.Objects.SubKinds;
-using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
-using GagspeakAPI.Data;
 
 namespace GagSpeak.UpdateMonitoring.Triggers;
 public sealed class MonitoredPlayerState

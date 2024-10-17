@@ -11,7 +11,7 @@ public unsafe static class HotbarLocker
 
     public static void StoreCurrentLockState()
     {
-        var hotbarBase = (AddonActionBarBase*)(AtkUnitBase*)GenericHelpers.GetAddonByName("_ActionBar");
+        var hotbarBase = (AddonActionBarBase*)(AtkUnitBase*)AtkFuckery.GetAddonByName("_ActionBar");
         if (hotbarBase != null)
         {
             // see if the node is locked or not.
@@ -33,19 +33,19 @@ public unsafe static class HotbarLocker
             return;
 
         // Otherwise, if we want to lock, and are unlocked, or want to unlock, and are locked, we should do so.
-        var actionBar = (AtkUnitBase*)GenericHelpers.GetAddonByName("_ActionBar");
+        var actionBar = (AtkUnitBase*)AtkFuckery.GetAddonByName("_ActionBar");
         if (actionBar is null)
             return;
 
         // If we are trying to lock the hotbar, and it was unlocked before set activation, lock it.
         if (newState is NewState.Locked && LockStatePriorToActivation is NewState.Unlocked)
         {
-            AtkHelpers.GenerateCallback(actionBar, 9, 3, 51u, 0u, true);
+            AtkFuckery.GenerateCallback(actionBar, 9, 3, 51u, 0u, true);
         }
         // if we are wishing to unlock, we should only unlock it if it was unlocked prior to activation.
         if (newState is NewState.Unlocked && LockStatePriorToActivation is NewState.Unlocked)
         {
-            AtkHelpers.GenerateCallback(actionBar, 9, 3, 51u, 0u, false);
+            AtkFuckery.GenerateCallback(actionBar, 9, 3, 51u, 0u, false);
             // reset the lock state to disabled to prevent duplicate calls.
             LockStatePriorToActivation = NewState.Disabled;
         }

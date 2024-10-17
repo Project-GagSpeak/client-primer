@@ -105,7 +105,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (allPermsChanged) UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, true);
         if (forcedFollowChanged)
         {
-            Mediator.Publish(new HardcoreForcedToFollowMessage(pair, dto.UniquePerms.IsForcedToFollow ? NewState.Enabled : NewState.Disabled));
+            Mediator.Publish(new HardcoreActionMessage(pair, HardcoreActionType.ForcedFollow, dto.UniquePerms.IsForcedToFollow ? NewState.Enabled : NewState.Disabled));
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcorePairActionKind.ForcedFollow, // Forced Follow Command Issued
                 (bool)dto.UniquePerms.IsForcedToFollow ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
@@ -114,7 +114,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
         if (forcedSitChanged)
         {
-            Mediator.Publish(new HardcoreForcedToSitMessage(pair, dto.UniquePerms.IsForcedToSit ? NewState.Enabled : NewState.Disabled));
+            Mediator.Publish(new HardcoreActionMessage(pair, HardcoreActionType.ForcedSit, dto.UniquePerms.IsForcedToSit ? NewState.Enabled : NewState.Disabled));
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcorePairActionKind.ForcedSit, // Forced Sit Command Issued
                 (bool)dto.UniquePerms.IsForcedToSit ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
@@ -123,7 +123,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
         if (forcedGroundSitChanged)
         {
-            Mediator.Publish(new HardcoreForcedToKneelMessage(pair, dto.UniquePerms.IsForcedToGroundSit ? NewState.Enabled : NewState.Disabled));
+            Mediator.Publish(new HardcoreActionMessage(pair, HardcoreActionType.ForcedGroundSit, dto.UniquePerms.IsForcedToGroundSit ? NewState.Enabled : NewState.Disabled));
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcorePairActionKind.ForcedSit, // Forced Sit Command Issued
                 (bool)dto.UniquePerms.IsForcedToGroundSit ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
@@ -132,7 +132,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
         if (forcedStayChanged)
         {
-            Mediator.Publish(new HardcoreForcedToStayMessage(pair, dto.UniquePerms.IsForcedToStay ? NewState.Enabled : NewState.Disabled));
+            Mediator.Publish(new HardcoreActionMessage(pair, HardcoreActionType.ForcedStay, dto.UniquePerms.IsForcedToStay ? NewState.Enabled : NewState.Disabled));
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcorePairActionKind.ForcedStay, // Forced Stay Command Issued
                 (bool)dto.UniquePerms.IsForcedToStay ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
@@ -141,7 +141,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
         if (blindfoldChanged)
         {
-            Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, dto.UniquePerms.IsBlindfolded ? NewState.Enabled : NewState.Disabled));
+            Mediator.Publish(new HardcoreActionMessage(pair, HardcoreActionType.ForcedBlindfold, dto.UniquePerms.IsBlindfolded ? NewState.Enabled : NewState.Disabled));
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcorePairActionKind.ForcedBlindfold, // Forced Blindfold Command Issued
                 (bool)dto.UniquePerms.IsBlindfolded ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
@@ -417,7 +417,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (forcedFollowChanged)
         {
             Logger.LogInformation("Forced follow changed", LoggerType.PairManagement);
-            Mediator.Publish(new HardcoreForcedToFollowMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
+            Mediator.Publish(new HardcoreActionMessage(pair, HardcoreActionType.ForcedFollow, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
             
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcorePairActionKind.ForcedFollow, // Forced Follow Command Issued
@@ -428,7 +428,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (forcedSitChanged)
         {
             Logger.LogInformation("Forced sit changed", LoggerType.PairManagement);
-            Mediator.Publish(new HardcoreForcedToSitMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
+            Mediator.Publish(new HardcoreActionMessage(pair, HardcoreActionType.ForcedSit, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
             
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcorePairActionKind.ForcedSit, // Forced Sit Command Issued
@@ -439,7 +439,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (forcedGroundSitChanged)
         {
             Logger.LogInformation("Forced ground sit changed", LoggerType.PairManagement);
-            Mediator.Publish(new HardcoreForcedToKneelMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
+            Mediator.Publish(new HardcoreActionMessage(pair, HardcoreActionType.ForcedGroundSit, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
             
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcorePairActionKind.ForcedSit, // Forced Sit Command Issued
@@ -450,7 +450,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (forcedStayChanged)
         {
             Logger.LogInformation("Forced stay changed", LoggerType.PairManagement);
-            Mediator.Publish(new HardcoreForcedToStayMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
+            Mediator.Publish(new HardcoreActionMessage(pair, HardcoreActionType.ForcedStay, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
             
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcorePairActionKind.ForcedStay, // Forced Stay Command Issued
@@ -461,7 +461,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (blindfoldChanged)
         {
             Logger.LogInformation("Blindfold changed to: "+(bool)ChangedValue, LoggerType.PairManagement);
-            Mediator.Publish(new HardcoreForcedBlindfoldMessage(pair, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
+            Mediator.Publish(new HardcoreActionMessage(pair, HardcoreActionType.ForcedBlindfold, (bool)ChangedValue ? NewState.Enabled : NewState.Disabled));
             
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcorePairActionKind.ForcedBlindfold, // Forced Blindfold Command Issued

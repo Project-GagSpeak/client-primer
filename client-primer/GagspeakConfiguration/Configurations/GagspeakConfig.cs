@@ -1,5 +1,6 @@
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Hardcore;
+using GagSpeak.Hardcore.ForcedStay;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.UI;
 
@@ -65,12 +66,11 @@ public class GagspeakConfig : IGagspeakConfiguration
     public string IntifaceConnectionSocket { get; set; } = "ws://localhost:12345"; // connection link from plugin to intiface
     public bool VibeServerAutoConnect { get; set; } = false;                    // if we should auto-connect to the vibe server
 
-    // GLOBAL HARDCORE SETTINGS.
-    public bool UsingLegacyControls { get; set; } = GameConfig.UiControl.GetBool("MoveMode");
-    public bool DisablePromptHooks { get; set; } = false; // ForcedToStay storage
-    public TextFolderNode StoredEntriesFolder { get; private set; } = new TextFolderNode { Name = "ForcedDeclineList" }; // ForcedToStay storage
-    public BlindfoldType BlindfoldStyle { get; set; } = BlindfoldType.Sensual; // Blindfold Format
+    // GLOBAL HARDCORE SETTINGS. (maybe make it its own file if it gets too rediculous but yeah.
     public string PiShockApiKey { get; set; } = ""; // PiShock Settings.
     public string PiShockUsername { get; set; } = ""; // PiShock Settings.
+    public bool UsingLegacyControls { get; set; } = GameConfig.UiControl.GetBool("MoveMode");
+    public BlindfoldType BlindfoldStyle { get; set; } = BlindfoldType.Sensual; // Blindfold Format
+    public TextFolderNode ForcedStayPromptList { get; private set; } = new TextFolderNode { FriendlyName = "ForcedDeclineList" }; // ForcedToStay storage
 }
 

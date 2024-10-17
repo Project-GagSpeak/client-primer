@@ -1,3 +1,5 @@
+using GagSpeak.GagspeakConfiguration.Models;
+
 namespace GagSpeak.PlayerData.Services;
 
 /// <summary>
@@ -20,10 +22,10 @@ public class IpcFastUpdates
 
 
 
-    public delegate void HardcoreRestraintTraitsHandler(NewState newState, string assignerUID);
+    public delegate void HardcoreRestraintTraitsHandler(NewState newState, RestraintSet restraintSet);
     public static event HardcoreRestraintTraitsHandler? HardcoreTraitsEventFired;
-    public static void InvokeHardcoreTraits(NewState newState, string assignerUID) 
-        => HardcoreTraitsEventFired?.Invoke(newState, assignerUID);
+    public static void InvokeHardcoreTraits(NewState newState, RestraintSet restraintSet) 
+        => HardcoreTraitsEventFired?.Invoke(newState, restraintSet);
 
 
     public delegate void MoodleStatusManagerChangedHandler(IntPtr playerCharaAddr);

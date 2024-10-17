@@ -13,6 +13,8 @@ public enum AcReqProps // "Action Required Properties"
     Weighted,       // if the action requires a heavy object to be lifted or moved
 }
 
+// https://github.com/NightmareXIV/ECommons/blob/cad229e33d3a14f9e9d06c726c8297394563fbf1/ECommons/ExcelServices/Job.cs#L6
+// Job list
 public enum JobType : uint
 {
     ADV = 0, // Adventurer
@@ -56,6 +58,8 @@ public enum JobType : uint
     DNC = 38, // Dancer
     RPR = 39, // Reaper
     SGE = 40, // Sage
+    VPR = 41, // Viper
+    PCT = 42, // Pictomancer
 }
 
 // class for identifying which action is being used and the properties associated with it.
@@ -105,6 +109,8 @@ public class ActionData
             case JobType.DNC : { bannedActions = ActionDataCore.Dancer; return; }
             case JobType.RPR : { bannedActions = ActionDataCore.Reaper; return; }
             case JobType.SGE : { bannedActions = ActionDataCore.Sage; return; }
+            case JobType.VPR : { bannedActions = ActionDataCore.Viper; return; }
+            case JobType.PCT : { bannedActions = ActionDataCore.Pictomancer; return; }
             default: { bannedActions = new Dictionary<uint, AcReqProps[]>(); return; } // return an empty list if job does not exist
         }
     }

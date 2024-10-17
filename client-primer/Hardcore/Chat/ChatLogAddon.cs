@@ -9,13 +9,13 @@ public static unsafe class ChatLogAddonHelper
     // Pulled from older version of Dalamud prior to using GetSingleton().
     // https://github.com/ottercorp/Dalamud/blob/f89e9ebca547a7a14fbd6acb64ee7d8cf666f1b3/Dalamud/Game/Gui/GameGui.cs#L283C19-L283C33
 
-    private static AddonChatLogPanel* ChatLogMain => (AddonChatLogPanel*)(AtkUnitBase*)GenericHelpers.GetAddonByName("ChatLog");
+    private static AddonChatLogPanel* ChatLogMain => (AddonChatLogPanel*)(AtkUnitBase*)AtkFuckery.GetAddonByName("ChatLog");
     private static AddonChatLogPanel*[] ChatLogPanels = new AddonChatLogPanel*[]
     {
-        (AddonChatLogPanel*)(AtkUnitBase*)GenericHelpers.GetAddonByName("ChatLogPanel_0"),
-        (AddonChatLogPanel*)(AtkUnitBase*)GenericHelpers.GetAddonByName("ChatLogPanel_1"),
-        (AddonChatLogPanel*)(AtkUnitBase*)GenericHelpers.GetAddonByName("ChatLogPanel_2"),
-        (AddonChatLogPanel*)(AtkUnitBase*)GenericHelpers.GetAddonByName("ChatLogPanel_3")
+        (AddonChatLogPanel*)(AtkUnitBase*)AtkFuckery.GetAddonByName("ChatLogPanel_0"),
+        (AddonChatLogPanel*)(AtkUnitBase*)AtkFuckery.GetAddonByName("ChatLogPanel_1"),
+        (AddonChatLogPanel*)(AtkUnitBase*)AtkFuckery.GetAddonByName("ChatLogPanel_2"),
+        (AddonChatLogPanel*)(AtkUnitBase*)AtkFuckery.GetAddonByName("ChatLogPanel_3")
     };
 
     // https://github.com/Caraxi/SimpleTweaksPlugin/blob/0cf2c68a2e6411d667af0851ca36f0ff59d21626/Tweaks/Chat/HideChatAuto.cs#L26
@@ -23,7 +23,7 @@ public static unsafe class ChatLogAddonHelper
     private const uint TextInputCursorID = 2;
     private static AtkResNode* GetChatInputCursorNode()
     {
-        var baseNode = (AtkUnitBase*)GenericHelpers.GetAddonByName("ChatLog");
+        var baseNode = (AtkUnitBase*)AtkFuckery.GetAddonByName("ChatLog");
         if (baseNode == null) return null;
 
         var textInputComponentNode = (AtkComponentNode*)baseNode->GetNodeById(TextInputNodeID);

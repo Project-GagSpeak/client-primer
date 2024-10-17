@@ -7,7 +7,7 @@
         <TargetFramework>net8.0-windows</TargetFramework>
         <Copyright>Copyright © 2024</Copyright>
         <LangVersion>preview</LangVersion>
-        <Version>0.9.3.9</Version>
+        <Version>0.9.4.0</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
@@ -33,6 +33,12 @@
         <DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
         <OutputType>Library</OutputType>
     </PropertyGroup>
+    <ItemGroup>
+      <Compile Remove="Hardcore\ForcedStay\NewFolder\**" />
+      <Content Remove="Hardcore\ForcedStay\NewFolder\**" />
+      <EmbeddedResource Remove="Hardcore\ForcedStay\NewFolder\**" />
+      <None Remove="Hardcore\ForcedStay\NewFolder\**" />
+    </ItemGroup>
 
     <!--Other DLL's for dalamud supporting module/components-->
     <ItemGroup>
@@ -146,10 +152,8 @@
         <EmbeddedResource Include="Localization\de.json" />
         <EmbeddedResource Include="Localization\fr.json" />
     </ItemGroup>
-    <ItemGroup>
-      <Folder Include="Hardcore\PromptHandler\NewFolder\" />
-    </ItemGroup>
 </Project>
+
 
 
 

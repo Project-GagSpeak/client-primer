@@ -5,6 +5,7 @@ using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Hardcore;
+using GagSpeak.Hardcore.ForcedStay;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
@@ -90,7 +91,8 @@ public class SettingsHardcore
             {
                 DisplayTextButtons();
                 ImGui.Spacing();
-                DisplayTextNodes();
+                foreach (var node in _clientConfigs.GagspeakConfig.ForcedStayPromptList.Children.ToArray())
+                    DisplayTextEntryNode(node);
                 ImGui.EndTabItem();
             }
             ImGui.EndTabBar();
@@ -225,83 +227,39 @@ public class SettingsHardcore
 
     private void DisplayTextButtons()
     {
-        using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
-        using var roundingStyle = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 0);
-
-        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.SearchPlus.ToIconString(), new Vector2(25, 25) * ImGuiHelpers.GlobalScale,
-         "Add last seen as new entry interface as last entry" + Environment.NewLine
-        + "(Must have active to record latest dialog option.)" + Environment.NewLine
-        + "(Auto-selecting yes is not an allowed option)", false, true))
+        // replace disabled with ForcedStay == true
+        if (_uiShared.IconTextButton(FontAwesomeIcon.SearchPlus, "Add Last Seen TextNode", disabled: false))
         {
-            var newNode = new TextEntryNode()
-            {
-                Enabled = true,
-                Label = _hardcoreHandler.LastSeenDialogText.Item1 + "-Label",
-                Text = _hardcoreHandler.LastSeenDialogText.Item1,
-                Options = _hardcoreHandler.LastSeenDialogText.Item2.ToArray(),
-            };
-            // if the list only has two elements
-            if (_clientConfigs.GagspeakConfig.StoredEntriesFolder.Children.Count <= 6)
-            {
-                // add it to the end
-                _clientConfigs.GagspeakConfig.StoredEntriesFolder.Children.Add(newNode);
-                _clientConfigs.Save();
-            }
-            else
-            {
-                _clientConfigs.GagspeakConfig.StoredEntriesFolder.Children
-                    .Insert(_clientConfigs.GagspeakConfig.StoredEntriesFolder.Children.Count - 1, newNode);
-                _clientConfigs.Save();
-            }
+            _clientConfigs.AddLastSeenNode();
         }
+        UiSharedService.AttachToolTip("Add last seen as new entry interface as last entry" + Environment.NewLine
+            + "(Must have active to record latest dialog option.)" + Environment.NewLine
+            + "(Auto-selecting yes is not an allowed option)");
+
         ImGui.SameLine();
-        ImGuiUtil.DrawDisabledButton("Blockers List", new Vector2(ImGui.GetContentRegionAvail().X, ImGuiHelpers.GlobalScale * 25), "", true);
+        if (_uiShared.IconTextButton(FontAwesomeIcon.PlusCircle, "Add New TextNode", disabled: false))
+        {
+            _clientConfigs.CreateTextNode();
+        }
+        UiSharedService.AttachToolTip("Add a new TextNode to the ForcedStay Prompt List.");
+
+        ImGui.SameLine();
+        if (_uiShared.IconTextButton(FontAwesomeIcon.PlusCircle, "Add New ChamberNode", disabled: false))
+        {
+            _clientConfigs.CreateChamberNode();
+        }
+        UiSharedService.AttachToolTip("Add a new ChamberNode to the ForcedStay Prompt List.");
+        ImGui.Separator();
     }
 
-    private void DisplayTextNodes()
-    {
-        if (_hardcoreHandler.StoredEntriesFolder.Children.Count == 0)
-        {
-            _clientConfigs.GagspeakConfig.StoredEntriesFolder.Children.Add(new TextEntryNode()
-            {
-                Enabled = false,
-                Text = "NodeName",
-                Label = "Placeholder Node, Add Last Selected Entry for proper node."
-            });
-            _clientConfigs.Save();
-        }
-        // if the list only has two elements (the required ones)
-        if (_hardcoreHandler.StoredEntriesFolder.Children.Count <= 6)
-        {
-            // add it to the end
-            _clientConfigs.GagspeakConfig.StoredEntriesFolder.Children.Add(new TextEntryNode()
-            {
-                Enabled = false,
-                Text = "NodeName",
-                Label = "Placeholder Node, Add Last Selected Entry for proper node."
-            });
-            _clientConfigs.Save();
-        }
-
-        foreach (var node in _hardcoreHandler.StoredEntriesFolder.Children.ToArray())
-        {
-            DisplayTextNode(node);
-        }
-    }
-    private void DisplayTextNode(ITextNode node)
-    {
-        if (node is TextEntryNode textNode)
-            DisplayTextEntryNode(textNode);
-    }
-
-    private void DisplayTextEntryNode(TextEntryNode node)
+    private void DisplayTextEntryNode(ITextNode node)
     {
         if (node.Enabled)
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(1f, 1f, 1f, 1f));
         if (!node.Enabled)
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(.5f, .5f, .5f, 1));
 
-        ImGui.TreeNodeEx($"[{node.Text}] {node.Label}##{node.Name}-tree", ImGuiTreeNodeFlags.Leaf);
+        ImGui.TreeNodeEx(node.FriendlyName+"##"+ node.FriendlyName + "-tree", ImGuiTreeNodeFlags.Leaf);
         ImGui.TreePop();
 
         ImGui.PopStyleColor();
@@ -320,135 +278,147 @@ public class SettingsHardcore
             }
         }
 
-        var disableElements = false;
-        if (_hardcoreHandler.StoredEntriesFolder.Children.Count >= 6
-        && (_hardcoreHandler.StoredEntriesFolder.Children[0] == node
-         || _hardcoreHandler.StoredEntriesFolder.Children[1] == node
-         || _hardcoreHandler.StoredEntriesFolder.Children[2] == node
-         || _hardcoreHandler.StoredEntriesFolder.Children[3] == node
-         || _hardcoreHandler.StoredEntriesFolder.Children[4] == node
-         || _hardcoreHandler.StoredEntriesFolder.Children[5] == node))
-        {
-            disableElements = true;
-        }
-        TextNodePopup(node, disableElements);
+        // If the node is one we should disable
+        var disableElement = _clientConfigs.GagspeakConfig.ForcedStayPromptList.Children.Take(10).Contains(node);
+        TextNodePopup(node, disableElement);
     }
 
-    private void TextNodePopup(TextEntryNode node, bool disableElements = false)
+    private void TextNodePopup(ITextNode node, bool disableElements = false)
     {
         var style = ImGui.GetStyle();
-        var newItemSpacing = new Vector2(style.ItemSpacing.X / 2, style.ItemSpacing.Y);
+        using var spacing = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, new Vector2(style.ItemSpacing.X / 2, style.ItemSpacing.Y));
+
         if (ImGui.BeginPopup($"{node.GetHashCode()}-popup"))
         {
-            if (node is TextEntryNode entryNode)
+            if (_uiShared.IconButton(FontAwesomeIcon.TrashAlt, disabled: disableElements || !UiSharedService.ShiftPressed()))
             {
-                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, newItemSpacing);
-                try
+                if (_clientConfigs.TryFindParent(node, out var parentNode))
                 {
-                    var enabled = entryNode.Enabled;
-                    if (disableElements) { ImGui.BeginDisabled(); }
-                    try
-                    {
-                        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.TrashAlt.ToIconString(), new Vector2(),
-                        "Delete Custom Addition", false, true))
-                        {
-                            if (_hardcoreHandler.TryFindParent(node, out var parentNode))
-                            {
-                                parentNode!.Children.Remove(node);
-                                // if the new size is now just 2 contents
-                                if (parentNode.Children.Count == 0)
-                                {
-                                    // create a new blank one
-                                    parentNode.Children.Add(new TextEntryNode()
-                                    {
-                                        Enabled = false,
-                                        Text = "NodeName (Placeholder Node)",
-                                        Label = "Add Last Selected Entry for proper node."
-                                    });
-                                }
-                                _clientConfigs.Save();
-                            }
-                        }
-                    }
-                    finally { if (disableElements) { ImGui.EndDisabled(); } }
-                    // Define the options for the dropdown menu
-                    // Define the options for the dropdown menu
-                    string[] options = entryNode.Options.ToArray(); // Use the node's options list
-                    int currentOption = entryNode.SelectThisIndex; // Set the current option based on the SelectThisIndex property
-
-                    ImGui.SameLine();
-                    ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 200);
-                    // Create the dropdown menu
-                    if (disableElements) { ImGui.BeginDisabled(); }
-                    try
-                    {
-                        if (ImGui.Combo("##Options", ref currentOption, options, options.Length))
-                        {
-                            // Update the IsYes property based on the selected option
-                            entryNode.SelectThisIndex = currentOption;
-                            // the list of options contains the entry "Yes"
-                            if (options[currentOption] == "Yes")
-                            {
-                                // select a different option within bounds
-                                if (currentOption + 1 < options.Length)
-                                {
-                                    entryNode.SelectThisIndex = currentOption + 1;
-                                }
-                                else
-                                {
-                                    entryNode.SelectThisIndex = 0;
-                                }
-                            }
-                            _clientConfigs.Save();
-                        }
-                        if (ImGui.IsItemHovered()) { ImGui.SetTooltip("The option to automatically select. Yes is always disabled"); }
-                    }
-                    finally { if (disableElements) { ImGui.EndDisabled(); } }
-
-                    ImGui.SameLine();
-                    if (disableElements) { ImGui.BeginDisabled(); }
-                    try
-                    {
-                        if (ImGui.Checkbox("Enabled", ref enabled))
-                        {
-                            entryNode.Enabled = enabled;
-                            _clientConfigs.Save();
-                        }
-                    }
-                    finally { if (disableElements) { ImGui.EndDisabled(); } }
-                    // draw the text input
-                    if (disableElements) { ImGui.BeginDisabled(); }
-                    try
-                    {
-                        var matchText = entryNode.Text;
-                        if (entryNode.Text != "") { ImGui.BeginDisabled(); }
-                        try
-                        {
-                            ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 225);
-                            if (ImGui.InputText($"Node Name##{node.Name}-matchTextLebel", ref matchText, 10_000, ImGuiInputTextFlags.AutoSelectAll | ImGuiInputTextFlags.EnterReturnsTrue))
-                            {
-                                entryNode.Label = matchText;
-                                _clientConfigs.Save();
-                            }
-                        }
-                        finally { if (entryNode.Text != "") { ImGui.EndDisabled(); } }
-                        var matchText2 = entryNode.Label;
-                        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 225);
-                        if (ImGui.InputText($"Node Label##{node.Name}-matchText", ref matchText2, 10_000, ImGuiInputTextFlags.AutoSelectAll | ImGuiInputTextFlags.EnterReturnsTrue))
-                        {
-                            entryNode.Label = matchText2;
-                            _clientConfigs.Save();
-                        }
-                    }
-                    finally { if (disableElements) { ImGui.EndDisabled(); } }
-                }
-                finally
-                {
-                    ImGui.PopStyleVar();
+                    parentNode!.Children.Remove(node);
+                    // if the new size is now just 2 contents
+                    if (parentNode.Children.Count == 0)
+                        _clientConfigs.CreateTextNode();
                 }
             }
+            UiSharedService.AttachToolTip("Delete Custom Addition");
+
+            ImGui.SameLine();
+            var nodeEnabled = node.Enabled;
+
+            using (var disabled = ImRaii.Disabled(disableElements))
+            {
+                if (ImGui.Checkbox("Enabled", ref nodeEnabled))
+                {
+                    node.Enabled = nodeEnabled;
+                    _clientConfigs.Save();
+                }
+                ImGui.SameLine();
+                var targetRequired = node.TargetRestricted;
+                if (ImGui.Checkbox("Target Restricted", ref targetRequired))
+                {
+                    node.TargetRestricted = targetRequired;
+                    _clientConfigs.Save();
+                }
+
+                // Display the friendly name
+                ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 225);
+                var friendlyName = node.FriendlyName;
+                if (ImGui.InputTextWithHint($"Friendly Name##{node.FriendlyName}-matchFriendlyName",
+                    hint: "Provide a friendly name to display in the list",
+                    input: ref friendlyName,
+                    maxLength: 60,
+                    flags: ImGuiInputTextFlags.EnterReturnsTrue))
+                {
+                    node.FriendlyName = friendlyName;
+                    _clientConfigs.Save();
+                }
+                UiSharedService.AttachToolTip("The Friendly name that will display in the ForcedStay Prompt List.");
+
+                // Display the label
+                var nodeName = node.TargetNodeName;
+                ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 225);
+                if (ImGui.InputTextWithHint($"Node Name##{node.TargetNodeName}-matchTextName",
+                    hint: "The Name Above the Node you interact with",
+                    input: ref nodeName,
+                    maxLength: 100,
+                    flags: ImGuiInputTextFlags.EnterReturnsTrue))
+                {
+                    node.TargetNodeName = nodeName;
+                    _clientConfigs.Save();
+                }
+                UiSharedService.AttachToolTip("The name of the node to look for when interacting with it.");
+
+                // Draw unique fields if text node
+                if (node is TextEntryNode textNode)
+                    DrawTextEntryUniqueFields(textNode);
+            }
+            // Draw editable fields for the chamber node, but disable them if we are in ForcedStay mode.
+            if (node is ChambersTextNode chambersNode)
+            DrawChambersUniqueFields(chambersNode);
+
             ImGui.EndPopup();
         }
+    }
+
+    private void DrawTextEntryUniqueFields(TextEntryNode node)
+    {
+        // Display the label of the node to listen to.
+        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 225);
+        var nodeLabel = node.TargetNodeLabel;
+        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 225);
+        if (ImGui.InputTextWithHint($"Node Label##{node.TargetNodeLabel}-matchTextLebel",
+            hint: "The Label given to the prompt menu the node provides",
+            input: ref nodeLabel,
+            maxLength: 1000,
+            flags: ImGuiInputTextFlags.EnterReturnsTrue))
+        {
+            node.TargetNodeLabel = nodeLabel;
+            _clientConfigs.Save();
+        }
+        UiSharedService.AttachToolTip("The text that is displayed in the prompt menu for this node.");
+
+        // Display the target text to select from the list of options.
+        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 225);
+        var selectedOption = node.SelectedOptionText;
+        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 225);
+        if (ImGui.InputTextWithHint($"Select This##{node.SelectedOptionText}-matchTextOption",
+            hint: "The Option from the prompt menu to select",
+            input: ref selectedOption,
+            maxLength: 200,
+            flags: ImGuiInputTextFlags.EnterReturnsTrue))
+        {
+            node.SelectedOptionText = selectedOption;
+            _clientConfigs.Save();
+        }
+        UiSharedService.AttachToolTip("The option within the prompt that we should automatically select.");
+    }
+
+    private void DrawChambersUniqueFields(ChambersTextNode node)
+    {
+        // Change this to be the forced stay conditional.
+        using var disableWhileActive = ImRaii.Disabled(false);
+
+        // Input Int field to select which room set index they want to pick.
+        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 225);
+        var roomSetIdxRef = node.ChamberRoomSet;
+        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 225);
+        if (ImGui.InputInt($"RoomSet Index##{node.FriendlyName}-matchSetIndexLabel", ref roomSetIdxRef, 1, 1, ImGuiInputTextFlags.EnterReturnsTrue))
+        {
+            node.ChamberRoomSet = roomSetIdxRef;
+            _clientConfigs.Save();
+        }
+        UiSharedService.AttachToolTip("This is the index to select from the (001-015) RoomSet list. Leave blank for first.");
+
+        // Display the room index to automatically join into.
+        var roomListIdxRef = node.ChamberListIdx;
+        ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 225);
+        if (ImGui.InputInt($"EnterRoom Index##{node.FriendlyName}-matchRoomIndexLabel", ref roomListIdxRef, 1, 1, ImGuiInputTextFlags.EnterReturnsTrue))
+        {
+            node.ChamberListIdx = roomListIdxRef;
+            _clientConfigs.Save();
+        }
+        UiSharedService.AttachToolTip("This is NOT the room number, it is the index from\ntop to bottom in the room listings, starting at 0.");
+
     }
 
 

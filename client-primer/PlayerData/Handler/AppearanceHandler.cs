@@ -126,20 +126,20 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         setRef.Enabled = true;
         setRef.EnabledBy = assignerUID;
         _clientConfigs.SaveWardrobe();
+        // Update our active Set monitor.
 
         // Raise the priority of, and enable the mods bound to the active set.
         await PenumbraModsToggle(NewState.Enabled, setRef.AssociatedMods);
 
         // Enable the Hardcore Properties by invoking the ipc call.
-        //if (setRef.SetProperties.ContainsKey(setRef.EnabledBy) && _clientConfigs.PropertiesEnabledForSet(setIdx, setRef.EnabledBy))
-        if (setRef.SetProperties.ContainsKey(Globals.DebugUID) && _clientConfigs.PropertiesEnabledForSet(setIdx, Globals.DebugUID))
+        if (setRef.SetProperties.ContainsKey(setRef.EnabledBy) && _clientConfigs.PropertiesEnabledForSet(setIdx, setRef.EnabledBy))
         {
-            Logger.LogWarning("Set Contains HardcoreProperties for "+ Globals.DebugUID, LoggerType.Restraints);
+            Logger.LogWarning("Set Contains HardcoreProperties for "+ setRef.EnabledBy, LoggerType.Restraints);
 
-            if(_clientConfigs.PropertiesEnabledForSet(setIdx, Globals.DebugUID))
+            if(_clientConfigs.PropertiesEnabledForSet(setIdx, setRef.EnabledBy))
             {
                 Logger.LogWarning("Hardcore properties are enabled for this set!");
-                IpcFastUpdates.InvokeHardcoreTraits(NewState.Enabled, Globals.DebugUID);
+                IpcFastUpdates.InvokeHardcoreTraits(NewState.Enabled, setRef);
             }
         }
         
@@ -170,12 +170,13 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
 
         // Disable the Hardcore Properties by invoking the ipc call.
         if (setRef.SetProperties.ContainsKey(setRef.EnabledBy) && _clientConfigs.PropertiesEnabledForSet(setIdx, setRef.EnabledBy))
-            IpcFastUpdates.InvokeHardcoreTraits(NewState.Disabled, setRef.EnabledBy);
+            IpcFastUpdates.InvokeHardcoreTraits(NewState.Disabled, setRef);
 
         UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, false, disablerUID);
         setRef.Enabled = false;
         setRef.EnabledBy = string.Empty;
         _clientConfigs.SaveWardrobe();
+        // Update our active Set monitor.
 
         Logger.LogInformation("DISABLE SET [" + setRef.Name + "] END", LoggerType.Restraints);
 

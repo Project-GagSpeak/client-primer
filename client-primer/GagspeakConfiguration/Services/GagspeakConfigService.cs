@@ -1,4 +1,5 @@
 using GagSpeak.GagspeakConfiguration.Configurations;
+using GagSpeak.Hardcore.ForcedStay;
 
 namespace GagSpeak.GagspeakConfiguration;
 public class GagspeakConfigService : ConfigurationServiceBase<GagspeakConfig>

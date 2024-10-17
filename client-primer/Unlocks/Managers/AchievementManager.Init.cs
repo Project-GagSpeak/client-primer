@@ -1,6 +1,7 @@
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Utils;
 using GagspeakAPI.Extensions;
 using System.Runtime.InteropServices;
@@ -165,7 +166,7 @@ public partial class AchievementManager
             if (activeSet is null) return false;
 
             if (activeSet.SetProperties.TryGetValue(activeSet.EnabledBy, out var prop))
-                return prop.LightStimulation || prop.MildStimulation || prop.HeavyStimulation;
+                return prop.StimulationLevel is not StimulationLevel.None;
 
             return false;
         }, "Hardcore Trials Cleared");
@@ -448,7 +449,7 @@ public partial class AchievementManager
             bool raceEndVisible = false;
             unsafe
             {
-                var raceEnded = (AtkUnitBase*)GenericHelpers.GetAddonByName("RaceChocoboResult");
+                var raceEnded = (AtkUnitBase*)AtkFuckery.GetAddonByName("RaceChocoboResult");
                 if (raceEnded != null)
                     raceEndVisible = raceEnded->RootNode->IsVisible();
             };
@@ -470,7 +471,7 @@ public partial class AchievementManager
             bool fashionCheckVisible = false;
             unsafe
             {
-                var fashionCheckOpen = (AtkUnitBase*)GenericHelpers.GetAddonByName("FashionCheck");
+                var fashionCheckOpen = (AtkUnitBase*)AtkFuckery.GetAddonByName("FashionCheck");
                 if (fashionCheckOpen != null)
                     fashionCheckVisible = fashionCheckOpen->RootNode->IsVisible();
             };

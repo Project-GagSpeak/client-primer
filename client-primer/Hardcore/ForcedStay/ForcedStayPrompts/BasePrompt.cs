@@ -1,6 +1,5 @@
-// for the base feature functionality
-namespace GagSpeak.Hardcore.BaseListener;
-public class BaseFeature
+namespace GagSpeak.Hardcore.ForcedStay;
+public class BasePrompt
 {
     public virtual bool Enabled { get; protected set; }
     public virtual string Key => GetType().Name;

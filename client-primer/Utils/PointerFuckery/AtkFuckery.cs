@@ -1,22 +1,61 @@
-using Dalamud.Plugin.Services;
-using FFXIVClientStructs.Attributes;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace GagSpeak.Utils;
 
-/// <summary>
-/// Various AtkHelpers for more in-depth functions. 
-/// Credit to Caraxi for the original code.
-/// https://github.com/Caraxi/SimpleTweaksPlugin/blob/8c379150c1e8c34d92574dfb30a22d2de186a9a0/Utility/Common.cs#L229
-/// </summary> 
-public unsafe class AtkHelpers
+/// <summary> A class for all of the UI helpers, including basic functions for drawing repetative yet unique design elements </summary>
+public static unsafe class AtkFuckery
 {
-    private IGameGui _gameGui;
-    public AtkHelpers(IGameGui gameGui)
+    public static AtkUnitBase* Base(this AddonArgs args) => (AtkUnitBase*)args.Addon;
+
+    public static IntPtr GetAddonByName(string name)
     {
-        _gameGui = gameGui;
+        var atkStage = AtkStage.Instance();
+        if (atkStage == null)
+            return IntPtr.Zero;
+
+        var unitMgr = atkStage->RaptureAtkUnitManager;
+        if (unitMgr == null)
+            return IntPtr.Zero;
+
+        var addon = unitMgr->GetAddonByName(name, 1);
+        if (addon == null)
+            return IntPtr.Zero;
+
+        return (IntPtr)addon;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAddonReady(AtkUnitBase* Addon)
+    {
+        return Addon->IsVisible && Addon->UldManager.LoadedState == AtkLoadState.Loaded && Addon->IsFullyLoaded();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsAddonReady(AtkComponentNode* Addon)
+    {
+        return Addon->AtkResNode.IsVisible() && Addon->Component->UldManager.LoadedState == AtkLoadState.Loaded;
+    }
+
+    public static void ClickAddonButton(this AtkComponentButton target, AtkUnitBase* addon)
+    {
+        var btnRes = target.AtkComponentBase.OwnerNode->AtkResNode;
+        var evt = btnRes.AtkEventManager.Event;
+
+        addon->ReceiveEvent(evt->Type, (int)evt->Param, btnRes.AtkEventManager.Event);
+    }
+
+    public static void ClickAddonButton(this AtkCollisionNode target, AtkUnitBase* addon)
+    {
+        var btnRes = target.AtkResNode;
+        var evt = btnRes.AtkEventManager.Event;
+
+        while (evt->Type != AtkEventType.MouseClick)
+            evt = evt->NextEvent;
+
+        addon->ReceiveEvent(evt->Type, (int)evt->Param, btnRes.AtkEventManager.Event);
     }
 
     public static void GenerateCallback(AtkUnitBase* unitBase, params object[] values)
@@ -38,44 +77,6 @@ public unsafe class AtkHelpers
             }
             Marshal.FreeHGlobal(new IntPtr(atkValues));
         }
-    }
-
-    public AtkUnitBase* GetUnitBase(string name, int index = 1)
-    {
-        return (AtkUnitBase*)_gameGui.GetAddonByName(name, index);
-    }
-
-    public T* GetUnitBase<T>(string name = null!, int index = 1) where T : unmanaged
-    {
-        if (string.IsNullOrEmpty(name))
-        {
-            var attr = (Addon)typeof(T).GetCustomAttribute(typeof(Addon))!;
-            if (attr != null)
-            {
-                name = attr.AddonIdentifiers.FirstOrDefault()!;
-            }
-        }
-
-        if (string.IsNullOrEmpty(name)) return null;
-        return (T*)_gameGui.GetAddonByName(name, index);
-    }
-
-    public bool GetUnitBase<T>(out T* unitBase, string name = null!, int index = 1) where T : unmanaged
-    {
-        unitBase = null;
-        if (string.IsNullOrEmpty(name))
-        {
-            var attr = (Addon)typeof(T).GetCustomAttribute(typeof(Addon))!;
-            if (attr != null)
-            {
-                name = attr.AddonIdentifiers.FirstOrDefault()!;
-            }
-        }
-
-        if (string.IsNullOrEmpty(name)) return false;
-
-        unitBase = (T*)_gameGui.GetAddonByName(name, index);
-        return unitBase != null;
     }
 
     public static AtkValue* CreateAtkValueArray(params object[] values)

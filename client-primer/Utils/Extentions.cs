@@ -129,9 +129,6 @@ public static class UtilsExtensions
     }
 
 
-
-    public static unsafe AtkUnitBase* Base(this AddonArgs args) => (AtkUnitBase*)args.Addon;
-
     /// <summary>
     /// Not my code, pulled from:
     /// https://github.com/PunishXIV/PunishLib/blob/8cea907683c36fd0f9edbe700301a59f59b6c78e/PunishLib/ImGuiMethods/ImGuiEx.cs

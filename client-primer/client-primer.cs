@@ -4,11 +4,9 @@ using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.STD;
 using GagSpeak.Achievements;
 using GagSpeak.GagspeakConfiguration;
-using GagSpeak.Hardcore;
-using GagSpeak.Hardcore.Hotbar;
+using GagSpeak.Hardcore.ForcedStay;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
@@ -60,7 +58,6 @@ using Microsoft.Extensions.Hosting;
 using OtterGui.Log;
 using Penumbra.GameData.Data;
 using Penumbra.GameData.DataContainers;
-using UpdateMonitoring;
 
 namespace GagSpeak;
 
@@ -184,7 +181,10 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagManager>()))
 
         // Hardcore services.
-        .AddSingleton((s) => new AtkHelpers(gg))
+        .AddSingleton((s) => new SelectStringPrompt(s.GetRequiredService<ILogger<SelectStringPrompt>>(), s.GetRequiredService<ClientConfigurationManager>(),
+            s.GetRequiredService<ForcedStayCallback>(), alc, gip, tm))
+        .AddSingleton((s) => new YesNoPrompt(s.GetRequiredService<ILogger<YesNoPrompt>>(), s.GetRequiredService<ClientConfigurationManager>(), alc, tm))
+        .AddSingleton((s) => new RoomSelectPrompt(s.GetRequiredService<ILogger<RoomSelectPrompt>>(), s.GetRequiredService<ClientConfigurationManager>(), alc, tm))
         .AddSingleton((s) => new SettingsHardcore(s.GetRequiredService<ILogger<SettingsHardcore>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ApiController>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<PairManager>(),
@@ -195,10 +195,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<AppearanceHandler>()
         .AddSingleton<CursedLootHandler>()
         .AddSingleton<PatternHandler>()
-        .AddSingleton((s) => new HardcoreHandler(s.GetRequiredService<ILogger<HardcoreHandler>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(),
-            s.GetRequiredService<PairManager>(), s.GetRequiredService<WardrobeHandler>(),
-            s.GetRequiredService<ApiController>(), tm))
+        .AddSingleton((s) => new HardcoreHandler(s.GetRequiredService<ILogger<HardcoreHandler>>(), s.GetRequiredService<GagspeakMediator>(), 
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<ApiController>(), tm))
         .AddSingleton<PlayerCharacterData>()
         .AddSingleton<GameObjectHandlerFactory>()
         .AddSingleton<PairFactory>()
@@ -228,20 +226,16 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<UnlocksEventManager>()
 
         // UpdateMonitoring Services
-        .AddSingleton((s) => new ActionMonitor(s.GetRequiredService<ILogger<ActionMonitor>>(), s.GetRequiredService<GagspeakMediator>(), 
+        .AddSingleton((s) => new ActionMonitor(s.GetRequiredService<ILogger<ActionMonitor>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<WardrobeHandler>(),
             s.GetRequiredService<OnFrameworkService>(), cs, dm, gip))
 
-        .AddSingleton((s) => new MovementMonitor(s.GetRequiredService<ILogger<MovementMonitor>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<HardcoreHandler>(),
-            s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<ClientConfigurationManager>(),
-            s.GetRequiredService<OptionPromptListeners>(), s.GetRequiredService<OnFrameworkService>(),
-            s.GetRequiredService<MoveController>(), con, cs, ks, ot))
+        .AddSingleton((s) => new MovementMonitor(s.GetRequiredService<ILogger<MovementMonitor>>(), s.GetRequiredService<GagspeakMediator>(),
+            s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<ClientConfigurationManager>(),
+            s.GetRequiredService<SelectStringPrompt>(), s.GetRequiredService<YesNoPrompt>(), s.GetRequiredService<RoomSelectPrompt>(),
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<MoveController>(), con, cs, ks, ot, tm))
         .AddSingleton((s) => new MoveController(s.GetRequiredService<ILogger<MoveController>>(), gip, ot))
-
-        .AddSingleton((s) => new OptionPromptListeners(s.GetRequiredService<ILogger<OptionPromptListeners>>(),
-            s.GetRequiredService<HardcoreHandler>(), tm, gip, alc))
-
+        .AddSingleton((s) => new ForcedStayCallback(s.GetRequiredService<ILogger<ForcedStayCallback>>(), s.GetRequiredService<ClientConfigurationManager>(), ss, gip))
 
         .AddSingleton((s) => new ResourceLoader(s.GetRequiredService<ILogger<ResourceLoader>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(),
@@ -255,10 +249,10 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakConfigService>(), ss, gip))
         .AddSingleton((s) => new OnEmote(s.GetRequiredService<ILogger<OnEmote>>(),
             s.GetRequiredService<OnFrameworkService>(), ss, gip))
-        .AddSingleton((s) => new TriggerController(s.GetRequiredService<ILogger<TriggerController>>(), s.GetRequiredService<GagspeakMediator>(), 
-            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<ActionEffectMonitor>(), 
+        .AddSingleton((s) => new TriggerController(s.GetRequiredService<ILogger<TriggerController>>(), s.GetRequiredService<GagspeakMediator>(),
+            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<ActionEffectMonitor>(),
             s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<GagManager>(),
-            s.GetRequiredService<PairManager>(), s.GetRequiredService<AppearanceHandler>(), s.GetRequiredService<OnFrameworkService>(), 
+            s.GetRequiredService<PairManager>(), s.GetRequiredService<AppearanceHandler>(), s.GetRequiredService<OnFrameworkService>(),
             s.GetRequiredService<ToyboxVibeService>(), s.GetRequiredService<IpcCallerMoodles>(), cg, cs, dm))
 
         .AddSingleton((s) => new DtrBarService(s.GetRequiredService<ILogger<DtrBarService>>(),
@@ -315,8 +309,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<MoodlesManager>()
         .AddSingleton((s) => new RestraintSetEditor(s.GetRequiredService<ILogger<RestraintSetEditor>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<WardrobeHandler>(),
-            s.GetRequiredService<UserPairListHandler>(), s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(), 
-            s.GetRequiredService<DictBonusItems>(), s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(), 
+            s.GetRequiredService<UserPairListHandler>(), s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(),
+            s.GetRequiredService<DictBonusItems>(), s.GetRequiredService<TextureService>(), s.GetRequiredService<ModAssociations>(),
             s.GetRequiredService<MoodlesAssociations>(), s.GetRequiredService<PairManager>(), dm))
         .AddSingleton<WardrobeHandler>()
 

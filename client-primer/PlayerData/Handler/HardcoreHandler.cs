@@ -1,75 +1,64 @@
 using Dalamud.Game.ClientState.Objects;
 using GagSpeak.GagspeakConfiguration;
-using GagSpeak.Hardcore;
+using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Hardcore.ForcedStay;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.Services;
+using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
-using GagSpeak.UI.MainWindow;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.WebAPI;
-using GagspeakAPI.Data;
-using GagspeakAPI.Enums;
 using System.Numerics;
 
 namespace GagSpeak.PlayerData.Handlers;
 /// <summary> Responsible for handling hardcore communication from stored data & ui to core logic. </summary>
 public class HardcoreHandler : DisposableMediatorSubscriberBase
 {
-    private readonly GagspeakConfigService _mainConfig;
+    private readonly ClientConfigurationManager _clientConfigs;
     private readonly PairManager _pairManager;
-    private readonly WardrobeHandler _outfitHandler;
     private readonly ApiController _apiController; // for sending the updates.
     private readonly ITargetManager _targetManager; // for targetting pair on follows.
 
     public unsafe GameCameraManager* cameraManager = GameCameraManager.Instance(); // for the camera manager object
     public HardcoreHandler(ILogger<HardcoreHandler> logger, GagspeakMediator mediator,
-        GagspeakConfigService mainConfig, PairManager pairManager,
-        WardrobeHandler outfitHandler, ApiController apiController, 
-        ITargetManager targetManager) : base(logger, mediator)
+        ClientConfigurationManager clientConfigs, PairManager pairManager, 
+        ApiController apiController, ITargetManager targetManager) : base(logger, mediator)
     {
-        _mainConfig = mainConfig;
+        _clientConfigs = clientConfigs;
         _pairManager = pairManager;
-        _outfitHandler = outfitHandler;
         _apiController = apiController;
         _targetManager = targetManager;
 
-        // update the text folder
-        _mainConfig.Current.StoredEntriesFolder.CheckAndInsertRequired();
-        _mainConfig.Current.StoredEntriesFolder.PruneEmpty();
-        _mainConfig.Save();
+        Mediator.Subscribe<HardcoreActionMessage>(this, (msg) =>
+        {
+            switch (msg.type)
+            {
+                case HardcoreActionType.ForcedFollow: SetForcedFollow(msg.State, msg.Pair); break;
+                case HardcoreActionType.ForcedSit: SetForcedSitState(msg.State, false, msg.Pair); break;
+                case HardcoreActionType.ForcedGroundSit: SetForcedSitState(msg.State, true, msg.Pair); break;
+                case HardcoreActionType.ForcedStay: SetForcedStayState(msg.State, msg.Pair); break;
+                case HardcoreActionType.ForcedBlindfold: SetBlindfoldState(msg.State, msg.Pair); break;
+            }
+        });
 
-        Mediator.Subscribe<HardcoreForcedToFollowMessage>(this, (msg) => SetForcedFollow(msg.State, msg.Pair));
-        Mediator.Subscribe<HardcoreForcedToSitMessage>(this, (msg) => SetForcedSitState(msg.State, false, msg.Pair));
-        Mediator.Subscribe<HardcoreForcedToKneelMessage>(this, (msg) => SetForcedSitState(msg.State, true, msg.Pair));
-        Mediator.Subscribe<HardcoreForcedToStayMessage>(this, (msg) => SetForcedStayState(msg.State, msg.Pair));
-        Mediator.Subscribe<HardcoreForcedBlindfoldMessage>(this, (msg) => SetBlindfoldState(msg.State, msg.Pair));
+        Mediator.Subscribe<SafewordHardcoreUsedMessage>(this, _ => OnSafewordUsed().ConfigureAwait(false));
     }
 
-    private bool _isFollowingForAnyPair;
-    private bool _isSittingForAnyPair;
-    private bool _isStayingForAnyPair;
-    public bool IsForcedFollow => _isFollowingForAnyPair;
-    public Pair? ForceFollowedPair => _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow) ?? null;
-    public bool IsCurrentlyForcedToFollow() => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
-    public bool IsForcedSit => _isSittingForAnyPair;
-    public Pair? ForceSitPair => _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit) ?? null;
-    public bool IsCurrentlyForcedToSit() => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit);
-    public bool IsForcedStay => _isStayingForAnyPair;
-    public Pair? ForceStayPair => _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsForcedToStay) ?? null;
-    public bool IsCurrentlyForcedToStay() => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay);
-    public Pair? BlindfoldPair => _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsBlindfolded) ?? null;
-    public bool IsCurrentlyBlindfolded() => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded);
+    public bool IsForcedToFollow { get; set; } = false;
+    public bool IsForcedToSit { get; set; } = false;
+    public bool IsForcedToStay { get; set; } = false;
+    public bool IsBlindfolded { get; set; } = false;
+    public Pair? ForceFollowedPair { get; set; } = null;
+    public Pair? ForceSitPair { get; set; } = null;
+    public Pair? ForceStayPair { get; set; } = null;
+    public Pair? BlindfoldPair { get; set; } = null;
 
-    public bool DisablePromptHooks => _mainConfig.Current.DisablePromptHooks;
-    public TextFolderNode StoredEntriesFolder => _mainConfig.Current.StoredEntriesFolder;
-    public Tuple<string, List<string>> LastSeenDialogText { get; set; }
-    public TextEntryNode? LastSelectedListNode { get; set; } = null;
-    public string LastSeenListTarget { get; set; } = string.Empty;
-    public string LastSeenListSelection { get; set; } = string.Empty;
-    public (int Index, string Text)[] LastSeenListEntries { get; set; } = [];
-    public int LastSeenListIndex { get; set; } = -1;
+    public bool MonitorFollowLogic => IsForcedToFollow;
+    public bool MonitorSitLogic => IsForcedToSit;
+    public bool MonitorStayLogic => IsForcedToStay;
+    public bool MonitorBlindfoldLogic => IsBlindfolded;
     public DateTimeOffset LastMovementTime { get; set; } = DateTimeOffset.Now;
     public Vector3 LastPosition { get; set; } = Vector3.Zero;
     public double StimulationMultiplier { get; set; } = 1.0;
@@ -78,226 +67,141 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     {
         base.Dispose(disposing);
 
-        if (_mainConfig.Current.UsingLegacyControls == false && GameConfig.UiControl.GetBool("MoveMode") == true)
-        {
-            // we have legacy on but dont normally have it on, so make sure that we set it back to normal!
+        if (!_clientConfigs.GagspeakConfig.UsingLegacyControls && GameConfig.UiControl.GetBool("MoveMode"))
             GameConfig.UiControl.Set("MoveMode", (int)MovementMode.Standard);
-        }
     }
 
-
-    public IEnumerable<ITextNode> GetAllNodes()
+    private async Task OnSafewordUsed()
     {
-        return new ITextNode[] { StoredEntriesFolder }.Concat(GetAllNodes(StoredEntriesFolder.Children));
-    }
+        Logger.LogInformation("Turning all Hardcore Functionality in 3 seconds.", LoggerType.Safeword);
+        await Task.Delay(3000);
 
-    public IEnumerable<ITextNode> GetAllNodes(IEnumerable<ITextNode> nodes)
-    {
-        foreach (var node in nodes)
-        {
-            yield return node;
-            if (node is TextFolderNode folder)
-            {
-                var children = GetAllNodes(folder.Children);
-                foreach (var childNode in children)
-                {
-                    yield return childNode;
-                }
-            }
-        }
-    }
-
-    public bool TryFindParent(ITextNode node, out TextFolderNode? parent)
-    {
-        foreach (var candidate in GetAllNodes())
-        {
-            if (candidate is TextFolderNode folder && folder.Children.Contains(node))
-            {
-                parent = folder;
-                return true;
-            }
-        }
-
-        parent = null;
-        return false;
-    }
-
-    public void CreateTextNode(TextFolderNode folder)
-    {
-        var newNode = new TextEntryNode()
-        {
-            Enabled = true,
-            Text = LastSeenDialogText.Item1,
-            Options = LastSeenDialogText.Item2.ToArray(),
-        };
-        folder.Children.Add(newNode);
-    }
-
-    public void SetPromptHooksState(bool newState)
-    {
-        _mainConfig.Current.DisablePromptHooks = newState;
-        _mainConfig.Save();
+        if (IsForcedToFollow && ForceFollowedPair is not null)
+            SetForcedFollow(NewState.Disabled, ForceFollowedPair);
+        if (IsForcedToSit && ForceSitPair is not null)
+            SetForcedSitState(NewState.Disabled, false, ForceSitPair);
+        if (IsForcedToStay && ForceStayPair is not null)
+            SetForcedStayState(NewState.Disabled, ForceStayPair);
+        if (IsBlindfolded && BlindfoldPair is not null)
+            SetBlindfoldState(NewState.Disabled, BlindfoldPair);
     }
 
     // when called for an enable, it will already be set to enabled, so we just need to update the state.
     // for disable, it can be auto, so we have to call it.
-    public void SetForcedFollow(NewState newState, Pair? pairToFollow = null)
+    public void SetForcedFollow(NewState newState, Pair pairToFollow)
     {
-        // if the new state is true and we are already following any pairs, return.
-        if (IsForcedFollow && newState == NewState.Enabled) { Logger.LogError("Already Following Someone, Cannot Enable!"); return; }
-        // if the new state is false and we are not following anyone, return.
-        if (!IsForcedFollow && newState == NewState.Disabled) { Logger.LogError("Not Following Anyone, Cannot Disable!"); return; }
-
-        // if forced to follow is false, and we are setting it to true, begin setting.
-        if (newState == NewState.Enabled && !IsForcedFollow)
+        // Get current forced follow state.
+        if(newState is NewState.Enabled)
         {
-            if (pairToFollow == null) { Logger.LogError("Cannot follow nothing."); return; }
-            // update the isFollowingForAnyPair to true. This should always be true since its switched to enabled from the call.
-            _isFollowingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
+            LastMovementTime = DateTimeOffset.UtcNow;
+            IsForcedToFollow = true;
+            ForceFollowedPair = pairToFollow;
             HandleForcedFollow(true, pairToFollow);
             Logger.LogDebug("Enabled forced follow for pair.", LoggerType.HardcoreMovement);
             return;
         }
 
-        // if forced to follow is true, and we are setting it to false, begin setting.
-        if (newState == NewState.Disabled && IsForcedFollow)
+        if (newState is NewState.Disabled)
         {
-            if (pairToFollow == null)
+            IsForcedToFollow = false;
+            ForceFollowedPair = null;
+            // if we have not yet been requested by that pair to stop following, this was triggered manually by our idle timer.
+            if (pairToFollow.UserPairOwnUniquePairPerms.IsForcedToFollow is true)
             {
-                Logger.LogWarning("ForceFollow Disable was triggered manually before it naturally disabled. Forcibly shutting down.");
-                _isFollowingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
-                HandleForcedFollow(false);
-                Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedFollow, NewState.Disabled));
-                Logger.LogDebug("Disabled forced follow for pair.", LoggerType.HardcoreMovement);
+                Logger.LogInformation("ForceFollow Disable was triggered manually before it naturally disabled. Forcibly shutting down.");
+                _ = _apiController.UserUpdateOwnPairPerm(new(pairToFollow.UserData, new KeyValuePair<string, object>("IsForcedToFollow", false)));
+                HandleForcedFollow(false, pairToFollow);
+                Logger.LogDebug("Disabled forced follow for pair", LoggerType.HardcoreMovement);
                 return;
             }
-
-            // if this is a natural falloff, we must naturally disable it.
-            if (pairToFollow.UserData.UID != ForceFollowedPair?.UserData.UID)
+            else
             {
-                Logger.LogError("Cannot unfollow a pair that is not the pair we are following.");
-                return;
+                // they disabled it, so just handle turning it off.
+                if (pairToFollow.UserPairOwnUniquePairPerms.IsForcedToFollow is false)
+                {
+                    Logger.LogDebug("Disabled forced follow for pair", LoggerType.HardcoreMovement);
+                    HandleForcedFollow(false, pairToFollow);
+                    return;
+                }
             }
-            pairToFollow.UserPairOwnUniquePairPerms.IsForcedToFollow = false;
-            _isFollowingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
-            _ = _apiController.UserUpdateOwnPairPerm(new(pairToFollow.UserData, new KeyValuePair<string, object>("IsForcedToFollow", false)));
-            HandleForcedFollow(false, pairToFollow);
-            Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedFollow, NewState.Disabled));
-            // log success.
-            Logger.LogDebug("Disabled forced follow for pair.", LoggerType.HardcoreMovement);
-            return;
         }
     }
 
-    public void SetForcedSitState(NewState newState, bool isGroundsit, Pair? pairToSitFor = null)
+    public void SetForcedSitState(NewState newState, bool isGroundsit, Pair pairToSitFor)
     {
-        if (IsForcedSit && newState == NewState.Enabled) { Logger.LogError("Already Forced to Sit by someone else, Cannot Enable!"); return; }
-        if (!IsForcedSit && newState == NewState.Disabled) { Logger.LogError("Not sitting for anyone. Cannot Disable!"); return; }
-        if (pairToSitFor == null) { Logger.LogError("Cannot update forced sit status when pair is nothing."); return; }
-
-        if (newState == NewState.Enabled && !IsForcedSit)
+        if (newState is NewState.Enabled)
         {
+            IsForcedToSit = true;
+            ForceSitPair = pairToSitFor;
+
             if (isGroundsit)
             {
-                // value is already updated, so simply update the boolean and enqueue the message.
-                _isSittingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToGroundSit);
                 ChatBoxMessage.EnqueueMessage("/groundsit");
+                Logger.LogDebug("Enabled forced kneeling for pair.", LoggerType.HardcoreMovement);
+
             }
             else
             {
-                _isSittingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToSit);
                 ChatBoxMessage.EnqueueMessage("/sit");
+                Logger.LogDebug("Enabled forced sitting for pair.", LoggerType.HardcoreMovement);
+
             }
-            // log success.
-            Logger.LogDebug("Enabled forced kneeling for pair.", LoggerType.HardcoreMovement);
             return;
         }
 
-        if (newState == NewState.Disabled && IsForcedSit)
+        if (newState is NewState.Disabled)
         {
-            if (pairToSitFor.UserData.UID != ForceSitPair?.UserData.UID)
-            {
-                Logger.LogError("Cannot force kneel a pair that is not the pair we are following.");
-                return;
-            }
-
-            if (isGroundsit)
-            {
-                _isSittingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToGroundSit);
-                Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedGroundSit, NewState.Disabled));
-            }
-            else
-            {
-                _isSittingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToSit);
-                Mediator.Publish(new MovementRestrictionChangedMessage(MovementRestrictionType.ForcedSit, NewState.Disabled));
-            }
-            // log success.
-            Logger.LogDebug("Enabled forced follow for pair.", LoggerType.HardcoreMovement);
-            return;
+            IsForcedToSit = false;
+            ForceSitPair = null;
+            Logger.LogDebug("Pair has allowed you to stand again.", LoggerType.HardcoreMovement);
         }
     }
 
-    public void SetForcedStayState(NewState newState, Pair? pairToStayFor = null)
+    public void SetForcedStayState(NewState newState, Pair pairToStayFor)
     {
-        if (IsForcedStay && newState == NewState.Enabled) { Logger.LogError("Already Forced to Stay by someone else. Cannot Enable!"); return; }
-        if (!IsForcedStay && newState == NewState.Disabled) { Logger.LogError("Not Forced to Stay by Anyone, Cannot Disable!"); return; }
-        if (pairToStayFor == null) { Logger.LogError("Cannot stay nothing."); return; }
-
-        // updates in either state are already set for the pair before its called, so we just need to update the boolean.
-        if (newState == NewState.Enabled && !IsForcedFollow)
+        if (newState is NewState.Enabled && !IsForcedToFollow)
         {
-            _isStayingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay);
             Logger.LogDebug("Enabled forced follow for pair.", LoggerType.HardcoreMovement);
             return;
         }
 
-        if (newState == NewState.Disabled && IsForcedFollow)
+        if (newState is NewState.Disabled && IsForcedToFollow)
         {
-            if (pairToStayFor.UserData.UID != ForceStayPair?.UserData.UID)
-            {
-                Logger.LogError("Cannot unfollow a pair that is not the pair we are stay.");
-                return;
-            }
-            _isStayingForAnyPair = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay);
             Logger.LogDebug("Disabled forced stay for pair.", LoggerType.HardcoreMovement);
             return;
         }
     }
 
-    private async void SetBlindfoldState(NewState newState, Pair? pairBlindfolding = null)
+    private async void SetBlindfoldState(NewState newState, Pair pairBlindfolding)
     {
-        Logger.LogWarning("This was called by something?!");
-
-        if (pairBlindfolding == null) { Logger.LogError("Pair does not exist."); return; }
-
-        if (newState == NewState.Enabled && !BlindfoldUI.IsWindowOpen)
+        if (newState is NewState.Enabled && !BlindfoldUI.IsWindowOpen)
         {
-            await HandleBlindfoldLogic(NewState.Enabled, pairBlindfolding.UserData.UID);
             Logger.LogDebug("Enabled Forced Blindfold for pair.", LoggerType.HardcoreActions);
+            await HandleBlindfoldLogic(NewState.Enabled, pairBlindfolding.UserData.UID);
             return;
         }
 
-        if (newState == NewState.Disabled && BlindfoldUI.IsWindowOpen)
+        if (newState is NewState.Disabled && BlindfoldUI.IsWindowOpen)
         {
-            await HandleBlindfoldLogic(NewState.Disabled, pairBlindfolding.UserData.UID);
             Logger.LogDebug("Disabled Forced Blindfold for pair.", LoggerType.HardcoreMovement);
+            await HandleBlindfoldLogic(NewState.Disabled, pairBlindfolding.UserData.UID);
             return;
         }
     }
 
     // handles the forced follow logic.
-    public void HandleForcedFollow(bool newState, Pair? pairUserData = null)
+    public void HandleForcedFollow(bool newState, Pair pairUserData)
     {
-        if(newState == true)
+        if (newState is true)
         {
-            if(pairUserData == null) { Logger.LogError("Somehow you still haven't set the forcedToFollowPair???"); return; }
+            if (pairUserData is null) { Logger.LogError("Somehow you still haven't set the forcedToFollowPair???"); return; }
             // target our pair and follow them.
             _targetManager.Target = pairUserData.VisiblePairGameObject;
             ChatBoxMessage.EnqueueMessage("/follow <t>");
         }
 
         // toggle movement type to legacy if we are not on legacy
-        if (_mainConfig.Current.UsingLegacyControls == false)
+        if (!_clientConfigs.GagspeakConfig.UsingLegacyControls)
         {
             // if forced follow is still on, dont switch it back to false
             uint mode = newState ? (uint)MovementMode.Legacy : (uint)MovementMode.Standard;
@@ -308,21 +212,21 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     public async Task HandleBlindfoldLogic(NewState newState, string applierUID)
     {
         // toggle our window based on conditions
-        if (newState == NewState.Enabled)
+        if (newState is NewState.Enabled)
         {
             IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
 
             // if the window isnt open, open it.
             if (!BlindfoldUI.IsWindowOpen)
             {
-                // Mediator.Publish(new UiToggleMessage(typeof(BlindfoldUI), ToggleType.Show));
+                Mediator.Publish(new UiToggleMessage(typeof(BlindfoldUI), ToggleType.Show));
             }
             // go in for camera voodoo.
             DoCameraVoodoo(newState);
             // log success.
             Logger.LogDebug("Applying Blindfold to Character");
         }
-        else if (newState == NewState.Disabled)
+        else
         {
             if (BlindfoldUI.IsWindowOpen)
             {
@@ -340,45 +244,44 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     private unsafe void DoCameraVoodoo(NewState newValue)
     {
         // force the camera to first person, but dont loop the force
-        if (NewState.Enabled == newValue)
+        if (newValue is NewState.Enabled)
         {
-            if (cameraManager != null && cameraManager->Camera != null
-            && cameraManager->Camera->Mode != (int)CameraControlMode.FirstPerson)
-            {
+            if (cameraManager is not null && cameraManager->Camera is not null && cameraManager->Camera->Mode is not (int)CameraControlMode.FirstPerson)
                 cameraManager->Camera->Mode = (int)CameraControlMode.FirstPerson;
-            }
         }
         else
         {
-            if (cameraManager != null && cameraManager->Camera != null
-            && cameraManager->Camera->Mode == (int)CameraControlMode.FirstPerson)
-            {
+            if (cameraManager is not null && cameraManager->Camera is not null && cameraManager->Camera->Mode is (int)CameraControlMode.FirstPerson)
                 cameraManager->Camera->Mode = (int)CameraControlMode.ThirdPerson;
-            }
         }
     }
 
     public void ApplyMultiplier()
     {
-        if (_outfitHandler.ActiveSet.SetProperties[_outfitHandler.ActiveSet.EnabledBy].LightStimulation)
+        var activeSet = _clientConfigs.GetActiveSet();
+        if (activeSet is null)
+            return;
+
+        var stimulationLvl = activeSet.SetProperties[activeSet.EnabledBy].StimulationLevel;
+
+        switch (stimulationLvl)
         {
-            Logger.LogDebug($"Light Stimulation Multiplier applied from set with factor of 1.125x!", LoggerType.HardcoreActions);
-            StimulationMultiplier = 1.125;
-        }
-        else if (_outfitHandler.ActiveSet.SetProperties[_outfitHandler.ActiveSet.EnabledBy].MildStimulation)
-        {
-            Logger.LogDebug($"Mild Stimulation Multiplier applied from set with factor of 1.25x!", LoggerType.HardcoreActions);
-            StimulationMultiplier = 1.25;
-        }
-        else if (_outfitHandler.ActiveSet.SetProperties[_outfitHandler.ActiveSet.EnabledBy].HeavyStimulation)
-        {
-            Logger.LogDebug($"Heavy Stimulation Multiplier applied from set with factor of 1.5x!", LoggerType.HardcoreActions);
-            StimulationMultiplier = 1.5;
-        }
-        else
-        {
-            Logger.LogDebug($"No Stimulation Multiplier applied from set, defaulting to 1.0x!", LoggerType.HardcoreActions);
-            StimulationMultiplier = 1.0;
+            case StimulationLevel.None:
+                Logger.LogDebug("No Stimulation Multiplier applied from set, defaulting to 1.0x!", LoggerType.HardcoreActions);
+                StimulationMultiplier = 1.0;
+                break;
+            case StimulationLevel.Light:
+                Logger.LogDebug("Light Stimulation Multiplier applied from set with factor of 1.125x!", LoggerType.HardcoreActions);
+                StimulationMultiplier = 1.125;
+                break;
+            case StimulationLevel.Mild:
+                Logger.LogDebug("Mild Stimulation Multiplier applied from set with factor of 1.25x!", LoggerType.HardcoreActions);
+                StimulationMultiplier = 1.25;
+                break;
+            case StimulationLevel.Heavy:
+                Logger.LogDebug("Heavy Stimulation Multiplier applied from set with factor of 1.5x!", LoggerType.HardcoreActions);
+                StimulationMultiplier = 1.5;
+                break;
         }
     }
 }

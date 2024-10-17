@@ -19,6 +19,19 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 4, 0)
+            .RegisterMain("Hardcore Functionality is in near full functionality. (but may contain bugs)")
+            .RegisterFeature("Forced follow now functions properly.")
+            .RegisterFeature("Forced Sit not functions properly")
+            .RegisterFeature("Forced Stay now functions properly.")
+            .RegisterFeature("Forced Blindfold now functions properly, though glamour is still delayed??")
+            .RegisterQol("ForcedToStay now has auto selection for apartment and FC Private Chambers.")
+            .RegisterQol("You are able to modify the selection of which chamber or apartment is entered while forced to stay.")
+            .RegisterBugfix("Fixed Bug where using Safeword would not restore you out of ANY Hardcore attributes.")
+            .RegisterBugfix("Fixed bug where player would get locked in place when asked to sit.")
+            .RegisterBugfix("Fixed bug in where player could be blindfolded perminantly.")
+            .RegisterBugfix("Fixed bug in where you could break out of follow with LMB+RMB")
+            .RegisterBugfix("Fixed issue where Immobilize did not work due to LMB+RMB breaking it.");
         VersionEntry(0, 9, 3, 9)
             .RegisterFeature("Preliminary Hardcore Functionality preparation has been added.")
             .RegisterMain("DO NOT TEST HARDCORE FEATURES RIGHT NOW, THEY ARE NOT READY.");

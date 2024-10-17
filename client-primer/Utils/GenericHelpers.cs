@@ -54,61 +54,6 @@ public static class GenericHelpers
         }
     }
 
-    public unsafe static string DecodeValue(AtkValue a)
-    {
-        var str = new StringBuilder(a.Type.ToString()).Append(": ");
-        switch (a.Type)
-        {
-            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.Int:
-                {
-                    str.Append(a.Int);
-                    break;
-                }
-            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.String8:
-            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.WideString:
-            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.ManagedString:
-            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.String:
-                {
-                    str.Append(Marshal.PtrToStringUTF8(new IntPtr(a.String)));
-                    break;
-                }
-            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.UInt:
-                {
-                    str.Append(a.UInt);
-                    break;
-                }
-            case FFXIVClientStructs.FFXIV.Component.GUI.ValueType.Bool:
-                {
-                    str.Append(a.Byte != 0);
-                    break;
-                }
-            default:
-                {
-                    str.Append($"Unknown Type: {a.Int}");
-                    break;
-                }
-        }
-        return str.ToString();
-    }
-
-    public static unsafe IntPtr GetAddonByName(string name)
-    {
-        var atkStage = AtkStage.Instance();
-        if (atkStage == null)
-            return IntPtr.Zero;
-
-        var unitMgr = atkStage->RaptureAtkUnitManager;
-        if (unitMgr == null)
-            return IntPtr.Zero;
-
-        var addon = unitMgr->GetAddonByName(name, 1);
-        if (addon == null)
-            return IntPtr.Zero;
-
-        return (IntPtr)addon;
-    }
-
-
     public static readonly HashSet<string> TimerPadlocks = new HashSet<string>
     {
         Padlocks.FiveMinutesPadlock.ToName(),

@@ -1,5 +1,4 @@
 using GagSpeak.GagspeakConfiguration;
-using GagSpeak.Hardcore;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services;
@@ -15,7 +14,6 @@ using GagSpeak.UpdateMonitoring.Triggers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Reflection;
-using UpdateMonitoring;
 
 namespace GagSpeak;
 /// <summary> The main class for the GagSpeak plugin.
@@ -169,11 +167,11 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatInputDetour>();
 
             // boot up update monitoring services (this don't work as hosted services because they are unsafe)
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<ForcedStayCallback>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ActionMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<MovementMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ActionEffectMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<TriggerService>();
-            _runtimeServiceScope.ServiceProvider.GetRequiredService<OptionPromptListeners>();
 
             // stuff that should probably be a hosted service but isnt yet.
             _runtimeServiceScope.ServiceProvider.GetRequiredService<DtrBarService>();

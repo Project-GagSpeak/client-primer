@@ -530,7 +530,7 @@ public static class ActionDataCore
         // Head Graze
         { 7551, new AcReqProps[]{AcReqProps.Movement, AcReqProps.Sight}},
         // Peleton
-        { 7557, new AcReqProps[]{AcReqProps.None}},
+        { 7557, new AcReqProps[]{AcReqProps.Weighted}},
         // Second Wind
         { 7541, new AcReqProps[]{AcReqProps.None}},
         // heavy shot
@@ -962,7 +962,7 @@ public static class ActionDataCore
         // Head Graze
         { 7551, new AcReqProps[]{AcReqProps.Movement, AcReqProps.Sight}},
         // Peleton
-        { 7557, new AcReqProps[]{AcReqProps.None}},
+        { 7557, new AcReqProps[]{AcReqProps.Weighted}},
         // Second Wind
         { 7541, new AcReqProps[]{AcReqProps.None}},
         
@@ -1394,7 +1394,7 @@ public static class ActionDataCore
         // Head Graze
         { 7551, new AcReqProps[]{AcReqProps.Movement, AcReqProps.Sight}},
         // Peleton
-        { 7557, new AcReqProps[]{AcReqProps.None}},
+        { 7557, new AcReqProps[]{AcReqProps.Weighted}},
         // Second Wind
         { 7541, new AcReqProps[]{AcReqProps.None}},
         // Saber Dance
@@ -1424,15 +1424,15 @@ public static class ActionDataCore
         // Cascade
         { 15989, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.Sight}},
         // Windmill
-        { 15993, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.Sight}},
+        { 15993, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement}},
         // Bladeshower
-        { 15994, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.LegMovement, AcReqProps.Sight}},
+        { 15994, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.LegMovement}},
         // Rising Windmill
-        { 15995, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.LegMovement, AcReqProps.Sight}},
+        { 15995, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.LegMovement}},
         // Bloodshower
-        { 15996, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.LegMovement, AcReqProps.Sight}},
+        { 15996, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.LegMovement}},
         // Fan Dance II
-        { 16008, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.LegMovement, AcReqProps.Sight}},
+        { 16008, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.LegMovement}},
         // Fan Dance IV
         { 25791, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.LegMovement, AcReqProps.Sight}},
         // Starfall Dance
@@ -1582,5 +1582,124 @@ public static class ActionDataCore
         { 24310, new AcReqProps[]{AcReqProps.None}},
         // panhaima
         { 24311, new AcReqProps[]{AcReqProps.None}},
+    };
+
+    public static Dictionary<uint, AcReqProps[]> Viper = new Dictionary<uint, AcReqProps[]>()
+    {
+        // Sprint
+        { 4,    new AcReqProps[]{AcReqProps.Weighted}},
+        // Teleport
+        { 7,    new AcReqProps[]{AcReqProps.None}},
+        // Return
+        { 8,    new AcReqProps[]{AcReqProps.None}},
+        // Bloodbath
+        { 7542, new AcReqProps[]{AcReqProps.None, AcReqProps.ArmMovement}},
+        // Second Wind
+        { 7541, new AcReqProps[]{AcReqProps.None}},
+        // Feint 
+        { 7549, new AcReqProps[]{AcReqProps.ArmMovement}},
+        // leg sweep
+        { 7863, new AcReqProps[]{AcReqProps.LegMovement}},
+        // True North
+        { 7546, new AcReqProps[]{AcReqProps.Movement}},
+        // Arms Length
+        { 7548, new AcReqProps[]{AcReqProps.Movement}},
+        // Steel Fangs
+        { 34606, new AcReqProps[]{AcReqProps.Movement, AcReqProps.LegMovement, AcReqProps.ArmMovement} },
+        // Reaving Fangs
+        { 34607, new AcReqProps[]{AcReqProps.Movement, AcReqProps.LegMovement, AcReqProps.ArmMovement} },
+        // Vicewinder 
+        { 34620, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement } },
+        // Serpent's Tail
+        { 35920, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement } },
+        // Twinblood is 35922
+        { 35922, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement } },
+        // Twinfang is 35921
+        { 35921, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement } },
+        // Vicepit is 34623
+        { 34623, new AcReqProps[]{AcReqProps.Movement, AcReqProps.LegMovement, AcReqProps.ArmMovement } },
+        // Steel Maw is 35614
+        { 35614, new AcReqProps[]{AcReqProps.Movement, AcReqProps.LegMovement, AcReqProps.ArmMovement } },
+        // Reaving Maw is 34615
+        { 34615, new AcReqProps[]{AcReqProps.Movement, AcReqProps.LegMovement, AcReqProps.ArmMovement } },
+        // Uncoiled Fury is 34633
+        { 34633, new AcReqProps[]{AcReqProps.Movement, AcReqProps.Sight, AcReqProps.ArmMovement } },
+        // Serpent's Ire is 34647
+        { 34647, new AcReqProps[]{AcReqProps.ArmMovement } },
+        // Swiftskins's Coil is 34622
+        { 34622, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement } },
+        // Hunter's Coil is 34621
+        { 34621, new AcReqProps[]{AcReqProps.Movement, AcReqProps.LegMovement, AcReqProps.ArmMovement } },
+        // Reawaken is 34626
+        { 34626, new AcReqProps[]{AcReqProps.ArmMovement, AcReqProps.Speech} },
+        // Hunter's Den is 34624
+        { 34624, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement} },
+        // Swiftskin's Den is 34625
+        { 34625, new AcReqProps[]{AcReqProps.ArmMovement, AcReqProps.Sight} },
+        // Slither is 34646
+        { 34646, new AcReqProps[]{AcReqProps.Movement, AcReqProps.Sight } },
+        // Writing Snap is 34632
+        { 34632, new AcReqProps[]{AcReqProps.ArmMovement, AcReqProps.Sight } },
+
+
+    };
+
+    public static Dictionary<uint, AcReqProps[]> Pictomancer = new Dictionary<uint, AcReqProps[]>()
+    {
+        // Sprint
+        { 4,    new AcReqProps[]{AcReqProps.Weighted}},
+        // Teleport
+        { 7,    new AcReqProps[]{AcReqProps.None}},
+        // Return
+        { 8,    new AcReqProps[]{AcReqProps.None}},
+        // Lucid Dreaming
+        { 7562, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement}},
+        // Sleep
+        { 25880, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement}},
+        // Surecast
+        { 7559, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement}},
+        // Swiftcast
+        { 7561, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.Sight}},
+        // Addle
+        { 7560, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement}},
+        // Fire in Red is 34650
+        { 34650, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement} },
+        // Living Muse is 35347
+        { 35347, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement} },
+        // Blizzard in Cyan is 34653
+        { 34653, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement } },
+        // Holy in White is 34662
+        { 34662, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.Sight } },
+        // Comet in Black is 34663
+        { 34663, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.Sight} },
+        // Hammer Stamp is 34678
+        { 34678, new AcReqProps[]{AcReqProps.ArmMovement, AcReqProps.Sight } },
+        // Rainbow Drip is 34688
+        { 34688, new AcReqProps[]{AcReqProps.Movement, AcReqProps.LegMovement, AcReqProps.ArmMovement } },
+        // Blizzard II in Cyan is 34659
+        { 34659, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement } },
+        // Fire II in Red is 34656
+        { 34656, new AcReqProps[]{AcReqProps.Movement, AcReqProps.ArmMovement } },
+        // Star Prism is 34681
+        { 34681, new AcReqProps[]{AcReqProps.LegMovement, AcReqProps.ArmMovement, AcReqProps.Speech } },
+        // Mog of the Ages is 34676
+        { 34676, new AcReqProps[]{AcReqProps.ArmMovement, AcReqProps.Sight } },
+        // Subtractive Palette is 34683
+        { 34683, new AcReqProps[]{AcReqProps.Movement, AcReqProps.LegMovement } },
+        // Steel Muse is 35348 (striking muse == arms, 
+        { 35348, new AcReqProps[]{ AcReqProps.ArmMovement } },
+        // Scenic Muse is 35349 (starry muse == legs & arms)
+        { 35349, new AcReqProps[]{ AcReqProps.Movement, AcReqProps.ArmMovement, AcReqProps.LegMovement } },
+        // Tempura Coat is 34685
+        { 34685, new AcReqProps[]{AcReqProps.ArmMovement } },
+        // Smudge is 34684
+        { 34684, new AcReqProps[]{AcReqProps.Movement, AcReqProps.LegMovement } },
+        // Pom Motif is 34689
+        { 34689, new AcReqProps[]{AcReqProps.ArmMovement } },
+        // Hammer Motif is 34690
+        { 34690, new AcReqProps[]{AcReqProps.ArmMovement } },
+        // Starry Sky Motif is 34691
+        { 34691, new AcReqProps[]{AcReqProps.ArmMovement } }, 
+
     };
 }

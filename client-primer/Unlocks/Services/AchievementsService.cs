@@ -47,7 +47,7 @@ public class AchievementsService : DisposableMediatorSubscriberBase
             // Check Chocobo Racing Achievement.
             if (_frameworkUtils.Condition[ConditionFlag.ChocoboRacing])
             {
-                var resultMenu = (AtkUnitBase*)GenericHelpers.GetAddonByName("RaceChocoboResult");
+                var resultMenu = (AtkUnitBase*)AtkFuckery.GetAddonByName("RaceChocoboResult");
                 if (resultMenu != null)
                 {
                     if (resultMenu->RootNode->IsVisible())

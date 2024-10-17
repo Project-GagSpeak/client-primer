@@ -36,9 +36,9 @@ public class AppearanceService : DisposableMediatorSubscriberBase
         _cts = new CancellationTokenSource(); // for handling gearset changes
 
         // subscribe to our mediator for glamour changed
-        IpcFastUpdates.GlamourEventFired += (msg) => RefreshAppearance(msg);
+        IpcFastUpdates.GlamourEventFired += (msg) => RefreshAppearance(msg).ConfigureAwait(false);
         IpcFastUpdates.CustomizeEventFired += EnsureForcedCustomizeProfile;
-        Mediator.Subscribe<ZoneSwitchEndMessage>(this, (_) => RefreshAppearance(GlamourUpdateType.ZoneChange));
+        Mediator.Subscribe<ZoneSwitchEndMessage>(this, (_) => RefreshAppearance(GlamourUpdateType.ZoneChange).ConfigureAwait(false));
     }
 
     /// <summary>
@@ -53,7 +53,7 @@ public class AppearanceService : DisposableMediatorSubscriberBase
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        IpcFastUpdates.GlamourEventFired -= (msg) => RefreshAppearance(msg);
+        IpcFastUpdates.GlamourEventFired -= (msg) => RefreshAppearance(msg).ConfigureAwait(false);
         IpcFastUpdates.CustomizeEventFired -= EnsureForcedCustomizeProfile;
     }
 

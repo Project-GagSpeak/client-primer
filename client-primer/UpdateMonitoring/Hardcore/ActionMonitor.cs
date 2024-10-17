@@ -10,12 +10,11 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UpdateMonitoring;
 using System.Collections.Immutable;
 using ClientStructFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
-namespace UpdateMonitoring;
-public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
+namespace GagSpeak.UpdateMonitoring;
+public class ActionMonitor : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly HardcoreHandler _hardcoreHandler;
@@ -25,19 +24,19 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     private readonly IDataManager _dataManager;
 
     // attempt to get the rapture hotbar module so we can modify the display of hotbar items
-    public RaptureHotbarModule* raptureHotbarModule = ClientStructFramework.Instance()->GetUIModule()->GetRaptureHotbarModule();
+    public unsafe RaptureHotbarModule* raptureHotbarModule = ClientStructFramework.Instance()->GetUIModule()->GetRaptureHotbarModule();
 
     // hook creation for the action manager
     // if sigs fuck up, reference https://github.com/PunishXIV/Orbwalker/blob/f850e04eb9371aa5d7f881e3024d7f5d0953820a/Orbwalker/Memory.cs#L15
-    internal delegate bool UseActionDelegate(ActionManager* am, ActionType type, uint acId, long target, uint a5, uint a6, uint a7, void* a8);
+    internal unsafe delegate bool UseActionDelegate(ActionManager* am, ActionType type, uint acId, long target, uint a5, uint a6, uint a7, void* a8);
     internal Hook<UseActionDelegate> UseActionHook;
 
     public Dictionary<uint, AcReqProps[]> CurrentJobBannedActions = new Dictionary<uint, AcReqProps[]>(); // stores the current job actions
     public Dictionary<int, Tuple<float, DateTime>> CooldownList = new Dictionary<int, Tuple<float, DateTime>>(); // stores the recast timers for each action
 
     public unsafe ActionMonitor(ILogger<ActionMonitor> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfigs, HardcoreHandler handler, 
-        WardrobeHandler wardrobeHandler, OnFrameworkService frameworkUtils, IClientState clientState, 
+        ClientConfigurationManager clientConfigs, HardcoreHandler handler,
+        WardrobeHandler wardrobeHandler, OnFrameworkService frameworkUtils, IClientState clientState,
         IDataManager dataManager, IGameInteropProvider interop) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
@@ -54,24 +53,24 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         // initialize
         UpdateJobList();
         // if we currently have an active restraint set...
-        if (_wardrobeHandler.ActiveSet is not null)
+        var activeSet = _clientConfigs.GetActiveSet();
+        if (activeSet is not null && activeSet.EnabledBy is not Globals.SelfApplied)
         {
-            if (_wardrobeHandler.ActiveSet.EnabledBy is not Globals.SelfApplied)
+            if (_clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), activeSet.EnabledBy))
             {
-                if (_clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), Globals.DebugUID))//_wardrobeHandler.ActiveSet.EnabledBy))
-                {
-                    Logger.LogDebug("Hardcore RestraintSet is now active", LoggerType.HardcoreActions);
-                    // apply stimulation modifier, if any (TODO)
-                    _hardcoreHandler.ApplyMultiplier();
-                    // activate hotbar lock, if we have any properties enabled (we always will since this subscriber is only called if there is)
-                    HotbarLocker.SetHotbarLockState(NewState.Locked);
-                }
+                Logger.LogDebug("Hardcore RestraintSet is now active", LoggerType.HardcoreActions);
+                // apply stimulation modifier, if any (TODO)
+                _hardcoreHandler.ApplyMultiplier();
+
+                if (activeSet.SetProperties[activeSet.EnabledBy].StimulationLevel is not StimulationLevel.None)
+                    UpdateJobList();
+
+                // activate hotbar lock, if we have any properties enabled (we always will since this subscriber is only called if there is)
+                HotbarLocker.SetHotbarLockState(NewState.Locked);
             }
         }
-        else
-        {
-            Logger.LogDebug("No restraint sets are active", LoggerType.HardcoreActions);
-        }
+
+        Mediator.Subscribe<SafewordHardcoreUsedMessage>(this, _ => SafewordUsed());
 
         // subscribe to events.
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
@@ -80,7 +79,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         IpcFastUpdates.HardcoreTraitsEventFired += ToggleHardcoreTraits;
     }
 
-    public bool MonitorHardcoreRestraintSetProperties = false;
+    public static bool MonitorHardcoreRestraintSetProperties = false;
 
     protected override void Dispose(bool disposing)
     {
@@ -105,20 +104,36 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         base.Dispose(disposing);
     }
 
-    public void ToggleHardcoreTraits(NewState newState, string AssignerUID = Globals.SelfApplied)
+    public async void SafewordUsed()
     {
-        if (AssignerUID is not Globals.SelfApplied && newState is NewState.Enabled)
+        // Wait 3 seconds to let everything else from the safeword process first.
+        Logger.LogDebug("Safeword has been used, re-enabling actions in 3 seconds");
+        await Task.Delay(3000);
+        // set lock to visable again
+        HotbarLocker.SetHotbarLockState(NewState.Unlocked);
+        // restore saved slots
+        RestoreSavedSlots();
+    }
+
+
+    public void ToggleHardcoreTraits(NewState newState, RestraintSet restraintSetRef)
+    {
+        if (restraintSetRef.EnabledBy is not Globals.SelfApplied && newState is NewState.Enabled)
         {
-            Logger.LogWarning(AssignerUID + " has enabled hardcore traits", LoggerType.HardcoreActions);
+            Logger.LogWarning(restraintSetRef.EnabledBy + " has enabled hardcore traits", LoggerType.HardcoreActions);
             _hardcoreHandler.ApplyMultiplier();
+            // recalculate the cooldowns for the current job if using stimulation
+            if (restraintSetRef.SetProperties[restraintSetRef.EnabledBy].StimulationLevel is not StimulationLevel.None)
+                UpdateJobList();
+
             HotbarLocker.SetHotbarLockState(NewState.Locked);
             // Begin monitoring hardcore restraint properties.
             MonitorHardcoreRestraintSetProperties = true;
         }
-        else if (AssignerUID is not Globals.SelfApplied && newState is NewState.Disabled)
+        if (restraintSetRef.EnabledBy is not Globals.SelfApplied && newState is NewState.Disabled)
         {
-            Logger.LogWarning(AssignerUID + " has disabled hardcore traits", LoggerType.HardcoreActions);
-            _hardcoreHandler.StimulationMultiplier = 1.0;
+            Logger.LogWarning(restraintSetRef.EnabledBy + " has disabled hardcore traits", LoggerType.HardcoreActions);
+            _hardcoreHandler.StimulationMultiplier = 1.0f;
             RestoreSavedSlots();
             HotbarLocker.SetHotbarLockState(NewState.Unlocked);
             // Halt monitoring of properties
@@ -128,26 +143,24 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
 
 
 
-    public void RestoreSavedSlots()
+    public unsafe void RestoreSavedSlots()
     {
-        if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.ClassJob != null && raptureHotbarModule != null)
+        if (raptureHotbarModule is null)
+            return;
+
+        Logger.LogDebug("Restoring saved slots", LoggerType.HardcoreActions);
+        var baseSpan = raptureHotbarModule->StandardHotbars; // the length of our hotbar count
+        for (var i = 0; i < baseSpan.Length; i++)
         {
-            Logger.LogDebug("Restoring saved slots", LoggerType.HardcoreActions);
-            var baseSpan = raptureHotbarModule->StandardHotbars; // the length of our hotbar count
-            for (var i = 0; i < baseSpan.Length; i++)
-            {
-                var hotbarRow = baseSpan.GetPointer(i);
-                // if the hotbar is not null, we can get the slots data
-                if (hotbarRow != null)
-                {
-                    raptureHotbarModule->LoadSavedHotbar(_frameworkUtils.PlayerClassJobId, (uint)i);
-                }
-            }
+            var hotbarRow = baseSpan.GetPointer(i);
+            // if the hotbar is not null, we can get the slots data
+            if (hotbarRow is not null)
+                raptureHotbarModule->LoadSavedHotbar(_frameworkUtils.PlayerClassJobId, (uint)i);
         }
     }
 
     // fired on framework tick while a set is active
-    private void UpdateSlots(HardcoreSetProperties setProperties)
+    private unsafe void UpdateSlots(HardcoreSetProperties setProperties)
     {
         var hotbarSpan = raptureHotbarModule->StandardHotbars; // the length of our hotbar count
         for (var i = 0; i < hotbarSpan.Length; i++)
@@ -209,12 +222,12 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
     }
 
     // for updating our stored job list dictionary
-    private void UpdateJobList()
+    private unsafe void UpdateJobList()
     {
         // this will be called by the job changed event. When it does, we will update our job list with the new job.
         if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.ClassJob != null)
         {
-            Logger.LogDebug("Updating job list to : "+ (JobType)_frameworkUtils.PlayerClassJobId, LoggerType.HardcoreActions);
+            Logger.LogDebug("Updating job list to : " + (JobType)_frameworkUtils.PlayerClassJobId, LoggerType.HardcoreActions);
             ActionData.GetJobActionProperties((JobType)_frameworkUtils.PlayerClassJobId, out var bannedJobActions);
             CurrentJobBannedActions = bannedJobActions; // updated our job list
             // only do this if we are logged in
@@ -232,13 +245,15 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         }
     }
 
-    private void GenerateCooldowns()
+    private unsafe void GenerateCooldowns()
     {
         // if our current dictionary is not empty, empty it
         if (CooldownList.Count > 0)
         {
+            Logger.LogTrace("Emptying previous class cooldowns", LoggerType.HardcoreActions);
             CooldownList.Clear();
         }
+        Logger.LogTrace("Generating new class cooldowns", LoggerType.HardcoreActions);
         // get the current job actions
         var baseSpan = raptureHotbarModule->StandardHotbars; // the length of our hotbar count
         for (var i = 0; i < baseSpan.Length; i++)
@@ -267,7 +282,7 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
                         var recastTime = ActionManager.GetAdjustedRecastTime(ActionType.Action, adjustedId);
                         recastTime = (int)(recastTime * _hardcoreHandler.StimulationMultiplier);
                         // if it is an action or general action, append it
-                        // Logger.LogTrace($" SlotID {slot->CommandId} Cooldown group {cooldownGroup} with recast time {recastTime}");
+                        //Logger.LogTrace($" SlotID {slot->CommandId} Cooldown group {cooldownGroup} with recast time {recastTime}", LoggerType.HardcoreActions);
                         if (!CooldownList.ContainsKey(cooldownGroup))
                         {
                             CooldownList.Add(cooldownGroup, new Tuple<float, DateTime>(recastTime, DateTime.MinValue));
@@ -294,68 +309,68 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         if (_clientState.LocalPlayer?.IsDead ?? false)
             return;
 
-        if (AllowFrameworkHardcoreUpdates())
-            if (_clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), _wardrobeHandler.ActiveSet.EnabledBy))
-                UpdateSlots(_wardrobeHandler.ActiveSet.SetProperties[_wardrobeHandler.ActiveSet.EnabledBy]);
+        // This seems redundant? Since we recalculate on job change and also lock hotbar and ability to move slots around? But idk.
+        if (MonitorHardcoreRestraintSetProperties)
+        {
+            // Probably just remove it if we need to.
+            var activeSet = _clientConfigs.GetActiveSet();
+            if (activeSet is not null && _clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), activeSet.EnabledBy))
+                UpdateSlots(activeSet.SetProperties[activeSet.EnabledBy]);
+        }
     }
+
     #endregion Framework Updates
-    private bool UseActionDetour(ActionManager* am, ActionType type, uint acId, long target, uint a5, uint a6, uint a7, void* a8)
+    private unsafe bool UseActionDetour(ActionManager* am, ActionType type, uint acId, long target, uint a5, uint a6, uint a7, void* a8)
     {
         try
         {
             //Logger.LogTrace($" UseActionDetour called {acId} {type}");
 
-            // if we are allowing hardcore updates / in hardcore mode
-            if (AllowFrameworkHardcoreUpdates())
+            // If someone is forcing us to stay, we should block access to teleports and other methods of death.
+            if (_hardcoreHandler.MonitorStayLogic)
             {
-                // If someone is forcing us to stay, we should block access to teleports and other methods of death.
-                if (_hardcoreHandler.IsForcedStay)
+                // check if we are trying to hit teleport or return from hotbars /  menus
+                if (type is ActionType.GeneralAction && acId is 7 or 8)
                 {
-                    // check if we are trying to hit teleport or return from hotbars /  menus
-                    if (type == ActionType.GeneralAction && (acId == 7 || acId == 8))
-                    {
-                        Logger.LogTrace("You are currently locked away, canceling teleport/return execution", LoggerType.HardcoreActions);
-                        return false;
-                    }
-                    // if we somehow managed to start executing it, then stop that too
-                    if (type == ActionType.Action && (acId == 5 || acId == 6 || acId == 11408))
-                    {
-                        Logger.LogTrace("You are currently locked away, canceling teleport/return execution", LoggerType.HardcoreActions);
-                        return false;
-                    }
+                    Logger.LogTrace("You are currently locked away, canceling teleport/return execution", LoggerType.HardcoreActions);
+                    return false;
                 }
+                // if we somehow managed to start executing it, then stop that too
+                if (type is ActionType.Action && acId is 5 or 6 or 11408)
+                {
+                    Logger.LogTrace("You are currently locked away, canceling teleport/return execution", LoggerType.HardcoreActions);
+                    return false;
+                }
+            }
 
-                // because they are, lets see if the light, mild, or heavy stimulation is active
-                if (_wardrobeHandler.ActiveSet.SetProperties[_wardrobeHandler.ActiveSet.EnabledBy].LightStimulation ||
-                    _wardrobeHandler.ActiveSet.SetProperties[_wardrobeHandler.ActiveSet.EnabledBy].MildStimulation ||
-                    _wardrobeHandler.ActiveSet.SetProperties[_wardrobeHandler.ActiveSet.EnabledBy].HeavyStimulation)
+            //Logger.LogTrace($" UseActionDetour called {acId} {type}");
+            if (MonitorHardcoreRestraintSetProperties)
+            {
+                // Shortcut to avoid fetching active set for stimulation level every action.
+                if (_hardcoreHandler.StimulationMultiplier is not 1.0)
                 {
                     // then let's check our action ID's to apply the modified cooldown timers
-                    if (ActionType.Action == type && acId > 7)
+                    if (type is ActionType.Action && acId > 7)
                     {
                         var recastTime = ActionManager.GetAdjustedRecastTime(type, acId);
                         var adjustedId = am->GetAdjustedActionId(acId);
                         var recastGroup = am->GetRecastGroup((int)type, adjustedId);
                         if (CooldownList.ContainsKey(recastGroup))
                         {
-                            // Logger.LogDebug($" GROUP FOUND - Recast Time: {recastTime} | Cast Group: {recastGroup}");
+                            //Logger.LogDebug($" GROUP FOUND - Recast Time: {recastTime} | Cast Group: {recastGroup}");
                             var cooldownData = CooldownList[recastGroup];
                             // if we are beyond our recast time from the last time used, allow the execution
                             if (DateTime.Now >= cooldownData.Item2.AddMilliseconds(cooldownData.Item1))
                             {
                                 // Update the last execution time before execution
-                                Logger.LogTrace("ACTION COOLDOWN FINISHED", LoggerType.HardcoreActions);
+                                //Logger.LogTrace("ACTION COOLDOWN FINISHED", LoggerType.HardcoreActions);
                                 CooldownList[recastGroup] = new Tuple<float, DateTime>(cooldownData.Item1, DateTime.Now);
                             }
                             else
                             {
-                                Logger.LogTrace("ACTION COOLDOWN NOT FINISHED", LoggerType.HardcoreActions);
+                                //Logger.LogTrace("ACTION COOLDOWN NOT FINISHED", LoggerType.HardcoreActions);
                                 return false; // Do not execute the action
                             }
-                        }
-                        else
-                        {
-                            Logger.LogDebug("GROUP NOT FOUND", LoggerType.HardcoreActions);
                         }
                     }
                 }
@@ -369,14 +384,5 @@ public unsafe class ActionMonitor : DisposableMediatorSubscriberBase
         var ret = UseActionHook.Original(am, type, acId, target, a5, a6, a7, a8);
         // invoke the action used event
         return ret;
-    }
-
-    private bool AllowFrameworkHardcoreUpdates()
-    {
-        return
-           _clientState.IsLoggedIn                          // we must be logged in
-        && _clientState.LocalPlayer != null                 // our character must not be null
-        && _clientState.LocalPlayer.Address != nint.Zero    // our address must be valid
-        && MonitorHardcoreRestraintSetProperties;               // is in hardcore for anyone.
     }
 }

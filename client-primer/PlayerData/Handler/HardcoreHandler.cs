@@ -159,7 +159,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
 
     public void SetForcedStayState(NewState newState, Pair pairToStayFor)
     {
-        if (newState is NewState.Enabled && !IsForcedToFollow)
+        if (newState is NewState.Enabled)
         {
             IsForcedToStay = true;
             ForceStayPair = pairToStayFor;
@@ -167,7 +167,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             return;
         }
 
-        if (newState is NewState.Disabled && IsForcedToFollow)
+        if (newState is NewState.Disabled)
         {
             IsForcedToStay = false;
             ForceStayPair = null;

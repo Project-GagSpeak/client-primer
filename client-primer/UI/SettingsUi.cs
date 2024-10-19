@@ -28,6 +28,8 @@ using OtterGui.Text;
 using System.Globalization;
 using System.Numerics;
 using GagSpeak.Utils;
+using Lumina.Excel.GeneratedSheets2;
+using GagSpeak.Hardcore.Movement;
 
 namespace GagSpeak.UI;
 
@@ -43,6 +45,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly SettingsHardcore _hardcoreSettingsUI;
     private readonly UiSharedService _uiShared;
+    private readonly MoveController _moveController;
     private readonly AvfxManager _avfxManager;
     private readonly VfxSpawns _vfxSpawns;
     private bool _deleteAccountPopupModalShown = false;
@@ -59,8 +62,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
     public SettingsUi(ILogger<SettingsUi> logger, UiSharedService uiShared,
         ApiController apiController, GagspeakConfigService configService,
         PairManager pairManager, PlayerCharacterData playerCharacterManager,
-        ClientConfigurationManager clientConfigs, AvfxManager avfxManager,
-        VfxSpawns vfxSpawns, ServerConfigurationManager serverConfigs,
+        ClientConfigurationManager clientConfigs, MoveController moveController,
+        AvfxManager avfxManager, VfxSpawns vfxSpawns, ServerConfigurationManager serverConfigs,
         GagspeakMediator mediator, IpcManager ipcManager, SettingsHardcore hardcoreSettingsUI,
         OnFrameworkService frameworkUtil) : base(logger, mediator, "GagSpeak Settings")
     {
@@ -69,6 +72,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _configService = configService;
         _pairManager = pairManager;
         _clientConfigs = clientConfigs;
+        _moveController = moveController;
         _avfxManager = avfxManager;
         _vfxSpawns = vfxSpawns;
         _serverConfigs = serverConfigs;
@@ -1204,6 +1208,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
         UiSharedService.AttachToolTip("Use this when reporting mods being rejected from the server.");
 
 
+        // Draw the forced disable movement pointer
+        using (var disabled = ImRaii.Disabled(true))
+        {
+            ImGui.InputInt($"forceDisableMovementPtr", ref _moveController.ForceDisableMovement);
+        }
+        
         // draw debug information for character information.
         if (ImGui.CollapsingHeader("Global Data")) { DrawGlobalInfo(); }
         if (ImGui.CollapsingHeader("Appearance Data")) { DrawAppearanceInfo(); }

@@ -16,8 +16,7 @@ public class MoveController : IDisposable
 #pragma warning disable CS8602
     private readonly ILogger<MoveController> _logger;
     private readonly IObjectTable _objectTable;
-
-    public bool AllMovementIsDisabled => ForceDisableMovement != 0;
+    public bool AllMovementIsDisabled => ForceDisableMovement > 0;
 
     #region Pointer Signature Fuckery
     // controls the complete blockage of movement from the player (Blocks /follow movement)
@@ -145,7 +144,7 @@ public class MoveController : IDisposable
 
         // If it is at 0, we need to change it to 1.
         _logger.LogTrace("Disabling All Movement due to Hardcore Active State condition starting", LoggerType.HardcoreMovement);
-        ForceDisableMovement++;
+        ForceDisableMovement = 1;
     }
 
     /// <summary>
@@ -159,7 +158,7 @@ public class MoveController : IDisposable
 
         // Otherwise, re-enable movement.
         _logger.LogTrace("Enabling All Movement due to Hardcore Active State condition ending", LoggerType.HardcoreMovement);
-        ForceDisableMovement--;
+        ForceDisableMovement = 0;
     }
 
     public void EnableUnfollowHook()

@@ -147,16 +147,11 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public ApiController ApiController => _apiController;   // a public accessible api controller for the plugin, pulled from the private field
     public IFontHandle GameFont { get; init; } // the current game font
-    // public bool HasValidPenumbraModPath => !(_ipcManager.Penumbra.ModDirectory ?? string.Empty).IsNullOrEmpty() && Directory.Exists(_ipcManager.Penumbra.ModDirectory);
     public IFontHandle IconFont { get; init; } // the current icon font
-    public UserData PlayerUserData => _apiController.GetConnectionDto().Result.User;
     public IFontHandle UidFont { get; init; } // the current UID font
     public IFontHandle GagspeakFont { get; init; } // the current Gagspeak font
     public Dictionary<ushort, string> WorldData => _frameworkUtil.WorldData.Value;
     public ulong PlayerLocalContentID => _frameworkUtil.GetPlayerLocalContentId();
-    public string PlayerName => _frameworkUtil.GetPlayerName();
-    public uint WorldId => _frameworkUtil.GetHomeWorldId(); // the homeworld ID of the current player
-    public bool UseTheme => _useTheme;
     public Vector2 LastMainUIWindowPosition { get; set; } = Vector2.Zero;
     public Vector2 LastMainUIWindowSize { get; set; } = Vector2.Zero;
 

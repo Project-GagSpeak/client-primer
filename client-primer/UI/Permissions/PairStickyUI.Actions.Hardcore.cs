@@ -50,20 +50,23 @@ public partial class PairStickyUI
             _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedFollow", newStr)));
         }
 
-        var forceSitIcon = PairGlobals.IsSitting() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
-        var forceSitText = PairGlobals.IsSitting() ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to sit.";
-        if (_uiShared.IconTextButton(forceSitIcon, forceSitText, WindowMenuWidth, true, disableForceSit))
+        var forceSitIcon = !string.IsNullOrEmpty(PairGlobals.ForcedSit) ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
+        var forceSitText = !string.IsNullOrEmpty(PairGlobals.ForcedSit) ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to sit.";
+        bool groundSitActive = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) && string.IsNullOrEmpty(PairGlobals.ForcedSit);
+        if (_uiShared.IconTextButton(forceSitIcon, forceSitText, WindowMenuWidth, true, disableForceSit || groundSitActive, "##ForcedNormalsitAction"))
         {
-            string newStr = PairGlobals.IsSitting() ? string.Empty : ApiController.UID;
+            string newStr = !string.IsNullOrEmpty(PairGlobals.ForcedSit) ? string.Empty : ApiController.UID;
             if (pairAllowsDevotionalToggles) newStr += Globals.DevotedString;
             _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedSit", newStr)));
         }
 
-        var forceGroundSitIcon = PairGlobals.IsSitting() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
-        var forceGroundSitText = PairGlobals.IsSitting() ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to their knees.";
-        if (_uiShared.IconTextButton(forceGroundSitIcon, forceGroundSitText, WindowMenuWidth, true, disableForceGroundSit))
+        var forceGroundSitIcon = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
+        var forceGroundSitText = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to their knees.";
+        bool normalSitActive = !string.IsNullOrEmpty(PairGlobals.ForcedSit) && string.IsNullOrEmpty(PairGlobals.ForcedGroundsit);
+        if (_uiShared.IconTextButton(forceGroundSitIcon, forceGroundSitText, WindowMenuWidth, true, disableForceGroundSit || normalSitActive, "##ForcedGroundsitAction"))
         {
-            string newStr = PairGlobals.IsSitting() ? string.Empty : ApiController.UID;
+            _logger.LogDebug("Sending ForcedGroundsit to " + PairNickOrAliasOrUID);
+            string newStr = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) ? string.Empty : ApiController.UID;
             if (pairAllowsDevotionalToggles) newStr += Globals.DevotedString;
             _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedGroundsit", newStr)));
         }
@@ -105,7 +108,7 @@ public partial class PairStickyUI
         }
 
         var toggleChatBlockingIcon = PairGlobals.IsChatInputBlocked() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentDots;
-        var toggleChatBlockingText = PairGlobals.IsChatInputBlocked() ? "Block "+PairNickOrAliasOrUID+"'s Chat Input." : "Reallow "+PairNickOrAliasOrUID+"'s Chat Input.";
+        var toggleChatBlockingText = PairGlobals.IsChatInputBlocked() ? "Reallow "+PairNickOrAliasOrUID+"'s Chat Input." : "Block "+PairNickOrAliasOrUID+"'s Chat Input.";
         if (_uiShared.IconTextButton(toggleChatBlockingIcon, toggleChatBlockingText, WindowMenuWidth, true, disableChatInputBlockToggle))
         {
             string newStr = PairGlobals.IsChatInputBlocked() ? string.Empty : ApiController.UID;

@@ -108,7 +108,7 @@ public unsafe class ChatInputDetour : IDisposable
                 if (cposeAttemptStr.StartsWith("/"))
                 {
                     // cancel the message if it is a /cpose while forced to sit and on our knees, deny it.
-                    if (cposeAttemptStr.StartsWith("/cpose", StringComparison.OrdinalIgnoreCase))
+                    if (cposeAttemptStr.StartsWith("/cpose") || cposeAttemptStr.StartsWith("/sit") || cposeAttemptStr.StartsWith("/groundsit"))
                     {
                         _logger.LogTrace("Attempted to execute /cpose while being forced to sit. Blocking!", LoggerType.HardcoreMovement);
                         // Send an empty string

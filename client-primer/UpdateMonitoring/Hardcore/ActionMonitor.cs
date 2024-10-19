@@ -312,9 +312,6 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         if (_clientState.LocalPlayer?.IsDead ?? false)
             return;
 
-        // Normal sit emoteID: 50, 95, 96, 254, 255
-        // Groundsit EmoteID: 52, 97, 98, 117, 
-
         // Setup a hotkey for safeword keybinding to trigger a hardcore safeword message.
         if(DateTime.UtcNow - LastKeybindSafewordUsed > TimeSpan.FromSeconds(10))
         {

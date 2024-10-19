@@ -63,20 +63,6 @@ public static class GenericHelpers
         Padlocks.MimicPadlock.ToName()
     };
 
-
-    // see if a key is pressed
-    public static bool IsKeyPressed(int key)
-    {
-        // if it isnt any key just return false
-        if (key is 0)
-            return false;
-        
-        return IsBitSet(User32.GetAsyncKeyState(key), 15);
-    }
-
-    // see if the key bit is set
-    public static bool IsBitSet(short b, int pos) => (b & (1 << pos)) != 0;
-
     public static void OpenCombo(string comboLabel)
     {
         var windowId = ImGui.GetID(comboLabel);

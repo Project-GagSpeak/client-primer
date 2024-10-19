@@ -19,6 +19,7 @@ using OtterGui;
 using OtterGui.Text;
 using System.Globalization;
 using System.Numerics;
+using GagSpeak.Utils;
 
 namespace GagSpeak.UI.UiToybox;
 
@@ -180,7 +181,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
             // Draw the icon button. If room is created, this will turn into a trash bin for deletion.
             if (_roomManager.ClientHostingAnyRoom)
             {
-                using (var disabled = ImRaii.Disabled(!UiSharedService.ShiftPressed()))
+                using (var disabled = ImRaii.Disabled(!KeyMonitor.ShiftPressed()))
                 {
                     if (_uiShared.IconButton(FontAwesomeIcon.Trash))
                     {

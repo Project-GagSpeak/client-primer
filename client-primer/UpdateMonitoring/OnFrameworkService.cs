@@ -118,6 +118,10 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     public void OpenMapWithMapLink(MapLinkPayload mapLink) => _gameGui.OpenMapWithMapLink(mapLink);
     public string GetEmoteName(uint emoteId) => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Emote>()?.GetRow(emoteId)?.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") ?? $"Emote#{emoteId}";
     public static unsafe short GetCurrentCommendationCount() => PlayerState.Instance()->PlayerCommendations;
+    public unsafe ushort CurrentEmoteId() => ((Character*)(ClientPlayerAddress))->EmoteController.EmoteId;
+    public unsafe byte CurrentCpose() => ((Character*)(ClientPlayerAddress))->EmoteController.CPoseState;
+
+
 
     public DeepDungeonType? GetDeepDungeonType()
     {

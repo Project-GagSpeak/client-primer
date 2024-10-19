@@ -1,4 +1,5 @@
 using Dalamud.Game.ClientState.Objects;
+using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Hardcore.ForcedStay;
@@ -9,6 +10,7 @@ using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
+using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Extensions;
@@ -23,17 +25,25 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     private readonly PlayerCharacterData _playerData;
     private readonly PairManager _pairManager;
     private readonly ApiController _apiController; // for sending the updates.
+    private readonly MoveController _moveController; // for movement logic
+    private readonly ChatSender _chatSender; // for sending chat commands
+    private readonly OnFrameworkService _frameworkUtils; // for handling the blindfold logic
     private readonly ITargetManager _targetManager; // for targetting pair on follows.
 
     public unsafe GameCameraManager* cameraManager = GameCameraManager.Instance(); // for the camera manager object
     public HardcoreHandler(ILogger<HardcoreHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
-        PairManager pairManager, ApiController apiController, ITargetManager targetManager) : base(logger, mediator)
+        PairManager pairManager, ApiController apiController, MoveController moveController,
+        ChatSender chatSender, OnFrameworkService frameworkUtils, 
+        ITargetManager targetManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerData = playerData;
         _pairManager = pairManager;
         _apiController = apiController;
+        _moveController = moveController;
+        _chatSender = chatSender;
+        _frameworkUtils = frameworkUtils;
         _targetManager = targetManager;
 
         Mediator.Subscribe<HardcoreActionMessage>(this, (msg) =>
@@ -45,8 +55,8 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
                 case HardcoreAction.ForcedGroundsit: UpdateForcedSitState(msg.State, true); break;
                 case HardcoreAction.ForcedStay: UpdateForcedStayState(msg.State); break;
                 case HardcoreAction.ForcedBlindfold: UpdateBlindfoldState(msg.State); break;
-                case HardcoreAction.ChatboxHiding: UpdateChatboxVisibility(msg.State); break;
-                case HardcoreAction.ChatInputHiding: UpdateChatInputVisibility(msg.State); break;
+                case HardcoreAction.ChatboxHiding: UpdateHideChatboxState(msg.State); break;
+                case HardcoreAction.ChatInputHiding: UpdateHideChatInputState(msg.State); break;
                 case HardcoreAction.ChatInputBlocking: UpdateChatInputBlocking(msg.State); break;
             }
         });
@@ -86,26 +96,13 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         UpdateForcedSitState(NewState.Disabled, false);
         UpdateForcedStayState(NewState.Disabled);
         UpdateBlindfoldState(NewState.Disabled);
-        UpdateChatboxVisibility(NewState.Disabled);
-        UpdateChatInputVisibility(NewState.Disabled);
+        UpdateHideChatboxState(NewState.Disabled);
+        UpdateHideChatInputState(NewState.Disabled);
         UpdateChatInputBlocking(NewState.Disabled);
     }
 
     public void UpdateForcedFollow(NewState newState)
     {
-        // toggle movement type to legacy if we are not on legacy (regardless of it being enable or disable.
-        if (!_clientConfigs.GagspeakConfig.UsingLegacyControls)
-        {
-            // if forced follow is still on, dont switch it back to false
-            uint mode = newState switch
-            {
-                NewState.Enabled => (uint)MovementMode.Legacy,
-                NewState.Disabled => (uint)MovementMode.Standard,
-                _ => (uint)MovementMode.Standard
-            };
-            GameConfig.UiControl.Set("MoveMode", mode);
-        }
-
         // if we are enabling, adjust the lastMovementTime to now.
         if (newState is NewState.Enabled)
         {
@@ -121,18 +118,20 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             if (pairToFollow.VisiblePairGameObject?.IsTargetable ?? false)
             {
                 _targetManager.Target = pairToFollow.VisiblePairGameObject;
-                ChatBoxMessage.EnqueueMessage("/follow <t>");
+                _chatSender.SendMessage("/follow <t>");
                 Logger.LogDebug("Enabled forced follow for pair.", LoggerType.HardcoreMovement);
             }
         }
 
         if (newState is NewState.Disabled)
         {
-            // If we are still following someone when this triggers it means we were idle long enough for it to disable.
+            // set the client first before push to prevent getting stuck while disconnected
+            _playerData.GlobalPerms!.ForcedFollow = string.Empty;
+
+            // If we are still following someone when this triggers it means we were
+            // idle long enough for it to disable.
             if (_playerData.GlobalPerms?.IsFollowing() ?? false)
             {
-                // set the client side first before the push to prevent infinite loops while disconnected
-                _playerData.GlobalPerms.ForcedFollow = string.Empty;
                 Logger.LogInformation("ForceFollow Disable was triggered manually before it naturally disabled. Forcibly shutting down.");
                 _ = _apiController.UserUpdateOwnGlobalPerm(new(new(ApiController.UID), new KeyValuePair<string, object>("ForcedFollow", string.Empty)));
             }
@@ -140,6 +139,22 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             {
                 Logger.LogInformation("Disabled forced follow for pair.", LoggerType.HardcoreMovement);
             }
+
+            // stop the movement mode.
+            _moveController.DisableUnfollowHook();
+        }
+
+        // toggle movement type to legacy if we are not on legacy (regardless of it being enable or disable)
+        if (!_clientConfigs.GagspeakConfig.UsingLegacyControls)
+        {
+            // if forced follow is still on, dont switch it back to false
+            uint mode = newState switch
+            {
+                NewState.Enabled => (uint)MovementMode.Legacy,
+                NewState.Disabled => (uint)MovementMode.Standard,
+                _ => (uint)MovementMode.Standard
+            };
+            GameConfig.UiControl.Set("MoveMode", mode);
         }
     }
 
@@ -148,17 +163,74 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         if (newState is NewState.Enabled)
         {
             Logger.LogDebug("Enabled forced " + (isGroundsit ? "groundsit" : "sit") + " for pair.", LoggerType.HardcoreMovement);
-            ChatBoxMessage.EnqueueMessage(isGroundsit ? "/groundsit" : "/sit");
+            // Send the message for the sit, only if we are not already in that state.
+            if (isGroundsit)
+            {
+                var currentPose = _frameworkUtils.CurrentEmoteId();
+                if (!GroundsitIdList.Contains(currentPose))
+                    _chatSender.SendMessage("/groundsit");
+            }
+            else
+            {
+                var currentPose = _frameworkUtils.CurrentEmoteId();
+                if (!SitIdList.Contains(currentPose))
+                    _chatSender.SendMessage("/sit");
+            }
+
+            // Run a Task to cycle to our knees state.
+            Logger.LogDebug("Running Task to ensure we get down on our knees");
+            _ = EnsureOnKnees();
         }
 
         if (newState is NewState.Disabled)
+        {
             Logger.LogDebug("Pair has allowed you to stand again.", LoggerType.HardcoreMovement);
+            _moveController.DisableMovementLock();
+            // set it on client before getting change back from server.
+            if(isGroundsit)
+                _playerData.GlobalPerms!.ForcedGroundsit = string.Empty;
+            else
+                _playerData.GlobalPerms!.ForcedSit = string.Empty;
+        }
+    }
+
+    private static readonly ushort[] SitIdList = new ushort[] { 50, 95, 96, 254, 255 };
+    private static readonly ushort[] GroundsitIdList = new ushort[] { 52, 97, 98, 117 };
+    private async Task EnsureOnKnees()
+    {
+        // wait a bit for the message to send to update our emote id.
+        await Task.Delay(500);
+        // Only do this task if we are currently in a groundsit pose.
+        var currentPose = _frameworkUtils.CurrentEmoteId();
+        if(GroundsitIdList.Contains(currentPose))
+        {
+            Logger.LogDebug("Ensuring we are on our knees after a groundsit.", LoggerType.HardcoreMovement);
+            // Attempt 4 times to cycle the cpose to cpose 1
+            for(var i = 0; i < 4; i++)
+            {
+                // Grab our current cpose.
+                var currentCpose = _frameworkUtils.CurrentCpose();
+
+                if (currentCpose is 1)
+                    break;
+
+                Logger.LogDebug("Sending /cpose to cycle to cpose 1. (Current was "+currentCpose+")");
+                _chatSender.SendMessage("/cpose");
+                await Task.Delay(500);
+            }
+            return;
+        }
+        Logger.LogDebug("We are not in a groundsit pose, skipping the cpose cycle.", LoggerType.HardcoreMovement);
     }
 
     public void UpdateForcedStayState(NewState newState)
     {
-        Logger.LogDebug(newState is NewState.Enabled
-            ? "Enabled forced stay for pair." : "Disabled forced stay for pair", LoggerType.HardcoreMovement);
+        Logger.LogDebug(newState is NewState.Enabled ? "Enabled" : "Disabled" + " forced stay for pair.", LoggerType.HardcoreMovement);
+        if(newState is NewState.Disabled)
+        {
+            // set it on client before getting change back from server.
+            _playerData.GlobalPerms!.ForcedStay = string.Empty;
+        }
     }
 
     private void UpdateBlindfoldState(NewState newState)
@@ -176,33 +248,54 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
 
         if (newState is NewState.Disabled && BlindfoldUI.IsWindowOpen)
         {
-            Task.Run(() => HandleBlindfoldLogic(newState)); // Fire and Forget
+            // set it on client before getting change back from server.
+            _playerData.GlobalPerms!.ForcedBlindfold = string.Empty;
+
+            // Fire & Forget animation Task
+            Task.Run(() => HandleBlindfoldLogic(newState));
             return;
         }
     }
 
-    public void UpdateChatboxVisibility(NewState newState)
+    public void UpdateHideChatboxState(NewState newState)
     {
-        Logger.LogDebug(newState is NewState.Enabled ? "Enabled " : "Disabled "
-            + "Chatbox Visibility", LoggerType.HardcoreActions);
+        Logger.LogDebug(newState is NewState.Enabled ? "Enabled " : "Disabled " + "Chatbox Visibility", LoggerType.HardcoreActions);
         // set new visibility state
         var visibility = newState is NewState.Enabled ? false : true;
         ChatLogAddonHelper.SetChatLogPanelsVisibility(visibility);
+        // if this was called while we were not connected, manually set the new value.
+        if (_playerData.GlobalPerms?.IsChatHidden() ?? false)
+        {
+            Logger.LogWarning("You were disconnected when invoking this disable, meaning it was likely triggered from a safeword. Manually switching off!");
+            _playerData.GlobalPerms.ChatboxesHidden = string.Empty;
+        }
     }
 
-    public void UpdateChatInputVisibility(NewState newState)
+    public void UpdateHideChatInputState(NewState newState)
     {
         Logger.LogDebug(newState is NewState.Enabled ? "Enabled " : "Disabled "
             + "Chat Input Visibility", LoggerType.HardcoreActions);
         // set new visibility state
         var visibility = newState is NewState.Enabled ? false : true;
         ChatLogAddonHelper.SetMainChatLogVisibility(visibility);
+        // if this was called while we were not connected, manually set the new value.
+        if (_playerData.GlobalPerms?.IsChatInputHidden() ?? false)
+        {
+            Logger.LogWarning("You were disconnected when invoking this disable, meaning it was likely triggered from a safeword. Manually switching off!");
+            _playerData.GlobalPerms.ChatInputHidden = string.Empty;
+        }
     }
 
     public void UpdateChatInputBlocking(NewState newState)
     {
         // No logic handled here. Instead it is handled in the framework updater.
         Logger.LogDebug(newState is NewState.Enabled ? "Enabled " : "Disabled " + "Chat Input Blocking", LoggerType.HardcoreActions);
+        // if this was called while we were not connected, manually set the new value.
+        if(_playerData.GlobalPerms?.IsChatInputBlocked() ?? false)
+        {
+            Logger.LogWarning("You were disconnected when invoking this disable, meaning it was likely triggered from a safeword. Manually switching off!");
+            _playerData.GlobalPerms.ChatInputBlocked = string.Empty;
+        }
     }
 
     public async Task HandleBlindfoldLogic(NewState newState)

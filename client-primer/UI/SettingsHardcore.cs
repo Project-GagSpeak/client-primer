@@ -232,7 +232,7 @@ public class SettingsHardcore
 
         if (ImGui.BeginPopup($"{node.GetHashCode()}-popup"))
         {
-            if (_uiShared.IconButton(FontAwesomeIcon.TrashAlt, disabled: disableElements || !UiSharedService.ShiftPressed()))
+            if (_uiShared.IconButton(FontAwesomeIcon.TrashAlt, disabled: disableElements || !KeyMonitor.ShiftPressed()))
             {
                 if (_clientConfigs.TryFindParent(node, out var parentNode))
                 {

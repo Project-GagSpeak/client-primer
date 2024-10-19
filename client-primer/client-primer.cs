@@ -176,9 +176,8 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PuppeteerHandler>(),
             s.GetRequiredService<ChatSender>(), s.GetRequiredService<TriggerController>(), cg, cs, dm))
         .AddSingleton((s) => new ChatSender(ss))
-        .AddSingleton((s) => new ChatInputDetour(ss, gip, s.GetRequiredService<ILogger<ChatInputDetour>>(),
-            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterData>(),
-            s.GetRequiredService<GagManager>()))
+        .AddSingleton((s) => new ChatInputDetour(s.GetRequiredService<ILogger<ChatInputDetour>>(), s.GetRequiredService<GagspeakConfigService>(), 
+            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<GagManager>(), s.GetRequiredService<OnFrameworkService>(), ss, gip))
 
         // Hardcore services.
         .AddSingleton((s) => new SelectStringPrompt(s.GetRequiredService<ILogger<SelectStringPrompt>>(), s.GetRequiredService<ClientConfigurationManager>(),
@@ -196,7 +195,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<PatternHandler>()
         .AddSingleton((s) => new HardcoreHandler(s.GetRequiredService<ILogger<HardcoreHandler>>(), s.GetRequiredService<GagspeakMediator>(), 
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(), 
-            s.GetRequiredService<ApiController>(), tm))
+            s.GetRequiredService<ApiController>(), s.GetRequiredService<MoveController>(), s.GetRequiredService<ChatSender>(), s.GetRequiredService<OnFrameworkService>(), tm))
         .AddSingleton<PlayerCharacterData>()
         .AddSingleton<GameObjectHandlerFactory>()
         .AddSingleton<PairFactory>()
@@ -473,8 +472,6 @@ public static class GagSpeakServiceExtensions
         .AddScoped<WindowMediatorSubscriberBase, BlindfoldUI>((s) => new BlindfoldUI(s.GetRequiredService<ILogger<BlindfoldUI>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<OnFrameworkService>(),
             s.GetRequiredService<UiSharedService>(), pi))
-        .AddScoped<WindowMediatorSubscriberBase, JobActionDataFetcherUI>((s) => new JobActionDataFetcherUI(s.GetRequiredService<ILogger<JobActionDataFetcherUI>>(),
-            s.GetRequiredService<GagspeakMediator>(), dm, tp))
         .AddScoped<WindowMediatorSubscriberBase, EditProfileUi>()
         .AddScoped<WindowMediatorSubscriberBase, PopupHandler>()
         .AddScoped<IPopupHandler, VerificationPopupHandler>()

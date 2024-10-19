@@ -295,7 +295,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             var currentYpos = ImGui.GetCursorPosY();
             // draw revert button at the same location but right below that button
             if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import Gear", 
-                disabled: !IpcCallerGlamourer.APIAvailable || _handler.ClonedSetForEdit is null || !UiSharedService.CtrlPressed()))
+                disabled: !IpcCallerGlamourer.APIAvailable || _handler.ClonedSetForEdit is null || !KeyMonitor.CtrlPressed()))
             {
                 _ipcGlamourer.SetRestraintEquipmentFromState(_handler.ClonedSetForEdit!);
                 Logger.LogDebug("EquipmentImported from current State");
@@ -315,7 +315,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             // right beside it to the right, we need to draw the delete button
             ImGui.SameLine();
             ImGui.SetCursorPosY(currentYpos);
-            if (_uiShared.IconButton(FontAwesomeIcon.Trash, null, null, !UiSharedService.CtrlPressed()))
+            if (_uiShared.IconButton(FontAwesomeIcon.Trash, null, null, !KeyMonitor.CtrlPressed()))
             {
                 // reset the createdPattern to a new pattern, and set editing pattern to true
                 _handler.RemoveRestraintSet(_handler.ClonedSetForEdit!.RestraintId);

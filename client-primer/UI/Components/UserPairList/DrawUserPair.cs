@@ -5,6 +5,7 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Handlers;
+using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
@@ -268,7 +269,7 @@ public class DrawUserPair
 
         if (_pair.IndividualPairStatus != IndividualPairStatus.None)
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", _menuWidth, true) && UiSharedService.CtrlPressed())
+            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", _menuWidth, true) && KeyMonitor.CtrlPressed())
             {
                 _ = _apiController.UserRemovePair(new(_pair.UserData));
             }

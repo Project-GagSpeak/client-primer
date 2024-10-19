@@ -10,29 +10,20 @@ using System.Windows.Forms;
 using MButtonHoldState = FFXIVClientStructs.FFXIV.Client.Game.Control.InputManager.MouseButtonHoldState;
 
 namespace GagSpeak.Hardcore.Movement;
-
+#nullable enable
 public class MoveController : IDisposable
 {
-    // possibility of null reference is very common here, so we can ignore most cases where it is flagged.
 #pragma warning disable CS8602
     private readonly ILogger<MoveController> _logger;
     private readonly IObjectTable _objectTable;
 
-    public bool AllMovementForceDisabled => ForceDisableMovement != 0;
+    public bool AllMovementIsDisabled => ForceDisableMovement != 0;
 
+    #region Pointer Signature Fuckery
     // controls the complete blockage of movement from the player (Blocks /follow movement)
-#pragma warning disable CS0649
     [Signature("F3 0F 10 05 ?? ?? ?? ?? 0F 2E C7", ScanType = ScanType.StaticAddress, Fallibility = Fallibility.Infallible)]
     private nint forceDisableMovementPtr;
     internal unsafe ref int ForceDisableMovement => ref *(int*)(forceDisableMovementPtr + 4);
-#pragma warning restore CS0649
-
-    // This Method also seems to work, look into if possible
-    public static bool IsBothMouseButtonsPressed() => IsKeyPressed((int)Keys.LButton) && IsKeyPressed((int)Keys.RButton);
-    public static bool IsKeyPressed(int key) => IsBitSet(User32.GetAsyncKeyState(key), 15);
-    public static bool IsBitSet(short b, int pos) => (b & (1 << pos)) != 0;
-
-
 
     // prevents LMB+RMB moving by processing it prior to the games update movement check.
     public unsafe delegate byte MoveOnMousePreventorDelegate(MoveControllerSubMemberForMine* thisx);
@@ -139,41 +130,72 @@ public class MoveController : IDisposable
         // initialize from attributes
         interopProvider.InitializeFromAttributes(this);
     }
+    #endregion Pointer Signature Fuckery
 
 #pragma warning restore CS8602
 
-    // Hook enablers
-    public void EnableMovementHooks()
+    /// <summary>
+    /// Locks All Movement on the Client Player Character.
+    /// </summary>
+    public void EnableMovementLock()
     {
-        MovementUpdateHook?.Enable(); // for enabling the prevention of LMB+RMB movement
-        if (MovementUpdateHook != null && MovementUpdateHook.IsEnabled)
-            _logger.LogDebug($"MovementUpdateHook is enabled: {MovementUpdateHook.IsEnabled}", LoggerType.HardcoreMovement);
+        // If all Movement is already disabled by this plugin or any other, dont interact with it.
+        if(AllMovementIsDisabled)
+            return;
 
-        UnfollowHook?.Enable(); // makes it so you cant unfollow the target
-        if (UnfollowHook != null && UnfollowHook.IsEnabled)
-            _logger.LogDebug($"UnfollowHook is enabled: {UnfollowHook.IsEnabled}", LoggerType.HardcoreMovement);
+        // If it is at 0, we need to change it to 1.
+        _logger.LogTrace("Disabling All Movement due to Hardcore Active State condition starting", LoggerType.HardcoreMovement);
+        ForceDisableMovement++;
     }
 
-    // Hook disablers
-    public void DisableMovementHooks()
+    /// <summary>
+    /// Frees All Movement on the Client Player Character.
+    /// </summary>
+    public void DisableMovementLock() 
     {
-        MovementUpdateHook?.Disable(); // for disabling the prevention of LMB+RMB movement
-        UnfollowHook?.Disable(); // makes it so you can unfollow the target
+        // If the movement is already re-enabled by this plugin or any other, dont interact with it.
+        if(!AllMovementIsDisabled)
+            return;
+
+        // Otherwise, re-enable movement.
+        _logger.LogTrace("Enabling All Movement due to Hardcore Active State condition ending", LoggerType.HardcoreMovement);
+        ForceDisableMovement--;
+    }
+
+    public void EnableUnfollowHook()
+    {
+        // If our unfollow hook is ready but has not been enabled, we should enable it.
+        if(UnfollowHook is not null && !UnfollowHook.IsEnabled)
+        {
+            UnfollowHook.Enable();
+            _logger.LogTrace($"UnfollowHook is enabled due to Hardcore Active State", LoggerType.HardcoreMovement);
+        }
+    }
+
+    public void DisableUnfollowHook()
+    {
+        // If our unfollow hook is ready and enabled, we should disable it.
+        if (UnfollowHook is not null && UnfollowHook.IsEnabled)
+        {
+            UnfollowHook.Disable();
+            _logger.LogTrace($"UnfollowHook is disabled due to Hardcore Active State ending", LoggerType.HardcoreMovement);
+        }
     }
 
     // the disposer
     public void Dispose()
     {
-        _logger.LogDebug($"Disposing of MoveController: {AllMovementForceDisabled}", LoggerType.HardcoreMovement);
-        DisableMovementHooks(); // disable the hooks
+        _logger.LogDebug($"Disposing of MoveController", LoggerType.HardcoreMovement);
+        // Free the player and disable unfollow hooks
+        DisableMovementLock();
+        DisableUnfollowHook();
 
         // dispose of the hooks
-        MovementUpdateHook?.Dispose();
-        MovementUpdateHook = null; // make sure they are disposed of
         UnfollowHook?.Dispose();
         UnfollowHook = null; // make sure they are disposed of
     }
 
+    // No Longer works since Dawntrail
     [StructLayout(LayoutKind.Explicit)]
     public unsafe struct UnkGameObjectStruct
     {

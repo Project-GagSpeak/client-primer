@@ -7,7 +7,7 @@
         <TargetFramework>net8.0-windows</TargetFramework>
         <Copyright>Copyright © 2024</Copyright>
         <LangVersion>preview</LangVersion>
-        <Version>0.9.4.5</Version>
+        <Version>0.9.4.7</Version>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <Deterministic>true</Deterministic>
@@ -153,6 +153,7 @@
         <EmbeddedResource Include="Localization\fr.json" />
     </ItemGroup>
 </Project>
+
 
 
 

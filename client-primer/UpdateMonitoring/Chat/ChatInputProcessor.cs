@@ -6,6 +6,7 @@ using Dalamud.Utility.Signatures;
 using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Data;
+using GagspeakAPI.Extensions;
 using System.Runtime.InteropServices;
 
 // I swear to god, if any contributors even attempt to tinker with this file, I will swat you over the head. DO NOT DO IT.
@@ -22,6 +23,7 @@ public unsafe class ChatInputDetour : IDisposable
     private readonly GagspeakConfigService _config;
     private readonly PlayerCharacterData _playerManager;
     private readonly GagManager _gagManager;
+    private readonly OnFrameworkService _frameworkUtils;
 
     private readonly List<string> AllowedCommandChannels;
 
@@ -31,15 +33,16 @@ public unsafe class ChatInputDetour : IDisposable
     [Signature("E8 ?? ?? ?? ?? FE 86 ?? ?? ?? ?? C7 86 ?? ?? ?? ?? ?? ?? ?? ??", DetourName = nameof(ProcessChatInputDetour), Fallibility = Fallibility.Auto)]
     private Hook<ProcessChatInputDelegate> ProcessChatInputHook { get; set; } = null!;
 
-    internal ChatInputDetour(ISigScanner scanner, IGameInteropProvider interop,
-        ILogger<ChatInputDetour> logger, GagspeakConfigService config, 
-        PlayerCharacterData playerManager, GagManager gagManager)
+    internal ChatInputDetour(ILogger<ChatInputDetour> logger, GagspeakConfigService config,
+        PlayerCharacterData playerManager, GagManager gagManager,
+        OnFrameworkService frameworkUtils, ISigScanner scanner, IGameInteropProvider interop)
     {
         // initialize the classes
         _logger = logger;
         _config = config;
         _playerManager = playerManager;
         _gagManager = gagManager;
+        _frameworkUtils = frameworkUtils;
 
         AllowedCommandChannels = _config.Current.ChannelsGagSpeak.GetChatChannelsListAliases();
 
@@ -92,9 +95,44 @@ public unsafe class ChatInputDetour : IDisposable
             }
 
             // if our chat garbler is disabled or we dont have any active gags, dont worry about anything past this point and return original.
-            if(_playerManager.GlobalPerms == null) { return ProcessChatInputHook.Original(uiModule, message, a3); }
+            if(_playerManager.GlobalPerms is null) 
+            { 
+                return ProcessChatInputHook.Original(uiModule, message, a3); 
+            }
 
-            if(!_playerManager.GlobalPerms.LiveChatGarblerActive || !_gagManager.AnyGagActive) 
+            // Handle unique condition for being in a forced sit state.
+            if (_playerManager.GlobalPerms.IsSitting() && _frameworkUtils.CurrentEmoteId() is 97)
+            {
+                // cancel the message if it is a /cpose while being forced to sit on knees.
+                var cposeAttemptStr = Encoding.UTF8.GetString(*message, bc);
+                if (cposeAttemptStr.StartsWith("/"))
+                {
+                    // cancel the message if it is a /cpose while forced to sit and on our knees, deny it.
+                    if (cposeAttemptStr.StartsWith("/cpose", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogTrace("Attempted to execute /cpose while being forced to sit. Blocking!", LoggerType.HardcoreMovement);
+                        // Send an empty string
+                        var emptyString = "";
+                        var emptyBytes = Encoding.UTF8.GetBytes(emptyString);
+                        var mem1 = Marshal.AllocHGlobal(400);
+                        var mem2 = Marshal.AllocHGlobal(emptyBytes.Length + 30);
+                        Marshal.Copy(emptyBytes, 0, mem2, emptyBytes.Length);
+                        Marshal.WriteByte(mem2 + emptyBytes.Length, 0);
+                        Marshal.WriteInt64(mem1, mem2.ToInt64());
+                        Marshal.WriteInt64(mem1 + 8, 64);
+                        Marshal.WriteInt64(mem1 + 8 + 8, emptyBytes.Length + 1);
+                        Marshal.WriteInt64(mem1 + 8 + 8 + 8, 0);
+                        var r = ProcessChatInputHook.Original(uiModule, (byte**)mem1.ToPointer(), a3);
+                        Marshal.FreeHGlobal(mem1);
+                        Marshal.FreeHGlobal(mem2);
+                        return r;
+                    }
+                }
+            }
+
+
+            // Handle Chat Garbling.
+            if (!_playerManager.GlobalPerms.LiveChatGarblerActive || !_gagManager.AnyGagActive) 
             { 
                 return ProcessChatInputHook.Original(uiModule, message, a3);
             }
@@ -117,6 +155,26 @@ public unsafe class ChatInputDetour : IDisposable
                 // If MatchedCommand is empty, it means it is not a channel command, or that it wasn't a channel we allowed, so send original untranslated text.
                 if (matchedCommand.IsNullOrEmpty())
                 {
+                    // cancel the message if it is a /cpose while forced to sit and on our knees, deny it.
+                    if (_playerManager.GlobalPerms.IsSitting() && _frameworkUtils.CurrentEmoteId() is 97 && inputString.StartsWith("/cpose", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogTrace("Attempted to execute /cpose while being forced to sit. Blocking!", LoggerType.ChatDetours);
+                        // Send an empty string
+                        var emptyString = "";
+                        var emptyBytes = Encoding.UTF8.GetBytes(emptyString);
+                        var mem1 = Marshal.AllocHGlobal(400);
+                        var mem2 = Marshal.AllocHGlobal(emptyBytes.Length + 30);
+                        Marshal.Copy(emptyBytes, 0, mem2, emptyBytes.Length);
+                        Marshal.WriteByte(mem2 + emptyBytes.Length, 0);
+                        Marshal.WriteInt64(mem1, mem2.ToInt64());
+                        Marshal.WriteInt64(mem1 + 8, 64);
+                        Marshal.WriteInt64(mem1 + 8 + 8, emptyBytes.Length + 1);
+                        Marshal.WriteInt64(mem1 + 8 + 8 + 8, 0);
+                        var r = ProcessChatInputHook.Original(uiModule, (byte**)mem1.ToPointer(), a3);
+                        Marshal.FreeHGlobal(mem1);
+                        Marshal.FreeHGlobal(mem2);
+                        return r;
+                    }
                     // DEBUG MESSAGE: (remove when not debugging)
                     _logger.LogTrace("Ignoring Message as it is a command", LoggerType.ChatDetours);
                     return ProcessChatInputHook.Original(uiModule, message, a3);

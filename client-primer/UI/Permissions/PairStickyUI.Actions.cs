@@ -1,6 +1,7 @@
 using Dalamud.Interface;
 using Dalamud.Utility;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Dto.Connection;
@@ -160,7 +161,7 @@ public partial class PairStickyUI
 
         if (UserPairForPerms.IndividualPairStatus != IndividualPairStatus.None)
         {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", WindowMenuWidth, true, !UiSharedService.CtrlPressed()))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", WindowMenuWidth, true, !KeyMonitor.CtrlPressed()))
             {
                 _ = _apiController.UserRemovePair(new(UserPairForPerms.UserData));
             }

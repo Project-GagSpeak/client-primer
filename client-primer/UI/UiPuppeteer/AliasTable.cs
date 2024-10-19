@@ -5,6 +5,7 @@ using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using ImGuiNET;
 using OtterGui;
@@ -59,7 +60,7 @@ public class AliasTable : DisposableMediatorSubscriberBase
         bool canEdit = EditableAliasIndex == idx;
         ImGui.TableNextColumn();
         if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), new Vector2(ImGui.GetFrameHeight()),
-        "Delete alias from list.\nHold SHIFT in order to delete.", !UiSharedService.ShiftPressed(), true))
+        "Delete alias from list.\nHold SHIFT in order to delete.", !KeyMonitor.ShiftPressed(), true))
         {
             _handler.RemoveAlias(aliasTrigger);
         }

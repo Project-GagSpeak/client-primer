@@ -289,13 +289,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         TextWrapped(text);
     }
 
-    /// <summary> 
-    /// Helper function to see if the CTRL key is currently held down.
-    ///  Keep in mind that this already exists in ottergui and we likely dont need it.
-    /// </summary>
-    /// <returns> True if CTRL is being pressed, false if not. </returns>
-    public static bool CtrlPressed() => (GetKeyState(0xA2) & 0x8000) != 0 || (GetKeyState(0xA3) & 0x8000) != 0;
-
     /// <summary>
     /// Helper function to draw the outlined font in ImGui.
     /// Im not actually sure if this is in ottergui or not.
@@ -782,16 +775,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         ImGui.SetWindowSize(new Vector2(x, y));
     }
-
-    public static bool ShiftPressed() => (GetKeyState(0xA1) & 0x8000) != 0 || (GetKeyState(0xA0) & 0x8000) != 0;
-
-    public static bool Numpad0Pressed() => (GetKeyState(0x60) & 0x8000) != 0;
-
-    public static bool RightMouseButtonDown() => (GetKeyState(0x02) & 0x8000) != 0;
-
-    public static bool MiddleMouseButtonDown() => (GetKeyState(0x04) & 0x8000) != 0;
-
-    public void ForceSendEnterPress() => User32.keybd_event(0x0D, 0, 0, 0);
 
     public static void CopyableDisplayText(string text, string tooltip = "Click to copy")
     {

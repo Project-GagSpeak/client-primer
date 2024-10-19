@@ -341,7 +341,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         {
             using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey))
             {
-                if (_uiShared.IconButton(FontAwesomeIcon.Trash, disabled: item.InPool || !UiSharedService.ShiftPressed(), inPopup: true))
+                if (_uiShared.IconButton(FontAwesomeIcon.Trash, disabled: item.InPool || !KeyMonitor.ShiftPressed(), inPopup: true))
                 {
                     _handler.RemoveItem(item.LootId);
                     Logger.LogInformation("Removing " + item.Name + " from cursed item list.");

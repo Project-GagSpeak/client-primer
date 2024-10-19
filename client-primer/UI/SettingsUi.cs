@@ -27,6 +27,7 @@ using OtterGui;
 using OtterGui.Text;
 using System.Globalization;
 using System.Numerics;
+using GagSpeak.Utils;
 
 namespace GagSpeak.UI;
 
@@ -881,7 +882,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             ImGui.SameLine(ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Trash, "Delete Account"));
             if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account", null, true, // yes there must be a lot to determine if you can delete.
-            (!(UiSharedService.CtrlPressed() && UiSharedService.ShiftPressed()) || !(_apiController.ServerAlive && _apiController.IsConnected && isOnlineUser)),
+            (!(KeyMonitor.CtrlPressed() && KeyMonitor.ShiftPressed()) || !(_apiController.ServerAlive && _apiController.IsConnected && isOnlineUser)),
             "##Trash-" + account.CharacterPlayerContentId.ToString()))
             {
                 _deleteAccountPopupModalShown = true;
@@ -1481,6 +1482,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.Text($"ToyIsActive: {globalPerms.ToyIsActive}");
         ImGui.Text($"ToyIntensity: {globalPerms.ToyIntensity}");
         ImGui.Text($"SpatialVibratorAudio: {globalPerms.SpatialVibratorAudio}");
+        ImGui.Text($"ForcedFollow: {globalPerms.ForcedFollow}");
+        ImGui.Text($"ForcedSit: {globalPerms.ForcedSit}");
+        ImGui.Text($"ForcedGroundsit: {globalPerms.ForcedGroundsit}");
+        ImGui.Text($"ForcedToStay: {globalPerms.ForcedStay}");
+        ImGui.Text($"Blindfold: {globalPerms.ForcedBlindfold}");
+        ImGui.Text($"HiddenChat: {globalPerms.ChatboxesHidden}");
+        ImGui.Text($"HiddenChatInput: {globalPerms.ChatInputHidden}");
+        ImGui.Text($"BlockingChatInput: {globalPerms.ChatInputBlocked}");
     }
 
     private void DrawAppearanceInfo()

@@ -58,7 +58,7 @@ public unsafe partial class ResourceLoader
 
     private bool GetReplacePath(string gamePath, out string localPath)
     {
-        localPath = null;
+        localPath = null!;
 
         // check for matching avfx path
         if(_avfxManager.GetReplacePath(gamePath, out var avfxLocalPath))

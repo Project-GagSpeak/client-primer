@@ -12,6 +12,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
+using GagSpeak.Utils;
 using GagspeakAPI.Extensions;
 using Microsoft.Extensions.Hosting;
 using OtterGui;
@@ -144,7 +145,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
           || (_targets.MouseOverTarget?.GameObjectId == NearestTreasureId)
           || (_targets.Target?.GameObjectId == NearestTreasureId))
         {
-            if (UiSharedService.RightMouseButtonDown() || UiSharedService.Numpad0Pressed())
+            if (KeyMonitor.RightMouseButtonDown() || KeyMonitor.Numpad0Pressed())
             {
                 if (_openTreasureTask != null && !_openTreasureTask.IsCompleted)
                     return;

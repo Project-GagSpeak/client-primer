@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 
 namespace GagSpeak.WebAPI.Utils;
+#pragma warning disable SYSLIB0021 // Type or member is obsolete
 
 /// <summary>
 /// Yoinked once again with little to no modification. Maybe tinker and see how well functions work without this?
@@ -37,3 +38,5 @@ public static class ComputeHashed
             BitConverter.ToString(_sha256CryptoProvider.ComputeHash(Encoding.UTF8.GetBytes(stringToCompute))).Replace("-", "", StringComparison.Ordinal);
     }
 }
+#pragma warning restore SYSLIB0021 // Type or member is obsolete
+

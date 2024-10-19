@@ -40,6 +40,6 @@ public class BlindfoldModel
         {
             BlindfoldMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
         }
-        BlindfoldItem.Deserialize((JObject)jsonObject["BlindfoldItem"]);
+        BlindfoldItem.Deserialize((JObject)jsonObject["BlindfoldItem"]!);
     }
 }

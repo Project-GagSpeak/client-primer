@@ -158,10 +158,10 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         if (hardcoreChangeType is HardcoreAction.None)
             return;
 
-        var newVal = (bool)newValue ? NewState.Enabled : NewState.Disabled;
-        Logger.LogInformation(hardcoreChangeType.ToString() + " has changed, and is now "+newVal, LoggerType.PairManagement);
-        Mediator.Publish(new HardcoreActionMessage(hardcoreChangeType, newVal));
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction, hardcoreChangeType, newVal, changeDto.User.UID, ApiController.UID);
+        var newState = string.IsNullOrEmpty((string)newValue) ? NewState.Disabled : NewState.Enabled;
+        Logger.LogInformation(hardcoreChangeType.ToString() + " has changed, and is now "+ newValue, LoggerType.PairManagement);
+        Mediator.Publish(new HardcoreActionMessage(hardcoreChangeType, newState));
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction, hardcoreChangeType, newState, changeDto.User.UID, ApiController.UID);
     }
 
 

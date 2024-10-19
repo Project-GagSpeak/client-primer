@@ -6,6 +6,7 @@ using GagSpeak.UI.Handlers;
 using System.Collections.Immutable;
 using GagSpeak.UI;
 using GagSpeak.WebAPI;
+using GagSpeak.Utils;
 
 namespace GagSpeak.UI.Components.UserPairList;
 
@@ -108,7 +109,7 @@ public class DrawFolderTag : DrawFolderBase
             _selectPairForTagUi.Open(_id);
         }
         UiSharedService.AttachToolTip("Select Individual Pairs for this Pair Group");
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Delete Pair Group", menuWidth, true) && UiSharedService.CtrlPressed())
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Delete Pair Group", menuWidth, true) && KeyMonitor.CtrlPressed())
         {
             _tagHandler.RemoveTag(_id);
         }

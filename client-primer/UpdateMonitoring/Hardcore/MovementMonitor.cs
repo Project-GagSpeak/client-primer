@@ -90,7 +90,6 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         base.Dispose(disposing);
 
         // enable movement
-        HandleMovementRelease();
         ResetCancelledMoveKeys();
 
         IpcFastUpdates.HardcoreTraitsEventFired -= ToggleHardcoreTraits;
@@ -102,9 +101,9 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         Logger.LogDebug("Safeword has been used, re-enabling movement in 3 seconds");
         await Task.Delay(3000);
         // Fix walking state
-        HandleMovementRelease();
         ResetCancelledMoveKeys();
         HandleImmobilize = false;
+        HandleWeighty = false;
     }
 
     public void ToggleHardcoreTraits(NewState newState, RestraintSet restraintSet)
@@ -119,7 +118,20 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             HandleWeighty = newState is NewState.Enabled ? true : false;
 
         if(properties.Immobile)
-            HandleImmobilize = newState is NewState.Enabled ? true : false;
+        {
+            if (newState is NewState.Enabled)
+            {
+                Logger.LogDebug("Enabling Immobilization", LoggerType.HardcoreMovement);
+                HandleImmobilize = true;
+            }
+            else
+            {
+                Logger.LogDebug("Disabling Immobilization", LoggerType.HardcoreMovement);
+                HandleImmobilize = false;
+                // Correct movement.
+                _MoveController.DisableMovementLock();
+            }
+        }
     }
 
     /// <summary>
@@ -129,28 +141,46 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
     private bool HandleWeighty = false;
 
     #region Framework Updates
+    /// <summary>
+    /// Apologies in advance for the terrible overhead clutter in this framework update.
+    /// Originally it was much cleaner, but due to other plugins such as Cammy and ECommons
+    /// Interacting with similar pointers and signatures that I use in GagSpeak, I need to
+    /// add checks to ensure proper synchronization to prevent using plugins in conjunction
+    /// locking up your character.
+    /// </summary>
     private unsafe void FrameworkUpdate()
     {
         // make sure we only do checks when we are properly logged in and have a character loaded
         if (_clientState.LocalPlayer is null || _clientState.LocalPlayer.IsDead)
             return;
 
-        // If we are immobile, forced to follow, or forced to sit, prevent movement
-        //Logger.LogDebug("Movement Monitor Update: " + _handler.MonitorSitLogic + " " + _handler.MonitorFollowLogic + " " + HandleImmobilize, LoggerType.HardcoreMovement);
-        //Logger.LogDebug("AllMovementForceDisabled:" + _MoveController.AllMovementForceDisabled + " Value: "+ _MoveController.ForceDisableMovement);
-        
-        if (_handler.MonitorFollowLogic || _handler.MonitorSitLogic || HandleImmobilize)
+
+
+        // FORCED FOLLOW LOGIC: Keep player following until idle for 6 seconds.
+        if (_handler.MonitorFollowLogic)
         {
-            HandleMovementPrevention();
-        }
-        else
-        {
-            HandleMovementRelease();
-            ResetCancelledMoveKeys();
+            // Ensure our movement and unfollow hooks are active.
+            if (!GameConfig.UiControl.GetBool("MoveMode"))
+                GameConfig.UiControl.Set("MoveMode", (int)MovementMode.Legacy);
+            
+            _MoveController.EnableUnfollowHook();
+
+            // Check to see if the player is moving or not.
+            if (_clientState.LocalPlayer.Position != _handler.LastPosition)
+            {
+                _handler.LastMovementTime = DateTimeOffset.Now;           // reset timer
+                _handler.LastPosition = _clientState.LocalPlayer.Position;// update last position
+            }
+
+            // if we have been idle for longer than 6 seconds, we should release the player.
+            if ((DateTimeOffset.UtcNow - _handler.LastMovementTime).TotalSeconds > 6)
+                _handler.UpdateForcedFollow(NewState.Disabled);
         }
 
-        // Handle forced Walk
-        if(HandleWeighty || _handler.MonitorFollowLogic)
+
+
+        // FORCED FOLLOW -- OR -- WEIGHTY RESTRAINT, Handle forced Walk
+        if (_handler.MonitorFollowLogic || HandleWeighty)
         {
             // get the byte that sees if the player is walking
             uint isWalking = Marshal.ReadByte((nint)gameControl, 24131);
@@ -159,25 +189,15 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                 Marshal.WriteByte((nint)gameControl, 24131, 0x1);
         }
 
-        // if player is in forced follow state, we need to track their position so we can auto turn it off if they are standing still for 6 seconds
-        if (_handler.MonitorFollowLogic)
-        {
-            // if this value is 1, it means the player is moving, so we should reset the idle timer and update position.
-            if (_clientState.LocalPlayer!.Position != _handler.LastPosition)
-            {
-                _handler.LastMovementTime = DateTimeOffset.Now;           // reset timer
-                _handler.LastPosition = _clientState.LocalPlayer.Position;// update last position
-            }
 
-            // if we have been idle for longer than 6 seconds, we should release the player.
-            if ((DateTimeOffset.UtcNow - _handler.LastMovementTime).TotalSeconds > 6)
-            {
-                // set the forced follow to false if we are still being forced to follow.
-                _handler.UpdateForcedFollow(NewState.Disabled);
-                Logger.LogDebug("Player has been standing still for longer than 6 seconds. Allowing them to move again", LoggerType.HardcoreMovement);
-            }
-        }
 
+        // FORCED SIT LOGIC Logic.
+        if (_handler.MonitorSitLogic)
+            _MoveController.EnableMovementLock();
+
+
+
+        // FORCED STAY LOGIC: Handle Forced Stay
         if (_handler.MonitorStayLogic)
         {
             // enable the hooks for the option prompts
@@ -206,13 +226,27 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             if (_promptsRooms.Enabled) _promptsRooms.Disable();
         }
 
-        // I'm aware the if statements are cancer, but its useful for the framework update to be as fast as possible.
-        if (_handler.IsBlindfolded)
+
+
+        // RESTRAINT IMMOBILIZATION, in where we need to prevent LMB+RMB movement and also cancel keys.
+        if (HandleImmobilize)
         {
-            // if we are blindfolded and have forced first-person to true, force first person
-            if (_clientConfigs.GagspeakConfig.ForceLockFirstPerson)
-                if (cameraManager->Camera is not null && cameraManager->Camera->Mode is not (int)CameraControlMode.FirstPerson)
-                    cameraManager->Camera->Mode = (int)CameraControlMode.FirstPerson;
+            CancelMoveKeys();
+            // Stop all movement but only when LMB and RMB are down.
+            if (KeyMonitor.IsBothMouseButtonsPressed())
+                _MoveController.EnableMovementLock();
+            // And release Movement Lock when they aren't pressed.
+            else _MoveController.DisableMovementLock();
+        }
+        else ResetCancelledMoveKeys();
+
+
+
+        // BLINDFOLDED STATE - Force Lock First Person if desired.
+        if (_clientConfigs.GagspeakConfig.ForceLockFirstPerson && _handler.IsBlindfolded)
+        {
+            if (cameraManager->Camera is not null && cameraManager->Camera->Mode is not (int)CameraControlMode.FirstPerson)
+                cameraManager->Camera->Mode = (int)CameraControlMode.FirstPerson;
         }
     }
 
@@ -224,106 +258,6 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         Vector2 selfPosition = new(_clientState.LocalPlayer!.Position.X, _clientState.LocalPlayer.Position.Z);
         return Math.Max(0, Vector2.Distance(position, selfPosition) - target.HitboxRadius - _clientState.LocalPlayer.HitboxRadius);
     }
-
-    // handle the prevention of our movement.
-    private void HandleMovementPrevention()
-    {
-        //Logger.LogDebug("Both Mouse Buttons Pressed?:" + MoveController.IsBothMouseButtonsPressed());
-        if (_handler.MonitorSitLogic)
-        {
-            // If we have not yet disabled Movement, we should do so.
-            if(!_MoveController.AllMovementForceDisabled)
-            {
-                Logger.LogDebug("Disabling All Movement due to ForcedSit", LoggerType.HardcoreMovement);
-                _MoveController.ForceDisableMovement++;
-            }
-        }
-
-        // if we are being forced to follow, we should toggle the unfollow hook
-        if (_handler.MonitorFollowLogic && MoveController.UnfollowHook is not null && MoveController.MovementUpdateHook is not null)
-        {
-            // in this case, we want to make sure to block players keys and force them to legacy mode.
-            if (GameConfig.UiControl.GetBool("MoveMode") is false)
-                GameConfig.UiControl.Set("MoveMode", (int)MovementMode.Legacy);
-
-            // If the controllers UnFollow Hook is Disabled, Enable it.
-            if(!MoveController.UnfollowHook.IsEnabled)
-            {
-                Logger.LogWarning("Enabling Unfollow Hook due to ForcedFollow ending", LoggerType.HardcoreMovement);
-                MoveController.UnfollowHook.Enable();
-            }
-            if(!MoveController.MovementUpdateHook.IsEnabled)
-            {
-                Logger.LogWarning("Enabling Movement Update Hook due to ForcedFollow ending", LoggerType.HardcoreMovement);
-                MoveController.MovementUpdateHook.Enable();
-            }
-        }
-
-        // If we have been immobilized by our restraint set, we should block all movement when LMB+RMB.
-        if (HandleImmobilize)
-        {
-            if(MoveController.IsBothMouseButtonsPressed())
-            {
-                if (!_MoveController.AllMovementForceDisabled)
-                {
-                    //Logger.LogDebug("Disabling All Movement due to LMB+RMB during Immobilize", LoggerType.HardcoreMovement);
-                    _MoveController.ForceDisableMovement++;
-                }
-            }
-            else
-            {
-                if(_MoveController.AllMovementForceDisabled)
-                {
-                    //Logger.LogDebug("Re-Enabling All Movement due to LMB+RMB during Immobilize ending", LoggerType.HardcoreMovement);
-                    _MoveController.ForceDisableMovement--;
-                }
-            }
-        }
-
-        // cancel our set keys such as auto run ext, immobilization skips previous two and falls under this
-        CancelMoveKeys();
-    }
-
-    private void HandleMovementRelease()
-    {
-        // if we are no longer being forced to sit.
-        if (!_handler.MonitorSitLogic)
-        {
-            // If we have disabled Movement, we should re-enable it.
-            if (_MoveController.AllMovementForceDisabled)
-            {
-                Logger.LogDebug("Re-Enabling All Movement due to ForcedSit ending", LoggerType.HardcoreMovement);
-                _MoveController.ForceDisableMovement--;
-            }
-        }
-
-        // if we are no longer being forced to follow.
-        if (!_handler.MonitorFollowLogic && MoveController.UnfollowHook is not null && MoveController.MovementUpdateHook is not null)
-        {
-            // If the controllers UnFollow Hook is Enabled, Disable it.
-            if (MoveController.UnfollowHook.IsEnabled)
-            {
-                Logger.LogWarning("Disabling Unfollow Hook due to ForcedFollow ending", LoggerType.HardcoreMovement);
-                MoveController.UnfollowHook.Disable();
-            }
-            if (MoveController.MovementUpdateHook.IsEnabled)
-            {
-                Logger.LogWarning("Disabling Movement Update Hook due to ForcedFollow ending", LoggerType.HardcoreMovement);
-                MoveController.MovementUpdateHook.Disable();
-            }
-        }
-
-        // if we are no longer immobile, re-enable movement
-        if (!HandleImmobilize)
-        {
-            if (_MoveController.AllMovementForceDisabled)
-            {
-                Logger.LogDebug("Re-Enabling All Movement due to LMB+RMB during Immobilize ending", LoggerType.HardcoreMovement);
-                _MoveController.ForceDisableMovement--;
-            }
-        }
-    }
-
 
 
     private void CancelMoveKeys()
@@ -353,7 +287,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             MoveKeys.Each(x =>
             {
                 // the action to execute for each key
-                if (GenericHelpers.IsKeyPressed((int)(Keys)x))
+                if (KeyMonitor.IsKeyPressed((int)(Keys)x))
                 {
                     SetKeyState(x, 3);
                 }

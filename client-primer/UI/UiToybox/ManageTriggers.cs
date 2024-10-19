@@ -236,7 +236,7 @@ public class ToyboxTriggerManager
             UiSharedService.AttachToolTip("Save changes to Pattern & Return to Pattern List");
 
             // right beside it to the right, we need to draw the delete button
-            using (var disableDelete = ImRaii.Disabled(!UiSharedService.CtrlPressed()))
+            using (var disableDelete = ImRaii.Disabled(!KeyMonitor.CtrlPressed()))
             {
                 ImGui.SameLine();
                 ImGui.SetCursorPosY(currentYpos);

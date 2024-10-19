@@ -6,6 +6,7 @@ using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using ImGuiNET;
 using OtterGui.Classes;
@@ -194,7 +195,7 @@ public class ToyboxAlarmManager
             UiSharedService.AttachToolTip("Save changes to Pattern & Return to Pattern List");
 
             // right beside it to the right, we need to draw the delete button
-            using (var disableDelete = ImRaii.Disabled(!UiSharedService.CtrlPressed()))
+            using (var disableDelete = ImRaii.Disabled(!KeyMonitor.CtrlPressed()))
             {
                 ImGui.SameLine();
                 ImGui.SetCursorPosY(currentYpos);

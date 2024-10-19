@@ -207,12 +207,14 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
         _participants.TryGetValue(userUID, out var participant) && participant.User.ActiveInRoom;
 
 
-    protected void Dispose(bool disposing)
+    protected override void Dispose(bool disposing)
     {
+
         if (disposing)
         {
             DisposeParticipants();
         }
+        base.Dispose(disposing);
     }
 
     private Lazy<List<Participant>> DirectParticipantsLazy() => new(() => _participants.Select(k => k.Value).ToList());

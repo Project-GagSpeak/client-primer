@@ -19,6 +19,19 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 4, 7)
+            .RegisterMain("ForcedSit/ForcedGroundsit is finally functional.")
+            .RegisterFeature("ForcedGroundsit will not detect your current cpose and cycle you to be on your knees.")
+            .RegisterFeature("The above feature also works when forced to sit in the open, making you perform a groundsit instead.")
+            .RegisterQol("When ForcedSit is active, /cpose is not finally blocked.")
+            .RegisterQol("When ordered to sit or groundsit, while already sitting, GagSpeak will no longer make you stand up.");
+        VersionEntry(0, 9, 4, 6)
+            .RegisterMain("Added further backend support functionality for Hardcore Features.")
+            .RegisterFeature("You can now use Hardcore Safeword with CTRL+ALT+BACKSPACE")
+            .RegisterFeature("You should now be able to interact with others using the hardcore actions.")
+            .RegisterFeature("SafewordHardcore should now disable all active hardcore actions.")
+            .RegisterQol("GagSpeak should no longer conflict with Cammy/FreeCam.")
+            .RegisterQol("Sit & Groundsit should now function properly.");
         VersionEntry(0, 9, 4, 5)
             .RegisterMain("Patched Hardcore Settings not properly displaying to the gear and actions menus");
         VersionEntry(0, 9, 4, 4)

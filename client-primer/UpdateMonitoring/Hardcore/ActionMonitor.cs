@@ -10,6 +10,7 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.Utils;
 using System.Collections.Immutable;
@@ -118,7 +119,6 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         RestoreSavedSlots();
     }
 
-
     public void ToggleHardcoreTraits(NewState newState, RestraintSet restraintSetRef)
     {
         if (restraintSetRef.EnabledBy is not Globals.SelfApplied && newState is NewState.Enabled)
@@ -143,8 +143,6 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
             MonitorHardcoreRestraintSetProperties = false;
         }
     }
-
-
 
     public unsafe void RestoreSavedSlots()
     {
@@ -314,11 +312,14 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         if (_clientState.LocalPlayer?.IsDead ?? false)
             return;
 
+        // Normal sit emoteID: 50, 95, 96, 254, 255
+        // Groundsit EmoteID: 52, 97, 98, 117, 
+
         // Setup a hotkey for safeword keybinding to trigger a hardcore safeword message.
-        if(DateTime.UtcNow - LastKeybindSafewordUsed < TimeSpan.FromSeconds(10))
+        if(DateTime.UtcNow - LastKeybindSafewordUsed > TimeSpan.FromSeconds(10))
         {
             // Check for hardcore Safeword Keybind
-            if (GenericHelpers.IsKeyPressed((int)Keys.ControlKey) && GenericHelpers.IsKeyPressed((int)Keys.Alt) && GenericHelpers.IsKeyPressed((int)Keys.Back))
+            if (KeyMonitor.CtrlPressed() && KeyMonitor.AltPressed() && KeyMonitor.BackPressed())
             {
                 // Safeword keybind is pressed
                 Logger.LogDebug("Safeword keybind CTRL+ALT+BACKSPACE has been pressed, firing HardcoreSafeword", LoggerType.HardcoreActions);

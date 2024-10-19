@@ -8,6 +8,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin.Services;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
@@ -187,7 +188,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         UiSharedService.AttachToolTip("Select and upload a new profile picture");
 
         ImGui.SameLine();
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Clear uploaded profile picture", 256f, false, !UiSharedService.CtrlPressed()))
+        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Clear uploaded profile picture", 256f, false, !KeyMonitor.CtrlPressed()))
         {
             _uploadedImageData = null!;
             _croppedImageData = null!;

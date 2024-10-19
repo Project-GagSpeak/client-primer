@@ -127,9 +127,34 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
 
     private async void CheckHardcore()
     {
-        // This may fall out of sync before our global perms are set but we will see.
+        // Stop this if it is true.
+        if(_hardcoreHandler.IsForcedToFollow)
+            _hardcoreHandler.UpdateForcedFollow(NewState.Disabled);
+
+        // Re-Enable forced Sit if it is disabled.
+        if(_hardcoreHandler.IsForcedToSit)
+        {
+            if(!string.IsNullOrEmpty(_playerData.GlobalPerms?.ForcedSit) && string.IsNullOrEmpty(_playerData.GlobalPerms.ForcedGroundsit))
+                _hardcoreHandler.UpdateForcedSitState(NewState.Enabled, false);
+            else
+                _hardcoreHandler.UpdateForcedSitState(NewState.Enabled, true);
+        }
+
+        // Re-Enable Forcd Stay if it was enabled.
+        if (_hardcoreHandler.IsForcedToStay)
+            _hardcoreHandler.UpdateForcedStayState(NewState.Enabled);
+
+        // Re-Enable Blindfold if it was enabled.
         if (_hardcoreHandler.IsBlindfolded)
             await _hardcoreHandler.HandleBlindfoldLogic(NewState.Enabled);
+
+        // Re-Enable the chat related hardcore things.
+        if(_hardcoreHandler.IsHidingChat)
+            _hardcoreHandler.UpdateHideChatboxState(NewState.Enabled);
+        if (_hardcoreHandler.IsHidingChatInput)
+            _hardcoreHandler.UpdateHideChatInputState(NewState.Enabled);
+        if(_hardcoreHandler.IsBlockingChatInput)
+            _hardcoreHandler.UpdateChatInputBlocking(NewState.Enabled);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)

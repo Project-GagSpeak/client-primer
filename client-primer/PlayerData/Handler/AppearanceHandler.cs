@@ -49,7 +49,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         _appearanceService = appearanceService;
         _frameworkUtils = frameworkUtils;
 
-        IpcFastUpdates.StatusManagerChangedEventFired += (addr) => RefreshMoodles(addr);
+        IpcFastUpdates.StatusManagerChangedEventFired += (addr) => RefreshMoodles(addr).ConfigureAwait(false);
     }
 
     private List<RestraintSet> RestraintSets => _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets;
@@ -79,7 +79,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        IpcFastUpdates.StatusManagerChangedEventFired -= (addr) => RefreshMoodles(addr);
+        IpcFastUpdates.StatusManagerChangedEventFired -= (addr) => RefreshMoodles(addr).ConfigureAwait(false);
         RedrawTokenSource?.Cancel();
         RedrawTokenSource?.Dispose();
     }

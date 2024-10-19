@@ -191,7 +191,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateSelfAllGlobalPerms(UserAllGlobalPermChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        if (dto.User.UID == _connectionDto?.User.UID)
         {
             Logger.LogInformation("Updating all global permissions in bulk for self.", LoggerType.Callbacks);
             ExecuteSafely(() => _clientCallbacks.SetGlobalPerms(dto.GlobalPermissions));
@@ -207,7 +207,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateSelfAllUniquePerms(UserPairUpdateAllUniqueDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        if (dto.User.UID == _connectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -267,7 +267,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherAllPairPerms(UserPairUpdateAllPermsDto dto)
     {
         Logger.LogDebug("Client_UserUpdateOtherAllPairPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        if (dto.User.UID == _connectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -283,7 +283,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherAllGlobalPerms(UserAllGlobalPermChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        if (dto.User.UID == _connectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -299,7 +299,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherAllUniquePerms(UserPairUpdateAllUniqueDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        if (dto.User.UID == _connectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -318,7 +318,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherPairPermsGlobal(UserGlobalPermChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateOtherPairPermsGlobal: "+dto, LoggerType.Callbacks);
-        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        if (dto.User.UID == _connectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -337,7 +337,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherPairPerms(UserPairPermChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateOtherPairPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        if (dto.User.UID == _connectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -362,7 +362,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherPairPermAccess(UserPairAccessChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateOtherPairPermAccess: "+dto, LoggerType.Callbacks);
-        if (dto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        if (dto.User.UID == _connectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -382,7 +382,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveCharacterDataComposite(OnlineUserCompositeDataDto dataDto)
     {
         Logger.LogTrace("Client_UserReceiveCharacterDataComposite:"+dataDto.User, LoggerType.Callbacks);
-        if (dataDto.User.AliasOrUID == _connectionDto?.User.AliasOrUID)
+        if (dataDto.User.UID == _connectionDto?.User.UID)
         {
             Logger.LogWarning("Why are you trying to receive your own composite data? There is no need for this???");
             return Task.CompletedTask;

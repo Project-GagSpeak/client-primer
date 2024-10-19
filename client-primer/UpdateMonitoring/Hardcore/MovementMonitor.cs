@@ -190,11 +190,6 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                 Marshal.WriteByte((nint)gameControl, 24131, 0x1);
         }
 
-        if(_handler.PlayerPerms is not null)
-        {
-            Logger.LogTrace("Monitoring SitLogic: " + _handler.MonitorSitLogic + " || Any Sitting: " + _handler.IsForcedToSit + " || Normal Sitting: " + !string.IsNullOrEmpty(_handler.PlayerPerms.ForcedSit) + " || GroundSitting: " + !string.IsNullOrEmpty(_handler.PlayerPerms.ForcedGroundsit), LoggerType.HardcoreMovement);
-
-        }
         // FORCED SIT LOGIC Logic.
         if (_handler.MonitorSitLogic)
             _MoveController.EnableMovementLock();

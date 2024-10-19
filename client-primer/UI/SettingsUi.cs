@@ -1306,14 +1306,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"CanToggleTriggers: {clientPair.UserPairUniquePairPerms.CanToggleTriggers}");
                         ImGui.Separator();
                         ImGui.Text($"AllowForcedFollow: {clientPair.UserPairUniquePairPerms.AllowForcedFollow}");
-                        ImGui.Text($"IsForcedToFollow: {clientPair.UserPairUniquePairPerms.IsForcedToFollow}");
                         ImGui.Text($"AllowForcedSit: {clientPair.UserPairUniquePairPerms.AllowForcedSit}");
-                        ImGui.Text($"IsForcedToSit: {clientPair.UserPairUniquePairPerms.IsForcedToSit}");
                         ImGui.Text($"AllowForcedToStay: {clientPair.UserPairUniquePairPerms.AllowForcedToStay}");
-                        ImGui.Text($"IsForcedToStay: {clientPair.UserPairUniquePairPerms.IsForcedToStay}");
                         ImGui.Text($"AllowBlindfold: {clientPair.UserPairUniquePairPerms.AllowBlindfold}");
-                        ImGui.Text($"ForceLockFirstPerson: {clientPair.UserPairUniquePairPerms.ForceLockFirstPerson}");
-                        ImGui.Text($"IsBlindfolded: {clientPair.UserPairUniquePairPerms.IsBlindfolded}");
+                        ImGui.Text($"AllowHiddenChat: {clientPair.UserPairUniquePairPerms.AllowHidingChatboxes}");
+                        ImGui.Text($"AllowHiddenChatInput: {clientPair.UserPairUniquePairPerms.AllowHidingChatInput}");
+                        ImGui.Text($"AllowBlockingChatInput: {clientPair.UserPairUniquePairPerms.AllowChatInputBlocking}");
                     }
                 }
                 if (clientPair.UserPairEditAccess != null)

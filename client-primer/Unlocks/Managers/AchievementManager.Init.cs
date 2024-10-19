@@ -283,7 +283,7 @@ public partial class AchievementManager
         hardcoreComponent.AddProgress(HardcoreLabels.AllTheCollarsOfTheRainbow, "Force 20 different pairs to follow you.", 20, "Pairs Forced To Follow You");
 
         hardcoreComponent.AddConditionalProgress(HardcoreLabels.UCanTieThis, "Be forced to follow someone, throughout a duty.", 1,
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow), "Duties Completed");
+            () => _playerData.GlobalPerms?.IsFollowing() ?? false, "Duties Completed");
 
         // Forced follow achievements
         hardcoreComponent.AddDuration(HardcoreLabels.ForcedFollow, "Force someone to follow you for 1 minute.", TimeSpan.FromMinutes(1), DurationTimeUnit.Seconds, "Seconds");
@@ -291,41 +291,36 @@ public partial class AchievementManager
 
         // Time for Walkies achievements
         hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.TimeForWalkies, "Be forced to follow someone for 1 minute.", TimeSpan.FromMinutes(1),
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow), DurationTimeUnit.Seconds, suffix: "Seconds");
+            () => _playerData.GlobalPerms?.IsFollowing() ?? false, DurationTimeUnit.Seconds, suffix: "Seconds");
         hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.GettingStepsIn, "Be forced to follow someone for 5 minutes.", TimeSpan.FromMinutes(5),
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow), DurationTimeUnit.Minutes, suffix: "Minutes");
+            () => _playerData.GlobalPerms?.IsFollowing() ?? false, DurationTimeUnit.Minutes, suffix: "Minutes");
         hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.WalkiesLover, "Be forced to follow someone for 10 minutes.", TimeSpan.FromMinutes(10),
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow), DurationTimeUnit.Minutes, suffix: "Minutes");
+            () => _playerData.GlobalPerms?.IsFollowing() ?? false, DurationTimeUnit.Minutes, suffix: "Minutes");
 
         //Part of the Furniture - Be forced to sit for 1 hour or more
         hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.LivingFurniture, "Be forced to sit for 1 hour or more.", TimeSpan.FromHours(1),
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit), 
-            DurationTimeUnit.Minutes, suffix: "Minutes Forced to Sit");
+            () => _playerData.GlobalPerms?.IsSitting() ?? false, DurationTimeUnit.Minutes, suffix: "Minutes Forced to Sit");
 
-        hardcoreComponent.AddConditional(HardcoreLabels.WalkOfShame, "Be bound, blindfolded, and leashed in a major city.",
-            () => _clientConfigs.GetActiveSetIdx() != -1
-            && _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded)
-            && _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow),
-            "Walk Of Shames Completed");
+        hardcoreComponent.AddConditional(HardcoreLabels.WalkOfShame, "Be bound, blindfolded, and leashed in a major city.", () => _clientConfigs.GetActiveSetIdx() != -1 
+        && (_playerData.GlobalPerms?.IsBlindfolded() ?? false) && (_playerData.GlobalPerms?.IsFollowing() ?? false), "Walk Of Shames Completed");
 
-        hardcoreComponent.AddConditional(HardcoreLabels.BlindLeadingTheBlind, "Be blindfolded while having someone follow you blindfolded.",
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded)
-            && _pairManager.DirectPairs.Any(x => x.UserPairUniquePairPerms.IsForcedToFollow && x.UserPairUniquePairPerms.IsBlindfolded),
-            "Blind Pairs Led");
+        hardcoreComponent.AddConditional(HardcoreLabels.BlindLeadingTheBlind, "Be blindfolded while having someone follow you blindfolded.", 
+            () => _playerData.GlobalPerms?.IsBlindfolded() ?? false 
+            && _pairManager.DirectPairs.Any(x => x.UserPairGlobalPerms.IsFollowing() && x.UserPairGlobalPerms.IsBlindfolded()), "Blind Pairs Led");
 
         hardcoreComponent.AddConditional(HardcoreLabels.WhatAView, "Use the /lookout emote while wearing a blindfold.",
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded), "Blind Lookouts Performed");
+            () => (_playerData.GlobalPerms?.IsBlindfolded() ?? false), "Blind Lookouts Performed");
 
         hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.WhoNeedsToSee, "Be blindfolded in hardcore mode for 3 hours.", TimeSpan.FromHours(3),
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded), DurationTimeUnit.Minutes, suffix: "Minutes");
+            () => (_playerData.GlobalPerms?.IsBlindfolded() ?? false), DurationTimeUnit.Minutes, suffix: "Minutes");
 
 
         hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.PetTraining, "Be forced to stay in someone's house for 30 minutes.", TimeSpan.FromMinutes(30),
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay), DurationTimeUnit.Minutes, suffix: "Minutes");
+            () => (_playerData.GlobalPerms?.IsStaying() ?? false), DurationTimeUnit.Minutes, suffix: "Minutes");
         hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.NotGoingAnywhere, "Be forced to stay in someone's house for 1 hour.", TimeSpan.FromHours(1),
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay), DurationTimeUnit.Minutes, suffix: "Minutes");
+            () => (_playerData.GlobalPerms?.IsStaying() ?? false), DurationTimeUnit.Minutes, suffix: "Minutes");
         hardcoreComponent.AddRequiredTimeConditional(HardcoreLabels.HouseTrained, "Be forced to stay in someone's house for 1 day.", TimeSpan.FromDays(1),
-            () => _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay), DurationTimeUnit.Hours, suffix: "Hours");
+            () => (_playerData.GlobalPerms?.IsStaying() ?? false), DurationTimeUnit.Hours, suffix: "Hours");
 
         // Shock-related achievements - Give out shocks
         hardcoreComponent.AddProgress(HardcoreLabels.IndulgingSparks, "Give out 10 shocks.", 10, "Shocks Sent");
@@ -396,9 +391,8 @@ public partial class AchievementManager
         // Fire check upon sending a garbled message in chat
         secretsComponent.AddConditional(SecretLabels.HelplessDamsel, "While in hardcore mode, follow or sit while having a toy, restraint, and gag active, then send a garbled message in chat", () =>
         {
-            return _playerData.IsPlayerGagged && _clientConfigs.GetActiveSetIdx() != -1 && _vibeService.ConnectedToyActive
-            && _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.InHardcore
-            && _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow || x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit));
+            return _playerData.IsPlayerGagged && _clientConfigs.GetActiveSetIdx() != -1 && _vibeService.ConnectedToyActive && _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.InHardcore)
+            && (_playerData.GlobalPerms?.IsFollowing() ?? false) || (_playerData.GlobalPerms?.IsFollowing() ?? false);
         }, "Hardcore Conditions Met", isSecret: true);
 
         secretsComponent.AddConditional(SecretLabels.GaggedPleasure, "Be gagged and Vibrated at the same time", 

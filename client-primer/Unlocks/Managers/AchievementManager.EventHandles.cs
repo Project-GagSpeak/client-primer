@@ -386,11 +386,11 @@ public partial class AchievementManager
     /// <param name="state"> If the hardcore action began or ended. </param>
     /// <param name="affectedPairUID"> who the target of the action is. </param>
     /// <param name="enactorUID"> Who Called the action. </param>
-    private void OnHardcoreForcedPairAction(HardcorePairActionKind actionKind, NewState state, string enactorUID, string affectedPairUID)
+    private void OnHardcoreForcedPairAction(HardcoreAction actionKind, NewState state, string enactorUID, string affectedPairUID)
     {
         switch (actionKind)
         {
-            case HardcorePairActionKind.ForcedFollow:
+            case HardcoreAction.ForcedFollow:
                 // if we are the enactor and the pair is the target:
                 if (enactorUID == ApiController.UID)
                 {
@@ -436,7 +436,7 @@ public partial class AchievementManager
                     }
                 }
                 break;
-            case HardcorePairActionKind.ForcedSit:
+            case HardcoreAction.ForcedSit:
                 // if we are the affected UID:
                 if (affectedPairUID == ApiController.UID)
                 {
@@ -448,7 +448,7 @@ public partial class AchievementManager
                             (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.LivingFurniture] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                 }
                 break;
-            case HardcorePairActionKind.ForcedStay:
+            case HardcoreAction.ForcedStay:
                 // if we are the affected UID:
                 if (affectedPairUID == ApiController.UID)
                 {
@@ -472,7 +472,7 @@ public partial class AchievementManager
                     }
                 }
                 break;
-            case HardcorePairActionKind.ForcedBlindfold:
+            case HardcoreAction.ForcedBlindfold:
                 // if we are the affected UID:
                 if (affectedPairUID == ApiController.UID)
                 {

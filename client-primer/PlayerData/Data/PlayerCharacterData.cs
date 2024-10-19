@@ -12,6 +12,7 @@ using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Dto.Permissions;
 using System.Reflection;
 using GagspeakAPI.Extensions;
+using FFXIVClientStructs.FFXIV.Client.UI;
 
 namespace GagSpeak.PlayerData.Data;
 
@@ -105,22 +106,25 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
     /// <summary> Updates the changed permission from server callback to global permissions </summary>
     public void ApplyGlobalPermChange(UserGlobalPermChangeDto changeDto)
     {
-        if (CoreDataNull) return;
+        if (CoreDataNull) 
+            return;
 
         // establish the key-value pair from the Dto so we know what is changing.
         string propertyName = changeDto.ChangedPermission.Key;
         object newValue = changeDto.ChangedPermission.Value;
         PropertyInfo? propertyInfo = typeof(UserGlobalPermissions).GetProperty(propertyName);
 
-        if (propertyName == "GlobalShockShareCode")
+        if (propertyName is nameof(UserGlobalPermissions.GlobalShockShareCode))
         {
             Logger.LogDebug($"Attempting to grab latest PiShockPerms for Global", LoggerType.PiShock);
             Task.Run(async () => GlobalPiShockPerms = await GetGlobalPiShockPerms());
             return;
         }
 
+        // Detect if change was a hardcore change, and if so what type.
+        HardcoreAction hardcoreChangeType = GlobalPerms!.GetHardcoreChange(propertyName, newValue);
 
-        if (propertyInfo != null)
+        if (propertyInfo is not null)
         {
             // If the property exists and is found, update its value
             if (newValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
@@ -149,6 +153,15 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         {
             Logger.LogError($"Property '{propertyName}' not found or cannot be updated.");
         }
+
+        // Handle hardcore changes here.
+        if (hardcoreChangeType is HardcoreAction.None)
+            return;
+
+        var newVal = (bool)newValue ? NewState.Enabled : NewState.Disabled;
+        Logger.LogInformation(hardcoreChangeType.ToString() + " has changed, and is now "+newVal, LoggerType.PairManagement);
+        Mediator.Publish(new HardcoreActionMessage(hardcoreChangeType, newVal));
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction, hardcoreChangeType, newVal, changeDto.User.UID, ApiController.UID);
     }
 
 

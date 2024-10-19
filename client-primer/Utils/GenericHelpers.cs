@@ -64,26 +64,14 @@ public static class GenericHelpers
     };
 
 
-    // determines if getkeystate or getkeystateasync is called
-    public static bool UseAsyncKeyCheck = false;
-
     // see if a key is pressed
-    public static bool IsKeyPressed(Keys key)
+    public static bool IsKeyPressed(int key)
     {
         // if it isnt any key just return false
-        if (key == Keys.None)
-        {
+        if (key is 0)
             return false;
-        }
-        // if we are using async key check, use getkeystateasync, otherwise use getkeystate
-        if (UseAsyncKeyCheck)
-        {
-            return IsBitSet(User32.GetKeyState((int)key), 15);
-        }
-        else
-        {
-            return IsBitSet(User32.GetAsyncKeyState((int)key), 15);
-        }
+        
+        return IsBitSet(User32.GetAsyncKeyState(key), 15);
     }
 
     // see if the key bit is set

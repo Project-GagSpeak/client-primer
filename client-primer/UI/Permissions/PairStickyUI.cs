@@ -10,6 +10,7 @@ using GagSpeak.UI.Handlers;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Character;
+using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Enums;
 using ImGuiNET;
 using OtterGui;
@@ -66,6 +67,10 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
     public override void OnClose() => Mediator.Publish(new RemoveWindowMessage(this)); // remove window on close.
 
     public Pair UserPairForPerms { get; init; } // pair we're drawing the sticky permissions for.
+    private UserGlobalPermissions PairGlobals => UserPairForPerms.UserPairGlobalPerms;
+    private UserPairPermissions OwnPerms => UserPairForPerms.UserPairOwnUniquePairPerms;
+    private UserPairPermissions PairPerms => UserPairForPerms.UserPairUniquePairPerms;
+
     public StickyWindowType DrawType = StickyWindowType.None; // type of window drawn.
     public float WindowMenuWidth { get; private set; } = -1; // width of the window menu.
     public float IconButtonTextWidth => WindowMenuWidth - ImGui.GetFrameHeightWithSpacing();

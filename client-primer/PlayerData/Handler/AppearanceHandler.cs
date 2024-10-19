@@ -122,7 +122,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
 
         var setRef = RestraintSets[setIdx];
         Logger.LogInformation("ENABLE SET [" + RestraintSets[setIdx].Name + "] START", LoggerType.Restraints);
-
+        Logger.LogDebug("Assigner was: " + assignerUID, LoggerType.Restraints);
         setRef.Enabled = true;
         setRef.EnabledBy = assignerUID;
         _clientConfigs.SaveWardrobe();
@@ -183,6 +183,24 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintDisabled));
 
         await RecalcAndReload(true, true);
+    }
+
+    public async Task RestraintSwapped(Guid newSetId, bool isSelfApplied = true)
+    {
+        Logger.LogTrace("SET-SWAPPED Executed. Triggering DISABLE-SET, then ENABLE-SET");
+
+        // We just do this for extra security overhead even though we could just pass it in.
+        var activeSet = _clientConfigs.GetActiveSet();
+        if (activeSet is null)
+        {
+            Logger.LogWarning("No Active Set to swap from. Skipping.", LoggerType.Restraints);
+            return;
+        }
+
+        // First, disable the current set.
+        await DisableRestraintSet(activeSet.RestraintId, disablerUID: Globals.SelfApplied, pushToServer: false);
+        // Then, enable the new set.
+        await EnableRestraintSet(newSetId, assignerUID: Globals.SelfApplied, pushToServer: true);
     }
 
     /// <summary>
@@ -467,9 +485,9 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         }
 
         // Collect the data from the blindfold.
-        if (_pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded))
+        if (_playerData.GlobalPerms.IsBlindfolded())
         {
-            Logger.LogWarning("We are Blindfolded!");
+            Logger.LogDebug("We are Blindfolded!");
             var blindfoldData = _clientConfigs.GetBlindfoldItem();
             ItemsToApply[blindfoldData.Slot] = blindfoldData;
         }

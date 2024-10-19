@@ -39,6 +39,7 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         _hardcoreHandler = blindfold;
         _appearanceHandler = appearanceHandler;
 
+        // Potentially move this until after all checks for validation are made to prevent invalid startups.
         Mediator.Subscribe<ConnectedMessage>(this, (msg) => OnConnected(msg.Connection));
 
         Mediator.Subscribe<OnlinePairsLoadedMessage>(this, _ => CheckHardcore());
@@ -126,20 +127,9 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
 
     private async void CheckHardcore()
     {
-        // Set the hardcore Factors.
-        _hardcoreHandler.IsForcedToFollow = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow);
-        _hardcoreHandler.IsForcedToSit = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit);
-        _hardcoreHandler.IsForcedToStay = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsForcedToStay);
-        _hardcoreHandler.IsBlindfolded = _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.IsBlindfolded);
-        _hardcoreHandler.ForceFollowedPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsForcedToFollow) ?? null;
-        _hardcoreHandler.ForceSitPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsForcedToSit || x.UserPairOwnUniquePairPerms.IsForcedToGroundSit) ?? null;
-        _hardcoreHandler.ForceStayPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsForcedToStay) ?? null;
-        _hardcoreHandler.BlindfoldPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserPairOwnUniquePairPerms.IsBlindfolded) ?? null;
-
-        // equip any blindfolds.
+        // This may fall out of sync before our global perms are set but we will see.
         if (_hardcoreHandler.IsBlindfolded)
-            if (_hardcoreHandler.BlindfoldPair is not null)
-                await _hardcoreHandler.HandleBlindfoldLogic(NewState.Enabled, _hardcoreHandler.BlindfoldPair.UserData.UID);
+            await _hardcoreHandler.HandleBlindfoldLogic(NewState.Enabled);
     }
 
     public Task StartAsync(CancellationToken cancellationToken)

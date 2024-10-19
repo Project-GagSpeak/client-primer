@@ -377,7 +377,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             return;
         }
 
-        if(changeType is StateChangeType.Design or StateChangeType.Equip or StateChangeType.Stains)
+        if(changeType is StateChangeType.Reset or StateChangeType.Design or StateChangeType.Equip or StateChangeType.Stains)
         {
             Logger.LogTrace($"StateChangeType is {changeType}", LoggerType.IpcGlamourer);
             IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.ReapplyAll);

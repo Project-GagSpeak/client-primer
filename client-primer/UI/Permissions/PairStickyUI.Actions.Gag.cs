@@ -66,7 +66,7 @@ public partial class PairStickyUI
                         };
                         _ = _apiController.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
                         _logger.LogDebug("Applying Selected Gag "+onButtonPress.GagName()+" to "+UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
-                        UnlocksEventManager.AchievementEvent(UnlocksEvent.PairGagAction, onButtonPress.GagName());
+                        UnlocksEventManager.AchievementEvent(UnlocksEvent.PairGagAction, onButtonPress);
                         Opened = InteractionType.None;
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated appearance data: " + e.Message); }

@@ -7,6 +7,7 @@ using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Enums;
+using GagspeakAPI.Extensions;
 using ImGuiNET;
 using OtterGui.Text;
 using System.Numerics;
@@ -23,53 +24,84 @@ public partial class PairStickyUI
 {
     private void DrawHardcoreActions()
     {
-        // conditions for disabled actions
-        bool playerTargeted = _clientState.LocalPlayer != null && _clientState.LocalPlayer.TargetObject != null;
-        bool playerCloseEnough = playerTargeted && Vector3.Distance(_clientState.LocalPlayer?.Position ?? default, _clientState.LocalPlayer?.TargetObject?.Position ?? default) < 3;
+        if(_playerManager.GlobalPerms is null)
+            return;
 
-        var forceFollowIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToFollow ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.PersonWalkingArrowRight;
-        var forceFollowText = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToFollow ? $"Have {PairNickOrAliasOrUID} stop following you." : $"Make {PairNickOrAliasOrUID} follow you.";
-        bool disableForceFollow = !playerCloseEnough || !playerTargeted || !UserPairForPerms.UserPairUniquePairPerms.AllowForcedFollow || !UserPairForPerms.IsVisible;
+        // conditions for disabled actions
+        bool inRange = Vector3.Distance(_clientState.LocalPlayer?.Position ?? default, _clientState.LocalPlayer?.TargetObject?.Position ?? default) < 3;
+        // Conditionals for hardcore interactions
+        var clientGlobals = _playerManager.GlobalPerms;
+        bool disableForceFollow = !inRange || !PairPerms.AllowForcedFollow || !UserPairForPerms.IsVisible || !_playerManager.GlobalPerms.CanToggleFollow(ApiController.UID);
+        bool disableForceSit = !PairPerms.AllowForcedSit || !_playerManager.GlobalPerms.CanToggleSit(ApiController.UID);
+        bool disableForceGroundSit = !PairPerms.AllowForcedSit || !_playerManager.GlobalPerms.CanToggleSit(ApiController.UID);
+        bool disableForceToStay = !PairPerms.AllowForcedToStay || !_playerManager.GlobalPerms.CanToggleStay(ApiController.UID);
+        bool disableBlindfoldToggle = !PairPerms.AllowBlindfold || !_playerManager.GlobalPerms.CanToggleBlindfold(ApiController.UID);
+        bool disableChatVisibilityToggle = !PairPerms.AllowHidingChatboxes || !_playerManager.GlobalPerms.CanToggleChatHidden(ApiController.UID);
+        bool disableChatInputVisibilityToggle = !PairPerms.AllowHidingChatInput || !_playerManager.GlobalPerms.CanToggleChatInputHidden(ApiController.UID);
+        bool disableChatInputBlockToggle = !PairPerms.AllowChatInputBlocking || !_playerManager.GlobalPerms.CanToggleChatInputBlocked(ApiController.UID);
+
+        var forceFollowIcon = PairGlobals.IsFollowing() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.PersonWalkingArrowRight;
+        var forceFollowText = PairGlobals.IsFollowing() ? $"Have {PairNickOrAliasOrUID} stop following you." : $"Make {PairNickOrAliasOrUID} follow you.";
         if (_uiShared.IconTextButton(forceFollowIcon, forceFollowText, WindowMenuWidth, true, disableForceFollow))
         {
-            var perm = UserPairForPerms.UserPair!.OtherPairPerms;
-            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsForcedToFollow", !perm.IsForcedToFollow)));
+            string newStr = PairGlobals.IsFollowing() ? string.Empty : ApiController.UID + Globals.DevotedString;
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedFollow", newStr)));
         }
 
-        var forceSitIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToSit ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
-        var forceSitText = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToSit ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to sit.";
-        bool disableForceSit = !UserPairForPerms.UserPairUniquePairPerms.AllowForcedSit || UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToGroundSit;
+        var forceSitIcon = PairGlobals.IsSitting() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
+        var forceSitText = PairGlobals.IsSitting() ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to sit.";
         if (_uiShared.IconTextButton(forceSitIcon, forceSitText, WindowMenuWidth, true, disableForceSit))
         {
-            var perm = UserPairForPerms.UserPair!.OtherPairPerms;
-            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsForcedToSit", !perm.IsForcedToSit)));
+            string newStr = PairGlobals.IsSitting() ? string.Empty : ApiController.UID + Globals.DevotedString;
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedSit", newStr)));
         }
 
-        var forceGroundSitIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToGroundSit ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
-        var forceGroundSitText = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToGroundSit ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to their knees.";
-        bool disableForceGroundSit = !UserPairForPerms.UserPairUniquePairPerms.AllowForcedSit || UserPairForPerms.UserPairOwnUniquePairPerms.IsForcedToSit;
+        var forceGroundSitIcon = PairGlobals.IsSitting() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
+        var forceGroundSitText = PairGlobals.IsSitting() ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to their knees.";
         if (_uiShared.IconTextButton(forceGroundSitIcon, forceGroundSitText, WindowMenuWidth, true, disableForceGroundSit))
         {
-            var perm = UserPairForPerms.UserPair!.OtherPairPerms;
-            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsForcedToGroundSit", !perm.IsForcedToGroundSit)));
+            string newStr = PairGlobals.IsSitting() ? string.Empty : ApiController.UID + Globals.DevotedString;
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedGroundsit", newStr)));
         }
 
-        var forceToStayIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToStay ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.HouseLock;
-        var forceToStayText = UserPairForPerms.UserPair!.OtherPairPerms.IsForcedToStay ? $"Release {PairNickOrAliasOrUID}." : $"Lock away {PairNickOrAliasOrUID}.";
-        bool disableForceToStay = !UserPairForPerms.UserPairUniquePairPerms.AllowForcedToStay;
+        var forceToStayIcon = PairGlobals.IsStaying() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.HouseLock;
+        var forceToStayText = PairGlobals.IsStaying() ? $"Release {PairNickOrAliasOrUID}." : $"Lock away {PairNickOrAliasOrUID}.";
         if (_uiShared.IconTextButton(forceToStayIcon, forceToStayText, WindowMenuWidth, true, disableForceToStay))
         {
-            var perm = UserPairForPerms.UserPair!.OtherPairPerms;
-            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsForcedToStay", !perm.IsForcedToStay)));
+            string newStr = PairGlobals.IsStaying() ? string.Empty : ApiController.UID + Globals.DevotedString;
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedStay", newStr)));
         }
 
-        var toggleBlindfoldIcon = UserPairForPerms.UserPair!.OtherPairPerms.IsBlindfolded ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Mask;
-        var toggleBlindfoldText = UserPairForPerms.UserPair!.OtherPairPerms.IsBlindfolded ? $"Remove {PairNickOrAliasOrUID}'s Blindfold." : $"Blindfold {PairNickOrAliasOrUID}.";
-        bool disableBlindfoldToggle = !UserPairForPerms.UserPairUniquePairPerms.AllowBlindfold;
+        var toggleBlindfoldIcon = PairGlobals.IsBlindfolded() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Mask;
+        var toggleBlindfoldText = PairGlobals.IsBlindfolded() ? $"Remove {PairNickOrAliasOrUID}'s Blindfold." : $"Blindfold {PairNickOrAliasOrUID}.";
         if (_uiShared.IconTextButton(toggleBlindfoldIcon, toggleBlindfoldText, WindowMenuWidth, true, disableBlindfoldToggle))
         {
-            var perm = UserPairForPerms.UserPair!.OtherPairPerms;
-            _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("IsBlindfolded", !perm.IsBlindfolded)));
+            string newStr = PairGlobals.IsBlindfolded() ? string.Empty : ApiController.UID + Globals.DevotedString;
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedBlindfold", newStr)));
+        }
+
+        var toggleChatboxIcon = PairGlobals.IsChatHidden() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentSlash;
+        var toggleChatboxText = PairGlobals.IsChatHidden() ? $"Hide {PairNickOrAliasOrUID}'s Chat Window." : $"Make {PairNickOrAliasOrUID}'s Chat Visible.";
+        if (_uiShared.IconTextButton(toggleChatboxIcon, toggleChatboxText, WindowMenuWidth, true, disableChatVisibilityToggle))
+        {
+            string newStr = PairGlobals.IsChatHidden() ? string.Empty : ApiController.UID + Globals.DevotedString;
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatboxesHidden", newStr)));
+        }
+
+        var toggleChatInputIcon = PairGlobals.IsChatInputHidden() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentSlash;
+        var toggleChatInputText = PairGlobals.IsChatInputHidden() ? $"Hide {PairNickOrAliasOrUID}'s Chat Input." : $"Make {PairNickOrAliasOrUID}'s Chat Input Visible.";
+        if (_uiShared.IconTextButton(toggleChatInputIcon, toggleChatInputText, WindowMenuWidth, true, disableChatInputVisibilityToggle))
+        {
+            string newStr = PairGlobals.IsChatInputHidden() ? string.Empty : ApiController.UID + Globals.DevotedString;
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatInputHidden", newStr)));
+        }
+
+        var toggleChatBlockingIcon = PairGlobals.IsChatInputBlocked() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentDots;
+        var toggleChatBlockingText = PairGlobals.IsChatInputBlocked() ? $"Block {PairNickOrAliasOrUID}'s Chat Input." : $"Reallow {PairNickOrAliasOrUID}'s Chat Input.";
+        if (_uiShared.IconTextButton(toggleChatBlockingIcon, toggleChatBlockingText, WindowMenuWidth, true, disableChatInputBlockToggle))
+        {
+            string newStr = PairGlobals.IsChatInputBlocked() ? string.Empty : ApiController.UID + Globals.DevotedString;
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatInputBlocked", newStr)));
         }
         ImGui.Separator();
     }
@@ -82,8 +114,8 @@ public partial class PairStickyUI
     {
         // the permissions to reference.
         PiShockPermissions permissions = (UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1) ? UserPairForPerms.LastPairPiShockPermsForYou : UserPairForPerms.LastPairGlobalShockPerms;
-        TimeSpan maxVibeDuration = (UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1) ? UserPairForPerms.UserPairUniquePairPerms.MaxVibrateDuration : UserPairForPerms.UserPairGlobalPerms.GlobalShockVibrateDuration;
-        string piShockShareCodePref = (UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1) ? UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode : UserPairForPerms.UserPairGlobalPerms.GlobalShockShareCode;
+        TimeSpan maxVibeDuration = (UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1) ? PairPerms.MaxVibrateDuration : UserPairForPerms.UserPairGlobalPerms.GlobalShockVibrateDuration;
+        string piShockShareCodePref = (UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1) ? PairPerms.ShockCollarShareCode : UserPairForPerms.UserPairGlobalPerms.GlobalShockShareCode;
 
         if (_uiShared.IconTextButton(FontAwesomeIcon.BoltLightning, "Shock " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, !permissions.AllowShocks))
         {

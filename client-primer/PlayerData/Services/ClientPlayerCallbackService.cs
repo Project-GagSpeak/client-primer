@@ -298,9 +298,22 @@ public class ClientCallbackService
                     break;
 
                 case DataUpdateKind.WardrobeRestraintApplied:
-                    _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
-                    await _wardrobeHandler.EnableRestraintSet(callbackSetIdx, callbackDto.User.UID, false);
-
+                    // Check to see if we need to reapply.
+                    var activeSet = _clientConfigs.GetActiveSet();
+                    if (activeSet is not null)
+                    {
+                        // grab the new set id
+                        var newSetId = _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[callbackSetIdx].RestraintId;
+                        // reapply.
+                        await _appearanceHandler.RestraintSwapped(newSetId, isSelfApplied: false);
+                        _logger.LogDebug($"{callbackDto.User.UID} has swapped your [{activeSet.Name}] restraint set to your [{data.ActiveSetName}] set!", LoggerType.Callbacks);
+                    }
+                    else
+                    {
+                        _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
+                        await _wardrobeHandler.EnableRestraintSet(callbackSetIdx, callbackDto.User.UID, false);
+                    }
+                    // Log the achievement.
                     UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, callbackSet, true, callbackDto.User.UID);
                     break;
 
@@ -323,12 +336,12 @@ public class ClientCallbackService
 
                 case DataUpdateKind.WardrobeRestraintDisabled:
                     _logger.LogDebug($"{callbackDto.User.UID} has force disabled your restraint set!", LoggerType.Callbacks);
-                    var activeIdx = _clientConfigs.GetActiveSetIdx();
-                    var activeSet = _clientConfigs.GetRestraintSet(activeIdx);
-                    if (activeIdx != -1)
+                    var currentlyActiveSet = _clientConfigs.GetActiveSet();
+                    if (currentlyActiveSet is not null)
                     {
+                        var activeIdx = _clientConfigs.GetActiveSetIdx();
                         await _wardrobeHandler.DisableRestraintSet(activeIdx, callbackDto.User.UID, false);
-                        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, activeSet, false, callbackDto.User.UID);
+                        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, currentlyActiveSet, false, callbackDto.User.UID);
                     }
                     break;
             }

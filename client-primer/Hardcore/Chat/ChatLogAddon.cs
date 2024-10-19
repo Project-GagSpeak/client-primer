@@ -62,6 +62,8 @@ public static unsafe class ChatLogAddonHelper
     }
 
     public static unsafe bool IsChatInputVisible => ChatLogMain->AtkUnitBase.RootNode->IsVisible();
+    public static unsafe bool IsAnyChatPanelVisible => ChatLogPanels[0]->RootNode->IsVisible() || ChatLogPanels[1]->RootNode->IsVisible()
+         || ChatLogPanels[2]->RootNode->IsVisible() || ChatLogPanels[3]->RootNode->IsVisible();
     public static unsafe bool IsChatPanelVisible(int panelIndex) => ChatLogPanels[panelIndex]->RootNode->IsVisible();
 
     public static unsafe void SetMainChatLogVisibility(bool state)

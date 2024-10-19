@@ -91,8 +91,8 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             await _appearanceHandler.DisableAllDueToSafeword();
             await _clientConfigs.DisableEverythingDueToSafeword();
 
-            // doesn't madder if we do direct updates, since after the push to the server the callback will set it back accordingly.
-            if (_playerManager.GlobalPerms != null && _apiController.IsConnected)
+            // do direct updates so they apply first client side, then push to the server. The callback can validate these changes.
+            if (_playerManager.GlobalPerms is not null)
             {
                 _playerManager.GlobalPerms.SafewordUsed = true;
                 _playerManager.GlobalPerms.LiveChatGarblerActive = false;
@@ -136,15 +136,26 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
         TimeOfLastHardcoreSafewordUsed = DateTime.Now;
         Logger.LogInformation("Hardcore Safeword was used.", LoggerType.Safeword);
 
-        // push the permission update for the hardcore safeword to the server.
-        UserGlobalPermissions newGlobalPerms = _playerManager.GlobalPerms ?? new UserGlobalPermissions();
-        newGlobalPerms.HardcoreSafewordUsed = true;
-
-        _playerManager.GlobalPerms = newGlobalPerms;
-
-        if (ApiController.ServerState is ServerState.Connected)
+        // do direct updates so they apply first client side, then push to the server. The callback can validate these changes.
+        if (_playerManager.GlobalPerms is not null)
         {
-            _ = _apiController.UserUpdateOwnGlobalPerm(new(ApiController.PlayerUserData, new KeyValuePair<string, object>("HardcoreSafewordUsed", true)));
+            _playerManager.GlobalPerms.HardcoreSafewordUsed = true;
+            _playerManager.GlobalPerms.ForcedFollow = string.Empty;
+            _playerManager.GlobalPerms.ForcedSit = string.Empty;
+            _playerManager.GlobalPerms.ForcedGroundsit = string.Empty;
+            _playerManager.GlobalPerms.ForcedStay = string.Empty;
+            _playerManager.GlobalPerms.ForcedBlindfold = string.Empty;
+            _playerManager.GlobalPerms.ChatboxesHidden = string.Empty;
+            _playerManager.GlobalPerms.ChatInputHidden = string.Empty;
+            _playerManager.GlobalPerms.ChatInputBlocked = string.Empty;
+
+            // if we are connected, push update serverside.
+            if(_apiController.ServerAlive)
+            {
+                Logger.LogInformation("Pushing Global updates to the server.", LoggerType.Safeword);
+                _ = _apiController.UserPushAllGlobalPerms(new(ApiController.PlayerUserData, _playerManager.GlobalPerms));
+                Logger.LogInformation("Global updates pushed to the server.", LoggerType.Safeword);
+            }
         }
 
         // for each pair in our direct pairs, we should update any and all unique pair permissions to be set regarding Hardcore Status.
@@ -153,15 +164,15 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             if (pair.UserPair.OwnPairPerms.InHardcore)
             {
                 // put us out of hardcore, and disable any active hardcore stuff.
-                pair.UserPair.OwnPairPerms.InHardcore = false;
-                pair.UserPair.OwnPairPerms.AllowForcedFollow = false;
-                pair.UserPair.OwnPairPerms.IsForcedToFollow = false;
-                pair.UserPair.OwnPairPerms.AllowForcedSit = false;
-                pair.UserPair.OwnPairPerms.IsForcedToSit = false;
-                pair.UserPair.OwnPairPerms.AllowForcedToStay = false;
-                pair.UserPair.OwnPairPerms.IsForcedToStay = false;
-                pair.UserPair.OwnPairPerms.AllowBlindfold = false;
-                pair.UserPair.OwnPairPerms.IsBlindfolded = false;
+                pair.UserPairOwnUniquePairPerms.InHardcore = false;
+                pair.UserPairOwnUniquePairPerms.AllowForcedFollow = false;
+                pair.UserPairOwnUniquePairPerms.AllowForcedSit = false;
+                pair.UserPairOwnUniquePairPerms.AllowForcedToStay = false;
+                pair.UserPairOwnUniquePairPerms.AllowBlindfold = false;
+                pair.UserPairOwnUniquePairPerms.AllowHidingChatboxes = false;
+                pair.UserPairOwnUniquePairPerms.AllowHidingChatInput = false;
+                pair.UserPairOwnUniquePairPerms.AllowChatInputBlocking = false;
+
 
                 // send the updates to the server.
                 if (ApiController.ServerState is ServerState.Connected)

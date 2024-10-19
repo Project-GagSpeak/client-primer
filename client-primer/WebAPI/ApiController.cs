@@ -113,7 +113,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         get => _serverState;
         private set
         {
-            StaticLogger.Logger.LogDebug($"New ServerState: {value}, prev ServerState: {_serverState}", LoggerType.ApiCore);
+            StaticLogger.Logger.LogDebug($"New MainServerState: {value}, prev MainServerState: {_serverState}", LoggerType.ApiCore);
             _serverState = value;
         }
     }
@@ -356,7 +356,18 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
 
     }
 
-    // create a connection
+    /// <summary>
+    /// Creates a connection
+    /// <para>
+    /// NOTICE: THIS FUNCTION NEEDS A MASSIVE REWORK.
+    /// 
+    /// It currently causes a connect and disconnect several times throughout the process 
+    /// which is not healthy for proper throttling.
+    /// 
+    /// Additionally it falsely invoked on connected methods causing things to trigger when they shouldnt be.
+    /// </para>
+    /// </summary>
+    /// <returns></returns>
     public async Task CreateConnections()
     {
         Logger.LogInformation("CreateConnections called", LoggerType.ApiCore);

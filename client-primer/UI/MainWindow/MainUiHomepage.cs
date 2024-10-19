@@ -26,8 +26,8 @@ namespace GagSpeak.UI.MainWindow;
 public class MainUiHomepage : DisposableMediatorSubscriberBase
 {
     private readonly UiSharedService _uiShared;
-    public MainUiHomepage(ILogger<MainUiHomepage> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService) : base(logger, mediator)
+    public MainUiHomepage(ILogger<MainUiHomepage> logger, GagspeakMediator mediator, 
+        UiSharedService uiSharedService) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
     }
@@ -116,38 +116,5 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         {
             Mediator.Publish(new UiToggleMessage(typeof(AchievementsUI)));
         }
-
-        ImGui.Spacing();
-        ImGui.Separator();
-        ImGui.Spacing();
-
-        bool isVisible = ChatLogAddonHelper.IsChatInputVisible;
-        bool isPanelsVisible = ChatLogAddonHelper.IsChatPanelVisible(0);
-
-        float width = (ImGui.GetContentRegionAvail().X - ImGui.GetFrameHeight() - ImGui.GetStyle().ItemInnerSpacing.X * 2) / 2;
-        if (ImGui.Button("Toggle Chat Input", new Vector2(width, ImGui.GetFrameHeight())))
-        {
-            ChatLogAddonHelper.SetMainChatLogVisibility(!isVisible);
-        }
-        ImUtf8.SameLineInner();
-        if (ImGui.Button("Toggle Chat Panels", new Vector2(width, ImGui.GetFrameHeight())))
-        {
-            ChatLogAddonHelper.SetChatLogPanelsVisibility(!isPanelsVisible);
-        }
-        ImUtf8.SameLineInner();
-        ImGui.Checkbox("##Block Chat Input", ref BlockChatInput);
-        UiSharedService.AttachToolTip("Toggle if chat input is blocked or not");
-
-        // Draw a button that toggles the JobActionDataFetcherUI UI.
-        if (_uiShared.IconTextButton(FontAwesomeIcon.UserCog, "Job Action Data Fetcher", buttonX))
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(JobActionDataFetcherUI)));
-        }
-
-
-        if (BlockChatInput)
-            ChatLogAddonHelper.DiscardCursorNodeWhenFocused();
     }
-
-    private bool BlockChatInput = false;
 }

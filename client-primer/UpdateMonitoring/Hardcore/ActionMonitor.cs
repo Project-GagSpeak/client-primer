@@ -10,7 +10,10 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UpdateMonitoring.Chat;
+using GagSpeak.Utils;
 using System.Collections.Immutable;
+using System.Windows.Forms;
 using ClientStructFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
 namespace GagSpeak.UpdateMonitoring;
@@ -303,11 +306,32 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
     }
 
     #region Framework Updates
+    private DateTime LastKeybindSafewordUsed = DateTime.MinValue;
+    
     private unsafe void FrameworkUpdate()
     {
         // make sure we only do checks when we are properly logged in and have a character loaded
         if (_clientState.LocalPlayer?.IsDead ?? false)
             return;
+
+        // Setup a hotkey for safeword keybinding to trigger a hardcore safeword message.
+        if(DateTime.UtcNow - LastKeybindSafewordUsed < TimeSpan.FromSeconds(10))
+        {
+            // Check for hardcore Safeword Keybind
+            if (GenericHelpers.IsKeyPressed((int)Keys.ControlKey) && GenericHelpers.IsKeyPressed((int)Keys.Alt) && GenericHelpers.IsKeyPressed((int)Keys.Back))
+            {
+                // Safeword keybind is pressed
+                Logger.LogDebug("Safeword keybind CTRL+ALT+BACKSPACE has been pressed, firing HardcoreSafeword", LoggerType.HardcoreActions);
+                LastKeybindSafewordUsed = DateTime.UtcNow;
+                Mediator.Publish(new SafewordHardcoreUsedMessage());
+            }
+        }
+
+        // Block out Chat Input if we should be.
+        if(_hardcoreHandler.IsBlockingChatInput)
+            ChatLogAddonHelper.DiscardCursorNodeWhenFocused();
+
+
 
         // This seems redundant? Since we recalculate on job change and also lock hotbar and ability to move slots around? But idk.
         if (MonitorHardcoreRestraintSetProperties)

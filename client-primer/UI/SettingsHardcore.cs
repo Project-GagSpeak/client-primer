@@ -30,13 +30,9 @@ namespace GagSpeak.UI;
 public class SettingsHardcore
 {
     private readonly ILogger<SettingsHardcore> _logger;
-    private readonly GagspeakMediator _mediator;
-    private readonly ApiController _apiController;
     private readonly UiSharedService _uiShared;
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly HardcoreHandler _hardcoreHandler;
     private readonly WardrobeHandler _blindfoldHandler;
-    private readonly PairManager _pairManager;
     private readonly TextureService _textures;
     private readonly DictStain StainData;
     private readonly ItemData ItemData;
@@ -49,20 +45,14 @@ public class SettingsHardcore
     private readonly StainColorCombo StainCombo;
 
     public SettingsHardcore(ILogger<SettingsHardcore> logger, 
-        GagspeakMediator mediator, ApiController apiController,
         UiSharedService uiShared, ClientConfigurationManager clientConfigs,
-        HardcoreHandler hardcoreHandler, WardrobeHandler blindfoldHandler,
-        PairManager pairManager, TextureService textures, DictStain stainData,
-        ItemData itemData, IDataManager gameData)
+        WardrobeHandler blindfoldHandler, TextureService textures, 
+        DictStain stainData, ItemData itemData, IDataManager gameData)
     {
         _logger = logger;
-        _mediator = mediator;
-        _apiController = apiController;
         _uiShared = uiShared;
         _clientConfigs = clientConfigs;
-        _hardcoreHandler = hardcoreHandler;
         _blindfoldHandler = blindfoldHandler;
-        _pairManager = pairManager;
         _textures = textures;
         StainData = stainData;
         ItemData = itemData;
@@ -80,11 +70,6 @@ public class SettingsHardcore
             if (ImGui.BeginTabItem("Blindfold Item"))
             {
                 DrawBlindfoldItem();
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem("Lock 1st Person Whitelist"))
-            {
-                DrawBlindfoldSettings();
                 ImGui.EndTabItem();
             }
             if (ImGui.BeginTabItem("Forced To Stay Filters"))
@@ -152,6 +137,17 @@ public class SettingsHardcore
                 _blindfoldHandler.SetBlindfoldDrawData(BlindfoldDrawData);
             }
 
+            // beside this, draw out a checkbox to set if we should lock 1st person view while blindfolded.
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(ComboLength);
+            var forceLockFirstPerson = _clientConfigs.GagspeakConfig.ForceLockFirstPerson;
+            if (ImGui.Checkbox("Force First-Person", ref forceLockFirstPerson))
+            {
+                _clientConfigs.GagspeakConfig.ForceLockFirstPerson = forceLockFirstPerson;
+                _clientConfigs.Save();
+            }
+            _uiShared.DrawHelpText("Force the First-Person view while blindfolded.");
+
             ImGui.Separator();
             _uiShared.BigText("Blindfold Type");
             var selectedBlindfoldType = _clientConfigs.GagspeakConfig.BlindfoldStyle;
@@ -171,60 +167,6 @@ public class SettingsHardcore
             }
         }
     }
-
-    private void DrawBlindfoldSettings()
-    { 
-        DrawUidSearchFilter(ImGui.GetContentRegionAvail().X);
-        using (var table = ImRaii.Table("blindfoldSettingsPerUID", 2, ImGuiTableFlags.RowBg, ImGui.GetContentRegionAvail()))
-        {
-            if (!table) return;
-
-            ImGui.TableSetupColumn(" Nick/Alias/UID", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn(" Lock 1st Person View", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Lock 1st Person View ").X);
-            UiSharedService.AttachToolTip("Forces Player to stay in First Person Mode when enabled by any pairs who are checked");
-            ImGui.TableHeadersRow();
-
-            var PairList = _pairManager.DirectPairs
-                .Where(pair => pair.UserPairOwnUniquePairPerms.InHardcore == true
-                    && (string.IsNullOrEmpty(PairSearchString)
-                    || pair.UserData.AliasOrUID.Contains(PairSearchString, StringComparison.OrdinalIgnoreCase)
-                    || (pair.GetNickname() != null && pair.GetNickname().Contains(PairSearchString, StringComparison.OrdinalIgnoreCase))))
-                .OrderBy(p => p.GetNickname() ?? p.UserData.AliasOrUID, StringComparer.OrdinalIgnoreCase);
-
-            foreach (Pair pair in PairList)
-            {
-                using var tableId = ImRaii.PushId("userTable_" + pair.UserData.UID);
-
-                ImGui.TableNextColumn(); // alias or UID of user.
-                var nickname = pair.GetNickname();
-                var text = nickname == null ? pair.UserData.AliasOrUID : nickname + " (" + pair.UserData.AliasOrUID + ")";
-                ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted(text);
-
-                ImGui.TableNextColumn();
-                // display nothing if they are not in the list, otherwise display a check
-                var canSeeIcon = pair.UserPairOwnUniquePairPerms.ForceLockFirstPerson ? FontAwesomeIcon.Check : FontAwesomeIcon.Times;
-                using (ImRaii.PushColor(ImGuiCol.Button, ImGui.ColorConvertFloat4ToU32(new(0, 0, 0, 0))))
-                {
-                    if (ImGuiUtil.DrawDisabledButton(canSeeIcon.ToIconString(), new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()),
-                    "Force 1st Person mode when equipped by this pair.", false, true))
-                    {
-                        if (canSeeIcon == FontAwesomeIcon.Times)
-                        {
-                            _ = _apiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(pair.UserData,
-                                new KeyValuePair<string, object>("ForceLockFirstPerson", true)));
-                        }
-                        else
-                        {
-                            _ = _apiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(pair.UserData,
-                                new KeyValuePair<string, object>("ForceLockFirstPerson", false)));
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     private void DisplayTextButtons()
     {
         // replace disabled with ForcedStay == true

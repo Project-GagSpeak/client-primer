@@ -142,56 +142,7 @@ public class PermissionPresetService
 
     private Tuple<UserPairPermissions, UserEditAccessPermissions> PresetDominantSetup()
     {
-        var pairPerms = new UserPairPermissions()
-        {
-            IsPaused = false,
-            GagFeatures = false,
-            OwnerLocks = false,
-            ExtendedLockTimes = false,
-            MaxLockTime = TimeSpan.Zero,
-            InHardcore = false,
-
-            ApplyRestraintSets = false,
-            LockRestraintSets = false,
-            MaxAllowedRestraintTime = TimeSpan.Zero,
-            UnlockRestraintSets = false,
-            RemoveRestraintSets = false,
-
-            TriggerPhrase = "",
-            StartChar = '(',
-            EndChar = ')',
-            AllowSitRequests = false,
-            AllowMotionRequests = false,
-            AllowAllRequests = false,
-
-            AllowPositiveStatusTypes = false,
-            AllowNegativeStatusTypes = false,
-            AllowSpecialStatusTypes = false,
-            PairCanApplyOwnMoodlesToYou = false,
-            PairCanApplyYourMoodlesToYou = false,
-            MaxMoodleTime = TimeSpan.Zero,
-            AllowPermanentMoodles = false,
-            AllowRemovingMoodles = false,
-
-            CanToggleToyState = false,
-            CanUseVibeRemote = false,
-            CanToggleAlarms = false,
-            CanSendAlarms = false,
-            CanExecutePatterns = false,
-            CanStopPatterns = false,
-            CanToggleTriggers = false,
-
-            AllowForcedFollow = false,
-            IsForcedToFollow = false,
-            AllowForcedSit = false,
-            IsForcedToSit = false,
-            IsForcedToGroundSit = false,
-            AllowForcedToStay = false,
-            IsForcedToStay = false,
-            AllowBlindfold = false,
-            ForceLockFirstPerson = false,
-            IsBlindfolded = false
-        };
+        var pairPerms = new UserPairPermissions();
         var pairAccess = new UserEditAccessPermissions();
         return new(pairPerms, pairAccess);
     }
@@ -237,16 +188,14 @@ public class PermissionPresetService
             CanStopPatterns = false,
             CanToggleTriggers = false,
 
+            DevotionalStatesForPair = false,
             AllowForcedFollow = false,
-            IsForcedToFollow = false,
             AllowForcedSit = false,
-            IsForcedToSit = false,
-            IsForcedToGroundSit = false,
             AllowForcedToStay = false,
-            IsForcedToStay = false,
             AllowBlindfold = false,
-            ForceLockFirstPerson = false,
-            IsBlindfolded = false
+            AllowHidingChatboxes = false,
+            AllowHidingChatInput = false,
+            AllowChatInputBlocking = false
         };
         var pairAccess = new UserEditAccessPermissions();
         return new(pairPerms, pairAccess);
@@ -293,16 +242,14 @@ public class PermissionPresetService
             CanStopPatterns = false,
             CanToggleTriggers = false,
 
+            DevotionalStatesForPair = false,
             AllowForcedFollow = false,
-            IsForcedToFollow = false,
             AllowForcedSit = false,
-            IsForcedToSit = false,
-            IsForcedToGroundSit = false,
             AllowForcedToStay = false,
-            IsForcedToStay = false,
             AllowBlindfold = false,
-            ForceLockFirstPerson = false,
-            IsBlindfolded = false
+            AllowHidingChatboxes = false,
+            AllowHidingChatInput = false,
+            AllowChatInputBlocking = false
         };
         // all is false by default.
         var pairAccess = new UserEditAccessPermissions();
@@ -350,16 +297,14 @@ public class PermissionPresetService
             CanStopPatterns = false,
             CanToggleTriggers = false,
 
+            DevotionalStatesForPair = false,
             AllowForcedFollow = false,
-            IsForcedToFollow = false,
             AllowForcedSit = false,
-            IsForcedToSit = false,
-            IsForcedToGroundSit = false,
             AllowForcedToStay = false,
-            IsForcedToStay = false,
-            AllowBlindfold = true,
-            ForceLockFirstPerson = true,
-            IsBlindfolded = false
+            AllowBlindfold = false,
+            AllowHidingChatboxes = false,
+            AllowHidingChatInput = false,
+            AllowChatInputBlocking = false
         };
         // all is false by default.
         var pairAccess = new UserEditAccessPermissions();
@@ -406,16 +351,14 @@ public class PermissionPresetService
             CanStopPatterns = true,
             CanToggleTriggers = false,
 
+            DevotionalStatesForPair = false,
             AllowForcedFollow = false,
-            IsForcedToFollow = false,
             AllowForcedSit = false,
-            IsForcedToSit = false,
-            IsForcedToGroundSit = false,
             AllowForcedToStay = false,
-            IsForcedToStay = false,
             AllowBlindfold = true,
-            ForceLockFirstPerson = true,
-            IsBlindfolded = false
+            AllowHidingChatboxes = false,
+            AllowHidingChatInput = false,
+            AllowChatInputBlocking = false
         };
         // all is false by default.
         var pairAccess = new UserEditAccessPermissions();
@@ -463,16 +406,14 @@ public class PermissionPresetService
             CanStopPatterns = true,
             CanToggleTriggers = false,
 
+            DevotionalStatesForPair = false,
             AllowForcedFollow = false,
-            IsForcedToFollow = false,
             AllowForcedSit = true,
-            IsForcedToSit = false,
-            IsForcedToGroundSit = false,
             AllowForcedToStay = false,
-            IsForcedToStay = false,
             AllowBlindfold = true,
-            ForceLockFirstPerson = true,
-            IsBlindfolded = false
+            AllowHidingChatboxes = false,
+            AllowHidingChatInput = false,
+            AllowChatInputBlocking = false
         };
         // all is false by default.
         var pairAccess = new UserEditAccessPermissions();
@@ -520,16 +461,14 @@ public class PermissionPresetService
             CanStopPatterns = true,
             CanToggleTriggers = true,
 
+            DevotionalStatesForPair = false,
             AllowForcedFollow = true,
-            IsForcedToFollow = false,
             AllowForcedSit = true,
-            IsForcedToSit = false,
-            IsForcedToGroundSit = false,
             AllowForcedToStay = true,
-            IsForcedToStay = false,
             AllowBlindfold = true,
-            ForceLockFirstPerson = true,
-            IsBlindfolded = false
+            AllowHidingChatboxes = false,
+            AllowHidingChatInput = false,
+            AllowChatInputBlocking = false
         };
         // all is false by default.
         var pairAccess = new UserEditAccessPermissions();
@@ -577,16 +516,14 @@ public class PermissionPresetService
             CanStopPatterns = true,
             CanToggleTriggers = false,
 
+            DevotionalStatesForPair = false,
             AllowForcedFollow = false,
-            IsForcedToFollow = false,
             AllowForcedSit = false,
-            IsForcedToSit = false,
-            IsForcedToGroundSit = false,
             AllowForcedToStay = false,
-            IsForcedToStay = false,
             AllowBlindfold = true,
-            ForceLockFirstPerson = true,
-            IsBlindfolded = false
+            AllowHidingChatboxes = false,
+            AllowHidingChatInput = false,
+            AllowChatInputBlocking = false
         };
         var pairAccess = new UserEditAccessPermissions()
         {
@@ -676,16 +613,14 @@ public class PermissionPresetService
             CanStopPatterns = true,
             CanToggleTriggers = false,
 
+            DevotionalStatesForPair = false,
             AllowForcedFollow = false,
-            IsForcedToFollow = false,
             AllowForcedSit = true,
-            IsForcedToSit = false,
-            IsForcedToGroundSit = false,
             AllowForcedToStay = false,
-            IsForcedToStay = false,
             AllowBlindfold = true,
-            ForceLockFirstPerson = true,
-            IsBlindfolded = false
+            AllowHidingChatboxes = false,
+            AllowHidingChatInput = false,
+            AllowChatInputBlocking = false
         };
         var pairAccess = new UserEditAccessPermissions()
         {
@@ -775,16 +710,14 @@ public class PermissionPresetService
             CanStopPatterns = true,
             CanToggleTriggers = true,
 
+            DevotionalStatesForPair = false,
             AllowForcedFollow = true,
-            IsForcedToFollow = false,
             AllowForcedSit = true,
-            IsForcedToSit = false,
-            IsForcedToGroundSit = false,
             AllowForcedToStay = true,
-            IsForcedToStay = false,
             AllowBlindfold = true,
-            ForceLockFirstPerson = true,
-            IsBlindfolded = false
+            AllowHidingChatboxes = false,
+            AllowHidingChatInput = false,
+            AllowChatInputBlocking = false
         };
         var pairAccess = new UserEditAccessPermissions()
         {

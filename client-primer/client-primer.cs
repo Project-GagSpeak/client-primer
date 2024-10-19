@@ -185,10 +185,9 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ForcedStayCallback>(), alc, gip, tm))
         .AddSingleton((s) => new YesNoPrompt(s.GetRequiredService<ILogger<YesNoPrompt>>(), s.GetRequiredService<ClientConfigurationManager>(), alc, tm))
         .AddSingleton((s) => new RoomSelectPrompt(s.GetRequiredService<ILogger<RoomSelectPrompt>>(), s.GetRequiredService<ClientConfigurationManager>(), alc, tm))
-        .AddSingleton((s) => new SettingsHardcore(s.GetRequiredService<ILogger<SettingsHardcore>>(), s.GetRequiredService<GagspeakMediator>(),
-            s.GetRequiredService<ApiController>(), s.GetRequiredService<UiSharedService>(), s.GetRequiredService<ClientConfigurationManager>(),
-            s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<PairManager>(),
-            s.GetRequiredService<TextureService>(), s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(), dm))
+        .AddSingleton((s) => new SettingsHardcore(s.GetRequiredService<ILogger<SettingsHardcore>>(), s.GetRequiredService<UiSharedService>(), 
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<TextureService>(), 
+            s.GetRequiredService<DictStain>(), s.GetRequiredService<ItemData>(), dm))
 
         // PlayerData Services
         .AddSingleton<GagManager>()
@@ -196,7 +195,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<CursedLootHandler>()
         .AddSingleton<PatternHandler>()
         .AddSingleton((s) => new HardcoreHandler(s.GetRequiredService<ILogger<HardcoreHandler>>(), s.GetRequiredService<GagspeakMediator>(), 
-            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<ApiController>(), tm))
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(), 
+            s.GetRequiredService<ApiController>(), tm))
         .AddSingleton<PlayerCharacterData>()
         .AddSingleton<GameObjectHandlerFactory>()
         .AddSingleton<PairFactory>()

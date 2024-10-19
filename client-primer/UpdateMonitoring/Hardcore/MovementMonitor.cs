@@ -14,6 +14,7 @@ using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Reflection;
@@ -124,8 +125,8 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
     /// <summary>
     /// A Static Accessor to be handled by the AppearanceHandler to know if we should handle immobilization or not.
     /// </summary>
-    public static bool HandleImmobilize = false;
-    public static bool HandleWeighty = false;
+    private bool HandleImmobilize = false;
+    private bool HandleWeighty = false;
 
     #region Framework Updates
     private unsafe void FrameworkUpdate()
@@ -172,11 +173,8 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             if ((DateTimeOffset.UtcNow - _handler.LastMovementTime).TotalSeconds > 6)
             {
                 // set the forced follow to false if we are still being forced to follow.
-                if(_handler.ForceFollowedPair is not null)
-                {
-                    _handler.SetForcedFollow(NewState.Disabled, _handler.ForceFollowedPair);
-                    Logger.LogDebug("Player has been standing still for longer than 6 seconds. Allowing them to move again", LoggerType.HardcoreMovement);
-                }
+                _handler.UpdateForcedFollow(NewState.Disabled);
+                Logger.LogDebug("Player has been standing still for longer than 6 seconds. Allowing them to move again", LoggerType.HardcoreMovement);
             }
         }
 
@@ -212,7 +210,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         if (_handler.IsBlindfolded)
         {
             // if we are blindfolded and have forced first-person to true, force first person
-            if (_handler.BlindfoldPair?.UserPair.OwnPairPerms.ForceLockFirstPerson ?? false)
+            if (_clientConfigs.GagspeakConfig.ForceLockFirstPerson)
                 if (cameraManager->Camera is not null && cameraManager->Camera->Mode is not (int)CameraControlMode.FirstPerson)
                     cameraManager->Camera->Mode = (int)CameraControlMode.FirstPerson;
         }
@@ -355,7 +353,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             MoveKeys.Each(x =>
             {
                 // the action to execute for each key
-                if (GenericHelpers.IsKeyPressed((Keys)x))
+                if (GenericHelpers.IsKeyPressed((int)(Keys)x))
                 {
                     SetKeyState(x, 3);
                 }

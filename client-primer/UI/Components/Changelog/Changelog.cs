@@ -19,6 +19,12 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 4, 4)
+            .RegisterMain("Full Hardcore Permission Backend Rework.")
+            .RegisterFeature("Additonal heardcore features have been added.")
+            .RegisterMain("DO NOT PLAY WITH NEW HARDCORE INTERACTIONS YET AS THEY REMAIN UNTESTED WITH NEW FUNCTIONALITY")
+            .RegisterMain("If any of the existing hardcore actions end up breaking let me know please.")
+            .RegisterFeature("Localization for ForcedStay is in the works.");
         VersionEntry(0, 9, 4, 0)
             .RegisterMain("Hardcore Functionality is in near full functionality. (but may contain bugs)")
             .RegisterFeature("Forced follow now functions properly.")

@@ -71,6 +71,7 @@ public class GagspeakConfig : IGagspeakConfiguration
     public string PiShockUsername { get; set; } = ""; // PiShock Settings.
     public bool UsingLegacyControls { get; set; } = GameConfig.UiControl.GetBool("MoveMode");
     public BlindfoldType BlindfoldStyle { get; set; } = BlindfoldType.Sensual; // Blindfold Format
+    public bool ForceLockFirstPerson { get; set; } = false; // Force First-Person state while blindfolded.
     public TextFolderNode ForcedStayPromptList { get; private set; } = new TextFolderNode { FriendlyName = "ForcedDeclineList" }; // ForcedToStay storage
 }
 

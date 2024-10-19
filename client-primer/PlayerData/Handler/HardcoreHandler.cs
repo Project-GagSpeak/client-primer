@@ -13,6 +13,7 @@ using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Extensions;
 using System.Numerics;
 using static FFXIVClientStructs.FFXIV.Component.GUI.AtkResNode.Delegates;
@@ -63,6 +64,8 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<SafewordHardcoreUsedMessage>(this, _ => OnSafewordUsed().ConfigureAwait(false));
     }
+
+    public UserGlobalPermissions? PlayerPerms => _playerData.GlobalPerms;
 
     public bool IsForcedToFollow => _playerData.GlobalPerms?.IsFollowing() ?? false;
     public bool IsForcedToSit => _playerData.GlobalPerms?.IsSitting() ?? false;

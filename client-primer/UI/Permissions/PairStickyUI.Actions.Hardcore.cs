@@ -81,7 +81,7 @@ public partial class PairStickyUI
         }
 
         var toggleChatboxIcon = PairGlobals.IsChatHidden() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentSlash;
-        var toggleChatboxText = PairGlobals.IsChatHidden() ? $"Hide {PairNickOrAliasOrUID}'s Chat Window." : $"Make {PairNickOrAliasOrUID}'s Chat Visible.";
+        var toggleChatboxText = PairGlobals.IsChatHidden() ? "Make " + PairNickOrAliasOrUID + "'s Chat Visible." : "Hide "+PairNickOrAliasOrUID+"'s Chat Window.";
         if (_uiShared.IconTextButton(toggleChatboxIcon, toggleChatboxText, WindowMenuWidth, true, disableChatVisibilityToggle))
         {
             string newStr = PairGlobals.IsChatHidden() ? string.Empty : ApiController.UID + Globals.DevotedString;
@@ -89,7 +89,7 @@ public partial class PairStickyUI
         }
 
         var toggleChatInputIcon = PairGlobals.IsChatInputHidden() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentSlash;
-        var toggleChatInputText = PairGlobals.IsChatInputHidden() ? $"Hide {PairNickOrAliasOrUID}'s Chat Input." : $"Make {PairNickOrAliasOrUID}'s Chat Input Visible.";
+        var toggleChatInputText = PairGlobals.IsChatInputHidden() ? "Make " + PairNickOrAliasOrUID + "'s Chat Input Visible." : "Hide "+PairNickOrAliasOrUID+"'s Chat Input.";
         if (_uiShared.IconTextButton(toggleChatInputIcon, toggleChatInputText, WindowMenuWidth, true, disableChatInputVisibilityToggle))
         {
             string newStr = PairGlobals.IsChatInputHidden() ? string.Empty : ApiController.UID + Globals.DevotedString;
@@ -97,7 +97,7 @@ public partial class PairStickyUI
         }
 
         var toggleChatBlockingIcon = PairGlobals.IsChatInputBlocked() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentDots;
-        var toggleChatBlockingText = PairGlobals.IsChatInputBlocked() ? $"Block {PairNickOrAliasOrUID}'s Chat Input." : $"Reallow {PairNickOrAliasOrUID}'s Chat Input.";
+        var toggleChatBlockingText = PairGlobals.IsChatInputBlocked() ? "Block "+PairNickOrAliasOrUID+"'s Chat Input." : "Reallow "+PairNickOrAliasOrUID+"'s Chat Input.";
         if (_uiShared.IconTextButton(toggleChatBlockingIcon, toggleChatBlockingText, WindowMenuWidth, true, disableChatInputBlockToggle))
         {
             string newStr = PairGlobals.IsChatInputBlocked() ? string.Empty : ApiController.UID + Globals.DevotedString;

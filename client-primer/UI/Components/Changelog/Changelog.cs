@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 4, 5)
+            .RegisterMain("Patched Hardcore Settings not properly displaying to the gear and actions menus");
         VersionEntry(0, 9, 4, 4)
             .RegisterMain("Full Hardcore Permission Backend Rework.")
             .RegisterFeature("Additonal heardcore features have been added.")

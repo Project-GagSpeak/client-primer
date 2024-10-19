@@ -8,6 +8,7 @@ using GagspeakAPI.Enums;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
 using OtterGui.Text;
+using System.Security;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -314,50 +315,42 @@ public partial class PairStickyUI
             _playerManager.GlobalPerms.IsFollowing() ? "Currently Forced to Follow" : "Not Forced to Follow",
             _playerManager.GlobalPerms.IsFollowing() ? FontAwesomeIcon.Walking : FontAwesomeIcon.Ban,
             _playerManager.GlobalPerms.IsFollowing() ? $"You are currently being forced to follow {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently forcing you to follow them.",
-            true, // do not allow user to change this permission.
-            PermissionType.Global, PermissionValueType.YesNo);
+            true, PermissionType.Hardcore);
 
         DrawOwnSetting("ForcedSit", "AllowForcedSit",
             _playerManager.GlobalPerms.IsSitting() ? "Currently Forced to Sit" : "Not Forced to Sit",
             _playerManager.GlobalPerms.IsSitting() ? FontAwesomeIcon.Chair : FontAwesomeIcon.Ban,
             _playerManager.GlobalPerms.IsSitting() ? $"You are currently being forced to sit by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently forcing you to sit.",
-            true, // do not allow user to change this permission.
-            PermissionType.Global, PermissionValueType.YesNo);
+            true, PermissionType.Hardcore);
 
         DrawOwnSetting("ForcedStay", "AllowForcedToStay",
             _playerManager.GlobalPerms.IsStaying() ? "Currently Forced to Stay" : "Not Forced to Stay",
             _playerManager.GlobalPerms.IsStaying() ? FontAwesomeIcon.HouseLock : FontAwesomeIcon.Ban,
             _playerManager.GlobalPerms.IsStaying() ? $"You are currently being forced to stay by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently forcing you to stay.",
-            true, // do not allow user to change this permission.
-            PermissionType.Global, PermissionValueType.YesNo);
+            true, PermissionType.Hardcore);
 
         DrawOwnSetting("ForcedBlindfold", "AllowBlindfold",
             _playerManager.GlobalPerms.IsBlindfolded() ? "Currently Blindfolded" : "Not Blindfolded",
             _playerManager.GlobalPerms.IsBlindfolded() ? FontAwesomeIcon.Blind : FontAwesomeIcon.Ban,
             _playerManager.GlobalPerms.IsBlindfolded() ? $"You are currently blindfolded by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently blindfolding you.",
-            true, // do not allow user to change this permission.
-            PermissionType.Global, PermissionValueType.YesNo);
+            true, PermissionType.Hardcore);
 
         DrawOwnSetting("ChatboxesHidden", "AllowHidingChatboxes",
             _playerManager.GlobalPerms.IsChatHidden() ? "Chatbox is Hidden" : "Chatbox is Visible",
             _playerManager.GlobalPerms.IsChatHidden() ? FontAwesomeIcon.CommentSlash : FontAwesomeIcon.Ban,
             _playerManager.GlobalPerms.IsChatHidden() ? _playerManager.GlobalPerms.ChatHiddenUID() + " has hidden your Chatbox!" : "Nobody is hiding your Chat.",
-            true, // do not allow user to change this permission.
-            PermissionType.Global, PermissionValueType.YesNo);
+            true, PermissionType.Hardcore);
 
         DrawOwnSetting("ChatInputHidden", "AllowHidingChatInput",
             _playerManager.GlobalPerms.IsChatInputHidden() ? "Chat Input is Hidden" : "Chat Input is Visible",
             _playerManager.GlobalPerms.IsChatInputHidden() ? FontAwesomeIcon.CommentSlash : FontAwesomeIcon.Ban,
             _playerManager.GlobalPerms.IsChatInputHidden() ? _playerManager.GlobalPerms.ChatInputHiddenUID() + " has hidden your Chatbox Input!" : "Nobody is hiding your Chat Input.",
-            true, // do not allow user to change this permission.
-            PermissionType.Global, PermissionValueType.YesNo);
-
+            true, PermissionType.Hardcore);
         DrawOwnSetting("ChatInputBlocked", "AllowChatInputBlocking",
-            _playerManager.GlobalPerms.IsChatInputBlocked() ? "Currently Blindfolded" : "Not Blindfolded",
+            _playerManager.GlobalPerms.IsChatInputBlocked() ? "Chat Input Blocked" : "Chat Input Available",
             _playerManager.GlobalPerms.IsChatInputBlocked() ? FontAwesomeIcon.CommentDots : FontAwesomeIcon.Ban,
-            _playerManager.GlobalPerms.IsChatInputBlocked() ? $"You are currently blindfolded by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently blindfolding you.",
-            true, // do not allow user to change this permission.
-            PermissionType.Global, PermissionValueType.YesNo);
+            _playerManager.GlobalPerms.IsChatInputBlocked() ? PairNickOrAliasOrUID + " has currently blocked access to your Chat Input" : "Nobody is blocking your Chat Input Access",
+            true, PermissionType.Hardcore);
 
 
         string shockCollarPairShareCode = UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode ?? string.Empty;
@@ -420,7 +413,7 @@ public partial class PairStickyUI
     /// <param name="permissionType"> If the permission is a global perm, unique pair perm, or access permission. </param>
     /// <param name="permissionValueType"> what permission type it is (string, char, timespan, boolean) </param>
     private void DrawOwnSetting(string permissionName, string permissionAccessName, string textLabel, FontAwesomeIcon icon,
-        string tooltipStr, bool isLocked, PermissionType permissionType, PermissionValueType permissionValueType)
+        string tooltipStr, bool isLocked, PermissionType permissionType, PermissionValueType permissionValueType = PermissionValueType.YesNo)
     {
         try
         {
@@ -438,6 +431,9 @@ public partial class PairStickyUI
                 case PermissionType.UniquePairPermEditAccess:
                     DrawOwnPermission(permissionType, UserPairForPerms.UserPairOwnEditAccess, textLabel, icon, tooltipStr, isLocked,
                         permissionName, permissionValueType, permissionAccessName);
+                    break;
+                case PermissionType.Hardcore:
+                    DrawHardcorePermission(permissionName, permissionAccessName, textLabel, icon, tooltipStr, isLocked);
                     break;
             }
         }
@@ -473,41 +469,23 @@ public partial class PairStickyUI
             {
                 // have a special case, where we mark the button as disabled if _playerManager.GlobalPerms.LiveChatGarblerLocked is true
                 if (_uiShared.IconTextButton(icon, label, IconButtonTextWidth, true, isLocked))
-                {
                     SetOwnPermission(permissionType, permissionName, !currValState);
-                }
                 UiSharedService.AttachToolTip(tooltip);
+
                 if (!permissionAccessName.IsNullOrEmpty()) // only display checkbox if we should.
                 {
                     ImGui.SameLine(IconButtonTextWidth);
-                    if (permissionAccessName != "AllowForcedFollow" && permissionAccessName != "AllowForcedSit" && permissionAccessName != "AllowForcedToStay" && permissionAccessName != "AllowBlindfold")
+                    bool refState = (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!;
+                    if (ImGui.Checkbox("##" + permissionAccessName, ref refState))
                     {
-                        bool refState = (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!;
-                        if (ImGui.Checkbox("##" + permissionAccessName, ref refState))
-                        {
-                            // if the new state is not the same as the current state, then we should update the permission access.
-                            if (refState != (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!)
-                                SetOwnPermission(PermissionType.UniquePairPermEditAccess, permissionAccessName, refState);
-                        }
-                        UiSharedService.AttachToolTip(refState
-                            ? ("Revoke " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
-                            : ("Grant " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + " control over this permission, allowing them to change " +
-                               "what you've set for them at will.");
+                        // if the new state is not the same as the current state, then we should update the permission access.
+                        if (refState != (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!)
+                            SetOwnPermission(PermissionType.UniquePairPermEditAccess, permissionAccessName, refState);
                     }
-                    else
-                    {
-                        bool refState = (bool)OwnPerms.GetType().GetProperty(permissionAccessName)?.GetValue(OwnPerms)!;
-                        if (ImGui.Checkbox("##" + permissionAccessName, ref refState))
-                        {
-                            // if the new state is not the same as the current state, then we should update the permission access.
-                            if (refState != (bool)OwnPerms.GetType().GetProperty(permissionAccessName)?.GetValue(OwnPerms)!)
-                                SetOwnPermission(PermissionType.UniquePairPerm, permissionAccessName, refState);
-                        }
-                        UiSharedService.AttachToolTip(refState
-                            ? ("Revoke " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
-                            : ("Grant " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + " control over this permission, allowing them to change " +
-                               "what you've set for them at will.");
-                    }
+                    UiSharedService.AttachToolTip(refState
+                        ? "Revoke " + PairNickOrAliasOrUID + "'s control over this permission."
+                        : "Grant " + PairNickOrAliasOrUID + " control over this permission, allowing them to change what you've set for them at will.");
+                    
                 }
             }
         }
@@ -555,6 +533,38 @@ public partial class PairStickyUI
                         : ("Grant " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + " control over this permission, allowing them to change " +
                            "what you've set for them at will.");
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Hardcore Permissions need to be handled seperately, since they are technically string values, but treated like booleans.
+    /// </summary>
+    private void DrawHardcorePermission(string permissionName, string permissionAccessName, string textLabel, FontAwesomeIcon icon,
+        string tooltipStr, bool isLocked)
+    {
+        // Grab the current value.
+        string currValState = (string)(_playerManager.GlobalPerms?.GetType().GetProperty(permissionName)?.GetValue(_playerManager?.GlobalPerms) ?? string.Empty);
+
+        using (ImRaii.Group())
+        {
+            // Disabled Button
+            _uiShared.IconTextButton(icon, textLabel, IconButtonTextWidth, true, true);
+            UiSharedService.AttachToolTip(tooltipStr);
+
+            if (!permissionAccessName.IsNullOrEmpty()) // only display checkbox if we should.
+            {
+                ImGui.SameLine(IconButtonTextWidth);
+                bool refState = (bool)OwnPerms.GetType().GetProperty(permissionAccessName)?.GetValue(OwnPerms)!;
+                if (ImGui.Checkbox("##" + permissionAccessName, ref refState))
+                {
+                    // if the new state is not the same as the current state, then we should update the permission access.
+                    if (refState != (bool)OwnPerms.GetType().GetProperty(permissionAccessName)?.GetValue(OwnPerms)!)
+                        SetOwnPermission(PermissionType.UniquePairPerm, permissionAccessName, refState);
+                }
+                UiSharedService.AttachToolTip(refState
+                    ? "Revoke " + PairNickOrAliasOrUID + "'s control over this permission."
+                    : "Grant " + PairNickOrAliasOrUID + " control over this permission, allowing them to change what you've set for them at will.");
             }
         }
     }

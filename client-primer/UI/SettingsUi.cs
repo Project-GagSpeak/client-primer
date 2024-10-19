@@ -1266,6 +1266,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"ToyIsActive: {clientPair.UserPairGlobalPerms.ToyIsActive}");
                         ImGui.Text($"ToyIntensity: {clientPair.UserPairGlobalPerms.ToyIntensity}");
                         ImGui.Text($"SpatialVibratorAudio: {clientPair.UserPairGlobalPerms.SpatialVibratorAudio}");
+                        ImGui.Text($"ForcedFollow: {clientPair.UserPairGlobalPerms.ForcedFollow}");
+                        ImGui.Text($"ForcedSit: {clientPair.UserPairGlobalPerms.ForcedSit}");
+                        ImGui.Text($"ForcedGroundsit: {clientPair.UserPairGlobalPerms.ForcedGroundsit}");
+                        ImGui.Text($"ForcedToStay: {clientPair.UserPairGlobalPerms.ForcedStay}");
+                        ImGui.Text($"Blindfold: {clientPair.UserPairGlobalPerms.ForcedBlindfold}");
+                        ImGui.Text($"HiddenChat: {clientPair.UserPairGlobalPerms.ChatboxesHidden}");
+                        ImGui.Text($"HiddenChatInput: {clientPair.UserPairGlobalPerms.ChatInputHidden}");
+                        ImGui.Text($"BlockingChatInput: {clientPair.UserPairGlobalPerms.ChatInputBlocked}");
                     }
                 }
                 if (clientPair.UserPairUniquePairPerms != null)

@@ -61,6 +61,10 @@ public record RestraintSet : IMoodlesAssociable
     public Dictionary<string, HardcoreSetProperties> SetProperties { get; set; } = [];
 
 
+    public bool HasPropertiesForUser(string uid) => SetProperties.ContainsKey(uid);
+    public bool PropertiesEnabledForUser(string uid) => HasPropertiesForUser(uid) && SetProperties[uid].AnyEnabled();
+
+
     public RestraintSet DeepCloneSet()
     {
         // Clone basic properties

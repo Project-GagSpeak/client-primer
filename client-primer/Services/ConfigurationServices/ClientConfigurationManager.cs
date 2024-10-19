@@ -398,29 +398,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
     }
 
-    // Called whenever set is saved.
-    internal void UpdateRestraintSet(int setIndex, RestraintSet updatedSet)
-    {
-        _wardrobeConfig.Current.WardrobeStorage.RestraintSets[setIndex] = updatedSet;
-        _wardrobeConfig.Save();
-        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
-    }
-
-    internal bool PropertiesEnabledForSet(int setIndexToCheck, string UIDtoCheckPropertiesFor)
-    {
-        // do not allow hardcore properties for self.
-        if (UIDtoCheckPropertiesFor == Globals.SelfApplied || UIDtoCheckPropertiesFor == string.Empty)
-        {
-            Logger.LogTrace("Self or empty UID detected, returning false for hardcore properties.", LoggerType.Restraints);
-            return false;
-        }
-        var setProperties = WardrobeConfig.WardrobeStorage.RestraintSets[setIndexToCheck].SetProperties[UIDtoCheckPropertiesFor];
-        if (setProperties is null) 
-            return false;
-        // check if any properties are enabled
-        return setProperties.AnyEnabled();
-    }
-
     internal void SaveWardrobe() => _wardrobeConfig.Save();
 
     internal void LockRestraintSet(int setIndex, string lockType, string password,

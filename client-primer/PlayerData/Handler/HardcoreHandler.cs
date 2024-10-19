@@ -128,18 +128,19 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
 
         if (newState is NewState.Disabled)
         {
-            // set the client first before push to prevent getting stuck while disconnected
-            _playerData.GlobalPerms!.ForcedFollow = string.Empty;
-
-            // If we are still following someone when this triggers it means we were
-            // idle long enough for it to disable.
+            // If we are still following someone when this triggers it means we were idle long enough for it to disable.
             if (_playerData.GlobalPerms?.IsFollowing() ?? false)
             {
+                // set the client first before push to prevent getting stuck while disconnected
+                _playerData.GlobalPerms!.ForcedFollow = string.Empty;
                 Logger.LogInformation("ForceFollow Disable was triggered manually before it naturally disabled. Forcibly shutting down.");
                 _ = _apiController.UserUpdateOwnGlobalPerm(new(new(ApiController.UID), new KeyValuePair<string, object>("ForcedFollow", string.Empty)));
+            
             }
             else
             {
+                // set the client first before push to prevent getting stuck while disconnected
+                _playerData.GlobalPerms!.ForcedFollow = string.Empty;
                 Logger.LogInformation("Disabled forced follow for pair.", LoggerType.HardcoreMovement);
             }
 

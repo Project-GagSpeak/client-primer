@@ -145,16 +145,14 @@ public partial class AchievementManager
         wardrobeComponent.AddConditionalProgress(WardrobeLabels.MyKinkRunsDeep, "Complete a deep dungeon with hardcore stimulation or hardcore restraints.", 1, () =>
         {
             var activeSet = _clientConfigs.GetActiveSet();
-            var activeSetIdx = _clientConfigs.GetActiveSetIdx();
-            if (activeSetIdx == -1 || activeSet is null) return false;
-            return _clientConfigs.PropertiesEnabledForSet(activeSetIdx, activeSet.EnabledBy);
+            if(activeSet is null) return false;
+            return activeSet.PropertiesEnabledForUser(activeSet.EnabledBy);
         }, "FloorSets Cleared");
         wardrobeComponent.AddConditionalProgress(WardrobeLabels.MyKinksRunDeeper, "Solo a deep dungeon with hardcore stimulation or hardcore restraints.", 1, () =>
         {
             var activeSet = _clientConfigs.GetActiveSet();
-            var activeSetIdx = _clientConfigs.GetActiveSetIdx();
-            if (activeSetIdx == -1 || activeSet is null) return false;
-            return _clientConfigs.PropertiesEnabledForSet(activeSetIdx, activeSet.EnabledBy);
+            if (activeSet is null) return false;
+            return activeSet.PropertiesEnabledForUser(activeSet.EnabledBy);
         }, "FloorSets Cleared");
 
         // Complete a Trial within 10 levels of max level with Hardcore Properties

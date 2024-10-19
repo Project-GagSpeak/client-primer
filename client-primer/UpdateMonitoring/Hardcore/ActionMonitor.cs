@@ -60,12 +60,11 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         var activeSet = _clientConfigs.GetActiveSet();
         if (activeSet is not null && activeSet.EnabledBy is not Globals.SelfApplied)
         {
-            if (_clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), activeSet.EnabledBy))
+            if(activeSet.PropertiesEnabledForUser(activeSet.EnabledBy))
             {
                 Logger.LogDebug("Hardcore RestraintSet is now active", LoggerType.HardcoreActions);
                 // apply stimulation modifier, if any (TODO)
                 _hardcoreHandler.ApplyMultiplier();
-
                 if (activeSet.SetProperties[activeSet.EnabledBy].StimulationLevel is not StimulationLevel.None)
                     UpdateJobList();
 
@@ -336,7 +335,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         {
             // Probably just remove it if we need to.
             var activeSet = _clientConfigs.GetActiveSet();
-            if (activeSet is not null && _clientConfigs.PropertiesEnabledForSet(_clientConfigs.GetActiveSetIdx(), activeSet.EnabledBy))
+            if (activeSet is not null && activeSet.PropertiesEnabledForUser(activeSet.EnabledBy))
                 UpdateSlots(activeSet.SetProperties[activeSet.EnabledBy]);
         }
     }

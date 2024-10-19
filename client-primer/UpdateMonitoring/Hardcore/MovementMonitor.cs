@@ -225,12 +225,13 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             if (_promptsRooms.Enabled) _promptsRooms.Disable();
         }
 
+        // Cancel Keys if forced follow or immobilization is active.
+        if (_handler.MonitorFollowLogic || HandleImmobilize)
+            CancelMoveKeys();
 
-
-        // RESTRAINT IMMOBILIZATION, in where we need to prevent LMB+RMB movement and also cancel keys.
+        // RESTRAINT IMMOBILIZATION OR FORCED FOLLOW, in where we need to prevent LMB+RMB movement.
         if (HandleImmobilize)
         {
-            CancelMoveKeys();
             // Stop all movement but only when LMB and RMB are down.
             if (KeyMonitor.IsBothMouseButtonsPressed())
                 _MoveController.EnableMovementLock();

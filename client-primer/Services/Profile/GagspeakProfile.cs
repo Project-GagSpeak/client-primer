@@ -80,7 +80,7 @@ public class GagspeakProfile : DisposableMediatorSubscriberBase
     {
         if (disposing)
         {
-            Logger.LogWarning("Disposing profile image data!");
+            Logger.LogInformation("Disposing profile image data!");
             _lastProfileImage?.Dispose();
             _lastProfileImage = null;
         }

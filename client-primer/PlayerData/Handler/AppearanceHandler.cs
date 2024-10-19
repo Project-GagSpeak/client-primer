@@ -132,13 +132,12 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         await PenumbraModsToggle(NewState.Enabled, setRef.AssociatedMods);
 
         // Enable the Hardcore Properties by invoking the ipc call.
-        if (setRef.SetProperties.ContainsKey(setRef.EnabledBy) && _clientConfigs.PropertiesEnabledForSet(setIdx, setRef.EnabledBy))
+        if (setRef.HasPropertiesForUser(setRef.EnabledBy))
         {
-            Logger.LogWarning("Set Contains HardcoreProperties for "+ setRef.EnabledBy, LoggerType.Restraints);
-
-            if(_clientConfigs.PropertiesEnabledForSet(setIdx, setRef.EnabledBy))
+            Logger.LogDebug("Set Contains HardcoreProperties for "+ setRef.EnabledBy, LoggerType.Restraints);
+            if(setRef.PropertiesEnabledForUser(setRef.EnabledBy))
             {
-                Logger.LogWarning("Hardcore properties are enabled for this set!");
+                Logger.LogDebug("Hardcore properties are enabled for this set!");
                 IpcFastUpdates.InvokeHardcoreTraits(NewState.Enabled, setRef);
             }
         }
@@ -169,8 +168,15 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         await RemoveMoodles(setRef);
 
         // Disable the Hardcore Properties by invoking the ipc call.
-        if (setRef.SetProperties.ContainsKey(setRef.EnabledBy) && _clientConfigs.PropertiesEnabledForSet(setIdx, setRef.EnabledBy))
-            IpcFastUpdates.InvokeHardcoreTraits(NewState.Disabled, setRef);
+        if (setRef.HasPropertiesForUser(setRef.EnabledBy))
+        {
+            Logger.LogDebug("Set Contains HardcoreProperties for " + setRef.EnabledBy, LoggerType.Restraints);
+            if (setRef.PropertiesEnabledForUser(setRef.EnabledBy))
+            {
+                Logger.LogDebug("Hardcore properties are enabled for this set, so disabling them!");
+                IpcFastUpdates.InvokeHardcoreTraits(NewState.Disabled, setRef);
+            }
+        }
 
         UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, false, disablerUID);
         setRef.Enabled = false;

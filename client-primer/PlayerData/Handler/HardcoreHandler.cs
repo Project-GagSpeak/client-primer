@@ -268,7 +268,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         var visibility = newState is NewState.Enabled ? false : true;
         ChatLogAddonHelper.SetChatLogPanelsVisibility(visibility);
         // if this was called while we were not connected, manually set the new value.
-        if (_playerData.GlobalPerms?.IsChatHidden() ?? false)
+        if (newState is NewState.Disabled && (_playerData.GlobalPerms?.IsChatHidden() ?? false))
         {
             Logger.LogWarning("You were disconnected when invoking this disable, meaning it was likely triggered from a safeword. Manually switching off!");
             _playerData.GlobalPerms.ChatboxesHidden = string.Empty;
@@ -283,7 +283,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         var visibility = newState is NewState.Enabled ? false : true;
         ChatLogAddonHelper.SetMainChatLogVisibility(visibility);
         // if this was called while we were not connected, manually set the new value.
-        if (_playerData.GlobalPerms?.IsChatInputHidden() ?? false)
+        if (newState is NewState.Disabled && (_playerData.GlobalPerms?.IsChatInputHidden() ?? false))
         {
             Logger.LogWarning("You were disconnected when invoking this disable, meaning it was likely triggered from a safeword. Manually switching off!");
             _playerData.GlobalPerms.ChatInputHidden = string.Empty;
@@ -295,7 +295,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         // No logic handled here. Instead it is handled in the framework updater.
         Logger.LogDebug(newState is NewState.Enabled ? "Enabled " : "Disabled " + "Chat Input Blocking", LoggerType.HardcoreActions);
         // if this was called while we were not connected, manually set the new value.
-        if(_playerData.GlobalPerms?.IsChatInputBlocked() ?? false)
+        if (newState is NewState.Disabled && (_playerData.GlobalPerms?.IsChatInputBlocked() ?? false))
         {
             Logger.LogWarning("You were disconnected when invoking this disable, meaning it was likely triggered from a safeword. Manually switching off!");
             _playerData.GlobalPerms.ChatInputBlocked = string.Empty;

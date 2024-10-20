@@ -169,7 +169,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             // Check to see if the player is moving or not.
             if (_clientState.LocalPlayer.Position != _handler.LastPosition)
             {
-                _handler.LastMovementTime = DateTimeOffset.Now;           // reset timer
+                _handler.LastMovementTime = DateTimeOffset.UtcNow;           // reset timer
                 _handler.LastPosition = _clientState.LocalPlayer.Position;// update last position
             }
 
@@ -228,6 +228,8 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         // Cancel Keys if forced follow or immobilization is active.
         if (_handler.MonitorFollowLogic || HandleImmobilize)
             CancelMoveKeys();
+        else
+            ResetCancelledMoveKeys();
 
         // RESTRAINT IMMOBILIZATION OR FORCED FOLLOW, in where we need to prevent LMB+RMB movement.
         if (HandleImmobilize)
@@ -238,9 +240,6 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             // And release Movement Lock when they aren't pressed.
             else _MoveController.DisableMovementLock();
         }
-        else ResetCancelledMoveKeys();
-
-
 
         // BLINDFOLDED STATE - Force Lock First Person if desired.
         if (_clientConfigs.GagspeakConfig.ForceLockFirstPerson && _handler.IsBlindfolded)

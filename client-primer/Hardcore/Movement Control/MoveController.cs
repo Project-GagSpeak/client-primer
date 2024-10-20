@@ -80,15 +80,19 @@ public class MoveController : IDisposable
         {
             if (obj.GameObjectId == unk1->GameObjectIDToFollow)
             {
-                _logger.LogDebug($"Game Object To Follow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}", LoggerType.HardcoreMovement);
+                //_logger.LogDebug($"Game Object To Follow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}", LoggerType.HardcoreMovement);
                 break;
             }
         }
         // if this condition it true, it means that the function is attempting to call a cancelation 
-        if (MovementUpdateHook is not null && MovementUpdateHook.IsEnabled && unk1->Unk_0x450.Unk_0x54 == 256)
+        if (unk1->Unk_0x450.Unk_0x54 == 256)
         {
-            //_logger.LogDebug($"Early escaping to prevent canceling follow!", LoggerType.HardcoreMovement);
-            return; // do an early return to prevent processing
+            //_logger.LogDebug("Unk_0x450.Unk_0x54 was 256. Canceling request to unfollow!", LoggerType.HardcoreMovement);
+            if (MovementUpdateHook is not null && MovementUpdateHook.IsEnabled)
+            {
+                //_logger.LogDebug($"Unfollow Hook was valid, performing Early escaping to prevent canceling follow!", LoggerType.HardcoreMovement);
+                return; // do an early return to prevent processing
+            }
         }
         else
         {
@@ -115,7 +119,7 @@ public class MoveController : IDisposable
         {
             if (obj.GameObjectId == unk1->GameObjectIDToFollow)
             {
-                //_logger.LogDebug($"POST ObjectIDtoFollow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}", LoggerType.HardcoreMovement);
+                _logger.LogDebug($"POST ObjectIDtoFollow: {unk1->GameObjectIDToFollow.ToString("X")}: {obj.Name.TextValue}", LoggerType.HardcoreMovement);
                 break;
             }
         }

@@ -33,64 +33,45 @@ namespace GagSpeak.UI.UiWardrobe;
 
 public class RestraintSetEditor : IMediatorSubscriber
 {
-    private readonly ILogger<RestraintSetEditor> Logger;
-    private readonly UiSharedService _uiShared;
-    private readonly WardrobeHandler _handler;
-    private readonly UserPairListHandler _userPairListHandler;
-    private readonly DictStain _stainDictionary;
-    private readonly ItemData _itemDictionary;
-    private readonly DictBonusItems _bonusItemsDictionary;
-    private readonly TextureService _textures;
+    private readonly ILogger<RestraintSetEditor> _logger;
     private readonly ModAssociations _relatedMods;
     private readonly MoodlesAssociations _relatedMoodles;
     private readonly PairManager _pairManager;
-    private readonly IDataManager _gameData;
+    private readonly GameItemStainHandler _itemStainHandler;
+    private readonly UserPairListHandler _userPairListHandler;
+    private readonly WardrobeHandler _handler;
+    private readonly UiSharedService _uiShared;
     public GagspeakMediator Mediator { get; init; }
 
-    public RestraintSetEditor(ILogger<RestraintSetEditor> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
-        WardrobeHandler handler, UserPairListHandler userPairListHandler,
-        DictStain stains, ItemData items, DictBonusItems bonusItemsDictionary, 
-        TextureService textures, ModAssociations relatedMods, 
-        MoodlesAssociations relatedMoodles,PairManager pairManager, IDataManager gameData)
+    public RestraintSetEditor(ILogger<RestraintSetEditor> logger, GagspeakMediator mediator, 
+        ModAssociations relatedMods, MoodlesAssociations relatedMoodles, PairManager pairManager,
+        GameItemStainHandler stains, UserPairListHandler userPairList, WardrobeHandler handler,
+        UiSharedService uiShared)
     {
-        Logger = logger;
+        _logger = logger;
         Mediator = mediator;
-        _uiShared = uiSharedService;
-        _handler = handler;
-        _userPairListHandler = userPairListHandler;
-        _stainDictionary = stains;
-        _itemDictionary = items;
-        _bonusItemsDictionary = bonusItemsDictionary;
-        _textures = textures;
-        _gameData = gameData;
         _relatedMods = relatedMods;
         _relatedMoodles = relatedMoodles;
         _pairManager = pairManager;
+        _itemStainHandler = stains;
+        _userPairListHandler = userPairList;
+        _handler = handler;
+        _uiShared = uiShared;
 
-        // create a fresh instance of the restraint set 
         GameIconSize = new Vector2(2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y);
-
-        // setup the combos
-        ItemCombos = EquipSlotExtensions.EqdpSlots
-            .Select(e => new GameItemCombo(_gameData, e, _itemDictionary, logger))
-            .ToArray();
-
-        StainColorCombos = new StainColorCombo(ComboWidth - 20, _stainDictionary, logger);
-
-        BonusItemCombos = BonusExtensions.AllFlags
-            .Select(f => new BonusItemCombo(_gameData, f, _bonusItemsDictionary, logger))
-            .ToArray();
+        // Assign Data to our combos.
+        ItemCombos = _itemStainHandler.ObtainItemCombos();
+        StainColorCombos = _itemStainHandler.ObtainStainCombos(ComboWidth);
+        BonusItemCombos = _itemStainHandler.ObtainBonusItemCombos();
 
         Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
     }
-
 
     // Info related to the person we are inspecting.
     private CharacterIPCData LastCreatedCharacterData = null!;
     private readonly GameItemCombo[] ItemCombos;
     private readonly StainColorCombo StainColorCombos;
-    private readonly BonusItemCombo[] BonusItemCombos; // future proofing for potential multiples
+    private readonly BonusItemCombo[] BonusItemCombos;
     private string RefSearchString = string.Empty;
     private Vector2 GameIconSize;
     private const float ComboWidth = 200f;
@@ -100,58 +81,39 @@ public class RestraintSetEditor : IMediatorSubscriber
     public void DrawRestraintSetEditor(RestraintSet refRestraint, Vector2 cellPadding)
     {
         // create a tab bar for the display
-        using var tabBar = ImRaii.TabBar("Outfit_Editor");
-
-        if (tabBar)
+        if (ImGui.BeginTabBar("Outfit_Editor"))
         {
-            var infoTab = ImRaii.TabItem("Info");
-            if (infoTab)
+            if (ImGui.BeginTabItem("Info"))
             {
                 DrawInfo(refRestraint);
+                ImGui.EndTabItem();
             }
-            infoTab.Dispose();
-
-            // create glamour tab (applying the visuals)
-            var glamourTab = ImRaii.TabItem("Appearance");
-            if (glamourTab)
+            if (ImGui.BeginTabItem("Appearance"))
             {
                 DrawAppearance(refRestraint);
+                ImGui.EndTabItem();
             }
-            glamourTab.Dispose();
-
-            var associatedMods = ImRaii.TabItem("Mods");
-            if (associatedMods)
+            if (ImGui.BeginTabItem("Mods"))
             {
                 _relatedMods.DrawUnstoredSetTable(refRestraint, cellPadding.Y);
+                ImGui.EndTabItem();
             }
-            associatedMods.Dispose();
-
-            var associatedMoodles = ImRaii.TabItem("Moodles");
-            if (associatedMoodles)
+            if (ImGui.BeginTabItem("Moodles"))
             {
                 DrawMoodlesOptions(refRestraint, cellPadding.Y);
+                ImGui.EndTabItem();
             }
-            associatedMoodles.Dispose();
-
-            var associatedSpatialAudioType = ImRaii.TabItem("Sounds");
-            if (associatedSpatialAudioType)
+            if (ImGui.BeginTabItem("Sounds"))
             {
                 DrawSpatialAudioOptions(refRestraint, cellPadding.Y);
+                ImGui.EndTabItem();
             }
-            associatedSpatialAudioType.Dispose();
-
-            // store the current style for cell padding
-            var cellPaddingCurrent = ImGui.GetStyle().CellPadding;
-            // push Y cell padding.
-            using (ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiShared.GetFontScalerFloat(), cellPadding.Y)))
+            if (ImGui.BeginTabItem("View Access & Hardcore"))
             {
-                var visibilityAccess = ImRaii.TabItem("Pair Visibility & Hardcore");
-                if (visibilityAccess)
-                {
-                    DrawVisibilityAndProperties(refRestraint);
-                }
-                visibilityAccess.Dispose();
+                DrawVisibilityAndProperties(refRestraint);
+                ImGui.EndTabItem();
             }
+            ImGui.EndTabBar();
         }
     }
 
@@ -198,7 +160,7 @@ public class RestraintSetEditor : IMediatorSubscriber
             int i = 0;
             foreach (var slot in EquipSlotExtensions.EquipmentSlots)
             {
-                refRestraintSet.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                refRestraintSet.DrawData[slot].GameItem.DrawIcon(_itemStainHandler.IconData, GameIconSize, slot);
                 // if we right click the icon, clear it
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
@@ -217,7 +179,7 @@ public class RestraintSetEditor : IMediatorSubscriber
             {
                 using (var groupIcon = ImRaii.Group())
                 {
-                    refRestraintSet.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                    refRestraintSet.DrawData[slot].GameItem.DrawIcon(_itemStainHandler.IconData, GameIconSize, slot);
                     // if we right click the icon, clear it
                     if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                     {
@@ -246,7 +208,7 @@ public class RestraintSetEditor : IMediatorSubscriber
             // end of table, now draw the bonus items
             foreach (var slot in BonusExtensions.AllFlags)
             {
-                refRestraintSet.BonusDrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                refRestraintSet.BonusDrawData[slot].GameItem.DrawIcon(_itemStainHandler.IconData, GameIconSize, slot);
                 ImGui.SameLine(0, 6);
                 DrawBonusItem(ref refRestraintSet, refRestraintSet.BonusDrawData[slot].Slot, newWidth);
                 ImUtf8.SameLineInner();
@@ -344,7 +306,7 @@ public class RestraintSetEditor : IMediatorSubscriber
         }
         catch (Exception e)
         {
-            Logger.LogError(e, "Error Drawing Moodles Options for Restraint Set.");
+            _logger.LogError(e, "Error Drawing Moodles Options for Restraint Set.");
         }
     }
 
@@ -499,7 +461,7 @@ public class RestraintSetEditor : IMediatorSubscriber
         if (open)
         {
             GenericHelpers.OpenCombo($"##WardrobeCreateNewSetItem-{slot}");
-            Logger.LogTrace($"{combo.Label} Toggled");
+            _logger.LogTrace($"{combo.Label} Toggled");
         }
         // draw the combo
         var change = combo.Draw(refRestraintSet.DrawData[slot].GameItem.Name,
@@ -509,7 +471,7 @@ public class RestraintSetEditor : IMediatorSubscriber
         if (change && !refRestraintSet.DrawData[slot].GameItem.Equals(combo.CurrentSelection))
         {
             // log full details.
-            Logger.LogTrace($"Item changed from {combo.CurrentSelection} [{combo.CurrentSelection.ItemId}] " +
+            _logger.LogTrace($"Item changed from {combo.CurrentSelection} [{combo.CurrentSelection.ItemId}] " +
                 $"to {refRestraintSet.DrawData[slot].GameItem} [{refRestraintSet.DrawData[slot].GameItem.ItemId}]");
             // update the item to the new selection.
             refRestraintSet.DrawData[slot].GameItem = combo.CurrentSelection;
@@ -519,7 +481,7 @@ public class RestraintSetEditor : IMediatorSubscriber
         if (clear || ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             // if we right click the item, clear it.
-            Logger.LogTrace($"Item changed to {ItemIdVars.NothingItem(refRestraintSet.DrawData[slot].Slot)} " +
+            _logger.LogTrace($"Item changed to {ItemIdVars.NothingItem(refRestraintSet.DrawData[slot].Slot)} " +
                 $"[{ItemIdVars.NothingItem(refRestraintSet.DrawData[slot].Slot).ItemId}] " +
                 $"from {refRestraintSet.DrawData[slot].GameItem} [{refRestraintSet.DrawData[slot].GameItem.ItemId}]");
             // clear the item.
@@ -549,7 +511,7 @@ public class RestraintSetEditor : IMediatorSubscriber
         if (change && !refRestraintSet.BonusDrawData[flag].GameItem.Equals(combo.CurrentSelection))
         {
             // log full details.
-            Logger.LogTrace($"Item changed from {combo.CurrentSelection} [{combo.CurrentSelection.ModelId}] " +
+            _logger.LogTrace($"Item changed from {combo.CurrentSelection} [{combo.CurrentSelection.ModelId}] " +
                 $"to {refRestraintSet.BonusDrawData[flag].GameItem} [{refRestraintSet.BonusDrawData[flag].GameItem.ModelId}]");
             // change
             refRestraintSet.BonusDrawData[flag].GameItem = combo.CurrentSelection;
@@ -558,7 +520,7 @@ public class RestraintSetEditor : IMediatorSubscriber
         if (clear || ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
             // Assuming a method to handle item reset or clear, similar to your DrawItem method
-            Logger.LogTrace($"Item reset to default for slot {flag}");
+            _logger.LogTrace($"Item reset to default for slot {flag}");
             // reset it
             refRestraintSet.BonusDrawData[flag].GameItem = BonusItem.Empty(flag);
         }
@@ -574,7 +536,7 @@ public class RestraintSetEditor : IMediatorSubscriber
         foreach (var (stainId, index) in refRestraintSet.DrawData[slot].GameStain.WithIndex())
         {
             using var id = ImUtf8.PushId(index);
-            var found = _stainDictionary.TryGetValue(stainId, out var stain);
+            var found = _itemStainHandler.TryGetStain(stainId, out var stain);
             // draw the stain combo.
             var change = StainColorCombos.Draw($"##stain{refRestraintSet.DrawData[slot].Slot}", stain.RgbaColor, stain.Name, found, stain.Gloss, widthStains);
             if (index < refRestraintSet.DrawData[slot].GameStain.Count - 1)
@@ -583,7 +545,7 @@ public class RestraintSetEditor : IMediatorSubscriber
             // if we had a change made, update the stain data.
             if (change)
             {
-                if (_stainDictionary.TryGetValue(StainColorCombos.CurrentSelection.Key, out stain))
+                if (_itemStainHandler.TryGetStain(StainColorCombos.CurrentSelection.Key, out stain))
                 {
                     // if changed, change it.
                     refRestraintSet.DrawData[slot].GameStain = refRestraintSet.DrawData[slot].GameStain.With(index, stain.RowIndex);

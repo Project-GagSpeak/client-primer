@@ -63,10 +63,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             if (_isVisible != value)
             {
                 _isVisible = value;
-                string text = "User Visibility Changed, now: " + (_isVisible ? "Is Visible" : "Is not Visible");
-                // publish an event message to the mediator for logging purposes
-                Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler),
-                    EventSeverity.Informational, text)));
+                Logger.LogTrace("User Visibility Changed, now: " + (_isVisible ? "Is Visible" : "Is not Visible"), LoggerType.PairManagement);
                 // publish a refresh ui message to the mediator
                 Mediator.Publish(new RefreshUiMessage());
                 // push latest list details to Moodles.
@@ -106,10 +103,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             _charaHandler = null;
 
             // if the player name is not null or empty, publish an event message to the mediator for logging purposes
-            if (!string.IsNullOrEmpty(name))
-            {
-                Mediator.Publish(new EventMessage(new Event(name, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational, "Disposing User")));
-            }
+            Logger.LogTrace("Disposing "+name+" complete", LoggerType.GameObjects);
 
             // if the hosted service lifetime is ending, return
             if (_lifetime.ApplicationStopping.IsCancellationRequested) return;
@@ -159,7 +153,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     public void ApplyCharacterData(Guid applicationBase, CharacterIPCData characterData)
     {
         // publish the message to the mediator that we are applying character data
-        Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational, "Applying Character IPC Data")));
+        Logger.LogDebug("Applying Character IPC Data for (" + PlayerName + ")", LoggerType.PairManagement);
 
         // check update data to see what character data we will need to update.
         // We pass in _cachedIpcData?.DeepClone() to send what the past data was,
@@ -254,10 +248,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             // initialize the player character
             Initialize(pc.Name);
             if (_charaHandler != null) _charaHandler.UpdatePlayerCharacterRef();
-            Logger.LogDebug("One-Time Initialized " + this, LoggerType.GameObjects);
-            // publish an event message to the mediator for logging purposes
-            Mediator.Publish(new EventMessage(new Event(PlayerName, OnlineUser.User, nameof(PairHandler), EventSeverity.Informational,
-                $"Initializing User For Character {pc.Name}")));
+            Logger.LogDebug("One-Time Initialized " + this + "(" + pc.Name + ")", LoggerType.GameObjects);
         }
 
         // if the game object for this pair has a pointer that is not zero (meaning they are present) but the pair is marked as not visible

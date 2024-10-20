@@ -4,24 +4,19 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.Services.Events;
 using GagSpeak.UI;
-using GagSpeak.UI.Permissions;
+using GagSpeak.UI.Components;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Enums;
+using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
-using Glamourer.Api.Enums;
+using GagspeakAPI.Dto.IPC;
+using GagspeakAPI.Dto.Toybox;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using System.Numerics;
-using GagspeakAPI.Data;
-using GagSpeak.PlayerData.PrivateRooms;
-using GagspeakAPI.Dto.Toybox;
-using GagspeakAPI.Dto.IPC;
-using GagspeakAPI.Data.Permissions;
-using GagSpeak.UI.Components;
-using GagSpeak.Achievements;
 
 namespace GagSpeak.Services.Mediator;
 
@@ -29,7 +24,7 @@ namespace GagSpeak.Services.Mediator;
 
 /* ------------------ MESSAGE RELATED RECORDS ------------------ */
 public record NotificationMessage(string Title, string Message, NotificationType Type, TimeSpan? TimeShownOnScreen = null) : MessageBase;
-public record EventMessage(Event Event) : MessageBase;
+public record EventMessage(InteractionEvent Event) : MessageBase;
 
 
 /* ------------------ MAIN HUB RECORDS ------------------ */
@@ -57,7 +52,7 @@ public record DalamudLoginMessage : MessageBase; // record indicating the moment
 public record DalamudLogoutMessage : MessageBase; // record indicating the moment the client logs out of the game instance.
 public record FrameworkUpdateMessage : SameThreadMessage; // a message indicating the need for a framework update.
 public record DelayedFrameworkUpdateMessage : SameThreadMessage; // a message indicating the need for a delayed framework update.
-public record GPoseStartMessage : MessageBase ; // a message indicating the start of gpose.
+public record GPoseStartMessage : MessageBase; // a message indicating the start of gpose.
 public record GPoseEndMessage : MessageBase; // a message indicating the end of gpose.
 public record CutsceneBeginMessage : MessageBase;
 public record CutsceneEndMessage : MessageBase; // helps us know when to reapply data like moodles.
@@ -85,7 +80,7 @@ public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item
 public record TooltipSetItemToCursedItemMessage(EquipSlot Slot, EquipItem Item) : MessageBase;
 
 ////////////// WARDROBE RELATED RECORDS //////////////
-public record RestraintSetToggledMessage(int SetIdx, string AssignerUID, NewState State) : MessageBase; 
+public record RestraintSetToggledMessage(int SetIdx, string AssignerUID, NewState State) : MessageBase;
 public record HardcoreActionMessage(HardcoreAction type, NewState State) : MessageBase;
 public record HardcoreRemoveBlindfoldMessage : MessageBase;
 public record HardcoreUpdatedShareCodeForPair(Pair pair, string ShareCode) : MessageBase;
@@ -104,7 +99,7 @@ public record VibratorModeToggled(VibratorMode VibratorMode) : MessageBase; // f
 public record ToyDeviceAdded(ButtplugClientDevice Device) : MessageBase; // for when a device is added.
 public record ToyDeviceRemoved(ButtplugClientDevice Device) : MessageBase; // for when a device is removed.
 public record ButtplugClientDisconnected : MessageBase; // for when the buttplug client disconnects.
-public record ToyboxActiveDeviceChangedMessage(int DeviceIndex) : MessageBase; 
+public record ToyboxActiveDeviceChangedMessage(int DeviceIndex) : MessageBase;
 public record PlaybackStateToggled(Guid PatternId, NewState NewState) : MessageBase; // for when a pattern is activated.
 public record PatternRemovedMessage(Guid PatternId) : MessageBase; // for when a pattern is removed.
 public record TriggersModifiedMessage : MessageBase;

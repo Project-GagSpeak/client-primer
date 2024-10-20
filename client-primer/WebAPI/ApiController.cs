@@ -245,9 +245,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         await StopConnection(ServerState.Disconnected, HubType.ToyboxHub).ConfigureAwait(false);
 
         // now we can recreate the connection
-        Logger.LogInformation("Recreating Toybox Connection", LoggerType.ApiCore);
-        Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController),
-            Services.Events.EventSeverity.Informational, $"Starting Connection to Toybox Server")));
+        Logger.LogInformation("Starting Connection to Toybox Server", LoggerType.ApiCore);
 
         // recreate CTS for the toybox connection
         _connectionToyboxCTS?.Cancel();
@@ -420,9 +418,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         await StopConnection(ServerState.Disconnected).ConfigureAwait(false);
 
         // now we can recreate the connection
-        Logger.LogInformation("Recreating Connection", LoggerType.ApiCore);
-        Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Informational,
-            $"Starting Connection to {_serverConfigs.CurrentServer.ServerName}")));
+        Logger.LogInformation("Starting Connection to "+_serverConfigs.CurrentServer.ServerName, LoggerType.ApiCore);
 
         // dispose of the old connection CTS and create a new one
         _connectionCTS?.Cancel();
@@ -690,6 +686,13 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
     /// <returns>A task representing the asynchronous health check operation.</returns>
     private async Task ClientMainHealthCheck(CancellationToken ct)
     {
+        // Ensure the hub connection is initialized before starting the loop
+        if (_gagspeakHub is null)
+        {
+            Logger.LogError("HubConnection is null. Cannot perform main client health check.", LoggerType.Health);
+            return;
+        }
+
         // while the cancellation token is not requested and the hub is not null
         while (!ct.IsCancellationRequested && _gagspeakHub != null)
         {
@@ -703,8 +706,17 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             // if we need to reconnect, break out of the loop
             if (requireReconnect) break;
 
-            // otherwise, invoke the check client health function on the server to get an update on its state.
-            _ = await CheckMainClientHealth().ConfigureAwait(false);
+            // Check if the hub connection is still valid before invoking the health check
+            if (_gagspeakHub is not null)
+            {
+                // otherwise, invoke the check client health function on the server to get an update on its state.
+                _ = await CheckMainClientHealth().ConfigureAwait(false);
+            }
+            else
+            {
+                Logger.LogError("HubConnection became null during health check loop.", LoggerType.Health);
+                break;
+            }
         }
     }
 
@@ -997,9 +1009,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         }
 
         Logger.LogWarning($"{arg} Connection closed... Reconnecting");
-        // publish a event message to the mediator alerting us of the reconnection
-        Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Warning,
-            $"Connection interrupted, reconnecting to {_serverConfigs.CurrentServer.ServerName}")));
+        Logger.LogInformation("Connection interrupted, reconnecting to " + _serverConfigs.CurrentServer.ServerName, LoggerType.ApiCore);
     }
 
     /* ================ Toybox Hub SignalR Functions ================ */
@@ -1061,8 +1071,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         ToyboxServerState = ServerState.Reconnecting;
         Logger.LogWarning($"{arg} Connection closed with toybox hub... Reconnecting");
         // publish a event message to the mediator alerting us of the reconnection
-        Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Warning,
-            $"Connection interrupted, reconnecting to Toybox Hub")));
+        Logger.LogInformation("Connection interrupted, reconnecting to Toybox Hub", LoggerType.ApiCore);
     }
 
     /// <summary>
@@ -1120,8 +1129,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             if (_gagspeakHub is not null)
             {
                 // publish the event message to the mediator that we are stopping the connection
-                Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Informational,
-                    $"Stopping existing connection to Main Hub :: {_serverConfigs.CurrentServer.ServerName}")));
+                Logger.LogInformation("Stopping existing connection to Main Hub :: " + _serverConfigs.CurrentServer.ServerName, LoggerType.ApiCore);
                 // set initialized to false, cancel the health CTS, and publish a disconnected message to the mediator
                 _initialized = false;
                 _healthCTS?.Cancel();
@@ -1144,8 +1152,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
             if (_toyboxHub is not null)
             {
                 // publish the event message to the mediator that we are stopping the connection
-                Mediator.Publish(new EventMessage(new Services.Events.Event(nameof(ApiController), Services.Events.EventSeverity.Informational,
-                    $"Stopping existing connection to Toybox Hub")));
+                Logger.LogInformation("Stopping existing connection to Toybox Hub", LoggerType.ApiCore);
                 // set initialized to false, cancel the health CTS, and publish a disconnected message to the mediator
                 _toyboxInitialized = false;
                 _toyboxHealthCTS?.Cancel();

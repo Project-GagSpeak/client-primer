@@ -112,9 +112,4 @@ public static class CosmeticLabels
     {
         { "DummyTest", "RequiredImages\\icon256bg.png" }, // Dummy File
     };
-
-    public static readonly string[] CosmeticFileLocations =
-    {
-        "RequiredImages\\icon256bg.png", // Dummy File.
-    };
 }

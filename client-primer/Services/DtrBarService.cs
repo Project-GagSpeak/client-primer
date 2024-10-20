@@ -5,7 +5,9 @@ using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UI;
 using GagSpeak.UI.Components;
 using GagSpeak.WebAPI;
 using Lumina.Excel.GeneratedSheets;
@@ -18,40 +20,47 @@ namespace GagSpeak.UpdateMonitoring;
 public sealed class DtrBarService : DisposableMediatorSubscriberBase
 {
     private readonly ApiController _apiController;
+    private readonly EventAggregator _eventAggregator;
     private readonly PairManager _pairManager;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly IClientState _clientState;
     private readonly IDataManager _gameData;
     private readonly IDtrBar _dtrBar;
-    public DtrBarService(ILogger<DtrBarService> logger,
-        GagspeakMediator mediator, ApiController apiController,
-        PairManager pairManager, OnFrameworkService frameworkUtils,
-        IClientState clientState, IDataManager dataManager,
+    public DtrBarService(ILogger<DtrBarService> logger, GagspeakMediator mediator, 
+        ApiController apiController, EventAggregator eventAggregator, PairManager pairManager, 
+        OnFrameworkService frameworkUtils, IClientState clientState, IDataManager dataManager,
         IDtrBar dtrBar) : base(logger, mediator)
     {
         _apiController = apiController;
+        _eventAggregator = eventAggregator;
         _pairManager = pairManager;
         _frameworkUtils = frameworkUtils;
         _clientState = clientState;
         _gameData = dataManager;
         _dtrBar = dtrBar;
 
+
+        VibratorEntry = _dtrBar.Get("GagSpeakVibrator");
+        VibratorEntry.Shown = false;
+
+        UpdateMessagesEntry = _dtrBar.Get("GagSpeakNotifications");
+        UpdateMessagesEntry.OnClick += () => Mediator.Publish(new UiToggleMessage(typeof(InteractionEventsUI)));
+        UpdateMessagesEntry.Shown = true;
+
         PrivacyEntry = _dtrBar.Get("GagSpeakPrivacy");
         PrivacyEntry.OnClick += () => Mediator.Publish(new UiToggleMessage(typeof(DtrVisibleWindow)));
         PrivacyEntry.Shown = true;
-        UpdateMessagesEntry = _dtrBar.Get("GagSpeakUpdateMessages");
-        UpdateMessagesEntry.Shown = false;
-        VibratorEntry = _dtrBar.Get("GagSpeakVibrator");
-        UpdateMessagesEntry.Shown = false;
 
         Mediator.Subscribe<ConnectedMessage>(this, _ =>
         {
             PrivacyEntry.Shown = true;
+            UpdateMessagesEntry.Shown = true;
         });
 
         Mediator.Subscribe<DisconnectedMessage>(this, _ =>
         {
             PrivacyEntry.Shown = false;
+            UpdateMessagesEntry.Shown = false;
         });
         //Mediator.Subscribe<ToggleDtrBarMessage>(this, (_) => DtrBarEnabled = !DtrBarEnabled);
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => UpdateDtrBar());
@@ -71,45 +80,50 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
     public IDtrBarEntry UpdateMessagesEntry { get; private set; }
     public IDtrBarEntry VibratorEntry { get; private set; }
 
-
-    // Alarm == BitmapIcon for notifications.
     private void UpdateDtrBar()
     {
-        if (_apiController.ServerAlive)
+        if (!_apiController.ServerAlive)
+            return;
+
+        if (UpdateMessagesEntry.Shown is true)
         {
-            if (PrivacyEntry.Shown == true)
-            {
-                // update the privacy dtr bar
-                var visiblePairGameObjects = _pairManager.GetVisiblePairGameObjects();
-                // get players not included in our gagspeak pairs.
-                var playersNotInPairs = _frameworkUtils.GetObjectTablePlayers()
-                    .Where(player => player != _clientState.LocalPlayer && !visiblePairGameObjects.Contains(player))
-                    .ToList();
+            UpdateMessagesEntry.Text = new SeString(new IconPayload(BitmapFontIcon.Alarm), new TextPayload(EventAggregator.UnreadInteractionsCount.ToString()));
+            UpdateMessagesEntry.Tooltip = new SeString(new TextPayload("Unread Notifications: " + EventAggregator.UnreadInteractionsCount));
+        }
 
-                // Store the list of visible players
-                _visiblePlayers = playersNotInPairs;
+        if (PrivacyEntry.Shown is true)
+        {
+            // update the privacy dtr bar
+            var visiblePairGameObjects = _pairManager.GetVisiblePairGameObjects();
+            // get players not included in our gagspeak pairs.
+            var playersNotInPairs = _frameworkUtils.GetObjectTablePlayers()
+                .Where(player => player != _clientState.LocalPlayer && !visiblePairGameObjects.Contains(player))
+                .ToList();
 
-                var displayedPlayers = playersNotInPairs.Take(10).ToList();
-                var remainingCount = playersNotInPairs.Count - displayedPlayers.Count;
+            // Store the list of visible players
+            _visiblePlayers = playersNotInPairs;
 
-                // set the text based on if privacy was breeched or not.
-                BitmapFontIcon DisplayIcon = playersNotInPairs.Any() ? BitmapFontIcon.Warning : BitmapFontIcon.Recording;
-                string TextDisplay = playersNotInPairs.Any() ? (playersNotInPairs.Count + " Others Visible") : "Only Pairs Visible";
-                // Limit to 10 players and indicate if there are more
-                string TooltipDisplay = playersNotInPairs.Any()
-                    ? "Non-GagSpeak Players:\n" + string.Join("\n", displayedPlayers.Select(player => player.Name.ToString() + "  " + player.HomeWorld.GameData!.Name)) +
-                      (remainingCount > 0 ? $"\nand {remainingCount} others..." : string.Empty)
-                    : "Only GagSpeak Pairs Visible";
-                // pair display string for tooltip.
-                PrivacyEntry.Text = new SeString(new IconPayload(DisplayIcon), new TextPayload(TextDisplay));
-                PrivacyEntry.Tooltip = new SeString(new TextPayload(TooltipDisplay));
-            }
+            var displayedPlayers = playersNotInPairs.Take(10).ToList();
+            var remainingCount = playersNotInPairs.Count - displayedPlayers.Count;
+
+            // set the text based on if privacy was breeched or not.
+            BitmapFontIcon DisplayIcon = playersNotInPairs.Any() ? BitmapFontIcon.Warning : BitmapFontIcon.Recording;
+            string TextDisplay = playersNotInPairs.Any() ? (playersNotInPairs.Count + " Others") : "Only Pairs";
+            // Limit to 10 players and indicate if there are more
+            string TooltipDisplay = playersNotInPairs.Any()
+                ? "Non-GagSpeak Players:\n" + string.Join("\n", displayedPlayers.Select(player => player.Name.ToString() + "  " + player.HomeWorld.GameData!.Name)) +
+                    (remainingCount > 0 ? $"\nand {remainingCount} others..." : string.Empty)
+                : "Only GagSpeak Pairs Visible";
+            // pair display string for tooltip.
+            PrivacyEntry.Text = new SeString(new IconPayload(DisplayIcon), new TextPayload(TextDisplay));
+            PrivacyEntry.Tooltip = new SeString(new TextPayload(TooltipDisplay));
         }
     }
 
     public void LocatePlayer(IPlayerCharacter player)
     {
-        if (_gameData == null || _clientState == null) return;
+        if (_gameData is null || _clientState is null) 
+            return;
 
         try
         {

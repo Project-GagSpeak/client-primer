@@ -12,6 +12,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components.Combos;
+using GagSpeak.UI.Handlers;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Dto.Permissions;
@@ -30,13 +31,10 @@ namespace GagSpeak.UI;
 public class SettingsHardcore
 {
     private readonly ILogger<SettingsHardcore> _logger;
-    private readonly UiSharedService _uiShared;
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly WardrobeHandler _blindfoldHandler;
-    private readonly TextureService _textures;
-    private readonly DictStain StainData;
-    private readonly ItemData ItemData;
-    private readonly IDataManager _gameData;
+    private readonly GameItemStainHandler _itemStainHandler;
+    private readonly WardrobeHandler _wardrobeHandler;
+    private readonly UiSharedService _uiShared;
 
     private const float ComboWidth = 200;
     private Vector2 IconSize;
@@ -45,22 +43,17 @@ public class SettingsHardcore
     private readonly StainColorCombo StainCombo;
 
     public SettingsHardcore(ILogger<SettingsHardcore> logger, 
-        UiSharedService uiShared, ClientConfigurationManager clientConfigs,
-        WardrobeHandler blindfoldHandler, TextureService textures, 
-        DictStain stainData, ItemData itemData, IDataManager gameData)
+        ClientConfigurationManager clientConfigs, GameItemStainHandler itemStainHandler, 
+        WardrobeHandler wardrobeHandler, UiSharedService uiShared)
     {
         _logger = logger;
-        _uiShared = uiShared;
         _clientConfigs = clientConfigs;
-        _blindfoldHandler = blindfoldHandler;
-        _textures = textures;
-        StainData = stainData;
-        ItemData = itemData;
-        _gameData = gameData;
-
+        _itemStainHandler = itemStainHandler;
+        _wardrobeHandler = wardrobeHandler;
+        _uiShared = uiShared;
         // create a new gameItemCombo for each equipment piece type, then store them into the array.
-        GameItemCombo = EquipSlotExtensions.EqdpSlots.Select(e => new GameItemCombo(_gameData, e, ItemData, logger)).ToArray();
-        StainCombo = new StainColorCombo(ComboWidth - 20, StainData, logger);
+        GameItemCombo = _itemStainHandler.ObtainItemCombos();
+        StainCombo = _itemStainHandler.ObtainStainCombos(ComboWidth);
     }
 
     public void DrawHardcoreSettings()
@@ -91,7 +84,7 @@ public class SettingsHardcore
         ComboLength = ComboWidth * ImGuiHelpers.GlobalScale;
 
         // on the new line, lets draw out a group, containing the image, and the slot, item, and stain listings.
-        var BlindfoldDrawData = _blindfoldHandler.GetBlindfoldDrawData();
+        var BlindfoldDrawData = _wardrobeHandler.GetBlindfoldDrawData();
         bool DrawDataChanged = false;
         using (var gagStorage = ImRaii.Group())
         {
@@ -99,7 +92,7 @@ public class SettingsHardcore
             // draw out the listing for the slot, item, and stain(s). Also make sure that the bigtext it centered with the displayitem
             try
             {
-                BlindfoldDrawData.GameItem.DrawIcon(_textures, IconSize, BlindfoldDrawData.Slot);
+                BlindfoldDrawData.GameItem.DrawIcon(_itemStainHandler.IconData, IconSize, BlindfoldDrawData.Slot);
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
                     _logger.LogTrace($"Blindfold changed to {ItemIdVars.NothingItem(BlindfoldDrawData.Slot)} [{ItemIdVars.NothingItem(BlindfoldDrawData.Slot).ItemId}] " +
@@ -128,13 +121,13 @@ public class SettingsHardcore
                     DrawDataChanged = true;
                 }
 
-                DrawDataChanged = DrawEquip(BlindfoldDrawData, GameItemCombo, StainCombo, StainData, ComboLength);
+                DrawDataChanged = DrawEquip(BlindfoldDrawData, GameItemCombo, StainCombo, ComboLength);
             }
 
             // if the data has changed, update it.
             if (DrawDataChanged)
             {
-                _blindfoldHandler.SetBlindfoldDrawData(BlindfoldDrawData);
+                _wardrobeHandler.SetBlindfoldDrawData(BlindfoldDrawData);
             }
 
             // beside this, draw out a checkbox to set if we should lock 1st person view while blindfolded.
@@ -382,7 +375,7 @@ public class SettingsHardcore
         }
     }
 
-    public bool DrawEquip(EquipDrawData blindfold, GameItemCombo[] _gameItemCombo, StainColorCombo _stainCombo, DictStain _stainData, float _comboLength)
+    public bool DrawEquip(EquipDrawData blindfold, GameItemCombo[] _gameItemCombo, StainColorCombo _stainCombo, float _comboLength)
     {
         using var id = ImRaii.PushId((int)blindfold.Slot);
         var spacing = ImGui.GetStyle().ItemInnerSpacing with { Y = ImGui.GetStyle().ItemSpacing.Y };
@@ -396,7 +389,7 @@ public class SettingsHardcore
 
         using var group = ImRaii.Group();
         itemChange = DrawItem(out var label, right, left, _comboLength, _gameItemCombo, blindfold);
-        stainChange = DrawStain(_comboLength, _stainCombo, _stainData, blindfold);
+        stainChange = DrawStain(_comboLength, _stainCombo, blindfold);
 
         return itemChange || stainChange;
     }
@@ -436,7 +429,7 @@ public class SettingsHardcore
         return change;
     }
 
-    private bool DrawStain(float width, StainColorCombo _stainCombo, DictStain _stainData, EquipDrawData blindfold)
+    private bool DrawStain(float width, StainColorCombo _stainCombo, EquipDrawData blindfold)
     {
         // fetch the correct stain from the stain data
         var widthStains = (width - ImUtf8.ItemInnerSpacing.X * (blindfold.GameStain.Count - 1)) / blindfold.GameStain.Count;
@@ -446,7 +439,7 @@ public class SettingsHardcore
         foreach (var (stainId, index) in blindfold.GameStain.WithIndex())
         {
             using var id = ImUtf8.PushId(index);
-            var found = _stainData.TryGetValue(stainId, out var stain);
+            var found = _itemStainHandler.TryGetStain(stainId, out var stain);
             // draw the stain combo.
             var change = _stainCombo.Draw($"##stain{blindfold.Slot}", stain.RgbaColor, stain.Name, found, stain.Gloss, widthStains);
             if (index < blindfold.GameStain.Count - 1)
@@ -455,7 +448,7 @@ public class SettingsHardcore
             // if we had a change made, update the stain data.
             if (change)
             {
-                if (_stainData.TryGetValue(_stainCombo.CurrentSelection.Key, out stain))
+                if (_itemStainHandler.TryGetStain(_stainCombo.CurrentSelection.Key, out stain))
                 {
                     // if changed, change it.
                     blindfold.GameStain = blindfold.GameStain.With(index, stain.RowIndex);

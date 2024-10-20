@@ -131,7 +131,6 @@ public partial class ApiController // Partial class for MainHub Callbacks
 
     /// <summary>
     /// Should only be triggered if another pair is toggling on one of your existing moodles.
-    /// This should be 
     /// </summary>
     public Task Client_UserApplyMoodlesByGuid(ApplyMoodlesByGuidDto dto)
     {

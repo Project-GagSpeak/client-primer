@@ -1,20 +1,12 @@
-using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Interop.Ipc;
-using GagSpeak.PlayerData.Data;
-using GagSpeak.PlayerData.Handlers;
-using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components.Combos;
+using GagSpeak.UI.Handlers;
 using GagSpeak.Utils;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Text;
 using OtterGui.Widgets;
-using Penumbra.GameData.Data;
-using Penumbra.GameData.DataContainers;
-using Penumbra.GameData.DataContainers.Bases;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using System.Numerics;
@@ -24,26 +16,15 @@ namespace GagSpeak.UI.Components;
 public class SetPreviewComponent
 {
     private readonly ILogger<SetPreviewComponent> _logger;
-    private readonly ItemData _itemDictionary;
-    private readonly DictStain _stainDictionary;
-    private readonly UiSharedService _uiShared;
-    private readonly TextureService _textures;
-    private readonly IDataManager _gameData;
-    public SetPreviewComponent(ILogger<SetPreviewComponent> logger,
-        ItemData itemDictionary, DictStain stainDictionary, UiSharedService uiSharedService, 
-        TextureService textureService, IDataManager gameData)
+    private readonly GameItemStainHandler _textureHandler;
+    public SetPreviewComponent(ILogger<SetPreviewComponent> logger, GameItemStainHandler textureHandler)
     {
         _logger = logger;
-        _itemDictionary = itemDictionary;
-        _stainDictionary = stainDictionary;
-        _uiShared = uiSharedService;
-        _textures = textureService;
-        _gameData = gameData;
+        _textureHandler = textureHandler;
 
         GameIconSize = new Vector2(2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y);
-
-        ItemCombos = EquipSlotExtensions.EqdpSlots.Select(e => new GameItemCombo(_gameData, e, _itemDictionary, logger, mouseType: MouseWheelType.None)).ToArray();
-        StainColorCombos = new StainColorCombo(175, _stainDictionary, logger);
+        ItemCombos = _textureHandler.ObtainItemCombos();
+        StainColorCombos = _textureHandler.ObtainStainCombos(175);
     }
 
     private Vector2 GameIconSize;
@@ -64,7 +45,7 @@ public class SetPreviewComponent
         var offsetY = (contentRegion.Y - totalTableHeight) / 2;
 
         // Apply the offset to center the table.
-        ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + offsetX, ImGui.GetCursorPosY()+offsetY));
+        ImGui.SetCursorPos(new Vector2(ImGui.GetCursorPosX() + offsetX, ImGui.GetCursorPosY() + offsetY));
 
         DrawRestraintSetDisplay(set);
     }
@@ -93,7 +74,7 @@ public class SetPreviewComponent
 
             foreach (var slot in EquipSlotExtensions.EquipmentSlots)
             {
-                set.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                set.DrawData[slot].GameItem.DrawIcon(_textureHandler.IconData, GameIconSize, slot);
                 ImGui.SameLine(0, 3);
                 using (var groupDraw = ImRaii.Group())
                 {
@@ -102,7 +83,7 @@ public class SetPreviewComponent
             }
             foreach (var slot in BonusExtensions.AllFlags)
             {
-                set.BonusDrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                set.BonusDrawData[slot].GameItem.DrawIcon(_textureHandler.IconData, GameIconSize, slot);
             }
 
             ImGui.TableNextColumn();
@@ -110,7 +91,7 @@ public class SetPreviewComponent
             //draw out the accessory slots
             foreach (var slot in EquipSlotExtensions.AccessorySlots)
             {
-                set.DrawData[slot].GameItem.DrawIcon(_textures, GameIconSize, slot);
+                set.DrawData[slot].GameItem.DrawIcon(_textureHandler.IconData, GameIconSize, slot);
                 ImGui.SameLine(0, 3);
                 using (var groupDraw = ImRaii.Group())
                 {
@@ -127,7 +108,7 @@ public class SetPreviewComponent
         foreach (var (stainId, index) in refSet.DrawData[slot].GameStain.WithIndex())
         {
             using var id = ImUtf8.PushId(index);
-            var found = _stainDictionary.TryGetValue(stainId, out var stain);
+            var found = _textureHandler.TryGetStain(stainId, out var stain);
             // draw the stain combo, but dont make it hoverable
             using (var disabled = ImRaii.Disabled(true))
             {
@@ -137,13 +118,25 @@ public class SetPreviewComponent
         }
     }
 
+    private void DrawEquipDataSlot(EquipDrawData refData, float totalLength)
+    {
+        using var id = ImRaii.PushId((int)refData.Slot);
+        var spacing = ImGui.GetStyle().ItemInnerSpacing with { Y = ImGui.GetStyle().ItemSpacing.Y };
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, spacing);
 
-    // For direct detailed editing.
+        var right = ImGui.IsItemClicked(ImGuiMouseButton.Right);
+        var left = ImGui.IsItemClicked(ImGuiMouseButton.Left);
+
+        using var group = ImRaii.Group();
+
+        DrawEditableItem(refData, right, left, totalLength);
+        DrawEditableStain(refData, totalLength);
+    }
     public void DrawEquipDataDetailedSlot(EquipDrawData refData, float totalLength)
     {
         var iconSize = new Vector2(3 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y * 2);
 
-        refData.GameItem.DrawIcon(_textures, iconSize, refData.Slot);
+        refData.GameItem.DrawIcon(_textureHandler.IconData, iconSize, refData.Slot);
         // if we right click the icon, clear it
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             refData.GameItem = ItemIdVars.NothingItem(refData.Slot);
@@ -161,21 +154,6 @@ public class SetPreviewComponent
 
             DrawEquipDataSlot(refData, (totalLength - ImGui.GetStyle().ItemInnerSpacing.X - iconSize.X));
         }
-    }
-    
-    private void DrawEquipDataSlot(EquipDrawData refData, float totalLength)
-    {
-        using var id = ImRaii.PushId((int)refData.Slot);
-        var spacing = ImGui.GetStyle().ItemInnerSpacing with { Y = ImGui.GetStyle().ItemSpacing.Y };
-        using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, spacing);
-
-        var right = ImGui.IsItemClicked(ImGuiMouseButton.Right);
-        var left = ImGui.IsItemClicked(ImGuiMouseButton.Left);
-
-        using var group = ImRaii.Group();
-
-        DrawEditableItem(refData, right, left, totalLength);
-        DrawEditableStain(refData, totalLength);
     }
 
     private void DrawEditableItem(EquipDrawData refData, bool clear, bool open, float width)
@@ -221,7 +199,7 @@ public class SetPreviewComponent
         foreach (var (stainId, index) in refData.GameStain.WithIndex())
         {
             using var id = ImUtf8.PushId(index);
-            var found = _stainDictionary.TryGetValue(stainId, out var stain);
+            var found = _textureHandler.TryGetStain(stainId, out var stain);
             // draw the stain combo.
             var change = StainColorCombos.Draw($"##cursedStain{refData.Slot}", stain.RgbaColor, stain.Name, found, stain.Gloss, widthStains);
             if (index < refData.GameStain.Count - 1)
@@ -230,7 +208,7 @@ public class SetPreviewComponent
             // if we had a change made, update the stain data.
             if (change)
             {
-                if (_stainDictionary.TryGetValue(StainColorCombos.CurrentSelection.Key, out stain))
+                if (_textureHandler.TryGetStain(StainColorCombos.CurrentSelection.Key, out stain))
                 {
                     // if changed, change it.
                     refData.GameStain = refData.GameStain.With(index, stain.RowIndex);

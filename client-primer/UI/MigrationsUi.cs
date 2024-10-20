@@ -23,7 +23,7 @@ internal class MigrationsUI : WindowMediatorSubscriberBase
     private readonly MigrateRestraintSets _wardrobeMigrator;
     private readonly UiSharedService _uiShared;
 
-    public MigrationsUI(ILogger<EventViewerUI> logger, GagspeakMediator mediator,
+    public MigrationsUI(ILogger<InteractionEventsUI> logger, GagspeakMediator mediator,
         MigrateGagStorage migrateGagStorage, MigratePatterns migratePatterns,
         MigrateRestraintSets migrateRestraintSets, UiSharedService uiShared) 
         : base(logger, mediator, "GagSpeak Migrations")

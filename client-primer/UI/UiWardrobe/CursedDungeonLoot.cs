@@ -17,6 +17,7 @@ using GagspeakAPI.Extensions;
 using ImGuiNET;
 using OtterGui.Classes;
 using OtterGui.Text;
+using Penumbra.GameData.Enums;
 using System.Numerics;
 
 namespace GagSpeak.UI.UiWardrobe;

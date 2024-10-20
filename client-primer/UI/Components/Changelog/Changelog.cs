@@ -19,6 +19,14 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 5, 0)
+            .RegisterMain("GagSpeak Interaction Event History is now implemented.")
+            .RegisterFeature("New DTR Bar has been added to display total new interaction messages from other pairs.")
+            .RegisterFeature("The Bell Icon in the main window now updates from Bell-Slash to Bell whenever you have new notifications.")
+            .RegisterQol("Clicking the DTR Bar will open a mini-window to view interactions others have done to you.")
+            .RegisterFeature("The Event Viewer UI has been removed. Replaced with the Interactions Viewer.")
+            .RegisterBugfix("Various minor bugfixes have been made to the plugin.");
+
         VersionEntry(0, 9, 4, 7)
             .RegisterMain("ForcedSit/ForcedGroundsit is finally functional.")
             .RegisterFeature("ForcedGroundsit will not detect your current cpose and cycle you to be on your knees.")

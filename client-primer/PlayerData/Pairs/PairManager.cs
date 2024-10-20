@@ -290,7 +290,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
                 ? $"{nickname} ({pair.UserData.AliasOrUID}) is now online"
                 : $"{pair.UserData.AliasOrUID} is now online";
             // publish a notification message to the client that a paired user is now online.
-            Mediator.Publish(new NotificationMessage("User online", msg, NotificationType.Info, TimeSpan.FromSeconds(5)));
+            Logger.LogInformation(msg, LoggerType.PairManagement);
         }
 
         // create a cached player for the pair using the Dto
@@ -313,7 +313,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Composite Data")));
+        Logger.LogInformation("Recieved Character Composite Data from "+(pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         _allClientPairs[dto.User].ApplyAppearanceData(new(dto.User, dto.CompositeData.AppearanceData, dto.UpdateKind));
         _allClientPairs[dto.User].ApplyWardrobeData(new(dto.User, dto.CompositeData.WardrobeData, dto.UpdateKind));
@@ -341,7 +341,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character IPC Data")));
+        Logger.LogInformation("Recieved Character IPC Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         // apply the IPC data to the pair.
         _allClientPairs[dto.User].ApplyVisibleData(dto);
@@ -354,7 +354,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // publish event if found.
-        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Appearance Data")));
+        Logger.LogInformation("Recieved Character Appearance Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         // Apply the update.
         _allClientPairs[dto.User].ApplyAppearanceData(dto);
@@ -367,7 +367,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Wardrobe Data")));
+        Logger.LogInformation("Recieved Character Wardrobe Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         // apply the wardrobe data to the pair.
         _allClientPairs[dto.User].ApplyWardrobeData(dto);
@@ -380,7 +380,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Alias Data")));
+        Logger.LogInformation("Recieved Character Alias Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         // apply the alias data to the pair.
         _allClientPairs[dto.User].ApplyAliasData(dto);
@@ -393,7 +393,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character Pattern Data")));
+        Logger.LogInformation("Recieved Character Toybox Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         // apply the pattern data to the pair.
         _allClientPairs[dto.User].ApplyToyboxData(dto);
@@ -406,7 +406,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Mediator.Publish(new EventMessage(new Event(pair.UserData, nameof(PairManager), EventSeverity.Informational, "Received Character PiShock Permissions Data")));
+        Logger.LogInformation("Recieved Character PiShock Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         // apply the shock permissions data to the pair.
         _allClientPairs[dto.User].ApplyPiShockPermData(dto);

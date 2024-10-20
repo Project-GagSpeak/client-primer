@@ -364,6 +364,8 @@ public class Pair
         return _serverConfigurationManager.GetNicknameForUid(UserData.UID);
     }
 
+    public string GetNickAliasOrUid() => GetNickname() ?? UserData.AliasOrUID;
+
     /// <summary> Get the player name hash. </summary>
     public string GetPlayerNameHash()
     {

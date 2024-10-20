@@ -13,7 +13,9 @@ using System.Numerics;
 
 namespace GagSpeak.UI.Components;
 
-// A helper class to make the permission actions less repetitive and obnoxious.
+/// <summary>
+/// A helper class to make the permission actions less repetitive and obnoxious.
+/// </summary>
 public class PermActionsComponents
 {
     private readonly ILogger<PermActionsComponents> _logger;

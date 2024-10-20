@@ -12,6 +12,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components.Combos;
+using GagSpeak.UI.Handlers;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Struct;
@@ -33,15 +34,30 @@ namespace GagSpeak.UI.Tabs.WardrobeTab;
 public class GagStoragePanel : DisposableMediatorSubscriberBase
 {
     private const float ComboWidth = 225f;
-    private readonly TextureService _textures;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerManager;
-    private readonly UiSharedService _uiShared;
-    private readonly DictStain StainData;
-    private readonly ItemData ItemData;
     private readonly MoodlesAssociations _relatedMoodles;
-    private readonly IDataManager _gameData;
+    private readonly GameItemStainHandler _itemStainHandler;
+    private readonly UiSharedService _uiShared;
+    public GagStoragePanel(ILogger<GagStoragePanel> logger, GagspeakMediator mediator,
+        ClientConfigurationManager clientConfigs, PlayerCharacterData playerManager,
+        GameItemStainHandler itemStainHandler, MoodlesAssociations relatedMoodles, 
+        UiSharedService uiSharedService) : base(logger, mediator)
+    {
+        _clientConfigs = clientConfigs;
+        _playerManager = playerManager;
+        _relatedMoodles = relatedMoodles;
+        _itemStainHandler = itemStainHandler;
+        _uiShared = uiSharedService;
+        GameItemCombo = _itemStainHandler.ObtainItemCombos();
+        StainCombo = _itemStainHandler.ObtainStainCombos(ComboWidth);
 
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
+    }
+
+    // Info related to the person we are inspecting.
+    private CharacterIPCData LastCreatedCharacterData = null!;
+    
     private LowerString GagSearchString = LowerString.Empty;
     private string CustomizePlusSearchString = LowerString.Empty;
     private Vector2 IconSize;
@@ -49,31 +65,6 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     private Vector2 DefaultItemSpacing;
     private readonly GameItemCombo[] GameItemCombo;
     private readonly StainColorCombo StainCombo;
-
-    public GagStoragePanel(ILogger<GagStoragePanel> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfigs, PlayerCharacterData playerManager,
-        UiSharedService uiSharedService, DictStain stainData, ItemData itemData,
-        TextureService textures, MoodlesAssociations relatedMoodles, IDataManager gameData)
-        : base(logger, mediator)
-    {
-        _clientConfigs = clientConfigs;
-        _playerManager = playerManager;
-        _uiShared = uiSharedService;
-        _textures = textures;
-        _gameData = gameData;
-        StainData = stainData;
-        ItemData = itemData;
-        _relatedMoodles = relatedMoodles;
-
-        // create a new gameItemCombo for each equipment piece type, then store them into the array.
-        GameItemCombo = EquipSlotExtensions.EqdpSlots.Select(e => new GameItemCombo(_gameData, e, ItemData, Logger)).ToArray();
-        StainCombo = new StainColorCombo(ComboWidth - 20, StainData, Logger);
-
-        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
-    }
-
-    // Info related to the person we are inspecting.
-    private CharacterIPCData LastCreatedCharacterData = null!;
 
     private string GagFilterSearchString = string.Empty;
     private GagDrawData UnsavedDrawData = null!;
@@ -277,7 +268,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         {
             try
             {
-                UnsavedDrawData.GameItem.DrawIcon(_textures, IconSize, UnsavedDrawData.Slot);
+                UnsavedDrawData.GameItem.DrawIcon(_itemStainHandler.IconData, IconSize, UnsavedDrawData.Slot);
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
                     Logger.LogTrace($"Item changed to {ItemIdVars.NothingItem(UnsavedDrawData.Slot)} [{ItemIdVars.NothingItem(UnsavedDrawData.Slot).ItemId}] " +
@@ -305,7 +296,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
                     UnsavedDrawData.GameItem = ItemIdVars.NothingItem(UnsavedDrawData.Slot);
                 }
 
-                DrawEquip(GameItemCombo, StainCombo, StainData, ComboLength);
+                DrawEquip(GameItemCombo, StainCombo, ComboLength);
             }
         }
 
@@ -367,7 +358,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         }
     }
 
-    public void DrawEquip(GameItemCombo[] _gameItemCombo, StainColorCombo _stainCombo, DictStain _stainData, float _comboLength)
+    public void DrawEquip(GameItemCombo[] _gameItemCombo, StainColorCombo _stainCombo, float _comboLength)
     {
         using var id = ImRaii.PushId((int)UnsavedDrawData.Slot);
         var spacing = ImGui.GetStyle().ItemInnerSpacing with { Y = ImGui.GetStyle().ItemSpacing.Y };
@@ -378,7 +369,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
 
         using var group = ImRaii.Group();
         DrawItem(out var label, right, left, _comboLength, _gameItemCombo);
-        DrawStain(_comboLength, _stainCombo, _stainData);
+        DrawStain(_comboLength, _stainCombo);
     }
 
     private void DrawItem(out string label, bool clear, bool open, float width,
@@ -412,7 +403,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         }
     }
 
-    private void DrawStain(float width, StainColorCombo _stainCombo, DictStain _stainData)
+    private void DrawStain(float width, StainColorCombo _stainCombo)
     {
         // fetch the correct stain from the stain data
         var widthStains = (width - ImUtf8.ItemInnerSpacing.X * (UnsavedDrawData.GameStain.Count - 1)) / UnsavedDrawData.GameStain.Count;
@@ -420,7 +411,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         foreach (var (stainId, index) in UnsavedDrawData.GameStain.WithIndex())
         {
             using var id = ImUtf8.PushId(index);
-            var found = _stainData.TryGetValue(stainId, out var stain);
+            var found = _itemStainHandler.TryGetStain(stainId, out var stain);
             // draw the stain combo.
             var change = _stainCombo.Draw($"##stain{UnsavedDrawData.Slot}", stain.RgbaColor, stain.Name, found, stain.Gloss, widthStains);
             if (index < UnsavedDrawData.GameStain.Count - 1)
@@ -429,7 +420,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             // if we had a change made, update the stain data.
             if (change)
             {
-                if (_stainData.TryGetValue(_stainCombo.CurrentSelection.Key, out stain))
+                if (_itemStainHandler.TryGetStain(_stainCombo.CurrentSelection.Key, out stain))
                 {
                     // if changed, change it.
                     UnsavedDrawData.GameStain = UnsavedDrawData.GameStain.With(index, stain.RowIndex);

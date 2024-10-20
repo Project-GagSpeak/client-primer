@@ -3,30 +3,36 @@ using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.Mediator;
 
 namespace GagSpeak.Services;
 
+/// <summary>
+/// Service responsible for displaying any sent notifications out to the user.
+/// </summary>
 public class NotificationService : DisposableMediatorSubscriberBase
 {
-    private readonly INotificationManager _notificationManager;
-    private readonly IChatGui _chatGui;
-    private readonly GagspeakConfigService _configurationService;
+    private readonly GagspeakConfigService _mainConfig;
+    private readonly PlayerCharacterData _playerData;
+    private readonly INotificationManager _notifications;
+    private readonly IChatGui _chat;
 
     public NotificationService(ILogger<NotificationService> logger, GagspeakMediator mediator,
-        INotificationManager notificationManager, IChatGui chatGui,
-        GagspeakConfigService configurationService) : base(logger, mediator)
+        GagspeakConfigService mainConfig, PlayerCharacterData playerData, IChatGui chat,
+        INotificationManager notifications) : base(logger, mediator)
     {
-        _notificationManager = notificationManager;
-        _chatGui = chatGui;
-        _configurationService = configurationService;
+        _mainConfig = mainConfig;
+        _playerData = playerData;
+        _chat = chat;
+        _notifications = notifications;
 
         Mediator.Subscribe<NotificationMessage>(this, ShowNotification);
 
         // notify about live chat garbler on zone switch.
         Mediator.Subscribe<ZoneSwitchStartMessage>(this, (_) =>
         {
-            if (_configurationService.Current.LiveGarblerZoneChangeWarn)
+            if (_mainConfig.Current.LiveGarblerZoneChangeWarn && _playerData.IsPlayerGagged)
                 ShowNotification(new NotificationMessage("Zone Switch", "Live Chat Garbler is still Active!", NotificationType.Warning));
         });
     }
@@ -34,19 +40,19 @@ public class NotificationService : DisposableMediatorSubscriberBase
     private void PrintErrorChat(string? message)
     {
         SeStringBuilder se = new SeStringBuilder().AddText("[Gagspeak] Error: " + message);
-        _chatGui.PrintError(se.BuiltString);
+        _chat.PrintError(se.BuiltString);
     }
 
     private void PrintInfoChat(string? message)
     {
         SeStringBuilder se = new SeStringBuilder().AddText("[Gagspeak] Info: ").AddItalics(message ?? string.Empty);
-        _chatGui.Print(se.BuiltString);
+        _chat.Print(se.BuiltString);
     }
 
     private void PrintWarnChat(string? message)
     {
         SeStringBuilder se = new SeStringBuilder().AddText("[Gagspeak] ").AddUiForeground("Warning: " + (message ?? string.Empty), 31).AddUiForegroundOff();
-        _chatGui.Print(se.BuiltString);
+        _chat.Print(se.BuiltString);
     }
 
     private void ShowChat(NotificationMessage msg)
@@ -78,15 +84,15 @@ public class NotificationService : DisposableMediatorSubscriberBase
             case NotificationType.Info:
             case NotificationType.Success:
             case NotificationType.None:
-                ShowNotificationLocationBased(msg, _configurationService.Current.InfoNotification);
+                ShowNotificationLocationBased(msg, _mainConfig.Current.InfoNotification);
                 break;
 
             case NotificationType.Warning:
-                ShowNotificationLocationBased(msg, _configurationService.Current.WarningNotification);
+                ShowNotificationLocationBased(msg, _mainConfig.Current.WarningNotification);
                 break;
 
             case NotificationType.Error:
-                ShowNotificationLocationBased(msg, _configurationService.Current.ErrorNotification);
+                ShowNotificationLocationBased(msg, _mainConfig.Current.ErrorNotification);
                 break;
         }
     }
@@ -115,7 +121,7 @@ public class NotificationService : DisposableMediatorSubscriberBase
 
     private void ShowToast(NotificationMessage msg)
     {
-        _notificationManager.AddNotification(new Notification()
+        _notifications.AddNotification(new Notification()
         {
             Content = msg.Message ?? string.Empty,
             Title = msg.Title,

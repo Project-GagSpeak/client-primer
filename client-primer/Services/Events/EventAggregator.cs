@@ -5,32 +5,33 @@ using GagSpeak.Utils;
 namespace GagSpeak.Services.Events;
 
 /// <summary>
-/// For logging events called to the client 
+/// Handles the management of logging, storing, and saving collected Events through the plugins lifespan.
 /// </summary>
 public class EventAggregator : MediatorSubscriberBase, IHostedService
 {
-    private readonly RollingList<Event> _events = new(500);
-    private readonly SemaphoreSlim _lock = new(1);
-    private readonly string _configDirectory;
     private readonly ILogger<EventAggregator> _logger;
+    private readonly string _configDirectory;
 
-    public Lazy<List<Event>> EventList { get; private set; }
-    public bool NewEventsAvailable => !EventList.IsValueCreated;
-    public string EventLogFolder => Path.Combine(_configDirectory, "eventlog");
+    private readonly RollingList<InteractionEvent> _events = new(500);
+    private readonly SemaphoreSlim _lock = new(1);
     private string CurrentLogName => $"{DateTime.Now:yyyy-MM-dd}-events.log";
     private DateTime _currentTime;
 
-    public EventAggregator(string configDirectory, ILogger<EventAggregator> logger, GagspeakMediator gagspeakMediator) : base(logger, gagspeakMediator)
+    public EventAggregator(string configDirectory, ILogger<EventAggregator> logger, 
+        GagspeakMediator gagspeakMediator) : base(logger, gagspeakMediator)
     {
+        _logger = logger;
+        _configDirectory = configDirectory;
+        // Collect any events sent out.
         Mediator.Subscribe<EventMessage>(this, (msg) =>
         {
             _lock.Wait();
             try
             {
-                // make trace again once I can figure out how to make the plugin accept it
                 Logger.LogTrace("Received Event: "+msg.Event.ToString(), LoggerType.Notification);
                 _events.Add(msg.Event);
                 WriteToFile(msg.Event);
+                UnreadInteractionsCount++;
             }
             finally
             {
@@ -40,22 +41,38 @@ public class EventAggregator : MediatorSubscriberBase, IHostedService
             RecreateLazy();
         });
 
+        // Create a new event list
         EventList = CreateEventLazy();
-        _configDirectory = configDirectory;
-        _logger = logger;
+        // Get the current time on the current day.
         _currentTime = DateTime.Now - TimeSpan.FromDays(1);
     }
 
+    /// <summary>
+    /// Public list of events that have been collected and stored in the EventAggregators rolling list.
+    /// </summary>
+    public Lazy<List<InteractionEvent>> EventList { get; private set; }
+    public bool NewEventsAvailable => !EventList.IsValueCreated;
+    public string EventLogFolder => Path.Combine(_configDirectory, "eventlog");
+    public static int UnreadInteractionsCount = 0;
+
+    /// <summary>
+    /// Recreate the publically accessible list of events.
+    /// </summary>
     private void RecreateLazy()
     {
-        if (!EventList.IsValueCreated) return;
+        if (!EventList.IsValueCreated) 
+            return;
 
         EventList = CreateEventLazy();
     }
 
-    private Lazy<List<Event>> CreateEventLazy()
+    /// <summary>
+    /// Create a new lazy event list with all the private event data inside.
+    /// </summary>
+    /// <returns></returns>
+    private Lazy<List<InteractionEvent>> CreateEventLazy()
     {
-        return new Lazy<List<Event>>(() =>
+        return new Lazy<List<InteractionEvent>>(() =>
         {
             _lock.Wait();
             try
@@ -69,7 +86,10 @@ public class EventAggregator : MediatorSubscriberBase, IHostedService
         });
     }
 
-    private void WriteToFile(Event receivedEvent)
+    /// <summary>
+    /// Write the event data into the event log file.
+    /// </summary>
+    private void WriteToFile(InteractionEvent receivedEvent)
     {
         if (DateTime.Now.Day != _currentTime.Day)
         {
@@ -102,7 +122,7 @@ public class EventAggregator : MediatorSubscriberBase, IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        Logger.LogInformation("Started EventAggregatorService");
+        Logger.LogInformation("Started Interaction EventAggregator");
         return Task.CompletedTask;
     }
 

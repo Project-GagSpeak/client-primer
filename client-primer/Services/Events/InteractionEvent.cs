@@ -3,25 +3,44 @@ using GagspeakAPI.Data;
 namespace GagSpeak.Services.Events;
 
 /// <summary>
-/// Interaction Event sent whenever an interaction is made to your client from others.
+/// Outline of the NotificationService Event record.
+/// These Events help detail who did what to you and when it happened relative to your local time.
 /// </summary>
 public record InteractionEvent
 {
-    public DateTime EventTime { get; } // may not need.
-    public string SenderUID { get; } // the pair who sent the update
-    public InteractionType InteractionType { get; }
+    /// <summary>
+    /// The time this event occured.
+    /// </summary>
+    public DateTime EventTime { get; }
+    /// <summary>
+    /// Who sent this update to you
+    /// </summary>
+    public string ApplierNickAliasOrUID { get; }
+    
+    /// <summary>
+    /// Store the Raw UID so we can search it regardless. This is grouped with ApplyerNickAliasOrUID when in a filter.
+    /// </summary>
+    public string ApplierUID { get; } 
+
+    /// <summary>
+    /// What type of update it was.
+    /// </summary>
+    public InteractionType InteractionType { get; } // What type of update it was.
+
+    /// <summary>
+    /// Additional Information about the content update.
+    /// </summary>
     public string InteractionContent { get; }
 
-    public InteractionEvent(UserData senderUser, InteractionType interaction, string content)
+    public InteractionEvent(string applierNickAliasOrUID, string applierUID, InteractionType type, string details)
     {
         EventTime = DateTime.Now;
-        SenderUID = senderUser.AliasOrUID;
-        InteractionType = interaction;
-        InteractionContent = content;
+        ApplierNickAliasOrUID = applierNickAliasOrUID;
+        ApplierUID = applierUID;
+        InteractionType = type;
+        InteractionContent = details;
     }
 
     public override string ToString()
-    {
-        return $"{EventTime:HH:mm:ss.fff}\t[{SenderUID}]{{{InteractionType}}}\t{InteractionContent}";
-    }
+        => "[" + ApplierNickAliasOrUID + " Performed Action on you: " + InteractionType + " with details: " + InteractionContent + "]";
 }

@@ -6,6 +6,7 @@ using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
 using GagSpeak.WebAPI;
@@ -14,6 +15,7 @@ using ImGuiNET;
 using System.Globalization;
 using System.Numerics;
 using System.Reflection;
+using static Dalamud.Interface.Windowing.Window;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -83,16 +85,16 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             },
             new TitleBarButton()
             {
-                Icon = FontAwesomeIcon.Bell,
+                Icon = FontAwesomeIcon.BellSlash,
                 Click = (msg) =>
                 {
-                    Mediator.Publish(new UiToggleMessage(typeof(EventViewerUI)));
+                    Mediator.Publish(new UiToggleMessage(typeof(InteractionEventsUI)));
                 },
                 IconOffset = new(2,1),
                 ShowTooltip = () =>
                 {
                     ImGui.BeginTooltip();
-                    ImGui.Text("Event Viewer");
+                    ImGui.Text(EventAggregator.UnreadInteractionsCount == 0 ? "Interactions Notifier (no new unread)" : "Interactions Notifier (" + EventAggregator.UnreadInteractionsCount + " unread)");
                     ImGui.EndTooltip();
                 }
             },
@@ -155,6 +157,9 @@ public class MainWindowUI : WindowMediatorSubscriberBase
 
     protected override void DrawInternal()
     {
+        // Update the title bar label things.
+        this.TitleBarButtons[1].Icon = EventAggregator.UnreadInteractionsCount == 0 ? FontAwesomeIcon.BellSlash : FontAwesomeIcon.Bell;
+
         // get the width of the window content region we set earlier
         _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
 

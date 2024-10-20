@@ -13,6 +13,7 @@ using GagspeakAPI.Dto.Permissions;
 using System.Reflection;
 using GagspeakAPI.Extensions;
 using FFXIVClientStructs.FFXIV.Client.UI;
+using GagSpeak.Services.Events;
 
 namespace GagSpeak.PlayerData.Data;
 
@@ -121,38 +122,39 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
             return;
         }
 
-        // Detect if change was a hardcore change, and if so what type.
-        HardcoreAction hardcoreChangeType = GlobalPerms!.GetHardcoreChange(propertyName, newValue);
+        if (propertyInfo is null)
+            return;
 
-        if (propertyInfo is not null)
+        // If the property exists and is found, update its value
+        if (newValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
         {
-            // If the property exists and is found, update its value
-            if (newValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
-            {
-                long ticks = (long)(ulong)newValue;
-                propertyInfo.SetValue(GlobalPerms, TimeSpan.FromTicks(ticks));
-            }
-            // char recognition. (these are converted to byte for Dto's instead of char)
-            else if (changeDto.ChangedPermission.Value.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
-            {
-                propertyInfo.SetValue(GlobalPerms, Convert.ToChar(newValue));
-            }
-            else if (propertyInfo != null && propertyInfo.CanWrite)
-            {
-                // Convert the value to the appropriate type before setting
-                var value = Convert.ChangeType(newValue, propertyInfo.PropertyType);
-                propertyInfo.SetValue(GlobalPerms, value);
-                Logger.LogDebug($"Updated global permission '{propertyName}' to '{newValue}'", LoggerType.ClientPlayerData);
-            }
-            else
-            {
-                Logger.LogError($"Property '{propertyName}' not found or cannot be updated.");
-            }
+            long ticks = (long)(ulong)newValue;
+            propertyInfo.SetValue(GlobalPerms, TimeSpan.FromTicks(ticks));
+        }
+        // char recognition. (these are converted to byte for Dto's instead of char)
+        else if (changeDto.ChangedPermission.Value.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
+        {
+            propertyInfo.SetValue(GlobalPerms, Convert.ToChar(newValue));
+        }
+        else if (propertyInfo != null && propertyInfo.CanWrite)
+        {
+            // Convert the value to the appropriate type before setting
+            var value = Convert.ChangeType(newValue, propertyInfo.PropertyType);
+            propertyInfo.SetValue(GlobalPerms, value);
+            Logger.LogDebug($"Updated global permission '{propertyName}' to '{newValue}'", LoggerType.ClientPlayerData);
         }
         else
         {
             Logger.LogError($"Property '{propertyName}' not found or cannot be updated.");
+            return;
         }
+
+        // Publish Interaction Event
+        var changedPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserData.UID == changeDto.User.UID);
+        HardcoreAction hardcoreChangeType = GlobalPerms!.GetHardcoreChange(propertyName, newValue);
+        // If not a hardcore change but another perm change, publish that.
+        if (changedPair is not null && hardcoreChangeType is HardcoreAction.None)
+            Mediator.Publish(new EventMessage(new(changedPair.GetNickAliasOrUid(), changedPair.UserData.UID, InteractionType.ForcedPermChange, "Permission (" + changeDto + ") Changed")));
 
         // Handle hardcore changes here.
         if (hardcoreChangeType is HardcoreAction.None)
@@ -161,6 +163,23 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         var newState = string.IsNullOrEmpty((string)newValue) ? NewState.Disabled : NewState.Enabled;
         Logger.LogInformation(hardcoreChangeType.ToString() + " has changed, and is now "+ newValue, LoggerType.PairManagement);
         Mediator.Publish(new HardcoreActionMessage(hardcoreChangeType, newState));
+        // If the changed Pair is not null, we should map the type and log the interaction event.
+        if (changedPair is not null)
+        {
+            var interactionType = hardcoreChangeType switch
+            {
+                HardcoreAction.ForcedFollow => InteractionType.ForcedFollow,
+                HardcoreAction.ForcedSit => InteractionType.ForcedSit,
+                HardcoreAction.ForcedGroundsit => InteractionType.ForcedSit,
+                HardcoreAction.ForcedStay => InteractionType.ForcedStay,
+                HardcoreAction.ForcedBlindfold => InteractionType.ForcedBlindfold,
+                HardcoreAction.ChatboxHiding => InteractionType.ForcedChatVisibility,
+                HardcoreAction.ChatInputHiding => InteractionType.ForcedChatInputVisibility,
+                HardcoreAction.ChatInputBlocking => InteractionType.ForcedChatInputBlock,
+                _ => InteractionType.None
+            };
+            Mediator.Publish(new EventMessage(new(changedPair.GetNickAliasOrUid(), changedPair.UserData.UID, interactionType, "Hardcore Action (" + hardcoreChangeType + ") is now " + newState)));
+        }
         UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction, hardcoreChangeType, newState, changeDto.User.UID, ApiController.UID);
     }
 

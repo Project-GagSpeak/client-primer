@@ -1,12 +1,8 @@
 using Dalamud.Game.ClientState.Objects;
-using Dalamud.Utility;
-using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Hardcore.ForcedStay;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
@@ -16,7 +12,6 @@ using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Extensions;
 using System.Numerics;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkResNode.Delegates;
 
 namespace GagSpeak.PlayerData.Handlers;
 /// <summary> Responsible for handling hardcore communication from stored data & ui to core logic. </summary>
@@ -35,8 +30,8 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     public unsafe GameCameraManager* cameraManager = GameCameraManager.Instance(); // for the camera manager object
     public HardcoreHandler(ILogger<HardcoreHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
-        AppearanceHandler appearanceHandler, PairManager pairManager, 
-        ApiController apiController, MoveController moveController, ChatSender chatSender, 
+        AppearanceHandler appearanceHandler, PairManager pairManager,
+        ApiController apiController, MoveController moveController, ChatSender chatSender,
         OnFrameworkService frameworkUtils, ITargetManager targetManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
@@ -137,7 +132,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
                 _playerData.GlobalPerms!.ForcedFollow = string.Empty;
                 Logger.LogInformation("ForceFollow Disable was triggered manually before it naturally disabled. Forcibly shutting down.");
                 _ = _apiController.UserUpdateOwnGlobalPerm(new(new(ApiController.UID), new KeyValuePair<string, object>("ForcedFollow", string.Empty)));
-            
+
             }
             else
             {
@@ -193,7 +188,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             Logger.LogDebug("Pair has allowed you to stand again.", LoggerType.HardcoreMovement);
             _moveController.DisableMovementLock();
             // set it on client before getting change back from server.
-            if(isGroundsit)
+            if (isGroundsit)
                 _playerData.GlobalPerms!.ForcedGroundsit = string.Empty;
             else
                 _playerData.GlobalPerms!.ForcedSit = string.Empty;
@@ -208,11 +203,11 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         await Task.Delay(500);
         // Only do this task if we are currently in a groundsit pose.
         var currentPose = _frameworkUtils.CurrentEmoteId();
-        if(GroundsitIdList.Contains(currentPose))
+        if (GroundsitIdList.Contains(currentPose))
         {
             Logger.LogDebug("Ensuring we are on our knees after a groundsit.", LoggerType.HardcoreMovement);
             // Attempt 4 times to cycle the cpose to cpose 1
-            for(var i = 0; i < 4; i++)
+            for (var i = 0; i < 4; i++)
             {
                 // Grab our current cpose.
                 var currentCpose = _frameworkUtils.CurrentCpose();
@@ -220,7 +215,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
                 if (currentCpose is 1)
                     break;
 
-                Logger.LogDebug("Sending /cpose to cycle to cpose 1. (Current was "+currentCpose+")");
+                Logger.LogDebug("Sending /cpose to cycle to cpose 1. (Current was " + currentCpose + ")");
                 _chatSender.SendMessage("/cpose");
                 await Task.Delay(500);
             }
@@ -232,7 +227,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     public void UpdateForcedStayState(NewState newState)
     {
         Logger.LogDebug(newState is NewState.Enabled ? "Enabled" : "Disabled" + " forced stay for pair.", LoggerType.HardcoreMovement);
-        if(newState is NewState.Disabled)
+        if (newState is NewState.Disabled)
         {
             // set it on client before getting change back from server.
             _playerData.GlobalPerms!.ForcedStay = string.Empty;
@@ -244,7 +239,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         Logger.LogDebug(newState is NewState.Enabled
             ? "Enabled forced blindfold for pair." : "Disabled forced blindfold for pair.", LoggerType.HardcoreMovement);
         // Call a glamour refresh
-        _ = _appearanceHandler.RecalcAndReload(false); // Fire and Forget
+        await _appearanceHandler.RecalcAndReload(false); // Fire and Forget
 
         if (newState is NewState.Enabled && !BlindfoldUI.IsWindowOpen)
         {

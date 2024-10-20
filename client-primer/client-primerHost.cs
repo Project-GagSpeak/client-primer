@@ -52,10 +52,6 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
         // log our version
         Logger.LogInformation("Launching {name} {major}.{minor}.{build}", "GagSpeak", version.Major, version.Minor, version.Build);
 
-        // publish an event message to the mediator that we have started the plugin
-        Mediator.Publish(new EventMessage(new Event(nameof(GagSpeak), EventSeverity.Informational,
-            $"Starting Gagspeak{version.Major}.{version.Minor}.{version.Build}")));
-
         // subscribe to the main UI message window for making the primary UI be the main UI interface.
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (msg) =>
         {

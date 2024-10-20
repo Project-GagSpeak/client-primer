@@ -5,6 +5,7 @@ using GagspeakAPI.Dto.Permissions;
 using System.Reflection;
 using static FFXIVClientStructs.FFXIV.Component.GUI.AtkComponentNumericInput.Delegates;
 using GagSpeak.WebAPI;
+using GagSpeak.Services.Events;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -314,32 +315,35 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
 
         PropertyInfo? propertyInfo = typeof(UserPairPermissions).GetProperty(ChangedPermission);
-        if (propertyInfo != null)
-        {
-            // If the property exists and is found, update its value
-            if (ChangedValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
-            {
-                long ticks = (long)(ulong)ChangedValue;
-                propertyInfo.SetValue(pair.UserPair.OwnPairPerms, TimeSpan.FromTicks(ticks));
-            }
-            // char recognition. (these are converted to byte for Dto's instead of char)
-            else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
-            {
-                propertyInfo.SetValue(pair.UserPair.OwnPairPerms, Convert.ToChar(ChangedValue));
-            }
-            else if (propertyInfo.CanWrite)
-            {
-                // convert the value to the appropriate type before setting.
-                object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
-                propertyInfo.SetValue(pair.UserPair.OwnPairPerms, value);
-                Logger.LogDebug($"Updated self pair permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
-            }
-            else
-            {
-                Logger.LogError($"Property '{ChangedPermission}' not found or cannot be updated.");
-            }
-        }
+        if (propertyInfo is null)
+            return;
 
+        // If the property exists and is found, update its value
+        if (ChangedValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
+        {
+            long ticks = (long)(ulong)ChangedValue;
+            propertyInfo.SetValue(pair.UserPair.OwnPairPerms, TimeSpan.FromTicks(ticks));
+        }
+        // char recognition. (these are converted to byte for Dto's instead of char)
+        else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
+        {
+            propertyInfo.SetValue(pair.UserPair.OwnPairPerms, Convert.ToChar(ChangedValue));
+        }
+        else if (propertyInfo.CanWrite)
+        {
+            // convert the value to the appropriate type before setting.
+            object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
+            propertyInfo.SetValue(pair.UserPair.OwnPairPerms, value);
+            Logger.LogDebug($"Updated self pair permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
+        }
+        else
+        {
+            Logger.LogError($"Property '{ChangedPermission}' not found or cannot be updated.");
+            return;
+        }
+        // Log that a change occured to us.
+        Mediator.Publish(new EventMessage(new InteractionEvent(pair.GetNickAliasOrUid(), pair.UserData.UID, InteractionType.ForcedPermChange, "Permission ("+ChangedPermission+") Changed")));
+            
         // Handle special cases AFTER the change was made.
         if (motionPermsChanged) UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, false);
         if (allPermsChanged) UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, true);

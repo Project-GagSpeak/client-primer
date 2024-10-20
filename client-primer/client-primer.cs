@@ -194,8 +194,9 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<CursedLootHandler>()
         .AddSingleton<PatternHandler>()
         .AddSingleton((s) => new HardcoreHandler(s.GetRequiredService<ILogger<HardcoreHandler>>(), s.GetRequiredService<GagspeakMediator>(), 
-            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(), 
-            s.GetRequiredService<ApiController>(), s.GetRequiredService<MoveController>(), s.GetRequiredService<ChatSender>(), s.GetRequiredService<OnFrameworkService>(), tm))
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<AppearanceHandler>(),
+            s.GetRequiredService<PairManager>(), s.GetRequiredService<ApiController>(), s.GetRequiredService<MoveController>(), 
+            s.GetRequiredService<ChatSender>(), s.GetRequiredService<OnFrameworkService>(), tm))
         .AddSingleton<PlayerCharacterData>()
         .AddSingleton<GameObjectHandlerFactory>()
         .AddSingleton<PairFactory>()

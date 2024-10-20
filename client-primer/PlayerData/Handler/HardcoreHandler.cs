@@ -24,6 +24,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerData;
+    private readonly AppearanceHandler _appearanceHandler;
     private readonly PairManager _pairManager;
     private readonly ApiController _apiController; // for sending the updates.
     private readonly MoveController _moveController; // for movement logic
@@ -34,12 +35,13 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     public unsafe GameCameraManager* cameraManager = GameCameraManager.Instance(); // for the camera manager object
     public HardcoreHandler(ILogger<HardcoreHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
-        PairManager pairManager, ApiController apiController, MoveController moveController,
-        ChatSender chatSender, OnFrameworkService frameworkUtils, 
-        ITargetManager targetManager) : base(logger, mediator)
+        AppearanceHandler appearanceHandler, PairManager pairManager, 
+        ApiController apiController, MoveController moveController, ChatSender chatSender, 
+        OnFrameworkService frameworkUtils, ITargetManager targetManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerData = playerData;
+        _appearanceHandler = appearanceHandler;
         _pairManager = pairManager;
         _apiController = apiController;
         _moveController = moveController;
@@ -237,16 +239,16 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    private void UpdateBlindfoldState(NewState newState)
+    private async void UpdateBlindfoldState(NewState newState)
     {
         Logger.LogDebug(newState is NewState.Enabled
             ? "Enabled forced blindfold for pair." : "Disabled forced blindfold for pair.", LoggerType.HardcoreMovement);
         // Call a glamour refresh
-        IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);
+        _ = _appearanceHandler.RecalcAndReload(false); // Fire and Forget
 
         if (newState is NewState.Enabled && !BlindfoldUI.IsWindowOpen)
         {
-            Task.Run(() => HandleBlindfoldLogic(newState)); // Fire and Forget
+            await HandleBlindfoldLogic(newState);
             return;
         }
 
@@ -255,8 +257,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             // set it on client before getting change back from server.
             _playerData.GlobalPerms!.ForcedBlindfold = string.Empty;
 
-            // Fire & Forget animation Task
-            Task.Run(() => HandleBlindfoldLogic(newState));
+            await HandleBlindfoldLogic(newState);
             return;
         }
     }

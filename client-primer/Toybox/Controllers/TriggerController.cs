@@ -365,7 +365,8 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 }
                 Logger.LogInformation("Applying Restraint Set "+trigger.RestraintNameAction+" with state "+NewState.Enabled, LoggerType.ToyboxTriggers);
                 var idx = _clientConfigs.GetRestraintSetIdxByName(trigger.RestraintNameAction);
-                await _wardrobeHandler.EnableRestraintSet(idx, Globals.SelfApplied, true);
+                var set = _clientConfigs.GetRestraintSet(idx);
+                await _wardrobeHandler.EnableRestraintSet(set.RestraintId, Globals.SelfApplied, true);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                 break;
 

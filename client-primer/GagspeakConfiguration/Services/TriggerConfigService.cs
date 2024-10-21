@@ -30,34 +30,34 @@ public class TriggerConfigService : ConfigurationServiceBase<TriggerConfig>
 
     private JObject MigrateFromV1toV2(JObject oldConfigJson)
     {
-        // Create a new JObject for V3
+        // Create a new JObject for V2, including TriggerStorage initialization
+        var v2TriggerStorage = new JObject(); // Create the TriggerStorage here
         var v2Data = new JObject
         {
             ["Version"] = 2,
-            ["TriggerStorage"] = new JObject()
+            ["TriggerStorage"] = v2TriggerStorage // Assign it directly
         };
 
-        // Get the V2 WardrobeStorage and RestraintSets
-        var v2TriggersStorage = (JObject)oldConfigJson["TriggerStorage"];
-        var v2Triggers = (JArray)v2TriggersStorage["Triggers"];
-        var v2TriggersNew = new JArray();
+        // Try to get the old TriggerStorage and Triggers, or default to empty JObject/JArray if missing
+        var v2TriggersStorage = oldConfigJson["TriggerStorage"] as JObject ?? new JObject();
+        var v2Triggers = v2TriggersStorage["Triggers"] as JArray ?? new JArray();
 
-        foreach (var v2Trigger in v2Triggers)
-        {
-            // dont need anything in here yet, but still good to implement the logic for detmining what to do with the abstract type triggers.
-            v2TriggersNew.Add(v2Trigger);
-        }
-        v2Data["TriggerStorage"]["Triggers"] = v2Triggers;
+        // Create a new array to hold the migrated triggers (you can add migration logic here if needed)
+        var v2TriggersNew = new JArray(v2Triggers);
+
+        // Assign the new triggers array to the pre-created TriggerStorage
+        v2TriggerStorage["Triggers"] = v2TriggersNew;
 
         return v2Data;
     }
+
 
 
     protected override TriggerConfig DeserializeConfig(JObject configJson)
     {
         var config = new TriggerConfig();
         // Deserialize WardrobeStorage
-        JToken triggerStorageToken = configJson["TriggerStorage"];
+        JToken triggerStorageToken = configJson["TriggerStorage"]!;
         if (triggerStorageToken != null)
         {
             TriggerStorage triggerStorage = new TriggerStorage();

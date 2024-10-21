@@ -200,7 +200,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                 {
                     var data = new PadlockData((GagLayer)idx, GagManager.ActiveSlotPadlocks[idx], GagManager.ActiveSlotPasswords[idx],
                         UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[idx]), Globals.SelfApplied);
-                    Mediator.Publish(new GagLockToggle(data, currentlyLocked ? NewState.Unlocked : NewState.Locked));
+                    _gagManager.OnGagLockChanged(data, currentlyLocked ? NewState.Unlocked : NewState.Locked, true, true);
                 }
                 else
                 {

@@ -471,9 +471,9 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 {
                     // set the enabled state of the restraintSet based on its current state so that we toggle it
                     if (set.Enabled)
-                        _handler.DisableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name)).ConfigureAwait(false);
+                        _handler.DisableRestraintSet(set.RestraintId).ConfigureAwait(false);
                     else
-                        _handler.EnableRestraintSet(_handler.GetRestraintSetIndexByName(set.Name)).ConfigureAwait(false);
+                        _handler.EnableRestraintSet(set.RestraintId).ConfigureAwait(false);
                     // toggle the state & early return so we dont access the child clicked button
                     return;
                 }
@@ -532,19 +532,15 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                         {
                             Logger.LogTrace($"Unlocking Restraint Set {set.Name}");
                             // allow using set.EnabledBy here because it will check against the assigner when unlocking.
-                            _handler.UnlockRestraintSet(_handler.GetRestraintSetIndexByName(set.Name), set.EnabledBy);
+                            _handler.UnlockRestraintSet(set.RestraintId, set.EnabledBy);
                             GagManager.ActiveSlotPadlocks[3] = Padlocks.None;
                         }
                         else
                         {
                             Logger.LogTrace($"Locking Restraint Set {set.Name}");
                             Logger.LogTrace("Parsing Timer with value[" + GagManager.ActiveSlotTimers[3] + "]");
-                            _handler.LockRestraintSet(
-                                _handler.GetRestraintSetIndexByName(set.Name),
-                                GagManager.ActiveSlotPadlocks[3].ToName(),
-                                GagManager.ActiveSlotPasswords[3],
-                                UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[3]),
-                                Globals.SelfApplied);
+                            _handler.LockRestraintSet(set.RestraintId, GagManager.ActiveSlotPadlocks[3], GagManager.ActiveSlotPasswords[3], 
+                                UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[3]), Globals.SelfApplied);
                         }
                     }
                     else

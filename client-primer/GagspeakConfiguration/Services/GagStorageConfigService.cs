@@ -42,8 +42,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
         };
 
         // Get the V1 GagEquipData
-        JObject v1GagEquipData;
-        v1GagEquipData = (JObject)v1Data["GagStorage"]["GagEquipData"];
+        var v1GagEquipData = v1Data["GagStorage"]?["GagEquipData"] as JObject ?? new JObject();
 
         var v2GagEquipData = new JObject();
 
@@ -69,7 +68,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
                     ["ForceVisorOnEnable"] = false,
                     ["GagMoodles"] = new JArray(),
                     ["Slot"] = v1Gag["Slot"],
-                    ["CustomItemId"] = gameItem["Id"].ToString(),
+                    ["CustomItemId"] = gameItem["Id"]?.ToString(),
                     ["GameStain"] = v1Gag["GameStain"]
                 };
 
@@ -82,7 +81,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
         }
 
         // Assign the transformed GagEquipData to V2 data
-        v2Data["GagStorage"]["GagEquipData"] = v2GagEquipData;
+        v2Data["GagStorage"]!["GagEquipData"] = v2GagEquipData;
 
         return v2Data;
     }
@@ -95,7 +94,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
         config.GagStorage = new GagStorage();
         config.GagStorage.GagEquipData = new Dictionary<GagType, GagDrawData>();
 
-        JObject gagEquipDataObject = configJson["GagStorage"]["GagEquipData"].Value<JObject>();
+        JObject gagEquipDataObject = configJson["GagStorage"]!["GagEquipData"] as JObject ?? new JObject();
         if (gagEquipDataObject == null) return config;
 
         int i = 0;
@@ -122,7 +121,7 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
 
             if (gagData.Value is JObject itemObject)
             {
-                string? slotString = itemObject["Slot"].Value<string>();
+                string? slotString = itemObject["Slot"]?.Value<string>() ?? "Head";
                 EquipSlot slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), slotString);
                 var gagDrawData = new GagDrawData(ItemIdVars.NothingItem(slot));
                 gagDrawData.Deserialize(itemObject);

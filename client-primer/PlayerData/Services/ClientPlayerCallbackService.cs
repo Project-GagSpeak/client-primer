@@ -254,11 +254,8 @@ public class ClientCallbackService
                 _logger.LogDebug("SelfApplied RESTRAINT APPLY Verified by Server Callback.", LoggerType.Callbacks);
 
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintLocked)
-            {
                 _logger.LogDebug("SelfApplied RESTRAINT LOCKED Verified by Server Callback.", LoggerType.Callbacks);
-                // Achievement Event Trigger
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, callbackSet, data.Padlock.ToPadlock(), true, Globals.SelfApplied);
-            }
+
 
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintUnlocked)
             {
@@ -271,14 +268,12 @@ public class ClientCallbackService
                 if(callbackSet != null)
                 {
                     Padlocks unlock = callbackSet.LockType.ToPadlock();
-                    UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, callbackSet, unlock, false, Globals.SelfApplied);
+                    // auto remove the restraint set after unlocking if we have just finished unlocking it.
+                    if (!_clientConfigs.GagspeakConfig.DisableSetUponUnlock)
+                        return;
+
+                    await _wardrobeHandler.DisableRestraintSet(callbackSet.RestraintId, Globals.SelfApplied, true);
                 }
-
-                // auto remove the restraint set after unlocking if we have just finished unlocking it.
-                if (!_clientConfigs.GagspeakConfig.DisableSetUponUnlock) 
-                    return;
-
-                await _wardrobeHandler.DisableRestraintSet(callbackSetIdx, Globals.SelfApplied, true);
             }
 
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintDisabled)
@@ -323,27 +318,32 @@ public class ClientCallbackService
                     }
                     else
                     {
-                        _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
-                        await _wardrobeHandler.EnableRestraintSet(callbackSetIdx, callbackDto.User.UID, false);
-                        // Log the Interaction Event
-                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ApplyRestraint, "Applied Set: " + data.ActiveSetName)));
+                        if(callbackSet is not null)
+                        {
+                            _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
+                            await _wardrobeHandler.EnableRestraintSet(callbackSet.RestraintId, callbackDto.User.UID, false);
+                            // Log the Interaction Event
+                            _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ApplyRestraint, "Applied Set: " + data.ActiveSetName)));
+                        }
                     }
                     break;
 
                 case DataUpdateKind.WardrobeRestraintLocked:
-                    _logger.LogDebug($"{callbackDto.User.UID} has forcibly locked your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
-                    _clientConfigs.LockRestraintSet(callbackSetIdx, data.Padlock, data.Password, data.Timer, callbackDto.User.UID, false);
-                    // Log the Interaction Event
-                    _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.LockRestraint, data.ActiveSetName + " is now locked")));
-                    UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, callbackSet, data.Padlock.ToPadlock(), true, callbackDto.User.UID); 
+                    if (callbackSet is not null)
+                    {
+                        _logger.LogDebug($"{callbackDto.User.UID} has forcibly locked your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
+                        _appearanceHandler.LockRestraintSet(callbackSet.RestraintId, data.Padlock.ToPadlock(), data.Password, data.Timer, callbackDto.User.UID, false);
+                        // Log the Interaction Event
+                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.LockRestraint, data.ActiveSetName + " is now locked")));
+                    }
                     break;
 
                 case DataUpdateKind.WardrobeRestraintUnlocked:
-                    _logger.LogDebug($"{callbackDto.User.UID} has force unlocked your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
                     if (callbackSet != null)
                     {
+                        _logger.LogDebug($"{callbackDto.User.UID} has force unlocked your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
                         Padlocks previousPadlock = callbackSet.LockType.ToPadlock();
-                        _clientConfigs.UnlockRestraintSet(callbackSetIdx, callbackDto.User.UID, false);
+                        _appearanceHandler.UnlockRestraintSet(callbackSet.RestraintId, callbackDto.User.UID, false);
                         // Log the Interaction Event
                         _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.UnlockRestraint, data.ActiveSetName + " is now unlocked")));
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, callbackSet, previousPadlock, false, callbackDto.User.UID);
@@ -355,8 +355,7 @@ public class ClientCallbackService
                     var currentlyActiveSet = _clientConfigs.GetActiveSet();
                     if (currentlyActiveSet is not null)
                     {
-                        var activeIdx = _clientConfigs.GetActiveSetIdx();
-                        await _wardrobeHandler.DisableRestraintSet(activeIdx, callbackDto.User.UID, false);
+                        await _wardrobeHandler.DisableRestraintSet(currentlyActiveSet.RestraintId, callbackDto.User.UID, false);
                         // Log the Interaction Event
                         _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.RemoveRestraint, data.ActiveSetName + " has been removed")));
                     }

@@ -233,6 +233,8 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         if (_frameworkUtils.InPvP)// || _frameworkUtils.PartyListSize < 4)
             return;
 
+        (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.KinkyExplorer] as ConditionalAchievement)?.CheckCompletion();
+
         (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.BeginConditionalTask();
         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.BeginConditionalTask();
 

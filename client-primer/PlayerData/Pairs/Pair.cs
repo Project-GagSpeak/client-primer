@@ -224,11 +224,11 @@ public class Pair
 
         // We can only detect the lock uid by listening for the assigner UID. Unlocks are processed via the actions tab.
         if (data.UpdateKind is DataUpdateKind.WardrobeRestraintLocked)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintLockChange, data.WardrobeData.Padlock.ToPadlock(), true, data.WardrobeData.Assigner);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintLockChange, data.WardrobeData.ActiveSetId, data.WardrobeData.Padlock.ToPadlock(), true, data.WardrobeData.Assigner);
 
         // We can only detect the unlock uid by listening for the assigner UID. Unlocks are processed via the actions tab.
         if (data.UpdateKind is DataUpdateKind.WardrobeRestraintUnlocked)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintLockChange, previousLock, false, data.Enactor.UID);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintLockChange, data.WardrobeData.ActiveSetId, previousLock, false, data.Enactor.UID);
 
         // For removal
         if (data.UpdateKind is DataUpdateKind.WardrobeRestraintDisabled)

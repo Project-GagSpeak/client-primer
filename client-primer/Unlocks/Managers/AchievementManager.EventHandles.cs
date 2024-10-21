@@ -269,24 +269,27 @@ public partial class AchievementManager
 
     private void OnRestraintLock(RestraintSet set, Padlocks padlock, bool isLocking, string enactorUID)
     {
+        Logger.LogTrace(enactorUID + " is " + (isLocking ? "locking" : "unlocking") + " a set: " + set.Name + " that had the padlock: " + padlock.ToName());
         // we locked our set.
-        if (enactorUID is Globals.SelfApplied)
+        if (isLocking)
         {
-            // nothing here atm.
-        }
-        // someone else locked our set
-        else if (enactorUID is not Globals.SelfApplied)
-        {
-            if (isLocking && padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock) // locking
+            if (padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock)
             {
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTimeBondage] as DurationAchievement)?.StartTracking(set.Name);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AmateurBondage] as DurationAchievement)?.StartTracking(set.Name);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.ComfortRestraint] as DurationAchievement)?.StartTracking(set.Name);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.DayInTheLifeOfABondageSlave] as DurationAchievement)?.StartTracking(set.Name);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AWeekInBondage] as DurationAchievement)?.StartTracking(set.Name);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AMonthInBondage] as DurationAchievement)?.StartTracking(set.Name);
+                // make sure we are the locker before continuing (Consider removing SelfApplied at some point)
+                if (enactorUID != ApiController.UID && enactorUID != Globals.SelfApplied)
+                {
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTimeBondage] as DurationAchievement)?.StartTracking(set.Name);
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AmateurBondage] as DurationAchievement)?.StartTracking(set.Name);
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.ComfortRestraint] as DurationAchievement)?.StartTracking(set.Name);
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.DayInTheLifeOfABondageSlave] as DurationAchievement)?.StartTracking(set.Name);
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AWeekInBondage] as DurationAchievement)?.StartTracking(set.Name);
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AMonthInBondage] as DurationAchievement)?.StartTracking(set.Name);
+                }
             }
-            if (!isLocking && padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock) // unlocking
+        }
+        else
+        { 
+            if (padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock)
             {
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTimeBondage] as DurationAchievement)?.StopTracking(set.Name);
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AmateurBondage] as DurationAchievement)?.StopTracking(set.Name);
@@ -303,6 +306,7 @@ public partial class AchievementManager
     /// </summary>
     private void OnPairRestraintApply(Guid setName, bool isEnabling, string enactorUID)
     {
+        Logger.LogTrace(enactorUID + " is "+ (isEnabling ? "applying" : "Removing") + " a set to a pair: " + setName);
         // if we enabled a set on someone else
         if (isEnabling && enactorUID == ApiController.UID)
         {
@@ -319,7 +323,7 @@ public partial class AchievementManager
 
 
         // Change the achievement type of the achievement below, its currently busted.
-        // (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SoldSlave] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SoldSlave] as ProgressAchievement)?.IncrementProgress();
 
         // if the pair's set is being locked and it is a timed lock.
         if (isLocking)
@@ -329,12 +333,12 @@ public partial class AchievementManager
                 // make sure we are the locker before continuing
                 if(enactorUID == ApiController.UID)
                 {
-                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RiggersFirstSession] as DurationAchievement)?.StartTracking(enactorUID);
-                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.MyLittlePlaything] as DurationAchievement)?.StartTracking(enactorUID);
-                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SuitsYouBitch] as DurationAchievement)?.StartTracking(enactorUID);
-                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TiesThatBind] as DurationAchievement)?.StartTracking(enactorUID);
-                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SlaveTraining] as DurationAchievement)?.StartTracking(enactorUID);
-                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CeremonyOfEternalBondage] as DurationAchievement)?.StartTracking(enactorUID);
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RiggersFirstSession] as DurationAchievement)?.StartTracking(restraintId.ToString());
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.MyLittlePlaything] as DurationAchievement)?.StartTracking(restraintId.ToString());
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SuitsYouBitch] as DurationAchievement)?.StartTracking(restraintId.ToString());
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TiesThatBind] as DurationAchievement)?.StartTracking(restraintId.ToString());
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SlaveTraining] as DurationAchievement)?.StartTracking(restraintId.ToString());
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CeremonyOfEternalBondage] as DurationAchievement)?.StartTracking(restraintId.ToString());
                 }
             }
         }
@@ -343,12 +347,12 @@ public partial class AchievementManager
             // if the padlock is a timed padlock that we have unlocked, we should stop tracking it from these achievements.
             if (padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock)
             {
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RiggersFirstSession] as DurationAchievement)?.StopTracking(enactorUID);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.MyLittlePlaything] as DurationAchievement)?.StopTracking(enactorUID);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SuitsYouBitch] as DurationAchievement)?.StopTracking(enactorUID);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TiesThatBind] as DurationAchievement)?.StopTracking(enactorUID);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SlaveTraining] as DurationAchievement)?.StopTracking(enactorUID);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CeremonyOfEternalBondage] as DurationAchievement)?.StopTracking(enactorUID);
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RiggersFirstSession] as DurationAchievement)?.StopTracking(restraintId.ToString());
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.MyLittlePlaything] as DurationAchievement)?.StopTracking(restraintId.ToString());
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SuitsYouBitch] as DurationAchievement)?.StopTracking(restraintId.ToString());
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TiesThatBind] as DurationAchievement)?.StopTracking(restraintId.ToString());
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SlaveTraining] as DurationAchievement)?.StopTracking(restraintId.ToString());
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CeremonyOfEternalBondage] as DurationAchievement)?.StopTracking(restraintId.ToString());
             }
 
             // if we are unlocking in general, increment the rescuer
@@ -600,8 +604,8 @@ public partial class AchievementManager
     private void OnCursedLootFound()
     {
         (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TemptingFatesTreasure] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.BadEndSeeker] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.EverCursed] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.BadEndSeeker] as ConditionalProgressAchievement)?.CheckTaskProgress();
+        (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.EverCursed] as ConditionalProgressAchievement)?.CheckTaskProgress();
     }
 
     private void OnJobChange(GlamourUpdateType changeType)

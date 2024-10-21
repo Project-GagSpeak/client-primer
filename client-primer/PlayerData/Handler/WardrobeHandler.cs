@@ -84,7 +84,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public List<RestraintSet> GetAllSetsForSearch() => _clientConfigs.StoredRestraintSets;
     public RestraintSet GetRestraintSet(int idx) => _clientConfigs.GetRestraintSet(idx);
 
-    public async Task EnableRestraintSet(int idx, string AssignerUID = Globals.SelfApplied, bool pushToServer = true)
+    public async Task EnableRestraintSet(Guid id, string assignerUID = Globals.SelfApplied, bool pushToServer = true)
     {
         if (!WardrobeEnabled || !RestraintSetsEnabled) {
             Logger.LogInformation("Wardrobe or Restraint Sets are disabled, cannot enable restraint set.", LoggerType.Restraints);
@@ -92,29 +92,28 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         }
 
         // check to see if there is any active set currently. If there is, disable it.
-        if (ActiveSet != null)
+        if (ActiveSet is not null)
         {
             Logger.LogInformation("Disabling Active Set ["+ActiveSet.Name+"] before enabling new set.", LoggerType.Restraints);
-            await _appearanceHandler.DisableRestraintSet(ActiveSet.RestraintId, AssignerUID); // maybe add push to server here to prevent double send?
+            await _appearanceHandler.DisableRestraintSet(ActiveSet.RestraintId, assignerUID); // maybe add push to server here to prevent double send?
         }
         // Enable the new set.
-        await _appearanceHandler.EnableRestraintSet
-            (_clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[idx].RestraintId, AssignerUID, pushToServer);
+        await _appearanceHandler.EnableRestraintSet(id, assignerUID, pushToServer);
     }
-    public async Task DisableRestraintSet(int idx, string AssignerUID = Globals.SelfApplied, bool pushToServer = true)
+    public async Task DisableRestraintSet(Guid id, string assignerUID = Globals.SelfApplied, bool pushToServer = true)
     {
-        if (!WardrobeEnabled || !RestraintSetsEnabled) {
+        if (!WardrobeEnabled || !RestraintSetsEnabled) 
+        {
             Logger.LogInformation("Wardrobe or Restraint Sets are disabled, cannot disable restraint set.", LoggerType.Restraints);
             return;
         }
-        await _appearanceHandler.DisableRestraintSet
-            (_clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[idx].RestraintId, AssignerUID, pushToServer);
+        await _appearanceHandler.DisableRestraintSet(id, assignerUID, pushToServer);
     }
 
-    public void LockRestraintSet(int idx, string lockType, string password, DateTimeOffset endLockTimeUTC, string AssignerUID)
-        => _clientConfigs.LockRestraintSet(idx, lockType, password, endLockTimeUTC, AssignerUID);
+    public void LockRestraintSet(Guid id, Padlocks padlock, string pwd, DateTimeOffset endLockTimeUTC, string assignerUID)
+        => _appearanceHandler.LockRestraintSet(id, padlock, pwd, endLockTimeUTC, assignerUID);
 
-    public void UnlockRestraintSet(int idx, string AssignerUID) => _clientConfigs.UnlockRestraintSet(idx, AssignerUID);
+    public void UnlockRestraintSet(Guid id, string lockRemoverUID) => _appearanceHandler.UnlockRestraintSet(id, lockRemoverUID);
 
     public int GetActiveSetIndex() => _clientConfigs.GetActiveSetIdx();
     public int GetRestraintSetIndexByName(string setName) => _clientConfigs.GetRestraintSetIdxByName(setName);
@@ -135,7 +134,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
             // check if the locked time minus the current time in UTC is less than timespan.Zero ... if it is, we should push an unlock set update.
             if (GenericHelpers.TimerPadlocks.Contains(ActiveSet.LockType) && ActiveSet.LockedUntil - DateTimeOffset.UtcNow <= TimeSpan.Zero)
             {
-                UnlockRestraintSet(GetActiveSetIndex(), ActiveSet.LockedBy);
+                UnlockRestraintSet(ActiveSet.RestraintId, ActiveSet.LockedBy);
                 Logger.LogInformation("Active Set ["+ActiveSet.Name+"] has expired its lock, unlocking and removing restraint set.", LoggerType.Restraints);
             }
         }

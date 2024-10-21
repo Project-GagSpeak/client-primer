@@ -58,7 +58,7 @@ public class PatternConfigService : ConfigurationServiceBase<PatternConfig>
         config.PatternStorage.Patterns = new List<PatternData>();
 
         // read in the pattern data from the config file
-        var PatternsList = configJson["PatternStorage"]["Patterns"].Value<JArray>();
+        var PatternsList = configJson["PatternStorage"]!["Patterns"] as JArray ?? new JArray();
         // if the patterns list had data
         if (PatternsList != null)
         {
@@ -68,6 +68,8 @@ public class PatternConfigService : ConfigurationServiceBase<PatternConfig>
                 // create a new pattern object
                 var patternData = new PatternData();
                 // deserialize the object
+                if(pattern is JObject)
+                    patternData.Deserialize(pattern.Value<JObject>());
                 patternData.Deserialize(pattern.Value<JObject>());
                 // add the pattern to the list
                 config.PatternStorage.Patterns.Add(patternData);

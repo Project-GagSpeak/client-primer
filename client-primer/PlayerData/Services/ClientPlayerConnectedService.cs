@@ -87,7 +87,7 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
             {
                 Logger.LogInformation("The stored active Restraint Set is locked with a Timer Padlock. Unlocking Set.", LoggerType.Restraints);
                 // while this doesn't do anything client side, it will bump an update to the server, updating the active state data.
-                _clientConfigs.UnlockRestraintSet(setIdx, serverData.Assigner, false);
+                _appearanceHandler.UnlockRestraintSet(restraintId, serverData.Assigner, false, true); // Fire the achievement if we need to unlock it.
 
                 // if we have it set to remove sets that are unlocked automatically, do so.
                 if (_clientConfigs.GagspeakConfig.DisableSetUponUnlock)
@@ -109,7 +109,7 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
                 if (serverData.Padlock != Padlocks.None.ToName())
                 {
                     Logger.LogInformation("Re-Locking the stored active Restraint Set", LoggerType.Restraints);
-                    _clientConfigs.LockRestraintSet(setIdx, serverData.Padlock, serverData.Password, serverData.Timer, serverData.Assigner, false);
+                    _appearanceHandler.LockRestraintSet(restraintId, serverData.Padlock.ToPadlock(), serverData.Password, serverData.Timer, serverData.Assigner, false, true);
                 }
             }
             // update the data. (Note, setting these to false may trigger a loophole by skipping over the monitored achievements,
@@ -126,9 +126,9 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
                 if (activeSet != null)
                 {
                     if (activeSet.LockType.ToPadlock() is not Padlocks.None)
-                        _clientConfigs.UnlockRestraintSet(activeSetIdx, activeSet.LockedBy, false);
+                        _appearanceHandler.UnlockRestraintSet(activeSet.RestraintId, activeSet.LockedBy, false, true);
                     // disable it.
-                    await _appearanceHandler.DisableRestraintSet(activeSet.RestraintId, activeSet.LockedBy, false);
+                    await _appearanceHandler.DisableRestraintSet(activeSet.RestraintId, activeSet.LockedBy, false, true);
                     // update the data. (Note, setting these to false may trigger a loophole by skipping over the monitored achievements,
                     Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.FullDataUpdate));
                 }

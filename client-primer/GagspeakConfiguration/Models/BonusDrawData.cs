@@ -37,6 +37,6 @@ public record BonusDrawData
         EquippedBy = jsonObject["EquippedBy"]?.Value<string>() ?? string.Empty;
         Locked = jsonObject["Locked"]?.Value<bool>() ?? false;
         Slot = (BonusItemFlag)Enum.Parse(typeof(BonusItemFlag), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
-        GameItem = jsonObject["GameItem"] != null ? jsonObject["GameItem"].ToObject<BonusItem>() : new BonusItem();
+        GameItem = jsonObject["GameItem"] != null ? jsonObject["GameItem"]?.ToObject<BonusItem>() ?? new BonusItem() : new BonusItem();
     }
 }

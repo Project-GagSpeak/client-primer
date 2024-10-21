@@ -269,6 +269,8 @@ public class AchievementsUI : WindowMediatorSubscriberBase
         // grab progress and milestone to help with drawing the progress bar.
         var progress = achievement.CurrentProgress();
         var milestone = achievement.MilestoneGoal;
+        if(progress > milestone)
+            progress = milestone;
 
         // Grab the displaytext for the progress bar.
         var progressBarString = achievement.ProgressString();

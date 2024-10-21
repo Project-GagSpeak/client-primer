@@ -1,3 +1,4 @@
+using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Interop.IpcHelpers.Moodles;
@@ -197,6 +198,105 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         await RecalcAndReload(true, true);
     }
 
+    public void LockRestraintSet(Guid id, Padlocks padlock, string pwd, DateTimeOffset endTime, string assigner = Globals.SelfApplied, 
+        bool pushToServer = true, bool triggerAchievement = true)
+    {
+        Logger.LogTrace("LOCKING SET START", LoggerType.Restraints);
+        var setIdx = RestraintSets.FindIndex(x => x.RestraintId == id);
+        if (setIdx == -1) 
+        { 
+            Logger.LogWarning("Set Does not Exist, Skipping.", LoggerType.Restraints); 
+            return; 
+        }
+        // if the set is not the active set, log that this is invalid, as we should only be locking / unlocking the active set.
+        if (setIdx != _clientConfigs.GetActiveSetIdx())
+        {
+            Logger.LogWarning("Attempted to lock a set that is not the active set. Skipping.", LoggerType.Restraints);
+            return;
+        }
+
+        // Grab the set reference.
+        var setRef = RestraintSets[setIdx];
+        if (setRef.Locked) 
+        { 
+            Logger.LogDebug(setRef.Name + " is already locked. Skipping!", LoggerType.Restraints); 
+            return; 
+        }
+
+        // Assign the lock information to the set.
+        setRef.LockType = padlock.ToName();
+        setRef.LockPassword = pwd;
+        setRef.LockedUntil = endTime;
+        setRef.LockedBy = assigner;
+        _clientConfigs.SaveWardrobe();
+
+        Logger.LogDebug("Set: " + setRef.Name + " Locked by: " + assigner + " with a Padlock of Type: " + padlock.ToName() 
+            + " with: " + (endTime - DateTimeOffset.UtcNow) + " by: " + assigner, LoggerType.Restraints);
+
+        // After this, we should fire that a change occured.
+        Mediator.Publish(new RestraintSetToggledMessage(setIdx, assigner, NewState.Locked));
+
+        // After this, we should push our changes to the server, if we have marked for us to.
+        if (pushToServer)
+            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked));
+
+        // Finally, we should fire to our achievement manager, if we have marked for us to.
+        if (triggerAchievement)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, setRef, padlock, true, assigner);
+
+        Logger.LogInformation("LOCKING SET END", LoggerType.Restraints);
+    }
+
+    public void UnlockRestraintSet(Guid id, string lockRemover = Globals.SelfApplied, bool pushToServer = true, bool triggerAchievement = true)
+    {
+        Logger.LogTrace("UNLOCKING SET START", LoggerType.Restraints);
+        var setIdx = RestraintSets.FindIndex(x => x.RestraintId == id);
+        if (setIdx == -1)
+        {
+            Logger.LogWarning("Set Does not Exist, Skipping.", LoggerType.Restraints);
+            return;
+        }
+        // if the set is not the active set, log that this is invalid, as we should only be locking / unlocking the active set.
+        if (setIdx != _clientConfigs.GetActiveSetIdx())
+        {
+            Logger.LogWarning("Attempted to unlock a set that is not the active set. Skipping.", LoggerType.Restraints);
+            return;
+        }
+
+        // Grab the set reference.
+        var setRef = RestraintSets[setIdx];
+        if (!setRef.Locked)
+        {
+            Logger.LogDebug(setRef.Name + " is not even locked. Skipping!", LoggerType.Restraints);
+            return;
+        }
+
+        // Store a copy of the values we need before we change them.
+        var previousLock = setRef.LockType;
+
+        // Assign the lock information to the set.
+        setRef.LockType = Padlocks.None.ToName();
+        setRef.LockPassword = string.Empty;
+        setRef.LockedUntil = DateTimeOffset.MinValue;
+        setRef.LockedBy = string.Empty;
+        _clientConfigs.SaveWardrobe();
+
+        Logger.LogDebug("Set: " + setRef.Name + " Unlocked by: " + lockRemover, LoggerType.Restraints);
+
+        // After this, we should fire that a change occured.
+        Mediator.Publish(new RestraintSetToggledMessage(setIdx, lockRemover, NewState.Unlocked));
+
+        // After this, we should push our changes to the server, if we have marked for us to.
+        if (pushToServer)
+            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked));
+
+        // Finally, we should fire to our achievement manager, if we have marked for us to.
+        if (triggerAchievement)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, setRef, previousLock.ToPadlock(), false, lockRemover);
+
+        Logger.LogInformation("UNLOCKING SET END", LoggerType.Restraints);
+    }
+
     public async Task RestraintSwapped(Guid newSetId, bool isSelfApplied = true)
     {
         Logger.LogTrace("SET-SWAPPED Executed. Triggering DISABLE-SET, then ENABLE-SET");
@@ -358,7 +458,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
             Logger.LogInformation("Unlocking and Disabling Active Set [" + set.Name + "] due to Safeword.", LoggerType.Restraints);
 
             // unlock the set, dont push changes yet.
-            _clientConfigs.UnlockRestraintSet(activeIdx, Globals.SelfApplied, false);
+            UnlockRestraintSet(set.RestraintId, set.LockedBy, false);
 
             // Disable the set, turning off any mods moodles ext and refreshing appearance.            
             await DisableRestraintSet(set.RestraintId, Globals.SelfApplied);

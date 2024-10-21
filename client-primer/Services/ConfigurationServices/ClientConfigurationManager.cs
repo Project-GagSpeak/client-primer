@@ -401,41 +401,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     internal void SaveWardrobe() => _wardrobeConfig.Save();
 
-    internal void LockRestraintSet(int setIndex, string lockType, string password,
-        DateTimeOffset endLockTimeUTC, string UIDofPair, bool pushToServer = true)
-    {
-        var set = GetRestraintSet(setIndex);
-        // set the locked and locked-by status.
-        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockType = lockType;
-        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockPassword = password;
-        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = endLockTimeUTC;
-        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = UIDofPair;
-        _wardrobeConfig.Save();
-
-        Logger.LogDebug("Restraint Set " + set.Name + " Locked by " + UIDofPair + " with a Padlock of Type: " + lockType
-            + "and a password [" + password + "] with [" + (endLockTimeUTC - DateTimeOffset.UtcNow) + "] by " + UIDofPair, LoggerType.Restraints);
-
-        Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Locked));
-
-        if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked));
-    }
-
-    internal void UnlockRestraintSet(int setIndex, string UIDofPair, bool pushToServer = true)
-    {
-        var set = GetRestraintSet(setIndex);
-        // Clear all locked states. (making the assumption this is only called when the UIDofPair matches the LockedBy)
-        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockType = Padlocks.None.ToName();
-        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockPassword = string.Empty;
-        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedUntil = DateTimeOffset.MinValue;
-        WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].LockedBy = string.Empty;
-        _wardrobeConfig.Save();
-
-        Mediator.Publish(new RestraintSetToggledMessage(setIndex, UIDofPair, NewState.Unlocked));
-
-        if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked));
-
-    }
-
     internal List<AssociatedMod> GetAssociatedMods(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMods;
     internal List<Guid> GetAssociatedMoodles(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMoodles;
     internal EquipDrawData GetBlindfoldItem() => WardrobeConfig.WardrobeStorage.BlindfoldInfo.BlindfoldItem;

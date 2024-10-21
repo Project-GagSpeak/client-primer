@@ -105,12 +105,14 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         if (gagLockNewState is NewState.Unlocked)
         {
             DisableLock(layerIndex);
-            if (publish) PublishAppearanceChange(layerIndex, isUnlocked: true);
+            if (publish) 
+                PublishAppearanceChange(layerIndex, isUnlocked: true);
         }
         else
         {
             UpdateGagSlot(layerIndex, padlockInfo);
-            if (publish) PublishAppearanceChange(layerIndex, isUnlocked: false);
+            if (publish) 
+                PublishAppearanceChange(layerIndex, isUnlocked: false);
             Mediator.Publish(new ActiveLocksUpdated());
         }
     }

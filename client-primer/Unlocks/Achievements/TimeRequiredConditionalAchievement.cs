@@ -10,19 +10,13 @@ public class TimeRequiredConditionalAchievement : Achievement
     public DurationTimeUnit TimeUnit { get; init; }
     private CancellationTokenSource _cancellationTokenSource;
 
-    public TimeRequiredConditionalAchievement(INotificationManager notify,
-        string name,
-        string description,
-        TimeSpan duration,
-        Func<bool> condition,
-        DurationTimeUnit timeUnit,
-        string unit = "",
-        bool isSecret = false
-        ) : base(notify, name, description, ConvertToUnit(duration, timeUnit), unit, isSecret)
+    public TimeRequiredConditionalAchievement(INotificationManager notify, string name, string desc, TimeSpan dur, 
+        Func<bool> cond, DurationTimeUnit unit, string prefix = "", string suffix = "", bool isSecret = false) 
+        : base(notify, name, desc, ConvertToUnit(dur, unit), prefix, suffix, isSecret)
     {
-        MilestoneDuration = duration;
-        RequiredCondition = condition;
-        TimeUnit = timeUnit;
+        MilestoneDuration = dur;
+        RequiredCondition = cond;
+        TimeUnit = unit;
     }
 
     private static int ConvertToUnit(TimeSpan duration, DurationTimeUnit unit)
@@ -53,14 +47,43 @@ public class TimeRequiredConditionalAchievement : Achievement
         };
     }
 
+    public override string ProgressString()
+    {
+        if (IsCompleted) 
+            return PrefixText + " " + MilestoneGoal + " " + SuffixText;
+
+        if(StartPoint == DateTime.MinValue)
+            return "(not tracking) " + PrefixText + " " + MilestoneGoal + " " + SuffixText;
+
+        var elapsed = MilestoneDuration - (StartPoint != DateTime.MinValue ? DateTime.UtcNow - StartPoint : TimeSpan.Zero);
+        string outputStr = "";
+        if (elapsed == TimeSpan.Zero)
+        {
+            outputStr = "0s";
+        }
+        else
+        {
+            if (elapsed.Days > 0) outputStr += elapsed.Days + "d ";
+            if (elapsed.Hours > 0) outputStr += elapsed.Hours + "h ";
+            if (elapsed.Minutes > 0) outputStr += elapsed.Minutes + "m ";
+            if (elapsed.Seconds >= 0) outputStr += elapsed.Seconds + "s ";
+            outputStr += " Elapsed";
+        }
+        // Add the Ratio
+        return PrefixText + " " + outputStr + " / " + MilestoneGoal + " " + SuffixText;
+    }
+
     public override void CheckCompletion()
     {
-        if (IsCompleted) return;
+        if (IsCompleted) 
+            return;
 
         if (RequiredCondition())
         {
+            StaticLogger.Logger.LogDebug($"Conditonal for {Title} has been met, checking Timer Status", LoggerType.Achievements);
             if (StartPoint == DateTime.MinValue)
             {
+                StaticLogger.Logger.LogDebug($"Starting Timer for {Title}", LoggerType.Achievements);
                 StartPoint = DateTime.UtcNow;
                 StartTimer();
                 return;
@@ -68,6 +91,7 @@ public class TimeRequiredConditionalAchievement : Achievement
 
             if (DateTime.UtcNow - StartPoint >= MilestoneDuration)
             {
+                StaticLogger.Logger.LogDebug($"Time limit for {Title} has been reached, and conditonal was still valid. Marking as complete.", LoggerType.Achievements);
                 MarkCompleted();
                 _cancellationTokenSource?.Cancel();
             }
@@ -75,6 +99,7 @@ public class TimeRequiredConditionalAchievement : Achievement
         }
         else
         {
+            StaticLogger.Logger.LogDebug($"Conditonal for {Title} has not been met, resetting timer.", LoggerType.Achievements);
             Reset();
         }
     }
@@ -93,18 +118,17 @@ public class TimeRequiredConditionalAchievement : Achievement
                 {
                     if (RequiredCondition())
                     {
+                        StaticLogger.Logger.LogDebug($"Time limit for {Title} has been reached, and conditonal was still valid. Marking as complete.", LoggerType.Achievements);
                         MarkCompleted();
                     }
                     else
                     {
+                        StaticLogger.Logger.LogDebug($"Conditonal for {Title} has not been met, resetting timer.", LoggerType.Achievements);
                         Reset();
                     }
                 }
             }
-            catch (TaskCanceledException)
-            {
-                // Handle task cancellation if needed
-            }
+            catch (TaskCanceledException) { /* Handle task cancellation if needed */ }
         }, token);
     }
 

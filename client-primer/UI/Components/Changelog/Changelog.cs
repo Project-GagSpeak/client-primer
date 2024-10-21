@@ -19,6 +19,12 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 5, 1)
+            .RegisterMain("Half of the achievements Functionality has been added.")
+            .RegisterMain("CAUTION: This is a TEST BUILD update, meaning a lot more debug messages will occur than usual.")
+            .RegisterFeature("Wardrobe / Restraint Data has been changed to a new format, as such any data prior to this update for active sets are wiped.")
+            .RegisterFeature("Achievements have a reset button in the UI but i would not recommend clicking it unless you know how to properly resync your data.")
+            .RegisterBugfix("More like a known issue than a fixed one, but im aware that my image cache fails to load 1-2% of the time. idk a fix yet.");
         VersionEntry(0, 9, 5, 0)
             .RegisterMain("GagSpeak Interaction Event History is now implemented.")
             .RegisterFeature("New DTR Bar has been added to display total new interaction messages from other pairs.")

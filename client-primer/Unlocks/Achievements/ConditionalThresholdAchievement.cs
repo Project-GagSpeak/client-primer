@@ -3,16 +3,23 @@ using System;
 
 namespace GagSpeak.Achievements;
 
-public class ThresholdAchievement : Achievement
+public class ConditionalThresholdAchievement : Achievement
 {
+
+    /// <summary>
+    /// The condition that must be met to complete the achievement
+    /// </summary>
+    private Func<bool> Condition;
+
     /// <summary>
     /// The condition that determines what our threshold is.
     /// </summary>
     private int LastRecordedThreshold { get; set; }
 
-    public ThresholdAchievement(INotificationManager notify, string title, string desc, int goal,
+    public ConditionalThresholdAchievement(INotificationManager notify, string title, string desc, int goal, Func<bool> condition,
         string prefix = "", string suffix = "", bool isSecret = false) : base(notify, title, desc, goal, prefix, suffix, isSecret)
     {
+        Condition = condition;
         LastRecordedThreshold = 0;
     }
 
@@ -20,15 +27,23 @@ public class ThresholdAchievement : Achievement
 
     public override string ProgressString() => PrefixText + " " + (CurrentProgress() + " / " + MilestoneGoal) + " " + SuffixText;
 
-    public void UpdateThreshold(int threshold)
+    public void UpdateThreshold(int newestThreshold)
     {
         if (IsCompleted) 
             return;
 
-        LastRecordedThreshold = threshold;
-        StaticLogger.Logger.LogDebug($"Updating Threshold for {Title}. Current Threshold: {LastRecordedThreshold}" +
-            $" -- Total Required: {MilestoneGoal}", LoggerType.Achievements);
-        CheckCompletion();
+        // if the condition is met, we should update it, otherwise, we should reset the threshold down to 0.
+        if(Condition())
+        {
+            LastRecordedThreshold = newestThreshold;
+            StaticLogger.Logger.LogDebug($"Updating Threshold for {Title}. Current Threshold: {LastRecordedThreshold}" +
+                $" -- Total Required: {MilestoneGoal}", LoggerType.Achievements);
+            CheckCompletion();
+        }
+        else
+        {
+            LastRecordedThreshold = 0;
+        }
     }
 
 
@@ -46,7 +61,7 @@ public class ThresholdAchievement : Achievement
         }
     }
 
-    public override AchievementType GetAchievementType() => AchievementType.Threshold;
+    public override AchievementType GetAchievementType() => AchievementType.ConditionalThreshold;
 }
 
 

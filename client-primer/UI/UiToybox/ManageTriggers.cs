@@ -1019,7 +1019,7 @@ public class ToyboxTriggerManager
             if (i != 0 && (i == 4 || i == 7 || i == 11 || i == 15 || i == 19)) ImGui.NewLine();
 
             // Move to the next row if it is LS1 or CWLS1
-            if (e is ChatChannels.LS1 or ChatChannels.CWL1) ImGui.Separator();
+            if (e is ChatChannel.Channels.LS1 or ChatChannel.Channels.CWL1) ImGui.Separator();
 
             if (ImGui.Checkbox($"{e}", ref enabled))
             {

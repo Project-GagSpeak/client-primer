@@ -30,9 +30,14 @@ public abstract class Achievement
     public int MilestoneGoal { get; init; }
 
     /// <summary>
-    /// Used in the progress bar to display what progress is being tracked.
+    /// Displayed before the progressString.
     /// </summary>
-    public string MeasurementUnit { get; init; }
+    public string PrefixText { get; init; }
+
+    /// <summary>
+    /// Displayed After the progressString.
+    /// </summary>
+    public string SuffixText { get; init; }
 
 
     /// <summary>
@@ -42,14 +47,15 @@ public abstract class Achievement
 
     public bool IsSecretAchievement { get; init; }
 
-    protected Achievement(INotificationManager notify, string title, string desc, int goal, string units, bool isSecret = false)
+    protected Achievement(INotificationManager notify, string title, string desc, int goal, string prefix, string suffix, bool isSecret = false)
     {
         Notify = notify;
         IsCompleted = false;
         Title = title;
         Description = desc;
         MilestoneGoal = goal;
-        MeasurementUnit = units;
+        PrefixText = prefix;
+        SuffixText = suffix;
         IsSecretAchievement = isSecret;
     }
 
@@ -63,12 +69,17 @@ public abstract class Achievement
     /// </summary>
     public abstract int CurrentProgress();
 
+    /// <summary>
+    /// The string representation of our Progress. Used for Achievement Display.
+    /// </summary>
+    public abstract string ProgressString();
 
     /// <summary>
     /// Mark the achievement as completed
     /// </summary>
     protected void MarkCompleted()
     {
+        StaticLogger.Logger.LogInformation("Achievement Completed: " + Title);
         IsCompleted = true;
 
         Notify.AddNotification(new Notification()

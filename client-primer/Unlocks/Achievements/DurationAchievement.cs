@@ -1,5 +1,6 @@
 using Dalamud.Plugin.Services;
 using System;
+using System.Diagnostics;
 
 namespace GagSpeak.Achievements;
 
@@ -12,14 +13,9 @@ public class DurationAchievement : Achievement
 
     public DurationTimeUnit TimeUnit { get; init; }
 
-    public DurationAchievement(INotificationManager notify, 
-        string name, 
-        string desc, 
-        TimeSpan duration, 
-        DurationTimeUnit timeUnit = DurationTimeUnit.Minutes, 
-        string unit = "", 
-        bool isSecret = false
-        ) : base(notify, name, desc, ConvertToUnit(duration, timeUnit), unit, isSecret)
+    public DurationAchievement(INotificationManager notify, string name, string desc, TimeSpan duration, 
+        DurationTimeUnit timeUnit = DurationTimeUnit.Minutes, string prefix = "", string suffix = "", 
+        bool isSecret = false) : base(notify, name, desc, ConvertToUnit(duration, timeUnit), prefix, suffix, isSecret)
     {
         MilestoneDuration = duration;
         TimeUnit = timeUnit;
@@ -40,7 +36,8 @@ public class DurationAchievement : Achievement
     public override int CurrentProgress()
     {
         // if completed, return the milestone goal.
-        if (IsCompleted) return MilestoneGoal;
+        if (IsCompleted) 
+            return MilestoneGoal;
 
         // otherwise, return the ActiveItem with the longest duration from the DateTime.UtcNow and return its value in total minutes.
         var elapsed = ActiveItems.Any() ? (DateTime.UtcNow - ActiveItems.Values.Max()) : TimeSpan.Zero;
@@ -54,7 +51,33 @@ public class DurationAchievement : Achievement
             DurationTimeUnit.Days => (int)elapsed.TotalDays,
             _ => 0 // Default case, should not be hit
         };
+    }
 
+    public override string ProgressString()
+    {
+        if (IsCompleted)
+        {
+            return PrefixText + " " + (MilestoneGoal + "/" + MilestoneGoal) + " " + SuffixText;
+        }
+        // Get the current longest equipped thing.
+        var elapsed = ActiveItems.Any() ? (DateTime.UtcNow - ActiveItems.Values.Min()) : TimeSpan.Zero;
+
+        // Construct the string to output for the progress.
+        string outputStr = "";
+        if(elapsed == TimeSpan.Zero)
+        {
+            outputStr = "0s";
+        }
+        else
+        {
+            if (elapsed.Days > 0) outputStr += elapsed.Days + "d ";
+            if (elapsed.Hours > 0) outputStr += elapsed.Hours + "h ";
+            if (elapsed.Minutes > 0) outputStr += elapsed.Minutes + "m ";
+            if (elapsed.Seconds >= 0) outputStr += elapsed.Seconds + "s ";
+            outputStr += "elapsed";
+        }
+        // Add the Ratio
+        return PrefixText + " " + outputStr + " / " + MilestoneGoal + " " + SuffixText;
     }
 
     /// <summary>
@@ -62,11 +85,17 @@ public class DurationAchievement : Achievement
     /// </summary>
     public void StartTracking(string itemName)
     {
-        if (IsCompleted) return;
+        if (IsCompleted) 
+            return;
 
         if (!ActiveItems.ContainsKey(itemName))
         {
+            StaticLogger.Logger.LogDebug($"Started Tracking item {itemName} for {Title}", LoggerType.Achievements);
             ActiveItems[itemName] = DateTime.UtcNow; // Start tracking time
+        }
+        else
+        {
+            StaticLogger.Logger.LogDebug($"Item {itemName} is already being tracked for {Title}, ignoring. (Likely loading in from reconnect)", LoggerType.Achievements);
         }
     }
 
@@ -75,7 +104,10 @@ public class DurationAchievement : Achievement
     /// </summary>
     public void StopTracking(string itemName)
     {
-        if (IsCompleted) return;
+        if (IsCompleted) 
+            return;
+
+        StaticLogger.Logger.LogDebug($"Stopped Tracking item {itemName} for {Title}", LoggerType.Achievements);
 
         // check completion before we stop tracking.
         CheckCompletion();
@@ -84,7 +116,13 @@ public class DurationAchievement : Achievement
         {
             if (ActiveItems.ContainsKey(itemName))
             {
+                StaticLogger.Logger.LogDebug($"Item {itemName} was not completed, removing from tracking.", LoggerType.Achievements);
                 ActiveItems.Remove(itemName); // Stop tracking the item
+            }
+            else
+            {
+                // Log all currently active tracked items for debugging.
+                StaticLogger.Logger.LogDebug($"Items Currently still being tracked: {string.Join(", ", ActiveItems.Keys)}", LoggerType.Achievements);
             }
         }
     }
@@ -97,6 +135,9 @@ public class DurationAchievement : Achievement
         // if any of the active items exceed the required duration, mark the achievement as completed
         if (ActiveItems.Any(x => DateTime.UtcNow - x.Value >= MilestoneDuration))
         {
+            // Mark the achievement as completed
+            StaticLogger.Logger.LogInformation($"Achievement {Title} has been been active for the required Duration. "
+                +"Marking as finished!", LoggerType.Achievements);
             MarkCompleted();
         }
     }

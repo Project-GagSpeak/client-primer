@@ -11,6 +11,7 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Extensions;
+using Lumina.Excel.GeneratedSheets;
 using Penumbra.Api.Enums;
 using Penumbra.GameData.Enums;
 using System.Threading;
@@ -48,6 +49,9 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         _ipcManager = ipcManager;
         _appearanceService = appearanceService;
         _frameworkUtils = frameworkUtils;
+
+        Mediator.Subscribe<ClientPlayerInCutscene>(this, (mag) => _ = _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll));
+        Mediator.Subscribe<CutsceneEndMessage>(this, (msg) => _ = _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll));
 
         IpcFastUpdates.StatusManagerChangedEventFired += (addr) => RefreshMoodles(addr).ConfigureAwait(false);
     }
@@ -103,7 +107,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
     /// <summary>
     /// This logic will occur after a Restraint Set has been enabled via the WardrobeHandler.
     /// </summary>
-    public async Task EnableRestraintSet(Guid restraintID, string assignerUID = Globals.SelfApplied, bool pushToServer = true)
+    public async Task EnableRestraintSet(Guid restraintID, string assignerUID = Globals.SelfApplied, bool pushToServer = true, bool triggerAchievement = true)
     {
         Logger.LogTrace("ENABLE-SET Executed");
         if (_clientConfigs.GetActiveSet() is not null)
@@ -142,7 +146,8 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
             }
         }
         
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, true, assignerUID);
+        if(triggerAchievement)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, true, assignerUID);
         Logger.LogInformation("ENABLE SET [" + setRef.Name + "] END", LoggerType.Restraints);
 
         if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied));
@@ -150,7 +155,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         await RecalcAndReload(false);
     }
 
-    public async Task DisableRestraintSet(Guid restraintID, string disablerUID = Globals.SelfApplied, bool pushToServer = true)
+    public async Task DisableRestraintSet(Guid restraintID, string disablerUID = Globals.SelfApplied, bool pushToServer = true, bool triggerAchievement = true)
     {
         Logger.LogTrace("DISABLE-SET Executed");
         var setIdx = RestraintSets.FindIndex(x => x.RestraintId == restraintID);
@@ -178,7 +183,8 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
             }
         }
 
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, false, disablerUID);
+        if(triggerAchievement)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, false, disablerUID);
         setRef.Enabled = false;
         setRef.EnabledBy = string.Empty;
         _clientConfigs.SaveWardrobe();
@@ -204,7 +210,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         }
 
         // First, disable the current set.
-        await DisableRestraintSet(activeSet.RestraintId, disablerUID: Globals.SelfApplied, pushToServer: false);
+        await DisableRestraintSet(activeSet.RestraintId, disablerUID: Globals.SelfApplied, pushToServer: false, triggerAchievement: false);
         // Then, enable the new set.
         await EnableRestraintSet(newSetId, assignerUID: Globals.SelfApplied, pushToServer: true);
     }
@@ -213,7 +219,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
     /// When a gag is applied, because its data has already been adjusted, we will simply
     /// need to do a refresh for appearance. The only thing that needs to be adjusted here is C+ Profile.
     /// </summary>
-    public async Task GagApplied(GagLayer layer, GagType gagType, bool publishApply = true, bool isSelfApplied = true)
+    public async Task GagApplied(GagLayer layer, GagType gagType, bool publishApply = true, bool isSelfApplied = true, bool triggerAchievement = true)
     {
         Logger.LogDebug("GAG-APPLIED triggered on slot ["+layer.ToString()+"] with a ["+gagType.GagName()+"]", LoggerType.GagManagement);
         // We first must change the gag to its new type within the gag manager to update the appearance.
@@ -231,14 +237,15 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
             _ipcManager.CustomizePlus.EnableProfile(drawData.CustomizeGuid);
 
         // Send Achievement Event
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, layer, gagType, isSelfApplied);
+        if (triggerAchievement)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, layer, gagType, isSelfApplied, false);
     }
 
     /// <summary>
     /// When a gag is removed, because its data has already been adjusted, we will simply
     /// need to do a refresh for appearance. The only thing that needs to be adjusted here is C+ Profile.
     /// </summary>
-    public async Task GagRemoved(GagLayer layer, GagType gagType, bool publishRemoval = true, bool isSelfApplied = true)
+    public async Task GagRemoved(GagLayer layer, GagType gagType, bool publishRemoval = true, bool isSelfApplied = true, bool triggerAchievement = true)
     {
         Logger.LogDebug("GAG-REMOVE triggered on slot [" + layer.ToString() + "] with a [" + gagType.GagName() + "]", LoggerType.GagManagement);
         // We first must change the gag to its new type within the gag manager to update the appearance.
@@ -255,7 +262,8 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
             _ipcManager.CustomizePlus.DisableProfile(drawData.CustomizeGuid);
         
         // Send Achievement Event
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, layer, gagType, isSelfApplied);
+        if (triggerAchievement)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, layer, gagType, isSelfApplied);
     }
 
     public async Task GagSwapped(GagLayer layer, GagType curGag, GagType newGag, bool isSelfApplied = true)
@@ -263,10 +271,10 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         Logger.LogTrace("GAG-SWAPPED Executed. Triggering GAG-REMOVE, then GAG-APPLIED");
 
         // First, remove the current gag.
-        await GagRemoved(layer, curGag, publishRemoval: false, isSelfApplied: isSelfApplied);
+        await GagRemoved(layer, curGag, publishRemoval: false, isSelfApplied: isSelfApplied, triggerAchievement: false);
 
         // Then, apply the new gag.
-        await GagApplied(layer, newGag, isSelfApplied: isSelfApplied);
+        await GagApplied(layer, newGag, isSelfApplied: isSelfApplied, triggerAchievement: true);
     }
 
     /// <summary>
@@ -458,13 +466,12 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         {
             // grab the active gags, should grab in order (underlayer, middle, uppermost)
             var gagSlots = _playerData.AppearanceData!.GagSlots.Where(slot => slot.GagType.ToGagType() != GagType.None).ToList();
-            var gagActiveTypes = gagSlots.Select(slot => slot.GagType.ToGagType()).ToList();
 
             // update the stored data.
             foreach (var slot in gagSlots)
             {
                 var data = _clientConfigs.GetDrawData(slot.GagType.ToGagType());
-                if (data is not null)
+                if (data is not null && data.IsEnabled)
                 {
                     ItemsToApply[data.Slot] = data;
 

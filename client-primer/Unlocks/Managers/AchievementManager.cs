@@ -1,3 +1,4 @@
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text;
 using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration.Models;
@@ -23,9 +24,12 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     private readonly ToyboxVibeService _vibeService;
     private readonly UnlocksEventManager _eventManager;
     private readonly INotificationManager _completionNotifier;
+    private readonly IDutyState _dutyState;
 
     // Token used for updating achievement data.
     private CancellationTokenSource? _saveDataUpdateCTS;
+
+    // Used for a special case with the WarriorOfLewd Achievement, to ensure a Cutscene has been longer than 5 seconds.
 
     // Stores the last time we disconnected via an exception. Controlled via HubFactory/ApiController.
     public static DateTime _lastDisconnectTime = DateTime.MinValue;
@@ -37,9 +41,9 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     public AchievementSaveData SaveData { get; private set; }
 
     public AchievementManager(ILogger<AchievementManager> logger, GagspeakMediator mediator,
-        ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
-        PairManager pairManager, OnFrameworkService frameworkUtils, ToyboxVibeService vibeService,
-        UnlocksEventManager eventManager, INotificationManager completionNotifier) : base(logger, mediator)
+        ClientConfigurationManager clientConfigs, PlayerCharacterData playerData, PairManager pairManager, 
+        OnFrameworkService frameworkUtils, ToyboxVibeService vibeService, UnlocksEventManager eventManager, 
+        INotificationManager completionNotifier, IDutyState dutyState) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerData = playerData;
@@ -48,6 +52,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _vibeService = vibeService;
         _eventManager = eventManager;
         _completionNotifier = completionNotifier;
+        _dutyState = dutyState;
 
         Logger.LogInformation("Initializing Achievement Save Data", LoggerType.Achievements);
         SaveData = new AchievementSaveData(_completionNotifier);
@@ -89,7 +94,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
         #region Event Subscription
         _eventManager.Subscribe<OrderInteractionKind>(UnlocksEvent.OrderAction, OnOrderAction);
-        _eventManager.Subscribe<GagLayer, GagType, bool>(UnlocksEvent.GagAction, OnGagApplied);
+        _eventManager.Subscribe<GagLayer, GagType, bool, bool>(UnlocksEvent.GagAction, OnGagApplied);
         _eventManager.Subscribe<GagLayer, GagType, bool>(UnlocksEvent.GagRemoval, OnGagRemoval);
         _eventManager.Subscribe<GagType>(UnlocksEvent.PairGagAction, OnPairGagApplied);
         _eventManager.Subscribe(UnlocksEvent.GagUnlockGuessFailed, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RunningGag] as ConditionalAchievement)?.CheckCompletion());
@@ -98,8 +103,8 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Subscribe<RestraintSet, bool, string>(UnlocksEvent.RestraintApplicationChanged, OnRestraintApplied); // Apply on US
         _eventManager.Subscribe<RestraintSet, Padlocks, bool, string>(UnlocksEvent.RestraintLockChange, OnRestraintLock); // Lock on US
 
-        _eventManager.Subscribe(UnlocksEvent.PairRestraintApplied, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.DiDEnthusiast] as ProgressAchievement)?.IncrementProgress());
-        _eventManager.Subscribe<Padlocks, bool, string>(UnlocksEvent.PairRestraintLockChange, OnPairRestraintLockChange);
+        _eventManager.Subscribe<Guid, bool, string>(UnlocksEvent.PairRestraintApplied, OnPairRestraintApply);
+        _eventManager.Subscribe<Guid, Padlocks, bool, string>(UnlocksEvent.PairRestraintLockChange, OnPairRestraintLockChange);
 
         _eventManager.Subscribe(UnlocksEvent.PuppeteerMessageSend, () => (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.MasterOfPuppets] as TimedProgressAchievement)?.IncrementProgress());
         _eventManager.Subscribe<bool>(UnlocksEvent.PuppeteerAccessGiven, OnPuppetAccessGiven);
@@ -121,7 +126,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Subscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.NothingCanStopMe] as ConditionalProgressAchievement)?.CheckTaskProgress(1));
         _eventManager.Subscribe(UnlocksEvent.ClientSlain, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BadEndHostage] as ConditionalAchievement)?.CheckCompletion());
         _eventManager.Subscribe<XivChatType>(UnlocksEvent.ChatMessageSent, OnChatMessage);
-        _eventManager.Subscribe<ulong, ushort, string, ulong>(UnlocksEvent.EmoteExecuted, OnEmoteExecuted);
+        _eventManager.Subscribe<IGameObject, ushort, string, IGameObject>(UnlocksEvent.EmoteExecuted, OnEmoteExecuted);
         _eventManager.Subscribe<string>(UnlocksEvent.PuppeteerEmoteSent, OnPuppeteerEmoteSent);
         _eventManager.Subscribe(UnlocksEvent.TutorialCompleted, () => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.TutorialComplete] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Subscribe(UnlocksEvent.PairAdded, OnPairAdded);
@@ -130,27 +135,30 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Subscribe(UnlocksEvent.CursedDungeonLootFound, OnCursedLootFound);
         _eventManager.Subscribe<string>(UnlocksEvent.EasterEggFound, OnIconClicked);
         _eventManager.Subscribe(UnlocksEvent.ChocoboRaceFinished, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.WildRide] as ConditionalAchievement)?.CheckCompletion());
-        _eventManager.Subscribe<int>(UnlocksEvent.PlayersInProximity, (count) => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CrowdPleaser] as ThresholdAchievement)?.UpdateThreshold(count));
-
+        _eventManager.Subscribe<int>(UnlocksEvent.PlayersInProximity, (count) => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CrowdPleaser] as ConditionalThresholdAchievement)?.UpdateThreshold(count));
+        _eventManager.Subscribe(UnlocksEvent.CutsceneInturrupted, () => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as ConditionalProgressAchievement)?.StartOverDueToInturrupt());
         IpcFastUpdates.GlamourEventFired += OnJobChange;
         ActionEffectMonitor.ActionEffectEntryEvent += OnActionEffectEvent;
 
-        Mediator.Subscribe<PairHandlerVisibleMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BondageClub] as ThresholdAchievement)?.UpdateThreshold(_pairManager.GetVisibleUserCount()));
+        Mediator.Subscribe<PairHandlerVisibleMessage>(this, _ => OnPairVisible());
         Mediator.Subscribe<CommendationsIncreasedMessage>(this, (msg) => OnCommendationsGiven(msg.amount));
         Mediator.Subscribe<PlaybackStateToggled>(this, (msg) => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ConditionalAchievement)?.CheckCompletion());
 
-        Mediator.Subscribe<SafewordUsedMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.KnowsMyLimits] as ProgressAchievement)?.CheckCompletion());
+        Mediator.Subscribe<SafewordUsedMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.KnowsMyLimits] as ProgressAchievement)?.IncrementProgress());
 
         Mediator.Subscribe<GPoseStartMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SayMmmph] as ConditionalProgressAchievement)?.BeginConditionalTask());
         Mediator.Subscribe<GPoseEndMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SayMmmph] as ConditionalProgressAchievement)?.FinishConditionalTask());
-        Mediator.Subscribe<CutsceneBeginMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as TimeRequiredConditionalAchievement)?.CheckCompletion()); // starts Timer
-        Mediator.Subscribe<CutsceneEndMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as TimeRequiredConditionalAchievement)?.CheckCompletion()); // ends/completes progress.
+        Mediator.Subscribe<CutsceneBeginMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as ConditionalProgressAchievement)?.BeginConditionalTask()); // starts Timer
+        Mediator.Subscribe<CutsceneEndMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as ConditionalProgressAchievement)?.FinishConditionalTask()); // ends/completes progress.
 
         Mediator.Subscribe<ZoneSwitchEndMessage>(this, _ =>
         {
             CheckOnZoneSwitchEnd();
             CheckDeepDungeonStatus();
         });
+
+        _dutyState.DutyStarted += OnDutyStart;
+        _dutyState.DutyCompleted += OnDutyEnd;
         #endregion Event Subscription
     }
 
@@ -167,7 +175,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _saveDataUpdateCTS?.Dispose();
 
         _eventManager.Unsubscribe<OrderInteractionKind>(UnlocksEvent.OrderAction, OnOrderAction);
-        _eventManager.Unsubscribe<GagLayer, GagType, bool>(UnlocksEvent.GagAction, OnGagApplied);
+        _eventManager.Unsubscribe<GagLayer, GagType, bool, bool>(UnlocksEvent.GagAction, OnGagApplied);
         _eventManager.Unsubscribe<GagLayer, GagType, bool>(UnlocksEvent.GagRemoval, OnGagRemoval);
         _eventManager.Unsubscribe<GagType>(UnlocksEvent.PairGagAction, OnPairGagApplied);
         _eventManager.Unsubscribe(UnlocksEvent.GagUnlockGuessFailed, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RunningGag] as ConditionalAchievement)?.CheckCompletion());
@@ -176,8 +184,8 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Unsubscribe<RestraintSet, bool, string>(UnlocksEvent.RestraintApplicationChanged, OnRestraintApplied); // Apply on US
         _eventManager.Unsubscribe<RestraintSet, Padlocks, bool, string>(UnlocksEvent.RestraintLockChange, OnRestraintLock); // Lock on US
 
-        _eventManager.Unsubscribe(UnlocksEvent.PairRestraintApplied, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.DiDEnthusiast] as ProgressAchievement)?.IncrementProgress());
-        _eventManager.Unsubscribe<Padlocks, bool, string>(UnlocksEvent.PairRestraintLockChange, OnPairRestraintLockChange);
+        _eventManager.Unsubscribe<Guid, bool, string>(UnlocksEvent.PairRestraintApplied, OnPairRestraintApply);
+        _eventManager.Unsubscribe<Guid, Padlocks, bool, string>(UnlocksEvent.PairRestraintLockChange, OnPairRestraintLockChange);
 
         _eventManager.Unsubscribe(UnlocksEvent.PuppeteerMessageSend, () => (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.MasterOfPuppets] as TimedProgressAchievement)?.IncrementProgress());
         _eventManager.Unsubscribe<bool>(UnlocksEvent.PuppeteerAccessGiven, OnPuppetAccessGiven);
@@ -200,7 +208,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Unsubscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.NothingCanStopMe] as ConditionalProgressAchievement)?.CheckTaskProgress(1));
         _eventManager.Unsubscribe(UnlocksEvent.ClientSlain, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BadEndHostage] as ConditionalAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe<XivChatType>(UnlocksEvent.ChatMessageSent, OnChatMessage);
-        _eventManager.Unsubscribe<ulong, ushort, string, ulong>(UnlocksEvent.EmoteExecuted, OnEmoteExecuted);
+        _eventManager.Unsubscribe<IGameObject, ushort, string, IGameObject>(UnlocksEvent.EmoteExecuted, OnEmoteExecuted);
         _eventManager.Unsubscribe<string>(UnlocksEvent.PuppeteerEmoteSent, OnPuppeteerEmoteSent);
         _eventManager.Unsubscribe(UnlocksEvent.TutorialCompleted, () => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.TutorialComplete] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe(UnlocksEvent.PairAdded, OnPairAdded);
@@ -209,11 +217,42 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Unsubscribe(UnlocksEvent.CursedDungeonLootFound, OnCursedLootFound);
         _eventManager.Unsubscribe<string>(UnlocksEvent.EasterEggFound, OnIconClicked);
         _eventManager.Unsubscribe(UnlocksEvent.ChocoboRaceFinished, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.WildRide] as ConditionalAchievement)?.CheckCompletion());
-        _eventManager.Unsubscribe<int>(UnlocksEvent.PlayersInProximity, (count) => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CrowdPleaser] as ThresholdAchievement)?.UpdateThreshold(count));
+        _eventManager.Unsubscribe<int>(UnlocksEvent.PlayersInProximity, (count) => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CrowdPleaser] as ConditionalThresholdAchievement)?.UpdateThreshold(count));
+        _eventManager.Unsubscribe(UnlocksEvent.CutsceneInturrupted, () => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as ConditionalProgressAchievement)?.StartOverDueToInturrupt());
 
         IpcFastUpdates.GlamourEventFired -= OnJobChange;
         ActionEffectMonitor.ActionEffectEntryEvent -= OnActionEffectEvent;
 
+        _dutyState.DutyStarted -= OnDutyStart;
+        _dutyState.DutyCompleted -= OnDutyEnd;
+    }
+
+    private void OnDutyStart(object? sender, ushort e)
+    {
+        Logger.LogInformation("Duty Started", LoggerType.Achievements);
+        if (_frameworkUtils.InPvP)// || _frameworkUtils.PartyListSize < 4)
+            return;
+
+        (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.BeginConditionalTask();
+        (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.BeginConditionalTask();
+
+        if (_frameworkUtils.PlayerJobRole is ActionRoles.Healer)
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.BeginConditionalTask();
+    }
+
+    private void OnDutyEnd(object? sender, ushort e)
+    {
+        if (_frameworkUtils.InPvP)// || _frameworkUtils.PartyListSize < 4)
+            return;
+        Logger.LogInformation("Duty Ended", LoggerType.Achievements);
+        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.FinishConditionalTask();
+
+        if ((SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.FinishConditionalTask();
+
+        if ((SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.FinishConditionalTask();
     }
 
 
@@ -246,9 +285,10 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     {
         // Reset SaveData
         SaveData = new AchievementSaveData(_completionNotifier);
+        InitializeAchievements();
+        Logger.LogInformation("Reset Achievement Data Completely!", LoggerType.Achievements);
         // Send this off to the server.
         SendUpdatedDataToServer();
-        Logger.LogInformation("Reset Achievement Data Completely!", LoggerType.Achievements);
         return Task.CompletedTask;
     }
 

@@ -25,9 +25,6 @@ public unsafe class ChatInputDetour : IDisposable
     private readonly GagManager _gagManager;
     private readonly OnFrameworkService _frameworkUtils;
 
-    private readonly List<string> AllowedCommandChannels;
-
-
     // define our delegates.
     private unsafe delegate byte ProcessChatInputDelegate(IntPtr uiModule, byte** message, IntPtr a3);
     [Signature("E8 ?? ?? ?? ?? FE 86 ?? ?? ?? ?? C7 86 ?? ?? ?? ?? ?? ?? ?? ??", DetourName = nameof(ProcessChatInputDetour), Fallibility = Fallibility.Auto)]
@@ -44,14 +41,11 @@ public unsafe class ChatInputDetour : IDisposable
         _gagManager = gagManager;
         _frameworkUtils = frameworkUtils;
 
-        AllowedCommandChannels = _config.Current.ChannelsGagSpeak.GetChatChannelsListAliases();
-
         // try to get the chat-input-interceptor delegate
         try
         {
             // initialize the interop.
             interop.InitializeFromAttributes(this);
-
             // attempt to enable the hook.
             ProcessChatInputHook.Enable();
         }
@@ -150,31 +144,12 @@ public unsafe class ChatInputDetour : IDisposable
             if (inputString.StartsWith("/"))
             {
                 // Match Command if Command being used is in our list of allowed Channels to translate in.
-                matchedCommand = AllowedCommandChannels.FirstOrDefault(prefix => inputString.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+                var allowedChannels = _config.Current.ChannelsGagSpeak.GetChatChannelsListAliases();
+                matchedCommand = allowedChannels.FirstOrDefault(prefix => inputString.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
 
                 // If MatchedCommand is empty, it means it is not a channel command, or that it wasn't a channel we allowed, so send original untranslated text.
                 if (matchedCommand.IsNullOrEmpty())
                 {
-                    // cancel the message if it is a /cpose while forced to sit and on our knees, deny it.
-                    if (_playerManager.GlobalPerms.IsSitting() && _frameworkUtils.CurrentEmoteId() is 97 && inputString.StartsWith("/cpose", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _logger.LogTrace("Attempted to execute /cpose while being forced to sit. Blocking!", LoggerType.ChatDetours);
-                        // Send an empty string
-                        var emptyString = "";
-                        var emptyBytes = Encoding.UTF8.GetBytes(emptyString);
-                        var mem1 = Marshal.AllocHGlobal(400);
-                        var mem2 = Marshal.AllocHGlobal(emptyBytes.Length + 30);
-                        Marshal.Copy(emptyBytes, 0, mem2, emptyBytes.Length);
-                        Marshal.WriteByte(mem2 + emptyBytes.Length, 0);
-                        Marshal.WriteInt64(mem1, mem2.ToInt64());
-                        Marshal.WriteInt64(mem1 + 8, 64);
-                        Marshal.WriteInt64(mem1 + 8 + 8, emptyBytes.Length + 1);
-                        Marshal.WriteInt64(mem1 + 8 + 8 + 8, 0);
-                        var r = ProcessChatInputHook.Original(uiModule, (byte**)mem1.ToPointer(), a3);
-                        Marshal.FreeHGlobal(mem1);
-                        Marshal.FreeHGlobal(mem2);
-                        return r;
-                    }
                     // DEBUG MESSAGE: (remove when not debugging)
                     _logger.LogTrace("Ignoring Message as it is a command", LoggerType.ChatDetours);
                     return ProcessChatInputHook.Original(uiModule, message, a3);
@@ -198,7 +173,7 @@ public unsafe class ChatInputDetour : IDisposable
                     var stringToProcess = inputString.Substring(matchedCommand.Length);
 
                     // see if this is an outgoing tell, if it is, we must make sure it isn't garbled for encoded messages
-                    if (ChatChannel.GetChatChannel() == ChatChannels.Tell || matchedChannelType.Contains("/t") || matchedChannelType.Contains("/tell"))
+                    if (ChatChannel.GetChatChannel() == ChatChannel.Channels.Tell || matchedChannelType.Contains("/t") || matchedChannelType.Contains("/tell"))
                     {
                         // it is a tell, we need to make sure it is not garbled if it is an encoded message
                         _logger.LogTrace($"Message is a tell message, skipping garbling", LoggerType.ChatDetours);

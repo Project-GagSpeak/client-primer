@@ -52,6 +52,7 @@ public class AchievementSaveData
                     Progress = GetProgress(achievement) ?? 0,
                     ConditionalTaskBegun = achievement is ConditionalProgressAchievement conditionalProgressAchievement ? conditionalProgressAchievement.ConditionalTaskBegun : false,
                     StartTime = GetStartTime(achievement) ?? DateTime.MinValue,
+                    RecordedDateTimes = achievement is TimedProgressAchievement timedProgressAchievement ? (timedProgressAchievement.ProgressTimestamps ?? new List<DateTime>()) : new List<DateTime>(),
                     ActiveItems = achievement is DurationAchievement durationAchievement ? durationAchievement.ActiveItems : new Dictionary<string, DateTime>()
                 };
 
@@ -87,8 +88,6 @@ public class AchievementSaveData
 
     private int? GetProgress(Achievement achievement)
     {
-        if (achievement is TimedProgressAchievement timedProgressAchievement)
-            return timedProgressAchievement.Progress;
         if (achievement is ConditionalProgressAchievement conditionalProgressAchievement)
             return conditionalProgressAchievement.Progress;
         if (achievement is ProgressAchievement progressAchievement)
@@ -98,8 +97,6 @@ public class AchievementSaveData
 
     private DateTime? GetStartTime(Achievement achievement)
     {
-        if (achievement is TimedProgressAchievement timedProgressAchievement)
-            return timedProgressAchievement.StartTime;
         if (achievement is TimeLimitConditionalAchievement timeLimited)
             return timeLimited.StartPoint;
         if (achievement is TimeRequiredConditionalAchievement timeRequired)
@@ -157,6 +154,11 @@ public struct LightAchievement
     /// Gets StartTime (for TimedProgressAchievements & TimeRequired/TimeLimited)
     /// </summary>
     public DateTime StartTime { get; set; }
+
+    /// <summary>
+    /// Stores recorded times things in TimedProgressAchievements handle.
+    /// </summary>
+    public List<DateTime> RecordedDateTimes { get; set; }
 
     /// <summary>
     /// the list of items that are being monitored (for duration achievements)

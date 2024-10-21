@@ -24,7 +24,6 @@ public class SelectStringPrompt : SetupSelectListPrompt
         base.Enable();
         _addonLifecycle.RegisterListener(AddonEvent.PostSetup, "SelectString", AddonSetup);
         _addonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SelectString", SetEntry);
-        _logger.LogInformation("Enabling SelectString!");
     }
 
     private void SetEntry(AddonEvent type, AddonArgs args)
@@ -34,6 +33,15 @@ public class SelectStringPrompt : SetupSelectListPrompt
             _clientConfigs.LastSeenListSelection = (_clientConfigs.LastSeenListIndex < _clientConfigs.LastSeenListEntries.Length)
                 ? _clientConfigs.LastSeenListEntries?[_clientConfigs.LastSeenListIndex].Text ?? string.Empty
                 : string.Empty;
+
+            // If this was a cutscene skip, we should fail the conditional for the Cutscne
+            if (_clientConfigs.LastSeenNodeLabel.Contains("Skip cutscene", StringComparison.OrdinalIgnoreCase) 
+             && _clientConfigs.LastSeenListSelection.Contains("Yes", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogTrace("Cutscene Skip Detected, Halting Achievement WarriorOfLewd", LoggerType.Achievements);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.CutsceneInturrupted);
+            }
+
             _logger.LogTrace($"SelectString: LastSeenListSelection={_clientConfigs.LastSeenListSelection}, LastSeenListTarget={_clientConfigs.LastSeenNodeLabel}");
         }
         catch { }

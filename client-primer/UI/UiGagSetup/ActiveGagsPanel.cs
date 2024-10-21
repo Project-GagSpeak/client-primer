@@ -172,7 +172,13 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                 {
                     // We are swapping gags, so we need to initialize a replace call.
                     if (!(_gagTypeChangeTask is not null && !_gagTypeChangeTask.IsCompleted))
-                        _gagTypeChangeTask = _appearanceHandler.GagSwapped((GagLayer)idx, PrevGag, i);
+                    {
+                        if(i is GagType.None)
+                            _gagTypeChangeTask = _appearanceHandler.GagRemoved((GagLayer)idx, PrevGag);
+                        else
+                            _gagTypeChangeTask = _appearanceHandler.GagSwapped((GagLayer)idx, PrevGag, i);
+
+                    }
                 }
             }, gagSlots[idx].GagType.ToGagType());
         }

@@ -176,7 +176,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerMessageSend);
 
             // if our message is longer than 5 words, fire our on-chat-message achievement.
-            if (message.TextValue.Split(' ').Length > 5 && _playerInfo.IsPlayerGagged)
+            if (message.TextValue.Split(' ').Length > 5 && _playerInfo.IsPlayerGagged && (_playerInfo.GlobalPerms?.LiveChatGarblerActive ?? false))
             {
                 var channel = ChatChannel.GetChatChannelFromXivChatType(type);
                 if (channel != null && _mainConfig.Current.ChannelsGagSpeak.Contains(channel.Value))

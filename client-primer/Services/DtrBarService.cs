@@ -39,17 +39,16 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
         _gameData = dataManager;
         _dtrBar = dtrBar;
 
-
-        VibratorEntry = _dtrBar.Get("GagSpeakVibrator");
-        VibratorEntry.Shown = false;
+        PrivacyEntry = _dtrBar.Get("GagSpeakPrivacy");
+        PrivacyEntry.OnClick += () => Mediator.Publish(new UiToggleMessage(typeof(DtrVisibleWindow)));
+        PrivacyEntry.Shown = true;
 
         UpdateMessagesEntry = _dtrBar.Get("GagSpeakNotifications");
         UpdateMessagesEntry.OnClick += () => Mediator.Publish(new UiToggleMessage(typeof(InteractionEventsUI)));
         UpdateMessagesEntry.Shown = true;
 
-        PrivacyEntry = _dtrBar.Get("GagSpeakPrivacy");
-        PrivacyEntry.OnClick += () => Mediator.Publish(new UiToggleMessage(typeof(DtrVisibleWindow)));
-        PrivacyEntry.Shown = true;
+        VibratorEntry = _dtrBar.Get("GagSpeakVibrator");
+        VibratorEntry.Shown = false;
 
         Mediator.Subscribe<ConnectedMessage>(this, _ =>
         {
@@ -85,13 +84,7 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
         if (!_apiController.ServerAlive)
             return;
 
-        if (UpdateMessagesEntry.Shown is true)
-        {
-            UpdateMessagesEntry.Text = new SeString(new IconPayload(BitmapFontIcon.Alarm), new TextPayload(EventAggregator.UnreadInteractionsCount.ToString()));
-            UpdateMessagesEntry.Tooltip = new SeString(new TextPayload("Unread Notifications: " + EventAggregator.UnreadInteractionsCount));
-        }
-
-        if (PrivacyEntry.Shown is true)
+        if (PrivacyEntry.Shown)
         {
             // update the privacy dtr bar
             var visiblePairGameObjects = _pairManager.GetVisiblePairGameObjects();
@@ -117,6 +110,14 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
             // pair display string for tooltip.
             PrivacyEntry.Text = new SeString(new IconPayload(DisplayIcon), new TextPayload(TextDisplay));
             PrivacyEntry.Tooltip = new SeString(new TextPayload(TooltipDisplay));
+        }
+
+        UpdateMessagesEntry.Shown = (EventAggregator.UnreadInteractionsCount is 0) ? false : true;
+
+        if (UpdateMessagesEntry.Shown)
+        {
+            UpdateMessagesEntry.Text = new SeString(new IconPayload(BitmapFontIcon.Alarm), new TextPayload(EventAggregator.UnreadInteractionsCount.ToString()));
+            UpdateMessagesEntry.Tooltip = new SeString(new TextPayload("Unread Notifications: " + EventAggregator.UnreadInteractionsCount));
         }
     }
 

@@ -155,8 +155,6 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         if (_clientState.LocalPlayer is null || _clientState.LocalPlayer.IsDead)
             return;
 
-
-
         // FORCED FOLLOW LOGIC: Keep player following until idle for 6 seconds.
         if (_handler.MonitorFollowLogic)
         {
@@ -194,16 +192,9 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         if (_handler.MonitorSitLogic)
             _MoveController.EnableMovementLock();
 
-
-
         // FORCED STAY LOGIC: Handle Forced Stay
         if (_handler.MonitorStayLogic)
         {
-            // enable the hooks for the option prompts
-            if (!_promptsString.Enabled) _promptsString.Enable();
-            if (!_promptsYesNo.Enabled) _promptsYesNo.Enable();
-            if (!_promptsRooms.Enabled) _promptsRooms.Enable();
-
             // while they are active, if we are not in a dialog prompt option, scan to see if we are by an estate entrance
             if (!_condition[ConditionFlag.OccupiedInQuestEvent] && !_frameworkUtils._sentBetweenAreas)
             {
@@ -218,12 +209,22 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                     }
             }
         }
+
+        // Handle Prompt Logic.
+        if (_handler.MonitorStayLogic || _frameworkUtils.InCutsceneEvent)
+        {
+            // enable the hooks for the option prompts
+            if (!_promptsString.Enabled) _promptsString.Enable();
+            if (!_promptsYesNo.Enabled) _promptsYesNo.Enable();
+            if (!_promptsRooms.Enabled) _promptsRooms.Enable();
+        }
         else
         {
             if (_promptsString.Enabled) _promptsString.Disable();
             if (_promptsYesNo.Enabled) _promptsYesNo.Disable();
             if (_promptsRooms.Enabled) _promptsRooms.Disable();
         }
+
 
         // Cancel Keys if forced follow or immobilization is active.
         if (_handler.MonitorFollowLogic || HandleImmobilize)

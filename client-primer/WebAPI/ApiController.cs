@@ -657,7 +657,7 @@ public sealed partial class ApiController : DisposableMediatorSubscriberBase, IG
         {
             if(ServerState == ServerState.Connected)
             {
-                Logger.LogWarning("Sending off a final update before closing the hub connections.", LoggerType.Achievements);
+                Logger.LogInformation("Sending off a final update before closing the hub connections.", LoggerType.Achievements);
                 await UserUpdateAchievementData(new(new(UID), _achievementManager.GetSaveDataDtoString()));
             }
 

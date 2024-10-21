@@ -72,13 +72,8 @@ public class UserPairListHandler
     /// </summary>
     public void DrawPairs(float windowContentWidth)
     {
-        // span the height of the pair list to be the height of the window minus the transfer section, which we are removing later anyways.
-        var ySize = ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y
-                + ImGui.GetTextLineHeight() - ImGui.GetStyle().WindowPadding.Y - ImGui.GetStyle().WindowBorderSize - ImGui.GetCursorPosY();
-
-
         // begin the list child, with no border and of the height calculated above
-        ImGui.BeginChild("list", new Vector2(windowContentWidth, ySize), border: false, ImGuiWindowFlags.NoScrollbar);
+        using var child = ImRaii.Child("list", ImGui.GetContentRegionAvail(), border: false, ImGuiWindowFlags.NoScrollbar);
 
         // for each item in the draw folders,
         // _logger.LogTrace("Drawing {count} folders", _drawFolders.Count);
@@ -89,12 +84,11 @@ public class UserPairListHandler
             // draw folder if not all tag.
             item.Draw();
         }
-
-        // then end the list child
-        ImGui.EndChild();
     }
 
-    /// <summary> Draws all bi-directionally paired users (online or offline) without any tag header. </summary>
+    /// <summary> 
+    /// Draws all bi-directionally paired users (online or offline) without any tag header. 
+    /// </summary>
     public void DrawPairListSelectable(float windowContentWidth, bool useCustomOnlineTag)
     {
         var tagToUse = useCustomOnlineTag ? TagHandler.CustomOnlineTag : TagHandler.CustomAllTag;

@@ -33,11 +33,11 @@ public unsafe class ActionEffectMonitor : IDisposable
         remove => _actionEffectEntryEvent -= value;
     }
 
-    public ActionEffectMonitor(ILogger<ActionEffectMonitor> logger,
-        GagspeakConfigService mainConfig, ISigScanner sigScanner,
-        IGameInteropProvider interopProvider)
+    public ActionEffectMonitor(ILogger<ActionEffectMonitor> logger, GagspeakConfigService mainConfig, 
+        ISigScanner sigScanner, IGameInteropProvider interopProvider)
     {
         _logger = logger;
+        _logger.LogInformation("Starting ActionEffect Monitor", LoggerType.ActionEffects);
         _mainConfig = mainConfig;
         interopProvider.InitializeFromAttributes(this);
 

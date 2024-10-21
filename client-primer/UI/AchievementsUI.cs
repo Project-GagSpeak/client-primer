@@ -2,6 +2,7 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using Dalamud.Plugin;
 using GagSpeak.Achievements;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
@@ -24,7 +25,7 @@ public class AchievementsUI : WindowMediatorSubscriberBase
 
     public AchievementsUI(ILogger<AchievementsUI> logger, GagspeakMediator mediator,
         AchievementManager achievementManager, AchievementTabsMenu tabMenu,
-        CosmeticService cosmeticTextures, UiSharedService uiShared)
+        CosmeticService cosmeticTextures, UiSharedService uiShared, IDalamudPluginInterface pi)
         : base(logger, mediator, "###GagSpeakAchievementsUI")
     {
         _achievementManager = achievementManager;
@@ -44,6 +45,10 @@ public class AchievementsUI : WindowMediatorSubscriberBase
             MinimumSize = new Vector2(525, 400),
             MaximumSize = new Vector2(525, 2000)
         };
+
+        pi.UiBuilder.DisableCutsceneUiHide = true;
+        pi.UiBuilder.DisableGposeUiHide = true;
+        pi.UiBuilder.DisableUserUiHide = true;
     }
 
     protected override void PreDrawInternal()
@@ -123,10 +128,15 @@ public class AchievementsUI : WindowMediatorSubscriberBase
         using (_uiShared.UidFont.Push())
         {
             var uidTextSize = ImGui.CalcTextSize(text);
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
+            //ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y / 2);
             // display it, it should be green if connected and red when not.
             ImGui.TextColored(ImGuiColors.ParsedGold, text);
+        }
+        ImGui.SameLine();
+        if (_uiShared.IconTextButton(FontAwesomeIcon.SyncAlt, "Reset"))
+        {
+            _achievementManager.ResetAchievementData();
         }
     }
 
@@ -256,23 +266,22 @@ public class AchievementsUI : WindowMediatorSubscriberBase
         var region = ImGui.GetContentRegionAvail(); // content region
         var padding = ImGui.GetStyle().FramePadding; // padding
 
-        // grab the current progress towards the milestone.
+        // grab progress and milestone to help with drawing the progress bar.
         var progress = achievement.CurrentProgress();
-
-        // get the current milestone.
         var milestone = achievement.MilestoneGoal;
 
-        // calculate the text size
-        var textSize = ImGui.CalcTextSize(progress + " / " + milestone + " " + achievement.MeasurementUnit);
+        // Grab the displaytext for the progress bar.
+        var progressBarString = achievement.ProgressString();
+        var progressBarStringTextSize = ImGui.CalcTextSize(progressBarString);
 
         // move the cursor screen pos to the bottom of the content region - the progress bar height.
-        ImGui.SetCursorScreenPos(new Vector2(ImGui.GetCursorScreenPos().X + ImGuiHelpers.GlobalScale, ImGui.GetCursorScreenPos().Y + region.Y - ((int)textSize.Y + 5)));
+        ImGui.SetCursorScreenPos(new Vector2(ImGui.GetCursorScreenPos().X + ImGuiHelpers.GlobalScale, ImGui.GetCursorScreenPos().Y + region.Y - ((int)progressBarStringTextSize.Y + 5)));
 
         // grab the current cursor screen pos.
         var pos = ImGui.GetCursorScreenPos();
 
         // define the progress bar height and width for the windows drawlist.
-        int progressHeight = (int)textSize.Y + 2;
+        int progressHeight = (int)progressBarStringTextSize.Y + 2;
         int progressWidth = (int)(region.X - padding.X);
 
         // mark the starting position of our progress bar in the drawlist.
@@ -319,12 +328,10 @@ public class AchievementsUI : WindowMediatorSubscriberBase
                 ImDrawFlags.RoundCornersAll);
         }
 
-        var progressBarString = progress + " / " + milestone + " " + achievement.MeasurementUnit;
-
         UiSharedService.DrawOutlinedFont(
             drawList,
             progressBarString,
-            pos with { X = pos.X + ((progressWidth - textSize.X) / 2f) - 1, Y = pos.Y + ((progressHeight - textSize.Y) / 2f) - 1 },
+            pos with { X = pos.X + ((progressWidth - progressBarStringTextSize.X) / 2f) - 1, Y = pos.Y + ((progressHeight - progressBarStringTextSize.Y) / 2f) - 1 },
             UiSharedService.Color(255, 255, 255, 255),
             UiSharedService.Color(53, 24, 39, 255),
             1);

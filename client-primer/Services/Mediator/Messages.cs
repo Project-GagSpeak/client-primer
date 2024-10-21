@@ -55,6 +55,9 @@ public record DelayedFrameworkUpdateMessage : SameThreadMessage; // a message in
 public record GPoseStartMessage : MessageBase; // a message indicating the start of gpose.
 public record GPoseEndMessage : MessageBase; // a message indicating the end of gpose.
 public record CutsceneBeginMessage : MessageBase;
+public record CutsceneSkippedMessage : MessageBase; // Whenever a cutscene is skipped.
+public record ClientPlayerInCutscene : MessageBase; // Informs us when the player has been loaded in a cutscene.
+
 public record CutsceneEndMessage : MessageBase; // helps us know when to reapply data like moodles.
 public record ZoneSwitchStartMessage : MessageBase; // know when we are beginning to switch zones
 public record ZoneSwitchEndMessage : MessageBase; // know when we have finished switching zones
@@ -107,12 +110,6 @@ public record ExecuteHealthPercentTriggerMessage(HealthPercentTrigger Trigger) :
 
 
 /* ------------------ PLAYERDATA CLIENTSIDE PERMISSION HANDLING ------------------- */
-public record ClientGlobalPermissionChanged(string Permission, object Value) : MessageBase; // for when a client global permission is changed.
-public record ClientOwnPairPermissionChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed.
-public record ClientOwnPairPermissionAccessChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed.
-public record ClientOtherPairPermissionChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed
-public record ClientOtherPairPermissionAccessChanged(Pair Pair, string Permission, object Value) : MessageBase; // for when a client pair permission is changed
-public record PlayerCharIpcChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharAppearanceChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharAliasChanged(string UpdatedPairUID, DataUpdateKind UpdateKind) : MessageBase;
@@ -141,7 +138,6 @@ public record CharacterAliasDataCreatedMessage(CharacterAliasData CharacterAlias
 public record CharacterToyboxDataCreatedMessage(CharacterToyboxData CharacterToyboxData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterPiShockPermDataCreatedMessage(string ShareCode, PiShockPermissions ShockPermsForPair, UserData UserData, DataUpdateKind UpdateKind) : SameThreadMessage;
 public record CharacterPiShockGlobalPermDataUpdatedMessage(PiShockPermissions GlobalShockPermissions, DataUpdateKind UpdateKind) : SameThreadMessage;
-
 public record GameObjectHandlerCreatedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
 public record GameObjectHandlerDestroyedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
 

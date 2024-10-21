@@ -9,20 +9,22 @@ public class ConditionalAchievement : Achievement
     /// </summary>
     private Func<bool> Condition;
 
-    public ConditionalAchievement(INotificationManager notify, string title, string desc, Func<bool> condition, string unit = "", bool isSecret = false)
-        : base(notify, title, desc, 1, unit, isSecret)
+    public ConditionalAchievement(INotificationManager notify, string title, string desc, Func<bool> condition, 
+        string prefix = "", string suffix = "", bool isSecret = false) : base(notify, title, desc, 1, prefix, suffix, isSecret)
     {
         Condition = condition;
     }
 
     public override int CurrentProgress() => IsCompleted ? 1 : 0;
 
-    /// <summary>
-    /// Check if the condition is satisfied
-    /// </summary>
+    public override string ProgressString() => PrefixText + " " + (IsCompleted ? "1" : "0" + " / 1") + " " + SuffixText;
+
     public override void CheckCompletion()
     {
-        if (IsCompleted) return;
+        if (IsCompleted) 
+            return;
+
+        StaticLogger.Logger.LogDebug($"Checking if {Title} satisfies conditional", LoggerType.Achievements);
 
         if (Condition())
         {

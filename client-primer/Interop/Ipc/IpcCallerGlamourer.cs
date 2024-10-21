@@ -142,7 +142,9 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             // await for us to be running on the framework thread. Once we are:
             await _frameworkUtils.RunOnFrameworkThread(() =>
             {
-                _SetItem!.Invoke(0, slot, item, dye, 1337);
+                // Determine object index
+                var objIndex = _clientState.LocalPlayer?.ObjectIndex ?? 0;
+                _SetItem!.Invoke(objIndex, slot, item, dye, 1337);
             }).ConfigureAwait(true);
         }
         catch (Exception ex)
@@ -373,7 +375,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         // block if we are not desiring to listen to changes yet.
         if (OnFrameworkService.GlamourChangeEventsDisabled)
         {
-            Logger.LogTrace($"GlamourEvent Blocked: {changeType}", LoggerType.IpcGlamourer);
+            //Logger.LogTrace($"GlamourEvent Blocked: {changeType}", LoggerType.IpcGlamourer);
             return;
         }
 

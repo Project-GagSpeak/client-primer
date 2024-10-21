@@ -23,10 +23,10 @@ public class OnEmote : IDisposable
         ISigScanner sigScanner, IGameInteropProvider interopProvider)
     {
         _logger = logger;
+        _frameworkUtils = frameworkUtils;
         interopProvider.InitializeFromAttributes(this);
 
         ProcessEmoteHook = interopProvider.HookFromSignature<OnEmoteFuncDelegate>(Signatures.OnEmoteDetour, OnEmoteDetour);
-        _logger.LogInformation("Starting EmoteDetour", LoggerType.ChatDetours);
         EnableHook();
         _logger.LogInformation("Started EmoteDetour", LoggerType.ChatDetours);
     }
@@ -66,13 +66,14 @@ public class OnEmote : IDisposable
         {
             await _frameworkUtils.RunOnFrameworkThread(() =>
             {
-                var emoteCaller = _frameworkUtils.CreateGameObjectAsync((nint)emoteCallerAddr);
+                var emoteCaller = _frameworkUtils.CreateGameObject((nint)emoteCallerAddr);
                 var emoteCallerName = (emoteCaller as IPlayerCharacter)?.GetNameWithWorld() ?? "No Player Was Emote Caller";
                 var emoteName = _frameworkUtils.GetEmoteName(emoteId);
-                var targetName = (_frameworkUtils.SearchObjectTableByIdAsync((uint)targetId) as IPlayerCharacter)?.GetNameWithWorld() ?? "No Player Was Target";
-                _logger.LogDebug("Emote >> Emote Caller was "+ emoteCallerName + ", Used Emote: " + emoteName + " on Target: " + targetName, LoggerType.ChatDetours);
+                var targetObj = (_frameworkUtils.SearchObjectTableById((uint)targetId));
+                var targetName = (targetObj as IPlayerCharacter)?.GetNameWithWorld() ?? "No Player Was Target";
+                _logger.LogTrace("OnEmote >> [" + emoteCallerName + "] used Emote [" + emoteName + "] on Target: [" + targetName+"]", LoggerType.ChatDetours);
 
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.EmoteExecuted, emoteCallerAddr, emoteId, emoteName, targetId);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.EmoteExecuted, emoteCaller, emoteId, emoteName, targetObj);
             });
         }
         catch (Exception e)

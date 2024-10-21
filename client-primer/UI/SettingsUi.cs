@@ -1207,12 +1207,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         UiSharedService.AttachToolTip("Use this when reporting mods being rejected from the server.");
 
-
-        // Draw the forced disable movement pointer
-        using (var disabled = ImRaii.Disabled(true))
-        {
-            ImGui.InputInt($"forceDisableMovementPtr", ref _moveController.ForceDisableMovement);
-        }
         
         // draw debug information for character information.
         if (ImGui.CollapsingHeader("Global Data")) { DrawGlobalInfo(); }
@@ -1397,13 +1391,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
                     {
                         ImGui.Text($"OutfitList:");
                         ImGui.Indent();
-                        foreach (var outfit in clientPair.LastReceivedWardrobeData.OutfitNames)
+                        foreach (var outfit in clientPair.LastReceivedWardrobeData.Outfits)
                         {
                             ImGui.Text($"{outfit}");
                         }
                         ImGui.Unindent();
+                        ImGui.Text($"ActiveSetId: {clientPair.LastReceivedWardrobeData.ActiveSetId}");
                         ImGui.Text($"ActiveSetName: {clientPair.LastReceivedWardrobeData.ActiveSetName}");
-                        ImGui.Text($"ActiveSetDescription: {clientPair.LastReceivedWardrobeData.ActiveSetDescription}");
                         ImGui.Text($"ActiveSetEnabledBy: {clientPair.LastReceivedWardrobeData.ActiveSetEnabledBy}");
                         ImGui.Text($"ActiveSetLockType: {clientPair.LastReceivedWardrobeData.Padlock}");
                         ImGui.Text($"ActiveSetLockPassword: {clientPair.LastReceivedWardrobeData.Password}");

@@ -27,6 +27,7 @@ public class AchievementsService : DisposableMediatorSubscriberBase
 
     DateTime _lastCheck = DateTime.Now;
     DateTime _lastPlayerCheck = DateTime.Now;
+    int _lastPlayerCount = 0;
 
     private unsafe void CheckAchievementConditions()
     {
@@ -67,7 +68,12 @@ public class AchievementsService : DisposableMediatorSubscriberBase
         var playersInRange = _frameworkUtils.GetObjectTablePlayers()
             .Where(player => player != _frameworkUtils.ClientState.LocalPlayer
             && Vector3.Distance(_frameworkUtils.ClientState.LocalPlayer.Position, player.Position) < 30f)
-            .ToList();
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.PlayersInProximity, playersInRange);
+            .Count();
+        if(playersInRange != _lastPlayerCount)
+        {
+            Logger.LogTrace("There are " + playersInRange + " Players nearby");
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PlayersInProximity, playersInRange);
+            _lastPlayerCount = playersInRange;
+        }
     }
 }

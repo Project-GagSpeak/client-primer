@@ -213,19 +213,26 @@ public class Pair
     public void ApplyWardrobeData(OnlineUserCharaWardrobeDataDto data)
     {
         _logger.LogDebug("Applying updated wardrobe data for "+data.User.UID, LoggerType.PairManagement);
+        var previousSetId = LastReceivedWardrobeData?.ActiveSetId ?? Guid.Empty;
+        var previousLock = LastReceivedWardrobeData?.Padlock.ToPadlock() ?? Padlocks.None;
+
         LastReceivedWardrobeData = data.WardrobeData;
 
         // depend on the EnabledBy field to know if we applied.
         if (data.UpdateKind == DataUpdateKind.WardrobeRestraintApplied)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintApplied);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintApplied, data.WardrobeData.ActiveSetId, true, data.WardrobeData.ActiveSetEnabledBy);
 
         // We can only detect the lock uid by listening for the assigner UID. Unlocks are processed via the actions tab.
         if (data.UpdateKind is DataUpdateKind.WardrobeRestraintLocked)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintLockChange, data.WardrobeData.Padlock.ToPadlock(), true, data.User.UID);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintLockChange, data.WardrobeData.Padlock.ToPadlock(), true, data.WardrobeData.Assigner);
 
         // We can only detect the unlock uid by listening for the assigner UID. Unlocks are processed via the actions tab.
         if (data.UpdateKind is DataUpdateKind.WardrobeRestraintUnlocked)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintLockChange, data.WardrobeData.Padlock.ToPadlock(), false, data.User.UID);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintLockChange, previousLock, false, data.Enactor.UID);
+
+        // For removal
+        if (data.UpdateKind is DataUpdateKind.WardrobeRestraintDisabled)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintApplied, previousSetId, false, data.Enactor.UID);
     }
 
     /// <summary>

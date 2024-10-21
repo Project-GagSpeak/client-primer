@@ -9,21 +9,25 @@ public class ProgressAchievement : Achievement
     /// </summary>
     public int Progress { get; set; }
 
-    public ProgressAchievement(INotificationManager notify, string title, string desc, int goal, string unit = "", bool isSecret = false)
-        : base(notify, title, desc, goal, unit, isSecret)
+    public ProgressAchievement(INotificationManager notify, string title, string desc, int goal, string prefix = "", string suffix = "", bool isSecret = false)
+        : base(notify, title, desc, goal, prefix, suffix, isSecret)
     {
         Progress = 0;
     }
 
     public override int CurrentProgress() => IsCompleted ? MilestoneGoal : Progress;
 
+    public override string ProgressString() => PrefixText + " " + (CurrentProgress() + " / " + MilestoneGoal) + " " + SuffixText;
+
     /// <summary>
     /// Increments the progress towards the achievement.
     /// </summary>
     public void IncrementProgress(int amount = 1)
     {
-        if (IsCompleted) return;
+        if (IsCompleted) 
+            return;
 
+        StaticLogger.Logger.LogDebug($"Incrementing Progress by 1 for {Title}. Total Required: {MilestoneGoal}", LoggerType.Achievements);
         Progress += amount;
         // check for completion after incrementing progress
         CheckCompletion();

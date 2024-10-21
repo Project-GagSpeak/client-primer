@@ -331,7 +331,7 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         return string.Empty;
     }
 
-    public bool IsValidPuppeteerChannel(ChatChannels chatChannel)
+    public bool IsValidPuppeteerChannel(ChatChannel.Channels chatChannel)
         => _clientConfigs.GagspeakConfig.ChannelsPuppeteer.Contains(chatChannel);
 
 

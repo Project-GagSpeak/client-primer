@@ -153,14 +153,7 @@ public class ClientCallbackService
         if (callbackWasFromSelf)
         {
             if (callbackGagState is NewState.Enabled)
-            {
                 _logger.LogDebug("SelfApplied GAG APPLY Verified by Server Callback.", LoggerType.Callbacks);
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, 
-                    callbackGagLayer, 
-                    callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer].GagType.ToGagType(), 
-                    true);
-                return;
-            }
 
             if(callbackGagState is NewState.Locked)
                 _logger.LogDebug("SelfApplied GAG LOCK Verified by Server Callback.", LoggerType.Callbacks);
@@ -185,10 +178,8 @@ public class ClientCallbackService
             }
 
             if (callbackGagState is NewState.Disabled)
-            {
                 _logger.LogDebug("SelfApplied GAG DISABLED Verified by Server Callback.", LoggerType.Callbacks);
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, callbackGagLayer, currentGagType, true);
-            }
+
             return;
         }
 
@@ -260,12 +251,7 @@ public class ClientCallbackService
         if (callbackWasFromSelf)
         {
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintApplied)
-            {
                 _logger.LogDebug("SelfApplied RESTRAINT APPLY Verified by Server Callback.", LoggerType.Callbacks);
-                // Achievement Event Trigger
-                if(callbackSet != null)
-                    UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, callbackSet, true, Globals.SelfApplied);
-            }
 
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintLocked)
             {
@@ -296,9 +282,8 @@ public class ClientCallbackService
             }
 
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintDisabled)
-            {
                 _logger.LogDebug("SelfApplied RESTRAINT DISABLED Verified by Server Callback.", LoggerType.Callbacks);
-            }
+
             return;
         }
 
@@ -343,8 +328,6 @@ public class ClientCallbackService
                         // Log the Interaction Event
                         _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ApplyRestraint, "Applied Set: " + data.ActiveSetName)));
                     }
-                    // Log the achievement.
-                    UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, callbackSet, true, callbackDto.User.UID);
                     break;
 
                 case DataUpdateKind.WardrobeRestraintLocked:
@@ -357,13 +340,13 @@ public class ClientCallbackService
 
                 case DataUpdateKind.WardrobeRestraintUnlocked:
                     _logger.LogDebug($"{callbackDto.User.UID} has force unlocked your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
-                    _clientConfigs.UnlockRestraintSet(callbackSetIdx, callbackDto.User.UID, false);
-                    if(callbackSet != null)
+                    if (callbackSet != null)
                     {
-                        Padlocks unlock = callbackSet.LockType.ToPadlock();
+                        Padlocks previousPadlock = callbackSet.LockType.ToPadlock();
+                        _clientConfigs.UnlockRestraintSet(callbackSetIdx, callbackDto.User.UID, false);
                         // Log the Interaction Event
                         _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.UnlockRestraint, data.ActiveSetName + " is now unlocked")));
-                        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, callbackSet, unlock, false, callbackDto.User.UID);
+                        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, callbackSet, previousPadlock, false, callbackDto.User.UID);
                     }
                     break;
 
@@ -376,7 +359,6 @@ public class ClientCallbackService
                         await _wardrobeHandler.DisableRestraintSet(activeIdx, callbackDto.User.UID, false);
                         // Log the Interaction Event
                         _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.RemoveRestraint, data.ActiveSetName + " has been removed")));
-                        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, currentlyActiveSet, false, callbackDto.User.UID);
                     }
                     break;
             }

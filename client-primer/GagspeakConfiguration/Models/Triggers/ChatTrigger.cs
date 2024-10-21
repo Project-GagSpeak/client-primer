@@ -1,3 +1,5 @@
+using GagSpeak.ChatMessages;
+
 namespace GagSpeak.GagspeakConfiguration.Models;
 
 /// <summary>
@@ -15,5 +17,5 @@ public record ChatTrigger : Trigger
     public string FromPlayerName { get; set; } = string.Empty;
 
     // The allowed channels this text can be scanned for in:
-    public List<ChatChannels> AllowedChannels { get; set; } = [];
+    public List<ChatChannel.Channels> AllowedChannels { get; set; } = [];
 }

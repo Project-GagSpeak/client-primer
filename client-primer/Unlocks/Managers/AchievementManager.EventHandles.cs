@@ -1,3 +1,4 @@
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.UpdateMonitoring.Triggers;
@@ -14,6 +15,14 @@ public partial class AchievementManager
         (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.KinkyTeacher] as ConditionalProgressAchievement)?.CheckTaskProgress(amount);
         (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.KinkyProfessor] as ConditionalProgressAchievement)?.CheckTaskProgress(amount);
         (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.KinkyMentor] as ConditionalProgressAchievement)?.CheckTaskProgress(amount);
+    }
+
+    private void OnPairVisible()
+    {
+        // We need to obtain the total visible user count, then update the respective achievements.
+        var visiblePairs = _pairManager.GetVisibleUserCount();
+        (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BondageClub] as ThresholdAchievement)?.UpdateThreshold(visiblePairs);
+        (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.Humiliation] as ConditionalThresholdAchievement)?.UpdateThreshold(visiblePairs);
     }
 
     private void OnIconClicked(string windowLabel)
@@ -38,31 +47,20 @@ public partial class AchievementManager
 
         // if present in diadem (for diamdem achievement)
         if (_frameworkUtils.ClientState.TerritoryType is 939)
-
             (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.MotivationForRestoration] as TimeRequiredConditionalAchievement)?.CheckCompletion();
         else
             (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.MotivationForRestoration] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
-        // if we are in a dungeon:
-        if (_frameworkUtils.InDungeonOrDuty)
-        {
-            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.BeginConditionalTask();
-            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.BeginConditionalTask();
+        // If we left before completing the duty, check that here.
+        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.CheckTaskProgress();
 
-            if (_frameworkUtils.PlayerJobRole is ActionRoles.Healer)
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.BeginConditionalTask();
-        }
-        else
-        {
-            if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-                (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.FinishConditionalTask();
+        if ((SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.CheckTaskProgress();
 
-            if ((SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-                (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.FinishConditionalTask();
+        if ((SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.CheckTaskProgress();
 
-            if ((SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.FinishConditionalTask();
-        }
     }
 
     private void CheckDeepDungeonStatus()
@@ -147,31 +145,43 @@ public partial class AchievementManager
         }
     }
 
-    private void OnGagApplied(GagLayer gagLayer, GagType gagType, bool isSelfApplied)
+    /// <summary>
+    /// Determines what to do once a Gag is Applied
+    /// </summary>
+    /// <param name="gagLayer"> The Layer the gag was applied to. </param>
+    /// <param name="gagType"> The type of Gag Applied. </param>
+    /// <param name="isSelfApplied"> If it was applied by the client or not. </param>
+    /// <param name="fromInitialConnection"> If this event was triggered from the OnConnectedService. </param>
+    private void OnGagApplied(GagLayer gagLayer, GagType gagType, bool isSelfApplied, bool fromInitialConnection)
     {
         if (gagType is GagType.None) return;
 
-        // the gag was applied to us by ourselves.
-        if (isSelfApplied)
+        // if this is not from an initial connection..
+        if(!fromInitialConnection)
         {
-            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SelfApplied] as ProgressAchievement)?.IncrementProgress();
-        }
-        // the gag was applied to us by someone else.
-        else
-        {
-            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.LookingForTheRightFit] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.OralFixation] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.AKinkForDrool] as ProgressAchievement)?.IncrementProgress();
+            // the gag was applied to us by ourselves.
+            if (isSelfApplied)
+            {
+                (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SelfApplied] as ProgressAchievement)?.IncrementProgress();
+            }
+            // the gag was applied to us by someone else.
+            else
+            {
+                (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.LookingForTheRightFit] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.OralFixation] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.AKinkForDrool] as ProgressAchievement)?.IncrementProgress();
 
-            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.ATrueGagSlut] as TimedProgressAchievement)?.IncrementProgress();
-        }
+                (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.ATrueGagSlut] as TimedProgressAchievement)?.IncrementProgress();
+            }
 
+            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SpeechSilverSilenceGolden] as DurationAchievement)?.StartTracking(gagType.GagName()); // no method for remove to stop this added?
+            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.TheKinkyLegend] as DurationAchievement)?.StartTracking(gagType.GagName()); // no method for remove to stop this added?
+            (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ConditionalAchievement)?.CheckCompletion();
+            (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.GaggedPleasure] as ConditionalAchievement)?.CheckCompletion();
+        }
+        // Check regardless of it being an initial server connection or not.
         (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.ShushtainableResource] as ThresholdAchievement)?.UpdateThreshold(_playerData.TotalGagsEquipped);
         (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.ShushtainableResource] as ConditionalAchievement)?.CheckCompletion();
-        (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SpeechSilverSilenceGolden] as DurationAchievement)?.StartTracking(gagType.GagName()); // no method for remove to stop this added?
-        (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.TheKinkyLegend] as DurationAchievement)?.StartTracking(gagType.GagName()); // no method for remove to stop this added?
-        (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ConditionalAchievement)?.CheckCompletion();
-        (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.GaggedPleasure] as ConditionalAchievement)?.CheckCompletion();
     }
 
     private void OnGagRemoval(GagLayer layer, GagType gagType, bool isSelfApplied)
@@ -180,6 +190,10 @@ public partial class AchievementManager
 
         (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SpeechSilverSilenceGolden] as DurationAchievement)?.StopTracking(gagType.GagName()); // no method for remove to stop this added?
         (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.TheKinkyLegend] as DurationAchievement)?.StopTracking(gagType.GagName()); // no method for remove to stop this added?
+
+        // Halt our Silent But Deadly Progress if gag is removed mid-dungeon
+        if ((SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.CheckTaskProgress();
 
     }
 
@@ -253,16 +267,6 @@ public partial class AchievementManager
         }
     }
 
-    private void OnPairRestraintApply(string setName, bool isEnabling, string enactorUID)
-    {
-        // if we enabled a set on someone else
-        if (isEnabling && enactorUID is Globals.SelfApplied)
-        {
-            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTiemers] as ProgressAchievement)?.IncrementProgress();
-        }
-
-    }
-
     private void OnRestraintLock(RestraintSet set, Padlocks padlock, bool isLocking, string enactorUID)
     {
         // we locked our set.
@@ -273,7 +277,7 @@ public partial class AchievementManager
         // someone else locked our set
         else if (enactorUID is not Globals.SelfApplied)
         {
-            if (isLocking && padlock is Padlocks.TimerPasswordPadlock) // locking
+            if (isLocking && padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock) // locking
             {
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTimeBondage] as DurationAchievement)?.StartTracking(set.Name);
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AmateurBondage] as DurationAchievement)?.StartTracking(set.Name);
@@ -282,7 +286,7 @@ public partial class AchievementManager
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AWeekInBondage] as DurationAchievement)?.StartTracking(set.Name);
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AMonthInBondage] as DurationAchievement)?.StartTracking(set.Name);
             }
-            if (!isLocking && padlock is Padlocks.TimerPasswordPadlock) // unlocking
+            if (!isLocking && padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock) // unlocking
             {
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTimeBondage] as DurationAchievement)?.StopTracking(set.Name);
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AmateurBondage] as DurationAchievement)?.StopTracking(set.Name);
@@ -294,18 +298,50 @@ public partial class AchievementManager
         }
     }
 
-    private void OnPairRestraintLockChange(Padlocks padlock, bool isLocking, string enactorUID) // uid is self applied if client.
+    /// <summary>
+    /// Whenever we are applying a restraint set to a pair. This is fired in our pair manager once we recieve 
+    /// </summary>
+    private void OnPairRestraintApply(Guid setName, bool isEnabling, string enactorUID)
     {
-        // we have unlocked a pair.
-        if (!isLocking)
+        // if we enabled a set on someone else
+        if (isEnabling && enactorUID == ApiController.UID)
         {
-            if (padlock is Padlocks.PasswordPadlock or Padlocks.PasswordPadlock) // idk how the fuck ill detect this, maybe another event i dont fucking know.
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SoldSlave] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTiemers] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.DiDEnthusiast] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.YourFavoriteNurse] as ConditionalProgressAchievement)?.CheckTaskProgress();
+        }
+    }
 
-            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TheRescuer] as ProgressAchievement)?.IncrementProgress();
+    private void OnPairRestraintLockChange(Guid restraintId, Padlocks padlock, bool isLocking, string enactorUID) // uid is self applied if client.
+    {
+        // May need to figure this for pairs upon connection to validate any actions/unlocks that occured while we were away.
+        Logger.LogInformation("Pair Restraint Lock Change: " + padlock.ToName() + " " + isLocking + " " + enactorUID);
 
-            // regardless of if the pair unlocked or we unlocked the set, we should stop tracking it from these achievements.
-            if (padlock is Padlocks.PasswordPadlock or Padlocks.TimerPasswordPadlock)
+
+        // Change the achievement type of the achievement below, its currently busted.
+        // (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SoldSlave] as ProgressAchievement)?.IncrementProgress();
+
+        // if the pair's set is being locked and it is a timed lock.
+        if (isLocking)
+        {
+            if (padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock) // locking
+            {
+                // make sure we are the locker before continuing
+                if(enactorUID == ApiController.UID)
+                {
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RiggersFirstSession] as DurationAchievement)?.StartTracking(enactorUID);
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.MyLittlePlaything] as DurationAchievement)?.StartTracking(enactorUID);
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SuitsYouBitch] as DurationAchievement)?.StartTracking(enactorUID);
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TiesThatBind] as DurationAchievement)?.StartTracking(enactorUID);
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SlaveTraining] as DurationAchievement)?.StartTracking(enactorUID);
+                    (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CeremonyOfEternalBondage] as DurationAchievement)?.StartTracking(enactorUID);
+                }
+            }
+        }
+        if(!isLocking)
+        {
+            // if the padlock is a timed padlock that we have unlocked, we should stop tracking it from these achievements.
+            if (padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock)
             {
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RiggersFirstSession] as DurationAchievement)?.StopTracking(enactorUID);
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.MyLittlePlaything] as DurationAchievement)?.StopTracking(enactorUID);
@@ -314,20 +350,9 @@ public partial class AchievementManager
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SlaveTraining] as DurationAchievement)?.StopTracking(enactorUID);
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CeremonyOfEternalBondage] as DurationAchievement)?.StopTracking(enactorUID);
             }
-        }
-        // we have locked a pair up.
-        else
-        {
-            // if we are the one locking the pair up, we should start tracking the duration.
-            if (padlock is Padlocks.TimerPasswordPadlock or Padlocks.PasswordPadlock)
-            {
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RiggersFirstSession] as DurationAchievement)?.StartTracking(enactorUID);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.MyLittlePlaything] as DurationAchievement)?.StartTracking(enactorUID);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SuitsYouBitch] as DurationAchievement)?.StartTracking(enactorUID);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TiesThatBind] as DurationAchievement)?.StartTracking(enactorUID);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SlaveTraining] as DurationAchievement)?.StartTracking(enactorUID);
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CeremonyOfEternalBondage] as DurationAchievement)?.StartTracking(enactorUID);
-            }
+
+            // if we are unlocking in general, increment the rescuer
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TheRescuer] as ProgressAchievement)?.IncrementProgress();
         }
     }
 
@@ -528,26 +553,27 @@ public partial class AchievementManager
         }
     }
 
-    private void OnEmoteExecuted(ulong emoteCallerObjectId, ushort emoteId, string emoteName, ulong targetObjectId)
+    private void OnEmoteExecuted(IGameObject emoteCallerObj, ushort emoteId, string emoteName, IGameObject targetObject)
     {
         // doing /lookout while blindfolded.
-        if (!(SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WhatAView] as ConditionalAchievement)?.IsCompleted ?? false && emoteCallerObjectId == _frameworkUtils.ClientState.LocalPlayer?.GameObjectId)
+        if (!(SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WhatAView] as ConditionalAchievement)?.IsCompleted ?? false && emoteCallerObj == _frameworkUtils.ClientState.LocalPlayer)
             if (emoteName.Contains("lookout", StringComparison.OrdinalIgnoreCase))
                 (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WhatAView] as ConditionalAchievement)?.CheckCompletion();
 
+        // Detect shushing another gagspeak user.
+        if (!(SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.QuietNowDear] as ConditionalAchievement)?.IsCompleted ?? false && emoteCallerObj == _frameworkUtils.ClientState.LocalPlayer)
+            if (emoteName.Contains("shush", StringComparison.OrdinalIgnoreCase))
+                (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.QuietNowDear] as ConditionalAchievement)?.CheckCompletion();
+        
         // detect getting slapped.
-        if (!(SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.ICantBelieveYouveDoneThis] as ConditionalAchievement)?.IsCompleted ?? false && targetObjectId == _frameworkUtils.ClientState.LocalPlayer?.GameObjectId)
-            if (emoteName.Contains("slap", StringComparison.OrdinalIgnoreCase))
+        if (!(SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.ICantBelieveYouveDoneThis] as ConditionalAchievement)?.IsCompleted ?? false && targetObject == _frameworkUtils.ClientState.LocalPlayer)
+            if (emoteName.Contains("slap", StringComparison.OrdinalIgnoreCase) && emoteCallerObj.ObjectIndex is not 0) // 0 is the clientPlayer object index.
                 (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.ICantBelieveYouveDoneThis] as ConditionalAchievement)?.CheckCompletion();
     }
 
     private void OnPuppeteerEmoteSent(string emoteName)
     {
-        if (emoteName.Contains("shush", StringComparison.OrdinalIgnoreCase))
-        {
-            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.QuietNowDear] as ConditionalAchievement)?.CheckCompletion();
-        }
-        else if (emoteName.Contains("dance", StringComparison.OrdinalIgnoreCase))
+        if (emoteName.Contains("dance", StringComparison.OrdinalIgnoreCase))
         {
             (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.ShowingOff] as ProgressAchievement)?.IncrementProgress();
         }
@@ -586,6 +612,7 @@ public partial class AchievementManager
     // We need to check for knockback effects in gold sacuer.
     private void OnActionEffectEvent(List<ActionEffectEntry> actionEffects)
     {
+
         // Check if client player is null
         if (_frameworkUtils.ClientState.LocalPlayer is null)
             return;
@@ -596,18 +623,24 @@ public partial class AchievementManager
 
         // Check if the GagReflex achievement is already completed
         var gagReflexAchievement = SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.GagReflex] as ProgressAchievement;
-        if (gagReflexAchievement?.IsCompleted == true)
+        if (gagReflexAchievement is null || gagReflexAchievement.IsCompleted)
+        {
+            Logger.LogTrace("GagReflex achievement is already completed or is null");
             return;
+        }
+
+        // Check if the player is in a gate with knockback
+        if (!AchievementHelpers.IsInGateWithKnockback())
+        {
+            Logger.LogDebug("Player is not in a gate with knockback");
+            return;
+        }
 
         // Check if any effects were a knockback effect targeting the local player
         if (actionEffects.Any(x => x.Type == LimitedActionEffectType.Knockback && x.TargetID == _frameworkUtils.ClientState.LocalPlayer.GameObjectId))
         {
-            // Check if the player is in a gate with knockback
-            if (AchievementHelpers.IsInGateWithKnockback())
-            {
-                // Increment progress if the achievement is not yet completed
-                gagReflexAchievement?.IncrementProgress();
-            }
+            // Increment progress if the achievement is not yet completed
+            gagReflexAchievement.IncrementProgress();
         }
     }
 }

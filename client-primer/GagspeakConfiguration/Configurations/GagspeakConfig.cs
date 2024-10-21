@@ -1,3 +1,4 @@
+using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.ForcedStay;
@@ -36,8 +37,8 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool ProfilePopoutRight { get; set; } = false;
     public bool ProfilesShow { get; set; } = true;
     public bool ContextMenusShow { get; set; } = true;
-    public List<ChatChannels> ChannelsGagSpeak { get; set; } = [];
-    public List<ChatChannels> ChannelsPuppeteer { get; set; } = [];
+    public List<ChatChannel.Channels> ChannelsGagSpeak { get; set; } = [];
+    public List<ChatChannel.Channels> ChannelsPuppeteer { get; set; } = [];
 
     // logging (debug)
     public bool ShowOnlineNotifications { get; set; } = false;

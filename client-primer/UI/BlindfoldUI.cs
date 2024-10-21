@@ -60,6 +60,7 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
         RespectCloseHotkey = false;
         // disable ability for client to hide UI when hideUI hotkey is pressed
         _pi.UiBuilder.DisableUserUiHide = true;
+        _pi.UiBuilder.DisableCutsceneUiHide = true;
 
         // set the stopwatch to send an elapsed time event after 2 seconds then stop
         _TimerRecorder = new UpdateTimer(2000, ToggleWindow);

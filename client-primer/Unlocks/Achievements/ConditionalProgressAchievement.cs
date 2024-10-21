@@ -29,50 +29,68 @@ public class ConditionalProgressAchievement : Achievement
     /// </summary>
     public bool ConditionalTaskFinished { get; set; }
 
-    public ConditionalProgressAchievement(INotificationManager notify, string title, string description, int goal,
-        Func<bool> requiredState, bool requireTaskBeginAndFinish = true, string unit = "", bool isSecret = false)
-        : base(notify, title, description, goal, unit, isSecret)
+    public ConditionalProgressAchievement(INotificationManager notify, string title, string desc, int goal,
+        Func<bool> cond, bool reqBeginAndFinish = true, string prefix = "", string suffix = "", bool isSecret = false)
+        : base(notify, title, desc, goal, prefix, suffix, isSecret)
     {
-        RequiredCondition = requiredState;
+        RequiredCondition = cond;
         Progress = 0;
-        RequireTaskBeginAndFinish = requireTaskBeginAndFinish;
+        RequireTaskBeginAndFinish = reqBeginAndFinish;
         ConditionalTaskBegun = false;
         ConditionalTaskFinished = false;
     }
 
     public override int CurrentProgress() => IsCompleted ? MilestoneGoal : Progress;
+    public override string ProgressString() => PrefixText + " " + (CurrentProgress() + " / " + MilestoneGoal) + " " + SuffixText;
 
     public void BeginConditionalTask()
     {
+        if (!RequiredCondition())
+            return;
+
+        StaticLogger.Logger.LogDebug($"Beginning Conditional Task for {Title}");
         ConditionalTaskBegun = true;
-        CheckTaskProgress();
     }
 
     public void FinishConditionalTask()
     {
+        StaticLogger.Logger.LogDebug($"Finishing Conditional Task for {Title}");
         ConditionalTaskFinished = true;
         CheckTaskProgress();
     }
 
+    public void StartOverDueToInturrupt()
+    {
+        StaticLogger.Logger.LogDebug($"Achievement {Title} Requires conditional Begin & End, but we inturrupted before reaching end. Starting Over!", LoggerType.Achievements);
+        ConditionalTaskBegun = false;
+        ConditionalTaskFinished = false;
+    }
+
     public void CheckTaskProgress(int amountToIncOnSuccess = 1)
     {
-        if (IsCompleted) return;
+        if (IsCompleted) 
+            return;
 
-        if (!ConditionalTaskBegun && RequireTaskBeginAndFinish) return;
+        if (!ConditionalTaskBegun && RequireTaskBeginAndFinish) 
+            return;
 
         // if we have failed the required condition, reset taskBegun to false.
         if (RequireTaskBeginAndFinish && ConditionalTaskBegun && !RequiredCondition())
         {
+            StaticLogger.Logger.LogDebug($"Achievement {Title} Requires a conditional task, "
+                + "and we failed conditional after it begun. Restarting!", LoggerType.Achievements);
             ConditionalTaskBegun = false;
+            return;
         }
-
         // if we have finished the task, increment the progress
-        if ( (!RequireTaskBeginAndFinish || (ConditionalTaskBegun && ConditionalTaskFinished)) && RequiredCondition())
+        if ((!RequireTaskBeginAndFinish || (ConditionalTaskBegun && ConditionalTaskFinished)) && RequiredCondition())
         {
+            StaticLogger.Logger.LogInformation($"Achievement {Title} Had its Conditional Met from start to finish! Incrementing Progress!", LoggerType.Achievements);
             IncrementProgress(amountToIncOnSuccess);
             // reset the task progress.
             ConditionalTaskBegun = false;
             ConditionalTaskFinished = false;
+            return;
         }
     }
 

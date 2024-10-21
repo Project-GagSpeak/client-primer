@@ -290,19 +290,19 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
     {
         CharacterWardrobeData dataToPush = new CharacterWardrobeData
         {
-            OutfitNames = _clientConfigs.GetRestraintSetNames()
+            Outfits = _clientConfigs.GetRestraintSetDtos()
         };
 
         // attempt to locate the active restraint set
         var activeSetIdx = _clientConfigs.GetActiveSetIdx();
 
         // make sure the value is not -1, or greater than the outfitNames count. If it is in bounds, assign variables. Otherwise, use the defaults.
-        if (activeSetIdx != -1 && activeSetIdx <= dataToPush.OutfitNames.Count)
+        if (activeSetIdx != -1 && activeSetIdx <= dataToPush.Outfits.Count)
         {
             // grab the set and set the variables.
             RestraintSet activeSet = _clientConfigs.GetRestraintSet(activeSetIdx);
+            dataToPush.ActiveSetId = activeSet.RestraintId;
             dataToPush.ActiveSetName = activeSet.Name;
-            dataToPush.ActiveSetDescription = activeSet.Description;
             dataToPush.ActiveSetEnabledBy = activeSet.EnabledBy;
             dataToPush.Padlock = activeSet.LockType;
             dataToPush.Password = activeSet.LockPassword;

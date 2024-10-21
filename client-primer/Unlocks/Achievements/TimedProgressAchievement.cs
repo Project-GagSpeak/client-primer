@@ -7,59 +7,50 @@ public class TimedProgressAchievement : Achievement
     /// <summary>
     /// The Current Progress made towards the achievement.
     /// </summary>
-    public int Progress { get; set; }
+    public int Progress => ProgressTimestamps.Count;
 
     /// <summary>
-    /// The DateTime when the progress went from 0 to 1
+    /// The list of DateTimes when progress was made. (TODO: I dont think these are stored yet in light data yet)
     /// </summary>
-    public DateTime StartTime { get; set; } = DateTime.MinValue;
+    public List<DateTime> ProgressTimestamps { get; set; } = new List<DateTime>();
+
     /// <summary>
     /// How long you have to earn the achievement in.
     /// </summary>
     public TimeSpan TimeToComplete { get; private set; }
 
-    public TimedProgressAchievement(INotificationManager notify, string title, string desc, int goal, TimeSpan timeLimit, string unit = "", bool isSecret = false)
-        : base(notify, title, desc, goal, unit, isSecret)
+    public TimedProgressAchievement(INotificationManager notify, string title, string desc, int goal, TimeSpan timeLimit, 
+        string prefix = "", string suffix = "", bool isSecret = false) : base(notify, title, desc, goal, prefix, suffix, isSecret)
     {
         TimeToComplete = timeLimit;
-        Progress = 0;
     }
 
     public override int CurrentProgress() => IsCompleted ? MilestoneGoal : Progress;
+
+    public override string ProgressString() => PrefixText + " " + (CurrentProgress() + " / " + MilestoneGoal) + " " + SuffixText;
 
     /// <summary>
     /// Increments the progress towards the achievement.
     /// </summary>
     public void IncrementProgress(int amount = 1)
     {
-        if (IsCompleted) return;
+        if (IsCompleted) 
+            return;
 
-        CheckTimeLimit();
-        Progress += amount;
+        StaticLogger.Logger.LogDebug($"Checking Timer for {Title} to update our time restricted progress.", LoggerType.Achievements);
+
+        // Clear out any timestamps that are older than the time to complete.
+        ProgressTimestamps.RemoveAll(x => DateTime.UtcNow - x >= TimeToComplete);
+        // Add in the range that we should.
+        ProgressTimestamps.AddRange(Enumerable.Repeat(DateTime.UtcNow, amount));
         // check for completion after incrementing progress
         CheckCompletion();
-    }
-
-    private void CheckTimeLimit()
-    {
-        if (IsCompleted) return;
-
-        // start the timer if the progress is 0
-        if (Progress == 0)
-        {
-            StartTime = DateTime.UtcNow;
-        }
-        // reset the progress if we've exceeded the required time limit.
-        else if (DateTime.UtcNow - StartTime >= TimeToComplete)
-        {
-            ResetProgress();
-        }
     }
 
     /// <summary>
     /// Reset the progression of the achievement.
     /// </summary>
-    public void ResetProgress() => Progress = 0;
+    public void ResetProgress() => ProgressTimestamps.Clear();
 
 
     /// <summary>

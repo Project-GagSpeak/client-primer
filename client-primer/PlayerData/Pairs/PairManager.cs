@@ -316,7 +316,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         Logger.LogInformation("Recieved Character Composite Data from "+(pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         _allClientPairs[dto.User].ApplyAppearanceData(new(dto.User, dto.CompositeData.AppearanceData, dto.UpdateKind));
-        _allClientPairs[dto.User].ApplyWardrobeData(new(dto.User, dto.CompositeData.WardrobeData, dto.UpdateKind));
+        _allClientPairs[dto.User].ApplyWardrobeData(new(dto.User, dto.CompositeData.WardrobeData, dto.User, dto.UpdateKind));
         _allClientPairs[dto.User].ApplyToyboxData(new(dto.User, dto.CompositeData.ToyboxData, dto.UpdateKind));
         _allClientPairs[dto.User].ApplyPiShockPermData(new(dto.User, dto.CompositeData.GlobalShockPermissions, DataUpdateKind.PiShockGlobalUpdated));
 

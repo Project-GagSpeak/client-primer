@@ -78,6 +78,11 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
                 _playerIpcData.MoodlesPresets.Clear();
                 Logger.LogDebug("Clearing cache for " + msg.ObjectToCreateFor, LoggerType.ClientPlayerData);
                 Mediator.Publish(new CharacterIpcDataCreatedMessage(_playerIpcData, DataUpdateKind.IpcMoodlesCleared));
+                // If we are in a cutscene, we should publish a mediator event to let our appearance handler know we need to redraw.
+                // This is a safe workaround from executing things on cutscene start because glamourer takes precedence first.
+                // However, this toggle consistantly occurs after Glamourer finishes its draws.
+                if (_frameworkUtil.InCutsceneEvent)
+                    Mediator.Publish(new ClientPlayerInCutscene());
             });
         });
 

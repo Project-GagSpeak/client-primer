@@ -2,6 +2,7 @@ using Dalamud.Utility;
 using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
+using GagspeakAPI.Data.Character;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 
@@ -64,6 +65,7 @@ public record RestraintSet : IMoodlesAssociable
     public bool HasPropertiesForUser(string uid) => SetProperties.ContainsKey(uid);
     public bool PropertiesEnabledForUser(string uid) => HasPropertiesForUser(uid) && SetProperties[uid].AnyEnabled();
 
+    public RestraintDto ToDto() => new RestraintDto(){ Identifier = RestraintId, Name = Name };
 
     public RestraintSet DeepCloneSet()
     {

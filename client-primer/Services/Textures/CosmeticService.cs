@@ -4,13 +4,15 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
+using Microsoft.Extensions.Hosting;
 
 namespace GagSpeak.Services.Textures;
 
 // Friendly Reminded, this is a scoped service, and IDalamudTextureWraps will only return values on the framework thread.
 // Attempting to use or access this class to obtain information outside the framework draw update thread will result in a null return.
-public class CosmeticService : DisposableMediatorSubscriberBase
+public class CosmeticService : IHostedService, IDisposable
 {
+    private readonly ILogger<CosmeticService> _logger;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly ITextureProvider _textures;
     private readonly IDalamudPluginInterface _pi;
@@ -19,14 +21,14 @@ public class CosmeticService : DisposableMediatorSubscriberBase
     private ISharedImmediateTexture _sharedTextures;
 
     public CosmeticService(ILogger<CosmeticService> logger, GagspeakMediator mediator,
-        OnFrameworkService frameworkUtils, IDalamudPluginInterface pi, ITextureProvider tp) 
-        : base(logger, mediator)
+        OnFrameworkService frameworkUtils, IDalamudPluginInterface pi, ITextureProvider tp)
     {
+        _logger = logger;
         _frameworkUtils = frameworkUtils;
         _textures = tp;
         _pi = pi;
 
-        Logger.LogInformation("GagSpeak Profile Cosmetic Cache Initializing.");
+        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Initializing.");
 
         // fire an async task to occur on the framework thread that will fetch and load in our image data.
         Task.Run(async () => await LoadAllCosmetics());
@@ -39,10 +41,9 @@ public class CosmeticService : DisposableMediatorSubscriberBase
 
 
     // MUST ensure ALL images are disposed of or else we will leak a very large amount of memory.
-    protected override void Dispose(bool disposing)
+    public void Dispose()
     {
-        base.Dispose(disposing);
-
+        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Disposing.");
         foreach (var texture in InternalCosmeticCache.Values)
         {
             texture?.Dispose();
@@ -61,21 +62,25 @@ public class CosmeticService : DisposableMediatorSubscriberBase
             {
                 var key = label.Key;
                 var path = label.Value;
-                Logger.LogInformation("Cosmetic Key: " + key);
+                _logger.LogInformation("Cosmetic Key: " + key);
 
                 if (string.IsNullOrEmpty(path)) continue;
 
-                Logger.LogInformation("Renting image to store in Cache: " + key);
+                _logger.LogInformation("Renting image to store in Cache: " + key);
                 var texture = RentImageFromFile(path);
                 if (texture != null)
                 {
-                    Logger.LogInformation("Cosmetic Key: " + key + " Texture Loaded Successfully: " + path);
+                    _logger.LogInformation("Cosmetic Key: " + key + " Texture Loaded Successfully: " + path);
                     InternalCosmeticCache[key] = texture;
+                }
+                else
+                {
+                    _logger.LogError("Cosmetic Key: " + key + " Texture Failed to Load: " + path);
                 }
             }
             // Corby Note: If this is too much to handle in a single thread,
             // see if there is a way to batch send requests that can be returned overtime when retrieved.
-            Logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all Image Data!");
+            _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all Image Data!");
         });
     }
 
@@ -101,6 +106,19 @@ public class CosmeticService : DisposableMediatorSubscriberBase
         // NOTE: Calling this Creates a new instance of the Texture fetched from the _sharedTextures.
         //       This texture is then guaranteed to be available until IDispose is called.
         else return _sharedTextures.RentAsync().Result;
+    }
+
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Started.");
+        await LoadAllCosmetics();
+        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Loaded.");
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Stopped.");
+        return Task.CompletedTask;
     }
 
 }

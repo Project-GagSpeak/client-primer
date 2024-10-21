@@ -44,9 +44,9 @@ public partial class AchievementManager
 
         gagComponent.AddThreshold(GagLabels.ShushtainableResource, "Have all three Gag Slots occupied at once.", 3, "Gags Active at Once");
 
-        gagComponent.AddProgress(GagLabels.SpeakUpSlut, "Say anything longer than 5 words with LiveChatGarbler on in /say", 1, "Messages Sent");
-        gagComponent.AddProgress(GagLabels.CantHearYou, "Say anything longer than 5 words with LiveChatGarbler on in /yell", 1, "Messages Sent");
-        gagComponent.AddProgress(GagLabels.OneMoreForTheCrowd, "Say anything longer than 5 words with LiveChatGarbler on in /shout", 1, "Messages Sent");
+        gagComponent.AddProgress(GagLabels.SpeakUpSlut, "Say anything longer than 5 words with LiveChatGarbler on in /say (Please be smart about this)", 1, "Garbled Messages Sent");
+        gagComponent.AddProgress(GagLabels.CantHearYou, "Say anything longer than 5 words with LiveChatGarbler on in /yell (Please be smart about this)", 1, "Garbled Messages Sent");
+        gagComponent.AddProgress(GagLabels.OneMoreForTheCrowd, "Say anything longer than 5 words with LiveChatGarbler on in /shout (Please be smart about this)", 1, "Garbled Messages Sent");
 
         gagComponent.AddDuration(GagLabels.SpeechSilverSilenceGolden, "Wear a gag continuously for 1 week", TimeSpan.FromDays(7), DurationTimeUnit.Hours, "Hours");
         gagComponent.AddDuration(GagLabels.TheKinkyLegend, "Wear a gag continuously for 2 weeks", TimeSpan.FromDays(14), DurationTimeUnit.Hours, "Hours");
@@ -73,7 +73,7 @@ public partial class AchievementManager
         }, "Pairs Hushed");
 
         gagComponent.AddConditionalProgress(GagLabels.YourFavoriteNurse, "Apply a restraint set or Gag to a GagSpeak pair while you have a Mask Gag Equipped 20 times", 20,
-            () => _playerData.AppearanceData?.GagSlots.Any(x => x.GagType.ToGagType() == GagType.MedicalMask) ?? false, "Patients Serviced", false);
+            () => _playerData.AppearanceData?.GagSlots.Any(x => x.GagType.ToGagType() == GagType.MedicalMask) ?? false, "Patients Serviced", reqBeginAndFinish: false);
 
         gagComponent.AddConditionalProgress(GagLabels.SayMmmph, "Take a screenshot in /gpose while gagged", 1, () => _playerData.IsPlayerGagged, "Photos Taken");
 
@@ -98,11 +98,12 @@ public partial class AchievementManager
 
         // fire event whenever iplayerchara object size changes????
         // Look into how to track this since we use the general object table.
-        wardrobeComponent.AddThreshold(WardrobeLabels.CrowdPleaser, "Be restrained with 15 or more people around you.", 15, "People Nearby");
+        wardrobeComponent.AddConditionalThreshold(WardrobeLabels.CrowdPleaser, "Be restrained with 15 or more people around you.", 15, 
+            () => _clientConfigs.GetActiveSetIdx() != -1, "People Nearby");
 
         // fire trigger whenever a new visible pair is visible.
-        wardrobeComponent.AddConditional(WardrobeLabels.Humiliation, "Be restrained with 5 or more GagSpeak Pairs nearby.", 
-            () => _pairManager.GetVisibleUserCount() > 5, "Pairs Nearby");
+        wardrobeComponent.AddConditionalThreshold(WardrobeLabels.Humiliation, "Be restrained with 5 or more GagSpeak Pairs nearby.", 5,
+            () => _clientConfigs.GetActiveSetIdx() != -1, "GagSpeak Pairs Nearby");
 
         wardrobeComponent.AddTimedProgress(WardrobeLabels.BondageBunny, "Be restrained by 5 different people in less than 2 hours.", 5, TimeSpan.FromHours(2), "Restraints Received In 2 Hours");
 
@@ -217,7 +218,7 @@ public partial class AchievementManager
 
         // Bondodge - Within 2 seconds of having a restraint set applied to you, remove it from yourself (might want to add a duration conditional but idk?)
         wardrobeComponent.AddTimeLimitedConditional(WardrobeLabels.Bondodge, "Within 2 seconds of having a restraint set applied to you, remove it from yourself",
-            TimeSpan.FromSeconds(2), () => _clientConfigs.GetActiveSetIdx() != -1, DurationTimeUnit.Seconds, "Seconds (Within)", true);
+            TimeSpan.FromSeconds(2), () => _clientConfigs.GetActiveSetIdx() != -1, DurationTimeUnit.Seconds, "Seconds (Within)", isSecret: true);
 
         SaveData.Achievements[AchievementModuleKind.Wardrobe] = wardrobeComponent;
         #endregion WARDROBE MODULE
@@ -271,7 +272,7 @@ public partial class AchievementManager
         toyboxComponent.AddProgress(ToyboxLabels.HornyMornings, "Have an alarm go off.", 1, "Alarms Went Off");
 
         toyboxComponent.AddConditionalProgress(ToyboxLabels.NothingCanStopMe, "Kill 500 enemies in PvP Frontlines while restrained or vibed.", 500, 
-            () => _frameworkUtils.ClientState.IsPvP, "Players Slain While Bound", false);
+            () => _frameworkUtils.ClientState.IsPvP, "Players Slain While Bound", reqBeginAndFinish: false);
 
         SaveData.Achievements[AchievementModuleKind.Toybox] = toyboxComponent;
         #endregion TOYBOX MODULE
@@ -366,8 +367,8 @@ public partial class AchievementManager
 
         genericComponent.AddProgress(GenericLabels.KnowsMyLimits, "Use your Safeword for the first time.", 1, "Safewords Used");
 
-        genericComponent.AddRequiredTimeConditional(GenericLabels.WarriorOfLewd, "View a Cutscene while Bound and Gagged.", TimeSpan.FromSeconds(30),
-            () => _playerData.IsPlayerGagged && _clientConfigs.GetActiveSetIdx() != -1, DurationTimeUnit.Seconds, suffix: "Seconds");
+        genericComponent.AddConditionalProgress(GenericLabels.WarriorOfLewd, "View a FULL Cutscene while Bound and Gagged.", 1,
+            () => _playerData.IsPlayerGagged && _clientConfigs.GetActiveSetIdx() != -1, suffix: "Cutscenes Watched Bound & Gagged");
 
         genericComponent.AddConditional(GenericLabels.EscapingIsNotEasy, "Change your equipment/change job while locked in a restraint set ", () => _clientConfigs.GetActiveSetIdx() != -1, "Escape Attempts Made");
 
@@ -416,9 +417,9 @@ public partial class AchievementManager
         secretsComponent.AddConditional(SecretLabels.BoundgeeJumping, "Jump off a cliff while in Bondage, Drop to 1 HP", 
             () => _clientConfigs.GetActiveSetIdx() != -1 && _frameworkUtils.ClientState.LocalPlayer?.CurrentHp is 1, "Dangerous Acts Attempted", isSecret: true);
 
-        secretsComponent.AddConditionalProgress(SecretLabels.KinkyTeacher, "Receive 10 commendations while bound", 10, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", false, isSecret: true);
-        secretsComponent.AddConditionalProgress(SecretLabels.KinkyProfessor, "Receive 50 commendations while bound", 50, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", false, isSecret: true);
-        secretsComponent.AddConditionalProgress(SecretLabels.KinkyMentor, "Receive 100 commendations while bound", 100, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", false, isSecret: true);
+        secretsComponent.AddConditionalProgress(SecretLabels.KinkyTeacher, "Receive 10 commendations while bound", 10, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", reqBeginAndFinish: false, isSecret: true);
+        secretsComponent.AddConditionalProgress(SecretLabels.KinkyProfessor, "Receive 50 commendations while bound", 50, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", reqBeginAndFinish: false, isSecret: true);
+        secretsComponent.AddConditionalProgress(SecretLabels.KinkyMentor, "Receive 100 commendations while bound", 100, () => _clientConfigs.GetActiveSetIdx() != -1, "Thanks Received", reqBeginAndFinish: false, isSecret: true);
 
         // Make this more logical later, but for now just see if you're restrained while no longer logged in.
         // WILL ADD

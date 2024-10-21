@@ -1,5 +1,6 @@
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
@@ -124,14 +125,14 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         if (_configService.Current.ChannelsGagSpeak.Count == 0)
         {
             Logger.LogWarning("Channel list is empty, adding Say as the default channel.");
-            _configService.Current.ChannelsGagSpeak = new List<ChatChannels> { ChatChannels.Say };
+            _configService.Current.ChannelsGagSpeak = new List<ChatChannel.Channels> { ChatChannel.Channels.Say };
             _configService.Save();
 
         }
         if (_configService.Current.ChannelsPuppeteer.Count == 0)
         {
             Logger.LogWarning("Channel list is empty, adding Say as the default channel.");
-            _configService.Current.ChannelsPuppeteer = new List<ChatChannels> { ChatChannels.Say };
+            _configService.Current.ChannelsPuppeteer = new List<ChatChannel.Channels> { ChatChannel.Channels.Say };
             _configService.Save();
         }
 
@@ -318,7 +319,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     /// I swear to god, so not set anything inside this object through this fetch. Treat it as readonly.
     /// </summary>
     internal List<RestraintSet> StoredRestraintSets => WardrobeConfig.WardrobeStorage.RestraintSets;
-    public List<string> GetRestraintSetNames() => WardrobeConfig.WardrobeStorage.RestraintSets.Select(set => set.Name).ToList();
+    public List<RestraintDto> GetRestraintSetDtos() => WardrobeConfig.WardrobeStorage.RestraintSets.Select(set => set.ToDto()).ToList();
     internal int GetActiveSetIdx() => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Enabled);
     internal int GetSetIdxByGuid(Guid id) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.RestraintId == id);
     internal RestraintSet? GetActiveSet() => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.Enabled)!; // this can be null.
@@ -953,8 +954,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         {
             ImGui.Text("Active Set Info: ");
             ImGui.Indent();
+            ImGui.Text($"Set Id: {ActiveSet.RestraintId}");
             ImGui.Text($"Name: {ActiveSet.Name}");
-            ImGui.Text($"Description: {ActiveSet.Description}");
             ImGui.Text($"Enabled By: {ActiveSet.EnabledBy}");
             ImGui.Text($"Is Locked: {ActiveSet.Locked}");
             ImGui.Text($"Lock Type: {ActiveSet.LockType}");

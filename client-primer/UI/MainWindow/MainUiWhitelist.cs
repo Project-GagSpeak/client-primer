@@ -43,13 +43,7 @@ public class MainUiWhitelist : DisposableMediatorSubscriberBase
         // updates the draw folders by recollecting them, and updates the drawPair list of distinct draw pairs
         _userPairListHandler.UpdateDrawFoldersAndUserPairDraws();
 
-        Mediator.Subscribe<RefreshUiMessage>(this, (msg) =>
-        {
-            // update draw folders
-            _userPairListHandler.UpdateDrawFoldersAndUserPairDraws();
-            // update the cog statuses
-            // UpdateShouldOpenStatus();
-        });
+        Mediator.Subscribe<RefreshUiMessage>(this, (msg) => _userPairListHandler.UpdateDrawFoldersAndUserPairDraws());
     }
 
     // Attributes related to the drawing of the whitelist / contacts / pair list
@@ -65,24 +59,16 @@ public class MainUiWhitelist : DisposableMediatorSubscriberBase
     /// <summary>
     /// Main Draw function for the Whitelist/Contacts tab of the main UI
     /// </summary>
-    public float DrawWhitelistSection()
+    public void DrawWhitelistSection()
     {
-        // get the width of the window content region we set earlier
         var _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
-        var _spacingX = ImGui.GetStyle().ItemSpacing.X;
-        float pairlistEnd = 0;
+        var _spacingX = ImGui.GetStyle().ItemInnerSpacing.X;
 
         try
         {
-            // show the search filter just above the contacts list to form a nice separation.
-            _userPairListHandler.DrawSearchFilter(_windowContentWidth, ImGui.GetStyle().ItemInnerSpacing.X);
+            _userPairListHandler.DrawSearchFilter(_windowContentWidth, _spacingX);
             ImGui.Separator();
-
-            // then display our pairing list
             _userPairListHandler.DrawPairs(_windowContentWidth);
-            ImGui.Separator();
-            // fetch the cursor position where the footer is
-            pairlistEnd = ImGui.GetCursorPosY();
         }
         catch (Exception ex)
         {
@@ -113,9 +99,7 @@ public class MainUiWhitelist : DisposableMediatorSubscriberBase
         {
             // if the last added user is null, then we should not show the modal
             if (_lastAddedUser == null)
-            {
                 _showModalForUserAddition = false;
-            }
             // but if they are still present, meaning we have not yet given them a nickname, then display the modal
             else
             {
@@ -135,8 +119,5 @@ public class MainUiWhitelist : DisposableMediatorSubscriberBase
             UiSharedService.SetScaledWindowSize(275);
             ImGui.EndPopup();
         }
-
-        // return a push to the footer to know where to draw our bottom tab bar
-        return ImGui.GetCursorPosY() - pairlistEnd - ImGui.GetTextLineHeight();
     }
 }

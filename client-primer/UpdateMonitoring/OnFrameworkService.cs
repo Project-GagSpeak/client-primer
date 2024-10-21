@@ -29,30 +29,30 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     private readonly IObjectTable _objectTable;
     private readonly IPartyList _partyList;
     private readonly ITargetManager _targetManager;
+
     private ushort _lastZone = 0;
     public bool _sentBetweenAreas = false;
     public uint PlayerClassJobId = 0;
     public bool IsLoggedIn { get; private set; }
     public short LastCommendationsCount { get; private set; } = 0;
-
     private DateTime _delayedFrameworkUpdateCheck = DateTime.Now; // for letting us know if we are in a delayed framework check
 
 
     // The list of player characters, to associate their hashes with the player character name and addresses. Useful for indicating if they are visible or not.
     private readonly Dictionary<string, (string Name, nint Address)> _playerCharas;
     private readonly List<string> _notUpdatedCharas = [];
-    public Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
-
-    public ulong TargetObjectId => _targetManager.Target?.GameObjectId ?? ulong.MaxValue;
-    public bool IsInCutscene { get; private set; } = false;
-    public bool IsZoning => _condition[ConditionFlag.BetweenAreas] || _condition[ConditionFlag.BetweenAreas51];
     public ActionRoles PlayerJobRole => (ActionRoles)(_clientState.LocalPlayer?.ClassJob?.GameData?.Role ?? 0);
     public IntPtr ClientPlayerAddress; // player address
     public static bool GlamourChangeEventsDisabled = false; // 1st variable responsible for handling glamour change events
+    public Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
+    public ulong TargetObjectId => _targetManager.Target?.GameObjectId ?? ulong.MaxValue;
+    public bool IsInGpose { get; private set; } = false;
+    public bool IsInCutscene { get; private set; } = false;
+    public bool IsZoning => _condition[ConditionFlag.BetweenAreas] || _condition[ConditionFlag.BetweenAreas51];
     public byte PlayerLevel => _clientState.LocalPlayer?.Level ?? byte.MaxValue;
     public bool InPvP => _clientState.IsPvP;
-    public bool InDungeonOrDuty => _condition[ConditionFlag.BoundByDuty] || _condition[ConditionFlag.BoundByDuty56] 
-        || _condition[ConditionFlag.BoundByDuty95] || _condition[ConditionFlag.InDeepDungeon];
+    public bool InDungeonOrDuty => _condition[ConditionFlag.BoundByDuty] || _condition[ConditionFlag.BoundByDuty56]  || _condition[ConditionFlag.BoundByDuty95] || _condition[ConditionFlag.InDeepDungeon];
+    public bool InCutsceneEvent => !InDungeonOrDuty && _condition[ConditionFlag.OccupiedInCutSceneEvent] || _condition[ConditionFlag.WatchingCutscene78];
     public int PartyListSize => _partyList.Count;
     public IClientState ClientState => _clientState;
     public ICondition Condition => _condition;
@@ -60,6 +60,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         .Any(x => x.IsAetheryte && x.Territory.Row == _clientState.TerritoryType && x.Territory.Value?.TerritoryIntendedUse == 0) ?? false;
     public string MainCityName => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Aetheryte>()?
         .FirstOrDefault(x => x.IsAetheryte && x.Territory.Row == _clientState.TerritoryType && x.Territory.Value?.TerritoryIntendedUse == 0)?.PlaceName.ToString() ?? "Unknown";
+
 
     public bool IsFrameworkUnloading => _framework.IsFrameworkUnloading;
 
@@ -385,11 +386,8 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     private unsafe void FrameworkOnUpdateInternal()
     {
         // If the local player is dead or null, return after setting the hasDied flag to true
-        if (_clientState.LocalPlayer is null) return;
-
-        // if player has died return
-        if (_clientState.LocalPlayer.IsDead) return;
-
+        if (_clientState.LocalPlayer?.IsDead ?? false) 
+            return;
 
         // we need to update our stored player characters to know if they are still valid, and to update our pair handlers
         // Begin by adding the range of existing player character keys
@@ -418,6 +416,32 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         // check if we are in the middle of a delayed framework update
         var isNormalFrameworkUpdate = DateTime.Now < _delayedFrameworkUpdateCheck.AddSeconds(1);
 
+        if (InCutsceneEvent && !IsInCutscene)
+        {
+            _logger.LogDebug("Cutscene start");
+            IsInCutscene = true;
+            Mediator.Publish(new CutsceneBeginMessage());
+        }
+        else if (!InCutsceneEvent && IsInCutscene)
+        {
+            _logger.LogDebug("Cutscene end");
+            IsInCutscene = false;
+            Mediator.Publish(new CutsceneEndMessage());
+        }
+
+        if(_clientState.IsGPosing && !IsInGpose)
+        {
+            _logger.LogDebug("Gpose start");
+            IsInGpose = true;
+            Mediator.Publish(new GPoseStartMessage());
+        }
+        else if(!_clientState.IsGPosing && IsInGpose)
+        {
+            _logger.LogDebug("Gpose end");
+            IsInGpose = false;
+            Mediator.Publish(new GPoseEndMessage());
+        }
+
         // if we are zoning, 
         if (IsZoning)
         {
@@ -432,10 +456,9 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                 if (!_sentBetweenAreas)
                 {
                     // we know we are starting a zone switch, so publish it to the mediator and set sent between areas to true
-                    _logger.LogDebug("Zone switch/Gpose start");
+                    _logger.LogDebug("Zone switch start");
                     _sentBetweenAreas = true;
                     Mediator.Publish(new ZoneSwitchStartMessage());
-                    if (_clientState.IsGPosing) Mediator.Publish(new GPoseStartMessage());
                 }
             }
             // do an early return so we dont hit the sentBetweenAreas conditional below
@@ -445,7 +468,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         // this is called while are zoning between areas has ended
         if (_sentBetweenAreas)
         {
-            _logger.LogDebug("Zone switch/Gpose end");
+            _logger.LogDebug("Zone switch end");
             _sentBetweenAreas = false;
             Mediator.Publish(new ZoneSwitchEndMessage());
             // if our commendation count is different, update it and invoke the event with the difference.
@@ -456,21 +479,6 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                 _logger.LogInformation("Commendations increased by {0}", newCommendations - LastCommendationsCount);
                 Mediator.Publish(new CommendationsIncreasedMessage(newCommendations - LastCommendationsCount));
             }
-
-            if (!_clientState.IsGPosing) Mediator.Publish(new GPoseEndMessage());
-        }
-
-        if (_condition[ConditionFlag.WatchingCutscene] && !IsInCutscene)
-        {
-            _logger.LogDebug("Cutscene start");
-            IsInCutscene = true;
-            Mediator.Publish(new CutsceneBeginMessage());
-        }
-        else if (!_condition[ConditionFlag.WatchingCutscene] && IsInCutscene)
-        {
-            _logger.LogDebug("Cutscene end");
-            IsInCutscene = false;
-            Mediator.Publish(new CutsceneEndMessage());
         }
 
         // publish the framework update message

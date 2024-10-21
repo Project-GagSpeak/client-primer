@@ -48,14 +48,26 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     
     public void SaveEditedSet()
     {
-        if(ClonedSetForEdit is null) return;
+        if(ClonedSetForEdit is null) 
+            return;
         // locate the restraint set that contains the matching guid.
         var setIdx = _clientConfigs.GetSetIdxByGuid(ClonedSetForEdit.RestraintId);
+        // Check for a name difference, if one occurs, we need to push our updated list to the server.
+        var nameChanged = false;
+        if (_clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[setIdx].Name != ClonedSetForEdit.Name)
+            nameChanged = true;
+        
         // update that set with the new cloned set.
         _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[setIdx] = ClonedSetForEdit;
         _clientConfigs.SaveWardrobe();
         // make the cloned set null again.
         ClonedSetForEdit = null;
+        
+        // if the name has changed, we should publish that our restraint list has been udpated.
+        if (nameChanged)
+            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+        // Invoke a check for updated restraint sets. (it's ok to pass it here since other players can't update our list.)
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintUpdated, _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[setIdx]);
     }
 
     // For copying and pasting parts of the restraint set.

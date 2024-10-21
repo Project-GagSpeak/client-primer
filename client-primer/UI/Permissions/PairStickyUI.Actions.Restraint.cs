@@ -5,7 +5,6 @@ using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data.Interfaces;
-using GagspeakAPI.Enums;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
 using OtterGui.Text;
@@ -29,7 +28,7 @@ public partial class PairStickyUI
         bool canUseOwnerLocks = pairUniquePerms.OwnerLocks;
         if (lastWardrobeData == null || pairUniquePerms == null) return;
 
-        bool applyButtonDisabled = !pairUniquePerms.ApplyRestraintSets || lastWardrobeData.OutfitNames.Count <= 0 || (lastWardrobeData.ActiveSetName != string.Empty && lastWardrobeData.Padlock != Padlocks.None.ToName());
+        bool applyButtonDisabled = !pairUniquePerms.ApplyRestraintSets || lastWardrobeData.Outfits.Count <= 0 || (lastWardrobeData.ActiveSetName != string.Empty && lastWardrobeData.Padlock != Padlocks.None.ToName());
         bool lockButtonDisabled = !pairUniquePerms.LockRestraintSets || lastWardrobeData.ActiveSetName == string.Empty || lastWardrobeData.Padlock != Padlocks.None.ToName();
         bool unlockButtonDisabled = !pairUniquePerms.UnlockRestraintSets || lastWardrobeData.Padlock == "None";
         bool removeButtonDisabled = !pairUniquePerms.RemoveRestraintSets || lastWardrobeData.ActiveSetName == string.Empty || lastWardrobeData.Padlock != Padlocks.None.ToName();
@@ -49,7 +48,7 @@ public partial class PairStickyUI
                 string storedSelectedSet = _permActions.GetSelectedItem<string>("ApplyRestraintSetForPairPermCombo", UserPairForPerms.UserData.UID) ?? string.Empty;
 
                 _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ApplyRestraintSetForPairPermCombo", "Apply Set",
-                WindowMenuWidth, lastWardrobeData.OutfitNames, (RSet) => RSet, true, storedSelectedSet == string.Empty, true, default,
+                WindowMenuWidth, lastWardrobeData.Outfits.Select(o => o.Name), (RSet) => RSet, true, storedSelectedSet == string.Empty, true, default,
                 FontAwesomeIcon.Female, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Restraint Set: " + selected, LoggerType.Permissions); },
                 (onButtonPress) =>
                 {
@@ -60,8 +59,8 @@ public partial class PairStickyUI
 
                         newWardrobe.ActiveSetName = onButtonPress;
                         newWardrobe.ActiveSetEnabledBy = ApiController.UID;
-                        _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobe, DataUpdateKind.WardrobeRestraintApplied));
-                        _logger.LogDebug("Applying Restraint Set with GagPadlock "+onButtonPress.ToString()+" to "+PairNickOrAliasOrUID, LoggerType.Permissions);
+                        _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobe, ApiController.PlayerUserData, DataUpdateKind.WardrobeRestraintApplied));
+                        _logger.LogDebug("Applying Restraint Set with GagPadlock " + onButtonPress.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
                         Opened = InteractionType.ApplyRestraint;
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated Wardrobe data: " + e.Message); }
@@ -128,7 +127,7 @@ public partial class PairStickyUI
                             newWardrobeData.Password = _permActions.Password;
                             newWardrobeData.Timer = UiSharedService.GetEndTimeUTC(_permActions.Timer);
                             newWardrobeData.Assigner = ApiController.UID;
-                            _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, DataUpdateKind.WardrobeRestraintLocked));
+                            _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, ApiController.PlayerUserData, DataUpdateKind.WardrobeRestraintLocked));
                             _logger.LogDebug("Locking Restraint Set with GagPadlock " + onButtonPress.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;
                             // reset the password and timer
@@ -181,7 +180,7 @@ public partial class PairStickyUI
                             newWardrobeData.Password = _permActions.Password;
                             newWardrobeData.Timer = DateTimeOffset.UtcNow;
                             newWardrobeData.Assigner = ApiController.UID;
-                            _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, DataUpdateKind.WardrobeRestraintUnlocked));
+                            _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, ApiController.PlayerUserData, DataUpdateKind.WardrobeRestraintUnlocked));
                             _logger.LogDebug("Unlocking Restraint Set with GagPadlock " + selected.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;
                         }
@@ -215,8 +214,8 @@ public partial class PairStickyUI
                         if (newWardrobeData == null) throw new Exception("Wardrobe data is null, not sending");
                         newWardrobeData.ActiveSetName = string.Empty;
                         newWardrobeData.ActiveSetEnabledBy = string.Empty;
-                        _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, DataUpdateKind.WardrobeRestraintDisabled));
-                        _logger.LogDebug("Removing Restraint Set from "+PairNickOrAliasOrUID, LoggerType.Permissions);
+                        _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, ApiController.PlayerUserData, DataUpdateKind.WardrobeRestraintDisabled));
+                        _logger.LogDebug("Removing Restraint Set from " + PairNickOrAliasOrUID, LoggerType.Permissions);
                         Opened = InteractionType.None;
                     }
                     catch (Exception e) { _logger.LogError("Failed to push updated Wardrobe data: " + e.Message); }

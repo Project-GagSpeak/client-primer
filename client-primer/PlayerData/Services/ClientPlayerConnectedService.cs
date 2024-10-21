@@ -7,8 +7,11 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Dto.Connection;
+using GagspeakAPI.Enums;
+using GagspeakAPI.Extensions;
 using Microsoft.Extensions.Hosting;
 using System.Reflection.Metadata;
+using static Lumina.Data.Parsing.Layer.LayerCommon;
 
 namespace GagSpeak.PlayerData.Services;
 
@@ -63,13 +66,21 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         Logger.LogDebug("Setting up Update Tasks from GagSpeak Modules.", LoggerType.ClientPlayerData);
         // update the active gags
         await _gagManager.UpdateActiveGags();
+        // If any of our gags are applied, we should fire the Achievement Checks for them being applied.
+        for(var i = 0; i < 3; i++)
+        {
+            var gagType = _playerData.AppearanceData.GagSlots[i].GagType.ToGagType();
+            if (gagType is not GagType.None)
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, (GagLayer)i, gagType, true, true);
+        }
 
         Logger.LogInformation("Syncing Data with Connection DTO", LoggerType.ClientPlayerData);
         var serverData = connectionDto.CharacterActiveStateData;
         // We should sync the active Restraint Set with the server's Active Set Name.
-        if (serverData.WardrobeActiveSetName != string.Empty)
+        if (serverData.ActiveSetName != string.Empty)
         {
-            int setIdx = _clientConfigs.GetRestraintSetIdxByName(serverData.WardrobeActiveSetName);
+            int setIdx = _clientConfigs.GetRestraintSetIdxByName(serverData.ActiveSetName);
+            var restraintId = _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[setIdx].RestraintId;
 
             // check to see if the active set stored on the server is locked with a timer padlock.
             if (GenericHelpers.TimerPadlocks.Contains(serverData.Padlock) && serverData.Timer < DateTimeOffset.UtcNow)
@@ -83,14 +94,17 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
                 {
                     Logger.LogInformation("Disabling Unlocked Set due to Config Setting.", LoggerType.Restraints);
                     // we should also update the active state data to disable the set.
-                    await _wardrobeHandler.DisableRestraintSet(setIdx, serverData.WardrobeActiveSetAssigner, false);
+                    await _appearanceHandler.DisableRestraintSet(restraintId, serverData.ActiveSetEnabler, false, false);
                 }
             }
             // if it is not a set that had its time expired, then we should re-enable it, and re-lock it if it was locked.
             else
             {
-                Logger.LogInformation("Re-Enabling the stored active Restraint Set", LoggerType.Restraints);
-                await _wardrobeHandler.EnableRestraintSet(setIdx, serverData.WardrobeActiveSetAssigner, false);
+                if(restraintId != _clientConfigs.GetActiveSet()?.RestraintId)
+                {
+                    Logger.LogInformation("Re-Enabling the stored active Restraint Set", LoggerType.Restraints);
+                    await _appearanceHandler.EnableRestraintSet(restraintId, serverData.ActiveSetEnabler, false, false);
+                }
                 // relock it if it had a timer.
                 if (serverData.Padlock != Padlocks.None.ToName())
                 {
@@ -114,7 +128,7 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
                     if (activeSet.LockType.ToPadlock() is not Padlocks.None)
                         _clientConfigs.UnlockRestraintSet(activeSetIdx, activeSet.LockedBy, false);
                     // disable it.
-                    await _wardrobeHandler.DisableRestraintSet(activeSetIdx, activeSet.LockedBy, false);
+                    await _appearanceHandler.DisableRestraintSet(activeSet.RestraintId, activeSet.LockedBy, false);
                     // update the data. (Note, setting these to false may trigger a loophole by skipping over the monitored achievements,
                     Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.FullDataUpdate));
                 }

@@ -1,3 +1,4 @@
+using GagSpeak.Achievements.Services;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.Services;
@@ -167,9 +168,11 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ActionMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<MovementMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ActionEffectMonitor>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<OnEmote>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<TriggerService>();
 
             // stuff that should probably be a hosted service but isnt yet.
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<AchievementsService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<DtrBarService>();
         }
         catch (Exception ex)

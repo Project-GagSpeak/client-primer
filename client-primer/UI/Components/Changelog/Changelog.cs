@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0,9,5,5)
+            .RegisterBugfix("Fixed Hardcore Forced Follow UI Bug and ForcedSit bug (Hopefully)");
         VersionEntry(0, 9, 5, 1)
             .RegisterMain("Half of the achievements Functionality has been added.")
             .RegisterMain("CAUTION: This is a TEST BUILD update, meaning a lot more debug messages will occur than usual.")

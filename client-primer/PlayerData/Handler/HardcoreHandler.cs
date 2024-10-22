@@ -186,12 +186,13 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         if (newState is NewState.Disabled)
         {
             Logger.LogDebug("Pair has allowed you to stand again.", LoggerType.HardcoreMovement);
-            _moveController.DisableMovementLock();
             // set it on client before getting change back from server.
             if (isGroundsit)
                 _playerData.GlobalPerms!.ForcedGroundsit = string.Empty;
             else
                 _playerData.GlobalPerms!.ForcedSit = string.Empty;
+            // Disable the movement lock after we set our permissions for validation.
+            _moveController.DisableMovementLock();
         }
     }
 

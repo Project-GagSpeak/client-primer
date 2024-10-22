@@ -125,6 +125,10 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         if (propertyInfo is null)
             return;
 
+        // Get the Hardcore Change Type before updating the property (if it is not valid it wont return anything but none anyways)
+        HardcoreAction hardcoreChangeType = GlobalPerms!.GetHardcoreChange(propertyName, newValue);
+
+
         // If the property exists and is found, update its value
         if (newValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
         {
@@ -151,14 +155,16 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
 
         // Publish Interaction Event
         var changedPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserData.UID == changeDto.User.UID);
-        HardcoreAction hardcoreChangeType = GlobalPerms!.GetHardcoreChange(propertyName, newValue);
         // If not a hardcore change but another perm change, publish that.
         if (changedPair is not null && hardcoreChangeType is HardcoreAction.None)
             Mediator.Publish(new EventMessage(new(changedPair.GetNickAliasOrUid(), changedPair.UserData.UID, InteractionType.ForcedPermChange, "Permission (" + changeDto + ") Changed")));
 
         // Handle hardcore changes here.
         if (hardcoreChangeType is HardcoreAction.None)
+        {
+            Logger.LogInformation("No Hardcore Change Detected. Returning.", LoggerType.PairManagement);
             return;
+        }
 
         var newState = string.IsNullOrEmpty((string)newValue) ? NewState.Disabled : NewState.Enabled;
         Logger.LogInformation(hardcoreChangeType.ToString() + " has changed, and is now "+ newValue, LoggerType.PairManagement);

@@ -210,15 +210,15 @@ public partial class AchievementManager
         }, "Funny Conditions Met");
 
         // Check this in the action function handler
-        wardrobeComponent.AddConditionalProgress(WardrobeLabels.AuctionedOff, "Have a restraint set enabled by one GagSpeak user be removed by a different GagSpeak user.", 1,
-            () => _clientConfigs.GetActiveSetIdx() != -1, "Auctions Won");
+        wardrobeComponent.AddProgress(WardrobeLabels.AuctionedOff, "Have a restraint set enabled by one GagSpeak user be removed by a different GagSpeak user.", 1, "Auctions Won");
 
         // Check this in the action function handler
-        wardrobeComponent.AddProgress(WardrobeLabels.SoldSlave, "Have a password-locked restraint set locked by one GagSpeak user be unlocked by another.", 1, "Freedom Relinquished");
+        wardrobeComponent.AddConditional(WardrobeLabels.SoldSlave, "Have a password-locked restraint set locked by one GagSpeak user be unlocked by another.",
+            () => _clientConfigs.GetActiveSetIdx() != -1, "Freedom Relinquished");
 
         // Bondodge - Within 2 seconds of having a restraint set applied to you, remove it from yourself (might want to add a duration conditional but idk?)
         wardrobeComponent.AddTimeLimitedConditional(WardrobeLabels.Bondodge, "Within 2 seconds of having a restraint set applied to you, remove it from yourself",
-            TimeSpan.FromSeconds(2), () => _clientConfigs.GetActiveSetIdx() != -1, DurationTimeUnit.Seconds, "Seconds (Within)", isSecret: true);
+            TimeSpan.FromSeconds(2), () => _clientConfigs.GetActiveSetIdx() != -1, DurationTimeUnit.Seconds, "Seconds", isSecret: true);
 
         SaveData.Achievements[AchievementModuleKind.Wardrobe] = wardrobeComponent;
         #endregion WARDROBE MODULE

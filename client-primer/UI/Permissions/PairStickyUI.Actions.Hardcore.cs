@@ -27,11 +27,18 @@ public partial class PairStickyUI
         if(_playerManager.GlobalPerms is null)
             return;
 
+        if(ApiController.UID is null)
+        {
+            _logger.LogWarning("ApiController.UID is null, cannot draw hardcore actions.");
+            return;
+        }
+
         // conditions for disabled actions
-        bool inRange = Vector3.Distance(_clientState.LocalPlayer?.Position ?? default, _clientState.LocalPlayer?.TargetObject?.Position ?? default) < 3;
+        bool inRange = _clientState.LocalPlayer is not null && UserPairForPerms.VisiblePairGameObject is not null 
+            && Vector3.Distance(_clientState.LocalPlayer.Position, UserPairForPerms.VisiblePairGameObject.Position) < 3;
         // Conditionals for hardcore interactions
         var clientGlobals = _playerManager.GlobalPerms;
-        bool disableForceFollow = !inRange || !PairPerms.AllowForcedFollow || !UserPairForPerms.IsVisible || !_playerManager.GlobalPerms.CanToggleFollow(ApiController.UID);
+        bool disableForceFollow = !inRange || !PairPerms.AllowForcedFollow || !UserPairForPerms.IsVisible || !PairGlobals.CanToggleFollow(ApiController.UID);
         bool disableForceSit = !PairPerms.AllowForcedSit || !_playerManager.GlobalPerms.CanToggleSit(ApiController.UID);
         bool disableForceGroundSit = !PairPerms.AllowForcedSit || !_playerManager.GlobalPerms.CanToggleSit(ApiController.UID);
         bool disableForceToStay = !PairPerms.AllowForcedToStay || !_playerManager.GlobalPerms.CanToggleStay(ApiController.UID);

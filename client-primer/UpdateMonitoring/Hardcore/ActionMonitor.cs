@@ -114,6 +114,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         await Task.Delay(3000);
         // set lock to visable again
         HotbarLocker.SetHotbarLockState(NewState.Unlocked);
+        MonitorHardcoreRestraintSetProperties = false;
         // restore saved slots
         RestoreSavedSlots();
     }

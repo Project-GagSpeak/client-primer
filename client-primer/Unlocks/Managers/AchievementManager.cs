@@ -102,6 +102,8 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Subscribe<RestraintSet>(UnlocksEvent.RestraintUpdated, OnRestraintSetUpdated);
         _eventManager.Subscribe<RestraintSet, bool, string>(UnlocksEvent.RestraintApplicationChanged, OnRestraintApplied); // Apply on US
         _eventManager.Subscribe<RestraintSet, Padlocks, bool, string>(UnlocksEvent.RestraintLockChange, OnRestraintLock); // Lock on US
+        _eventManager.Subscribe(UnlocksEvent.SoldSlave, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SoldSlave] as ConditionalAchievement)?.CheckCompletion());
+        _eventManager.Subscribe(UnlocksEvent.AuctionedOff, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AuctionedOff] as ProgressAchievement)?.IncrementProgress());
 
         _eventManager.Subscribe<Guid, bool, string>(UnlocksEvent.PairRestraintApplied, OnPairRestraintApply);
         _eventManager.Subscribe<Guid, Padlocks, bool, string>(UnlocksEvent.PairRestraintLockChange, OnPairRestraintLockChange);
@@ -183,6 +185,8 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Unsubscribe<RestraintSet>(UnlocksEvent.RestraintUpdated, OnRestraintSetUpdated);
         _eventManager.Unsubscribe<RestraintSet, bool, string>(UnlocksEvent.RestraintApplicationChanged, OnRestraintApplied); // Apply on US
         _eventManager.Unsubscribe<RestraintSet, Padlocks, bool, string>(UnlocksEvent.RestraintLockChange, OnRestraintLock); // Lock on US
+        _eventManager.Unsubscribe(UnlocksEvent.SoldSlave, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SoldSlave] as ConditionalAchievement)?.CheckCompletion());
+        _eventManager.Unsubscribe(UnlocksEvent.AuctionedOff, () => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AuctionedOff] as ProgressAchievement)?.IncrementProgress());
 
         _eventManager.Unsubscribe<Guid, bool, string>(UnlocksEvent.PairRestraintApplied, OnPairRestraintApply);
         _eventManager.Unsubscribe<Guid, Padlocks, bool, string>(UnlocksEvent.PairRestraintLockChange, OnPairRestraintLockChange);

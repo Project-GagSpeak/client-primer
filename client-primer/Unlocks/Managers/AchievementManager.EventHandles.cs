@@ -59,7 +59,7 @@ public partial class AchievementManager
             (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.CheckTaskProgress();
 
         if ((SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.CheckTaskProgress();
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
 
     }
 
@@ -99,7 +99,6 @@ public partial class AchievementManager
                     (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.MyKinkRunsDeep] as ConditionalProgressAchievement)?.BeginConditionalTask();
                     if (floor is 30)
                     {
-                        (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.BondagePalace] as ConditionalProgressAchievement)?.FinishConditionalTask();
                         (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.MyKinkRunsDeep] as ConditionalProgressAchievement)?.FinishConditionalTask();
                         (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.MyKinksRunDeeper] as ConditionalProgressAchievement)?.FinishConditionalTask();
                     }
@@ -118,6 +117,69 @@ public partial class AchievementManager
                     }
                 }
                 break;
+        }
+    }
+
+    private void OnDutyStart(object? sender, ushort e)
+    {
+        Logger.LogInformation("Duty Started", LoggerType.Achievements);
+        if (_frameworkUtils.InPvP)// || _frameworkUtils.PartyListSize < 4)
+            return;
+
+        (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.KinkyExplorer] as ConditionalAchievement)?.CheckCompletion();
+
+        (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.BeginConditionalTask();
+        (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.BeginConditionalTask();
+
+        if (_frameworkUtils.PlayerJobRole is ActionRoles.Healer)
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.BeginConditionalTask();
+
+        // If the party size is 8, let's check for the trials.
+        if(_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
+        {
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfFocus] as ConditionalProgressAchievement)?.BeginConditionalTask();
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfDexterity] as ConditionalProgressAchievement)?.BeginConditionalTask();
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfTheBlind] as ConditionalProgressAchievement)?.BeginConditionalTask();
+        }
+    }
+
+    private void OnDutyEnd(object? sender, ushort e)
+    {
+        if (_frameworkUtils.InPvP)// || _frameworkUtils.PartyListSize < 4)
+            return;
+        Logger.LogInformation("Duty Ended", LoggerType.Achievements);
+        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.FinishConditionalTask();
+
+        if ((SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.FinishConditionalTask();
+
+        if ((SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.FinishConditionalTask();
+
+        // Trial has ended, check for completion.
+        if ((SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfFocus] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+        {
+            if (_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfFocus] as ConditionalProgressAchievement)?.FinishConditionalTask();
+            else // if we are not in a full party, we should reset the task.
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfFocus] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+        }
+        
+        if ((SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfDexterity] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+        {
+            if(_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfDexterity] as ConditionalProgressAchievement)?.FinishConditionalTask();
+            else // if we are not in a full party, we should reset the task.
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfDexterity] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+        }
+        
+        if ((SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfTheBlind] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+        {
+            if (_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfTheBlind] as ConditionalProgressAchievement)?.FinishConditionalTask();
+            else // if we are not in a full party, we should reset the task.
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfTheBlind] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
         }
     }
 
@@ -264,6 +326,10 @@ public partial class AchievementManager
 
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.BondageBunny] as TimedProgressAchievement)?.IncrementProgress();
             }
+            // If a set is being disabled at all, we should reset our conditonals.
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfFocus] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfDexterity] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfTheBlind] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
         }
     }
 

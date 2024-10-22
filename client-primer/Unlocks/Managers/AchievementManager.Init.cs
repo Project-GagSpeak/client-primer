@@ -137,7 +137,7 @@ public partial class AchievementManager
         // Start condition is entering a duty, end condition is leaving a duty 10 times.
         // TODO: Add Vibed as an option here
         wardrobeComponent.AddConditionalProgress(WardrobeLabels.HealSlut, "Complete a duty as a healer while wearing a gag, restraint, or using a vibe.", 1,
-            () => _playerData.IsPlayerGagged || _clientConfigs.GetActiveSetIdx() != -1, "Duties Completed");
+            () => _playerData.IsPlayerGagged || _clientConfigs.GetActiveSetIdx() != -1 || _vibeService.ConnectedToyActive, "Duties Completed");
 
         // Deep Dungeon Achievements
         wardrobeComponent.AddConditionalProgress(WardrobeLabels.BondagePalace, "Reach Floor 50 or 100 of Palace of the Dead while bound.", 1, () => _clientConfigs.GetActiveSetIdx() != -1, "FloorSets Cleared");
@@ -159,7 +159,7 @@ public partial class AchievementManager
         // Complete a Trial within 10 levels of max level with Hardcore Properties
         wardrobeComponent.AddConditionalProgress(WardrobeLabels.TrialOfFocus, "Complete a trial within 10 levels of max level with stimulation (HardcoreLabels Focus).", 1, () =>
         {
-            if (_frameworkUtils.PlayerLevel < 91) return false;
+            if (_frameworkUtils.PlayerLevel < 90) return false;
             // get the set and make sure stimulation is enabled for the person who enabled it.
             var activeSet = _clientConfigs.GetActiveSet();
             if (activeSet is null) return false;
@@ -171,7 +171,7 @@ public partial class AchievementManager
         }, "Hardcore Trials Cleared");
         wardrobeComponent.AddConditionalProgress(WardrobeLabels.TrialOfDexterity, "Complete a trial within 10 levels of max level with arms/legs restrained.", 1, () =>
         {
-            if (_frameworkUtils.PlayerLevel < 91) return false;
+            if (_frameworkUtils.PlayerLevel < 90) return false;
             // get the set and make sure stimulation is enabled for the person who enabled it.
             var activeSet = _clientConfigs.GetActiveSet();
             if (activeSet is null) return false;
@@ -183,7 +183,7 @@ public partial class AchievementManager
         }, "Hardcore Trials Cleared");
         wardrobeComponent.AddConditionalProgress(WardrobeLabels.TrialOfTheBlind, "Complete a trial within 10 levels of max level while blindfolded.", 1, () =>
         {
-            if (_frameworkUtils.PlayerLevel < 91) return false;
+            if (_frameworkUtils.PlayerLevel < 90) return false;
             // get the set and make sure stimulation is enabled for the person who enabled it.
             var activeSet = _clientConfigs.GetActiveSet();
             if (activeSet is null) return false;

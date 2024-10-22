@@ -245,6 +245,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                     Assigner = Globals.SelfApplied
                 };
                 _gagManager.OnGagLockChanged(padlockData, NewState.Locked, true, true);
+                _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTimeGag));
                 Logger.LogInformation($"Cursed Loot Applied!", LoggerType.CursedLoot);
                 
                 if(!_playerData.CoreDataNull && _playerData.GlobalPerms!.LiveChatGarblerActive)

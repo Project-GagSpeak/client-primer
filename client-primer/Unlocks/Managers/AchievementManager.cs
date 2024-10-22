@@ -227,37 +227,6 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _dutyState.DutyCompleted -= OnDutyEnd;
     }
 
-    private void OnDutyStart(object? sender, ushort e)
-    {
-        Logger.LogInformation("Duty Started", LoggerType.Achievements);
-        if (_frameworkUtils.InPvP)// || _frameworkUtils.PartyListSize < 4)
-            return;
-
-        (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.KinkyExplorer] as ConditionalAchievement)?.CheckCompletion();
-
-        (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.BeginConditionalTask();
-        (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.BeginConditionalTask();
-
-        if (_frameworkUtils.PlayerJobRole is ActionRoles.Healer)
-            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.BeginConditionalTask();
-    }
-
-    private void OnDutyEnd(object? sender, ushort e)
-    {
-        if (_frameworkUtils.InPvP)// || _frameworkUtils.PartyListSize < 4)
-            return;
-        Logger.LogInformation("Duty Ended", LoggerType.Achievements);
-        if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.FinishConditionalTask();
-
-        if ((SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.FinishConditionalTask();
-
-        if ((SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.FinishConditionalTask();
-    }
-
-
     // Updater that sends our latest achievement Data to the server every 30 minutes.
     private async Task AchievementDataPeriodicUpdate(CancellationToken ct)
     {

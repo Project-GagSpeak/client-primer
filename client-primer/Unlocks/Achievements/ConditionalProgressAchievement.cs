@@ -45,6 +45,9 @@ public class ConditionalProgressAchievement : Achievement
 
     public void BeginConditionalTask()
     {
+        if (IsCompleted)
+            return;
+
         if (!RequiredCondition())
             return;
 
@@ -54,6 +57,9 @@ public class ConditionalProgressAchievement : Achievement
 
     public void FinishConditionalTask()
     {
+        if (IsCompleted)
+            return;
+
         StaticLogger.Logger.LogDebug($"Finishing Conditional Task for {Title}");
         ConditionalTaskFinished = true;
         CheckTaskProgress();
@@ -61,6 +67,9 @@ public class ConditionalProgressAchievement : Achievement
 
     public void StartOverDueToInturrupt()
     {
+        if (IsCompleted)
+            return;
+
         StaticLogger.Logger.LogDebug($"Achievement {Title} Requires conditional Begin & End, but we inturrupted before reaching end. Starting Over!", LoggerType.Achievements);
         ConditionalTaskBegun = false;
         ConditionalTaskFinished = false;

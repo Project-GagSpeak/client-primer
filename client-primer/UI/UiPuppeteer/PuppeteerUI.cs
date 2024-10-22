@@ -50,6 +50,11 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         RespectCloseHotkey = false;
     }
 
+    private bool isEditingTriggerOptions = false;
+    private string? UnsavedTriggerPhrase = null;
+    private string? UnsavedNewStartChar = null;
+    private string? UnsavedNewEndChar = null;
+
     protected override void PreDrawInternal()
     {
         // include our personalized theme for this window here if we have themes enabled.
@@ -281,18 +286,15 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             DrawAliasItemBox(aliasItem);
     }
 
-    private bool isEditingTriggerPhrase = false;
-    private string? _tempTriggerStorage = null!;
-    private string? _tempStartChar = null!;
-    private string? _tempEndChar = null!;
     private void DrawTriggerPhraseDetailBox(TriggerData triggerInfo)
     {
-        if (_puppeteerHandler.SelectedPair is null) return;
+        if (_puppeteerHandler.SelectedPair is null) 
+            return;
 
         bool isClient = triggerInfo.UID == "Client";
         bool displayInRed = isClient && (_puppeteerHandler.StorageBeingEdited.CharacterName.IsNullOrEmpty() || _puppeteerHandler.StorageBeingEdited.CharacterWorld.IsNullOrEmpty());
-        var buttonIcon = isEditingTriggerPhrase ? FontAwesomeIcon.Save : FontAwesomeIcon.Edit;
-        var iconSize = isEditingTriggerPhrase ? _uiShared.GetIconButtonSize(FontAwesomeIcon.Save) : _uiShared.GetIconButtonSize(FontAwesomeIcon.Edit);
+        var buttonIcon = isEditingTriggerOptions ? FontAwesomeIcon.Save : FontAwesomeIcon.Edit;
+        var iconSize = isEditingTriggerOptions ? _uiShared.GetIconButtonSize(FontAwesomeIcon.Save) : _uiShared.GetIconButtonSize(FontAwesomeIcon.Edit);
         string displayName = triggerInfo.NickOrAlias.IsNullOrEmpty() ? triggerInfo.UID : triggerInfo.NickOrAlias;
 
 
@@ -380,12 +382,36 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                     UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform any command");
 
                     ImUtf8.SameLineInner();
-                    using (var color = ImRaii.PushColor(ImGuiCol.Text, isEditingTriggerPhrase ? ImGuiColors.ParsedPink : ImGuiColors.DalamudGrey))
+                    using (var color = ImRaii.PushColor(ImGuiCol.Text, isEditingTriggerOptions ? ImGuiColors.ParsedPink : ImGuiColors.DalamudGrey))
                     {
                         if (_uiShared.IconButton(buttonIcon, null, null, false, true))
-                            isEditingTriggerPhrase = !isEditingTriggerPhrase;
+                        {
+                            if (isEditingTriggerOptions)
+                            {
+                                // save and update our changes.
+                                if (UnsavedTriggerPhrase is not null)
+                                {
+                                    _logger.LogTrace($"Updated own pair permission: TriggerPhrase to {UnsavedTriggerPhrase}");
+                                    _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("TriggerPhrase", UnsavedTriggerPhrase)));
+                                    UnsavedTriggerPhrase = null;
+                                }
+                                if (UnsavedNewStartChar is not null)
+                                {
+                                    _logger.LogTrace($"Updated own pair permission: StartChar to {UnsavedNewStartChar}");
+                                    _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("StartChar", UnsavedNewStartChar[0])));
+                                    UnsavedNewStartChar = null;
+                                }
+                                if (UnsavedNewEndChar is not null)
+                                {
+                                    _logger.LogTrace($"Updated own pair permission: EndChar to {UnsavedNewEndChar}");
+                                    _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("EndChar", UnsavedNewEndChar[0])));
+                                    UnsavedNewEndChar = null;
+                                }
+                            }
+                            isEditingTriggerOptions = !isEditingTriggerOptions;
+                        }
                     }
-                    UiSharedService.AttachToolTip(isEditingTriggerPhrase ? "Stop Editing your TriggerPhrase Info." : "Modify Your TriggerPhrase Info");
+                    UiSharedService.AttachToolTip(isEditingTriggerOptions ? "Stop Editing your TriggerPhrase Info." : "Modify Your TriggerPhrase Info");
                 }
 
                 using (ImRaii.PushFont(UiBuilder.MonoFont)) ImGui.TextUnformatted($"{_puppeteerHandler.StorageBeingEdited.CharacterName} @ {_puppeteerHandler.StorageBeingEdited.CharacterWorld}");
@@ -397,36 +423,20 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             string[] triggers = triggerInfo.TriggerPhrase.Split('|');
 
             StringBuilder label = new StringBuilder();
-            if (isClient)
-                label.Append("Your ");
-            if (triggers.Length > 1)
-                label.Append("Trigger Phrases");
-            else
-                label.Append("Trigger Phrase");
-            if (!isClient)
-                label.Append(" set for you.");
+            if (isClient) label.Append("Your ");
+            label.Append(label.Length > 0 ? "Trigger Phrases" : "Trigger Phrase");
+            if (!isClient) label.Append(" set for you.");
 
             ImGui.AlignTextToFramePadding();
             UiSharedService.ColorText(label.ToString(), ImGuiColors.ParsedPink);
             ImGui.Spacing();
 
-            if (isEditingTriggerPhrase && isClient)
+            if (isEditingTriggerOptions && isClient)
             {
-                var TriggerPhrase = _tempTriggerStorage ?? triggerInfo.TriggerPhrase;
+                var TriggerPhrase = UnsavedTriggerPhrase ?? triggerInfo.TriggerPhrase;
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
                 if (ImGui.InputTextWithHint($"##{displayName}-Trigger", "Leave Blank for none...", ref TriggerPhrase, 64, ImGuiInputTextFlags.EnterReturnsTrue))
-                {
-                    _tempTriggerStorage = TriggerPhrase;
-                }
-                if (ImGui.IsItemDeactivatedAfterEdit())
-                {
-                    _logger.LogTrace($"Updated own pair permission: TriggerPhrase to {TriggerPhrase}");
-                    if (isClient)
-                    {
-                        _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("TriggerPhrase", TriggerPhrase)));
-                        _tempTriggerStorage = null!;
-                    }
-                }
+                    UnsavedTriggerPhrase = TriggerPhrase;
                 UiSharedService.AttachToolTip("You can create multiple trigger phrases by placing a | between phrases.");
             }
             else
@@ -454,53 +464,38 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                 ImGui.AlignTextToFramePadding();
                 UiSharedService.ColorText("Custom Brackets:", ImGuiColors.ParsedPink);
                 ImGui.SameLine();
-                if (isEditingTriggerPhrase && isClient)
+                if (isEditingTriggerOptions && isClient)
                 {
                     ImGui.SetNextItemWidth(20 * ImGuiHelpers.GlobalScale);
-                    var startChar = _tempStartChar ?? triggerInfo.StartChar.ToString();
+                    var startChar = UnsavedNewStartChar ?? triggerInfo.StartChar.ToString();
                     if (ImGui.InputText($"##{displayName}sStarChar", ref startChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
-                    {
-                        _tempStartChar = startChar;
-                    }
+                        UnsavedNewStartChar = startChar;
                     if (ImGui.IsItemDeactivatedAfterEdit())
                     {
                         if (string.IsNullOrEmpty(startChar) || startChar == " ")
-                        {
-                            startChar = "(";
-                        }
-                        _logger.LogTrace($"Updated own pair permission: StartChar to {startChar}");
-                        _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("StartChar", startChar[0])));
-                        _tempStartChar = null!;
+                            UnsavedNewStartChar = "(";
                     }
                 }
                 else
                 {
                     using (ImRaii.PushFont(UiBuilder.MonoFont)) ImGui.TextUnformatted(triggerInfo.StartChar.ToString());
-
                 }
                 UiSharedService.AttachToolTip($"Custom Start Character that replaces the left enclosing bracket." +
-                    Environment.NewLine + "Replaces the [ ( ] in Ex: [ TriggerPhrase (commandToExecute) ]");
+                    Environment.NewLine + "Replaces the [ ( ] in: [ TriggerPhrase (commandToExecute) ]");
 
                 ImUtf8.SameLineInner();
                 _uiShared.IconText(FontAwesomeIcon.GripLinesVertical, ImGuiColors.ParsedPink);
                 ImUtf8.SameLineInner();
-                if (isEditingTriggerPhrase && isClient)
+                if (isEditingTriggerOptions && isClient)
                 {
                     ImGui.SetNextItemWidth(20 * ImGuiHelpers.GlobalScale);
-                    var endChar = _tempEndChar ?? triggerInfo.EndChar.ToString();
-                    if (ImGui.InputText($"##{displayName}sStarChar", ref endChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
-                    {
-                        _tempEndChar = endChar;
-                    }
+                    var endChar = UnsavedNewEndChar ?? triggerInfo.EndChar.ToString();
+                    if (ImGui.InputText($"##{displayName}sEndChar", ref endChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
+                        UnsavedNewEndChar = endChar;
                     if (ImGui.IsItemDeactivatedAfterEdit())
                     {
                         if (string.IsNullOrEmpty(endChar) || endChar == " ")
-                        {
-                            endChar = ")";
-                        }
-                        _logger.LogTrace($"Updated own pair permission: EndChar to {endChar}");
-                        _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("EndChar", endChar[0])));
-                        _tempEndChar = null!;
+                            UnsavedNewEndChar = ")";
                     }
                 }
                 else

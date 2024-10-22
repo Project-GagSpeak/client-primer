@@ -210,11 +210,11 @@ public partial class AchievementManager
         }, "Funny Conditions Met");
 
         // Check this in the action function handler
-        wardrobeComponent.AddProgress(WardrobeLabels.AuctionedOff, "Have a restraint set enabled by one GagSpeak user be removed by a different GagSpeak user.", 1, "Auctions Won");
+        wardrobeComponent.AddProgress(WardrobeLabels.AuctionedOff, "Have a restraint set enabled by one GagSpeak user be removed by a different GagSpeak user.", 1, prefix: "Auctioned Off", suffix: "Times");
 
         // Check this in the action function handler
         wardrobeComponent.AddConditional(WardrobeLabels.SoldSlave, "Have a password-locked restraint set locked by one GagSpeak user be unlocked by another.",
-            () => _clientConfigs.GetActiveSetIdx() != -1, "Freedom Relinquished");
+            () => _clientConfigs.GetActiveSetIdx() != -1, prefix: "Sold off in Bondage ", suffix: "Times");
 
         // Bondodge - Within 2 seconds of having a restraint set applied to you, remove it from yourself (might want to add a duration conditional but idk?)
         wardrobeComponent.AddTimeLimitedConditional(WardrobeLabels.Bondodge, "Within 2 seconds of having a restraint set applied to you, remove it from yourself",
@@ -227,18 +227,18 @@ public partial class AchievementManager
         #region PUPPETEER MODULE
         var puppeteerComponent = new AchievementComponent(_completionNotifier);
         // (can work both ways)
-        puppeteerComponent.AddProgress(PuppeteerLabels.WhoIsAGoodPet, "Be ordered to sit by another pair through Puppeteer.", 1, "Order Received");
+        puppeteerComponent.AddProgress(PuppeteerLabels.WhoIsAGoodPet, "Be ordered to sit by another pair through Puppeteer.", 1, prefix: "Recieved", suffix: "Sit Orders");
 
-        puppeteerComponent.AddProgress(PuppeteerLabels.ControlMyBody, "Enable Allow Motions for another pair.", 1, "Pairs Granted Access");
-        puppeteerComponent.AddProgress(PuppeteerLabels.CompleteDevotion, "Enable All Commands for another pair.", 1, "Pairs Granted Access");
+        puppeteerComponent.AddProgress(PuppeteerLabels.ControlMyBody, "Enable Allow Motions for another pair.", 1, prefix: "Granted", suffix: "Pairs Access");
+        puppeteerComponent.AddProgress(PuppeteerLabels.CompleteDevotion, "Enable All Commands for another pair.", 1, prefix: "Granted", suffix: "Pairs Access");
 
-        puppeteerComponent.AddTimedProgress(PuppeteerLabels.MasterOfPuppets, "Puppeteer someone 10 times in an hour.", 10, TimeSpan.FromHours(1), "Commands Given In The Hour");
+        puppeteerComponent.AddTimedProgress(PuppeteerLabels.MasterOfPuppets, "Puppeteer someone 10 times in an hour.", 10, TimeSpan.FromHours(1), prefix: "Gave", suffix: "Within the last Hour");
 
-        puppeteerComponent.AddProgress(PuppeteerLabels.KissMyHeels, "Order someone to /grovel 50 times using Puppeteer.", 20, "Grovels Ordered");
+        puppeteerComponent.AddProgress(PuppeteerLabels.KissMyHeels, "Order someone to /grovel 50 times using Puppeteer.", 50, prefix: "Ordered", suffix: "Grovels");
 
-        puppeteerComponent.AddProgress(PuppeteerLabels.Ashamed, "Be forced to /sulk through Puppeteer.", 1, "Sulks Forced");
+        puppeteerComponent.AddProgress(PuppeteerLabels.Ashamed, "Be forced to /sulk through Puppeteer.", 1, prefix: "Forced a Pair to Sulk", suffix: "Times");
 
-        puppeteerComponent.AddProgress(PuppeteerLabels.ShowingOff, "Order someone to execute any emote with 'dance' in it 10 times.", 10, "Dances Ordered");
+        puppeteerComponent.AddProgress(PuppeteerLabels.ShowingOff, "Order someone to execute any emote with 'dance' in it 10 times.", 10, prefix: "Ordered", suffix: "Dances");
 
         SaveData.Achievements[AchievementModuleKind.Puppeteer] = puppeteerComponent;
         #endregion PUPPETEER MODULE
@@ -246,13 +246,13 @@ public partial class AchievementManager
         // Module Finished
         #region TOYBOX MODULE
         var toyboxComponent = new AchievementComponent(_completionNotifier);
-        toyboxComponent.AddProgress(ToyboxLabels.FunForAll, "Create and publish a pattern for the first time.", 1, "Patterns Published");
+        toyboxComponent.AddProgress(ToyboxLabels.FunForAll, "Create and publish a pattern for the first time.", 1, prefix: "Published", suffix: "Patterns");
 
-        toyboxComponent.AddProgress(ToyboxLabels.DeviousComposer, "Publish 10 patterns you have made.", 10, "Patterns Published");
+        toyboxComponent.AddProgress(ToyboxLabels.DeviousComposer, "Publish 10 patterns you have made.", 10, prefix: "Published", suffix: "Patterns");
 
-        toyboxComponent.AddProgress(ToyboxLabels.CravingPleasure, "Download 30 Patterns from the Pattern Hub", 30, "Patterns Downloaded");
+        toyboxComponent.AddProgress(ToyboxLabels.CravingPleasure, "Download 30 Patterns from the Pattern Hub", 30, prefix: "Downloaded", suffix: "Patterns");
 
-        toyboxComponent.AddProgress(ToyboxLabels.PatternLover, "Like 30 Patterns from the Pattern Hub", 30, "Patterns Liked");
+        toyboxComponent.AddProgress(ToyboxLabels.PatternLover, "Like 30 Patterns from the Pattern Hub", 30, prefix: "Liked", suffix: "Patterns");
 
         toyboxComponent.AddDuration(ToyboxLabels.EnduranceQueen, "Play a pattern for an hour (59m) without pause.", TimeSpan.FromHours(1), DurationTimeUnit.Minutes, "Minutes");
 

@@ -10,6 +10,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Extensions;
 using Lumina.Excel.GeneratedSheets;
@@ -184,6 +185,12 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
             }
         }
 
+        // see if we qualify for the achievement Auctioned off, and if so, fire it.
+        bool auctionedOffSatisfied = (setRef.EnabledBy != Globals.SelfApplied && setRef.EnabledBy != ApiController.UID)
+                            && (disablerUID != Globals.SelfApplied && disablerUID != ApiController.UID);
+        if (triggerAchievement && (setRef.EnabledBy != disablerUID) && auctionedOffSatisfied)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.AuctionedOff);
+
         if(triggerAchievement)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, false, disablerUID);
         setRef.Enabled = false;
@@ -273,6 +280,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
 
         // Store a copy of the values we need before we change them.
         var previousLock = setRef.LockType;
+        var previousAssigner = setRef.LockedBy;
 
         // Assign the lock information to the set.
         setRef.LockType = Padlocks.None.ToName();
@@ -289,6 +297,12 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         // After this, we should push our changes to the server, if we have marked for us to.
         if (pushToServer)
             Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked));
+
+        // If we should fire the sold slave achievement, fire it.
+        bool soldSlaveSatisfied = (previousAssigner != Globals.SelfApplied && previousAssigner != ApiController.UID) && (lockRemover != Globals.SelfApplied && lockRemover != ApiController.UID);
+        if (triggerAchievement && (previousAssigner != lockRemover) && soldSlaveSatisfied)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.SoldSlave);
+
 
         // Finally, we should fire to our achievement manager, if we have marked for us to.
         if (triggerAchievement)

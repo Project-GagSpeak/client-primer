@@ -45,12 +45,12 @@ public sealed class GameItemCombo : CustomFilterComboCache<EquipItem>
         return base.UpdateCurrentSelected(CurrentSelectionIdx);
     }
 
-    public bool Draw(string previewName, ItemId previewIdx, float width, float innerWidth, string labelDisp = "")
+    public bool Draw(string previewName, ItemId previewIdx, float width, float innerWidth, string labelDisp = "", bool allowMouseWheel = true)
     {
         _innerWidth = innerWidth;
         _currentItem = previewIdx;
         CustomVariant = 0;
-        return Draw($"{labelDisp}##Test{Label}", previewName, string.Empty, width, ImGui.GetTextLineHeightWithSpacing());
+        return Draw($"{labelDisp}##Test{Label}", previewName, string.Empty, width, ImGui.GetTextLineHeightWithSpacing(), mouseAllowed: allowMouseWheel);
     }
 
     protected override float GetFilterWidth()

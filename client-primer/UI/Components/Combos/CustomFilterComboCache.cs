@@ -75,9 +75,9 @@ public abstract class CustomFilterComboCache<T> : CustomFilterComboBase<T>
         Cleanup();
     }
 
-    public bool Draw(string label, string preview, string tooltip, float previewWidth, float itemHeight,
-        ImGuiComboFlags flags = ImGuiComboFlags.None)
-        => Draw(label, preview, tooltip, ref CurrentSelectionIdx, previewWidth, itemHeight, flags);
+    public bool Draw(string label, string prev, string tt, float prevWidth, float itemHeight, 
+        ImGuiComboFlags flags = ImGuiComboFlags.None, bool mouseAllowed = true)
+        => Draw(label, prev, tt, ref CurrentSelectionIdx, prevWidth, itemHeight, flags, mouseAllowed);
 
     public event Action<T?, T?>? SelectionChanged;
 }

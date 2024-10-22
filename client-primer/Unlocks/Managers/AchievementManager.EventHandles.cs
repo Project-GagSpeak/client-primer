@@ -623,41 +623,53 @@ public partial class AchievementManager
         }
     }
 
-    private void OnEmoteExecuted(IGameObject emoteCallerObj, ushort emoteId, string emoteName, IGameObject targetObject)
+    private void OnEmoteExecuted(IGameObject emoteCallerObj, ushort emoteId, IGameObject targetObject)
     {
-        // doing /lookout while blindfolded.
-        if (!(SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WhatAView] as ConditionalAchievement)?.IsCompleted ?? false && emoteCallerObj == _frameworkUtils.ClientState.LocalPlayer)
-            if (emoteName.Contains("lookout", StringComparison.OrdinalIgnoreCase))
+        switch (emoteId)
+        {
+            case 22:
                 (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WhatAView] as ConditionalAchievement)?.CheckCompletion();
+                break;
 
-        // Detect shushing another gagspeak user.
-        if (!(SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.QuietNowDear] as ConditionalAchievement)?.IsCompleted ?? false && emoteCallerObj == _frameworkUtils.ClientState.LocalPlayer)
-            if (emoteName.Contains("shush", StringComparison.OrdinalIgnoreCase))
+            case 231:
                 (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.QuietNowDear] as ConditionalAchievement)?.CheckCompletion();
-        
-        // detect getting slapped.
-        if (!(SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.ICantBelieveYouveDoneThis] as ConditionalAchievement)?.IsCompleted ?? false && targetObject == _frameworkUtils.ClientState.LocalPlayer)
-            if (emoteName.Contains("slap", StringComparison.OrdinalIgnoreCase) && emoteCallerObj.ObjectIndex is not 0) // 0 is the clientPlayer object index.
-                (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.ICantBelieveYouveDoneThis] as ConditionalAchievement)?.CheckCompletion();
+                break;
+
+            case 111:
+                if (emoteCallerObj.ObjectIndex is not 0) // 0 is the clientPlayer object index.
+                    (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.ICantBelieveYouveDoneThis] as ConditionalAchievement)?.CheckCompletion();
+                break;
+        }
     }
 
-    private void OnPuppeteerEmoteSent(string emoteName)
+    private void OnPuppeteerOrderSent(PuppeteerMsgType orderType)
     {
-        if (emoteName.Contains("dance", StringComparison.OrdinalIgnoreCase))
+        switch(orderType)
         {
-            (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.ShowingOff] as ProgressAchievement)?.IncrementProgress();
+            case PuppeteerMsgType.GrovelOrder:
+                (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.KissMyHeels] as ProgressAchievement)?.IncrementProgress();
+                break;
+
+            case PuppeteerMsgType.DanceOrder:
+                (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.ShowingOff] as ProgressAchievement)?.IncrementProgress();
+                break;
         }
-        else if (emoteName.Contains("grovel", StringComparison.OrdinalIgnoreCase))
+        // Increase regardless.
+        (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.MasterOfPuppets] as TimedProgressAchievement)?.IncrementProgress();
+    }
+
+    private void OnPuppeteerRecievedEmoteOrder(ushort emoteId)
+    {
+        switch(emoteId)
         {
-            (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.KissMyHeels] as ProgressAchievement)?.IncrementProgress();
-        }
-        else if (emoteName.Contains("sulk", StringComparison.OrdinalIgnoreCase))
-        {
-            (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.Ashamed] as ProgressAchievement)?.IncrementProgress();
-        }
-        else if (emoteName.Contains("sit", StringComparison.OrdinalIgnoreCase) || emoteName.Contains("groundsit", StringComparison.OrdinalIgnoreCase))
-        {
-            (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.WhoIsAGoodPet] as ProgressAchievement)?.IncrementProgress();
+            case 38:
+                (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.Ashamed] as ProgressAchievement)?.IncrementProgress();
+                break;
+
+            case 50:
+            case 52:
+                (SaveData.Achievements[AchievementModuleKind.Puppeteer].Achievements[PuppeteerLabels.WhoIsAGoodPet] as ProgressAchievement)?.IncrementProgress();
+                break;
         }
     }
 

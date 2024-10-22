@@ -39,13 +39,13 @@ public partial class PairStickyUI
         // Conditionals for hardcore interactions
         var clientGlobals = _playerManager.GlobalPerms;
         bool disableForceFollow = !inRange || !PairPerms.AllowForcedFollow || !UserPairForPerms.IsVisible || !PairGlobals.CanToggleFollow(ApiController.UID);
-        bool disableForceSit = !PairPerms.AllowForcedSit || !_playerManager.GlobalPerms.CanToggleSit(ApiController.UID);
-        bool disableForceGroundSit = !PairPerms.AllowForcedSit || !_playerManager.GlobalPerms.CanToggleSit(ApiController.UID);
-        bool disableForceToStay = !PairPerms.AllowForcedToStay || !_playerManager.GlobalPerms.CanToggleStay(ApiController.UID);
-        bool disableBlindfoldToggle = !PairPerms.AllowBlindfold || !_playerManager.GlobalPerms.CanToggleBlindfold(ApiController.UID);
-        bool disableChatVisibilityToggle = !PairPerms.AllowHidingChatboxes || !_playerManager.GlobalPerms.CanToggleChatHidden(ApiController.UID);
-        bool disableChatInputVisibilityToggle = !PairPerms.AllowHidingChatInput || !_playerManager.GlobalPerms.CanToggleChatInputHidden(ApiController.UID);
-        bool disableChatInputBlockToggle = !PairPerms.AllowChatInputBlocking || !_playerManager.GlobalPerms.CanToggleChatInputBlocked(ApiController.UID);
+        bool disableForceSit = !PairPerms.AllowForcedSit || !PairGlobals.CanToggleSit(ApiController.UID);
+        bool disableForceGroundSit = !PairPerms.AllowForcedSit || !PairGlobals.CanToggleSit(ApiController.UID);
+        bool disableForceToStay = !PairPerms.AllowForcedToStay || !PairGlobals.CanToggleStay(ApiController.UID);
+        bool disableBlindfoldToggle = !PairPerms.AllowBlindfold || !PairGlobals.CanToggleBlindfold(ApiController.UID);
+        bool disableChatVisibilityToggle = !PairPerms.AllowHidingChatboxes || !PairGlobals.CanToggleChatHidden(ApiController.UID);
+        bool disableChatInputVisibilityToggle = !PairPerms.AllowHidingChatInput || !PairGlobals.CanToggleChatInputHidden(ApiController.UID);
+        bool disableChatInputBlockToggle = !PairPerms.AllowChatInputBlocking || !PairGlobals.CanToggleChatInputBlocked(ApiController.UID);
         bool pairAllowsDevotionalToggles = PairPerms.DevotionalStatesForPair;
 
         var forceFollowIcon = PairGlobals.IsFollowing() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.PersonWalkingArrowRight;

@@ -92,7 +92,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         pair.UserPair.OwnEditAccessPerms = dto.UniqueAccessPerms;
 
         // publish the mediator changes.
-        if (motionPermsChanged) 
+        if (motionPermsChanged)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, false);
         if (allPermsChanged) 
             UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, true);
@@ -341,12 +341,12 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             Logger.LogError($"Property '{ChangedPermission}' not found or cannot be updated.");
             return;
         }
-        // Log that a change occured to us.
-        Mediator.Publish(new EventMessage(new InteractionEvent(pair.GetNickAliasOrUid(), pair.UserData.UID, InteractionType.ForcedPermChange, "Permission ("+ChangedPermission+") Changed")));
-            
+
         // Handle special cases AFTER the change was made.
-        if (motionPermsChanged) UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, false);
-        if (allPermsChanged) UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, true);
+        if (motionPermsChanged && (bool)ChangedValue) 
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, false);
+        if (allPermsChanged && (bool)ChangedValue) 
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerAccessGiven, true);
 
         RecreateLazy(false);
 

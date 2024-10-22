@@ -172,11 +172,10 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         if (senderName + "@" + senderWorld == _clientState.LocalPlayer.GetNameWithWorld())
         {
             // check if the message we sent contains any of our pairs triggers.
-            if (_puppeteerHandler.MessageContainsPairTriggerPhrase(message.TextValue))
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerMessageSend);
-
+            _puppeteerHandler.OnClientMessageContainsPairTrigger(message.TextValue);
+            
             // if our message is longer than 5 words, fire our on-chat-message achievement.
-            if (message.TextValue.Split(' ').Length > 5 && _playerInfo.IsPlayerGagged && (_playerInfo.GlobalPerms?.LiveChatGarblerActive ?? false))
+            if (_playerInfo.IsPlayerGagged && (_playerInfo.GlobalPerms?.LiveChatGarblerActive ?? false) && message.TextValue.Split(' ').Length > 5)
             {
                 var channel = ChatChannel.GetChatChannelFromXivChatType(type);
                 if (channel != null && _mainConfig.Current.ChannelsGagSpeak.Contains(channel.Value))

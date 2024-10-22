@@ -59,17 +59,38 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
 
     #region PuppeteerSettings
 
-    public bool MessageContainsPairTriggerPhrase(string message)
+    public void OnClientMessageContainsPairTrigger(string msg)
     {
         foreach (var pair in _pairManager.DirectPairs)
         {
             string[] triggers = pair.UserPairUniquePairPerms.TriggerPhrase.Split("|").Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
-            if (triggers.Any(trigger => message.Contains(trigger)))
+            string? foundTrigger = triggers.FirstOrDefault(trigger => msg.Contains(trigger));
+
+            if (!string.IsNullOrEmpty(foundTrigger))
             {
-                return true;
+                // This was a trigger message for the pair, so let's see what the pairs settings are for.
+                var startChar = pair.UserPairUniquePairPerms.StartChar;
+                var endChar = pair.UserPairUniquePairPerms.EndChar;
+
+                // Get the string that exists beyond the trigger phrase found in the message.
+                Logger.LogTrace("Sent Message with trigger phrase set by "+pair.GetNickAliasOrUid()+". Gathering Results.", LoggerType.Puppeteer);
+                var remainingMessage = msg.Substring(msg.IndexOf(foundTrigger) + foundTrigger.Length).Trim();
+
+                // Get the substring within the start and end char if provided. If the start and end chars are not both present in the remaining message, keep the remaining message.
+                remainingMessage = GetSubstringWithinParentheses(remainingMessage, startChar, endChar);
+                Logger.LogTrace("Remaining message after brackets: "+ remainingMessage, LoggerType.Puppeteer);
+
+                // If the string contains the word "grovel", fire the grovel achievement.
+                if (remainingMessage.Contains("grovel"))
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerOrderSent, PuppeteerMsgType.GrovelOrder);
+                else if (remainingMessage.Contains("dance"))
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerOrderSent, PuppeteerMsgType.DanceOrder);
+                else
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerOrderSent, PuppeteerMsgType.GenericOrder);
+
+                return;
             }
         }
-        return false;
     }
 
 
@@ -341,7 +362,16 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         if (permsForSender.AllowSitRequests)
         {
             Logger.LogTrace("Checking if message is a sit command", LoggerType.Puppeteer);
-            if (messageRecieved.TextValue == "sit" || messageRecieved.TextValue == "groundsit") return true;
+            if (messageRecieved.TextValue == "sit")
+            {
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerEmoteRecieved, (ushort)50);
+                return true;
+            }
+            else if (messageRecieved.TextValue == "groundsit")
+            {
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerEmoteRecieved, (ushort)52);
+                return true;
+            }
         }
 
         // handle motion commands
@@ -352,9 +382,13 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
             var emotes = _dataManager.GetExcelSheet<Emote>();
             if (emotes != null)
             {
-                if (emotes.Any(emotes => messageRecieved.TextValue == emotes.Name.RawString.Replace(" ", "").ToLower()))
+                var emote = emotes.FirstOrDefault(emotes => messageRecieved.TextValue == emotes.Name.RawString.Replace(" ", "").ToLower());
+                if (emote is not null)
                 {
-                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerEmoteSent, messageRecieved.TextValue);
+                    // grab the emote where this occured.
+                    var id = emote.RowId;
+                    Logger.LogDebug("Row ID is: " + id, LoggerType.Puppeteer);
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerEmoteRecieved, (ushort)id);
                     return true;
                 }
 

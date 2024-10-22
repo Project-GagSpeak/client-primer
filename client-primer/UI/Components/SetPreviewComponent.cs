@@ -118,20 +118,6 @@ public class SetPreviewComponent
         }
     }
 
-    private void DrawEquipDataSlot(EquipDrawData refData, float totalLength)
-    {
-        using var id = ImRaii.PushId((int)refData.Slot);
-        var spacing = ImGui.GetStyle().ItemInnerSpacing with { Y = ImGui.GetStyle().ItemSpacing.Y };
-        using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, spacing);
-
-        var right = ImGui.IsItemClicked(ImGuiMouseButton.Right);
-        var left = ImGui.IsItemClicked(ImGuiMouseButton.Left);
-
-        using var group = ImRaii.Group();
-
-        DrawEditableItem(refData, right, left, totalLength);
-        DrawEditableStain(refData, totalLength);
-    }
     public void DrawEquipDataDetailedSlot(EquipDrawData refData, float totalLength)
     {
         var iconSize = new Vector2(3 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y * 2);
@@ -152,11 +138,26 @@ public class SetPreviewComponent
                 refData.GameItem = ItemIdVars.NothingItem(refData.Slot);
             }
 
-            DrawEquipDataSlot(refData, (totalLength - ImGui.GetStyle().ItemInnerSpacing.X - iconSize.X));
+            DrawEquipDataSlot(refData, (totalLength - ImGui.GetStyle().ItemInnerSpacing.X - iconSize.X), false);
         }
     }
 
-    private void DrawEditableItem(EquipDrawData refData, bool clear, bool open, float width)
+    private void DrawEquipDataSlot(EquipDrawData refData, float totalLength, bool allowMouse)
+    {
+        using var id = ImRaii.PushId((int)refData.Slot);
+        var spacing = ImGui.GetStyle().ItemInnerSpacing with { Y = ImGui.GetStyle().ItemSpacing.Y };
+        using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemSpacing, spacing);
+
+        var right = ImGui.IsItemClicked(ImGuiMouseButton.Right);
+        var left = ImGui.IsItemClicked(ImGuiMouseButton.Left);
+
+        using var group = ImRaii.Group();
+
+        DrawEditableItem(refData, right, left, totalLength, allowMouse);
+        DrawEditableStain(refData, totalLength);
+    }
+
+    private void DrawEditableItem(EquipDrawData refData, bool clear, bool open, float width, bool allowMouse)
     {
         // draw the item combo.
         var combo = ItemCombos[refData.Slot.ToIndex()];
@@ -166,7 +167,7 @@ public class SetPreviewComponent
             _logger.LogTrace($"{combo.Label} Toggled");
         }
         // draw the combo
-        var change = combo.Draw(refData.GameItem.Name, refData.GameItem.ItemId, width, width * 1.3f);
+        var change = combo.Draw(refData.GameItem.Name, refData.GameItem.ItemId, width, width * 1.3f, allowMouseWheel: allowMouse);
 
         // if we changed something
         if (change && !refData.GameItem.Equals(combo.CurrentSelection))

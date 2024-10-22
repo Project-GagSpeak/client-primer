@@ -355,10 +355,9 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         // add the caret button.
         using (ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudGrey))
         {
-            if (_uiShared.IconButton(expanded ? FontAwesomeIcon.CaretUp : FontAwesomeIcon.CaretDown, inPopup: true, 
-                disabled: (item.AppliedTime != DateTimeOffset.MinValue) || item.InPool))
+            if (_uiShared.IconButton(expanded ? FontAwesomeIcon.CaretUp : FontAwesomeIcon.CaretDown, inPopup: true))
                 onCaretPressed?.Invoke(!expanded);
-            UiSharedService.AttachToolTip(((item.AppliedTime != DateTimeOffset.MinValue) || item.InPool)
+            UiSharedService.AttachToolTip((item.AppliedTime != DateTimeOffset.MinValue)
                 ? "Cannot edit item while active!" 
                 : "Expand to edit item details!");
         }
@@ -486,6 +485,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
 
     public void DrawItemWindowExpanded(CursedItem item)
     {
+        using var disabled = ImRaii.Disabled((item.AppliedTime != DateTimeOffset.MinValue));
         // define some of the basic options.
         var canOverride = item.CanOverride;
         if (ImGui.Checkbox("Can Be Overridden", ref canOverride))

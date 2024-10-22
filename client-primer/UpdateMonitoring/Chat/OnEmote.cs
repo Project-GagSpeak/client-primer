@@ -71,9 +71,9 @@ public class OnEmote : IDisposable
                 var emoteName = _frameworkUtils.GetEmoteName(emoteId);
                 var targetObj = (_frameworkUtils.SearchObjectTableById((uint)targetId));
                 var targetName = (targetObj as IPlayerCharacter)?.GetNameWithWorld() ?? "No Player Was Target";
-                _logger.LogTrace("OnEmote >> [" + emoteCallerName + "] used Emote [" + emoteName + "] on Target: [" + targetName+"]", LoggerType.ChatDetours);
+                _logger.LogTrace("OnEmote >> [" + emoteCallerName + "] used Emote [" + emoteName + "](ID:"+emoteId+") on Target: [" + targetName+"]", LoggerType.ChatDetours);
 
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.EmoteExecuted, emoteCaller, emoteId, emoteName, targetObj);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.EmoteExecuted, emoteCaller, emoteId, targetObj);
             });
         }
         catch (Exception e)

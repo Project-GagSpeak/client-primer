@@ -133,7 +133,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
                 // set the client first before push to prevent getting stuck while disconnected
                 _playerData.GlobalPerms!.ForcedFollow = string.Empty;
                 Logger.LogInformation("ForceFollow Disable was triggered manually before it naturally disabled. Forcibly shutting down.");
-                _ = _apiController.UserUpdateOwnGlobalPerm(new(new(ApiController.UID), new KeyValuePair<string, object>("ForcedFollow", string.Empty)));
+                _ = _apiController.UserUpdateOwnGlobalPerm(new(new(ApiController.UID), new KeyValuePair<string, object>("ForcedFollow", string.Empty), ApiController.PlayerUserData));
 
             }
             else

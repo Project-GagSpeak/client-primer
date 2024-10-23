@@ -1,5 +1,5 @@
 using GagSpeak.Services.Mediator;
-using GagspeakAPI.Enums;
+using GagspeakAPI.Extensions;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using System.Reflection;
@@ -129,32 +129,60 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         object ChangedValue = dto.ChangedPermission.Value;
 
         PropertyInfo? propertyInfo = typeof(UserGlobalPermissions).GetProperty(ChangedPermission);
-        if (propertyInfo != null)
+        if (propertyInfo is null)
+            return;
+
+        // Get the Hardcore Change Type before updating the property (if it is not valid it wont return anything but none anyways)
+        HardcoreAction hardcoreChangeType = pair.UserPairGlobalPerms.GetHardcoreChange(ChangedPermission, ChangedValue);
+
+        // If the property exists and is found, update its value
+        if (ChangedValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
         {
-            // If the property exists and is found, update its value
-            if (ChangedValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
-            {
-                long ticks = (long)(ulong)ChangedValue;
-                propertyInfo.SetValue(pair.UserPair.OtherGlobalPerms, TimeSpan.FromTicks(ticks));
-            }
-            // char recognition. (these are converted to byte for Dto's instead of char)
-            else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
-            {
-                propertyInfo.SetValue(pair.UserPair.OtherGlobalPerms, Convert.ToChar(ChangedValue));
-            }
-            else if (propertyInfo.CanWrite)
-            {
-                // convert the value to the appropriate type before setting.
-                object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
-                propertyInfo.SetValue(pair.UserPair.OtherGlobalPerms, value);
-                Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
-            }
-            else
-            {
-                Logger.LogError($"Property '{ChangedPermission}' not found or cannot be updated.");
-            }
+            long ticks = (long)(ulong)ChangedValue;
+            propertyInfo.SetValue(pair.UserPair.OtherGlobalPerms, TimeSpan.FromTicks(ticks));
         }
+        // char recognition. (these are converted to byte for Dto's instead of char)
+        else if (ChangedValue.GetType() == typeof(byte) && propertyInfo.PropertyType == typeof(char))
+        {
+            propertyInfo.SetValue(pair.UserPair.OtherGlobalPerms, Convert.ToChar(ChangedValue));
+        }
+        else if (propertyInfo.CanWrite)
+        {
+            // convert the value to the appropriate type before setting.
+            object value = Convert.ChangeType(ChangedValue, propertyInfo.PropertyType);
+            propertyInfo.SetValue(pair.UserPair.OtherGlobalPerms, value);
+            Logger.LogDebug($"Updated global permission '{ChangedPermission}' to '{ChangedValue}'", LoggerType.PairManagement);
+        }
+        else
+        {
+            Logger.LogError($"Property '{ChangedPermission}' not found or cannot be updated.");
+        }
+
         RecreateLazy(false);
+
+        // Handle hardcore changes here.
+        if (hardcoreChangeType is HardcoreAction.None)
+        {
+            Logger.LogInformation("No Hardcore Change Detected. Returning.", LoggerType.PairManagement);
+            return;
+        }
+
+        var newState = string.IsNullOrEmpty((string)ChangedValue) ? NewState.Disabled : NewState.Enabled;
+        Logger.LogInformation(hardcoreChangeType.ToString() + " has changed, and is now " + ChangedValue, LoggerType.PairManagement);
+        // If the changed Pair is not null, we should map the type and log the interaction event.
+        var interactionType = hardcoreChangeType switch
+        {
+            HardcoreAction.ForcedFollow => InteractionType.ForcedFollow,
+            HardcoreAction.ForcedSit => InteractionType.ForcedSit,
+            HardcoreAction.ForcedGroundsit => InteractionType.ForcedSit,
+            HardcoreAction.ForcedStay => InteractionType.ForcedStay,
+            HardcoreAction.ForcedBlindfold => InteractionType.ForcedBlindfold,
+            HardcoreAction.ChatboxHiding => InteractionType.ForcedChatVisibility,
+            HardcoreAction.ChatInputHiding => InteractionType.ForcedChatInputVisibility,
+            HardcoreAction.ChatInputBlocking => InteractionType.ForcedChatInputBlock,
+            _ => InteractionType.None
+        };
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction, hardcoreChangeType, newState, pair.UserData.UID, pair.UserData.UID);
     }
 
     private bool IsMoodlePermission(string changedPermission)

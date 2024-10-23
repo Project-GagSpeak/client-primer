@@ -54,7 +54,7 @@ public partial class PairStickyUI
         {
             string newStr = PairGlobals.IsFollowing() ? string.Empty : ApiController.UID;
             if (pairAllowsDevotionalToggles) newStr += Globals.DevotedString;
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedFollow", newStr)));
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedFollow", newStr), ApiController.PlayerUserData));
         }
 
         var forceSitIcon = !string.IsNullOrEmpty(PairGlobals.ForcedSit) ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
@@ -64,7 +64,7 @@ public partial class PairStickyUI
         {
             string newStr = !string.IsNullOrEmpty(PairGlobals.ForcedSit) ? string.Empty : ApiController.UID;
             if (pairAllowsDevotionalToggles) newStr += Globals.DevotedString;
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedSit", newStr)));
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedSit", newStr), ApiController.PlayerUserData));
         }
 
         var forceGroundSitIcon = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
@@ -75,7 +75,7 @@ public partial class PairStickyUI
             _logger.LogDebug("Sending ForcedGroundsit to " + PairNickOrAliasOrUID);
             string newStr = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) ? string.Empty : ApiController.UID;
             if (pairAllowsDevotionalToggles) newStr += Globals.DevotedString;
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedGroundsit", newStr)));
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedGroundsit", newStr), ApiController.PlayerUserData));
         }
 
         var forceToStayIcon = PairGlobals.IsStaying() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.HouseLock;
@@ -84,7 +84,7 @@ public partial class PairStickyUI
         {
             string newStr = PairGlobals.IsStaying() ? string.Empty : ApiController.UID;
             if (pairAllowsDevotionalToggles) newStr += Globals.DevotedString;
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedStay", newStr)));
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedStay", newStr), ApiController.PlayerUserData));
         }
 
         var toggleBlindfoldIcon = PairGlobals.IsBlindfolded() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Mask;
@@ -93,7 +93,7 @@ public partial class PairStickyUI
         {
             string newStr = PairGlobals.IsBlindfolded() ? string.Empty : ApiController.UID;
             if (pairAllowsDevotionalToggles) newStr += Globals.DevotedString;
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedBlindfold", newStr)));
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedBlindfold", newStr), ApiController.PlayerUserData));
         }
 
         var toggleChatboxIcon = PairGlobals.IsChatHidden() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentSlash;
@@ -102,7 +102,7 @@ public partial class PairStickyUI
         {
             string newStr = PairGlobals.IsChatHidden() ? string.Empty : ApiController.UID;
             if(pairAllowsDevotionalToggles) newStr += Globals.DevotedString;
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatboxesHidden", newStr)));
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatboxesHidden", newStr), ApiController.PlayerUserData));
         }
 
         var toggleChatInputIcon = PairGlobals.IsChatInputHidden() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentSlash;
@@ -111,7 +111,7 @@ public partial class PairStickyUI
         {
             string newStr = PairGlobals.IsChatInputHidden() ? string.Empty : ApiController.UID;
             if (pairAllowsDevotionalToggles) newStr += Globals.DevotedString;
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatInputHidden", newStr)));
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatInputHidden", newStr), ApiController.PlayerUserData));
         }
 
         var toggleChatBlockingIcon = PairGlobals.IsChatInputBlocked() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentDots;
@@ -120,7 +120,7 @@ public partial class PairStickyUI
         {
             string newStr = PairGlobals.IsChatInputBlocked() ? string.Empty : ApiController.UID;
             if (pairAllowsDevotionalToggles) newStr += Globals.DevotedString;
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatInputBlocked", newStr)));
+            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatInputBlocked", newStr), ApiController.PlayerUserData));
         }
         ImGui.Separator();
     }

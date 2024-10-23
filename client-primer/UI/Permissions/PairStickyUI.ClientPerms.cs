@@ -584,7 +584,7 @@ public partial class PairStickyUI
                 {
                     _logger.LogTrace($"Updated own global permission: {permissionName} to {newValue}", LoggerType.Permissions);
                     _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-                        new KeyValuePair<string, object>(permissionName, newValue)));
+                        new KeyValuePair<string, object>(permissionName, newValue), ApiController.PlayerUserData));
                 }
                 break;
             case PermissionType.UniquePairPerm:

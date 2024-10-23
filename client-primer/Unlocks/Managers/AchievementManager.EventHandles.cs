@@ -483,6 +483,7 @@ public partial class AchievementManager
     /// <param name="enactorUID"> Who Called the action. </param>
     private void OnHardcoreForcedPairAction(HardcoreAction actionKind, NewState state, string enactorUID, string affectedPairUID)
     {
+        Logger.LogInformation("Hardcore Action: " + actionKind + " State: " + state + " Enactor: " + enactorUID + " Affected: " + affectedPairUID);
         switch (actionKind)
         {
             case HardcoreAction.ForcedFollow:

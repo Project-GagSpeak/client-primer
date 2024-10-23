@@ -1,5 +1,6 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.WebAPI;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Dto.Permissions;
@@ -30,7 +31,7 @@ public partial class PairStickyUI
             if (_uiShared.IconTextButton(FontAwesomeIcon.User, toyToggleText, WindowMenuWidth, true))
             {
                 _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData,
-                    new KeyValuePair<string, object>("ToyIsActive", !UserPairForPerms.UserPairGlobalPerms.ToyIsActive)));
+                    new KeyValuePair<string, object>("ToyIsActive", !UserPairForPerms.UserPairGlobalPerms.ToyIsActive), ApiController.PlayerUserData));
                 _logger.LogDebug("Toggled Toybox for " + PairUID + "(New State: " + !UserPairForPerms.UserPairGlobalPerms.ToyIsActive + ")", LoggerType.Permissions);
             }
             UiSharedService.AttachToolTip("Toggles the state of " + PairUID + "'s connected Toys.");

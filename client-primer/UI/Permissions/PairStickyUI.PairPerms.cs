@@ -8,6 +8,7 @@ using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 using System.Security;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.UI.Permissions;
 
@@ -414,7 +415,7 @@ public partial class PairStickyUI
                 {
                     _logger.LogTrace($"Updated Other pair's global permission: {permissionName} to {newValue}", LoggerType.Permissions);
                     _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData,
-                        new KeyValuePair<string, object>(permissionName, newValue)));
+                        new KeyValuePair<string, object>(permissionName, newValue), ApiController.PlayerUserData));
                 }
                 break;
             case PermissionType.UniquePairPerm:

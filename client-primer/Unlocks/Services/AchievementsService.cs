@@ -36,6 +36,8 @@ public class AchievementsService : DisposableMediatorSubscriberBase
         if ((DateTime.UtcNow - _lastCheck).TotalSeconds < 5)
             return;
 
+        Logger.LogTrace("Longer than 5 seconds, checking conditions");
+
         _lastCheck = DateTime.UtcNow;
 
         if(_frameworkUtils.ClientState.LocalPlayer?.CurrentHp is 0 && !ClientIsDead)
@@ -65,6 +67,7 @@ public class AchievementsService : DisposableMediatorSubscriberBase
         if ((DateTime.UtcNow - _lastPlayerCheck).TotalSeconds < 15)
             return;
 
+        Logger.LogTrace("logger has gone longer than 15 seconds, calculating player count");
         // update player count
         _lastPlayerCheck = DateTime.UtcNow;
 
@@ -73,9 +76,12 @@ public class AchievementsService : DisposableMediatorSubscriberBase
             .Where(player => player != _frameworkUtils.ClientState.LocalPlayer
             && Vector3.Distance(_frameworkUtils.ClientState.LocalPlayer?.Position ?? default, player.Position) < 30f)
             .Count();
+
+        Logger.LogTrace("There are " + playersInRange + " Players nearby");
+
         if(playersInRange != _lastPlayerCount)
         {
-            Logger.LogTrace("There are " + playersInRange + " Players nearby");
+            Logger.LogTrace("(New Update) There are " + playersInRange + " Players nearby");
             UnlocksEventManager.AchievementEvent(UnlocksEvent.PlayersInProximity, playersInRange);
             _lastPlayerCount = playersInRange;
         }

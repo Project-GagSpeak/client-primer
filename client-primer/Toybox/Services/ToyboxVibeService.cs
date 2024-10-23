@@ -27,6 +27,9 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
         _vibeSimAudio = vibeSimAudio;
         _piShockProvider = piShockProvider;
 
+        // restore the chosen simulated audio type from the config
+        _vibeSimAudio.ChangeAudioPath(VibeSimAudioPath(_clientConfigs.GagspeakConfig.VibeSimAudio));
+
         if (UsingSimulatedVibe)
         {
             // play it
@@ -88,14 +91,7 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
         _clientConfigs.GagspeakConfig.VibeSimAudio = newType;
         _clientConfigs.Save();
 
-        if (newType == VibeSimType.Normal)
-        {
-            _vibeSimAudio.ChangeAudioPath("vibrator.wav");
-        }
-        else if (newType == VibeSimType.Quiet)
-        {
-            _vibeSimAudio.ChangeAudioPath("vibratorQuiet.wav");
-        }
+        _vibeSimAudio.ChangeAudioPath(VibeSimAudioPath(newType));
         _vibeSimAudio.SetVolume(VibeSimVolume);
     }
 
@@ -149,6 +145,16 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
                 _vibeSimAudio.SetVolume(intensity / 100f);
             }
         }
+    }
+
+    public static string VibeSimAudioPath(VibeSimType type)
+    {
+        return type switch
+        {
+            VibeSimType.Normal => "vibrator.wav",
+            VibeSimType.Quiet => "vibratorQuiet.wav",
+            _ => "vibratorQuiet.wav",
+        };
     }
 }
 

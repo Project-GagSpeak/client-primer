@@ -4,11 +4,8 @@ using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.UI;
-using GagSpeak.Utils;
 using GagSpeak.WebAPI;
-using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Permissions;
-using ImGuiNET;
 using OtterGui.Text;
 
 namespace GagSpeak.Services;
@@ -37,7 +34,7 @@ public class PermissionPresetService
     }
 
     public DateTime LastApplyTime { get; private set; } = DateTime.MinValue;
-    public PresetName SelectedPreset { get; private set; } = PresetName.Dominant;
+    public PresetName SelectedPreset { get; private set; } = PresetName.NoneSelected;
 
     public void DrawPresetList(Pair pairToDrawListFor, float width)
     {
@@ -45,13 +42,13 @@ public class PermissionPresetService
         // It's OK if things are active for the player, since it doesn't actually trigger everything at once.
         bool disabledCondition = DateTime.UtcNow - LastApplyTime < TimeSpan.FromSeconds(10) || pairToDrawListFor.UserPairOwnUniquePairPerms.InHardcore;
 
-        float comboWidth = width - ImGui.CalcTextSize("Apply Preset").X;
+        float comboWidth = width - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Sync, "Apply Preset");
         using (var disabled = ImRaii.Disabled(disabledCondition))
         {
             _uiShared.DrawCombo("Permission Preset Selector", comboWidth, Enum.GetValues<PresetName>(),
-            (preset) => preset.ToName(), (i) => SelectedPreset = (PresetName)i, PresetName.NoneSelected, false);
+            (preset) => preset.ToName(), (i) => SelectedPreset = (PresetName)i, SelectedPreset, false);
             ImUtf8.SameLineInner();
-            if (ImGui.Button("Apply Preset"))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Apply Preset", disabled: SelectedPreset is PresetName.NoneSelected))
             {
                 ApplySelectedPreset(pairToDrawListFor);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.PresetApplied);

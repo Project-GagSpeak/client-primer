@@ -77,10 +77,17 @@ public static class AchievementHelpers
         // ensure we are in the right gate
         if ((GateType)gate is GateType.CliffHanger || (GateType)gate is GateType.AnyWayTheWindBlows)
         {
+            StaticLogger.Logger.LogTrace("In a gate with knockback");
+
             // ensure we have joined, but not yet completed.
-            if(HasJoinedGate(director->Flags) && !HasFinishedGate(director->Flags))
+            if (HasJoinedGate(director->Flags))
             {
-                return true;
+                StaticLogger.Logger.LogTrace("Has joined the gate");
+                if (!HasFinishedGate(director->Flags))
+                {
+                    StaticLogger.Logger.LogTrace("Has not finished the gate");
+                    return true;
+                }
             }
         }
         return false;

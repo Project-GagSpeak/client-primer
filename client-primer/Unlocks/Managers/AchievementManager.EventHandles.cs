@@ -375,6 +375,8 @@ public partial class AchievementManager
                 // track overkill
                 (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Overkill] as ThresholdAchievement)?.UpdateThreshold(set.EquippedSlotsTotal);
 
+                // Track Bondage Bunny
+                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.BondageBunny] as TimedProgressAchievement)?.IncrementProgress();
 
                 // see if valid for "cuffed-19"
                 if (set.DrawData.TryGetValue(EquipSlot.Hands, out var handData) && handData.GameItem.Id != ItemIdVars.NothingItem(EquipSlot.Hands).Id)
@@ -396,8 +398,6 @@ public partial class AchievementManager
 
                 // must be removed within limit or wont award.
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.Bondodge] as TimeLimitConditionalAchievement)?.CheckCompletion();
-
-                (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.BondageBunny] as TimedProgressAchievement)?.IncrementProgress();
             }
             // If a set is being disabled at all, we should reset our conditonals.
             (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfFocus] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();

@@ -386,7 +386,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     private unsafe void FrameworkOnUpdateInternal()
     {
         // If the local player is dead or null, return after setting the hasDied flag to true
-        if (_clientState.LocalPlayer?.IsDead ?? false) 
+        if (_clientState.LocalPlayer is null)
             return;
 
         // we need to update our stored player characters to know if they are still valid, and to update our pair handlers
@@ -458,7 +458,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                     // we know we are starting a zone switch, so publish it to the mediator and set sent between areas to true
                     _logger.LogDebug("Zone switch start");
                     _sentBetweenAreas = true;
-                    Mediator.Publish(new ZoneSwitchStartMessage());
+                    Mediator.Publish(new ZoneSwitchStartMessage(_lastZone));
                 }
             }
             // do an early return so we dont hit the sentBetweenAreas conditional below
@@ -475,9 +475,10 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
             var newCommendations = PlayerState.Instance()->PlayerCommendations;
             if (newCommendations != LastCommendationsCount)
             {
-                LastCommendationsCount = newCommendations;
-                _logger.LogInformation("Commendations increased by {0}", newCommendations - LastCommendationsCount);
+                _logger.LogDebug("Our Previous Commendation Count was: "+LastCommendationsCount+" and our new commendation count is: "+newCommendations);
                 Mediator.Publish(new CommendationsIncreasedMessage(newCommendations - LastCommendationsCount));
+                LastCommendationsCount = newCommendations;
+
             }
         }
 
@@ -489,6 +490,10 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
             return;
 
         var localPlayer = _clientState.LocalPlayer;
+
+        // check if we are at 1 hp, if so, grant the boundgee jumping achievement.
+        if (localPlayer.CurrentHp is 1)
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.ClientOneHp);
 
         // if it is not null (they exist) and isLoggedIn is not true
         if (localPlayer != null && !IsLoggedIn)

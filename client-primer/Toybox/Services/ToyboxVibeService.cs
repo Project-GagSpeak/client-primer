@@ -117,6 +117,7 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
             VibeSimAudioPlaying = true;
             _vibeSimAudio.Play();
         }
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.VibratorsToggled, NewState.Enabled);
     }
 
 
@@ -132,6 +133,7 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
             VibeSimAudioPlaying = false;
             _vibeSimAudio.Stop();
         }
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.VibratorsToggled, NewState.Disabled);
     }
 
     public void SendNextIntensity(byte intensity)

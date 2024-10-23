@@ -61,7 +61,7 @@ public record RestraintSet : IMoodlesAssociable
     /// </summary>
     public Dictionary<string, HardcoreSetProperties> SetProperties { get; set; } = [];
 
-
+    public int EquippedSlotsTotal => DrawData.Count(kvp => kvp.Value.GameItem.ItemId != ItemIdVars.NothingItem(kvp.Key).ItemId);
     public bool HasPropertiesForUser(string uid) => SetProperties.ContainsKey(uid);
     public bool PropertiesEnabledForUser(string uid) => HasPropertiesForUser(uid) && SetProperties[uid].AnyEnabled();
 

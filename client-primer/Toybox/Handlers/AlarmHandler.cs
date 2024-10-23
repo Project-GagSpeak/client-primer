@@ -91,7 +91,7 @@ public class AlarmHandler : MediatorSubscriberBase
     public void EnableAlarm(int idx)
     {
         _clientConfigs.SetAlarmState(idx, true);
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.AlarmToggled);
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.AlarmToggled, NewState.Enabled);
     }
 
     public void DisableAlarm(int idx)

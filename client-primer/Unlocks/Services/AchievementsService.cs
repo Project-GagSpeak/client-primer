@@ -28,19 +28,23 @@ public class AchievementsService : DisposableMediatorSubscriberBase
     DateTime _lastCheck = DateTime.Now;
     DateTime _lastPlayerCheck = DateTime.Now;
     int _lastPlayerCount = 0;
+    bool ClientIsDead = false;
 
     private unsafe void CheckAchievementConditions()
     {
         // only process this every 5 seconds.
-        if ((DateTime.Now - _lastCheck).TotalSeconds < 5)
+        if ((DateTime.UtcNow - _lastCheck).TotalSeconds < 5)
             return;
 
-        // check if our client is dead, but dont use IsDead, because it's unreliable.
-        if (_frameworkUtils.ClientState.LocalPlayer is null)
-            return;
+        _lastCheck = DateTime.UtcNow;
 
-        if(_frameworkUtils.ClientState.LocalPlayer.CurrentHp is 0)
+        if(_frameworkUtils.ClientState.LocalPlayer?.CurrentHp is 0 && !ClientIsDead)
+        {
             UnlocksEventManager.AchievementEvent(UnlocksEvent.ClientSlain);
+            ClientIsDead = true;
+        }
+        else if (_frameworkUtils.ClientState.LocalPlayer?.CurrentHp is not 0 && ClientIsDead)
+            ClientIsDead = false;
 
         // check if in gold saucer (maybe do something better for this later.
         if (_frameworkUtils.ClientState.TerritoryType is 144)
@@ -58,16 +62,16 @@ public class AchievementsService : DisposableMediatorSubscriberBase
         }
 
         // if 15 seconds has passed since the last player check, check the player.
-        if ((DateTime.Now - _lastPlayerCheck).TotalSeconds < 15)
+        if ((DateTime.UtcNow - _lastPlayerCheck).TotalSeconds < 15)
             return;
 
         // update player count
-        _lastPlayerCheck = DateTime.Now;
+        _lastPlayerCheck = DateTime.UtcNow;
 
         // we should get the current player object count that is within the range required for crowd pleaser.
         var playersInRange = _frameworkUtils.GetObjectTablePlayers()
             .Where(player => player != _frameworkUtils.ClientState.LocalPlayer
-            && Vector3.Distance(_frameworkUtils.ClientState.LocalPlayer.Position, player.Position) < 30f)
+            && Vector3.Distance(_frameworkUtils.ClientState.LocalPlayer?.Position ?? default, player.Position) < 30f)
             .Count();
         if(playersInRange != _lastPlayerCount)
         {

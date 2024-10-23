@@ -121,7 +121,7 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                                 ImGui.EndTooltip();
                             }
                             if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
-                                UnlocksEventManager.AchievementEvent(UnlocksEvent.EasterEggFound, "Wardrobe");
+                                UnlocksEventManager.AchievementEvent(UnlocksEvent.EasterEggFound, "Toybox");
                         });
                     }
                     // add separator

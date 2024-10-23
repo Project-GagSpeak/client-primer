@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 5, 11)
+            .RegisterMain("Mostly all achievements outside of trigger and alarm toggles should be functional now!.");
         VersionEntry(0,9,5,5)
             .RegisterBugfix("Fixed Hardcore Forced Follow UI Bug and ForcedSit bug (Hopefully)");
         VersionEntry(0, 9, 5, 1)

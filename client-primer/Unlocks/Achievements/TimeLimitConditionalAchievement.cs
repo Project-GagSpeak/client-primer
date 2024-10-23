@@ -50,11 +50,11 @@ public class TimeLimitConditionalAchievement : Achievement
     public override string ProgressString()
     {
         if (IsCompleted) 
-            return "Completed Within " + MilestoneGoal + " " + SuffixText;
+            return "Completed Within " + MilestoneGoal + " " + TimeUnit + " " + SuffixText;
 
         // If not completed and the StartPoint is DateTime.MinValue, display that that the state is not yet begun.
         if(StartPoint == DateTime.MinValue)
-            return PrefixText + " Within " + MilestoneGoal + " " + SuffixText;
+            return PrefixText + " Within " + MilestoneGoal + " " + TimeUnit + " " + SuffixText;
 
         // Grab our remaining time.
         var remaining = MilestoneDuration - (StartPoint != DateTime.MinValue ? DateTime.UtcNow - StartPoint : TimeSpan.Zero);

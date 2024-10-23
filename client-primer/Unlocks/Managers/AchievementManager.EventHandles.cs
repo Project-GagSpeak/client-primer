@@ -38,15 +38,42 @@ public partial class AchievementManager
         }
     }
 
+    private DateTime worldTourStartedTime = DateTime.MinValue;
+    private void CheckOnZoneSwitchStart(ushort prevZone)
+    {
+        // we left the zone we were at, so see if our woldTourStartedTime is not minvalue, if it isnt we need to check our conditonalProgressAchievement.
+        if(worldTourStartedTime != DateTime.MinValue)
+        {
+            // Ensure it has been longer than 2 minutes since the recorded time. (in UTC)
+            if ((DateTime.UtcNow - worldTourStartedTime).TotalMinutes > 2)
+            {
+                // Check to see if we qualify for starting any world tour conditions.
+                if (SaveData.VisitedWorldTour.ContainsKey(prevZone) && SaveData.VisitedWorldTour[prevZone] is false)
+                {
+                    // Mark the conditonal as finished in the achievement, and mark as completed.
+                    if (_clientConfigs.GetActiveSetIdx() != -1)
+                    {
+                        (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.WorldTour] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                        SaveData.VisitedWorldTour[prevZone] = true;
+                    }
+                    else
+                        (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.WorldTour] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+                    // reset the datetime to .MinValue
+                    worldTourStartedTime = DateTime.MinValue;
+                }
+            }
+        }
+    }
+
     private void CheckOnZoneSwitchEnd()
     {
-        if (_frameworkUtils.IsInMainCity)
-        {
-            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkOfShame] as ConditionalAchievement)?.CheckCompletion();
-        }
+        if(_frameworkUtils.IsInMainCity)
+            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkOfShame] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+
+        ushort territory = _frameworkUtils.ClientState.TerritoryType;
 
         // if present in diadem (for diamdem achievement)
-        if (_frameworkUtils.ClientState.TerritoryType is 939)
+        if (territory is 939)
             (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.MotivationForRestoration] as TimeRequiredConditionalAchievement)?.CheckCompletion();
         else
             (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.MotivationForRestoration] as TimeRequiredConditionalAchievement)?.CheckCompletion();
@@ -61,6 +88,26 @@ public partial class AchievementManager
         if ((SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
             (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
 
+        // Check to see if we qualify for starting any world tour conditions.
+        if (SaveData.VisitedWorldTour.ContainsKey(territory) && SaveData.VisitedWorldTour[territory] is false)
+        {
+            // if its already true, dont worry about it.
+            if (SaveData.VisitedWorldTour[territory] is true)
+            {
+                Logger.LogTrace("World Tour Progress already completed for: " + territory, LoggerType.Achievements);
+                return;
+            }
+            else // Begin the progress for this city's world tour. 
+            {
+                Logger.LogTrace("Starting World Tour Progress for: " + territory, LoggerType.Achievements);
+                (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.WorldTour] as ConditionalProgressAchievement)?.BeginConditionalTask();
+                worldTourStartedTime = DateTime.UtcNow;
+            }
+        }
+        else
+        {
+            Logger.LogTrace("World Tour Progress already completed for: " + territory, LoggerType.Achievements);
+        }
     }
 
     private void CheckDeepDungeonStatus()
@@ -287,8 +334,30 @@ public partial class AchievementManager
 
     private void OnRestraintApplied(RestraintSet set, bool isEnabling, string enactorUID)
     {
+        // Check this regardless.
+        (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkOfShame] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+
+        // Set is being enabled.
         if (isEnabling)
         {
+            var territory = _frameworkUtils.ClientState.TerritoryType;
+            // Check to see if we qualify for starting any world tour conditions.
+            if (SaveData.VisitedWorldTour.ContainsKey(territory) && SaveData.VisitedWorldTour[territory] is false)
+            {
+                // if its already true, dont worry about it.
+                if (SaveData.VisitedWorldTour[territory] is true)
+                {
+                    Logger.LogTrace("World Tour Progress already completed for: " + territory, LoggerType.Achievements);
+                    return;
+                }
+                else // Begin the progress for this city's world tour. 
+                {
+                    Logger.LogTrace("Starting World Tour Progress for: " + territory, LoggerType.Achievements);
+                    (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.WorldTour] as ConditionalProgressAchievement)?.BeginConditionalTask();
+                    worldTourStartedTime = DateTime.UtcNow;
+                }
+            }
+
             (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ConditionalAchievement)?.CheckCompletion();
             (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTiemers] as ProgressAchievement)?.IncrementProgress();
 
@@ -302,6 +371,10 @@ public partial class AchievementManager
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AuctionedOff] as ConditionalProgressAchievement)?.BeginConditionalTask();
                 // starts the timer.
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.Bondodge] as TimeLimitConditionalAchievement)?.CheckCompletion();
+
+                // track overkill
+                (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Overkill] as ThresholdAchievement)?.UpdateThreshold(set.EquippedSlotsTotal);
+
 
                 // see if valid for "cuffed-19"
                 if (set.DrawData.TryGetValue(EquipSlot.Hands, out var handData) && handData.GameItem.Id != ItemIdVars.NothingItem(EquipSlot.Hands).Id)
@@ -330,6 +403,16 @@ public partial class AchievementManager
             (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfFocus] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
             (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfDexterity] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
             (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.TrialOfTheBlind] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+
+            // Validate the world tour achievement.
+            var territory = _frameworkUtils.ClientState.TerritoryType;
+            // Ensure it has been longer than 2 minutes since the recorded time. (in UTC)
+            if (SaveData.VisitedWorldTour.ContainsKey(territory) && SaveData.VisitedWorldTour[territory] is false)
+            {
+                // Fail the conditional task.
+                (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.WorldTour] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+                worldTourStartedTime = DateTime.MinValue;
+            }
         }
     }
 
@@ -450,7 +533,9 @@ public partial class AchievementManager
                 break;
             case PatternInteractionKind.Started:
                 if (patternGuid != Guid.Empty)
+                {
                     (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.EnduranceQueen] as DurationAchievement)?.StartTracking(patternGuid.ToString());
+                }
                 if (wasAlarm && patternGuid != Guid.Empty)
                     (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.HornyMornings] as ProgressAchievement)?.IncrementProgress();
                 break;
@@ -464,7 +549,6 @@ public partial class AchievementManager
     private void OnDeviceConnected()
     {
         (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.MyFavoriteToys] as ConditionalAchievement)?.CheckCompletion();
-        (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ConditionalAchievement)?.CheckCompletion();
     }
 
     private void OnTriggerFired()
@@ -512,6 +596,9 @@ public partial class AchievementManager
                 if (affectedPairUID == ApiController.UID)
                 {
                     Logger.LogInformation("We were the affected pair");
+                    // Check in each state
+                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkOfShame] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+
                     // if the new state is enabled, we should begin tracking the time required completion.
                     if (state is NewState.Enabled)
                     {
@@ -578,6 +665,9 @@ public partial class AchievementManager
                 // if we are the affected UID:
                 if (affectedPairUID == ApiController.UID)
                 {
+                    // Check in each state
+                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkOfShame] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+
                     // if we have had our blindfold set to enabled by another pair, perform the following:
                     if (state is NewState.Enabled)
                     {
@@ -696,6 +786,19 @@ public partial class AchievementManager
     private void OnJobChange(GlamourUpdateType changeType)
     {
         (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.EscapingIsNotEasy] as ConditionalAchievement)?.CheckCompletion();
+    }
+
+    private void OnVibratorToggled(NewState newState)
+    {
+        if (newState is NewState.Enabled)
+        {
+            (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.GaggedPleasure] as ConditionalAchievement)?.CheckCompletion();
+            (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.Experimentalist] as ConditionalAchievement)?.CheckCompletion();
+        }
+        else
+        {
+
+        }
     }
 
     // We need to check for knockback effects in gold sacuer.

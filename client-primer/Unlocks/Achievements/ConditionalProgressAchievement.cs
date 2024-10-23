@@ -41,7 +41,18 @@ public class ConditionalProgressAchievement : Achievement
     }
 
     public override int CurrentProgress() => IsCompleted ? MilestoneGoal : Progress;
-    public override string ProgressString() => PrefixText + " " + (CurrentProgress() + " / " + MilestoneGoal) + " " + SuffixText;
+    public override string ProgressString()
+    {
+        if(IsCompleted)
+            return PrefixText + " " + MilestoneGoal + " / " + MilestoneGoal + " " + SuffixText;
+
+        // if we have our conditonal started but not ended, mark we are tracking.
+        if(ConditionalTaskBegun && !ConditionalTaskFinished)
+            return PrefixText + " " + (CurrentProgress() + " / " + MilestoneGoal) + " " + SuffixText + " (Tracking)";
+
+        // Otherwise, display normal conditon text.
+        return PrefixText + " " + (CurrentProgress() + " / " + MilestoneGoal) + " " + SuffixText;
+    }
 
     public async void BeginConditionalTask(int secondsDelayBeforeCheck = 0)
     {

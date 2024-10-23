@@ -59,7 +59,7 @@ public record CutsceneSkippedMessage : MessageBase; // Whenever a cutscene is sk
 public record ClientPlayerInCutscene : MessageBase; // Informs us when the player has been loaded in a cutscene.
 
 public record CutsceneEndMessage : MessageBase; // helps us know when to reapply data like moodles.
-public record ZoneSwitchStartMessage : MessageBase; // know when we are beginning to switch zones
+public record ZoneSwitchStartMessage(ushort prevZone) : MessageBase; // know when we are beginning to switch zones
 public record ZoneSwitchEndMessage : MessageBase; // know when we have finished switching zones
 public record CommendationsIncreasedMessage(int amount) : MessageBase;
 

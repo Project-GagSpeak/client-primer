@@ -28,12 +28,30 @@ public class AchievementSaveData
         {"Toybox", false }
     };
 
+    public Dictionary<ushort, bool> VisitedWorldTour { get; set; } = new Dictionary<ushort, bool>()
+    {
+        {129, false }, // Limsa Lominsa
+        {132, false }, // Gridania
+        {130, false }, // Ul'dah
+        {418, false }, // Ishgard
+        {628, false }, // Kugane
+        {819, false }, // The Crystarium
+        {820, false }, // Eulmore
+        {962, false }, // Old Sharlayan
+        {963, false}, // Raz-At-Han
+        {1185, false }, // Tuliyollal
+        {1186, false }, // Solution 9
+    };
+
+
+
     public LightSaveDataDto ToLightSaveDataDto()
     {
         var dto = new LightSaveDataDto
         {
             LightAchievementData = new List<LightAchievement>(),
-            EasterEggIcons = this.EasterEggIcons
+            EasterEggIcons = this.EasterEggIcons,
+            VisitedWorldTour = this.VisitedWorldTour
         };
 
         foreach (var achievementComponent in Achievements)
@@ -68,6 +86,7 @@ public class AchievementSaveData
         {
             // Update Easter Egg Icons
             EasterEggIcons = new Dictionary<string, bool>(dto.EasterEggIcons);
+            VisitedWorldTour = new Dictionary<ushort, bool>(dto.VisitedWorldTour);
 
             // Group LightAchievements by AchievementModuleKind
             var groupedAchievements = dto.LightAchievementData
@@ -116,6 +135,11 @@ public class LightSaveDataDto
     /// easter egg icons
     /// </summary>
     public Dictionary<string, bool> EasterEggIcons { get; set; }
+
+    /// <summary>
+    /// World Tour Visited Locations
+    /// </summary>
+    public Dictionary<ushort, bool> VisitedWorldTour { get; set; }
 }
 
 public struct LightAchievement

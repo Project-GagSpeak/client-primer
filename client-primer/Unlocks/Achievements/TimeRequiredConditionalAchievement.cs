@@ -50,10 +50,10 @@ public class TimeRequiredConditionalAchievement : Achievement
     public override string ProgressString()
     {
         if (IsCompleted) 
-            return PrefixText + " " + MilestoneGoal + " " + SuffixText;
+            return PrefixText + " " + MilestoneGoal + " " + TimeUnit + " " + SuffixText;
 
         if(StartPoint == DateTime.MinValue)
-            return "(not tracking) " + PrefixText + " " + MilestoneGoal + " " + SuffixText;
+            return PrefixText + " 0s / " + MilestoneGoal + " " + TimeUnit + " " + SuffixText;
 
         var elapsed = MilestoneDuration - (StartPoint != DateTime.MinValue ? DateTime.UtcNow - StartPoint : TimeSpan.Zero);
         string outputStr = "";
@@ -70,7 +70,7 @@ public class TimeRequiredConditionalAchievement : Achievement
             outputStr += " Elapsed";
         }
         // Add the Ratio
-        return PrefixText + " " + outputStr + " / " + MilestoneGoal + " " + SuffixText;
+        return PrefixText + " " + outputStr + " / " + MilestoneGoal + " " + TimeUnit + " " + SuffixText;
     }
 
     public override void CheckCompletion()

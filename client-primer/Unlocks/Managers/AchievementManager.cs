@@ -123,11 +123,13 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
         _eventManager.Subscribe<HardcoreAction, NewState, string, string>(UnlocksEvent.HardcoreForcedPairAction, OnHardcoreForcedPairAction);
 
-        _eventManager.Subscribe(UnlocksEvent.RemoteOpened, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.JustVibing] as ProgressAchievement)?.CheckCompletion());
-        _eventManager.Subscribe(UnlocksEvent.VibeRoomCreated, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.VibingWithFriends] as ProgressAchievement)?.CheckCompletion());
+        _eventManager.Subscribe(UnlocksEvent.RemoteOpened, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.JustVibing] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Subscribe(UnlocksEvent.VibeRoomCreated, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.VibingWithFriends] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Subscribe<NewState>(UnlocksEvent.VibratorsToggled, OnVibratorToggled);
 
         _eventManager.Subscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.NothingCanStopMe] as ConditionalProgressAchievement)?.CheckTaskProgress(1));
         _eventManager.Subscribe(UnlocksEvent.ClientSlain, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BadEndHostage] as ConditionalAchievement)?.CheckCompletion());
+        _eventManager.Subscribe(UnlocksEvent.ClientOneHp, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BoundgeeJumping] as ConditionalAchievement)?.CheckCompletion());
         _eventManager.Subscribe<XivChatType>(UnlocksEvent.ChatMessageSent, OnChatMessage);
         _eventManager.Subscribe<IGameObject, ushort, IGameObject>(UnlocksEvent.EmoteExecuted, OnEmoteExecuted);
         _eventManager.Subscribe(UnlocksEvent.TutorialCompleted, () => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.TutorialComplete] as ProgressAchievement)?.CheckCompletion());
@@ -153,6 +155,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         Mediator.Subscribe<CutsceneBeginMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as ConditionalProgressAchievement)?.BeginConditionalTask()); // starts Timer
         Mediator.Subscribe<CutsceneEndMessage>(this, _ => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as ConditionalProgressAchievement)?.FinishConditionalTask()); // ends/completes progress.
 
+        Mediator.Subscribe<ZoneSwitchStartMessage>(this, (msg) => CheckOnZoneSwitchStart(msg.prevZone));
         Mediator.Subscribe<ZoneSwitchEndMessage>(this, _ =>
         {
             CheckOnZoneSwitchEnd();
@@ -209,6 +212,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         ///
         _eventManager.Unsubscribe(UnlocksEvent.RemoteOpened, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.JustVibing] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe(UnlocksEvent.VibeRoomCreated, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.VibingWithFriends] as ProgressAchievement)?.CheckCompletion());
+        _eventManager.Unsubscribe<NewState>(UnlocksEvent.VibratorsToggled, OnVibratorToggled);
 
         _eventManager.Unsubscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Achievements[AchievementModuleKind.Toybox].Achievements[ToyboxLabels.NothingCanStopMe] as ConditionalProgressAchievement)?.CheckTaskProgress(1));
         _eventManager.Unsubscribe(UnlocksEvent.ClientSlain, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.BadEndHostage] as ConditionalAchievement)?.CheckCompletion());

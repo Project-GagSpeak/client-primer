@@ -182,7 +182,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             HardcoreAction.ChatInputBlocking => InteractionType.ForcedChatInputBlock,
             _ => InteractionType.None
         };
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction, hardcoreChangeType, newState, pair.UserData.UID, pair.UserData.UID);
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction, hardcoreChangeType, newState, dto.User.UID, pair.UserData.UID);
     }
 
     private bool IsMoodlePermission(string changedPermission)

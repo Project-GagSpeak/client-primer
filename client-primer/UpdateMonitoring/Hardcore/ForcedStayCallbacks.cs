@@ -101,9 +101,7 @@ public unsafe class ForcedStayCallback : IDisposable
         _logger.LogInformation("Stopping ForcedStayCallback", LoggerType.HardcorePrompt);
         try
         {
-            if (FireCallbackHook?.IsEnabled ?? false)
-                DisableCallbackHook();
-
+            DisableCallbackHook();
             FireCallbackHook?.Dispose();
         }
         catch (Exception e)
@@ -112,21 +110,6 @@ public unsafe class ForcedStayCallback : IDisposable
         }
         _logger.LogInformation("Stopped ForcedStayCallback", LoggerType.HardcorePrompt);
     }
-
-    // we dont technically need this but sure.
-    /*private byte ForcedStayCallbackDetour(AtkUnitBase* Base, int valueCount, AtkValue* values, byte updateState)
-    {
-        var ret = FireCallbackHook?.Original(Base, valueCount, values, updateState);
-        try
-        {
-            _logger.LogDebug($"Callback on {Base->Name.Read()}, valueCount={valueCount}, updateState={updateState}\n{string.Join("\n", DecodeValues(valueCount, values).Select(x => $"    {x}"))}", LoggerType.HardcorePrompt);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Error in ForcedStayCallbackDetour");
-        }
-        return ret ?? 0;
-    }*/
 
     public static void Fire(AtkUnitBase* Base, bool updateState, params object[] values)
     {

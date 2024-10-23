@@ -25,6 +25,7 @@ public class MoveController : IDisposable
     internal unsafe ref int ForceDisableMovement => ref *(int*)(forceDisableMovementPtr + 4);
 
     // prevents LMB+RMB moving by processing it prior to the games update movement check.
+    /*
     public unsafe delegate byte MoveOnMousePreventorDelegate(MoveControllerSubMemberForMine* thisx);
     [Signature("40 55 53 48 8D 6C 24 ?? 48 81 EC ?? ?? ?? ?? 48 83 79", DetourName = nameof(MovementUpdate), Fallibility = Fallibility.Auto)]
     public static Hook<MoveOnMousePreventorDelegate>? MovementUpdateHook { get; set; } = null!;
@@ -49,7 +50,7 @@ public class MoveController : IDisposable
         *hold = original;
         // return 
         return ret;
-    }
+    }*/
 
     public unsafe delegate void TestDelegate(UnkTargetFollowStruct* unk1);
     [Signature("48 89 5c 24 ?? 48 89 74 24 ?? 57 48 83 ec ?? 48 8b d9 48 8b fa 0f b6 89 ?? ?? 00 00 be 00 00 00 e0", DetourName = nameof(TestUpdate), Fallibility = Fallibility.Auto)]
@@ -87,12 +88,8 @@ public class MoveController : IDisposable
         // if this condition it true, it means that the function is attempting to call a cancelation 
         if (unk1->Unk_0x450.Unk_0x54 == 256)
         {
-            //_logger.LogDebug("Unk_0x450.Unk_0x54 was 256. Canceling request to unfollow!", LoggerType.HardcoreMovement);
-            if (MovementUpdateHook is not null && MovementUpdateHook.IsEnabled)
-            {
-                //_logger.LogDebug($"Unfollow Hook was valid, performing Early escaping to prevent canceling follow!", LoggerType.HardcoreMovement);
-                return; // do an early return to prevent processing
-            }
+            //_logger.LogDebug($"Unfollow Hook was valid, performing Early escaping to prevent canceling follow!", LoggerType.HardcoreMovement);
+            return; // do an early return to prevent processing
         }
         else
         {
@@ -199,6 +196,7 @@ public class MoveController : IDisposable
     }
 
     // No Longer works since Dawntrail
+    /*
     [StructLayout(LayoutKind.Explicit)]
     public unsafe struct UnkGameObjectStruct
     {
@@ -244,7 +242,7 @@ public class MoveController : IDisposable
         [FieldOffset(0x121)] public byte Rotated1; // 1 when the character has rotated, with the exception of standard-mode turn rotation
         [FieldOffset(0x122)] public byte Unk_0x122;
         [FieldOffset(0x123)] public byte Unk_0x123;
-    }
+    }*/
 
 
 

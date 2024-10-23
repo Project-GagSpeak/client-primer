@@ -27,7 +27,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     private readonly PlayerCharacterData _playerData;
     private readonly CursedLootHandler _handler;
     private readonly OnFrameworkService _frameworkUtils;
-    private readonly AppearanceHandler _appearanceHandler;
+    private readonly AppearanceManager _appearanceHandler;
     private readonly IChatGui _chatGui;
     private readonly IDataManager _gameData;
     private readonly IObjectTable _objects;
@@ -36,7 +36,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     public CursedLootService(ILogger<CursedLootService> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, GagManager gagManager,
         PlayerCharacterData playerData, CursedLootHandler handler,
-        OnFrameworkService frameworkUtils, AppearanceHandler appearanceHandler,
+        OnFrameworkService frameworkUtils, AppearanceManager appearanceHandler,
         IChatGui chatGui, IDataManager gameData, IObjectTable objects,
         ITargetManager targets) : base(logger, mediator)
     {

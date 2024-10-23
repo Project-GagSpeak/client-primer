@@ -240,7 +240,7 @@ public class AppearanceService : DisposableMediatorSubscriberBase
     {
         if (_playerManager.IpcDataNull || !IpcCallerMoodles.APIAvailable) return;
         // Fetch the current list of moodles on our character
-        var currentMoodles = AppearanceHandler.LatestClientMoodleStatusList.Select(x => x.GUID).ToList();
+        var currentMoodles = AppearanceManager.LatestClientMoodleStatusList.Select(x => x.GUID).ToList();
 
         // take the Expected moodles minus the current moodles to get the moodles we are missing.
         var missingMoodles = ExpectedMoodles.Except(currentMoodles).ToList();

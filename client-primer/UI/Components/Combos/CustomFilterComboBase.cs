@@ -227,7 +227,6 @@ public abstract class CustomFilterComboBase<T>
     public virtual bool Draw(string label, string preview, string tooltip, ref int currentSelection, float previewWidth, float itemHeight,
         ImGuiComboFlags flags = ImGuiComboFlags.None, bool mouseAllowed = true)
     {
-        Log.LogDebug("MouseAllowed was : "+mouseAllowed);
         DrawCombo(label, preview, tooltip, currentSelection, previewWidth, itemHeight, flags);
         if (mouseAllowed && CheckMouseWheel(AllowMouseWheel) && ImGui.IsItemHovered())
         {

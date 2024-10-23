@@ -14,7 +14,7 @@ using OtterGui.Classes;
 namespace GagSpeak.Services;
 
 /// <summary> Handles all of the commands that are used in the plugin. </summary>
-public sealed class CommandManagerService : IDisposable
+public sealed class CommandManager : IDisposable
 {
     private const string MainCommand = "/gagspeak";
     private const string SafewordCommand = "/safeword";
@@ -29,7 +29,7 @@ public sealed class CommandManagerService : IDisposable
     private readonly IClientState _clientState;
     private readonly ICommandManager _commands;
 
-    public CommandManagerService(GagspeakMediator mediator,
+    public CommandManager(GagspeakMediator mediator,
         GagspeakConfigService mainConfig, ServerConfigurationManager serverConfigs,
         ChatBoxMessage chatMessages, TriggerController triggerController, 
         IChatGui chat, IClientState clientState, ICommandManager commandManager)

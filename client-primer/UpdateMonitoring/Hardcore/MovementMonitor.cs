@@ -164,16 +164,20 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             
             _MoveController.EnableUnfollowHook();
 
-            // Check to see if the player is moving or not.
-            if (_clientState.LocalPlayer.Position != _handler.LastPosition)
+            // Do not account for auto-disable logic if our Offset is .MinValue.
+            if (_handler.LastMovementTime != DateTimeOffset.MinValue)
             {
-                _handler.LastMovementTime = DateTimeOffset.UtcNow;           // reset timer
-                _handler.LastPosition = _clientState.LocalPlayer.Position;// update last position
-            }
+                // Check to see if the player is moving or not.
+                if (_clientState.LocalPlayer.Position != _handler.LastPosition)
+                {
+                    _handler.LastMovementTime = DateTimeOffset.UtcNow;           // reset timer
+                    _handler.LastPosition = _clientState.LocalPlayer.Position;// update last position
+                }
 
-            // if we have been idle for longer than 6 seconds, we should release the player.
-            if ((DateTimeOffset.UtcNow - _handler.LastMovementTime).TotalSeconds > 6)
-                _handler.UpdateForcedFollow(NewState.Disabled);
+                // if we have been idle for longer than 6 seconds, we should release the player.
+                if ((DateTimeOffset.UtcNow - _handler.LastMovementTime).TotalSeconds > 6)
+                    _handler.UpdateForcedFollow(NewState.Disabled);
+            }
         }
 
 

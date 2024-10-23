@@ -43,10 +43,14 @@ public class ConditionalProgressAchievement : Achievement
     public override int CurrentProgress() => IsCompleted ? MilestoneGoal : Progress;
     public override string ProgressString() => PrefixText + " " + (CurrentProgress() + " / " + MilestoneGoal) + " " + SuffixText;
 
-    public void BeginConditionalTask()
+    public async void BeginConditionalTask(int secondsDelayBeforeCheck = 0)
     {
         if (IsCompleted)
             return;
+
+        // wait the delayed time before checking the conditional task.
+        if (secondsDelayBeforeCheck > 0)
+            await Task.Delay(secondsDelayBeforeCheck * 1000);
 
         if (!RequiredCondition())
             return;

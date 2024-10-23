@@ -129,7 +129,7 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope = _serviceScopeFactory.CreateScope();
             // startup services that have no other services that call on them, yet are essential.
             _runtimeServiceScope.ServiceProvider.GetRequiredService<UiService>();
-            _runtimeServiceScope.ServiceProvider.GetRequiredService<CommandManagerService>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<CommandManager>();
 
             _clientConfigurationManager.GagspeakConfig.ButtonUsed = false;
 

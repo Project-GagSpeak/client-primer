@@ -279,10 +279,10 @@ public partial class AchievementManager
 
         #region HARDCORE MODULE
         var hardcoreComponent = new AchievementComponent(_completionNotifier);
-        hardcoreComponent.AddProgress(HardcoreLabels.AllTheCollarsOfTheRainbow, "Force 20 different pairs to follow you.", 20, "Pairs Forced To Follow You");
+        hardcoreComponent.AddProgress(HardcoreLabels.AllTheCollarsOfTheRainbow, "Force 20 pairs to follow you.", 20, prefix: "Forced", suffix: "Pairs To Follow You");
 
         hardcoreComponent.AddConditionalProgress(HardcoreLabels.UCanTieThis, "Be forced to follow someone, throughout a duty.", 1,
-            () => _playerData.GlobalPerms?.IsFollowing() ?? false, "Duties Completed");
+            () => _playerData.GlobalPerms?.IsFollowing() ?? false, prefix: "Completed", suffix: "Duties in ForcedFollow.");
 
         // Forced follow achievements
         hardcoreComponent.AddDuration(HardcoreLabels.ForcedFollow, "Force someone to follow you for 1 minute.", TimeSpan.FromMinutes(1), DurationTimeUnit.Seconds, "Seconds");

@@ -19,7 +19,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerData;
-    private readonly AppearanceHandler _appearanceHandler;
+    private readonly AppearanceManager _appearanceHandler;
     private readonly PairManager _pairManager;
     private readonly ApiController _apiController; // for sending the updates.
     private readonly MoveController _moveController; // for movement logic
@@ -30,7 +30,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     public unsafe GameCameraManager* cameraManager = GameCameraManager.Instance(); // for the camera manager object
     public HardcoreHandler(ILogger<HardcoreHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
-        AppearanceHandler appearanceHandler, PairManager pairManager,
+        AppearanceManager appearanceHandler, PairManager pairManager,
         ApiController apiController, MoveController moveController, ChatSender chatSender,
         OnFrameworkService frameworkUtils, ITargetManager targetManager) : base(logger, mediator)
     {
@@ -107,6 +107,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         if (newState is NewState.Enabled)
         {
             LastMovementTime = DateTimeOffset.UtcNow;
+            Logger.LogDebug("Following UID: [" + _playerData.GlobalPerms?.FollowUID()+"]", LoggerType.HardcoreMovement);
             // grab the pair from the pair manager to obtain its game object and begin following it.
             var pairToFollow = _pairManager.DirectPairs.FirstOrDefault(pair => pair.UserData.UID == _playerData.GlobalPerms?.FollowUID());
             if (pairToFollow is null)
@@ -125,6 +126,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
 
         if (newState is NewState.Disabled)
         {
+            LastMovementTime = DateTimeOffset.MinValue;
             // If we are still following someone when this triggers it means we were idle long enough for it to disable.
             if (_playerData.GlobalPerms?.IsFollowing() ?? false)
             {
@@ -239,11 +241,9 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     {
         Logger.LogDebug(newState is NewState.Enabled
             ? "Enabled forced blindfold for pair." : "Disabled forced blindfold for pair.", LoggerType.HardcoreMovement);
-        // Call a glamour refresh
-        await _appearanceHandler.RecalcAndReload(false); // Fire and Forget
-
         if (newState is NewState.Enabled && !BlindfoldUI.IsWindowOpen)
         {
+            await _appearanceHandler.RecalcAndReload(false); // Fire and Forget
             await HandleBlindfoldLogic(newState);
             return;
         }
@@ -251,8 +251,8 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         if (newState is NewState.Disabled && BlindfoldUI.IsWindowOpen)
         {
             // set it on client before getting change back from server.
-            _playerData.GlobalPerms!.ForcedBlindfold = string.Empty;
-
+            _playerData.GlobalPerms!.ForcedBlindfold = string.Empty; // Help to prevent getting stuff when offline.
+            await _appearanceHandler.RecalcAndReload(true); // Fire and Forget
             await HandleBlindfoldLogic(newState);
             return;
         }

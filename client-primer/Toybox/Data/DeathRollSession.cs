@@ -85,6 +85,6 @@ public class DeathRollSession
     {
         IsComplete = true;
         string loser = LastRoller == LatestRoller.Initializer ? Initializer : Opponent;
-        StaticLogger.Logger.LogTrace("DeathRoll Finished, with the loser {loser} rolling a 1, ending the game.", loser);
+        StaticLogger.Logger.LogTrace("DeathRoll Finished, with the loser "+loser+" rolling a 1, ending the game.", LoggerType.ToyboxTriggers);
     }
 }

@@ -53,7 +53,7 @@ public partial class AchievementManager
 
         // If we left before completing the duty, check that here.
         if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.CheckTaskProgress();
+            (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
 
         if ((SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
             (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.CheckTaskProgress();
@@ -129,7 +129,7 @@ public partial class AchievementManager
         (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.KinkyExplorer] as ConditionalAchievement)?.CheckCompletion();
 
         (SaveData.Achievements[AchievementModuleKind.Gags].Achievements[GagLabels.SilentButDeadly] as ConditionalProgressAchievement)?.BeginConditionalTask();
-        (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.BeginConditionalTask();
+        (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.BeginConditionalTask(10); // 10s delay.
 
         if (_frameworkUtils.PlayerJobRole is ActionRoles.Healer)
             (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.HealSlut] as ConditionalProgressAchievement)?.BeginConditionalTask();
@@ -489,9 +489,11 @@ public partial class AchievementManager
                 // if we are the enactor and the pair is the target:
                 if (enactorUID == ApiController.UID)
                 {
+                    Logger.LogInformation("We were the enactor for forced follow");
                     // if the state is enabled, begin tracking the pair we forced.
                     if (state is NewState.Enabled)
                     {
+                        Logger.LogInformation("Forced Follow New State is Enabled");
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.AllTheCollarsOfTheRainbow] as ProgressAchievement)?.IncrementProgress();
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedFollow] as DurationAchievement)?.StartTracking(affectedPairUID);
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedWalkies] as DurationAchievement)?.StartTracking(affectedPairUID);
@@ -500,26 +502,27 @@ public partial class AchievementManager
                 // if the affected pair is not our clients UID and the action is disabling, stop tracking for anything we started. (can ignore the enactor)
                 if (affectedPairUID != ApiController.UID && state is NewState.Disabled)
                 {
+                    Logger.LogInformation("We were not the affected pair and the new state is disabled");
                     (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedFollow] as DurationAchievement)?.StopTracking(affectedPairUID);
                     (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedWalkies] as DurationAchievement)?.StopTracking(affectedPairUID);
                 }
 
-                // if UCanTieThis was active, but our follow stopped, we should check / reset our dungeon walkies achievement.
-                if (affectedPairUID == ApiController.UID && state is NewState.Disabled)
-                    (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.CheckTaskProgress();
-
                 // if the affected pair was us:
                 if (affectedPairUID == ApiController.UID)
                 {
+                    Logger.LogInformation("We were the affected pair");
                     // if the new state is enabled, we should begin tracking the time required completion.
                     if (state is NewState.Enabled)
                     {
+                        Logger.LogInformation("Forced Follow New State is Enabled");
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.TimeForWalkies] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.GettingStepsIn] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkiesLover] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                     }
                     else // and if our state switches to disabled, we should halt the progression.
                     {
+                        Logger.LogInformation("Forced Follow New State is Disabled");
+
                         if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.TimeForWalkies] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
                             (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.TimeForWalkies] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
@@ -528,6 +531,9 @@ public partial class AchievementManager
 
                         if ((SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkiesLover] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
                             (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkiesLover] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+
+                        (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.UCanTieThis] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+
                     }
                 }
                 break;

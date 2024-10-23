@@ -25,13 +25,13 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
     private readonly IpcManager _ipcManager;
     private readonly WardrobeHandler _wardrobeHandler;
     private readonly HardcoreHandler _hardcoreHandler;
-    private readonly AppearanceHandler _appearanceHandler;
+    private readonly AppearanceManager _appearanceHandler;
 
     public OnConnectedService(ILogger<OnConnectedService> logger,
         GagspeakMediator mediator, PlayerCharacterData playerData,
         ClientConfigurationManager clientConfigs, PairManager pairManager,
         GagManager gagManager, IpcManager ipcManager, WardrobeHandler wardrobeHandler,
-        HardcoreHandler blindfold, AppearanceHandler appearanceHandler) : base(logger, mediator)
+        HardcoreHandler blindfold, AppearanceManager appearanceHandler) : base(logger, mediator)
     {
         _playerData = playerData;
         _clientConfigs = clientConfigs;

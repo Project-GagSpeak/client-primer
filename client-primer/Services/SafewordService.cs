@@ -21,14 +21,14 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly GagManager _gagManager; // for removing gags.
     private readonly PlaybackService _patternPlaybackService; // for stopping patterns.
-    private readonly AppearanceHandler _appearanceHandler;
+    private readonly AppearanceManager _appearanceHandler;
     private readonly IpcFastUpdates _glamourFastEvent; // for reverting character.
 
     public SafewordService(ILogger<SafewordService> logger, GagspeakMediator mediator,
         ApiController apiController, PlayerCharacterData playerManager,
         PairManager pairManager, ClientConfigurationManager clientConfigs,
         GagManager gagManager, PlaybackService playbackService,
-        AppearanceHandler appearanceHandler, IpcFastUpdates glamourFastUpdate)
+        AppearanceManager appearanceHandler, IpcFastUpdates glamourFastUpdate)
         : base(logger, mediator)
     {
         _apiController = apiController;

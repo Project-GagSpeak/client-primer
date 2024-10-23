@@ -136,7 +136,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     {
         _playerIpcData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(_playerObject.NameWithWorld).ConfigureAwait(false) ?? string.Empty;
         _playerIpcData.MoodlesDataStatuses = await _ipcManager.Moodles.GetStatusInfoAsync(_playerObject.NameWithWorld).ConfigureAwait(false) ?? new();
-        AppearanceHandler.LatestClientMoodleStatusList = _playerIpcData.MoodlesDataStatuses; // Sync with latest Data
+        AppearanceManager.LatestClientMoodleStatusList = _playerIpcData.MoodlesDataStatuses; // Sync with latest Data
         _playerIpcData.MoodlesStatuses = await _ipcManager.Moodles.GetMoodlesInfoAsync().ConfigureAwait(false) ?? new();
         _playerIpcData.MoodlesPresets = await _ipcManager.Moodles.GetPresetsInfoAsync().ConfigureAwait(false) ?? new();
         Logger.LogDebug("Latest Data from Moodles Fetched.", LoggerType.IpcMoodles);
@@ -226,7 +226,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
                     {
                         prevData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(playerObjData.GameObj.NameWithWorld).ConfigureAwait(false) ?? string.Empty;
                         prevData.MoodlesDataStatuses = await _ipcManager.Moodles.GetStatusInfoAsync(playerObjData.GameObj.NameWithWorld).ConfigureAwait(false) ?? new();
-                        AppearanceHandler.LatestClientMoodleStatusList = prevData.MoodlesDataStatuses; // Sync with latest Data
+                        AppearanceManager.LatestClientMoodleStatusList = prevData.MoodlesDataStatuses; // Sync with latest Data
                         prevData.MoodlesStatuses = await _ipcManager.Moodles.GetMoodlesInfoAsync().ConfigureAwait(false) ?? new();
                         prevData.MoodlesPresets = await _ipcManager.Moodles.GetPresetsInfoAsync().ConfigureAwait(false) ?? new();
                     }
@@ -262,7 +262,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     {
         data.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(playerObjData.GameObj!.NameWithWorld).ConfigureAwait(false) ?? string.Empty;
         data.MoodlesDataStatuses = await _ipcManager.Moodles.GetStatusInfoAsync(playerObjData.GameObj.NameWithWorld).ConfigureAwait(false) ?? new();
-        AppearanceHandler.LatestClientMoodleStatusList = data.MoodlesDataStatuses; // Sync with latest Data
+        AppearanceManager.LatestClientMoodleStatusList = data.MoodlesDataStatuses; // Sync with latest Data
     }
 
     private async Task StatusSettingsUpdate(CharacterIPCData data, CacheData playerObjData, Guid guid)

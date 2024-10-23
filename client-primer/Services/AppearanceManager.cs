@@ -1,4 +1,3 @@
-using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Interop.IpcHelpers.Moodles;
@@ -13,11 +12,8 @@ using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Extensions;
-using Lumina.Excel.GeneratedSheets;
 using Penumbra.Api.Enums;
 using Penumbra.GameData.Enums;
-using System.Threading;
-using static FFXIVClientStructs.FFXIV.Component.GUI.AtkCounterNode.Delegates;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -29,7 +25,7 @@ namespace GagSpeak.PlayerData.Handlers;
 /// class remains synchronized with the most recent information.
 /// </para>
 /// </summary>
-public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
+public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerData;
@@ -39,7 +35,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
     private readonly AppearanceService _appearanceService;
     private readonly OnFrameworkService _frameworkUtils;
 
-    public AppearanceHandler(ILogger<AppearanceHandler> logger, GagspeakMediator mediator,
+    public AppearanceManager(ILogger<AppearanceManager> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
         GagManager gagManager, PairManager pairManager, IpcManager ipcManager,
         AppearanceService appearanceService, OnFrameworkService frameworkUtils) : base(logger, mediator)
@@ -63,7 +59,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
 
     /// <summary> Finalized Glamourer Appearance that should be visible on the player. </summary>
     private Dictionary<EquipSlot, IGlamourItem> ItemsToApply => _appearanceService.ItemsToApply;
-    
+
     /// <summary> Finalized MetaData to apply from highest priority item requesting it. </summary>
     private IpcCallerGlamourer.MetaData MetaToApply => _appearanceService.MetaToApply;
 
@@ -140,15 +136,15 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         // Enable the Hardcore Properties by invoking the ipc call.
         if (setRef.HasPropertiesForUser(setRef.EnabledBy))
         {
-            Logger.LogDebug("Set Contains HardcoreProperties for "+ setRef.EnabledBy, LoggerType.Restraints);
-            if(setRef.PropertiesEnabledForUser(setRef.EnabledBy))
+            Logger.LogDebug("Set Contains HardcoreProperties for " + setRef.EnabledBy, LoggerType.Restraints);
+            if (setRef.PropertiesEnabledForUser(setRef.EnabledBy))
             {
                 Logger.LogDebug("Hardcore properties are enabled for this set!");
                 IpcFastUpdates.InvokeHardcoreTraits(NewState.Enabled, setRef);
             }
         }
-        
-        if(triggerAchievement)
+
+        if (triggerAchievement)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, true, assignerUID);
         Logger.LogInformation("ENABLE SET [" + setRef.Name + "] END", LoggerType.Restraints);
 
@@ -191,7 +187,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         if (triggerAchievement && (setRef.EnabledBy != disablerUID) && auctionedOffSatisfied)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.AuctionedOff);
 
-        if(triggerAchievement)
+        if (triggerAchievement)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, false, disablerUID);
         setRef.Enabled = false;
         setRef.EnabledBy = string.Empty;
@@ -205,15 +201,15 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         await RecalcAndReload(true, true);
     }
 
-    public void LockRestraintSet(Guid id, Padlocks padlock, string pwd, DateTimeOffset endTime, string assigner = Globals.SelfApplied, 
+    public void LockRestraintSet(Guid id, Padlocks padlock, string pwd, DateTimeOffset endTime, string assigner = Globals.SelfApplied,
         bool pushToServer = true, bool triggerAchievement = true)
     {
         Logger.LogTrace("LOCKING SET START", LoggerType.Restraints);
         var setIdx = RestraintSets.FindIndex(x => x.RestraintId == id);
-        if (setIdx == -1) 
-        { 
-            Logger.LogWarning("Set Does not Exist, Skipping.", LoggerType.Restraints); 
-            return; 
+        if (setIdx == -1)
+        {
+            Logger.LogWarning("Set Does not Exist, Skipping.", LoggerType.Restraints);
+            return;
         }
         // if the set is not the active set, log that this is invalid, as we should only be locking / unlocking the active set.
         if (setIdx != _clientConfigs.GetActiveSetIdx())
@@ -224,10 +220,10 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
 
         // Grab the set reference.
         var setRef = RestraintSets[setIdx];
-        if (setRef.Locked) 
-        { 
-            Logger.LogDebug(setRef.Name + " is already locked. Skipping!", LoggerType.Restraints); 
-            return; 
+        if (setRef.Locked)
+        {
+            Logger.LogDebug(setRef.Name + " is already locked. Skipping!", LoggerType.Restraints);
+            return;
         }
 
         // Assign the lock information to the set.
@@ -237,7 +233,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         setRef.LockedBy = assigner;
         _clientConfigs.SaveWardrobe();
 
-        Logger.LogDebug("Set: " + setRef.Name + " Locked by: " + assigner + " with a Padlock of Type: " + padlock.ToName() 
+        Logger.LogDebug("Set: " + setRef.Name + " Locked by: " + assigner + " with a Padlock of Type: " + padlock.ToName()
             + " with: " + (endTime - DateTimeOffset.UtcNow) + " by: " + assigner, LoggerType.Restraints);
 
         // After this, we should fire that a change occured.
@@ -335,10 +331,10 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
     /// </summary>
     public async Task GagApplied(GagLayer layer, GagType gagType, bool publishApply = true, bool isSelfApplied = true, bool triggerAchievement = true)
     {
-        Logger.LogDebug("GAG-APPLIED triggered on slot ["+layer.ToString()+"] with a ["+gagType.GagName()+"]", LoggerType.GagManagement);
+        Logger.LogDebug("GAG-APPLIED triggered on slot [" + layer.ToString() + "] with a [" + gagType.GagName() + "]", LoggerType.GagManagement);
         // We first must change the gag to its new type within the gag manager to update the appearance.
         _gagManager.OnGagTypeChanged(layer, gagType, publishApply);
-        
+
         // If the Gag is not Enabled, or our auto equip is disabled, dont do anything else and return.
         if (!_clientConfigs.IsGagEnabled(gagType) || !_playerData.GlobalPerms!.ItemAutoEquip)
             return;
@@ -374,7 +370,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         // Remove the CustomizePlus Profile if applicable
         if (drawData.CustomizeGuid != Guid.Empty)
             _ipcManager.CustomizePlus.DisableProfile(drawData.CustomizeGuid);
-        
+
         // Send Achievement Event
         if (triggerAchievement)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.GagRemoval, layer, gagType, isSelfApplied);
@@ -399,7 +395,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
     {
         Logger.LogTrace("CURSED-APPLIED Executed");
         // If the cursed item is a gag item, handle it via the gag manager, otherwise, handle through mod toggle
-        if(cursedItem.IsGag)
+        if (cursedItem.IsGag)
         {
             // Cursed Item was Gag, so handle it via GagApplied.
             await GagApplied(gagLayer, cursedItem.GagType);
@@ -418,7 +414,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
         Logger.LogTrace("CURSED-REMOVED Executed");
         // If the Cursed Item is a GagItem, it will be handled automatically by lock expiration. 
         // However, it also means none of the below will process, so we should return if it is.
-        if(cursedItem.IsGag)
+        if (cursedItem.IsGag)
             return;
 
         // We are removing a Equip-based CursedItem
@@ -443,7 +439,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
     private async Task RemoveMoodles(IMoodlesAssociable data)
     {
         Logger.LogTrace("Removing Moodles");
-        if(_playerData.IpcDataNull) return;
+        if (_playerData.IpcDataNull) return;
 
         // if our preset is not null, store the list of guids respective of them.
         var statuses = new List<Guid>();
@@ -560,7 +556,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
                 // Add the moodles from the active set.
                 if (!_playerData.IpcDataNull)
                 {
-                    if(activeSetRef.AssociatedMoodles.Count > 0)
+                    if (activeSetRef.AssociatedMoodles.Count > 0)
                         ExpectedMoodles.AddRange(activeSetRef.AssociatedMoodles);
                     if (activeSetRef.AssociatedMoodlePreset != Guid.Empty)
                     {
@@ -592,7 +588,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
                     // continue if moodles data is not present.
                     if (!_playerData.IpcDataNull)
                     {
-                        if(data.AssociatedMoodles.Count > 0)
+                        if (data.AssociatedMoodles.Count > 0)
                             ExpectedMoodles.AddRange(data.AssociatedMoodles);
                         if (data.AssociatedMoodlePreset != Guid.Empty)
                         {
@@ -603,9 +599,9 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
                     }
 
                     // Apply the metadata stored in this gag item. Any gags after it will overwrite previous meta set.
-                    MetaToApply = (data.ForceHeadgearOnEnable && data.ForceVisorOnEnable) 
-                        ? IpcCallerGlamourer.MetaData.Both : (data.ForceHeadgearOnEnable) 
-                            ? IpcCallerGlamourer.MetaData.Hat : (data.ForceVisorOnEnable) 
+                    MetaToApply = (data.ForceHeadgearOnEnable && data.ForceVisorOnEnable)
+                        ? IpcCallerGlamourer.MetaData.Both : (data.ForceHeadgearOnEnable)
+                            ? IpcCallerGlamourer.MetaData.Hat : (data.ForceVisorOnEnable)
                                 ? IpcCallerGlamourer.MetaData.Visor : IpcCallerGlamourer.MetaData.None;
                 }
             }
@@ -638,14 +634,14 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
                     // if an item was already applied to that slot, only apply if it satisfied conditions.
                     if (existingItem.CanOverride && cursedItem.OverridePrecedence >= existingItem.OverridePrecedence)
                     {
-                        Logger.LogDebug($"Slot: "+cursedItem.AppliedItem.Slot+" already had an item ["+existingItem.Name+"]. "
-                            + "but ["+cursedItem.Name+"] had higher precedence", LoggerType.ClientPlayerData);
+                        Logger.LogDebug($"Slot: " + cursedItem.AppliedItem.Slot + " already had an item [" + existingItem.Name + "]. "
+                            + "but [" + cursedItem.Name + "] had higher precedence", LoggerType.ClientPlayerData);
                         appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
                     }
                 }
                 else
                 {
-                    Logger.LogDebug($"Storing Cursed Item ["+cursedItem.Name+"] to Slot: "+cursedItem.AppliedItem.Slot, LoggerType.ClientPlayerData);
+                    Logger.LogDebug($"Storing Cursed Item [" + cursedItem.Name + "] to Slot: " + cursedItem.AppliedItem.Slot, LoggerType.ClientPlayerData);
                     appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
                 }
 
@@ -666,7 +662,7 @@ public sealed class AppearanceHandler : DisposableMediatorSubscriberBase
             foreach (var item in appliedItems)
             {
                 Logger.LogInformation($"Applying Cursed Item to Slot: {item.Key}", LoggerType.ClientPlayerData);
-                if(item.Value.IsGag)
+                if (item.Value.IsGag)
                 {
                     var drawData = _clientConfigs.GetDrawData(item.Value.GagType);
                     ItemsToApply[drawData.Slot] = drawData;

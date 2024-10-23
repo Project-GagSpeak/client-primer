@@ -167,7 +167,7 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         Logger.LogInformation("Redrawing ClientPlayer object due to set toggle!", LoggerType.IpcPenumbra);
         // Let us know that we are manually invoking a redraw.
         if(objectIndex is 0)
-            AppearanceHandler.ManualRedrawProcessing = true;
+            AppearanceManager.ManualRedrawProcessing = true;
         // Invoke the subscriber
         _redrawSubscriber!.Invoke(objectIndex, settings);
     }
@@ -179,7 +179,7 @@ public unsafe class IpcCallerPenumbra : DisposableMediatorSubscriberBase, IIpcCa
         if (objectTableIndex is 0)
         {
             Logger.LogInformation("Redrawing Called via command or has finished a redraw", LoggerType.IpcPenumbra);
-            AppearanceHandler.ManualRedrawProcessing = false;
+            AppearanceManager.ManualRedrawProcessing = false;
             // Invoke a reapply all here. This will ensure that we reapply all information once we are valid.
             IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.ReapplyAll);
         }

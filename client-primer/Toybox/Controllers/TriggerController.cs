@@ -33,7 +33,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly GagManager _gagManager;
     private readonly PairManager _pairManager;
-    private readonly AppearanceHandler _appearanceHandler;
+    private readonly AppearanceManager _appearanceHandler;
     private readonly OnFrameworkService _frameworkService;
     private readonly ToyboxVibeService _vibeService;
     private readonly IpcCallerMoodles _moodlesIpc;
@@ -45,7 +45,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         PlayerCharacterData playerManager, ToyboxFactory playerMonitorFactory,
         ActionEffectMonitor receiveActionEffectHookManager, WardrobeHandler wardrobeHandler,
         ClientConfigurationManager clientConfigs, GagManager gagManager,
-        PairManager pairManager, AppearanceHandler appearanceHandler, 
+        PairManager pairManager, AppearanceManager appearanceHandler, 
         OnFrameworkService frameworkService, ToyboxVibeService vibeService,
         IpcCallerMoodles moodlesIpc, IChatGui chatGui, IClientState clientState,
         IDataManager gameData) : base(logger, mediator)
@@ -282,32 +282,40 @@ public class TriggerController : DisposableMediatorSubscriberBase
             Logger.LogDebug("[DeathRoll] Roll doesn't match any active Sessions.", LoggerType.ToyboxTriggers);
         }
 
-        var matchingDeathRollTriggers = _clientConfigs.ActiveSocialTriggers.Where(x => x.SocialType == SocialActionType.DeathRollLoss).ToList();
-
-        if (!matchingDeathRollTriggers.Any())
+        if (!_clientConfigs.ActiveSocialTriggers.Any())
             return;
 
         // if there are any active DeathRolls that are marked as complete, not expired...
-        var completedLostDeathRolls = ActiveDeathDeathRollSessions
-            .Where(x => x.IsComplete && !x.SessionExpired && (
-            (x.Initializer == _clientState.LocalPlayer.GetNameWithWorld() && x.LastRoller == LatestRoller.Initializer)
-            || (x.Opponent == _clientState.LocalPlayer.GetNameWithWorld() && x.LastRoller == LatestRoller.Opponent)))
+        var completedDeathRolls = ActiveDeathDeathRollSessions
+            .Where(x => x.IsComplete && !x.SessionExpired)
+            .ToList();
+
+        // Now, calculate the "lost" deathrolls by checking if the local player lost the roll
+        var lostDeathRolls = completedDeathRolls
+            .Where(x =>
+                (x.Initializer == _clientState.LocalPlayer.GetNameWithWorld() && x.LastRoller == LatestRoller.Initializer)
+                || (x.Opponent == _clientState.LocalPlayer.GetNameWithWorld() && x.LastRoller == LatestRoller.Opponent))
             .ToList();
 
         // if there are any completedLostDeathRolls that exist, we should fire our trigger, and clear the rollSession.
-        if (completedLostDeathRolls.Any())
+        if (lostDeathRolls.Any())
         {
             SeStringBuilder se = new SeStringBuilder().AddItalicsOn().AddText("[Gagspeak] You Lost a DeathRoll!").AddItalicsOff();
             _chatGui.PrintError(se.BuiltString);
 
-            foreach (var trigger in matchingDeathRollTriggers)
+            foreach (var trigger in _clientConfigs.ActiveSocialTriggers)
             {
                 ExecuteTriggerAction(trigger);
             }
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.DeathRollCompleted);
-            ActiveDeathDeathRollSessions.RemoveAll(x => completedLostDeathRolls.Contains(x));
             Logger.LogDebug("DeathRoll Trigger Executed, and Session Removed.", LoggerType.ToyboxTriggers);
         }
+
+        // if there are any completed deathrolls, fire achievement.
+        if(completedDeathRolls.Any() && _clientConfigs.ActiveSocialTriggers.Any(x=>x.Enabled))
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.DeathRollCompleted);
+
+        // Remove all completed deathrolls.
+        ActiveDeathDeathRollSessions.RemoveAll(x => x.IsComplete);
     }
 
     private void HandleDeathRollMessage(string messageValue, out bool InitializerMsg, out int RollValue, out int RollCap)

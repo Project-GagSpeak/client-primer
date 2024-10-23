@@ -32,14 +32,14 @@ public class ClientCallbackService
     private readonly GagManager _gagManager;
     private readonly IpcManager _ipcManager;
     private readonly IpcFastUpdates _ipcFastUpdates;
-    private readonly AppearanceHandler _appearanceHandler;
+    private readonly AppearanceManager _appearanceHandler;
     private readonly PlaybackService _playbackService;
 
     public ClientCallbackService(ILogger<ClientCallbackService> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
         PlayerCharacterData playerData, WardrobeHandler wardrobeHandler,
         PairManager pairManager, GagManager gagManager, IpcManager ipcManager, 
-        IpcFastUpdates ipcFastUpdates, AppearanceHandler appearanceHandler, 
+        IpcFastUpdates ipcFastUpdates, AppearanceManager appearanceHandler, 
         PlaybackService playbackService)
     {
         _logger = logger;

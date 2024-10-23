@@ -11,11 +11,11 @@ public class CursedLootHandler : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerData;
     private readonly GagManager _gagManager;
-    private readonly AppearanceHandler _appearanceHandler;
+    private readonly AppearanceManager _appearanceHandler;
 
     public CursedLootHandler(ILogger<CursedLootHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
-        GagManager gagManager, AppearanceHandler handler) : base(logger, mediator)
+        GagManager gagManager, AppearanceManager handler) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerData = playerData;

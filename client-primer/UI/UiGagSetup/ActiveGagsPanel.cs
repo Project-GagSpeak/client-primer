@@ -20,13 +20,13 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
     private readonly UiSharedService _uiSharedService;
     private readonly PlayerCharacterData _playerManager; // for grabbing lock data
     private readonly GagManager _gagManager;
-    private readonly AppearanceHandler _appearanceHandler;
+    private readonly AppearanceManager _appearanceHandler;
     private readonly AppearanceService _appearanceChangeService;
 
     public ActiveGagsPanel(ILogger<ActiveGagsPanel> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         GagManager gagManager, PlayerCharacterData playerManager,
-        AppearanceHandler handler, AppearanceService appearanceChangeService)
+        AppearanceManager handler, AppearanceService appearanceChangeService)
         : base(logger, mediator)
     {
         _uiSharedService = uiSharedService;

@@ -15,13 +15,13 @@ namespace GagSpeak.PlayerData.Handlers;
 public class WardrobeHandler : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly AppearanceHandler _appearanceHandler;
+    private readonly AppearanceManager _appearanceHandler;
     private readonly PlayerCharacterData _playerManager;
     private readonly PairManager _pairManager;
 
     public WardrobeHandler(ILogger<WardrobeHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfiguration, PlayerCharacterData playerManager,
-        AppearanceHandler appearanceHandler, PairManager pairManager) : base(logger, mediator)
+        AppearanceManager appearanceHandler, PairManager pairManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfiguration;
         _appearanceHandler = appearanceHandler;

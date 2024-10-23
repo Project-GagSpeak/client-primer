@@ -25,8 +25,8 @@ public class AchievementsService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, _ => CheckAchievementConditions());
     }
 
-    DateTime _lastCheck = DateTime.Now;
-    DateTime _lastPlayerCheck = DateTime.Now;
+    DateTime _lastCheck = DateTime.UtcNow;
+    DateTime _lastPlayerCheck = DateTime.UtcNow;
     int _lastPlayerCount = 0;
     bool ClientIsDead = false;
 

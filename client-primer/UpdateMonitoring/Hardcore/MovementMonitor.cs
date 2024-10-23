@@ -130,7 +130,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                 Logger.LogDebug("Disabling Immobilization", LoggerType.HardcoreMovement);
                 HandleImmobilize = false;
                 // Correct movement.
-                _MoveController.DisableMovementLock();
+                _MoveController.DisableMouseAutoMoveHook();
             }
         }
     }
@@ -179,7 +179,6 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                     _handler.UpdateForcedFollow(NewState.Disabled);
             }
         }
-
 
 
         // FORCED FOLLOW -- OR -- WEIGHTY RESTRAINT, Handle forced Walk
@@ -238,13 +237,9 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
 
         // RESTRAINT IMMOBILIZATION OR FORCED FOLLOW, in where we need to prevent LMB+RMB movement.
         if (HandleImmobilize)
-        {
-            // Stop all movement but only when LMB and RMB are down.
-            if (KeyMonitor.IsBothMouseButtonsPressed())
-                _MoveController.EnableMovementLock();
-            // And release Movement Lock when they aren't pressed.
-            else _MoveController.DisableMovementLock();
-        }
+            _MoveController.EnableMouseAutoMoveHook();
+        else
+            _MoveController.DisableMouseAutoMoveHook();
 
         // BLINDFOLDED STATE - Force Lock First Person if desired.
         if (_clientConfigs.GagspeakConfig.ForceLockFirstPerson && _handler.IsBlindfolded)

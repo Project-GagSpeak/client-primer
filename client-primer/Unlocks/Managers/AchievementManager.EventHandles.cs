@@ -785,7 +785,8 @@ public partial class AchievementManager
 
     private void OnJobChange(GlamourUpdateType changeType)
     {
-        (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.EscapingIsNotEasy] as ConditionalAchievement)?.CheckCompletion();
+        if(changeType is GlamourUpdateType.JobChange)
+            (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.EscapingIsNotEasy] as ConditionalAchievement)?.CheckCompletion();
     }
 
     private void OnVibratorToggled(NewState newState)

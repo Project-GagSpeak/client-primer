@@ -28,7 +28,7 @@ public class MoveController : IDisposable
     /*
     public unsafe delegate byte MoveOnMousePreventorDelegate(MoveControllerSubMemberForMine* thisx);
     [Signature("40 55 53 48 8D 6C 24 ?? 48 81 EC ?? ?? ?? ?? 48 83 79", DetourName = nameof(MovementUpdate), Fallibility = Fallibility.Auto)]
-    public static Hook<MoveOnMousePreventorDelegate>? MovementUpdateHook { get; set; } = null!;
+    public static Hook<MoveOnMousePreventorDelegate>? MouseAutoMoveHook { get; set; } = null!;
     [return: MarshalAs(UnmanagedType.U1)]
     public unsafe byte MovementUpdate(MoveControllerSubMemberForMine* thisx)
     {
@@ -42,15 +42,34 @@ public class MoveController : IDisposable
             _logger.LogDebug($"Preventing LMB+RMB movement", LoggerType.HardcoreMovement);
             *hold = 0;
         }
+        if(thisx->Moved != 0 && thisx->WishdirChanged == 2)
+        {
+            _logger.LogDebug($"Preventing movement due to WishdirChanged (Current Hold State was: "+original, LoggerType.HardcoreMovement);
+            *hold = 0;
+        }
 
-        //_logger.LogDebug($"Move movement is active for {((IntPtr)hold).ToString("X")}", LoggerType.HardcoreMovement);
         // update the original
-        byte ret = MovementUpdateHook.Original(thisx);
+        byte ret = MouseAutoMoveHook.Original(thisx);
         // restore the original
         *hold = original;
         // return 
         return ret;
     }*/
+
+    public unsafe delegate void MoveOnMousePreventor2Delegate(MoveControllerSubMemberForMine* thisx, float wishdir_h, float wishdir_v, char arg4, byte align_with_camera, Vector3* direction);
+    [Signature("48 8b c4 48 89 70 ?? 48 89 78 ?? 55 41 56 41 57", DetourName = nameof(MovementUpdate), Fallibility = Fallibility.Auto)]
+    public static Hook<MoveOnMousePreventor2Delegate>? MouseAutoMove2Hook { get; set; } = null!;
+    [return: MarshalAs(UnmanagedType.U1)]
+    public static unsafe void MovementUpdate(MoveControllerSubMemberForMine* thisx, float wishdir_h, float wishdir_v, char arg4, byte align_with_camera, Vector3* direction)
+    {
+        if (thisx->Unk_0x3F != 0)
+        {
+            return;
+        }
+
+        MouseAutoMove2Hook.Original(thisx, wishdir_h, wishdir_v, arg4, align_with_camera, direction);
+    }
+
 
     public unsafe delegate void TestDelegate(UnkTargetFollowStruct* unk1);
     [Signature("48 89 5c 24 ?? 48 89 74 24 ?? 57 48 83 ec ?? 48 8b d9 48 8b fa 0f b6 89 ?? ?? 00 00 be 00 00 00 e0", DetourName = nameof(TestUpdate), Fallibility = Fallibility.Auto)]
@@ -133,10 +152,6 @@ public class MoveController : IDisposable
     #endregion Pointer Signature Fuckery
 
 #pragma warning restore CS8602
-
-    /// <summary>
-    /// Locks All Movement on the Client Player Character.
-    /// </summary>
     public void EnableMovementLock()
     {
         // If all Movement is already disabled by this plugin or any other, dont interact with it.
@@ -148,9 +163,6 @@ public class MoveController : IDisposable
         ForceDisableMovement = 1;
     }
 
-    /// <summary>
-    /// Frees All Movement on the Client Player Character.
-    /// </summary>
     public void DisableMovementLock() 
     {
         // If the movement is already re-enabled by this plugin or any other, dont interact with it.
@@ -182,6 +194,27 @@ public class MoveController : IDisposable
         }
     }
 
+    public void EnableMouseAutoMoveHook()
+    {
+        // If our unfollow hook is ready but has not been enabled, we should enable it.
+        if (MouseAutoMove2Hook is not null && !MouseAutoMove2Hook.IsEnabled)
+        {
+            MouseAutoMove2Hook.Enable();
+            _logger.LogTrace($"UnfollowHook is enabled due to Hardcore Active State", LoggerType.HardcoreMovement);
+        }
+    }
+
+    public void DisableMouseAutoMoveHook()
+    {
+        // If our unfollow hook is ready and enabled, we should disable it.
+        if (MouseAutoMove2Hook is not null && MouseAutoMove2Hook.IsEnabled)
+        {
+            MouseAutoMove2Hook.Disable();
+            _logger.LogTrace($"UnfollowHook is disabled due to Hardcore Active State ending", LoggerType.HardcoreMovement);
+        }
+    }
+
+
     // the disposer
     public void Dispose()
     {
@@ -189,14 +222,17 @@ public class MoveController : IDisposable
         // Free the player and disable unfollow hooks
         DisableMovementLock();
         DisableUnfollowHook();
+        DisableMouseAutoMoveHook();
 
         // dispose of the hooks
         UnfollowHook?.Dispose();
-        UnfollowHook = null; // make sure they are disposed of
+        MouseAutoMove2Hook?.Dispose();
+        // make sure they are disposed of
+        UnfollowHook = null;
+        MouseAutoMove2Hook = null;
     }
 
     // No Longer works since Dawntrail
-    /*
     [StructLayout(LayoutKind.Explicit)]
     public unsafe struct UnkGameObjectStruct
     {
@@ -221,19 +257,26 @@ public class MoveController : IDisposable
     {
         [FieldOffset(0x10)] public Vector3 Direction; // direction?
         [FieldOffset(0x20)] public UnkGameObjectStruct* ActorStruct;
-        [FieldOffset(0x28)] public uint Unk_0x28;
+        [FieldOffset(0x28)] public float Unk_0x28;
+        [FieldOffset(0x38)] public float Unk_0x38;
         [FieldOffset(0x3C)] public byte Moved;
         [FieldOffset(0x3D)] public byte Rotated; // 1 when the character has rotated
         [FieldOffset(0x3E)] public byte MovementLock; // Pretty much forced auto run when nonzero. Maybe used for scene transitions?
         [FieldOffset(0x3F)] public byte Unk_0x3F;
         [FieldOffset(0x40)] public byte Unk_0x40;
+        [FieldOffset(0x44)] public float MoveSpeed;
+        [FieldOffset(0x50)] public float* MoveSpeedMaximums;
         [FieldOffset(0x80)] public Vector3 ZoningPosition; // this gets set to your positon when you are in a scene/zone transition
-        [FieldOffset(0xF4)] public byte Unk_0xF4;
-        [FieldOffset(0x80)] public Vector3 Unk_0x80;
         [FieldOffset(0x90)] public float MoveDir; // Relative direction (in radians) that  you are trying to move. Backwards is -PI, Left is HPI, Right is -HPI
         [FieldOffset(0x94)] public byte Unk_0x94;
         [FieldOffset(0xA0)] public Vector3 MoveForward; // direction output by MovementUpdate
         [FieldOffset(0xB0)] public float Unk_0xB0;
+        [FieldOffset(0xB4)] public byte Unk_0xB4; // 
+        [FieldOffset(0xF2)] public byte Unk_0xF2;
+        [FieldOffset(0xF3)] public byte Unk_0xF3;
+        [FieldOffset(0xF4)] public byte Unk_0xF4;
+        [FieldOffset(0xF5)] public byte Unk_0xF5;
+        [FieldOffset(0xF6)] public byte Unk_0xF6;
         [FieldOffset(0x104)] public byte Unk_0x104; // If you were moving last frame, this value is 0, you moved th is frame, and you moved on only one axis, this can get set to 3
         [FieldOffset(0x110)] public Int32 WishdirChanged; // 1 when your movement direction has changed (0 when autorunning, for example). This is set to 2 if dont_rotate_with_camera is 0, and this is not 1
         [FieldOffset(0x114)] public float Wishdir_Horizontal; // Relative direction on the horizontal axis
@@ -242,7 +285,9 @@ public class MoveController : IDisposable
         [FieldOffset(0x121)] public byte Rotated1; // 1 when the character has rotated, with the exception of standard-mode turn rotation
         [FieldOffset(0x122)] public byte Unk_0x122;
         [FieldOffset(0x123)] public byte Unk_0x123;
-    }*/
+        [FieldOffset(0x125)] public byte Unk_0x125; // 1 when walking
+        [FieldOffset(0x12A)] public byte Unk_0x12A;
+    }
 
 
 

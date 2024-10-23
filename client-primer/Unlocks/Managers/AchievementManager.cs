@@ -141,8 +141,6 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Subscribe(UnlocksEvent.ChocoboRaceFinished, () => (SaveData.Achievements[AchievementModuleKind.Secrets].Achievements[SecretLabels.WildRide] as ConditionalAchievement)?.CheckCompletion());
         _eventManager.Subscribe<int>(UnlocksEvent.PlayersInProximity, (count) => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CrowdPleaser] as ConditionalThresholdAchievement)?.UpdateThreshold(count));
         _eventManager.Subscribe(UnlocksEvent.CutsceneInturrupted, () => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as ConditionalProgressAchievement)?.StartOverDueToInturrupt());
-        IpcFastUpdates.GlamourEventFired += OnJobChange;
-        ActionEffectMonitor.ActionEffectEntryEvent += OnActionEffectEvent;
 
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, _ => OnPairVisible());
         Mediator.Subscribe<CommendationsIncreasedMessage>(this, (msg) => OnCommendationsGiven(msg.amount));
@@ -162,6 +160,8 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
             CheckDeepDungeonStatus();
         });
 
+        IpcFastUpdates.GlamourEventFired += OnJobChange;
+        ActionEffectMonitor.ActionEffectEntryEvent += OnActionEffectEvent;
         _dutyState.DutyStarted += OnDutyStart;
         _dutyState.DutyCompleted += OnDutyEnd;
         #endregion Event Subscription
@@ -209,7 +209,6 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
         _eventManager.Unsubscribe<HardcoreAction, NewState, string, string>(UnlocksEvent.HardcoreForcedPairAction, OnHardcoreForcedPairAction);
 
-        ///
         _eventManager.Unsubscribe(UnlocksEvent.RemoteOpened, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.JustVibing] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe(UnlocksEvent.VibeRoomCreated, () => (SaveData.Achievements[AchievementModuleKind.Remotes].Achievements[RemoteLabels.VibingWithFriends] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe<NewState>(UnlocksEvent.VibratorsToggled, OnVibratorToggled);
@@ -230,7 +229,6 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
         IpcFastUpdates.GlamourEventFired -= OnJobChange;
         ActionEffectMonitor.ActionEffectEntryEvent -= OnActionEffectEvent;
-
         _dutyState.DutyStarted -= OnDutyStart;
         _dutyState.DutyCompleted -= OnDutyEnd;
     }

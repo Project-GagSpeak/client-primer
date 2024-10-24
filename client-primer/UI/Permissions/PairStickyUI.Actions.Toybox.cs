@@ -67,7 +67,6 @@ public partial class PairStickyUI
 
                 // Grab the currently stored selected PatternDto.
                 PatternDto storedPatternName = _permActions.GetSelectedItem<PatternDto>("ExecutePatternForPairPermCombo", PairUID) ?? new PatternDto();
-                bool disabledCondition = storedPatternName.Identifier == Guid.Empty;
 
                 _permActions.DrawGenericComboButton(PairUID, "ExecutePatternForPairPermCombo", "Play", WindowMenuWidth,
                     comboItems: lastToyboxData.PatternList, 
@@ -105,7 +104,6 @@ public partial class PairStickyUI
             {
                 var newToyboxData = lastToyboxData.DeepClone();
                 if (newToyboxData == null) throw new Exception("Toybox data is null, not sending");
-                newToyboxData.TransactionId = Guid.Empty;
 
                 _ = _apiController.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxPatternStopped));
                 _logger.LogDebug("Stopped active Pattern running on "+PairNickOrAliasOrUID+"'s toy", LoggerType.Permissions);

@@ -189,6 +189,7 @@ public static class GagSpeakServiceExtensions
         // PlayerData Services
         .AddSingleton<GagManager>()
         .AddSingleton<AppearanceManager>()
+        .AddSingleton<ToyboxManager>()
         .AddSingleton<CursedLootHandler>()
         .AddSingleton((s) => new GameItemStainHandler(s.GetRequiredService<ILogger<GameItemStainHandler>>(), s.GetRequiredService<ItemData>(), 
             s.GetRequiredService<DictBonusItems>(), s.GetRequiredService<DictStain>(), s.GetRequiredService<TextureService>(), dm))

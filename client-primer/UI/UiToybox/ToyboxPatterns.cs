@@ -64,7 +64,7 @@ public class ToyboxPatterns
         {
             DrawPatternEditorHeader();
             ImGui.Separator();
-            if (_handler.PatternCount > 0)
+            if (_handler.PatternCount > 0 && _handler.ClonedPatternForEdit is not null)
                 DrawPatternEditor(_handler.ClonedPatternForEdit);
         }
     }

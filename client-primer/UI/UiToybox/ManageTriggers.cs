@@ -109,7 +109,7 @@ public class ToyboxTriggerManager
         {
             DrawTriggerEditorHeader();
             ImGui.Separator();
-            if (_handler.TriggerCount > 0)
+            if (_handler.TriggerCount > 0 && _handler.ClonedTriggerForEdit is not null)
                 DrawTriggerEditor(_handler.ClonedTriggerForEdit);
         }
     }

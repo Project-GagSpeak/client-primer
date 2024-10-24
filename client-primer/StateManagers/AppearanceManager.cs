@@ -361,14 +361,14 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         _gagManager.OnGagTypeChanged(layer, GagType.None, publishRemoval);
 
         // Once it's been set to inactive, we should also remove our moodles.
-        var drawData = _clientConfigs.GetDrawData(gagType);
-        await RemoveMoodles(drawData);
+        var gagSettings = _clientConfigs.GetDrawData(gagType);
+        await RemoveMoodles(gagSettings);
 
         await RecalcAndReload(true, true);
 
         // Remove the CustomizePlus Profile if applicable
-        if (drawData.CustomizeGuid != Guid.Empty)
-            _ipcManager.CustomizePlus.DisableProfile(drawData.CustomizeGuid);
+        if (gagSettings.CustomizeGuid != Guid.Empty)
+            _ipcManager.CustomizePlus.DisableProfile(gagSettings.CustomizeGuid);
 
         // Send Achievement Event
         if (triggerAchievement)

@@ -73,7 +73,7 @@ public class ToyboxAlarmManager
         {
             DrawAlarmEditorHeader();
             ImGui.Separator();
-            if (_handler.AlarmCount > 0 )
+            if (_handler.AlarmCount > 0 && _handler.ClonedAlarmForEdit is not null)
                 DrawAlarmEditor(_handler.ClonedAlarmForEdit);
         }
     }

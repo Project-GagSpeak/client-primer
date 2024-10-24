@@ -22,6 +22,7 @@ public class PatternHandler : MediatorSubscriberBase
     {
         _clientConfigs = clientConfigs;
         _playerManager = playerManager;
+        _toyboxStateManager = toyboxStateManager;
     }
 
     public List<PatternData> Patterns => _clientConfigs.PatternConfig.PatternStorage.Patterns;

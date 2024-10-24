@@ -64,7 +64,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
 
         // If we are pushing to the server, do so now.
         if (fireToServer)
-            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.ToyboxPatternExecuted));
+            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternExecuted));
 
         // If we are triggering an achievement, do so now.
         if (fireAchievement)
@@ -93,7 +93,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
 
         // If we are pushing to the server, do so now.
         if (fireToServer)
-            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.ToyboxPatternStopped));
+            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternStopped));
 
         // If we are triggering an achievement, do so now.
         if (fireAchievement)
@@ -119,7 +119,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
 
         // If we are pushing to the server, do so now.
         if (fireToServer)
-            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.ToyboxAlarmToggled));
+            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmToggled));
 
         // If we are triggering an achievement, do so now.
         if (fireAchievement)
@@ -142,7 +142,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
 
         // If we are pushing to the server, do so now.
         if (fireToServer)
-            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.ToyboxAlarmToggled));
+            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmToggled));
 
         // If we are triggering an achievement, do so now.
         if (fireAchievement)
@@ -167,7 +167,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
         pattern.IsActive = true;
         _clientConfigs.SavePatterns();
 
-        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.ToyboxPatternExecuted));
+        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternExecuted));
         UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Started, pattern.UniqueIdentifier, true);
 
         // afterwards, let's enable the pattern for the alarm.
@@ -193,7 +193,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
 
         // If we are pushing to the server, do so now.
         if (fireToServer)
-            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.ToyboxTriggerToggled));
+            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerToggled));
 
         // If we are triggering an achievement, do so now.
         if (fireAchievement)
@@ -216,7 +216,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
 
         // If we are pushing to the server, do so now.
         if (fireToServer)
-            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.ToyboxTriggerToggled));
+            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerToggled));
     }
 
     public void ExecuteTrigger(Trigger triggerToFire)

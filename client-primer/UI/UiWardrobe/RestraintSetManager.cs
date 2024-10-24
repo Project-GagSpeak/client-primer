@@ -244,9 +244,9 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             var currentYpos = ImGui.GetCursorPosY();
             // draw revert button at the same location but right below that button
             if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import Gear",
-                disabled: !IpcCallerGlamourer.APIAvailable || _handler.ClonedSetForEdit is null || !KeyMonitor.CtrlPressed()))
+                disabled: !IpcCallerGlamourer.APIAvailable || CreatedRestraintSet is null || !KeyMonitor.CtrlPressed()))
             {
-                _ipcGlamourer.SetRestraintEquipmentFromState(CreatedRestraintSet);
+                _ipcGlamourer.SetRestraintEquipmentFromState(CreatedRestraintSet!);
                 Logger.LogDebug("EquipmentImported from current State");
             }
             UiSharedService.AttachToolTip("Imports your Actor's Equipment Data from your current appearance.");
@@ -254,7 +254,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             ImGui.SameLine();
             ImGui.SetCursorPosY(currentYpos);
             // the "fuck go back" button.
-            using (var disabled = ImRaii.Disabled(CreatedRestraintSet.Name == string.Empty))
+            using (var disabled = ImRaii.Disabled(CreatedRestraintSet!.Name == string.Empty))
             {
                 if (_uiShared.IconButton(FontAwesomeIcon.Save))
                 {

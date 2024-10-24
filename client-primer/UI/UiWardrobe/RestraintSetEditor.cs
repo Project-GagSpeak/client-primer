@@ -1,33 +1,24 @@
-using Dalamud.Interface.Utility;
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services.Mediator;
-using GagSpeak.UI.Components.Combos;
-using GagSpeak.Utils;
-using ImGuiNET;
-using OtterGui.Text;
-using OtterGui;
-using Penumbra.GameData.Enums;
-using Penumbra.GameData.Structs;
-using Dalamud.Plugin.Services;
+using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.Interop.IpcHelpers.Penumbra;
 using GagSpeak.PlayerData.Handlers;
-using GagSpeak.Services.Textures;
-using Penumbra.GameData.DataContainers;
-using Dalamud.Interface.Utility.Raii;
-using Penumbra.GameData.Data;
-using System.Numerics;
-using GagSpeak.WebAPI.Utils;
-using System.Windows.Forms.VisualStyles;
-using Dalamud.Interface.Colors;
-using GagspeakAPI.Data.Character;
-using static System.ComponentModel.Design.ObjectSelectorEditor;
-using GagSpeak.Interop.IpcHelpers.Moodles;
+using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
+using GagSpeak.Services.Mediator;
+using GagSpeak.UI.Components.Combos;
 using GagSpeak.UI.Handlers;
-using GagSpeak.WebAPI;
-using GagspeakAPI.Dto.Permissions;
+using GagSpeak.Utils;
+using GagspeakAPI.Data.Character;
+using ImGuiNET;
+using OtterGui;
+using OtterGui.Text;
+using Penumbra.GameData.Enums;
+using Penumbra.GameData.Structs;
+using System.Numerics;
 
 namespace GagSpeak.UI.UiWardrobe;
 
@@ -43,7 +34,7 @@ public class RestraintSetEditor : IMediatorSubscriber
     private readonly UiSharedService _uiShared;
     public GagspeakMediator Mediator { get; init; }
 
-    public RestraintSetEditor(ILogger<RestraintSetEditor> logger, GagspeakMediator mediator, 
+    public RestraintSetEditor(ILogger<RestraintSetEditor> logger, GagspeakMediator mediator,
         ModAssociations relatedMods, MoodlesAssociations relatedMoodles, PairManager pairManager,
         GameItemStainHandler stains, UserPairListHandler userPairList, WardrobeHandler handler,
         UiSharedService uiShared)
@@ -244,7 +235,7 @@ public class RestraintSetEditor : IMediatorSubscriber
 
     private void DrawMoodlesOptions(RestraintSet refRestraintSet, float cellPaddingY)
     {
-        if(LastCreatedCharacterData == null)
+        if (LastCreatedCharacterData == null)
         {
             ImGui.TextWrapped("No Character Data Found. Please select a character to edit.");
             return;
@@ -421,7 +412,7 @@ public class RestraintSetEditor : IMediatorSubscriber
             refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Weighty = weighty;
         _uiShared.DrawHelpText("Player is forced to only walk while wearing this restraint");
 
-        _uiShared.DrawCombo("Stimulation Level##"+refRestraintSet.RestraintId+"stimulationLevel", 125f, Enum.GetValues<StimulationLevel>(), 
+        _uiShared.DrawCombo("Stimulation Level##" + refRestraintSet.RestraintId + "stimulationLevel", 125f, Enum.GetValues<StimulationLevel>(),
             (name) => name.ToString(), (i) => refRestraintSet.SetProperties[selectedPairRef.UserData.UID].StimulationLevel = i,
             refRestraintSet.SetProperties[selectedPairRef.UserData.UID].StimulationLevel);
         _uiShared.DrawHelpText("Any action requiring focus or concentration has its recast time slower and slower~");

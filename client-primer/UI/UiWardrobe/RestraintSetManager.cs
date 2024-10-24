@@ -99,7 +99,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         {
             DrawRestraintSetEditorHeader();
             ImGui.Separator();
-            if (_handler.RestraintSetCount > 0)
+            if (_handler.RestraintSetCount > 0 && _handler.ClonedSetForEdit is not null)
             {
                 _editor.DrawRestraintSetEditor(_handler.ClonedSetForEdit, cellPadding);
             }

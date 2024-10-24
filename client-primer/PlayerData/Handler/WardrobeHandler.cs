@@ -52,11 +52,6 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
             return;
         // locate the restraint set that contains the matching guid.
         var setIdx = _clientConfigs.GetSetIdxByGuid(ClonedSetForEdit.RestraintId);
-        // Check for a name difference, if one occurs, we need to push our updated list to the server.
-        var nameChanged = false;
-        if (_clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[setIdx].Name != ClonedSetForEdit.Name)
-            nameChanged = true;
-
         // update that set with the new cloned set.
         _clientConfigs.UpdateRestraintSet(ClonedSetForEdit, setIdx);
         // make the cloned set null again.

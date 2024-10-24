@@ -99,7 +99,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         {
             DrawRestraintSetEditorHeader();
             ImGui.Separator();
-            if (_handler.RestraintSetCount > 0 && _handler.ClonedSetForEdit is not null)
+            if (_handler.RestraintSetCount > 0)
             {
                 _editor.DrawRestraintSetEditor(_handler.ClonedSetForEdit, cellPadding);
             }
@@ -196,15 +196,18 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(startYpos);
             _uiShared.BigText("New RestraintSet");
+
+
         }
     }
 
     private void DrawRestraintSetCreatingHeader()
     {
-        // use button wrounding
+        // use button rounding
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
-        var iconSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus);
+        var importSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.FileImport, "Import Gear");
+        var iconSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Save);
         Vector2 textSize;
         using (_uiShared.UidFont.Push())
         {
@@ -234,8 +237,22 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             }
 
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X - ImGui.GetStyle().ItemSpacing.X);
+            float width = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - importSize - iconSize.X - ImGui.GetStyle().ItemSpacing.X * 2;
+            ImGui.SameLine(width);
+
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
+            var currentYpos = ImGui.GetCursorPosY();
+            // draw revert button at the same location but right below that button
+            if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import Gear",
+                disabled: !IpcCallerGlamourer.APIAvailable || _handler.ClonedSetForEdit is null || !KeyMonitor.CtrlPressed()))
+            {
+                _ipcGlamourer.SetRestraintEquipmentFromState(CreatedRestraintSet);
+                Logger.LogDebug("EquipmentImported from current State");
+            }
+            UiSharedService.AttachToolTip("Imports your Actor's Equipment Data from your current appearance.");
+
+            ImGui.SameLine();
+            ImGui.SetCursorPosY(currentYpos);
             // the "fuck go back" button.
             using (var disabled = ImRaii.Disabled(CreatedRestraintSet.Name == string.Empty))
             {

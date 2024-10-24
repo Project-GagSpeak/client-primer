@@ -23,4 +23,30 @@ public record SpellActionTrigger : Trigger
     // the threshold value that must be healed/dealt to trigger the action (-1 = full, 0 = onAction)
     public int ThresholdMinValue { get; set; } = -1;
     public int ThresholdMaxValue { get; set; } = 10000000;
+
+    public override SpellActionTrigger DeepClone()
+    {
+        return new SpellActionTrigger
+        {
+            TriggerIdentifier = TriggerIdentifier,
+            Enabled = Enabled,
+            Priority = Priority,
+            Name = Name,
+            Description = Description,
+            StartAfter = StartAfter,
+            EndAfter = EndAfter,
+            TriggerActionKind = TriggerActionKind,
+            TriggerAction = TriggerAction,
+            ShockTriggerAction = ShockTriggerAction,
+            RestraintNameAction = RestraintNameAction,
+            GagLayerAction = GagLayerAction,
+            GagTypeAction = GagTypeAction,
+            MoodlesIdentifier = MoodlesIdentifier,
+            ActionKind = ActionKind,
+            Direction = Direction,
+            ActionID = ActionID,
+            ThresholdMinValue = ThresholdMinValue,
+            ThresholdMaxValue = ThresholdMaxValue
+        };
+    }
 }

@@ -18,4 +18,28 @@ public record ChatTrigger : Trigger
 
     // The allowed channels this text can be scanned for in:
     public List<ChatChannel.Channels> AllowedChannels { get; set; } = [];
+
+    public override ChatTrigger DeepClone()
+    {
+        return new ChatTrigger
+        {
+            TriggerIdentifier = TriggerIdentifier,
+            Enabled = Enabled,
+            Priority = Priority,
+            Name = Name,
+            Description = Description,
+            StartAfter = StartAfter,
+            EndAfter = EndAfter,
+            TriggerActionKind = TriggerActionKind,
+            TriggerAction = TriggerAction,
+            ShockTriggerAction = ShockTriggerAction,
+            RestraintNameAction = RestraintNameAction,
+            GagLayerAction = GagLayerAction,
+            GagTypeAction = GagTypeAction,
+            MoodlesIdentifier = MoodlesIdentifier,
+            ChatText = ChatText,
+            FromPlayerName = FromPlayerName,
+            AllowedChannels = AllowedChannels
+        };
+    }
 }

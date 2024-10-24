@@ -32,15 +32,13 @@ public class ClientCallbackService
     private readonly GagManager _gagManager;
     private readonly IpcManager _ipcManager;
     private readonly IpcFastUpdates _ipcFastUpdates;
-    private readonly AppearanceManager _appearanceHandler;
-    private readonly PlaybackService _playbackService;
+    private readonly AppearanceManager _appearanceManager;
+    private readonly ToyboxManager _toyboxManager;
 
-    public ClientCallbackService(ILogger<ClientCallbackService> logger,
-        GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        PlayerCharacterData playerData, WardrobeHandler wardrobeHandler,
-        PairManager pairManager, GagManager gagManager, IpcManager ipcManager, 
-        IpcFastUpdates ipcFastUpdates, AppearanceManager appearanceHandler, 
-        PlaybackService playbackService)
+    public ClientCallbackService(ILogger<ClientCallbackService> logger, GagspeakMediator mediator, 
+        ClientConfigurationManager clientConfigs, PlayerCharacterData playerData, WardrobeHandler wardrobeHandler,
+        PairManager pairManager, GagManager gagManager, IpcManager ipcManager, IpcFastUpdates ipcFastUpdates, 
+        AppearanceManager appearanceManager, ToyboxManager toyboxManager)
     {
         _logger = logger;
         _mediator = mediator;
@@ -51,8 +49,8 @@ public class ClientCallbackService
         _gagManager = gagManager;
         _ipcManager = ipcManager;
         _ipcFastUpdates = ipcFastUpdates;
-        _appearanceHandler = appearanceHandler;
-        _playbackService = playbackService;
+        _appearanceManager = appearanceManager;
+        _toyboxManager = toyboxManager;
     }
 
     public bool ShockCodePresent => _playerData.CoreDataNull && _playerData.GlobalPerms!.GlobalShockShareCode.IsNullOrEmpty();
@@ -167,13 +165,13 @@ public class ClientCallbackService
                     // This means the gag is still applied, so we should see if we want to auto remove it.
                     _logger.LogDebug("Gag is still applied. Checking if we should remove it.", LoggerType.Callbacks);
                     if (_clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration)
-                        await _appearanceHandler.GagRemoved(callbackGagLayer, currentGagType, isSelfApplied: true);
+                        await _appearanceManager.GagRemoved(callbackGagLayer, currentGagType, isSelfApplied: true);
                 }
                 else
                 {
                     _logger.LogTrace("Gag is already removed. No need to remove again. Update ClientSide Only", LoggerType.Callbacks);
                     // The GagType is none, meaning this was removed via a mimic, so only update client side removal
-                    await _appearanceHandler.GagRemoved(callbackGagLayer, currentGagType, publishRemoval: false, isSelfApplied: true);
+                    await _appearanceManager.GagRemoved(callbackGagLayer, currentGagType, publishRemoval: false, isSelfApplied: true);
                 }
             }
 
@@ -200,7 +198,7 @@ public class ClientCallbackService
             if (_playerData.AppearanceData!.GagSlots[(int)callbackGagLayer].GagType.ToGagType() != GagType.None)
             {
                 _logger.LogDebug("Gag is already applied. Swapping Gag.", LoggerType.Callbacks);
-                await _appearanceHandler.GagSwapped(callbackGagLayer, currentGagType, callbackGagSlot.GagType.ToGagType(), isSelfApplied: false);
+                await _appearanceManager.GagSwapped(callbackGagLayer, currentGagType, callbackGagSlot.GagType.ToGagType(), isSelfApplied: false);
                 // Log the Interaction Event.
                 _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.SwappedGag, "Gag Swapped on "+callbackGagLayer)));
                 return;
@@ -209,7 +207,7 @@ public class ClientCallbackService
             {
                 // Apply Gag
                 _logger.LogDebug("Applying Gag to Character Appearance.", LoggerType.Callbacks);
-                await _appearanceHandler.GagApplied(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), isSelfApplied: false);
+                await _appearanceManager.GagApplied(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), isSelfApplied: false);
                 // Log the Interaction Event.
                 _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ApplyGag, callbackGagSlot.GagType + " applied to "+callbackGagLayer)));
                 return;
@@ -234,7 +232,7 @@ public class ClientCallbackService
         }
         else if (callbackGagState is NewState.Disabled)
         {
-            await _appearanceHandler.GagRemoved(callbackGagLayer, currentGagType, isSelfApplied: false);
+            await _appearanceManager.GagRemoved(callbackGagLayer, currentGagType, isSelfApplied: false);
             // Log the Interaction Event.
             _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.RemoveGag, "Removed Gag from " + callbackGagLayer)));
             return;
@@ -252,11 +250,8 @@ public class ClientCallbackService
         {
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintApplied)
                 _logger.LogDebug("SelfApplied RESTRAINT APPLY Verified by Server Callback.", LoggerType.Callbacks);
-
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintLocked)
                 _logger.LogDebug("SelfApplied RESTRAINT LOCKED Verified by Server Callback.", LoggerType.Callbacks);
-
-
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintUnlocked)
             {
                 _logger.LogDebug("SelfApplied RESTRAINT UNLOCK Verified by Server Callback.", LoggerType.Callbacks);
@@ -311,7 +306,7 @@ public class ClientCallbackService
                         // grab the new set id
                         var newSetId = _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[callbackSetIdx].RestraintId;
                         // reapply.
-                        await _appearanceHandler.RestraintSwapped(newSetId, isSelfApplied: false);
+                        await _appearanceManager.RestraintSwapped(newSetId, isSelfApplied: false);
                         _logger.LogDebug($"{callbackDto.User.UID} has swapped your [{activeSet.Name}] restraint set to your [{data.ActiveSetName}] set!", LoggerType.Callbacks);
                         // Log the Interaction Event
                         _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.SwappedRestraint, "Swapped Set to: "+data.ActiveSetName)));
@@ -332,7 +327,7 @@ public class ClientCallbackService
                     if (callbackSet is not null)
                     {
                         _logger.LogDebug($"{callbackDto.User.UID} has forcibly locked your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
-                        _appearanceHandler.LockRestraintSet(callbackSet.RestraintId, data.Padlock.ToPadlock(), data.Password, data.Timer, callbackDto.User.UID, false);
+                        _appearanceManager.LockRestraintSet(callbackSet.RestraintId, data.Padlock.ToPadlock(), data.Password, data.Timer, callbackDto.User.UID, false);
                         // Log the Interaction Event
                         _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.LockRestraint, data.ActiveSetName + " is now locked")));
                     }
@@ -343,7 +338,7 @@ public class ClientCallbackService
                     {
                         _logger.LogDebug($"{callbackDto.User.UID} has force unlocked your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
                         Padlocks previousPadlock = callbackSet.LockType.ToPadlock();
-                        _appearanceHandler.UnlockRestraintSet(callbackSet.RestraintId, callbackDto.User.UID, false);
+                        _appearanceManager.UnlockRestraintSet(callbackSet.RestraintId, callbackDto.User.UID, false);
                         // Log the Interaction Event
                         _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.UnlockRestraint, data.ActiveSetName + " is now unlocked")));
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, callbackSet, previousPadlock, false, callbackDto.User.UID);
@@ -389,64 +384,136 @@ public class ClientCallbackService
         }
     }
 
-    public void CallbackToyboxUpdate(OnlineUserCharaToyboxDataDto callbackDto)
+    public void CallbackToyboxUpdate(OnlineUserCharaToyboxDataDto callbackDto, bool callbackFromSelf)
     {
-        // One of our pairs has just forced us to change a setting (we know it is because the server-side validates this)
+        if (callbackFromSelf)
+        {
+            if (callbackDto.UpdateKind is DataUpdateKind.ToyboxPatternListUpdated)
+                _logger.LogDebug("SelfApplied PATTERNLIST UPDATE Verified by Server Callback.", LoggerType.Callbacks);
+            if (callbackDto.UpdateKind is DataUpdateKind.ToyboxPatternExecuted)
+                _logger.LogDebug("SelfApplied PATTERN EXECUTED Verified by Server Callback.", LoggerType.Callbacks);
+            if (callbackDto.UpdateKind is DataUpdateKind.ToyboxPatternStopped)
+                _logger.LogDebug("SelfApplied PATTERN STOPPED Verified by Server Callback.", LoggerType.Callbacks);
+
+            if (callbackDto.UpdateKind is DataUpdateKind.ToyboxAlarmListUpdated)
+                _logger.LogDebug("SelfApplied ALARMLIST UPDATE Verified by Server Callback.", LoggerType.Callbacks);
+            if (callbackDto.UpdateKind is DataUpdateKind.ToyboxAlarmToggled)
+                _logger.LogDebug("SelfApplied ALARM TOGGLED Verified by Server Callback.", LoggerType.Callbacks);
+
+            if (callbackDto.UpdateKind is DataUpdateKind.ToyboxTriggerListUpdated)
+                _logger.LogDebug("SelfApplied TRIGGERLIST UPDATE Verified by Server Callback.", LoggerType.Callbacks);
+            if (callbackDto.UpdateKind is DataUpdateKind.ToyboxTriggerToggled)
+                _logger.LogDebug("SelfApplied TRIGGER TOGGLED Verified by Server Callback.", LoggerType.Callbacks);
+            return;
+        }
+
+        // Verify who the pair was.
         var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
+        if (matchedPair is null)
+        {
+            _logger.LogError("Received Update by pair that you no longer have added.");
+            return;
+        }
+
         // Update Appearance without calling any events so we don't loop back to the server.
+        var patternData = callbackDto.ToyboxInfo.PatternList;
+        var alarmData = callbackDto.ToyboxInfo.AlarmList;
+        var triggerData = callbackDto.ToyboxInfo.TriggerList;
+        Guid idAffected = callbackDto.ToyboxInfo.TransactionId;
         switch (callbackDto.UpdateKind)
         {
             case DataUpdateKind.ToyboxPatternExecuted:
+                // verify it actually exists in the list.
+                var enableIdIsValid = _clientConfigs.PatternConfig.PatternStorage.Patterns.Any(x => x.UniqueIdentifier == idAffected);
+                if (!enableIdIsValid)
                 {
-                    var patternId = callbackDto.ToyboxInfo.ActivePatternGuid;
-                    var patternData = _clientConfigs.FetchPatternById(patternId);
-                    if (patternData == null)
-                    {
-                        _logger.LogError("Tried to activate pattern but pattern does not exist? How is this even possible.");
-                        return;
-                    }
-                    _playbackService.PlayPattern(patternData.UniqueIdentifier, patternData.StartPoint, patternData.Duration, false);
-                    // Log the Interaction Event.
-                    if (matchedPair is not null)
-                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ActivatePattern, "Pattern Activated")));
-                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Started, patternData.UniqueIdentifier, false);
-                    _logger.LogInformation("Pattern Executed by Server Callback.", LoggerType.Callbacks);
+                    // Locate the pattern by the interactionGUID.
+                    _logger.LogError("Tried to activate pattern but pattern does not exist? How is this even possible.");
+                    return;
                 }
+                // if we are currently playing a pattern, stop it first.
+                if(_clientConfigs.AnyPatternIsPlaying)
+                {
+                    _logger.LogDebug("Stopping currently playing pattern before executing new one.", LoggerType.Callbacks);
+                    _toyboxManager.DisablePattern(_clientConfigs.ActivePatternGuid());
+                }
+                // execute the pattern.
+                _toyboxManager.EnablePattern(idAffected);
+                _logger.LogInformation("Pattern Executed by Server Callback.", LoggerType.Callbacks);
+                _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ActivatePattern, "Pattern Enabled")));
                 break;
+
             case DataUpdateKind.ToyboxPatternStopped:
+                // verify it actually exists in the list.
+                var stopIdIsValid = _clientConfigs.PatternConfig.PatternStorage.Patterns.Any(x => x.UniqueIdentifier == idAffected);
+                if (!stopIdIsValid)
                 {
-                    var patternId = callbackDto.ToyboxInfo.ActivePatternGuid;
-                    var patternData = _clientConfigs.FetchPatternById(patternId);
-                    if (patternData == null)
-                    {
-                        _logger.LogError("Tried to activate pattern but pattern does not exist? How is this even possible.");
-                        return;
-                    }
-                    _playbackService.StopPattern(patternId, false);
-                    // Log the Interaction Event.
-                    if (matchedPair is not null)
-                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.StopPattern, "Pattern Stopped")));
-                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Stopped, patternData.UniqueIdentifier, false);
-                    _logger.LogInformation("Pattern Stopped by Server Callback.", LoggerType.Callbacks);
+                    // Locate the pattern by the interactionGUID.
+                    _logger.LogError("Tried to stop a pattern but pattern does not exist? How is this even possible.");
+                    return;
+                }
+                // if no pattern is playing, log a warning and return.
+                if (!_clientConfigs.AnyPatternIsPlaying)
+                {
+                    _logger.LogWarning("Tried to stop a pattern but no pattern is currently playing.", LoggerType.Callbacks);
+                    return;
+                }
+                // stop the pattern.
+                _toyboxManager.DisablePattern(idAffected);
+                _logger.LogInformation("Pattern Stopped by Server Callback.", LoggerType.Callbacks);
+                _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ActivatePattern, "Pattern Stopped")));
+                break;
+
+            case DataUpdateKind.ToyboxAlarmToggled:
+                // verify that this item actually exists.
+                var alarm = _clientConfigs.AlarmConfig.AlarmStorage.Alarms.FirstOrDefault(x => x.Identifier == idAffected);
+                if (alarm is null)
+                {
+                    // Locate the alarm by the interactionGUID.
+                    _logger.LogError("Tried to toggle alarm but alarm does not exist? How is this even possible.");
+                    return;
+                }
+                // grab the current state of the alarm.
+                var curState = alarm.Enabled;
+                // toggle the alarm.
+                if(curState)
+                {
+                    _toyboxManager.DisableAlarm(idAffected);
+                    _logger.LogInformation("Alarm Disabled by Server Callback.", LoggerType.Callbacks);
+                    _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ToggleAlarm, "Alarm Disabled")));
+                }
+                else
+                {
+                    _toyboxManager.EnableAlarm(idAffected);
+                    _logger.LogInformation("Alarm Enabled by Server Callback.", LoggerType.Callbacks);
+                    _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ToggleAlarm, "Alarm Enabled")));
                 }
                 break;
-            case DataUpdateKind.ToyboxAlarmListUpdated:
-                _logger.LogInformation("ToyboxAlarmListUpdated Callback Received...", LoggerType.Callbacks);
-                break;
-            case DataUpdateKind.ToyboxAlarmToggled:
-                _logger.LogInformation("ToyboxAlarmToggled Callback Received...", LoggerType.Callbacks);
-                // Log the Interaction Event.
-                if (matchedPair is not null)
-                    _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ToggleAlarm, "Alarm Toggled")));
-                break;
-            case DataUpdateKind.ToyboxTriggerListUpdated:
-                _logger.LogInformation("ToyboxTriggerListUpdated Callback Received...", LoggerType.Callbacks);
-                break;
+
             case DataUpdateKind.ToyboxTriggerToggled:
-                _logger.LogInformation("ToyboxTriggerToggled Callback Received...", LoggerType.Callbacks);
-                // Log the Interaction Event.
-                if (matchedPair is not null)
-                    _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ToggleTrigger, "Trigger Toggled")));
+                // verify that this item actually exists.
+                var trigger = _clientConfigs.TriggerConfig.TriggerStorage.Triggers.FirstOrDefault(x => x.TriggerIdentifier == idAffected);
+                if (trigger is null)
+                {
+                    // Locate the trigger by the interactionGUID.
+                    _logger.LogError("Tried to toggle trigger but trigger does not exist? How is this even possible.");
+                    return;
+                }
+                // grab the current state of the trigger.
+                var curTriggerState = trigger.Enabled;
+                // toggle the trigger.
+                if (curTriggerState)
+                {
+                    _toyboxManager.DisableTrigger(idAffected);
+                    _logger.LogInformation("Trigger Disabled by Server Callback.", LoggerType.Callbacks);
+                    _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ToggleTrigger, "Trigger Disabled")));
+                }
+                else
+                {
+                    _toyboxManager.EnableTrigger(idAffected);
+                    _logger.LogInformation("Trigger Enabled by Server Callback.", LoggerType.Callbacks);
+                    _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ToggleTrigger, "Trigger Enabled")));
+                }
                 break;
         }
     }

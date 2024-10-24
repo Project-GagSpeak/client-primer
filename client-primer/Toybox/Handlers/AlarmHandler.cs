@@ -1,110 +1,73 @@
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Toybox.Services;
-using GagspeakAPI.Data;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
 
 namespace GagSpeak.PlayerData.Handlers;
 
 /// <summary>
-/// This handler should keep up to date with all of the currently set alarms. The alarms should
-/// go off at their specified times, and play their specified patterns
+/// A Handler that manages how we modify our alarm information for edits.
+/// For Toggling states and updates via non-direct edits, see ToyboxManager.
 /// </summary>
 public class AlarmHandler : MediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlaybackService _playbackService;
+    private readonly ToyboxManager _toyboxStateManager;
     private DateTime _lastExecutionTime;
 
-    public AlarmHandler(ILogger<AlarmHandler> logger,
-        GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        PlaybackService playbackService) : base(logger, mediator)
+    public AlarmHandler(ILogger<AlarmHandler> logger, GagspeakMediator mediator,
+        ClientConfigurationManager clientConfigs, ToyboxManager toyboxStateManager)
+        : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
-        _playbackService = playbackService;
-
-        // subscribe to the pattern removed, so we can clear the configured patterns of any alarms they were associated with
-        Mediator.Subscribe<PatternRemovedMessage>(this, (msg) =>
-        {
-            // if msg.Pattern.Name is a patternName in any of our alarms
-            // remove the pattern from the alarm
-            _clientConfigs.RemovePatternNameFromAlarms(msg.PatternId);
-        });
+        _toyboxStateManager = toyboxStateManager;
 
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => DelayedFrameworkAlarmCheck());
     }
 
-    // store a accessor of the alarm being edited
-    private Alarm? _alarmBeingEdited;
-    public int EditingAlarmIndex { get; private set; } = -1;
-    public Alarm AlarmBeingEdited
-    {
-        get
-        {
-            if (_alarmBeingEdited == null && EditingAlarmIndex >= 0)
-            {
-                _alarmBeingEdited = _clientConfigs.FetchAlarm(EditingAlarmIndex);
-            }
-            return _alarmBeingEdited!;
-        }
-        private set => _alarmBeingEdited = value;
-    }
-    public bool EditingAlarmNull => AlarmBeingEdited == null;
+    public List<Alarm> Alarms => _clientConfigs.AlarmConfig.AlarmStorage.Alarms;
+    public int AlarmCount => _clientConfigs.AlarmConfig.AlarmStorage.Alarms.Count;
 
-    public void SetEditingAlarm(Alarm alarm, int index)
+    public Alarm? ClonedAlarmForEdit { get; private set; } = null;
+
+    public void StartEditingAlarm(Alarm alarm)
     {
-        AlarmBeingEdited = alarm;
-        EditingAlarmIndex = index;
+        ClonedAlarmForEdit = alarm.DeepCloneAlarm();
+        Guid originalID = alarm.Identifier; // Prevent storing the alarm ID by reference.
+        ClonedAlarmForEdit.Identifier = originalID; // Ensure the ID remains the same here.
     }
 
-    public void ClearEditingAlarm()
+    public void CancelEditingAlarm() => ClonedAlarmForEdit = null;
+
+    public void SaveEditedAlarm()
     {
-        EditingAlarmIndex = -1;
-        AlarmBeingEdited = null!;
+        if (ClonedAlarmForEdit is null)
+            return;
+        // locate the restraint set that contains the matching guid.
+        var setIdx = _clientConfigs.GetSetIdxByGuid(ClonedAlarmForEdit.Identifier);
+        // update that set with the new cloned set.
+        _clientConfigs.UpdateAlarm(ClonedAlarmForEdit, setIdx);
+        // make the cloned set null again.
+        ClonedAlarmForEdit = null;
     }
 
-    public void UpdateEditedAlarm()
+    public void AddNewAlarm(Alarm newPattern) => _clientConfigs.AddNewAlarm(newPattern);
+    public void RemoveAlarm(Alarm alarmToRemove)
     {
-        // update the alarm in the client configs
-        _clientConfigs.UpdateAlarm(AlarmBeingEdited, EditingAlarmIndex);
-        // clear the editing alarm
-        ClearEditingAlarm();
+        _clientConfigs.RemoveAlarm(alarmToRemove);
+        CancelEditingAlarm();
     }
 
+    public void EnableAlarm(Alarm alarm)
+    => _toyboxStateManager.EnableAlarm(alarm.Identifier);
 
-    public void AddNewAlarm(Alarm newAlarm)
-        => _clientConfigs.AddNewAlarm(newAlarm);
+    public void DisableAlarm(Alarm alarm)
+        => _toyboxStateManager.DisableAlarm(alarm.Identifier);
 
-    public void RemoveAlarm(int idxToRemove)
-    {
-        _clientConfigs.RemoveAlarm(idxToRemove);
-        ClearEditingAlarm();
-    }
-
-    public int AlarmListSize()
-        => _clientConfigs.FetchAlarmCount();
-
-    public Alarm GetAlarm(int idx)
-        => _clientConfigs.FetchAlarm(idx);
-
-    public void EnableAlarm(int idx)
-    {
-        _clientConfigs.SetAlarmState(idx, true);
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.AlarmToggled, NewState.Enabled);
-    }
-
-    public void DisableAlarm(int idx)
-        => _clientConfigs.SetAlarmState(idx, false);
-
-    public string GetPatternNameFromId(Guid id)
-        => _clientConfigs.GetAlarmPatternName(id);
-
-    public void UpdateAlarmStatesFromCallback(List<AlarmInfo> AlarmInfoList)
-        => _clientConfigs.UpdateAlarmStatesFromCallback(AlarmInfoList);
+    public string PatternName(Guid patternId)
+        => _clientConfigs.PatternConfig.PatternStorage.Patterns.FirstOrDefault(p => p.UniqueIdentifier == patternId)?.Name ?? "Unknown";
 
     public TimeSpan GetPatternLength(Guid guid)
-        => _clientConfigs.GetPatternLength(guid);
+        => _clientConfigs.PatternConfig.PatternStorage.Patterns.FirstOrDefault(p => p.UniqueIdentifier == guid)?.Duration ?? TimeSpan.Zero;
 
     public string GetAlarmFrequencyString(List<DayOfWeek> FrequencyOptions)
     {
@@ -145,24 +108,19 @@ public class AlarmHandler : MediatorSubscriberBase
         Logger.LogTrace("Checking Alarms", LoggerType.ToyboxAlarms);
 
         // Iterate through each stored alarm
-        int alarmCount = _clientConfigs.FetchAlarmCount();
-        for (int i = 0; i < alarmCount; i++)
+        foreach (var alarm in Alarms)
         {
-            Alarm alarm = _clientConfigs.FetchAlarm(i);
             // if the alarm is not enabled, continue
             if (!alarm.Enabled)
-            {
                 continue;
-            }
+
             // grab the current day of the week in our local timezone
             DateTime now = DateTime.Now;
             DayOfWeek currentDay = now.DayOfWeek;
 
             // check if current day is in our frequency list
             if (!alarm.RepeatFrequency.Contains(currentDay))
-            {
-                continue; // Early return if the current day is not in the frequency options
-            }
+                continue;
 
             // convert execution time from UTC to our local timezone
             DateTimeOffset alarmTime = alarm.SetTimeUTC.ToLocalTime();
@@ -170,9 +128,8 @@ public class AlarmHandler : MediatorSubscriberBase
             // check if current time matches execution time and if so play
             if (now.Hour == alarmTime.Hour && now.Minute == alarmTime.Minute)
             {
-                Logger.LogInformation("Playing Pattern : "+alarm.PatternToPlay, LoggerType.ToyboxAlarms);
-                _playbackService.PlayPattern(alarm.PatternToPlay, alarm.PatternStartPoint, alarm.PatternDuration, true);
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Started, alarm.PatternToPlay, true);
+                Logger.LogInformation("Playing Pattern : " + alarm.PatternToPlay, LoggerType.ToyboxAlarms);
+                _toyboxStateManager.FireAlarmPattern(alarm);
             }
         }
     }

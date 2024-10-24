@@ -126,7 +126,7 @@ public partial class PairStickyUI
                     var statusInfo = new List<MoodlesStatusInfo> { LastCreatedCharacterData.MoodlesStatuses.First(x => x.GUID == onButtonPress) };
                     if (!_moodlesService.ValidatePermissionForApplication(pairUniquePerms, statusInfo)) return;
 
-                    _ = _apiController.UserApplyMoodlesByGuid(new(UserPairForPerms.UserData, new List<Guid> { onButtonPress.Value }, IpcToggleType.MoodlesStatus));
+                    _ = _apiController.UserApplyMoodlesByStatus(new(UserPairForPerms.UserData, statusInfo, IpcToggleType.MoodlesStatus));
                     Opened = InteractionType.None;
                 });
             }
@@ -166,7 +166,7 @@ public partial class PairStickyUI
 
                     if (!_moodlesService.ValidatePermissionForApplication(pairUniquePerms, statusesToApply)) return;
 
-                    _ = _apiController.UserApplyMoodlesByGuid(new(UserPairForPerms.UserData, statusesToApply.Select(s => s.GUID).ToList(), IpcToggleType.MoodlesPreset));
+                    _ = _apiController.UserApplyMoodlesByStatus(new(UserPairForPerms.UserData, statusesToApply, IpcToggleType.MoodlesPreset));
                     Opened = InteractionType.None;
                 });
             }

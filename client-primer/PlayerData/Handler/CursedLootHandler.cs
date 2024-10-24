@@ -82,7 +82,7 @@ public class CursedLootHandler : DisposableMediatorSubscriberBase
     }
 
     public string MakeUniqueName(string originalName)
-        => _clientConfigs.EnsureUniqueLootName(originalName);
+        => _clientConfigs.EnsureUniqueName(originalName, CursedItems, item => item.Name);
 
     public void AddItem(CursedItem item)
         => _clientConfigs.AddCursedItem(item);

@@ -3,22 +3,16 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Interop.IpcHelpers.GameData;
 using GagSpeak.PlayerData.Handlers;
-using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Toybox.Services;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.Utils;
 using ImGuiNET;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Text;
 using System.Numerics;
-using System.Security.Claims;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace GagSpeak.UI.UiToybox;
 
@@ -28,58 +22,50 @@ public class ToyboxPatterns
     private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiShared;
     private readonly PatternHandler _handler;
-    private readonly PlaybackService _playbackService;
     private readonly PatternHubService _patternHubService;
-    private readonly PairManager _pairManager;
 
     public ToyboxPatterns(ILogger<ToyboxPatterns> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
-        PatternHandler patternHandler, PlaybackService playbackService,
-        PatternHubService patternHubService, PairManager pairManager)
+        PatternHandler patternHandler, PatternHubService patternHubService)
     {
         _logger = logger;
         _mediator = mediator;
         _uiShared = uiSharedService;
         _handler = patternHandler;
-        _playbackService = playbackService;
         _patternHubService = patternHubService;
-        _pairManager = pairManager;
     }
 
     // Private accessor vars for list management.
+    private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
     private LowerString PatternSearchString = LowerString.Empty;
     private List<PatternData> FilteredPatternsList
-        => _handler.GetPatternsForSearch()
+        => _handler.Patterns
             .Where(pattern => pattern.Name.Contains(PatternSearchString, StringComparison.OrdinalIgnoreCase))
             .ToList();
-    private List<bool> ListItemHovered = new List<bool>();
-
-    private LowerString PairSearchString = LowerString.Empty;
 
     public void DrawPatternManagerPanel()
     {
         var regionSize = ImGui.GetContentRegionAvail();
 
         // if we are simply viewing the main page, display list of patterns  
-        if (_handler.EditingPatternNull)
+        if (_handler.ClonedPatternForEdit is null)
         {
             DrawCreateOrImportPatternHeader();
             ImGui.Separator();
             DrawSearchFilter(regionSize.X, ImGui.GetStyle().ItemInnerSpacing.X);
             ImGui.Separator();
-            if (_handler.PatternListSize() > 0)
+            if (_handler.PatternCount > 0)
                 DrawPatternSelectableMenu();
-
-            return; // perform early returns so we dont access other methods
+            return;
         }
 
         // if we are editing an pattern
-        if (!_handler.EditingPatternNull)
+        if (_handler.ClonedPatternForEdit is not null)
         {
             DrawPatternEditorHeader();
             ImGui.Separator();
-            if (_handler.PatternListSize() > 0 && _handler.EditingPatternIndex >= 0)
-                DrawPatternEditor(_handler.PatternBeingEdited);
+            if (_handler.PatternCount > 0)
+                DrawPatternEditor(_handler.ClonedPatternForEdit);
         }
     }
 
@@ -132,8 +118,8 @@ public class ToyboxPatterns
         // use button rounding
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
-        FontAwesomeIcon publishOrTakedownIcon = _handler.PatternBeingEdited.IsPublished ? FontAwesomeIcon.Ban : FontAwesomeIcon.Upload;
-        string publishOrTakedownText = _handler.PatternBeingEdited.IsPublished ? "Unpublish" : "Publish";
+        FontAwesomeIcon publishOrTakedownIcon = _handler.ClonedPatternForEdit!.IsPublished ? FontAwesomeIcon.Ban : FontAwesomeIcon.Upload;
+        string publishOrTakedownText = _handler.ClonedPatternForEdit!.IsPublished ? "Unpublish" : "Publish";
         var publishOrTakedownSize = _uiShared.GetIconTextButtonSize(publishOrTakedownIcon, publishOrTakedownText);
         var iconSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus);
         Vector2 textSize;
@@ -151,8 +137,7 @@ public class ToyboxPatterns
             // the "fuck go back" button.
             if (_uiShared.IconButton(FontAwesomeIcon.ArrowLeft))
             {
-                // reset the createdPattern to a new pattern, and set editing pattern to true
-                _handler.ClearEditingPattern();
+                _handler.CancelEditingPattern();
                 return;
             }
             UiSharedService.AttachToolTip("Discard Pattern Changes & Return to Pattern List");
@@ -165,13 +150,13 @@ public class ToyboxPatterns
             }
 
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() 
-                - publishOrTakedownSize - iconSize.X * 2 - ImGui.GetStyle().ItemSpacing.X*3);
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()
+                - publishOrTakedownSize - iconSize.X * 2 - ImGui.GetStyle().ItemSpacing.X * 3);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             var currentYpos = ImGui.GetCursorPosY();
 
             // draw out the icon button
-            if (_uiShared.IconTextButton(publishOrTakedownIcon, publishOrTakedownText, null, false, !_handler.PatternBeingEdited.CreatedByClient))
+            if (_uiShared.IconTextButton(publishOrTakedownIcon, publishOrTakedownText, null, false, !_handler.ClonedPatternForEdit.CreatedByClient))
             {
                 ImGui.OpenPopup("UploadPopup");
                 var buttonPos = ImGui.GetItemRectMin();
@@ -183,22 +168,16 @@ public class ToyboxPatterns
             ImGui.SameLine();
             ImGui.SetCursorPosY(currentYpos);
             if (_uiShared.IconButton(FontAwesomeIcon.Save))
-            {
-                // reset the createdPattern to a new pattern, and set editing pattern to true
-                _handler.UpdateEditedPattern();
-            }
+                _handler.SaveEditedPattern();
             UiSharedService.AttachToolTip("Save changes to Pattern & Return to Pattern List");
 
             // right beside it to the right, we need to draw the delete button
-            using (var disableDelete = ImRaii.Disabled(!KeyMonitor.CtrlPressed()))
+            using (var disableDelete = ImRaii.Disabled(!KeyMonitor.ShiftPressed()))
             {
                 ImGui.SameLine();
                 ImGui.SetCursorPosY(currentYpos);
                 if (_uiShared.IconButton(FontAwesomeIcon.Trash))
-                {
-                    // reset the createdPattern to a new pattern, and set editing pattern to true
-                    _handler.RemovePattern(_handler.PatternBeingEdited.UniqueIdentifier);
-                }
+                    _handler.RemovePattern(_handler.ClonedPatternForEdit.UniqueIdentifier);
             }
             UiSharedService.AttachToolTip("Delete this Pattern\n(Must hold CTRL while clicking to delete)");
 
@@ -206,18 +185,18 @@ public class ToyboxPatterns
             {
                 if (ImGui.BeginPopup("UploadPopup"))
                 {
-                    string text = _handler.PatternBeingEdited.IsPublished ? "Remove Pattern from Server?" : "Upload Pattern to Server?";
+                    string text = _handler.ClonedPatternForEdit.IsPublished ? "Remove Pattern from Server?" : "Upload Pattern to Server?";
                     ImGuiUtil.Center(text);
                     var width = (ImGui.GetContentRegionAvail().X / 2) - ImGui.GetStyle().ItemInnerSpacing.X;
                     if (ImGui.Button("Yes, I'm Sure", new Vector2(width, 25f)))
                     {
-                        if(_handler.PatternBeingEdited.IsPublished)
+                        if (_handler.ClonedPatternForEdit.IsPublished)
                         {
-                            _patternHubService.RemovePatternFromServer(_handler.EditingPatternIndex);
+                            _patternHubService.RemovePatternFromServer(_handler.ClonedPatternForEdit);
                         }
                         else
                         {
-                            _patternHubService.UploadPatternToServer(_handler.EditingPatternIndex);
+                            _patternHubService.UploadPatternToServer(_handler.ClonedPatternForEdit);
                             UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Published, Guid.Empty, false);
                         }
                         ImGui.CloseCurrentPopup();
@@ -247,12 +226,14 @@ public class ToyboxPatterns
         if (ImGui.InputTextWithHint("##PatternSearchStringFilter", "Search for a Pattern", ref filter, 255))
         {
             PatternSearchString = filter;
+            LastHoveredIndex = -1;
         }
         ImUtf8.SameLineInner();
         using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(PatternSearchString));
         if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
         {
             PatternSearchString = string.Empty;
+            LastHoveredIndex = -1;
         }
     }
 
@@ -260,20 +241,30 @@ public class ToyboxPatterns
     {
         var region = ImGui.GetContentRegionAvail();
         var topLeftSideHeight = region.Y;
-        // if list size has changed, refresh the list of hovered items
-        if (ListItemHovered.Count != _handler.PatternListSize())
+        for (int i = 0; i < FilteredPatternsList.Count; i++)
         {
-            ListItemHovered.Clear();
-            ListItemHovered.AddRange(Enumerable.Repeat(false, FilteredPatternsList.Count));
+            var set = FilteredPatternsList[i];
+            DrawPatternSelectable(set, i);
+
+            if (ImGui.IsItemHovered())
+                LastHoveredIndex = i;
+
+            // if the item is right clicked, open the popup
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredPatternsList[i].IsActive)
+            {
+                ImGui.OpenPopup($"PatternDataContext{i}");
+            }
         }
 
-        using (var leftChild = ImRaii.Child($"###SelectablePatternList", region with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar))
+        if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredPatternsList.Count)
         {
-            // display the selectable for each pattern using a for loop to keep track of the index
-            for (int i = 0; i < FilteredPatternsList.Count; i++)
+            if (ImGui.BeginPopup($"PatternDataContext{LastHoveredIndex}"))
             {
-                var pattern = FilteredPatternsList[i];
-                DrawPatternSelectable(pattern, i); // Pass the index to DrawPatternSelectable
+                if (ImGui.Selectable("Delete Pattern") && FilteredPatternsList[LastHoveredIndex] is not null)
+                {
+                    _handler.RemovePattern(FilteredPatternsList[LastHoveredIndex].UniqueIdentifier);
+                }
+                ImGui.EndPopup();
             }
         }
     }
@@ -287,11 +278,11 @@ public class ToyboxPatterns
 
         var author = pattern.Author;
         var authorTextSize = ImGui.CalcTextSize(author);
-        
+
         // fetch the duration of the pattern
         var duration = pattern.Duration.Hours > 0 ? pattern.Duration.ToString("hh\\:mm\\:ss") : pattern.Duration.ToString("mm\\:ss");
         var durationTextSize = ImGui.CalcTextSize(duration);
-        
+
         // fetch the list of tags.
         var tags = pattern.Tags;
 
@@ -305,7 +296,7 @@ public class ToyboxPatterns
         var patternToggleButtonSize = _uiShared.GetIconButtonSize(pattern.IsActive ? FontAwesomeIcon.Stop : FontAwesomeIcon.Play);
 
         // create the selectable
-        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
+        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), !pattern.IsActive && LastHoveredIndex == idx);
         using (ImRaii.Child($"##PatternSelectable{pattern.UniqueIdentifier}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 65f)))
         {
             // create a group for the bounding area
@@ -317,7 +308,7 @@ public class ToyboxPatterns
                 var currentYpos = ImGui.GetCursorPosY();
                 _uiShared.BigText(name);
                 ImGui.SameLine();
-                ImGui.SetCursorPosY(currentYpos + ((tmpAlarmTextSize.Y - loopIconSize.Y)/1.5f));
+                ImGui.SetCursorPosY(currentYpos + ((tmpAlarmTextSize.Y - loopIconSize.Y) / 1.5f));
 
                 if (pattern.ShouldLoop)
                 {
@@ -326,7 +317,7 @@ public class ToyboxPatterns
                 if (pattern.IsPublished)
                 {
                     ImGui.SameLine();
-                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((tmpAlarmTextSize.Y - loopIconSize.Y)/1.5f));
+                    ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ((tmpAlarmTextSize.Y - loopIconSize.Y) / 1.5f));
                     _uiShared.IconText(FontAwesomeIcon.Globe, ImGuiColors.ParsedPink);
                 }
             }
@@ -350,24 +341,18 @@ public class ToyboxPatterns
             {
                 // set the enabled state of the pattern based on its current state so that we toggle it
                 if (pattern.IsActive)
-                {
-                    _playbackService.StopPattern(pattern.UniqueIdentifier, true);
-                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Stopped, pattern.UniqueIdentifier, false);
-                }
+                    _handler.DisablePattern(pattern);
                 else
-                {
-                    _playbackService.PlayPattern(pattern.UniqueIdentifier, pattern.StartPoint, pattern.Duration, true);
-                    UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Started, pattern.UniqueIdentifier, false);
-                }
+                    _handler.EnablePattern(pattern);
                 // toggle the state & early return so we dont access the childclicked button
                 return;
             }
             UiSharedService.AttachToolTip("Play / Stop this Pattern");
         }
-        ListItemHovered[idx] = ImGui.IsItemHovered();
+        // if the item is clicked, set the editing pattern to this pattern
         if (ImGui.IsItemClicked())
         {
-            _handler.SetEditingPattern(pattern, idx);
+            _handler.StartEditingPattern(pattern);
         }
         UiSharedService.AttachToolTip("Click me to edit this pattern.");
     }
@@ -384,12 +369,6 @@ public class ToyboxPatterns
             if (ImGui.BeginTabItem("Adjustments"))
             {
                 DrawAdjustments(patternToEdit);
-                ImGui.EndTabItem();
-            }
-
-            if (ImGui.BeginTabItem("Access"))
-            {
-                DrawAccess(patternToEdit);
                 ImGui.EndTabItem();
             }
             ImGui.EndTabBar();
@@ -442,7 +421,7 @@ public class ToyboxPatterns
         UiSharedService.ColorText("Total Duration", ImGuiColors.ParsedGold);
         ImGui.SameLine();
         ImGui.TextUnformatted(pattern.Duration.Hours > 0 ? pattern.Duration.ToString("hh\\:mm\\:ss") : pattern.Duration.ToString("mm\\:ss"));
-        
+
         // looping
         ImGui.Spacing();
         UiSharedService.ColorText("Pattern Loop State", ImGuiColors.ParsedGold);
@@ -471,73 +450,6 @@ public class ToyboxPatterns
         pattern.PlaybackDuration = patternPlaybackDuration;
     }
 
-    private void DrawAccess(PatternData pattern)
-    {
-        DrawUidSearchFilter(ImGui.GetContentRegionAvail().X);
-        using (var table = ImRaii.Table("userListForVisibility", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY, ImGui.GetContentRegionAvail()))
-        {
-            if (!table) return;
-
-            ImGui.TableSetupColumn("Alias/UID", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Can View", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Can View ").X);
-            ImGui.TableHeadersRow();
-
-            var PairList = _pairManager.DirectPairs
-                .Where(pair => string.IsNullOrEmpty(PairSearchString) ||
-                               pair.UserData.AliasOrUID.Contains(PairSearchString, StringComparison.OrdinalIgnoreCase) ||
-                               (pair.GetNickname() != null && pair.GetNickname().Contains(PairSearchString, StringComparison.OrdinalIgnoreCase)))
-                .OrderBy(p => p.GetNickname() ?? p.UserData.AliasOrUID, StringComparer.OrdinalIgnoreCase);
-
-            foreach (Pair pair in PairList)
-            {
-                using var tableId = ImRaii.PushId("userTable_" + pair.UserData.UID);
-
-                ImGui.TableNextColumn(); // alias or UID of user.
-                var nickname = pair.GetNickname();
-                var text = nickname == null ? pair.UserData.AliasOrUID : nickname + " (" + pair.UserData.UID + ")";
-                ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted(text);
-
-                ImGui.TableNextColumn();
-                // display nothing if they are not in the list, otherwise display a check
-                var canSeeIcon = pattern.AllowedUsers.Contains(pair.UserData.UID) ? FontAwesomeIcon.Check : FontAwesomeIcon.Times;
-                using (ImRaii.PushColor(ImGuiCol.Button, ImGui.ColorConvertFloat4ToU32(new(0, 0, 0, 0))))
-                {
-                    if (ImGuiUtil.DrawDisabledButton(canSeeIcon.ToIconString(), new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()),
-                    string.Empty, false, true))
-                    {
-                        if (canSeeIcon == FontAwesomeIcon.Times)
-                        {
-                            pattern.AllowedUsers.Add(pair.UserData.UID);
-                        }
-                        else
-                        {
-                            pattern.AllowedUsers.Remove(pair.UserData.UID);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// <summary> Draws the search filter for our user pair list (whitelist) </summary>
-    public void DrawUidSearchFilter(float availableWidth)
-    {
-        var buttonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
-        ImGui.SetNextItemWidth(availableWidth - buttonSize - ImGui.GetStyle().ItemInnerSpacing.X);
-        string filter = PairSearchString;
-        if (ImGui.InputTextWithHint("##filter", "Filter for UID/notes", ref filter, 255))
-        {
-            PairSearchString = filter;
-        }
-        ImUtf8.SameLineInner();
-        using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(PairSearchString));
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
-        {
-            PairSearchString = string.Empty;
-        }
-    }
-
     private void SetFromClipboard()
     {
         try
@@ -551,9 +463,6 @@ public class ToyboxPatterns
             version = bytes.DecompressToString(out var decompressed);
             // Deserialize the string back to pattern data
             PatternData pattern = JsonConvert.DeserializeObject<PatternData>(decompressed) ?? new PatternData();
-            // Ensure the pattern has a unique name
-            string baseName = _handler.EnsureUniqueName(pattern.Name);
-
             // Set the active pattern
             _logger.LogInformation("Set pattern data from clipboard");
             _handler.AddNewPattern(pattern);

@@ -128,7 +128,6 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         setRef.Enabled = true;
         setRef.EnabledBy = assignerUID;
         _clientConfigs.SaveWardrobe();
-        // Update our active Set monitor.
 
         // Raise the priority of, and enable the mods bound to the active set.
         await PenumbraModsToggle(NewState.Enabled, setRef.AssociatedMods);

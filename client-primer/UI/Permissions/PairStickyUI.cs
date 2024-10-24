@@ -117,7 +117,7 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
         {
             ImGuiUtil.Center("Your Permissions for " + PairNickOrAliasOrUID);
             // draw out the permission preset applied.
-            var presetListWidth = 175f;
+            var presetListWidth = 225f;
             _uiShared.SetCursorXtoCenter(presetListWidth);
             _presetService.DrawPresetList(UserPairForPerms, presetListWidth);
 

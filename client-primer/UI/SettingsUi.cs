@@ -1428,11 +1428,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         {
                             ImGui.Text("Identifier:" + pattern.Identifier);
                             ImGui.Text($"Pattern Name: {pattern.Name}");
-                            ImGui.Text($"Pattern Description: {pattern.Description}");
                             ImGui.Text($"Pattern Duration: {pattern.Duration}");
                             ImGui.Text($"Pattern ShouldLoop: {pattern.ShouldLoop}");
                         }
-                        ImGui.Text("ActivePatternGUID: " + clientPair.LastReceivedToyboxData.ActivePatternGuid);
+                        ImGui.Text("Transaction ID: " + clientPair.LastReceivedToyboxData.TransactionId);
                     }
                 }
 

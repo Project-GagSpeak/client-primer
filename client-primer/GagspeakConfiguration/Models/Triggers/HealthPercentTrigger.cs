@@ -25,4 +25,30 @@ public record HealthPercentTrigger : Trigger
 
     // the maxValue to display (can either be in percent or normal numbers, based on above option)
     public int MaxHealthValue { get; set; } = 10000000;
+
+    public override HealthPercentTrigger DeepClone()
+    {
+        return new HealthPercentTrigger
+        {
+            TriggerIdentifier = TriggerIdentifier,
+            Enabled = Enabled,
+            Priority = Priority,
+            Name = Name,
+            Description = Description,
+            StartAfter = StartAfter,
+            EndAfter = EndAfter,
+            TriggerActionKind = TriggerActionKind,
+            TriggerAction = TriggerAction,
+            ShockTriggerAction = ShockTriggerAction,
+            RestraintNameAction = RestraintNameAction,
+            GagLayerAction = GagLayerAction,
+            GagTypeAction = GagTypeAction,
+            MoodlesIdentifier = MoodlesIdentifier,
+            PlayerToMonitor = PlayerToMonitor,
+            UsePercentageHealth = UsePercentageHealth,
+            PassKind = PassKind,
+            MinHealthValue = MinHealthValue,
+            MaxHealthValue = MaxHealthValue
+        };
+    }
 }

@@ -20,24 +20,23 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
     private readonly PairManager _pairManager; // for accessing the permissions of each pair.
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly GagManager _gagManager; // for removing gags.
-    private readonly PlaybackService _patternPlaybackService; // for stopping patterns.
-    private readonly AppearanceManager _appearanceHandler;
+    private readonly AppearanceManager _appearanceManager;
+    private readonly ToyboxManager _toyboxManager;
     private readonly IpcFastUpdates _glamourFastEvent; // for reverting character.
 
     public SafewordService(ILogger<SafewordService> logger, GagspeakMediator mediator,
         ApiController apiController, PlayerCharacterData playerManager,
         PairManager pairManager, ClientConfigurationManager clientConfigs,
-        GagManager gagManager, PlaybackService playbackService,
-        AppearanceManager appearanceHandler, IpcFastUpdates glamourFastUpdate)
-        : base(logger, mediator)
+        GagManager gagManager, AppearanceManager appearanceManager, 
+        ToyboxManager toyboxManager, IpcFastUpdates glamourFastUpdate) : base(logger, mediator)
     {
         _apiController = apiController;
         _playerManager = playerManager;
         _pairManager = pairManager;
         _clientConfigs = clientConfigs;
         _gagManager = gagManager;
-        _patternPlaybackService = playbackService;
-        _appearanceHandler = appearanceHandler;
+        _appearanceManager = appearanceManager;
+        _toyboxManager = toyboxManager;
         _glamourFastEvent = glamourFastUpdate;
 
         // set the chat log up.
@@ -79,17 +78,16 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             Logger.LogInformation("Disabling all stored data and reverting character.", LoggerType.Safeword);
 
             // grab active pattern first if any.
-            if (_patternPlaybackService.ActivePattern != null)
+            if (_clientConfigs.AnyPatternIsPlaying)
             {
                 Logger.LogInformation("Stopping active pattern.", LoggerType.Safeword);
-                _patternPlaybackService.StopPattern(_patternPlaybackService.ActivePattern.UniqueIdentifier, false);
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Stopped, _patternPlaybackService.ActivePattern.UniqueIdentifier, false);
+                _toyboxManager.DisablePattern(_clientConfigs.ActivePatternGuid());
                 Logger.LogInformation("Active pattern stopped.", LoggerType.Safeword);
             }
 
             // disable all other active things.
-            await _appearanceHandler.DisableAllDueToSafeword();
             await _clientConfigs.DisableEverythingDueToSafeword();
+            await _appearanceManager.DisableAllDueToSafeword();
 
             // do direct updates so they apply first client side, then push to the server. The callback can validate these changes.
             if (_playerManager.GlobalPerms is not null)
@@ -172,8 +170,6 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
                 pair.UserPairOwnUniquePairPerms.AllowHidingChatboxes = false;
                 pair.UserPairOwnUniquePairPerms.AllowHidingChatInput = false;
                 pair.UserPairOwnUniquePairPerms.AllowChatInputBlocking = false;
-
-
                 // send the updates to the server.
                 if (ApiController.ServerState is ServerState.Connected)
                 {

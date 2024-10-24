@@ -467,7 +467,8 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveOwnDataToybox(OnlineUserCharaToyboxDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataToybox:"+dataDto.User, LoggerType.Callbacks);
-        ExecuteSafely(() => _clientCallbacks.CallbackToyboxUpdate(dataDto));
+        bool callbackWasFromSelf = dataDto.User.UID == UID;
+        ExecuteSafely(() => _clientCallbacks.CallbackToyboxUpdate(dataDto, callbackWasFromSelf));
         return Task.CompletedTask;
     }
 

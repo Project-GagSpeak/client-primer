@@ -16,4 +16,27 @@ public record RestraintTrigger : Trigger
 
     // the new state of it that will trigger the execution
     public NewState RestraintState { get; set; } = NewState.Enabled;
+
+    public override RestraintTrigger DeepClone()
+    {
+        return new RestraintTrigger
+        {
+            TriggerIdentifier = TriggerIdentifier,
+            Enabled = Enabled,
+            Priority = Priority,
+            Name = Name,
+            Description = Description,
+            StartAfter = StartAfter,
+            EndAfter = EndAfter,
+            TriggerActionKind = TriggerActionKind,
+            TriggerAction = TriggerAction,
+            ShockTriggerAction = ShockTriggerAction,
+            RestraintNameAction = RestraintNameAction,
+            GagLayerAction = GagLayerAction,
+            GagTypeAction = GagTypeAction,
+            MoodlesIdentifier = MoodlesIdentifier,
+            RestraintSetName = RestraintSetName,
+            RestraintState = RestraintState
+        };
+    }
 }

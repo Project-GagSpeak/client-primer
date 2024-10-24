@@ -56,18 +56,11 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         var nameChanged = false;
         if (_clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[setIdx].Name != ClonedSetForEdit.Name)
             nameChanged = true;
-        
+
         // update that set with the new cloned set.
-        _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[setIdx] = ClonedSetForEdit;
-        _clientConfigs.SaveWardrobe();
+        _clientConfigs.UpdateRestraintSet(ClonedSetForEdit, setIdx);
         // make the cloned set null again.
         ClonedSetForEdit = null;
-        
-        // if the name has changed, we should publish that our restraint list has been udpated.
-        if (nameChanged)
-            Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
-        // Invoke a check for updated restraint sets. (it's ok to pass it here since other players can't update our list.)
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintUpdated, _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[setIdx]);
     }
 
     // For copying and pasting parts of the restraint set.
@@ -117,7 +110,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
     public int GetActiveSetIndex() => _clientConfigs.GetActiveSetIdx();
     public int GetRestraintSetIndexByName(string setName) => _clientConfigs.GetRestraintSetIdxByName(setName);
-    public List<Guid> GetAssociatedMoodles(int setIndex) => _clientConfigs.GetAssociatedMoodles(setIndex);
+    public List<Guid> GetAssociatedMoodles(int setIndex) => _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[setIndex].AssociatedMoodles;
     public EquipDrawData GetBlindfoldDrawData() => _clientConfigs.GetBlindfoldItem();
     public void SetBlindfoldDrawData(EquipDrawData drawData) => _clientConfigs.SetBlindfoldItem(drawData);
 

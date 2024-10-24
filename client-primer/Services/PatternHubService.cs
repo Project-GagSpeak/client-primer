@@ -173,8 +173,6 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 pattern.IsActive = false;
                 pattern.IsPublished = false;
                 pattern.CreatedByClient = false;
-                // Ensure the pattern has a unique name
-                string baseName = _clientConfigs.EnsureUniquePatternName(pattern.Name);
                 // Set the active pattern
                 _clientConfigs.AddNewPattern(pattern);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Downloaded, pattern.UniqueIdentifier, false);
@@ -218,32 +216,30 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             _ = ClearTaskInOneSecond(() => LikePatternTask, () => LikePatternTask = null);
         }, TaskScheduler.Default);
     }
-    public void UploadPatternToServer(int patternIdx)
+    public void UploadPatternToServer(PatternData pattern)
     {
         if (UploadPatternTask != null)
         {
             Logger.LogWarning("UploadPatternTask already in progress.");
             return;
         }
-        // fetch the pattern at the index
-        PatternData patternToUpload = _clientConfigs.FetchPattern(patternIdx).DeepClone();
         // disable pattern and save before uploading.
-        patternToUpload.IsActive = false;
+        pattern.IsActive = false;
         // compress the pattern into base64.
-        string json = JsonConvert.SerializeObject(patternToUpload);
+        string json = JsonConvert.SerializeObject(pattern);
         // Encode the string to a base64 string
         var compressed = json.Compress(6);
         string base64Pattern = Convert.ToBase64String(compressed);
         // construct the serverPatternInfo for the upload.
         ServerPatternInfo patternInfo = new ServerPatternInfo()
         {
-            Identifier = patternToUpload.UniqueIdentifier,
-            Name = patternToUpload.Name,
-            Description = patternToUpload.Description,
-            Author = patternToUpload.Author,
-            Tags = patternToUpload.Tags,
-            Length = patternToUpload.Duration,
-            Looping = patternToUpload.ShouldLoop,
+            Identifier = pattern.UniqueIdentifier,
+            Name = pattern.Name,
+            Description = pattern.Description,
+            Author = pattern.Author,
+            Tags = pattern.Tags,
+            Length = pattern.Duration,
+            Looping = pattern.ShouldLoop,
             UsesVibrations = true,
             UsesRotations = false,
             UsesOscillation = false,
@@ -258,13 +254,9 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             {
                 Mediator.Publish(new NotificationMessage("Pattern Upload", "uploaded successful!", NotificationType.Info));
                 // update the published state.
-                patternToUpload.IsPublished = true;
-                _clientConfigs.UpdatePattern(patternToUpload, patternIdx);
-                // update the value of the editing pattern if the editing patternIdx is the same as the patternIdx.
-                if (_patternHandler.EditingPatternIndex == patternIdx)
-                {
-                    _patternHandler.PatternBeingEdited.IsPublished = true;
-                }
+                pattern.IsPublished = true;
+                // find the index of the pattern.
+                int patternIdx = _clientConfigs.PatternConfig.PatternStorage.Patterns.FindIndex(x => x.UniqueIdentifier == pattern.UniqueIdentifier);
             }
             else
             {
@@ -274,7 +266,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
         }, TaskScheduler.Default);
     }
 
-    public void RemovePatternFromServer(int patternIdx)
+    public void RemovePatternFromServer(PatternData patternToRemove)
     {
         if (RemovePatternTask != null)
         {
@@ -283,7 +275,6 @@ public class PatternHubService : DisposableMediatorSubscriberBase
         }
 
         // fetch the pattern by the guid
-        PatternData? patternToRemove = _clientConfigs.FetchPattern(patternIdx);
         if (patternToRemove == null || patternToRemove.UniqueIdentifier == Guid.Empty)
         {
             Logger.LogWarning("Pattern Does not exist in your storage by this GUID"); 
@@ -298,6 +289,8 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 // if successful. Notify the success.
                 Mediator.Publish(new NotificationMessage("Pattern Removal", "removed successful!", NotificationType.Info));
                 patternToRemove.IsPublished = false;
+                // find the index of the pattern.
+                int patternIdx = _clientConfigs.PatternConfig.PatternStorage.Patterns.FindIndex(x => x.UniqueIdentifier == patternToRemove.UniqueIdentifier);
                 _clientConfigs.UpdatePattern(patternToRemove, patternIdx);
             }
             else

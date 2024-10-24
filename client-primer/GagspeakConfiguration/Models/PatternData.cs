@@ -1,3 +1,5 @@
+using GagspeakAPI.Data.Character;
+
 namespace GagSpeak.GagspeakConfiguration.Models;
 
 /// <summary>
@@ -40,11 +42,41 @@ public record PatternData
     /// <summary> Lets client know if the pattern is ours or theirs. </summary>
     public bool CreatedByClient { get; set; } = true;
 
-    /// <summary> The list of allowed users who can view this pattern </summary>
-    public List<string> AllowedUsers { get; set; } = new();
-
     /// <summary> The pattern byte data </summary>
     public List<byte> PatternByteData { get; set; } = new();
+
+    public PatternDto ToDto()
+    {
+        return new PatternDto()
+        {
+            Identifier = UniqueIdentifier,
+            Enabled = IsActive,
+            Name = Name,
+            Duration = Duration,
+            ShouldLoop = ShouldLoop,
+        };
+    }
+
+    public PatternData DeepCloneData()
+    {
+        return new PatternData()
+        {
+            // do not clone the unique identifier
+            Name = Name,
+            Description = Description,
+            Author = Author,
+            Tags = Tags,
+            Duration = Duration,
+            StartPoint = StartPoint,
+            PlaybackDuration = PlaybackDuration,
+            IsActive = IsActive,
+            ShouldLoop = ShouldLoop,
+            IsPublished = IsPublished,
+            CreatedByClient = CreatedByClient,
+            PatternByteData = PatternByteData,
+        };
+    }
+
 
     public JObject Serialize()
     {
@@ -65,7 +97,6 @@ public record PatternData
             ["ShouldLoop"] = ShouldLoop,
             ["IsPublished"] = IsPublished,
             ["CreatedByClient"] = CreatedByClient,
-            ["AllowedUsers"] = new JArray(AllowedUsers),
             ["PatternByteData"] = patternDataString,
         };
     }
@@ -93,12 +124,6 @@ public record PatternData
             ShouldLoop = jsonObject["ShouldLoop"]?.Value<bool>() ?? false;
             IsPublished = jsonObject["IsPublished"]?.Value<bool>() ?? false;
             CreatedByClient = jsonObject["CreatedByClient"]?.Value<bool>() ?? true; // prevent uploading if not failed.
-
-            // Deserialize the AllowedUsers
-            if (jsonObject["AllowedUsers"] is JArray allowedUsersArray)
-            {
-                AllowedUsers = allowedUsersArray.Select(x => x.Value<string>()).ToList()!;
-            }
 
             PatternByteData.Clear();
             var patternDataString = jsonObject["PatternByteData"]?.Value<string>();

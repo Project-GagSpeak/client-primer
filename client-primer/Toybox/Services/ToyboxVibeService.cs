@@ -40,11 +40,11 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
         {
             if (_clientConfigs.GagspeakConfig.IntifaceAutoConnect && !_deviceHandler.ConnectedToIntiface)
             {
-                if (IntifaceHelper.AppPath == string.Empty)
+                if (ToyboxHelper.AppPath == string.Empty)
                 {
-                    IntifaceHelper.GetApplicationPath();
+                    ToyboxHelper.GetApplicationPath();
                 }
-                IntifaceHelper.OpenIntiface(logger, false);
+                ToyboxHelper.OpenIntiface(logger, false);
                 _deviceHandler.ConnectToIntifaceAsync();
             }
         });

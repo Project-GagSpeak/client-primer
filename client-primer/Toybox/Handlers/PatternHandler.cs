@@ -1,74 +1,71 @@
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 
 namespace GagSpeak.PlayerData.Handlers;
 
-// Responsible for handling the management of patterns.
-// Pattern playback is managed by the PlaybackService.
+/// <summary>
+/// A Handler that manages how we modify our pattern information for edits.
+/// For Toggling states and updates via non-direct edits, see ToyboxManager.
+/// </summary>
 public class PatternHandler : MediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
+    private readonly PlayerCharacterData _playerManager;
+    private readonly ToyboxManager _toyboxStateManager;
 
     public PatternHandler(ILogger<PatternHandler> logger,
-        GagspeakMediator mediator, ClientConfigurationManager clientConfigs)
+        GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
+        PlayerCharacterData playerManager, ToyboxManager toyboxStateManager)
         : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
+        _playerManager = playerManager;
     }
 
-    // Handles the pattern stuff
-    private PatternData? _patternBeingEdited;
-    public int EditingPatternIndex { get; private set; } = -1;
-    public PatternData PatternBeingEdited
+    public List<PatternData> Patterns => _clientConfigs.PatternConfig.PatternStorage.Patterns;
+    public int PatternCount => _clientConfigs.PatternConfig.PatternStorage.Patterns.Count;
+
+    public PatternData? ClonedPatternForEdit { get; private set; } = null;
+
+    public void StartEditingPattern(PatternData pattern)
     {
-        get
-        {
-            if (_patternBeingEdited == null && EditingPatternIndex >= 0)
-            {
-                _patternBeingEdited = _clientConfigs.FetchPattern(EditingPatternIndex);
-            }
-            return _patternBeingEdited!;
-        }
-        private set => _patternBeingEdited = value;
+        ClonedPatternForEdit = pattern.DeepCloneData();
+        Guid originalID = pattern.UniqueIdentifier; // Prevent storing the pattern ID by reference.
+        ClonedPatternForEdit.UniqueIdentifier = originalID; // Ensure the ID remains the same here.
     }
-    public bool EditingPatternNull => PatternBeingEdited == null;
 
-    public void SetEditingPattern(PatternData pattern, int index)
+    public void CancelEditingPattern() => ClonedPatternForEdit = null;
+
+    public void SaveEditedPattern()
     {
-        PatternBeingEdited = pattern;
-        EditingPatternIndex = index;
+        if (ClonedPatternForEdit is null)
+            return;
+
+        // locate the restraint set that contains the matching guid.
+        var setIdx = Patterns.FindIndex(x => x.UniqueIdentifier == ClonedPatternForEdit.UniqueIdentifier);
+        if (setIdx == -1)
+            return;
+
+        // update that set with the new cloned set.
+        _clientConfigs.UpdatePattern(ClonedPatternForEdit, setIdx);
+
+        // make the cloned set null again.
+        ClonedPatternForEdit = null;
     }
 
-    public void ClearEditingPattern()
-    {
-        EditingPatternIndex = -1;
-        PatternBeingEdited = null!;
-    }
-
-    public void UpdateEditedPattern()
-    {
-        // update the pattern in the client configs
-        _clientConfigs.UpdatePattern(PatternBeingEdited, EditingPatternIndex);
-        // clear the editing pattern
-        ClearEditingPattern();
-    }
-
-    public void AddNewPattern(PatternData newPattern)
-        => _clientConfigs.AddNewPattern(newPattern);
-
+    public void AddNewPattern(PatternData newPattern) => _clientConfigs.AddNewPattern(newPattern);
     public void RemovePattern(Guid idToRemove)
     {
         _clientConfigs.RemovePattern(idToRemove);
-        ClearEditingPattern();
+        CancelEditingPattern();
     }
 
-    public int PatternListSize()
-        => _clientConfigs.GetPatternCount();
+    public void EnablePattern(PatternData pattern)
+        => _toyboxStateManager.EnablePattern(pattern.UniqueIdentifier);
 
-    public List<PatternData> GetPatternsForSearch()
-        => _clientConfigs.GetPatternsForSearch();
-
-    public string EnsureUniqueName(string name) => _clientConfigs.EnsureUniquePatternName(name);
+    public void DisablePattern(PatternData pattern)
+        => _toyboxStateManager.DisablePattern(pattern.UniqueIdentifier);
 }
 

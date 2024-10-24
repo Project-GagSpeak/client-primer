@@ -296,7 +296,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
     {
         CharacterWardrobeData dataToPush = new CharacterWardrobeData
         {
-            Outfits = _clientConfigs.GetRestraintSetDtos()
+            Outfits = _clientConfigs.GetRestraintSetDtos
         };
 
         // attempt to locate the active restraint set

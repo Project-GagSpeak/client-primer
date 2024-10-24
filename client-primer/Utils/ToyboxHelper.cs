@@ -1,4 +1,5 @@
 using Dalamud.Utility;
+using GagSpeak.GagspeakConfiguration.Models;
 using PInvoke;
 using System.Runtime.InteropServices;
 
@@ -7,7 +8,7 @@ namespace GagSpeak.Utils;
 /// <summary>
 /// Handles Intiface Access
 /// </summary> 
-public static class IntifaceHelper
+public static class ToyboxHelper
 {
     // the path to intiface central.exe
     public static string AppPath = string.Empty;
@@ -57,5 +58,4 @@ public static class IntifaceHelper
             Util.OpenLink("https://intiface.com/central/");
         }
     }
-
 }

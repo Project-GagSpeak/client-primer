@@ -17,4 +17,27 @@ public record GagTrigger : Trigger
     
     // the state of the gag that invokes it.
     public NewState GagState { get; set; } = NewState.Enabled;
+
+    public override GagTrigger DeepClone()
+    {
+        return new GagTrigger
+        {
+            TriggerIdentifier = TriggerIdentifier,
+            Enabled = Enabled,
+            Priority = Priority,
+            Name = Name,
+            Description = Description,
+            StartAfter = StartAfter,
+            EndAfter = EndAfter,
+            TriggerActionKind = TriggerActionKind,
+            TriggerAction = TriggerAction,
+            ShockTriggerAction = ShockTriggerAction,
+            RestraintNameAction = RestraintNameAction,
+            GagLayerAction = GagLayerAction,
+            GagTypeAction = GagTypeAction,
+            MoodlesIdentifier = MoodlesIdentifier,
+            Gag = Gag,
+            GagState = GagState
+        };
+    }
 }

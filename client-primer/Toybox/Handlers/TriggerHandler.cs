@@ -1,80 +1,54 @@
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.PlayerData.Data;
-using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.Services.Mediator;
-using GagSpeak.WebAPI;
 
 namespace GagSpeak.PlayerData.Handlers;
 
-public class TriggerHandler : MediatorSubscriberBase
+public class TriggerHandler
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    public TriggerHandler(ILogger<TriggerHandler> logger,
-        GagspeakMediator mediator, ClientConfigurationManager clientConfigs) 
-        : base(logger, mediator)
+    private readonly ToyboxManager _toyboxStateManager;
+    public TriggerHandler(ClientConfigurationManager clientConfigs, ToyboxManager toyboxManager)
     {
         _clientConfigs = clientConfigs;
+        _toyboxStateManager = toyboxManager;
     }
 
-    private Trigger? _triggerBeingEdited;
-    public int EditingTriggerIndex { get; private set; } = -1;
-    public Trigger TriggerBeingEdited
+    public List<Trigger> Triggers => _clientConfigs.TriggerConfig.TriggerStorage.Triggers;
+    public int TriggerCount => _clientConfigs.TriggerConfig.TriggerStorage.Triggers.Count;
+
+    public Trigger? ClonedTriggerForEdit { get; private set; } = null;
+
+    public void StartEditingTrigger(Trigger trigger)
     {
-        get
-        {
-            if (_triggerBeingEdited == null && EditingTriggerIndex >= 0)
-            {
-                _triggerBeingEdited = _clientConfigs.FetchTrigger(EditingTriggerIndex);
-            }
-            return _triggerBeingEdited!;
-        }
-        private set => _triggerBeingEdited = value;
+        ClonedTriggerForEdit = trigger.DeepClone();
+        Guid originalID = trigger.TriggerIdentifier; // Prevent storing the trigger ID by reference.
+        ClonedTriggerForEdit.TriggerIdentifier = originalID; // Ensure the ID remains the same here.
     }
-    public bool EditingTriggerNull => TriggerBeingEdited == null;
 
-    public void SetEditingTrigger(Trigger trigger, int index)
+    public void CancelEditingTrigger() => ClonedTriggerForEdit = null;
+
+    public void SaveEditedTrigger()
     {
-        TriggerBeingEdited = trigger;
-        EditingTriggerIndex = index;
+        if (ClonedTriggerForEdit is null)
+            return;
+        // locate the restraint set that contains the matching guid.
+        var triggerIdx = Triggers.FindIndex(x => x.TriggerIdentifier == ClonedTriggerForEdit.TriggerIdentifier);
+        // update that set with the new cloned set.
+        _clientConfigs.UpdateTrigger(ClonedTriggerForEdit, triggerIdx);
+        // make the cloned set null again.
+        ClonedTriggerForEdit = null;
     }
 
-    public void ClearEditingTrigger()
+    public void AddNewTrigger(Trigger newPattern) => _clientConfigs.AddNewTrigger(newPattern);
+    public void RemoveTrigger(Trigger triggerToRemove)
     {
-        EditingTriggerIndex = -1;
-        TriggerBeingEdited = null!;
+        _clientConfigs.RemoveTrigger(triggerToRemove);
+        CancelEditingTrigger();
     }
 
-    public void UpdateEditedTrigger()
-    {
-        // update the trigger in the client configs
-        _clientConfigs.UpdateTrigger(TriggerBeingEdited, EditingTriggerIndex);
-        // clear the editing trigger
-        ClearEditingTrigger();
-    }
+    public void EnableTrigger(Trigger trigger)
+    => _toyboxStateManager.EnableTrigger(trigger.TriggerIdentifier);
 
-
-    public void AddNewTrigger(Trigger newTrigger)
-        => _clientConfigs.AddNewTrigger(newTrigger);
-
-    public void RemoveTrigger(int idxToRemove)
-    {
-        _clientConfigs.RemoveTrigger(idxToRemove);
-        ClearEditingTrigger();
-    }
-
-    public int TriggerListSize()
-        => _clientConfigs.FetchTriggerCount();
-
-    public List<Trigger> GetTriggersForSearch()
-    => _clientConfigs.GetTriggersForSearch();
-
-    public Trigger GetTrigger(int idx)
-        => _clientConfigs.FetchTrigger(idx);
-
-    public void EnableTrigger(int idx)
-        => _clientConfigs.SetTriggerState(idx, true);
-
-    public void DisableTrigger(int idx)
-        => _clientConfigs.SetTriggerState(idx, false);
+    public void DisableTrigger(Trigger trigger)
+        => _toyboxStateManager.DisableTrigger(trigger.TriggerIdentifier);
 }

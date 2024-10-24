@@ -19,6 +19,11 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 6, 0)
+            .RegisterMain("Full backend rework on Toybox Patterns, Alarms, Triggers for more streamlined functionality and future expandability.")
+            .RegisterFeature("Toybox Actions should now be functional properly this time outside of the remote interfaces.")
+            .RegisterQol("View Access has been removed from patterns triggers and alarms as you can control this with pair permissions already.")
+            .RegisterBugfix("Fixed issue in where using Devotional Toggles in hardcore mode made it impossible to unlock someone in a locked state.");            
         VersionEntry(0, 9, 5, 11)
             .RegisterMain("Mostly all achievements outside of trigger and alarm toggles should be functional now!.");
         VersionEntry(0,9,5,5)

@@ -45,9 +45,9 @@ public class ToyboxOverview
         _vibeService = vibeService;
 
         // grab path to the intiface
-        if (IntifaceHelper.AppPath == string.Empty)
+        if (ToyboxHelper.AppPath == string.Empty)
         {
-            IntifaceHelper.GetApplicationPath();
+            ToyboxHelper.GetApplicationPath();
         }
     }
 
@@ -294,7 +294,7 @@ public class ToyboxOverview
 
         if (_uiShared.IconButton(intifaceOpenIcon))
         {
-            IntifaceHelper.OpenIntiface(_logger, true);
+            ToyboxHelper.OpenIntiface(_logger, true);
         }
         UiSharedService.AttachToolTip("Opens Intiface Central on your PC for connection.\nIf application is not detected, opens a link to installer.");
 

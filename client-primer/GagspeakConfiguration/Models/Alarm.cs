@@ -1,4 +1,5 @@
 using GagspeakAPI.Data;
+using GagspeakAPI.Data.Character;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
 
@@ -13,4 +14,27 @@ public record Alarm
     public TimeSpan PatternStartPoint { get; set; } = TimeSpan.Zero;
     public TimeSpan PatternDuration { get; set; } = TimeSpan.Zero;
     public List<DayOfWeek> RepeatFrequency { get; set; } = [];
+
+    public AlarmDto ToDto()
+        => new AlarmDto
+        {
+            Identifier = Identifier,
+            Enabled = Enabled,
+            Name = Name,
+            SetTimeUTC = SetTimeUTC,
+            PatternThatPlays = PatternToPlay.ToString()
+        };
+
+    public Alarm DeepCloneAlarm()
+        => new Alarm()
+        {
+            // do not clone the identifier, as we want a new one.
+            Enabled = Enabled,
+            Name = Name,
+            SetTimeUTC = SetTimeUTC,
+            PatternToPlay = PatternToPlay,
+            PatternStartPoint = PatternStartPoint,
+            PatternDuration = PatternDuration,
+            RepeatFrequency = new List<DayOfWeek>(RepeatFrequency)
+        };
 }

@@ -1,61 +1,44 @@
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Common.Math;
-using GagSpeak.PlayerData.Handlers;
-using GagSpeak.Services.Mediator;
+using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Toybox.Debouncer;
 using GagSpeak.Toybox.Services;
 using ImGuiNET;
 using ImPlotNET;
 using System.Timers;
-using GagSpeak.Utils;
-using GagspeakAPI.Enums;
-using GagSpeak.GagspeakConfiguration.Models;
 
 namespace GagSpeak.UI.Components;
 
 /// <summary>
 /// Manages playing back patterns to the client user's connected devices.
 /// </summary>
-public class PatternPlayback : DisposableMediatorSubscriberBase
+public class PatternPlayback : IDisposable
 {
+    private readonly ILogger<PatternPlayback> _logger;
     private readonly ToyboxRemoteService _remoteService;
     private readonly ToyboxVibeService _vibeService;
-    private readonly PlaybackService _playbackService;
 
     public Stopwatch PlaybackDuration;
     private UpdateTimer PlaybackUpdateTimer;
-    // private accessors for the playback only
-    private double[] CurrentPositions = new double[2];
 
     public PatternPlayback(ILogger<PatternPlayback> logger,
-        GagspeakMediator mediator, ToyboxRemoteService remoteService, 
-        ToyboxVibeService vibeService, PlaybackService playbackService) 
-        : base(logger, mediator)
+        ToyboxRemoteService remoteService, ToyboxVibeService vibeService)
     {
+        _logger = logger;
         _remoteService = remoteService;
         _vibeService = vibeService;
-        _playbackService = playbackService;
 
         PlaybackDuration = new Stopwatch();
         PlaybackUpdateTimer = new UpdateTimer(20, ReadVibePosFromBuffer);
-
-        Mediator.Subscribe<PlaybackStateToggled>(this, (msg) =>
-        {
-            if(msg.NewState == NewState.Enabled)
-            {
-                StartPlayback();
-            }
-            if(msg.NewState == NewState.Disabled)
-            {
-                StopPlayback(msg.PatternId);
-            }
-        });
     }
+    // private accessors for the playback only
+    private double[] CurrentPositions = new double[2];
+    private List<float> volumeLevels = new List<float>();
+    private PatternData? PatternToPlayback = null;
 
-    protected override void Dispose(bool disposing)
+    public void Dispose()
     {
-        base.Dispose(disposing);
         // dispose of the timers
         PlaybackUpdateTimer.Dispose();
         PlaybackDuration.Stop();
@@ -73,7 +56,7 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
             float[] xs;  // x-values
             float[] ys;  // y-values
                          // if we are playing back
-            if (_playbackService.PlaybackActive && _playbackService.ShouldRunPlayback)
+            if (PatternToPlayback is not null)
             {
                 int start = Math.Max(0, ReadBufferIdx - 150);
                 int count = Math.Min(150, ReadBufferIdx - start + 1);
@@ -81,8 +64,8 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
 
 
                 xs = Enumerable.Range(-buffer, count + buffer).Select(i => (float)i).ToArray();
-                ys = _playbackService.PlaybackByteRange.Skip(_playbackService.PlaybackByteRange.Count - buffer).Take(buffer)
-                    .Concat(_playbackService.PlaybackByteRange.Skip(start).Take(count))
+                ys = PatternToPlayback.PatternByteData.Skip(PatternToPlayback.PatternByteData.Count - buffer).Take(buffer)
+                    .Concat(PatternToPlayback.PatternByteData.Skip(start).Take(count))
                     .Select(pos => (float)pos).ToArray();
 
                 // Transform the x-values so that the latest position appears at x=0
@@ -129,34 +112,28 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
         }
         catch (Exception e)
         {
-            Logger.LogError($"{e} Error drawing the toybox workshop subtab");
+            _logger.LogError($"{e} Error drawing the toybox workshop subtab");
         }
     }
-    #region Helper Fuctions
-    // When active, the circle will not fall back to the 0 coordinate on the Y axis of the plot, and remain where it is
-    public void StartPlayback()
-    {
-        if(_playbackService.ActivePattern == null)
-        {
-            Logger.LogWarning("It should be impossible to reach here. if you do, "+ 
-                "there is a massive issue with the code. Report it ASAP");
-            return;
-        }
-        // start a new one
-        Logger.LogDebug($"Starting playback of pattern {_playbackService.ActivePattern?.Name}", LoggerType.ToyboxPatterns);
 
+    // When active, the circle will not fall back to the 0 coordinate on the Y axis of the plot, and remain where it is
+    public void StartPlayback(PatternData patternToPlay)
+    {
+        _logger.LogDebug($"Starting playback of pattern {patternToPlay.Name}", LoggerType.ToyboxPatterns);
         // set the playback index to the start
         ReadBufferIdx = 0;
 
         // iniitalize volume levels if using simulated vibe
-        if (_vibeService.UsingSimulatedVibe) InitializeVolumeLevels(_playbackService.PlaybackByteRange);
+        if (_vibeService.UsingSimulatedVibe)
+            InitializeVolumeLevels(patternToPlay.PatternByteData);
 
         // start our timers
         PlaybackDuration.Start();
         PlaybackUpdateTimer.Start();
-
         // begin playing the pattern to the vibrators
         _vibeService.StartActiveVibes();
+        // Finally, set the patternToPlay, so that we can draw the waveform
+        PatternToPlayback = patternToPlay;
     }
     public void InitializeVolumeLevels(List<byte> intensityPattern)
     {
@@ -168,56 +145,57 @@ public class PatternPlayback : DisposableMediatorSubscriberBase
             volumeLevels.Add(volume);
         }
     }
-    private List<float> volumeLevels = new List<float>();
 
-    public void StopPlayback(Guid patternIdentifier)
+    public void StopPlayback()
     {
-        Logger.LogDebug($"Stopping playback of pattern "+_playbackService.GetPatternNameFromGuid(patternIdentifier), LoggerType.ToyboxPatterns);
+        if (PatternToPlayback is null)
+        {
+            _logger.LogWarning("Attempted to stop a pattern that isnt even playing. Why are you here?");
+            return;
+        }
+
+        _logger.LogDebug($"Stopping playback of pattern " + PatternToPlayback.Name, LoggerType.ToyboxPatterns);
         // clear the local variables
         ReadBufferIdx = 0;
         // reset the timers
         PlaybackUpdateTimer.Stop();
         PlaybackDuration.Stop();
         PlaybackDuration.Reset();
-        // reset vibe to normal levels TODO figure out how to go back to normal levels
+        // reset vibe to normal levels
         _vibeService.StopActiveVibes();
-
+        // clear the pattern to play
+        PatternToPlayback = null;
     }
 
     private int ReadBufferIdx;  // The current index of the playback
     private void ReadVibePosFromBuffer(object? sender, ElapsedEventArgs e)
     {
         // return if the playback is no longer active.
-        if (!_playbackService.PlaybackActive) return;
-        
+        if (PatternToPlayback is null)
+            return;
+
         // If the new read buffer idx >= the total length of the list, stop playback, or loop to start.
-        if (ReadBufferIdx >= _playbackService.PlaybackByteRange.Count)
+        if (ReadBufferIdx >= PatternToPlayback.PatternByteData.Count)
         {
             // If we should loop, start it over again.
-            if (_playbackService.ActivePattern!.ShouldLoop)
+            if (PatternToPlayback.ShouldLoop)
             {
                 ReadBufferIdx = 0;
                 PlaybackDuration.Restart();
                 return;
             }
-            // otherwise, stop.
-            else
+            else // otherwise, stop.
             {
-                _playbackService.StopPattern(_playbackService.GetGuidOfActivePattern(), true);
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Stopped, _playbackService.GetGuidOfActivePattern(), false);
+                StopPlayback();
                 return;
             }
         }
-
         // Convert the current stored position to a float and store it in currentPos
-        CurrentPositions[1] = _playbackService.PlaybackByteRange[ReadBufferIdx];
-
+        CurrentPositions[1] = PatternToPlayback.PatternByteData[ReadBufferIdx];
         // Send the vibration command to the device
-        _vibeService.SendNextIntensity(_playbackService.PlaybackByteRange[ReadBufferIdx]);
-
+        _vibeService.SendNextIntensity(PatternToPlayback.PatternByteData[ReadBufferIdx]);
         // Increment the buffer index
         ReadBufferIdx++;
     }
-    #endregion Helper Fuctions
 }
 

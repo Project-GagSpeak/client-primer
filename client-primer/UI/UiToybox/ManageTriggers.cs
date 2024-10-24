@@ -15,15 +15,14 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Controllers;
 using GagSpeak.Toybox.Services;
 using GagSpeak.Utils;
-using GagspeakAPI.Enums;
-using GagspeakAPI.Data;
+using GagspeakAPI.Extensions;
 using ImGuiNET;
+using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Text;
 using System.Numerics;
 using GameAction = Lumina.Excel.GeneratedSheets.Action;
-using GagspeakAPI.Extensions;
 
 namespace GagSpeak.UI.UiToybox;
 
@@ -61,18 +60,20 @@ public class ToyboxTriggerManager
         _moodlesService = moodlesService;
     }
 
-    private List<Trigger> FilteredTriggerList
-        => _handler.GetTriggersForSearch()
-            .Where(pattern => pattern.Name.Contains(TriggerSearchString, StringComparison.OrdinalIgnoreCase))
-            .ToList();
     private Trigger? CreatedTrigger = new ChatTrigger();
     public bool CreatingTrigger = false;
-    private List<bool> ListItemHovered = new List<bool>();
+    private List<Trigger> FilteredTriggerList
+        => _handler.Triggers
+            .Where(pattern => pattern.Name.Contains(TriggerSearchString, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+    private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
     private LowerString TriggerSearchString = LowerString.Empty;
-    private LowerString PairSearchString = LowerString.Empty;
+
     private string PatternSearchString = LowerString.Empty;
     private string GagSearchString = LowerString.Empty;
     private string SelectedDeviceName = LowerString.Empty;
+
     private int SelectedMoodleIdx = 0;
     private int SelectedPresetGUID = 0;
 
@@ -91,25 +92,25 @@ public class ToyboxTriggerManager
             return; // perform early returns so we dont access other methods
         }
 
-        if (_handler.EditingTriggerNull)
+        if (_handler.ClonedTriggerForEdit is null)
         {
             DrawCreateTriggerHeader();
             ImGui.Separator();
             DrawSearchFilter(regionSize.X, ImGui.GetStyle().ItemInnerSpacing.X);
             ImGui.Separator();
-            if (_handler.TriggerListSize() > 0)
+            if (_handler.TriggerCount > 0)
                 DrawTriggerSelectableMenu();
 
             return; // perform early returns so we dont access other methods
         }
 
         // if we are editing an trigger
-        if (!_handler.EditingTriggerNull)
+        if (_handler.ClonedTriggerForEdit is not null)
         {
             DrawTriggerEditorHeader();
             ImGui.Separator();
-            if (_handler.TriggerListSize() > 0 && _handler.EditingTriggerIndex >= 0)
-                DrawTriggerEditor(_handler.TriggerBeingEdited);
+            if (_handler.TriggerCount > 0)
+                DrawTriggerEditor(_handler.ClonedTriggerForEdit);
         }
     }
 
@@ -211,8 +212,7 @@ public class ToyboxTriggerManager
             // the "fuck go back" button.
             if (_uiShared.IconButton(FontAwesomeIcon.ArrowLeft))
             {
-                // reset the createdTrigger to a new trigger, and set editing trigger to true
-                _handler.ClearEditingTrigger();
+                _handler.CancelEditingTrigger();
                 return;
             }
             // now next to it we need to draw the header text
@@ -231,7 +231,7 @@ public class ToyboxTriggerManager
             if (_uiShared.IconButton(FontAwesomeIcon.Save))
             {
                 // reset the createdTrigger to a new trigger, and set editing trigger to true
-                _handler.UpdateEditedTrigger();
+                _handler.SaveEditedTrigger();
             }
             UiSharedService.AttachToolTip("Save changes to Pattern & Return to Pattern List");
 
@@ -243,7 +243,7 @@ public class ToyboxTriggerManager
                 if (_uiShared.IconButton(FontAwesomeIcon.Trash))
                 {
                     // reset the createdPattern to a new pattern, and set editing pattern to true
-                    _handler.RemoveTrigger(_handler.EditingTriggerIndex);
+                    _handler.RemoveTrigger(_handler.ClonedTriggerForEdit!);
                 }
             }
         }
@@ -290,19 +290,30 @@ public class ToyboxTriggerManager
         var region = ImGui.GetContentRegionAvail();
         var topLeftSideHeight = region.Y;
         // if list size has changed, refresh the list of hovered items
-        if (ListItemHovered.Count != _handler.TriggerListSize())
+        for (int i = 0; i < FilteredTriggerList.Count; i++)
         {
-            ListItemHovered.Clear();
-            ListItemHovered.AddRange(Enumerable.Repeat(false, FilteredTriggerList.Count));
+            var set = FilteredTriggerList[i];
+            DrawTriggerSelectable(set, i);
+
+            if (ImGui.IsItemHovered())
+                LastHoveredIndex = i;
+
+            // if the item is right clicked, open the popup
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredTriggerList[i].Enabled)
+            {
+                ImGui.OpenPopup($"TriggerDataContext{i}");
+            }
         }
 
-        using (var leftChild = ImRaii.Child($"###SelectableTriggerList", region with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoScrollbar))
+        if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredTriggerList.Count)
         {
-            // display the selectable for each pattern using a for loop to keep track of the index
-            for (int i = 0; i < FilteredTriggerList.Count; i++)
+            if (ImGui.BeginPopup($"TriggerDataContext{LastHoveredIndex}"))
             {
-                var pattern = FilteredTriggerList[i];
-                DrawTriggerSelectable(pattern, i); // Pass the index to DrawPatternSelectable
+                if (ImGui.Selectable("Delete Trigger") && FilteredTriggerList[LastHoveredIndex] is not null)
+                {
+                    _handler.RemoveTrigger(FilteredTriggerList[LastHoveredIndex]);
+                }
+                ImGui.EndPopup();
             }
         }
     }
@@ -341,8 +352,8 @@ public class ToyboxTriggerManager
         var devicesUsedTextSize = ImGui.CalcTextSize(devicesUsed);
         using (_uiShared.UidFont.Push()) { triggerTypeTextSize = ImGui.CalcTextSize(triggerType); }
 
-        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), ListItemHovered[idx]);
-        using (ImRaii.Child($"##EditTriggerHeader{idx}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 65f)))
+        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), !trigger.Enabled && LastHoveredIndex == idx);
+        using (ImRaii.Child($"##EditTriggerHeader{trigger.TriggerIdentifier}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 65f)))
         {
             // create a group for the bounding area
             using (var group = ImRaii.Group())
@@ -373,18 +384,15 @@ public class ToyboxTriggerManager
             {
                 // set the enabled state of the trigger based on its current state so that we toggle it
                 if (trigger.Enabled)
-                    _handler.DisableTrigger(idx);
+                    _handler.DisableTrigger(trigger);
                 else
-                    _handler.EnableTrigger(idx);
+                    _handler.EnableTrigger(trigger);
                 // toggle the state & early return so we dont access the child clicked button
                 return;
             }
         }
-        ListItemHovered[idx] = ImGui.IsItemHovered();
         if (ImGui.IsItemClicked())
-        {
-            _handler.SetEditingTrigger(trigger, idx);
-        }
+            _handler.StartEditingTrigger(trigger);
     }
 
     // create a new timespan object that is set to 60seconds.
@@ -456,13 +464,6 @@ public class ToyboxTriggerManager
                 DrawTriggerActions(triggerToCreate);
                 ImGui.EndTabItem();
             }
-
-            if (ImGui.BeginTabItem("Access"))
-            {
-                DrawAccessControl(triggerToCreate);
-                ImGui.EndTabItem();
-            }
-
             ImGui.EndTabBar();
         }
     }
@@ -964,7 +965,7 @@ public class ToyboxTriggerManager
         else
         {
             _uiShared.DrawComboSearchable("PatternSelector" + deviceAction.DeviceName + motorIndex, ImGui.GetContentRegionAvail().X,
-            ref PatternSearchString, _patternHandler.GetPatternsForSearch(), pattern => pattern.Name, false,
+            ref PatternSearchString, _patternHandler.Patterns, pattern => pattern.Name, false,
             (i) =>
             {
                 motor.PatternIdentifier = i?.UniqueIdentifier ?? Guid.Empty;
@@ -1036,74 +1037,6 @@ public class ToyboxTriggerManager
 
             ImGui.SameLine();
             i++;
-        }
-    }
-
-    private void DrawAccessControl(Trigger TriggerToCreate)
-    {
-        // display filterable search list
-        DrawUidSearchFilter(ImGui.GetContentRegionAvail().X);
-        using (var table = ImRaii.Table("userListForVisibility", 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY, ImGui.GetContentRegionAvail()))
-        {
-            if (!table) return;
-
-            ImGui.TableSetupColumn("Nickname/Alias/UID", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Can Toggle", ImGuiTableColumnFlags.WidthFixed, ImGui.CalcTextSize("Can Toggle").X);
-            ImGui.TableHeadersRow();
-
-            var PairList = _pairManager.DirectPairs
-                .Where(pair => string.IsNullOrEmpty(PairSearchString) ||
-                               pair.UserData.AliasOrUID.Contains(PairSearchString, StringComparison.OrdinalIgnoreCase) ||
-                               (pair.GetNickname() != null && pair.GetNickname().Contains(PairSearchString, StringComparison.OrdinalIgnoreCase)))
-                .OrderBy(p => p.GetNickname() ?? p.UserData.AliasOrUID, StringComparer.OrdinalIgnoreCase);
-
-            foreach (Pair pair in PairList)
-            {
-                using var tableId = ImRaii.PushId("userTable_" + pair.UserData.UID);
-
-                ImGui.TableNextColumn(); // alias or UID of user.
-                var nickname = pair.GetNickname();
-                var text = nickname == null ? pair.UserData.AliasOrUID : nickname + " (" + pair.UserData.UID + ")";
-                ImGui.AlignTextToFramePadding();
-                ImGui.TextUnformatted(text);
-
-                ImGui.TableNextColumn();
-                // display nothing if they are not in the list, otherwise display a check
-                var canSeeIcon = TriggerToCreate.CanToggleTrigger.Contains(pair.UserData.UID) ? FontAwesomeIcon.Check : FontAwesomeIcon.Times;
-                using (ImRaii.PushColor(ImGuiCol.Button, ImGui.ColorConvertFloat4ToU32(new(0, 0, 0, 0))))
-                {
-                    if (ImGuiUtil.DrawDisabledButton(canSeeIcon.ToIconString(), new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()),
-                    string.Empty, false, true))
-                    {
-                        if (canSeeIcon == FontAwesomeIcon.Times)
-                        {
-                            TriggerToCreate.CanToggleTrigger.Add(pair.UserData.UID);
-                        }
-                        else
-                        {
-                            TriggerToCreate.CanToggleTrigger.Remove(pair.UserData.UID);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    /// <summary> Draws the search filter for our user pair list (whitelist) </summary>
-    public void DrawUidSearchFilter(float availableWidth)
-    {
-        var buttonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
-        ImGui.SetNextItemWidth(availableWidth - buttonSize - ImGui.GetStyle().ItemInnerSpacing.X);
-        string filter = PairSearchString;
-        if (ImGui.InputTextWithHint("##filter", "Filter for UID/notes", ref filter, 255))
-        {
-            PairSearchString = filter;
-        }
-        ImUtf8.SameLineInner();
-        using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(PairSearchString));
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
-        {
-            PairSearchString = string.Empty;
         }
     }
 }

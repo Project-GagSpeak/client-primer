@@ -13,4 +13,26 @@ public record SocialTrigger : Trigger
     
     // the social action to monitor.
     public SocialActionType SocialType { get; set; } = SocialActionType.DeathRollLoss;
+
+    public override SocialTrigger DeepClone()
+    {
+        return new SocialTrigger
+        {
+            TriggerIdentifier = TriggerIdentifier,
+            Enabled = Enabled,
+            Priority = Priority,
+            Name = Name,
+            Description = Description,
+            StartAfter = StartAfter,
+            EndAfter = EndAfter,
+            TriggerActionKind = TriggerActionKind,
+            TriggerAction = TriggerAction,
+            ShockTriggerAction = ShockTriggerAction,
+            RestraintNameAction = RestraintNameAction,
+            GagLayerAction = GagLayerAction,
+            GagTypeAction = GagTypeAction,
+            MoodlesIdentifier = MoodlesIdentifier,
+            SocialType = SocialType
+        };
+    }
 }

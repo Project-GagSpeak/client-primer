@@ -9,6 +9,7 @@ public class TimeRequiredConditionalAchievement : Achievement
     public Func<bool> RequiredCondition;
     public DurationTimeUnit TimeUnit { get; init; }
     private CancellationTokenSource _cancellationTokenSource;
+    private bool _taskStarted = false;
 
     public TimeRequiredConditionalAchievement(INotificationManager notify, string name, string desc, TimeSpan dur, 
         Func<bool> cond, DurationTimeUnit unit, string prefix = "", string suffix = "", bool isSecret = false) 
@@ -75,35 +76,57 @@ public class TimeRequiredConditionalAchievement : Achievement
 
     public override void CheckCompletion()
     {
-        if (IsCompleted) 
+        if (IsCompleted)
             return;
 
         if (RequiredCondition())
         {
-            StaticLogger.Logger.LogDebug($"Conditonal for {Title} has been met, checking Timer Status", LoggerType.Achievements);
-            if (StartPoint == DateTime.MinValue)
-            {
-                StaticLogger.Logger.LogDebug($"Starting Timer for {Title}", LoggerType.Achievements);
-                StartPoint = DateTime.UtcNow;
-                StartTimer();
-                return;
-            }
-
-            if (DateTime.UtcNow - StartPoint >= MilestoneDuration)
-            {
-                StaticLogger.Logger.LogDebug($"Time limit for {Title} has been reached, and conditonal was still valid. Marking as complete.", LoggerType.Achievements);
-                MarkCompleted();
-                _cancellationTokenSource?.Cancel();
-            }
-            // may need to add a reset if checked before time is up idk.
+            if (StartPoint != DateTime.MinValue && DateTime.UtcNow - StartPoint >= MilestoneDuration)
+                CompleteTask();
         }
         else
         {
-            StaticLogger.Logger.LogDebug($"Conditonal for {Title} has not been met, resetting timer.", LoggerType.Achievements);
-            Reset();
+            StaticLogger.Logger.LogDebug($"Condition for {Title} not met. Resetting the timer.", LoggerType.Achievements);
+            ResetTask();
         }
     }
 
+    // Method to Start the Task/Timer
+    public void StartTask()
+    {
+        if (IsCompleted || _taskStarted)
+            return;
+
+        if (RequiredCondition())
+        {
+            StaticLogger.Logger.LogDebug($"Condition for {Title} met. Starting the timer.", LoggerType.Achievements);
+            StartPoint = DateTime.UtcNow;
+            _taskStarted = true;
+            StartTimer();
+        }
+    }
+
+    // Method to interrupt and reset the task
+    public void InterruptTask()
+    {
+        if (IsCompleted)
+            return;
+
+        StaticLogger.Logger.LogDebug($"Interrupting task for {Title}.", LoggerType.Achievements);
+        _taskStarted = false;
+        ResetTask();
+    }
+
+    // Method to Complete the Task when time and condition are met
+    private void CompleteTask()
+    {
+        StaticLogger.Logger.LogDebug($"Time and condition met for {Title}. Marking as completed.", LoggerType.Achievements);
+        MarkCompleted();
+        _cancellationTokenSource?.Cancel();
+        _taskStarted = false;
+    }
+
+    // Starts the timer task
     private void StartTimer()
     {
         _cancellationTokenSource = new CancellationTokenSource();
@@ -114,25 +137,22 @@ public class TimeRequiredConditionalAchievement : Achievement
             try
             {
                 await Task.Delay(MilestoneDuration, token);
-                if (!token.IsCancellationRequested)
-                {
-                    if (RequiredCondition())
-                    {
-                        StaticLogger.Logger.LogDebug($"Time limit for {Title} has been reached, and conditonal was still valid. Marking as complete.", LoggerType.Achievements);
-                        MarkCompleted();
-                    }
-                    else
-                    {
-                        StaticLogger.Logger.LogDebug($"Conditonal for {Title} has not been met, resetting timer.", LoggerType.Achievements);
-                        Reset();
-                    }
-                }
+                if (!token.IsCancellationRequested && RequiredCondition())
+                    CompleteTask(); // reset if we take longer than the requirement.
             }
-            catch (TaskCanceledException) { /* Handle task cancellation if needed */ }
+            catch (TaskCanceledException)
+            {
+                StaticLogger.Logger.LogDebug($"Timer for {Title} was canceled.", LoggerType.Achievements);
+            }
         }, token);
     }
 
-    private void Reset() => StartPoint = DateTime.MinValue;
+    // Resets the task if condition fails or is interrupted
+    private void ResetTask()
+    {
+        StartPoint = DateTime.MinValue;
+        _cancellationTokenSource?.Cancel();
+    }
 
     public override AchievementType GetAchievementType() => AchievementType.RequiredTimeConditional;
 }

@@ -1,5 +1,6 @@
 using GagspeakAPI.Enums;
 using GagspeakAPI.Data;
+using GagspeakAPI.Data.Character;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
 
@@ -23,9 +24,6 @@ public abstract record Trigger
     public TimeSpan StartAfter { get; set; } = TimeSpan.Zero;
     public TimeSpan EndAfter { get; set; } = TimeSpan.Zero;
 
-    // List of UID's that are able to Enable/Interact with this trigger.
-    public List<string> CanToggleTrigger { get; set; } = new List<string>();
-
     // The actions to execute to each motor on the list of appended devices.
     // Below are dummy values that are set to default when not used.
     public TriggerActionKind TriggerActionKind { get; set; } = TriggerActionKind.SexToy;
@@ -35,6 +33,19 @@ public abstract record Trigger
     public GagLayer GagLayerAction { get; set; } = GagLayer.UnderLayer;
     public GagType GagTypeAction { get; set; } = GagType.None;
     public Guid MoodlesIdentifier { get; set; } = Guid.Empty; // can be a status or preset, depending on TriggerActionKind
+
+    public TriggerDto ToDto()
+    {
+        return new TriggerDto
+        {
+            Identifier = TriggerIdentifier,
+            Enabled = Enabled,
+            Name = Name,
+            Type = Type,
+            ActionOnTrigger = TriggerActionKind
+        };
+    }
+    public abstract Trigger DeepClone();
 }
 
 

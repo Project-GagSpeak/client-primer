@@ -352,7 +352,6 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<SafewordService>()
         .AddSingleton<ToyboxVibeService>()
         .AddSingleton<ToyboxRemoteService>()
-        .AddSingleton<PlaybackService>()
         .AddSingleton((s) => new TriggerService(s.GetRequiredService<ILogger<TriggerService>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ToyboxVibeService>(), cs, dm))
         .AddSingleton<AppearanceService>()

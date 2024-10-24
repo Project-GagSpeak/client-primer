@@ -110,7 +110,6 @@ public class MigratePatterns
             PlaybackDuration = oldPattern.Duration.GetTimespanFromTimespanString(),
             IsActive = false,
             ShouldLoop = oldPattern.Loop,
-            AllowedUsers = new List<string>(),
             PatternByteData = oldPattern.PatternData
         };
 
@@ -173,7 +172,6 @@ public class MigratePatterns
                 PlaybackDuration = oldPattern.Duration.GetTimespanFromTimespanString(),
                 IsActive = false,
                 ShouldLoop = oldPattern.Loop,
-                AllowedUsers = new List<string>(),
                 PatternByteData = oldPattern.PatternData
             };
 

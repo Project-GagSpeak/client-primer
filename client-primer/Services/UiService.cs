@@ -58,7 +58,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
             _windowSystem.AddWindow(window);
         }
 
-        Mediator.Subscribe<DisconnectedMessage>(this, (msg) =>
+        Mediator.Subscribe<MainHubDisconnectedMessage>(this, (msg) =>
         {
             var pairPermissionWindows = _createdWindows
                 .Where(p => p is PairStickyUI)

@@ -12,7 +12,7 @@ public class DrawEntityFactory
 {
     private readonly ILogger<DrawEntityFactory> _logger;
     private readonly ILoggerFactory _loggerfactory;
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly GagspeakMediator _mediator;
     private readonly SelectPairForTagUi _selectPairForTagUi;
     private readonly UiSharedService _uiSharedService;
@@ -20,14 +20,14 @@ public class DrawEntityFactory
     private readonly TagHandler _tagHandler;
     private readonly IdDisplayHandler _uidDisplayHandler;
 
-    public DrawEntityFactory(ILogger<DrawEntityFactory> logger, ApiController apiController,
+    public DrawEntityFactory(ILogger<DrawEntityFactory> logger, MainHub apiHubMain,
         IdDisplayHandler uidDisplayHandler, SelectTagForPairUi selectTagForPairUi, 
         GagspeakMediator mediator, ILoggerFactory loggerfactory, TagHandler tagHandler, 
         SelectPairForTagUi selectPairForTagUi, UiSharedService uiSharedService)
     {
         _loggerfactory = loggerfactory;
         _logger = logger;
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _uidDisplayHandler = uidDisplayHandler;
         _selectTagForPairUi = selectTagForPairUi;
         _mediator = mediator;
@@ -39,12 +39,12 @@ public class DrawEntityFactory
     public DrawFolderTag CreateDrawTagFolder(string tag, List<Pair> filteredPairs, IImmutableList<Pair> allPairs)
     {
         return new(tag, filteredPairs.Select(u => CreateDrawPair(tag, u)).ToImmutableList(), allPairs,
-            _tagHandler, _apiController, _selectPairForTagUi, _uiSharedService, _logger);
+            _tagHandler, _apiHubMain, _selectPairForTagUi, _uiSharedService, _logger);
     }
 
     public DrawUserPair CreateDrawPair(string id, Pair user)
     {
         return new DrawUserPair(_loggerfactory.CreateLogger<DrawUserPair>(), id + user.UserData.UID,
-            user, _apiController, _uidDisplayHandler, _mediator, _selectTagForPairUi, _uiSharedService);
+            user, _apiHubMain, _uidDisplayHandler, _mediator, _selectTagForPairUi, _uiSharedService);
     }
 }

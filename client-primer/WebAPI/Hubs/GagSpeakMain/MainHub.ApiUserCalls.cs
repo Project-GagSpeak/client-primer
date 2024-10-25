@@ -14,7 +14,10 @@ using GagspeakAPI.Data.Permissions;
 namespace GagSpeak.WebAPI;
 
 #pragma warning disable MA0040
-public partial class ApiController // Partial class for MainHub User Functions.
+/// <summary>
+/// Handles the User functions of the API controller on the Main GagSpeak Server.
+/// </summary>
+public partial class MainHub
 {
     /// <summary> 
     /// Sends request to the server, asking to add the defined UserDto to the clients UserPair list.
@@ -25,7 +28,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         if (!IsConnected) return;
         Logger.LogDebug("Adding pair "+user+" to client. Sending call to server.", LoggerType.ApiCore);
         // otherwise, call the UserAddPair function on the server with the user data transfer object via signalR
-        await _gagspeakHub!.SendAsync(nameof(UserAddPair), user).ConfigureAwait(false); // wait for request to send.
+        await GagSpeakHubMain!.SendAsync(nameof(UserAddPair), user).ConfigureAwait(false); // wait for request to send.
     }
 
     /// <summary> 
@@ -36,7 +39,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         // if we are not connected, return
         if (!IsConnected) return;
         // if we are connected, send the request to remove the user from the user pair list
-        await _gagspeakHub!.SendAsync(nameof(UserRemovePair), userDto).ConfigureAwait(false);
+        await GagSpeakHubMain!.SendAsync(nameof(UserRemovePair), userDto).ConfigureAwait(false);
     }
 
     /// <summary> 
@@ -47,9 +50,9 @@ public partial class ApiController // Partial class for MainHub User Functions.
         // verify that we are connected
         CheckConnection();
         // send the account deletion request to the server
-        await _gagspeakHub!.SendAsync(nameof(UserDelete)).ConfigureAwait(false);
+        await GagSpeakHubMain!.SendAsync(nameof(UserDelete)).ConfigureAwait(false);
         // perform a reconnect, because the account is no longer valid in the context of the current connection.
-        await CreateConnections().ConfigureAwait(false);
+        await Reconnect().ConfigureAwait(false);
     }
 
     /// <summary> 
@@ -58,7 +61,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// <returns>Returns a list of OnlineUserIdent Data Transfer Objects</returns>
     public async Task<List<OnlineUserIdentDto>> UserGetOnlinePairs()
     {
-        return await _gagspeakHub!.InvokeAsync<List<OnlineUserIdentDto>>(nameof(UserGetOnlinePairs)).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<List<OnlineUserIdentDto>>(nameof(UserGetOnlinePairs)).ConfigureAwait(false);
     }
 
     /// <summary> 
@@ -67,7 +70,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     /// <returns>Returns a list of UserPair data transfer objects</returns>
     public async Task<List<UserPairDto>> UserGetPairedClients()
     {
-        return await _gagspeakHub!.InvokeAsync<List<UserPairDto>>(nameof(UserGetPairedClients)).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<List<UserPairDto>>(nameof(UserGetPairedClients)).ConfigureAwait(false);
     }
 
 
@@ -75,35 +78,35 @@ public partial class ApiController // Partial class for MainHub User Functions.
     public async Task<List<ServerPatternInfo>> SearchPatterns(PatternSearchDto patternSearchDto)
     {
         if (!IsConnected) return new List<ServerPatternInfo>();
-        return await _gagspeakHub!.InvokeAsync<List<ServerPatternInfo>>(nameof(SearchPatterns), patternSearchDto).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<List<ServerPatternInfo>>(nameof(SearchPatterns), patternSearchDto).ConfigureAwait(false);
     }
 
     /// <summary> Likes a pattern you see on the server. AddingLike==true means we liked it, false means we un-liked it. </summary>
     public async Task<bool> LikePattern(Guid patternId)
     {
         if (!IsConnected) return false;
-        return await _gagspeakHub!.InvokeAsync<bool>(nameof(LikePattern), patternId).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<bool>(nameof(LikePattern), patternId).ConfigureAwait(false);
     }
 
     /// <summary> Downloads a pattern from the server. </summary>
     public async Task<string> DownloadPattern(Guid patternId)
     {
         if (!IsConnected) return string.Empty;
-        return await _gagspeakHub!.InvokeAsync<string>(nameof(DownloadPattern), patternId).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<string>(nameof(DownloadPattern), patternId).ConfigureAwait(false);
     }
 
     /// <summary> Uploads your pattern to the server. </summary>
     public async Task<bool> UploadPattern(PatternUploadDto dto)
     {
         if (!IsConnected) return false;
-        return await _gagspeakHub!.InvokeAsync<bool>(nameof(UploadPattern), dto).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<bool>(nameof(UploadPattern), dto).ConfigureAwait(false);
     }
 
     /// <summary> Deletes a pattern from the server. </summary>
     public async Task<bool> RemovePattern(Guid patternId)
     {
         if (!IsConnected) return false;
-        return await _gagspeakHub!.InvokeAsync<bool>(nameof(RemovePattern), patternId).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<bool>(nameof(RemovePattern), patternId).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -114,20 +117,20 @@ public partial class ApiController // Partial class for MainHub User Functions.
         // if we are not connected, return
         if (!IsConnected) return;
         // if we are connected, send the message to the global chat
-        await _gagspeakHub!.InvokeAsync(nameof(SendGlobalChat), dto).ConfigureAwait(false);
+        await GagSpeakHubMain!.InvokeAsync(nameof(SendGlobalChat), dto).ConfigureAwait(false);
     }
 
     public async Task UserShockActionOnPair(ShockCollarActionDto dto)
     {
         if (!IsConnected) return;
-        await _gagspeakHub!.InvokeAsync(nameof(UserShockActionOnPair), dto).ConfigureAwait(false);
+        await GagSpeakHubMain!.InvokeAsync(nameof(UserShockActionOnPair), dto).ConfigureAwait(false);
     }
 
 
     public async Task UserUpdateAchievementData(UserAchievementsDto dto)
     {
         if (!IsConnected) return;
-        await _gagspeakHub!.InvokeAsync(nameof(UserUpdateAchievementData), dto).ConfigureAwait(false);
+        await GagSpeakHubMain!.InvokeAsync(nameof(UserUpdateAchievementData), dto).ConfigureAwait(false);
     }
 
     public async Task<UserProfileDto> UserGetProfile(UserDto dto)
@@ -135,7 +138,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         // if we are not connected, return a new user profile dto with the user data and disabled set to false
         if (!IsConnected) return new UserProfileDto(dto.User, Disabled: false, ProfilePictureBase64: null, Description: null);
         // otherwise, if we are connected, invoke the UserGetProfile function on the server with the user data transfer object
-        return await _gagspeakHub!.InvokeAsync<UserProfileDto>(nameof(UserGetProfile), dto).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<UserProfileDto>(nameof(UserGetProfile), dto).ConfigureAwait(false);
     }
 
     public async Task UserReportProfile(UserProfileReportDto userProfileDto)
@@ -143,7 +146,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         // if we are not connected, return
         if (!IsConnected) return;
         // if we are connected, send the report to the server
-        await _gagspeakHub!.InvokeAsync(nameof(UserReportProfile), userProfileDto).ConfigureAwait(false);
+        await GagSpeakHubMain!.InvokeAsync(nameof(UserReportProfile), userProfileDto).ConfigureAwait(false);
     }
 
 
@@ -153,32 +156,32 @@ public partial class ApiController // Partial class for MainHub User Functions.
     public async Task UserSetProfile(UserProfileDto userDescription)
     {
         if (!IsConnected) return;
-        await _gagspeakHub!.InvokeAsync(nameof(UserSetProfile), userDescription).ConfigureAwait(false);
+        await GagSpeakHubMain!.InvokeAsync(nameof(UserSetProfile), userDescription).ConfigureAwait(false);
     }
 
     /// <summary> Moodles IPC senders. </summary>
     public async Task<bool> UserApplyMoodlesByGuid(ApplyMoodlesByGuidDto dto)
     {
         if (!IsConnected) return false;
-        return await _gagspeakHub!.InvokeAsync<bool>(nameof(UserApplyMoodlesByGuid), dto).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<bool>(nameof(UserApplyMoodlesByGuid), dto).ConfigureAwait(false);
     }
 
     public async Task<bool> UserApplyMoodlesByStatus(ApplyMoodlesByStatusDto dto)
     {
         if (!IsConnected) return false;
-        return await _gagspeakHub!.InvokeAsync<bool>(nameof(UserApplyMoodlesByStatus), dto).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<bool>(nameof(UserApplyMoodlesByStatus), dto).ConfigureAwait(false);
     }
 
     public async Task<bool> UserRemoveMoodles(RemoveMoodlesDto dto)
     {
         if (!IsConnected) return false;
-        return await _gagspeakHub!.InvokeAsync<bool>(nameof(UserRemoveMoodles), dto).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<bool>(nameof(UserRemoveMoodles), dto).ConfigureAwait(false);
     }
 
     public async Task<bool> UserClearMoodles(UserDto dto)
     {
         if (!IsConnected) return false;
-        return await _gagspeakHub!.InvokeAsync<bool>(nameof(UserClearMoodles), dto).ConfigureAwait(false);
+        return await GagSpeakHubMain!.InvokeAsync<bool>(nameof(UserClearMoodles), dto).ConfigureAwait(false);
     }
 
 
@@ -191,7 +194,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         // try and push the character data dto to the server
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushData), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushData), dto).ConfigureAwait(false);
         }
         // if it failed, log it
         catch (Exception ex)
@@ -208,7 +211,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         // try and push the character data dto to the server
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushDataIpc), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushDataIpc), dto).ConfigureAwait(false);
         }
         // if it failed, log it
         catch (Exception ex)
@@ -225,7 +228,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         // try and push the character data dto to the server
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushDataAppearance), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushDataAppearance), dto).ConfigureAwait(false);
         }
         // if it failed, log it
         catch (Exception ex)
@@ -242,7 +245,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         // try and push the character data dto to the server
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushDataWardrobe), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushDataWardrobe), dto).ConfigureAwait(false);
         }
         // if it failed, log it
         catch (Exception ex)
@@ -259,7 +262,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         // try and push the character data dto to the server
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushDataAlias), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushDataAlias), dto).ConfigureAwait(false);
         }
         // if it failed, log it
         catch (Exception ex)
@@ -276,7 +279,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         // try and push the character data dto to the server
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushDataToybox), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushDataToybox), dto).ConfigureAwait(false);
         }
         // if it failed, log it
         catch (Exception ex)
@@ -289,7 +292,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     {
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushPiShockUpdate), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushPiShockUpdate), dto).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -303,7 +306,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         CheckConnection();
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushAllGlobalPerms), allGlobalPerms).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushAllGlobalPerms), allGlobalPerms).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -316,7 +319,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         CheckConnection();
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushAllUniquePerms), allUniquePermsForPair).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushAllUniquePerms), allUniquePermsForPair).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -330,7 +333,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         CheckConnection();
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserUpdateOwnGlobalPerm), userPermissions).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserUpdateOwnGlobalPerm), userPermissions).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -345,7 +348,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         CheckConnection();
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserUpdateOtherGlobalPerm), userPermissions).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserUpdateOtherGlobalPerm), userPermissions).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -359,7 +362,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         CheckConnection();
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserUpdateOwnPairPerm), userPermissions).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserUpdateOwnPairPerm), userPermissions).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -373,7 +376,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         CheckConnection();
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserUpdateOtherPairPerm), userPermissions).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserUpdateOtherPairPerm), userPermissions).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -389,7 +392,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
         CheckConnection();
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserUpdateOwnPairPermAccess), userPermissions).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserUpdateOwnPairPermAccess), userPermissions).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -540,7 +543,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     {
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushPairDataIpcUpdate), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushPairDataIpcUpdate), dto).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -555,7 +558,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     {
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushPairDataAppearanceUpdate), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushPairDataAppearanceUpdate), dto).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -570,7 +573,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     {
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushPairDataWardrobeUpdate), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushPairDataWardrobeUpdate), dto).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -582,7 +585,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     {
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushPairDataAliasStorageUpdate), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushPairDataAliasStorageUpdate), dto).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -597,7 +600,7 @@ public partial class ApiController // Partial class for MainHub User Functions.
     {
         try
         {
-            await _gagspeakHub!.InvokeAsync(nameof(UserPushPairDataToyboxUpdate), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushPairDataToyboxUpdate), dto).ConfigureAwait(false);
         }
         catch (Exception ex)
         {

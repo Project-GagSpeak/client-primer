@@ -15,23 +15,18 @@ namespace GagSpeak.UI.MainWindow;
 // this can easily become the "contact list" tab of the "main UI" window.
 public class MainUiChat : DisposableMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly UiSharedService _uiSharedService;
     private readonly DiscoverService _discoveryService;
 
     public MainUiChat(ILogger<MainUiChat> logger,
-        GagspeakMediator mediator, ApiController apiController,
+        GagspeakMediator mediator, MainHub apiHubMain,
         UiSharedService uiSharedService,
         DiscoverService discoverService) : base(logger, mediator)
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _uiSharedService = uiSharedService;
         _discoveryService = discoverService;
-
-        Mediator.Subscribe<DisconnectedMessage>(this, (_) =>
-        {
-            // do stuff i guess.
-        });
     }
 
     private string NextChatMessage = string.Empty;
@@ -83,7 +78,7 @@ public class MainUiChat : DisposableMediatorSubscriberBase
             if (string.IsNullOrWhiteSpace(NextChatMessage)) return;
             // Send the message to the server
             Logger.LogTrace($"Sending Message: {NextChatMessage}");
-            _apiController.SendGlobalChat(new GlobalChatMessageDto(ApiController.PlayerUserData, NextChatMessage)).ConfigureAwait(false);
+            _apiHubMain.SendGlobalChat(new GlobalChatMessageDto(MainHub.PlayerUserData, NextChatMessage)).ConfigureAwait(false);
             NextChatMessage = string.Empty;
             // Give Achievement Progress for sending message:
             UnlocksEventManager.AchievementEvent(UnlocksEvent.GlobalSent);

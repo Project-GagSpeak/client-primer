@@ -9,6 +9,7 @@ using GagSpeak.UpdateMonitoring;
 using ImGuiNET;
 using OtterGui;
 using System.Numerics;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.UI;
 
@@ -20,6 +21,7 @@ public class IntroUi : WindowMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigurationManager;// the configuration manager for the server
     private readonly OnFrameworkService _frameworkUtils;                    // for functions running on the games framework thread
     private readonly UiSharedService _uiShared;                             // the shared UI service.
+    private readonly MainHub _apiHubMain;                                   // the main hub for the API
     private int _currentLanguage;                                           // the current lgnauge of the client.
     private bool _readFirstPage;                                            // if they have read the validation string
     private string _secretKey = string.Empty;                               // the secret key to register with
@@ -30,13 +32,14 @@ public class IntroUi : WindowMediatorSubscriberBase
 
     public IntroUi(ILogger<IntroUi> logger, UiSharedService uiShared, GagspeakConfigService configService,
         ServerConfigurationManager serverConfigurationManager, GagspeakMediator gagspeakMediator,
-        OnFrameworkService frameworkutils) : base(logger, gagspeakMediator, "Gagspeak Setup")
+        OnFrameworkService frameworkUtils, MainHub mainHub) : base(logger, gagspeakMediator, "Gagspeak Setup")
     {
         _languages = new(StringComparer.Ordinal) { { "English", "en" }, { "Deutsch", "de" }, { "Français", "fr" } };
         _uiShared = uiShared;
         _configService = configService;
         _serverConfigurationManager = serverConfigurationManager;
-        _frameworkUtils = frameworkutils;
+        _frameworkUtils = frameworkUtils;
+        _apiHubMain = mainHub;
         
         IsOpen = false;                 // do not start with the window open
         
@@ -171,7 +174,7 @@ public class IntroUi : WindowMediatorSubscriberBase
             }
         }
         // if the user has read the acknowledgements and the server is not alive, display the account creation window.
-        else if (!_uiShared.ApiController.ServerAlive || !_configService.Current.AccountCreated)
+        else if (!MainHub.IsServerAlive || !_configService.Current.AccountCreated)
         {
             // title for this page of the intro UI
             using (_uiShared.UidFont.Push()) { ImGui.TextUnformatted("Account Registration / Creation"); }
@@ -197,7 +200,7 @@ public class IntroUi : WindowMediatorSubscriberBase
                 // generate a secret key for the user.
                 _ = Task.Run(async () =>
                 {
-                    var accountDetails = await _uiShared.ApiController.FetchNewAccountDetailsAndDisconnect();
+                    var accountDetails = await _apiHubMain.FetchFreshAccountDetails();
                     _aquiredUID = accountDetails.Item1;
                     _secretKey = accountDetails.Item2;
                 });
@@ -240,7 +243,7 @@ public class IntroUi : WindowMediatorSubscriberBase
                     _serverConfigurationManager.SetSecretKeyForCharacter(contentId, newKey);
 
                     // run the create connections and set our account created to true
-                    _ = Task.Run(() => _uiShared.ApiController.CreateConnections());
+                    _ = Task.Run(() => _apiHubMain.Connect());
                     _secretKey = string.Empty;
                     _configService.Current.AccountCreated = true; // set the account created flag to true
                     _configService.Save(); // save the configuration

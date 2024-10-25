@@ -19,15 +19,15 @@ namespace GagSpeak.UI.Components.UserPairList;
 /// </summary>
 public class DrawFolderTag : DrawFolderBase
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly SelectPairForTagUi _selectPairForTagUi;
 
     public DrawFolderTag(string id, IImmutableList<DrawUserPair> drawPairs, IImmutableList<Pair> allPairs,
-        TagHandler tagHandler, ApiController apiController, SelectPairForTagUi selectPairForTagUi,
+        TagHandler tagHandler, MainHub apiHubMain, SelectPairForTagUi selectPairForTagUi,
         UiSharedService uiSharedService, ILogger<DrawEntityFactory> logger)
         : base(id, drawPairs, allPairs, tagHandler, uiSharedService, logger)
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _selectPairForTagUi = selectPairForTagUi;
     }
 

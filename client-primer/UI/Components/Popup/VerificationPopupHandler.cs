@@ -11,13 +11,11 @@ namespace GagSpeak.UI.Components.Popup;
 
 internal class VerificationPopupHandler : IPopupHandler
 {
-    private readonly ApiController _apiController;
     private readonly UiSharedService _uiSharedService;
     private string _verificationCode = string.Empty;
 
-    public VerificationPopupHandler(ApiController apiController, UiSharedService uiSharedService)
+    public VerificationPopupHandler(UiSharedService uiSharedService)
     {
-        _apiController = apiController;
         _uiSharedService = uiSharedService;
     }
 
@@ -31,9 +29,9 @@ internal class VerificationPopupHandler : IPopupHandler
         // push the title for the popup.
         using (_uiSharedService.UidFont.Push())
         {
-            var headerTextSize = ImGui.CalcTextSize("Verification Code for " + _uiSharedService.ApiController.DisplayName);
+            var headerTextSize = ImGui.CalcTextSize("Verification Code for " + MainHub.DisplayName);
             ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - (headerTextSize.X / 2));
-            UiSharedService.TextWrapped("Verification Code for " + _uiSharedService.ApiController.DisplayName);
+            UiSharedService.TextWrapped("Verification Code for " + MainHub.DisplayName);
 
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGuiHelpers.GlobalScale * 5);
             ImGui.Separator();

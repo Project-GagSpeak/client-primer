@@ -14,19 +14,19 @@ namespace GagSpeak.Services;
 public class PermissionPresetService
 {
     private readonly ILogger<PermissionPresetService> _logger;
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly PlayerCharacterData _playerManager;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PairManager _pairManager; // might not need if we use a pair to pass in for this.
     private readonly UiSharedService _uiShared;
 
     public PermissionPresetService(ILogger<PermissionPresetService> logger,
-        ApiController apiController, PlayerCharacterData playerManager,
+        MainHub apiHubMain, PlayerCharacterData playerManager,
         ClientConfigurationManager clientConfigs, PairManager pairManager,
         UiSharedService uiShared)
     {
         _logger = logger;
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _playerManager = playerManager;
         _clientConfigs = clientConfigs;
         _pairManager = pairManager;
@@ -132,7 +132,7 @@ public class PermissionPresetService
 
     private void PushCmdToServer(Pair pairToDrawListFor, Tuple<UserPairPermissions, UserEditAccessPermissions> permissionTuple, string presetName)
     {
-        _ = _apiController.UserPushAllUniquePerms(new(pairToDrawListFor.UserData, permissionTuple.Item1, permissionTuple.Item2));
+        _ = _apiHubMain.UserPushAllUniquePerms(new(pairToDrawListFor.UserData, permissionTuple.Item1, permissionTuple.Item2));
         _logger.LogInformation("Applied {preset} preset to pair {pair}", presetName, pairToDrawListFor.UserData.UID);
         LastApplyTime = DateTime.UtcNow;
     }

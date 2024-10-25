@@ -9,8 +9,8 @@ public class ServerConfig : IGagspeakConfiguration
     /// <summary> The GagSpeak Server's server storage </summary>
     public ServerStorage ServerStorage { get; set; } = new()
     {
-        ServerName = ApiController.MainServer,
-        ServiceUri = ApiController.MainServiceUri,
+        ServerName = MainHub.MainServer,
+        ServiceUri = MainHub.MainServiceUri,
     };
 
     public static int CurrentVersion => 2;

@@ -25,7 +25,7 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
     private readonly PlayerCharacterData _playerManager;
     protected readonly IdDisplayHandler _displayHandler;
     private readonly UiSharedService _uiShared;
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly PairManager _pairManager;
     private readonly MoodlesService _moodlesService;
     private readonly PermissionPresetService _presetService;
@@ -37,7 +37,7 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
         GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
         OnFrameworkService frameworkUtils, ClientConfigurationManager clientConfigs,
         PlayerCharacterData pcManager, IdDisplayHandler displayHandler,
-        UiSharedService uiSharedService, ApiController apiController,
+        UiSharedService uiSharedService, MainHub apiHubMain,
         PairManager pairManager, MoodlesService moodlesService,
         PermissionPresetService presetService, PermActionsComponents permActionHelpers,
         IClientState clientState) : base(logger, mediator, "PairStickyUI for " + pairToDrawFor.UserData.UID + "pair.")
@@ -46,7 +46,7 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
         _clientConfigs = clientConfigs;
         _playerManager = pcManager;
         _uiShared = uiSharedService;
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _pairManager = pairManager;
         _moodlesService = moodlesService;
         _displayHandler = displayHandler;

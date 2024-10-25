@@ -1,6 +1,7 @@
 using GagSpeak.PlayerData.Factories;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.Toybox;
@@ -27,13 +28,18 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
 
         _privateRoomsInternal = DirectRoomsLazy();
 
-        Mediator.Subscribe<ToyboxConnectedMessage>(this, (msg) =>
+        Mediator.Subscribe<ToyboxHubConnectedMessage>(this, _ =>
         {
-            ClientUserUID = msg.Connection.User.UID;
-            InitRoomsFromConnectionDto(msg.Connection);
+            if(ToyboxHub.ToyboxConnectionDto is null)
+            {
+                Logger.LogError("Upon GagSpeakHub-Toybox Connection, the ToyboxConnectionDto was still null. This should not be possible!!!");
+                return;
+            }
+            ClientUserUID = ToyboxHub.ToyboxConnectionDto.User.UID;
+            InitRoomsFromConnectionDto(ToyboxHub.ToyboxConnectionDto);
         });
 
-        Mediator.Subscribe<ToyboxDisconnectedMessage>(this, (msg) =>
+        Mediator.Subscribe<ToyboxHubDisconnectedMessage>(this, _ =>
         {
             ClientUserUID = string.Empty;
         });
@@ -175,7 +181,7 @@ public sealed class PrivateRoomManager : DisposableMediatorSubscriberBase
     // for whenever we either create a new room, or join an existing one.
     public void ClientJoinRoom(RoomInfoDto roomInfo, bool SetClientInRoom = true)
     {
-        // see if the _apiController.PlayerUser (client) is present in any other rooms currently
+        // see if the _apiHubMain.PlayerUser (client) is present in any other rooms currently
         if (ClientInAnyRoom)
         {
             Logger.LogInformation("Client is already in a room, unable to join another.", LoggerType.PrivateRoom);

@@ -21,23 +21,19 @@ public class ToyboxOverview
 {
     private readonly ILogger<ToyboxOverview> _logger;
     private readonly GagspeakMediator _mediator;
-    private readonly ApiController _apiController;
     private readonly UiSharedService _uiShared;
     private readonly PlayerCharacterData _playerManager;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly ToyboxVibeService _vibeService;
 
-    public ToyboxOverview(ILogger<ToyboxOverview> logger,
-        GagspeakMediator mediator, ApiController controller,
-        UiSharedService uiSharedService, PlayerCharacterData playerData,
+    public ToyboxOverview(ILogger<ToyboxOverview> logger, GagspeakMediator mediator, 
+        UiSharedService uiSharedService, PlayerCharacterData playerData, 
         ClientConfigurationManager clientConfigs,
-        ServerConfigurationManager serverConfigs,
-        ToyboxVibeService vibeService)
+        ServerConfigurationManager serverConfigs, ToyboxVibeService vibeService)
     {
         _logger = logger;
         _mediator = mediator;
-        _apiController = controller;
         _uiShared = uiSharedService;
         _playerManager = playerData;
         _clientConfigs = clientConfigs;
@@ -46,9 +42,7 @@ public class ToyboxOverview
 
         // grab path to the intiface
         if (ToyboxHelper.AppPath == string.Empty)
-        {
             ToyboxHelper.GetApplicationPath();
-        }
     }
 
     public void DrawOverviewPanel()

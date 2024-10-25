@@ -175,11 +175,11 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
                     NotificationType.Error));
                 // otherwise, log the notification that it errored while generating the token.
                 else
-                    Mediator.Publish(new NotificationMessage("Error generating token", "Your authentication token could not be generated. Check Gagspeaks main UI to see the error message.",
+                    Mediator.Publish(new NotificationMessage("Error generating token", "Your authentication token could not be generated. Check Gagspeak's main UI to see the error message.",
                     NotificationType.Error));
 
                 // publish a disconnected message and throw an exception.
-                Mediator.Publish(new DisconnectedMessage());
+                _logger.LogWarning("Originally, a Disconnected Message was fired here. If its needed, restore it.");
                 throw new GagspeakAuthFailureException(response);
             }
 

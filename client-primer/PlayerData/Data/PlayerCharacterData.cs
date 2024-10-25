@@ -186,7 +186,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
             };
             Mediator.Publish(new EventMessage(new(changedPair.GetNickAliasOrUid(), changedPair.UserData.UID, interactionType, "Hardcore Action (" + hardcoreChangeType + ") is now " + newState)));
         }
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction, hardcoreChangeType, newState, changeDto.Enactor.UID, ApiController.UID);
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction, hardcoreChangeType, newState, changeDto.Enactor.UID, MainHub.UID);
     }
 
 

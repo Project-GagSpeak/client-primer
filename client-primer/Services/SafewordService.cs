@@ -15,7 +15,7 @@ namespace GagSpeak.Services;
 // helps revert any active states applied to the player when used.
 public class SafewordService : MediatorSubscriberBase, IHostedService
 {
-    private readonly ApiController _apiController; // for sending the updates.
+    private readonly MainHub _apiHubMain; // for sending the updates.
     private readonly PlayerCharacterData _playerManager; // has our global permissions.
     private readonly PairManager _pairManager; // for accessing the permissions of each pair.
     private readonly ClientConfigurationManager _clientConfigs;
@@ -25,12 +25,12 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
     private readonly IpcFastUpdates _glamourFastEvent; // for reverting character.
 
     public SafewordService(ILogger<SafewordService> logger, GagspeakMediator mediator,
-        ApiController apiController, PlayerCharacterData playerManager,
+        MainHub apiHubMain, PlayerCharacterData playerManager,
         PairManager pairManager, ClientConfigurationManager clientConfigs,
         GagManager gagManager, AppearanceManager appearanceManager, 
         ToyboxManager toyboxManager, IpcFastUpdates glamourFastUpdate) : base(logger, mediator)
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _playerManager = playerManager;
         _pairManager = pairManager;
         _clientConfigs = clientConfigs;
@@ -106,7 +106,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
                 _playerManager.GlobalPerms.SpatialVibratorAudio = false;
 
                 Logger.LogInformation("Pushing Global updates to the server.", LoggerType.Safeword);
-                _ = _apiController.UserPushAllGlobalPerms(new(ApiController.PlayerUserData, _playerManager.GlobalPerms));
+                _ = _apiHubMain.UserPushAllGlobalPerms(new(MainHub.PlayerUserData, _playerManager.GlobalPerms));
                 Logger.LogInformation("Global updates pushed to the server.", LoggerType.Safeword);
             }
             Logger.LogInformation("Everything Disabled.", LoggerType.Safeword);
@@ -148,10 +148,10 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             _playerManager.GlobalPerms.ChatInputBlocked = string.Empty;
 
             // if we are connected, push update serverside.
-            if(_apiController.ServerAlive)
+            if(MainHub.IsServerAlive)
             {
                 Logger.LogInformation("Pushing Global updates to the server.", LoggerType.Safeword);
-                _ = _apiController.UserPushAllGlobalPerms(new(ApiController.PlayerUserData, _playerManager.GlobalPerms));
+                _ = _apiHubMain.UserPushAllGlobalPerms(new(MainHub.PlayerUserData, _playerManager.GlobalPerms));
                 Logger.LogInformation("Global updates pushed to the server.", LoggerType.Safeword);
             }
         }
@@ -171,9 +171,9 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
                 pair.UserPairOwnUniquePairPerms.AllowHidingChatInput = false;
                 pair.UserPairOwnUniquePairPerms.AllowChatInputBlocking = false;
                 // send the updates to the server.
-                if (ApiController.ServerState is ServerState.Connected)
+                if (MainHub.ServerStatus is ServerState.Connected)
                 {
-                    _ = _apiController.UserPushAllUniquePerms(new(pair.UserData, pair.UserPair.OwnPairPerms, pair.UserPair.OwnEditAccessPerms));
+                    _ = _apiHubMain.UserPushAllUniquePerms(new(pair.UserData, pair.UserPair.OwnPairPerms, pair.UserPair.OwnEditAccessPerms));
                 }
             }
         }

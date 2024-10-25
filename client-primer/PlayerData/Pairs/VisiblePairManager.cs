@@ -15,7 +15,7 @@ namespace GagSpeak.PlayerData.Pairs;
 /// </summary>
 public class VisiblePairManager : DisposableMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly OnFrameworkService _frameworkUtil;
     private readonly PlayerCharacterData _playerManager;
     private readonly PairManager _pairManager;
@@ -27,11 +27,11 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
     private readonly HashSet<PairHandler> _newVisiblePlayers = [];
 
     public VisiblePairManager(ILogger<VisiblePairManager> logger,
-        GagspeakMediator mediator, ApiController apiController,
+        GagspeakMediator mediator, MainHub apiHubMain,
         OnFrameworkService dalamudUtil, PlayerCharacterData playerManager,
         PairManager pairManager) : base(logger, mediator)
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _frameworkUtil = dalamudUtil;
         _playerManager = playerManager;
         _pairManager = pairManager;
@@ -63,7 +63,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
             Logger.LogDebug("Applying List of your Statuses from your Moodles to "+msg.StatusDto.User.AliasOrUID, LoggerType.VisiblePairs);
             _ = Task.Run(async () =>
             {
-                await _apiController.UserApplyMoodlesByStatus(msg.StatusDto).ConfigureAwait(false);
+                await _apiHubMain.UserApplyMoodlesByStatus(msg.StatusDto).ConfigureAwait(false);
             });
         });
 
@@ -76,7 +76,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
     private void FrameworkOnUpdate()
     {
         // return if Client Player is not visible or not connected.
-        if (!_frameworkUtil.GetIsPlayerPresent() || !_apiController.IsConnected) return;
+        if (!_frameworkUtil.GetIsPlayerPresent() || !MainHub.IsConnected) return;
 
         // return if no new visible players.
         if (!_newVisiblePlayers.Any()) return;
@@ -100,7 +100,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
         {
             _ = Task.Run(async () =>
             {
-                await _apiController.PushCharacterIpcData(LastIpcData, visablePlayers, updateKind).ConfigureAwait(false);
+                await _apiHubMain.PushCharacterIpcData(LastIpcData, visablePlayers, updateKind).ConfigureAwait(false);
             });
         }
         else

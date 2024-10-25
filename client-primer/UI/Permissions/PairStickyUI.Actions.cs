@@ -111,7 +111,7 @@ public partial class PairStickyUI
             if (_uiShared.IconTextButton(pauseIcon, pauseText, WindowMenuWidth, true))
             {
                 var perm = UserPairForPerms.UserPair!.OwnPairPerms;
-                _ = _apiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
+                _ = _apiHubMain.UserUpdateOwnPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
                     new KeyValuePair<string, object>("IsPaused", !perm.IsPaused)));
             }
             UiSharedService.AttachToolTip(!UserPairForPerms.UserPair!.OwnPairPerms.IsPaused
@@ -147,7 +147,7 @@ public partial class PairStickyUI
                 AliasList = new List<AliasTrigger>()
             };
 
-            _ = _apiController.UserPushPairDataAliasStorageUpdate(new OnlineUserCharaAliasDataDto
+            _ = _apiHubMain.UserPushPairDataAliasStorageUpdate(new OnlineUserCharaAliasDataDto
                 (UserPairForPerms.UserData, dataToPush, DataUpdateKind.PuppeteerPlayerNameRegistered));
             _logger.LogDebug("Sent Puppeteer Name to " + UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
         }
@@ -163,7 +163,7 @@ public partial class PairStickyUI
         {
             if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", WindowMenuWidth, true, !KeyMonitor.CtrlPressed()))
             {
-                _ = _apiController.UserRemovePair(new(UserPairForPerms.UserData));
+                _ = _apiHubMain.UserRemovePair(new(UserPairForPerms.UserData));
             }
             UiSharedService.AttachToolTip("Hold CTRL and click to unpair permanently from " + entryUID);
         }

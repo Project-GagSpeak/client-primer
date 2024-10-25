@@ -25,7 +25,7 @@ namespace GagSpeak.UI.UiToybox;
 
 public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
+    private readonly ToyboxHub _apiHubToybox;
     private readonly PrivateRoomManager _roomManager;
     private readonly UiSharedService _uiShared;
     private readonly PairManager _pairManager;
@@ -33,33 +33,43 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigs;
 
     public ToyboxPrivateRooms(ILogger<ToyboxPrivateRooms> logger,
-        GagspeakMediator mediator, ApiController apiController,
+        GagspeakMediator mediator, ToyboxHub apiHubToybox,
         PrivateRoomManager privateRoomManager, UiSharedService uiShared,
         PairManager pairManager, GagspeakConfigService mainConfig,
         ServerConfigurationManager serverConfigs) : base(logger, mediator)
     {
-        _apiController = apiController;
+        _apiHubToybox = apiHubToybox;
         _roomManager = privateRoomManager;
         _uiShared = uiShared;
         _pairManager = pairManager;
         _configService = mainConfig;
         _serverConfigs = serverConfigs;
-
-        Mediator.Subscribe<ConnectedMessage>(this, _ =>
-        {
-            if(_configService.Current.VibeServerAutoConnect)
-            {
-                // connect to the vibe server
-                ToggleToyboxConnection(false); // make sure to unpause before connection.
-            }
-        });
     }
 
     private void ToggleToyboxConnection(bool newState)
     {
-        _serverConfigs.CurrentServer.ToyboxFullPause = newState;
-        _serverConfigs.Save();
-        _ = _apiController.CreateToyboxConnection();
+        // Obtain the current fullPause state.
+        var currentState = _serverConfigs.CurrentServer.ToyboxFullPause;
+
+        // If our new state is the same as the current state, return.
+        if (currentState == newState)
+            return;
+
+        // If its true, make sure our ServerStatus is Connected, or if its false, make sure our ServerStatus is Disconnected or offline.
+        if (!currentState && ToyboxHub.ServerStatus is ServerState.Connected)
+        {
+            // If we are connected, we want to disconnect.
+            _serverConfigs.CurrentServer.ToyboxFullPause = !_serverConfigs.CurrentServer.ToyboxFullPause;
+            _serverConfigs.Save();
+            _ = _apiHubToybox.Disconnect(ServerState.Disconnected);
+        }
+        else if (currentState && ToyboxHub.ServerStatus is (ServerState.Disconnected or ServerState.Offline))
+        {
+            // If we are disconnected, we want to connect.
+            _serverConfigs.CurrentServer.ToyboxFullPause = !_serverConfigs.CurrentServer.ToyboxFullPause;
+            _serverConfigs.Save();
+            _ = _apiHubToybox.Connect();
+        }
     }
 
     // local accessors for the private room creation
@@ -79,7 +89,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         DrawToyboxServerStatus();
 
 
-        if (_apiController.ToyboxServerState is not ServerState.Connected)
+        if (!ToyboxHub.IsConnected)
         {
             UiSharedService.ColorText("Must be connected to view private rooms.", ImGuiColors.DalamudRed);
         }
@@ -185,7 +195,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                 {
                     if (_uiShared.IconButton(FontAwesomeIcon.Trash))
                     {
-                        _apiController.PrivateRoomRemove(_roomManager.ClientHostedRoomName).ConfigureAwait(false);
+                        _apiHubToybox.PrivateRoomRemove(_roomManager.ClientHostedRoomName).ConfigureAwait(false);
                     }
                 }
                 UiSharedService.AttachToolTip("Delete Hosted Room (Must hold shift)");
@@ -268,7 +278,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                 try
                 {
                     // also log the success of the creation.
-                    RoomCreatedSuccessful = _apiController.PrivateRoomCreate(new RoomCreateDto(NewHostNameRef, HostChatAlias)).Result;
+                    RoomCreatedSuccessful = _apiHubToybox.PrivateRoomCreate(new RoomCreateDto(NewHostNameRef, HostChatAlias)).Result;
                 }
                 catch (Exception ex)
                 {
@@ -416,14 +426,14 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                         if (privateRoomRef.IsParticipantActiveInRoom(_roomManager.ClientUserUID))
                         {
                             // leave the room
-                            _apiController.PrivateRoomLeave(new RoomParticipantDto
+                            _apiHubToybox.PrivateRoomLeave(new RoomParticipantDto
                                 (privateRoomRef.GetParticipant(_roomManager.ClientUserUID).User, roomName)).ConfigureAwait(false);
 
                         }
                         else
                         {
                             // join the room
-                            _apiController.PrivateRoomJoin(new RoomParticipantDto
+                            _apiHubToybox.PrivateRoomJoin(new RoomParticipantDto
                                 (privateRoomRef.GetParticipant(_roomManager.ClientUserUID).User, roomName)).ConfigureAwait(false);
                         }
                         // toggle the state & early return so we don't access the child clicked button
@@ -478,7 +488,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
     {
         var windowPadding = ImGui.GetStyle().WindowPadding;
         var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
-        var userCount = _apiController.ToyboxOnlineUsers.ToString(CultureInfo.InvariantCulture);
+        var userCount = ToyboxHub.ToyboxOnlineUsers.ToString(CultureInfo.InvariantCulture);
         var userSize = ImGui.CalcTextSize(userCount);
         var textSize = ImGui.CalcTextSize("Toybox Users Online");
 
@@ -488,10 +498,11 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         var printServer = toyboxConnection != string.Empty;
 
         // if the server is connected, then we should display the server info
-        if (_apiController.ToyboxServerState is ServerState.Connected)
+        if (ToyboxHub.IsConnected)
         {
             // fancy math shit for clean display, adjust when moving things around
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) 
+                / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
             ImGui.TextColored(ImGuiColors.ParsedGreen, userCount);
             ImGui.SameLine();
             ImGui.TextUnformatted("Toybox Users Online");
@@ -499,9 +510,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         // otherwise, if we are not connected, display that we aren't connected.
         else
         {
-            ImGui.AlignTextToFramePadding();
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X
-                + UiSharedService.GetWindowContentRegionWidth())
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth())
                 / 2 - (ImGui.CalcTextSize("Not connected to the toybox server").X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
             ImGui.TextColored(ImGuiColors.DalamudRed, "Not connected to the toybox server");
         }
@@ -523,7 +532,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
         }
 
         // if the server is reconnecting or disconnecting
-        if (_apiController.ToyboxServerState is not (ServerState.Reconnecting or ServerState.Disconnecting))
+        if (ToyboxHub.ServerStatus is not (ServerState.Reconnecting or ServerState.Disconnecting))
         {
             // we need to turn the button from the connected link to the disconnected link.
             using (ImRaii.PushColor(ImGuiCol.Text, color))
@@ -612,7 +621,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                     // compile the new private room user.
                     var newUser = new PrivateRoomUser { UserUID = _roomManager.ClientUserUID, ChatAlias = PreferredChatAlias };
                     // join the room
-                    _apiController.PrivateRoomJoin(new RoomParticipantDto(newUser, roomInvite.RoomName)).ConfigureAwait(false);
+                    _apiHubToybox.PrivateRoomJoin(new RoomParticipantDto(newUser, roomInvite.RoomName)).ConfigureAwait(false);
                 }
                 // draw another iconbutton X that will remove the invite listing from the list
                 ImGui.SameLine();
@@ -659,7 +668,7 @@ public class ToyboxPrivateRooms : DisposableMediatorSubscriberBase
                 if (_uiShared.IconTextButton(FontAwesomeIcon.UserPlus, "Invite To Room"))
                 {
                     // invite the user to the room
-                    _apiController.PrivateRoomInviteUser(new RoomInviteDto(pair.UserData, _roomManager.ClientHostedRoomName)).ConfigureAwait(false);
+                    _apiHubToybox.PrivateRoomInviteUser(new RoomInviteDto(pair.UserData, _roomManager.ClientHostedRoomName)).ConfigureAwait(false);
                 }
             }
             ImGui.EndTable();

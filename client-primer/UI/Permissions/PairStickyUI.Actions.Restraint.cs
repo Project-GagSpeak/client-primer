@@ -58,8 +58,8 @@ public partial class PairStickyUI
                         if (newWardrobe == null || onButtonPress == null) throw new Exception("Wardrobe data is null, not sending");
 
                         newWardrobe.ActiveSetName = onButtonPress;
-                        newWardrobe.ActiveSetEnabledBy = ApiController.UID;
-                        _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobe, ApiController.PlayerUserData, DataUpdateKind.WardrobeRestraintApplied));
+                        newWardrobe.ActiveSetEnabledBy = MainHub.UID;
+                        _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobe, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintApplied));
                         _logger.LogDebug("Applying Restraint Set with GagPadlock " + onButtonPress.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
                         Opened = InteractionType.ApplyRestraint;
                     }
@@ -126,8 +126,8 @@ public partial class PairStickyUI
                             newWardrobeData.Padlock = onButtonPress.ToName();
                             newWardrobeData.Password = _permActions.Password;
                             newWardrobeData.Timer = UiSharedService.GetEndTimeUTC(_permActions.Timer);
-                            newWardrobeData.Assigner = ApiController.UID;
-                            _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, ApiController.PlayerUserData, DataUpdateKind.WardrobeRestraintLocked));
+                            newWardrobeData.Assigner = MainHub.UID;
+                            _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintLocked));
                             _logger.LogDebug("Locking Restraint Set with GagPadlock " + onButtonPress.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;
                             // reset the password and timer
@@ -179,8 +179,8 @@ public partial class PairStickyUI
                             newWardrobeData.Padlock = selected.ToName();
                             newWardrobeData.Password = _permActions.Password;
                             newWardrobeData.Timer = DateTimeOffset.UtcNow;
-                            newWardrobeData.Assigner = ApiController.UID;
-                            _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, ApiController.PlayerUserData, DataUpdateKind.WardrobeRestraintUnlocked));
+                            newWardrobeData.Assigner = MainHub.UID;
+                            _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintUnlocked));
                             _logger.LogDebug("Unlocking Restraint Set with GagPadlock " + selected.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;
                         }
@@ -214,7 +214,7 @@ public partial class PairStickyUI
                         if (newWardrobeData == null) throw new Exception("Wardrobe data is null, not sending");
                         newWardrobeData.ActiveSetName = string.Empty;
                         newWardrobeData.ActiveSetEnabledBy = string.Empty;
-                        _ = _apiController.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, ApiController.PlayerUserData, DataUpdateKind.WardrobeRestraintDisabled));
+                        _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintDisabled));
                         _logger.LogDebug("Removing Restraint Set from " + PairNickOrAliasOrUID, LoggerType.Permissions);
                         Opened = InteractionType.None;
                     }

@@ -11,6 +11,7 @@ using GagSpeak.Toybox.Services;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 
 // if present in diadem (https://github.com/Infiziert90/DiademCalculator/blob/d74a22c58840a864cda12131fe2646dfc45209df/DiademCalculator/Windows/Main/MainWindow.cs#L12)
 
@@ -61,9 +62,15 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         Logger.LogInformation("Achievement Save Data Initialized", LoggerType.Achievements);
 
         // Check for when we are connected to the server, use the connection DTO to load our latest stored save data.
-        Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
+        Mediator.Subscribe<MainHubConnectedMessage>(this, (msg) =>
         {
-            var connectionDto = msg.Connection;
+            // if our connection dto is null, return.
+            if (MainHub.ConnectionDto is null)
+            {
+                Logger.LogError("Connection DTO is null. Cannot proceed with AchievementManager Service.", LoggerType.Achievements);
+                return;
+            }
+
             if (_reconnectedAfterException)
             {
                 Logger.LogInformation("Our Last Disconnect was due to an exception, loading from stored SaveData instead.", LoggerType.Achievements);
@@ -72,10 +79,10 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
             }
             else
             {
-                if (!string.IsNullOrEmpty(connectionDto.UserAchievements))
+                if (!string.IsNullOrEmpty(MainHub.ConnectionDto.UserAchievements))
                 {
                     Logger.LogInformation("Loading in AchievementData from ConnectionDto", LoggerType.Achievements);
-                    LoadSaveDataDto(connectionDto.UserAchievements);
+                    LoadSaveDataDto(MainHub.ConnectionDto.UserAchievements);
                 }
                 else
                 {
@@ -90,7 +97,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
             _ = AchievementDataPeriodicUpdate(_saveDataUpdateCTS.Token);
         });
 
-        Mediator.Subscribe<DisconnectedMessage>(this, (msg) => _saveDataUpdateCTS?.Cancel());
+        Mediator.Subscribe<MainHubDisconnectedMessage>(this, _ => _saveDataUpdateCTS?.Cancel());
 
         #region Event Subscription
         _eventManager.Subscribe<OrderInteractionKind>(UnlocksEvent.OrderAction, OnOrderAction);
@@ -248,10 +255,11 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
                 await Task.Delay(TimeSpan.FromSeconds(random.Next(4, 16)), ct).ConfigureAwait(false);
                 await SendUpdatedDataToServer();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Logger.LogWarning(ex, "Failed to send updated achievement data to the server, as we were disconnected");
+                Logger.LogDebug("Not sending Achievement SaveData due to disconnection canceling the loop.");
             }
+
             int delayMinutes = random.Next(20, 31); // Random delay between 20 and 30 minutes
             Logger.LogInformation("SaveData Update Task Completed, Firing Again in " + delayMinutes + " Minutes");
             await Task.Delay(TimeSpan.FromMinutes(delayMinutes), ct).ConfigureAwait(false);

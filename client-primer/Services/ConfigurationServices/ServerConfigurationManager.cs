@@ -368,13 +368,13 @@ public class ServerConfigurationManager
     private void EnsureMainExists()
     {
         // if the serverstroage serverUri is not the same as the MainServiceUri defined in the api controller.
-        if (!string.Equals(_configService.Current.ServerStorage.ServiceUri, ApiController.MainServiceUri, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(_configService.Current.ServerStorage.ServiceUri, MainHub.MainServiceUri, StringComparison.OrdinalIgnoreCase))
         {
             // then set it to the main server
             _configService.Current.ServerStorage = new ServerStorage()
             {
-                ServerName = ApiController.MainServer,
-                ServiceUri = ApiController.MainServiceUri,
+                ServerName = MainHub.MainServer,
+                ServiceUri = MainHub.MainServiceUri,
             };
         }
         // save the configuration

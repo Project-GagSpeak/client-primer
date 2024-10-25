@@ -12,17 +12,17 @@ namespace GagSpeak.Services;
 
 public class ProfileService : MediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly ProfileFactory _profileFactory;
 
     // concurrent dictionary of cached profile data.
     private readonly ConcurrentDictionary<UserData, GagspeakProfile> _gagspeakProfiles = new(UserDataComparer.Instance);
 
     public ProfileService(ILogger<ProfileService> logger,
-        GagspeakMediator mediator, ApiController apiController, 
+        GagspeakMediator mediator, MainHub apiHubMain, 
         ProfileFactory profileFactory) : base(logger, mediator)
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _profileFactory = profileFactory;
 
         // Clear profiles when called.
@@ -40,7 +40,7 @@ public class ProfileService : MediatorSubscriberBase
         });
 
         // Clear all profiles on disconnect
-        Mediator.Subscribe<DisconnectedMessage>(this, (_) => ClearAllProfiles());
+        Mediator.Subscribe<MainHubDisconnectedMessage>(this, (_) => ClearAllProfiles());
     }
 
     /// <summary> Get the Gagspeak Profile data for a user. </summary>
@@ -102,7 +102,7 @@ public class ProfileService : MediatorSubscriberBase
         {
             Logger.LogTrace("Fetching profile for "+data.UID, LoggerType.Profiles);
             // Fetch userData profile info from server
-            var profile = await _apiController.UserGetProfile(new UserDto(data)).ConfigureAwait(false);
+            var profile = await _apiHubMain.UserGetProfile(new UserDto(data)).ConfigureAwait(false);
 
             // apply the retrieved profile data to the profile object.
             _gagspeakProfiles[data].Flagged = profile.Disabled;

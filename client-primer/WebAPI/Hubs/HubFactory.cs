@@ -20,7 +20,6 @@ public class HubFactory : MediatorSubscriberBase
     private HubConnection? _instanceToybox; // The instance of the hub connection we have with the toybox server
     private bool _isToyboxDisposed = false; // if the toybox hub factory is disposed of or not.
 
-    // the default constructor for the HubFactory
     public HubFactory(ILogger<HubFactory> logger, GagspeakMediator gagspeakMediator,
         ServerConfigurationManager serverConfigManager, TokenProvider tokenProvider, 
         ILoggerProvider pluginLog) : base(logger, gagspeakMediator)
@@ -40,7 +39,7 @@ public class HubFactory : MediatorSubscriberBase
             // if our instance is null or we have already disposed, then just return, as we have no need.
             if (_instance == null || _isDisposed) return;
             // Otherwise, log that we are disposing the current HubConnection
-            Logger.LogDebug("Disposing current HubConnection", LoggerType.HubFactory);
+            Logger.LogDebug("Disposing current connection with GagSpeakHub-Main", LoggerType.HubFactory);
             // Set the _isDisposed flag to true, as we are disposing of the current HubConnection
             _isDisposed = true;
             // unsubscribe from the Closed, Reconnecting, and Reconnected events
@@ -51,7 +50,7 @@ public class HubFactory : MediatorSubscriberBase
             await _instance.StopAsync().ConfigureAwait(false);
             await _instance.DisposeAsync().ConfigureAwait(false);
             _instance = null;
-            Logger.LogDebug("Current HubConnection disposed", LoggerType.HubFactory);
+            Logger.LogDebug("GagSpeakHub-Main Finished Disposing", LoggerType.HubFactory);
         }
         else
         {
@@ -73,7 +72,9 @@ public class HubFactory : MediatorSubscriberBase
         }
     }
 
-    /// <summary> Gets or creates a new HubConnection. </summary>
+    /// <summary> 
+    /// Gets or creates a new HubConnection. 
+    /// </summary>
     public HubConnection GetOrCreate(CancellationToken ct, HubType hubType = HubType.MainHub, string token = "")
     {
         if (hubType == HubType.MainHub)
@@ -92,7 +93,9 @@ public class HubFactory : MediatorSubscriberBase
         }
     }
 
-    /// <summary> Builds a new HubConnection. </summary>
+    /// <summary> 
+    /// Builds a new HubConnection. 
+    /// </summary>
     private HubConnection BuildHubConnection(CancellationToken ct, HubType hubType = HubType.MainHub, string token = "")
     {
         // Log that we are building a new HubConnection
@@ -212,43 +215,37 @@ public class HubFactory : MediatorSubscriberBase
     }
 
     /* ------------- Main Hub Connection Methods ------------- */
-    /// <summary> Task that is fired whenever the HubConnection is closed.</summary>
     private Task HubOnClosed(Exception? arg)
     {
-        Mediator.Publish(new HubClosedMessage(arg));
+        Mediator.Publish(new MainHubClosedMessage(arg));
         return Task.CompletedTask;
     }
 
-    /// <summary>Task that is fired whenever the HubConnection is reconnecting.</summary>
     private Task HubOnReconnecting(Exception? arg)
     {
-        Mediator.Publish(new HubReconnectingMessage(arg));
+        Mediator.Publish(new MainHubReconnectingMessage(arg));
         return Task.CompletedTask;
     }
 
-    /// <summary>Task that is fired whenever the HubConnection is reconnected.</summary>
     private Task HubOnReconnected(string? arg)
     {
-        Mediator.Publish(new HubReconnectedMessage(arg));
+        Mediator.Publish(new MainHubReconnectedMessage(arg));
         return Task.CompletedTask;
     }
 
     /* ------------- Toybox Hub Connection Methods ------------- */
-    /// <summary> Task that is fired whenever the Toybox HubConnection is closed.</summary>
     private Task ToyboxHubOnClosed(Exception? arg)
     {
         Mediator.Publish(new ToyboxHubClosedMessage(arg));
         return Task.CompletedTask;
     }
 
-    /// <summary>Task that is fired whenever the Toybox HubConnection is reconnecting.</summary>
     private Task ToyboxHubOnReconnecting(Exception? arg)
     {
         Mediator.Publish(new ToyboxHubReconnectingMessage(arg));
         return Task.CompletedTask;
     }
 
-    /// <summary>Task that is fired whenever the Toybox HubConnection is reconnected.</summary>
     private Task ToyboxHubOnReconnected(string? arg)
     {
         Mediator.Publish(new ToyboxHubReconnectedMessage(arg));

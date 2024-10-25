@@ -21,7 +21,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     private readonly PlayerCharacterData _playerData;
     private readonly AppearanceManager _appearanceHandler;
     private readonly PairManager _pairManager;
-    private readonly ApiController _apiController; // for sending the updates.
+    private readonly MainHub _apiHubMain; // for sending the updates.
     private readonly MoveController _moveController; // for movement logic
     private readonly ChatSender _chatSender; // for sending chat commands
     private readonly OnFrameworkService _frameworkUtils; // for handling the blindfold logic
@@ -31,14 +31,14 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     public HardcoreHandler(ILogger<HardcoreHandler> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
         AppearanceManager appearanceHandler, PairManager pairManager,
-        ApiController apiController, MoveController moveController, ChatSender chatSender,
+        MainHub apiHubMain, MoveController moveController, ChatSender chatSender,
         OnFrameworkService frameworkUtils, ITargetManager targetManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerData = playerData;
         _appearanceHandler = appearanceHandler;
         _pairManager = pairManager;
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _moveController = moveController;
         _chatSender = chatSender;
         _frameworkUtils = frameworkUtils;
@@ -133,7 +133,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
                 // set the client first before push to prevent getting stuck while disconnected
                 _playerData.GlobalPerms!.ForcedFollow = string.Empty;
                 Logger.LogInformation("ForceFollow Disable was triggered manually before it naturally disabled. Forcibly shutting down.");
-                _ = _apiController.UserUpdateOwnGlobalPerm(new(new(ApiController.UID), new KeyValuePair<string, object>("ForcedFollow", string.Empty), ApiController.PlayerUserData));
+                _ = _apiHubMain.UserUpdateOwnGlobalPerm(new(new(MainHub.UID), new KeyValuePair<string, object>("ForcedFollow", string.Empty), MainHub.PlayerUserData));
 
             }
             else

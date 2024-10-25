@@ -425,7 +425,7 @@ public partial class AchievementManager
             if (padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock)
             {
                 // make sure we are the locker before continuing (Consider removing SelfApplied at some point)
-                if (enactorUID != ApiController.UID && enactorUID != Globals.SelfApplied)
+                if (enactorUID != MainHub.UID && enactorUID != Globals.SelfApplied)
                 {
                     (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTimeBondage] as DurationAchievement)?.StartTracking(set.Name);
                     (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AmateurBondage] as DurationAchievement)?.StartTracking(set.Name);
@@ -457,7 +457,7 @@ public partial class AchievementManager
     {
         Logger.LogTrace(enactorUID + " is "+ (isEnabling ? "applying" : "Removing") + " a set to a pair: " + setName);
         // if we enabled a set on someone else
-        if (isEnabling && enactorUID == ApiController.UID)
+        if (isEnabling && enactorUID == MainHub.UID)
         {
             (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTiemers] as ProgressAchievement)?.IncrementProgress();
             (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.DiDEnthusiast] as ProgressAchievement)?.IncrementProgress();
@@ -480,7 +480,7 @@ public partial class AchievementManager
             if (padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock) // locking
             {
                 // make sure we are the locker before continuing
-                if(enactorUID == ApiController.UID)
+                if(enactorUID == MainHub.UID)
                 {
                     (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.RiggersFirstSession] as DurationAchievement)?.StartTracking(restraintId.ToString());
                     (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.MyLittlePlaything] as DurationAchievement)?.StartTracking(restraintId.ToString());
@@ -572,7 +572,7 @@ public partial class AchievementManager
         {
             case HardcoreAction.ForcedFollow:
                 // if we are the enactor and the pair is the target:
-                if (enactorUID == ApiController.UID)
+                if (enactorUID == MainHub.UID)
                 {
                     Logger.LogInformation("We were the enactor for forced follow");
                     // if the state is enabled, begin tracking the pair we forced.
@@ -585,7 +585,7 @@ public partial class AchievementManager
                     }
                 }
                 // if the affected pair is not our clients UID and the action is disabling, stop tracking for anything we started. (can ignore the enactor)
-                if (affectedPairUID != ApiController.UID && state is NewState.Disabled)
+                if (affectedPairUID != MainHub.UID && state is NewState.Disabled)
                 {
                     Logger.LogInformation("We were not the affected pair and the new state is disabled");
                     (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.ForcedFollow] as DurationAchievement)?.StopTracking(affectedPairUID);
@@ -593,7 +593,7 @@ public partial class AchievementManager
                 }
 
                 // if the affected pair was us:
-                if (affectedPairUID == ApiController.UID)
+                if (affectedPairUID == MainHub.UID)
                 {
                     Logger.LogInformation("We were the affected pair");
                     // Check in each state
@@ -627,7 +627,7 @@ public partial class AchievementManager
                 break;
             case HardcoreAction.ForcedSit:
                 // if we are the affected UID:
-                if (affectedPairUID == ApiController.UID)
+                if (affectedPairUID == MainHub.UID)
                 {
                     if (state is NewState.Enabled)
                         (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.LivingFurniture] as TimeRequiredConditionalAchievement)?.CheckCompletion();
@@ -639,7 +639,7 @@ public partial class AchievementManager
                 break;
             case HardcoreAction.ForcedStay:
                 // if we are the affected UID:
-                if (affectedPairUID == ApiController.UID)
+                if (affectedPairUID == MainHub.UID)
                 {
                     // and we have been ordered to start being forced to stay:
                     if (state is NewState.Enabled)
@@ -663,7 +663,7 @@ public partial class AchievementManager
                 break;
             case HardcoreAction.ForcedBlindfold:
                 // if we are the affected UID:
-                if (affectedPairUID == ApiController.UID)
+                if (affectedPairUID == MainHub.UID)
                 {
                     // Check in each state
                     (SaveData.Achievements[AchievementModuleKind.Hardcore].Achievements[HardcoreLabels.WalkOfShame] as TimeRequiredConditionalAchievement)?.CheckCompletion();

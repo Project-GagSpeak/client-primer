@@ -20,7 +20,7 @@ namespace GagSpeak.Services;
 // handles the global chat and pattern discovery social features.
 public class PatternHubService : DisposableMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PatternHandler _patternHandler;
 
@@ -33,10 +33,10 @@ public class PatternHubService : DisposableMediatorSubscriberBase
     private bool InitialSearchMade = false;
 
     public PatternHubService(ILogger<PatternHubService> logger, GagspeakMediator mediator,
-        ApiController apiController, ClientConfigurationManager clientConfigs,
+        MainHub apiHubMain, ClientConfigurationManager clientConfigs,
         PatternHandler patternHandler) : base(logger, mediator)
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _clientConfigs = clientConfigs;
         _patternHandler = patternHandler;
 
@@ -44,7 +44,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
 
     private Guid PatternInteractingWith = Guid.Empty;
     public string SearchQuery { get; private set; } = string.Empty;
-    public SearchFilter CurrentFilter { get; private set; } = SearchFilter.Downloads;
+    public SearchFilter CurrentFilter { get; private set; } = SearchFilter.MostRecent;
     public SearchSort CurrentSort { get; private set; } = SearchSort.Descending;
     public List<ServerPatternInfo> SearchResults { get; private set; } = new List<ServerPatternInfo>();
 
@@ -55,7 +55,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
     // Should be run in the drawloop to check if any tasks have completed.
     public void DisplayPendingMessages()
     {
-        if(!InitialSearchMade && _apiController.IsConnected && ApiController.ServerState == ServerState.Connected)
+        if(!InitialSearchMade && MainHub.IsConnected && MainHub.ServerStatus == ServerState.Connected)
         { InitialSearchMade = true; SearchPatterns(SearchQuery); }
 
         DisplayTaskStatus(UploadPatternTask, "Uploading Pattern to Servers...", "Pattern uploaded to servers!", "Failed to upload pattern to servers.", ImGuiColors.DalamudGrey, ImGuiColors.HealerGreen, ImGuiColors.DalamudRed);
@@ -125,7 +125,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             Logger.LogWarning("SearchPatternsTask already in progress.");
             return;
         }
-        SearchPatternsTask = _apiController.SearchPatterns(new(SearchQuery, new List<string>(), CurrentFilter, CurrentSort));
+        SearchPatternsTask = _apiHubMain.SearchPatterns(new(SearchQuery, new List<string>(), CurrentFilter, CurrentSort));
         SearchPatternsTask.ContinueWith(task =>
         {
             // if the result contains an empty list, then we failed to retrieve patterns.
@@ -151,7 +151,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             return;
         }
         Logger.LogTrace("Downloading Pattern from server.", LoggerType.PatternHub);
-        DownloadPatternTask = _apiController.DownloadPattern(patternIdentifier);
+        DownloadPatternTask = _apiHubMain.DownloadPattern(patternIdentifier);
         DownloadPatternTask.ContinueWith(task =>
         {
             if (task.Result == string.Empty)
@@ -191,7 +191,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
         }
         // only allow one like at a time.
         PatternInteractingWith = patternIdentifier;
-        LikePatternTask = _apiController.LikePattern(patternIdentifier);
+        LikePatternTask = _apiHubMain.LikePattern(patternIdentifier);
         LikePatternTask.ContinueWith(task =>
         {
             if (task.Result)
@@ -245,9 +245,9 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             UsesOscillation = false,
         };
         // construct the dto for the upload.
-        PatternUploadDto patternDto = new(ApiController.PlayerUserData, patternInfo, base64Pattern);
+        PatternUploadDto patternDto = new(MainHub.PlayerUserData, patternInfo, base64Pattern);
         // perform the api call for the upload.
-        UploadPatternTask = _apiController.UploadPattern(patternDto);
+        UploadPatternTask = _apiHubMain.UploadPattern(patternDto);
         UploadPatternTask.ContinueWith(task =>
         {
             if (task.Result)
@@ -281,7 +281,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             return;
         }
         // perform the api call for the removal.
-        RemovePatternTask = _apiController.RemovePattern(patternToRemove.UniqueIdentifier);
+        RemovePatternTask = _apiHubMain.RemovePattern(patternToRemove.UniqueIdentifier);
         RemovePatternTask.ContinueWith(task =>
         {
             if (task.Result)

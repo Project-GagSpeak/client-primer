@@ -439,7 +439,7 @@ public partial class PairStickyUI
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to update permissions for {ApiController.PlayerUserData.AliasOrUID} :: {ex}");
+            _logger.LogError($"Failed to update permissions for {MainHub.PlayerUserData.AliasOrUID} :: {ex}");
         }
     }
 
@@ -583,14 +583,14 @@ public partial class PairStickyUI
             case PermissionType.Global:
                 {
                     _logger.LogTrace($"Updated own global permission: {permissionName} to {newValue}", LoggerType.Permissions);
-                    _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-                        new KeyValuePair<string, object>(permissionName, newValue), ApiController.PlayerUserData));
+                    _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+                        new KeyValuePair<string, object>(permissionName, newValue), MainHub.PlayerUserData));
                 }
                 break;
             case PermissionType.UniquePairPerm:
                 {
                     _logger.LogTrace($"Updated own pair permission: {permissionName} to {newValue}", LoggerType.Permissions);
-                    _ = _apiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
+                    _ = _apiHubMain.UserUpdateOwnPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
                         new KeyValuePair<string, object>(permissionName, newValue)));
                 }
                 break;
@@ -598,7 +598,7 @@ public partial class PairStickyUI
             case PermissionType.UniquePairPermEditAccess:
                 {
                     _logger.LogTrace($"Updated own edit access permission: {permissionName} to {newValue}", LoggerType.Permissions);
-                    _ = _apiController.UserUpdateOwnPairPermAccess(new UserPairAccessChangeDto(UserPairForPerms.UserData,
+                    _ = _apiHubMain.UserUpdateOwnPairPermAccess(new UserPairAccessChangeDto(UserPairForPerms.UserData,
                         new KeyValuePair<string, object>(permissionName, newValue)));
                 }
                 break;

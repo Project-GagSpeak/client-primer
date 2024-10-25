@@ -19,7 +19,7 @@ namespace GagSpeak.UpdateMonitoring;
 /// </summary>
 public sealed class DtrBarService : DisposableMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly EventAggregator _eventAggregator;
     private readonly PairManager _pairManager;
     private readonly OnFrameworkService _frameworkUtils;
@@ -27,11 +27,11 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
     private readonly IDataManager _gameData;
     private readonly IDtrBar _dtrBar;
     public DtrBarService(ILogger<DtrBarService> logger, GagspeakMediator mediator, 
-        ApiController apiController, EventAggregator eventAggregator, PairManager pairManager, 
+        MainHub apiHubMain, EventAggregator eventAggregator, PairManager pairManager, 
         OnFrameworkService frameworkUtils, IClientState clientState, IDataManager dataManager,
         IDtrBar dtrBar) : base(logger, mediator)
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _eventAggregator = eventAggregator;
         _pairManager = pairManager;
         _frameworkUtils = frameworkUtils;
@@ -50,13 +50,13 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
         VibratorEntry = _dtrBar.Get("GagSpeakVibrator");
         VibratorEntry.Shown = false;
 
-        Mediator.Subscribe<ConnectedMessage>(this, _ =>
+        Mediator.Subscribe<MainHubConnectedMessage>(this, _ =>
         {
             PrivacyEntry.Shown = true;
             UpdateMessagesEntry.Shown = true;
         });
 
-        Mediator.Subscribe<DisconnectedMessage>(this, _ =>
+        Mediator.Subscribe<MainHubDisconnectedMessage>(this, _ =>
         {
             PrivacyEntry.Shown = false;
             UpdateMessagesEntry.Shown = false;
@@ -81,7 +81,7 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
 
     private void UpdateDtrBar()
     {
-        if (!_apiController.ServerAlive)
+        if (!MainHub.IsServerAlive)
             return;
 
         if (PrivacyEntry.Shown)

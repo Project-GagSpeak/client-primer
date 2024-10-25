@@ -22,7 +22,7 @@ namespace GagSpeak.UI.MainWindow;
 /// </summary>
 public class MainUiAccount : DisposableMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly UiSharedService _uiShared;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly GagspeakConfigService _config;
@@ -30,22 +30,17 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
     private readonly IDalamudPluginInterface _pi;
 
     public MainUiAccount(ILogger<MainUiAccount> logger,
-        GagspeakMediator mediator, ApiController apiController,
+        GagspeakMediator mediator, MainHub apiHubMain,
         UiSharedService uiShared, OnFrameworkService frameworkUtils,
         GagspeakConfigService config, ProfileService profileManager,
         IDalamudPluginInterface pi) : base(logger, mediator)
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _uiShared = uiShared;
         _frameworkUtils = frameworkUtils;
         _config = config;
         _profileManager = profileManager;
         _pi = pi;
-
-        Mediator.Subscribe<DisconnectedMessage>(this, (_) =>
-        {
-            // do something to the image i guess?
-        });
     }
 
     /// <summary> Main Draw function for this tab </summary>
@@ -63,7 +58,7 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
             {
                 // fetch own profile data to store / display.
                 // This function itself does no API calls unless the requested UID is different.
-                var profileData = _profileManager.GetGagspeakProfile(new UserData(ApiController.UID));
+                var profileData = _profileManager.GetGagspeakProfile(new UserData(MainHub.UID));
 
                 // if the profile is flagged, say so.
                 if (profileData.Flagged)
@@ -186,20 +181,20 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
         }
 
         // if we are connected
-        if (ApiController.ServerState is ServerState.Connected)
+        if (MainHub.ServerStatus is ServerState.Connected)
         {
-            UiSharedService.CopyableDisplayText(_apiController.DisplayName);
+            UiSharedService.CopyableDisplayText(MainHub.DisplayName);
 
             // if the UID does not equal the display name
-            if (!string.Equals(_apiController.DisplayName, ApiController.UID, StringComparison.Ordinal))
+            if (!string.Equals(MainHub.DisplayName, MainHub.UID, StringComparison.Ordinal))
             {
                 // grab the original text size for the UID in the api controller
-                var origTextSize = ImGui.CalcTextSize(ApiController.UID);
+                var origTextSize = ImGui.CalcTextSize(MainHub.UID);
                 // adjust the cursor and redraw the UID (really not sure why this is here but we can trial and error later.
                 ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - origTextSize.X / 2);
-                ImGui.TextColored(_uiShared.GetUidColor(), ApiController.UID);
+                ImGui.TextColored(_uiShared.GetUidColor(), MainHub.UID);
                 // give it the same functionality.
-                UiSharedService.CopyableDisplayText(ApiController.UID);
+                UiSharedService.CopyableDisplayText(MainHub.UID);
             }
         }
     }

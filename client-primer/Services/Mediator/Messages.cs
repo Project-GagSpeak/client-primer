@@ -26,25 +26,22 @@ namespace GagSpeak.Services.Mediator;
 public record NotificationMessage(string Title, string Message, NotificationType Type, TimeSpan? TimeShownOnScreen = null) : MessageBase;
 public record EventMessage(InteractionEvent Event) : MessageBase;
 
+public record MainHubDisconnectedMessage : SameThreadMessage;
+public record MainHubReconnectingMessage(Exception? Exception) : SameThreadMessage;
+public record MainHubReconnectedMessage(string? Arg) : SameThreadMessage;
+public record MainHubClosedMessage(Exception? Exception) : SameThreadMessage;
+public record MainHubConnectedMessage : MessageBase;
+public record OnlinePairsLoadedMessage : MessageBase;
 
-/* ------------------ MAIN HUB RECORDS ------------------ */
-public record DisconnectedMessage : SameThreadMessage; // indicating a disconnection message from the server.
-public record HubReconnectingMessage(Exception? Exception) : SameThreadMessage; // indicating the moment the hub is reconnecting.
-public record HubReconnectedMessage(string? Arg) : SameThreadMessage; // indicating the moment the hub has reconnected.
-public record HubClosedMessage(Exception? Exception) : SameThreadMessage; // indicating the moment the hub has closed.
-public record ConnectedMessage(ConnectionDto Connection) : MessageBase; // message published upon successful connection to the 
-public record OnlinePairsLoadedMessage : MessageBase; // message published completion of loading all online pairs for the client.
-
-
-/* ------------------ TOYBOX HUB RECORDS ------------------ */
-public record ToyboxDisconnectedMessage : SameThreadMessage; // indicating a disconnection message from the server.
+public record ToyboxHubDisconnectedMessage : SameThreadMessage;
 public record ToyboxHubReconnectingMessage(Exception? Exception) : SameThreadMessage;
 public record ToyboxHubReconnectedMessage(string? Arg) : SameThreadMessage;
 public record ToyboxHubClosedMessage(Exception? Exception) : SameThreadMessage;
-public record ToyboxConnectedMessage(ToyboxConnectionDto Connection) : MessageBase;
-public record ToyboxPrivateRoomJoined(string RoomName) : MessageBase; // when our player joins a private room.
-public record ToyboxPrivateRoomLeft(string RoomName) : MessageBase; // when our player leaves a private room.
-public record OpenPrivateRoomRemote(PrivateRoom PrivateRoom) : MessageBase; // unique for each private room.
+public record ToyboxHubConnectedMessage : MessageBase;
+
+public record ToyboxPrivateRoomJoined(string RoomName) : MessageBase;
+public record ToyboxPrivateRoomLeft(string RoomName) : MessageBase;
+public record OpenPrivateRoomRemote(PrivateRoom PrivateRoom) : MessageBase;
 
 
 /* ------------- DALAMUD FRAMEWORK UPDATE RECORDS ------------- */
@@ -69,7 +66,6 @@ public record PairWentOnlineMessage(UserData UserData) : MessageBase; // a messa
 public record PairHandlerVisibleMessage(PairHandler Player) : MessageBase; // a message indicating the visibility of a pair handler.
 public record OpenUserPairPermissions(Pair? Pair, StickyWindowType PermsWindowType, bool ForceOpenMainUI) : MessageBase; // fired upon request to open the permissions window for a pair
 public record TargetPairMessage(Pair Pair) : MessageBase; // called when publishing a targeted pair connection (see UI)
-public record CyclePauseMessage(UserData UserData) : MessageBase; // for cycling the paused state of self
 public record CreateCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase;
 public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase; // called when we should clear a gameobject from cache creation service.
 public record MufflerLanguageChanged : MessageBase; // called whenever the client language changes to a new language.

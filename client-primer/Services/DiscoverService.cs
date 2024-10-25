@@ -20,7 +20,7 @@ public class DiscoverService : DisposableMediatorSubscriberBase
         GagspeakGlobalChat = new ChatLog();
         Mediator.Subscribe<GlobalChatMessage>(pairManager, (msg) => AddChatMessage(msg));
 
-        Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
+        Mediator.Subscribe<MainHubConnectedMessage>(this, _ =>
         {
             if (!_connectedFirstTime)
             {

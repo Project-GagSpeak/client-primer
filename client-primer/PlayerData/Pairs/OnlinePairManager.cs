@@ -16,7 +16,7 @@ namespace GagSpeak.PlayerData.Pairs;
 /// </summary>
 public class OnlinePairManager : DisposableMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly OnFrameworkService _frameworkUtil;
     private readonly PlayerCharacterData _playerManager;
     private readonly PairManager _pairManager;
@@ -32,12 +32,12 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
     private string _lastShockPermShareCode = string.Empty;
 
     public OnlinePairManager(ILogger<OnlinePairManager> logger,
-        ApiController apiController, OnFrameworkService dalamudUtil,
+        MainHub apiHubMain, OnFrameworkService dalamudUtil,
         PlayerCharacterData playerCharacterManager,
         PairManager pairManager, GagspeakMediator mediator)
         : base(logger, mediator)
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _frameworkUtil = dalamudUtil;
         _playerManager = playerCharacterManager;
         _pairManager = pairManager;
@@ -49,7 +49,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         Mediator.Subscribe<UpdateAllOnlineWithCompositeMessage>(this, (_) => PushCharacterCompositeData(_pairManager.GetOnlineUserDatas()));
 
         // Push Composite data to all online players when connected.
-        Mediator.Subscribe<ConnectedMessage>(this, (_) => PushCharacterCompositeData(_pairManager.GetOnlineUserDatas()));
+        Mediator.Subscribe<MainHubConnectedMessage>(this, (_) => PushCharacterCompositeData(_pairManager.GetOnlineUserDatas()));
         // Push Composite data to any new pairs that go online.
         Mediator.Subscribe<PairWentOnlineMessage>(this, (msg) => _newOnlinePairs.Add(msg.UserData));
 
@@ -135,7 +135,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
     private void FrameworkOnUpdate()
     {
         // quit out if not connected or the new online pairs list is empty.
-        if (!_apiController.IsConnected || !_newOnlinePairs.Any()) return;
+        if (!MainHub.IsConnected || !_newOnlinePairs.Any()) return;
 
         // Otherwise, copy the list, then clear it, and push our composite data to the users in that list.
         var newOnlinePairs = _newOnlinePairs.ToList();
@@ -154,7 +154,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             {
                 CharacterCompositeData compiledDataToSend = await _playerManager.CompileCompositeDataToSend();
                 Logger.LogDebug("new Online Pairs Identified, pushing latest Composite data", LoggerType.OnlinePairs);
-                await _apiController.PushCharacterCompositeData(compiledDataToSend, newOnlinePairs).ConfigureAwait(false);
+                await _apiHubMain.PushCharacterCompositeData(compiledDataToSend, newOnlinePairs).ConfigureAwait(false);
             });
         }
     }
@@ -167,7 +167,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         {
             _ = Task.Run(async () =>
             {
-                await _apiController.PushCharacterAppearanceData(_lastAppearanceData, onlinePlayers, updateKind).ConfigureAwait(false);
+                await _apiHubMain.PushCharacterAppearanceData(_lastAppearanceData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }
         else
@@ -183,7 +183,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         {
             _ = Task.Run(async () =>
             {
-                await _apiController.PushCharacterWardrobeData(_lastWardrobeData, onlinePlayers, updateKind).ConfigureAwait(false);
+                await _apiHubMain.PushCharacterWardrobeData(_lastWardrobeData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }
         else
@@ -199,7 +199,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         {
             _ = Task.Run(async () =>
             {
-                await _apiController.PushCharacterAliasListData(_lastAliasData, onlinePairToPushTo, DataUpdateKind.PuppeteerAliasListUpdated).ConfigureAwait(false);
+                await _apiHubMain.PushCharacterAliasListData(_lastAliasData, onlinePairToPushTo, DataUpdateKind.PuppeteerAliasListUpdated).ConfigureAwait(false);
             });
         }
         else
@@ -215,7 +215,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         {
             _ = Task.Run(async () =>
             {
-                await _apiController.PushCharacterToyboxData(_lastToyboxData, onlinePlayers, updateKind).ConfigureAwait(false);
+                await _apiHubMain.PushCharacterToyboxData(_lastToyboxData, onlinePlayers, updateKind).ConfigureAwait(false);
             });
         }
         else
@@ -231,7 +231,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         {
             _ = Task.Run(async () =>
             {
-                await _apiController.PushCharacterPiShockData(perms, onlinePairToPushTo, updateKind).ConfigureAwait(false);
+                await _apiHubMain.PushCharacterPiShockData(perms, onlinePairToPushTo, updateKind).ConfigureAwait(false);
             });
         }
         else

@@ -35,7 +35,7 @@ namespace GagSpeak.UI;
 
 public class SettingsUi : WindowMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly PlayerCharacterData _playerCharacterManager;
     private readonly IpcManager _ipcManager;
     private readonly OnFrameworkService _frameworkUtil;
@@ -60,14 +60,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private CancellationTokenSource? _validationCts;
 
     public SettingsUi(ILogger<SettingsUi> logger, UiSharedService uiShared,
-        ApiController apiController, GagspeakConfigService configService,
+        MainHub apiHubMain, GagspeakConfigService configService,
         PairManager pairManager, PlayerCharacterData playerCharacterManager,
         ClientConfigurationManager clientConfigs, MoveController moveController,
         AvfxManager avfxManager, VfxSpawns vfxSpawns, ServerConfigurationManager serverConfigs,
         GagspeakMediator mediator, IpcManager ipcManager, SettingsHardcore hardcoreSettingsUI,
         OnFrameworkService frameworkUtil) : base(logger, mediator, "GagSpeak Settings")
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _playerCharacterManager = playerCharacterManager;
         _configService = configService;
         _pairManager = pairManager;
@@ -106,8 +106,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
     }
 
     public CharacterIPCData? LastCreatedCharacterData { private get; set; }
-
-    private ApiController ApiController => _uiShared.ApiController;
     private UserGlobalPermissions PlayerGlobalPerms => _playerCharacterManager.GlobalPerms!;
     private PiShockPermissions PlayerGlobalPiShock => _playerCharacterManager.GlobalPiShockPerms;
 
@@ -220,8 +218,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
             if (ImGui.Checkbox("Enable Live Chat Garbler", ref liveChatGarblerActive))
             {
                 // Perform a mediator call that we have updated a permission.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-                    new KeyValuePair<string, object>("LiveChatGarblerActive", liveChatGarblerActive), ApiController.PlayerUserData));
+                _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+                    new KeyValuePair<string, object>("LiveChatGarblerActive", liveChatGarblerActive), MainHub.PlayerUserData));
 
             }
             _uiShared.DrawHelpText("If enabled, the Live Chat Garbler will garble your chat messages in-game. (This is done server-side, others will see it too)");
@@ -231,8 +229,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.ItemAutoEquip = itemAutoEquip;
             // if this creates a race condition down the line remove the above line.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-            new KeyValuePair<string, object>("ItemAutoEquip", itemAutoEquip), ApiController.PlayerUserData));
+            _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+            new KeyValuePair<string, object>("ItemAutoEquip", itemAutoEquip), MainHub.PlayerUserData));
         }
         _uiShared.DrawHelpText("Allows Glamourer to bind your chosen Gag Glamour's upon becoming gagged!");
 
@@ -250,8 +248,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.WardrobeEnabled = wardrobeEnabled;
             // if this creates a race condition down the line remove the above line.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-            new KeyValuePair<string, object>("WardrobeEnabled", wardrobeEnabled), ApiController.PlayerUserData));
+            _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+            new KeyValuePair<string, object>("WardrobeEnabled", wardrobeEnabled), MainHub.PlayerUserData));
 
         }
         _uiShared.DrawHelpText("If enabled, the all glamourer / penumbra / visual display information will become functional.");
@@ -262,8 +260,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.RestraintSetAutoEquip = restraintSetAutoEquip;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-                new KeyValuePair<string, object>("RestraintSetAutoEquip", restraintSetAutoEquip), ApiController.PlayerUserData));
+                _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+                new KeyValuePair<string, object>("RestraintSetAutoEquip", restraintSetAutoEquip), MainHub.PlayerUserData));
             }
             _uiShared.DrawHelpText("Allows Glamourer to bind restraint sets to your character.\nRestraint sets can be created in the Wardrobe Interface.");
 
@@ -288,8 +286,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.MoodlesEnabled = moodlesEnabled;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-                new KeyValuePair<string, object>("MoodlesEnabled", moodlesEnabled), ApiController.PlayerUserData));
+                _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+                new KeyValuePair<string, object>("MoodlesEnabled", moodlesEnabled), MainHub.PlayerUserData));
 
             }
             _uiShared.DrawHelpText("If enabled, the moodles component will become functional.");
@@ -322,8 +320,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.PuppeteerEnabled = puppeteerEnabled;
             // if this creates a race condition down the line remove the above line.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-            new KeyValuePair<string, object>("PuppeteerEnabled", puppeteerEnabled), ApiController.PlayerUserData));
+            _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+            new KeyValuePair<string, object>("PuppeteerEnabled", puppeteerEnabled), MainHub.PlayerUserData));
 
         }
         _uiShared.DrawHelpText("If enabled, the Puppeteer component will become functional.");
@@ -337,8 +335,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.GlobalTriggerPhrase = globalTriggerPhrase;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-                new KeyValuePair<string, object>("GlobalTriggerPhrase", globalTriggerPhrase), ApiController.PlayerUserData));
+                _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+                new KeyValuePair<string, object>("GlobalTriggerPhrase", globalTriggerPhrase), MainHub.PlayerUserData));
 
             }
             _uiShared.DrawHelpText("The global trigger phrase that will be used to trigger puppeteer commands.\n" +
@@ -348,8 +346,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.GlobalAllowSitRequests = globalAllowSitRequests;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-                new KeyValuePair<string, object>("GlobalAllowSitRequests", globalAllowSitRequests), ApiController.PlayerUserData));
+                _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+                new KeyValuePair<string, object>("GlobalAllowSitRequests", globalAllowSitRequests), MainHub.PlayerUserData));
 
             }
             _uiShared.DrawHelpText("If enabled, the user will allow sit requests to be sent to them.");
@@ -358,8 +356,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.GlobalAllowMotionRequests = globalAllowMotionRequests;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-                new KeyValuePair<string, object>("GlobalAllowMotionRequests", globalAllowMotionRequests), ApiController.PlayerUserData));
+                _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+                new KeyValuePair<string, object>("GlobalAllowMotionRequests", globalAllowMotionRequests), MainHub.PlayerUserData));
 
             }
             _uiShared.DrawHelpText("If enabled, the user will allow motion requests to be sent to them.");
@@ -368,8 +366,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 PlayerGlobalPerms.GlobalAllowAllRequests = globalAllowAllRequests;
                 // if this creates a race condition down the line remove the above line.
-                _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-                new KeyValuePair<string, object>("GlobalAllowAllRequests", globalAllowAllRequests), ApiController.PlayerUserData));
+                _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+                new KeyValuePair<string, object>("GlobalAllowAllRequests", globalAllowAllRequests), MainHub.PlayerUserData));
 
             }
             _uiShared.DrawHelpText("If enabled, the user will allow all requests to be sent to them.");
@@ -383,8 +381,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.ToyboxEnabled = toyboxEnabled;
             // if this creates a race condition down the line remove the above line.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-            new KeyValuePair<string, object>("ToyboxEnabled", toyboxEnabled), ApiController.PlayerUserData));
+            _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+            new KeyValuePair<string, object>("ToyboxEnabled", toyboxEnabled), MainHub.PlayerUserData));
 
         }
         _uiShared.DrawHelpText("If enabled, the toybox component will become functional.");
@@ -424,8 +422,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.SpatialVibratorAudio = spatialVibratorAudio;
             // if this creates a race condition down the line remove the above line.
-            _ = _apiController.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(ApiController.PlayerUserData,
-            new KeyValuePair<string, object>("SpatialVibratorAudio", spatialVibratorAudio), ApiController.PlayerUserData));
+            _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+            new KeyValuePair<string, object>("SpatialVibratorAudio", spatialVibratorAudio), MainHub.PlayerUserData));
         }
         _uiShared.DrawHelpText("If enabled, you will emit vibrator audio while your sex toys are active to other paired players around you.");
 
@@ -456,8 +454,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             PlayerGlobalPerms.GlobalShockShareCode = globalShockCollarShareCode;
 
-            _ = _apiController.UserUpdateOwnGlobalPerm(new(ApiController.PlayerUserData,
-            new KeyValuePair<string, object>("GlobalShockShareCode", globalShockCollarShareCode), ApiController.PlayerUserData));
+            _ = _apiHubMain.UserUpdateOwnGlobalPerm(new(MainHub.PlayerUserData,
+            new KeyValuePair<string, object>("GlobalShockShareCode", globalShockCollarShareCode), MainHub.PlayerUserData));
         }
         ImUtf8.SameLineInner();
         if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Refresh", null, false, DateTime.UtcNow - _lastRefresh < TimeSpan.FromSeconds(5)))
@@ -480,8 +478,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         {
             // Convert TimeSpan to ticks and send as UInt64
             ulong ticks = (ulong)PlayerGlobalPerms.GlobalShockVibrateDuration.Ticks;
-            _ = _apiController.UserUpdateOwnGlobalPerm(new(ApiController.PlayerUserData,
-            new KeyValuePair<string, object>("GlobalShockVibrateDuration", ticks), ApiController.PlayerUserData));
+            _ = _apiHubMain.UserUpdateOwnGlobalPerm(new(MainHub.PlayerUserData,
+            new KeyValuePair<string, object>("GlobalShockVibrateDuration", ticks), MainHub.PlayerUserData));
         }
         _uiShared.DrawHelpText("The maximum time in seconds that your shock collar can vibrate for.");
 
@@ -886,7 +884,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             ImGui.SameLine(ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Trash, "Delete Account"));
             if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account", null, true, // yes there must be a lot to determine if you can delete.
-            (!(KeyMonitor.CtrlPressed() && KeyMonitor.ShiftPressed()) || !(_apiController.ServerAlive && _apiController.IsConnected && isOnlineUser)),
+            (!(KeyMonitor.CtrlPressed() && KeyMonitor.ShiftPressed()) || !(MainHub.IsServerAlive && MainHub.IsConnected && isOnlineUser)),
             "##Trash-" + account.CharacterPlayerContentId.ToString()))
             {
                 _deleteAccountPopupModalShown = true;
@@ -985,7 +983,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             if (ImGui.Button("Delete account", new Vector2(buttonSize, 0)))
             {
-                _ = Task.Run(ApiController.UserDelete);
+                _ = Task.Run(_apiHubMain.UserDelete);
                 _deleteAccountPopupModalShown = false;
                 Mediator.Publish(new SwitchToIntroUiMessage());
             }
@@ -1520,7 +1518,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private void DrawSettingsContent()
     {
         // check the current server state. If it is connected.
-        if (ApiController.ServerState is ServerState.Connected)
+        if (MainHub.IsConnected)
         {
             // display the Server name, that it is available, and the number of users online.
             ImGui.TextUnformatted("Server is " + _serverConfigs.CurrentServer!.ServerName + ":");
@@ -1529,7 +1527,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             ImGui.SameLine();
             ImGui.TextUnformatted("(");
             ImGui.SameLine();
-            ImGui.TextColored(ImGuiColors.ParsedGreen, ApiController.OnlineUsers.ToString(CultureInfo.InvariantCulture));
+            ImGui.TextColored(ImGuiColors.ParsedGreen, MainHub.MainOnlineUsers.ToString(CultureInfo.InvariantCulture));
             ImGui.SameLine();
             ImGui.TextUnformatted("Users Online");
             ImGui.SameLine();
@@ -1545,7 +1543,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             Util.OpenLink("https://discord.gg/kinkporium");
         }
 
-        if (ApiController.ServerState is ServerState.Connected)
+        if (MainHub.IsConnected)
         {
             // draw out the tab bar for us.
             if (ImGui.BeginTabBar("mainTabBar"))

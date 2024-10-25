@@ -19,7 +19,7 @@ namespace GagSpeak.UI.Components;
 public class PermActionsComponents
 {
     private readonly ILogger<PermActionsComponents> _logger;
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly UiSharedService _uiShared;
     private readonly MoodlesService _moodlesService;
 
@@ -30,11 +30,11 @@ public class PermActionsComponents
     private Dictionary<string, object> CachedPermActionSelections = new();
     
     public PermActionsComponents(ILogger<PermActionsComponents> logger,
-        ApiController apiController, UiSharedService uiShared, 
+        MainHub apiHubMain, UiSharedService uiShared, 
         MoodlesService moodlesService)
     {
         _logger = logger;
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _uiShared = uiShared;
         _moodlesService = moodlesService;
     }
@@ -254,7 +254,7 @@ public class PermActionsComponents
                 return resPass;
             case Padlocks.OwnerPadlock:
             case Padlocks.OwnerTimerPadlock:
-                var resOwner = allowOwnerLocks && ApiController.UID == data.Assigner;
+                var resOwner = allowOwnerLocks && MainHub.UID == data.Assigner;
                 return resOwner;
         }
         return false;

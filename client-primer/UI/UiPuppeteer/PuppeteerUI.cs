@@ -20,24 +20,27 @@ namespace GagSpeak.UI.UiPuppeteer;
 
 public class PuppeteerUI : WindowMediatorSubscriberBase
 {
-    private readonly UiSharedService _uiShared;
+    private readonly MainHub _apiHubMain;
+    private readonly AliasTable _aliasTable;
+    private readonly PuppeteerHandler _puppeteerHandler;
     private readonly UserPairListHandler _userPairListHandler;
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PuppeteerHandler _puppeteerHandler;
-    private readonly AliasTable _aliasTable;
+    private readonly UiSharedService _uiShared;
+    
     private PuppeteerTab _currentTab = PuppeteerTab.TriggerPhrases;
     private enum PuppeteerTab { TriggerPhrases, ClientAliasList, PairAliasList }
 
     public PuppeteerUI(ILogger<PuppeteerUI> logger, GagspeakMediator mediator,
-        UiSharedService uiSharedService, ClientConfigurationManager clientConfigs,
-        UserPairListHandler userPairListHandler, PuppeteerHandler handler,
-        AliasTable aliasTable) : base(logger, mediator, "Puppeteer UI")
+        MainHub apiHubMain, AliasTable aliasTable, PuppeteerHandler handler,
+        UserPairListHandler userPairListHandler, ClientConfigurationManager clientConfigs,
+        UiSharedService uiShared) : base(logger, mediator, "Puppeteer UI")
     {
-        _uiShared = uiSharedService;
+        _apiHubMain = apiHubMain;
         _clientConfigs = clientConfigs;
         _userPairListHandler = userPairListHandler;
         _puppeteerHandler = handler;
         _aliasTable = aliasTable;
+        _uiShared = uiShared;
 
         AllowPinning = false;
         AllowClickthrough = false;
@@ -273,7 +276,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
 
     private void DrawPairAliasList(CharacterAliasData? pairAliasData)
     {
-        if (!AliasDataListExists || ApiController.ServerState is not ServerState.Connected || pairAliasData == null)
+        if (!AliasDataListExists || MainHub.ServerStatus is not ServerState.Connected || pairAliasData == null)
         {
             _uiShared.BigText("Pair has no List for you!");
             return;
@@ -348,7 +351,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                         if (_uiShared.IconButton(FontAwesomeIcon.Chair, null, null, false, true))
                         {
                             _logger.LogTrace($"Updated own pair permission: AllowSitCommands to {!allowSitRequests}");
-                            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData,
+                            _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData,
                                 new KeyValuePair<string, object>("AllowSitRequests", !allowSitRequests)));
                         }
                     }
@@ -361,7 +364,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                         if (_uiShared.IconButton(FontAwesomeIcon.Walking, null, null, false, true))
                         {
                             _logger.LogTrace($"Updated own pair permission: AllowEmotesExpressions to {!allowMotionRequests}");
-                            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData,
+                            _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData,
                                 new KeyValuePair<string, object>("AllowMotionRequests", !allowMotionRequests)));
                         }
                     }
@@ -375,7 +378,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                         if (_uiShared.IconButton(FontAwesomeIcon.CheckDouble, null, null, false, true))
                         {
                             _logger.LogTrace($"Updated own pair permission: AllowAllCommands to {!allowAllRequests}");
-                            _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData,
+                            _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData,
                                 new KeyValuePair<string, object>("AllowAllRequests", !allowAllRequests)));
                         }
                     }
@@ -392,19 +395,19 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                                 if (UnsavedTriggerPhrase is not null)
                                 {
                                     _logger.LogTrace($"Updated own pair permission: TriggerPhrase to {UnsavedTriggerPhrase}");
-                                    _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("TriggerPhrase", UnsavedTriggerPhrase)));
+                                    _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("TriggerPhrase", UnsavedTriggerPhrase)));
                                     UnsavedTriggerPhrase = null;
                                 }
                                 if (UnsavedNewStartChar is not null)
                                 {
                                     _logger.LogTrace($"Updated own pair permission: StartChar to {UnsavedNewStartChar}");
-                                    _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("StartChar", UnsavedNewStartChar[0])));
+                                    _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("StartChar", UnsavedNewStartChar[0])));
                                     UnsavedNewStartChar = null;
                                 }
                                 if (UnsavedNewEndChar is not null)
                                 {
                                     _logger.LogTrace($"Updated own pair permission: EndChar to {UnsavedNewEndChar}");
-                                    _ = _uiShared.ApiController.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("EndChar", UnsavedNewEndChar[0])));
+                                    _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("EndChar", UnsavedNewEndChar[0])));
                                     UnsavedNewEndChar = null;
                                 }
                             }

@@ -54,7 +54,7 @@ public partial class PairStickyUI
                     var statusInfo = new List<MoodlesStatusInfo> { lastIpcData.MoodlesStatuses.First(x => x.GUID == onButtonPress) };
                     if (!_moodlesService.ValidatePermissionForApplication(UserPairForPerms.UserPairUniquePairPerms, statusInfo)) return;
 
-                    _ = _apiController.UserApplyMoodlesByGuid(new(UserPairForPerms.UserData, new List<Guid> { onButtonPress.Value }, IpcToggleType.MoodlesStatus));
+                    _ = _apiHubMain.UserApplyMoodlesByGuid(new(UserPairForPerms.UserData, new List<Guid> { onButtonPress.Value }, IpcToggleType.MoodlesStatus));
                     Opened = InteractionType.None;
                 });
             }
@@ -89,7 +89,7 @@ public partial class PairStickyUI
 
                     if (!_moodlesService.ValidatePermissionForApplication(pairUniquePerms, statusesToApply)) return;
 
-                    _ = _apiController.UserApplyMoodlesByGuid(new(UserPairForPerms.UserData, statusesToApply.Select(s => s.GUID).ToList(), IpcToggleType.MoodlesPreset));
+                    _ = _apiHubMain.UserApplyMoodlesByGuid(new(UserPairForPerms.UserData, statusesToApply.Select(s => s.GUID).ToList(), IpcToggleType.MoodlesPreset));
                     Opened = InteractionType.None;
                 });
             }
@@ -126,7 +126,7 @@ public partial class PairStickyUI
                     var statusInfo = new List<MoodlesStatusInfo> { LastCreatedCharacterData.MoodlesStatuses.First(x => x.GUID == onButtonPress) };
                     if (!_moodlesService.ValidatePermissionForApplication(pairUniquePerms, statusInfo)) return;
 
-                    _ = _apiController.UserApplyMoodlesByStatus(new(UserPairForPerms.UserData, statusInfo, IpcToggleType.MoodlesStatus));
+                    _ = _apiHubMain.UserApplyMoodlesByStatus(new(UserPairForPerms.UserData, statusInfo, IpcToggleType.MoodlesStatus));
                     Opened = InteractionType.None;
                 });
             }
@@ -166,7 +166,7 @@ public partial class PairStickyUI
 
                     if (!_moodlesService.ValidatePermissionForApplication(pairUniquePerms, statusesToApply)) return;
 
-                    _ = _apiController.UserApplyMoodlesByStatus(new(UserPairForPerms.UserData, statusesToApply, IpcToggleType.MoodlesPreset));
+                    _ = _apiHubMain.UserApplyMoodlesByStatus(new(UserPairForPerms.UserData, statusesToApply, IpcToggleType.MoodlesPreset));
                     Opened = InteractionType.None;
                 });
             }
@@ -201,7 +201,7 @@ public partial class PairStickyUI
                     var statusInfo = new List<MoodlesStatusInfo> { lastIpcData.MoodlesStatuses.First(x => x.GUID == onButtonPress) };
                     if (!_moodlesService.ValidatePermissionForApplication(pairUniquePerms, statusInfo)) return;
 
-                    _ = _apiController.UserRemoveMoodles(new(UserPairForPerms.UserData, new List<Guid> { onButtonPress.Value }));
+                    _ = _apiHubMain.UserRemoveMoodles(new(UserPairForPerms.UserData, new List<Guid> { onButtonPress.Value }));
                     Opened = InteractionType.None;
                 });
             }
@@ -224,7 +224,7 @@ public partial class PairStickyUI
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
                 if (ImGui.Button("Clear All Active Moodles##ClearStatus" + PairUID))
                 {
-                    _ = _apiController.UserClearMoodles(new(UserPairForPerms.UserData));
+                    _ = _apiHubMain.UserClearMoodles(new(UserPairForPerms.UserData));
                     Opened = InteractionType.None;
                 }
                 UiSharedService.AttachToolTip("Clear all statuses from " + PairNickOrAliasOrUID);

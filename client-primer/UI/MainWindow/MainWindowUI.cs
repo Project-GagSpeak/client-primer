@@ -23,7 +23,7 @@ namespace GagSpeak.UI.MainWindow;
 public class MainWindowUI : WindowMediatorSubscriberBase
 {
     private readonly UiSharedService _uiShared;
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly GagspeakConfigService _configService;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverManager;
@@ -42,7 +42,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     public bool ThemePushed = false;
 
     public MainWindowUI(ILogger<MainWindowUI> logger, GagspeakMediator mediator,
-        UiSharedService uiShared, ApiController apiController,
+        UiSharedService uiShared, MainHub apiHubMain,
         GagspeakConfigService configService, PairManager pairManager,
         ServerConfigurationManager serverManager, MainUiHomepage homepage,
         MainUiWhitelist whitelist, MainUiPatternHub patternHub,
@@ -50,7 +50,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         DrawEntityFactory drawEntityFactory, IDalamudPluginInterface pi)
         : base(logger, mediator, "###GagSpeakMainUI")
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _configService = configService;
         _pairManager = pairManager;
         _serverManager = serverManager;
@@ -163,27 +163,35 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         // get the width of the window content region we set earlier
         _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
 
-        // if we are not on the current version, display it
-        if (!_apiController.IsCurrentVersion)
+        if (MainHub.ServerStatus is (ServerState.NoSecretKey or ServerState.VersionMisMatch or ServerState.Unauthorized))
         {
-            var ver = ApiController.CurrentClientVersion;
-            var unsupported = "UNSUPPORTED VERSION";
+            using (ImRaii.PushId("header")) DrawUIDHeader();
+
+            var errorTitle = MainHub.ServerStatus switch
+            {
+                ServerState.NoSecretKey => "INVALID/NO KEY",
+                ServerState.VersionMisMatch => "UNSUPPORTED VERSION",
+                ServerState.Unauthorized => "UNAUTHORIZED",
+                _ => "UNK ERROR"
+            };
+            var errorText = MainHub.ServerStatus switch
+            {
+                ServerState.NoSecretKey => "No secret key is set for this current character. To create UID's for your alt characters, be sure to claim your account in the CK discord.",
+                ServerState.VersionMisMatch => "GagSpeak installation is out of date. Current version is " + MainHub.ExpectedVerString + ", Expected version is " + MainHub.ExpectedVerString 
+                    + ". It's recommended to keep GagSpeak up to date. Open /xlplugins and update the plugin.",
+                ServerState.Unauthorized => "You are Unauthorized to access GagSpeak Servers with this account. If you are reading this, this means your key has Been revoked, or you have been Banned.",
+                _ => "Unknown Reasoning for this error."
+            };
             // push the notice that we are unsupported
             using (_uiShared.UidFont.Push())
             {
-                var uidTextSize = ImGui.CalcTextSize(unsupported);
+                var uidTextSize = ImGui.CalcTextSize(errorTitle);
                 ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X + ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
                 ImGui.AlignTextToFramePadding();
-                ImGui.TextColored(ImGuiColors.DalamudRed, unsupported);
+                ImGui.TextColored(ImGuiColors.DalamudRed, errorTitle);
             }
-            // the wrapped text explanation 
-            UiSharedService.ColorTextWrapped($"Your GagSpeak installation is out of date, the current version is {ver.Major}.{ver.Minor}.{ver.Build}. " +
-                $"It is highly recommended to keep GagSpeak up to date. Open /xlplugins and update the plugin.", ImGuiColors.DalamudRed);
-        }
-
-        if (ApiController.ServerState is ServerState.NoSecretKey || ApiController.ServerState is ServerState.VersionMisMatch)
-        {
-            using (ImRaii.PushId("header")) DrawUIDHeader();
+            // the wrapped text explanation based on the error.
+            UiSharedService.ColorTextWrapped(errorText, ImGuiColors.ParsedGold);
         }
         else
         {
@@ -197,7 +205,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
 
         // if we are connected, draw out our menus based on the tab selection.
         // if we are connected to the server
-        if (ApiController.ServerState is ServerState.Connected)
+        if (MainHub.ServerStatus is ServerState.Connected)
         {
             if (_addingNewUser)
             {
@@ -249,7 +257,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             if (_uiShared.IconTextButton(FontAwesomeIcon.UserPlus, "Add", buttonSize, false, _pairToAdd.IsNullOrEmpty()))
             {
                 // call the UserAddPair function on the server with the user data transfer object
-                _ = _apiController.UserAddPair(new(new(_pairToAdd)));
+                _ = _apiHubMain.UserAddPair(new(new(_pairToAdd)));
                 _pairToAdd = string.Empty;
                 _addingNewUser = false;
             }
@@ -273,20 +281,20 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         }
 
         // if we are connected
-        if (ApiController.ServerState is ServerState.Connected)
+        if (MainHub.ServerStatus is ServerState.Connected)
         {
-            UiSharedService.CopyableDisplayText(_apiController.DisplayName);
+            UiSharedService.CopyableDisplayText(MainHub.DisplayName);
 
             // if the UID does not equal the display name
-            if (!string.Equals(_apiController.DisplayName, ApiController.UID, StringComparison.Ordinal))
+            if (!string.Equals(MainHub.DisplayName, MainHub.UID, StringComparison.Ordinal))
             {
                 // grab the original text size for the UID in the api controller
-                var origTextSize = ImGui.CalcTextSize(ApiController.UID);
+                var origTextSize = ImGui.CalcTextSize(MainHub.UID);
                 // adjust the cursor and redraw the UID (really not sure why this is here but we can trial and error later.
                 ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - origTextSize.X / 2);
-                ImGui.TextColored(_uiShared.GetUidColor(), ApiController.UID);
+                ImGui.TextColored(_uiShared.GetUidColor(), MainHub.UID);
                 // give it the same functionality.
-                UiSharedService.CopyableDisplayText(ApiController.UID);
+                UiSharedService.CopyableDisplayText(MainHub.UID);
             }
         }
     }
@@ -299,7 +307,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     {
         var windowPadding = ImGui.GetStyle().WindowPadding;
         var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
-        var userCount = _apiController.OnlineUsers.ToString(CultureInfo.InvariantCulture);
+        var userCount = MainHub.MainOnlineUsers.ToString(CultureInfo.InvariantCulture);
         var userSize = ImGui.CalcTextSize(userCount);
         var textSize = ImGui.CalcTextSize("Users Online");
 
@@ -309,10 +317,11 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         var printShard = shardConnection != string.Empty;
 
         // if the server is connected, then we should display the server info
-        if (ApiController.ServerState is ServerState.Connected)
+        if (MainHub.IsConnected)
         {
             // fancy math shit for clean display, adjust when moving things around
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) 
+                / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
             ImGui.TextColored(ImGuiColors.ParsedGreen, userCount);
             ImGui.SameLine();
             ImGui.TextUnformatted("Users Online");
@@ -320,9 +329,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         // otherwise, if we are not connected, display that we aren't connected.
         else
         {
-            ImGui.AlignTextToFramePadding();
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X
-                + UiSharedService.GetWindowContentRegionWidth())
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) 
                 / 2 - ImGui.CalcTextSize("Not connected to any server").X / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
             ImGui.TextColored(ImGuiColors.DalamudRed, "Not connected to any server");
         }
@@ -344,7 +351,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         }
 
         // if the server is reconnecting or disconnecting
-        if (ApiController.ServerState is not (ServerState.Reconnecting or ServerState.Disconnecting))
+        if (MainHub.ServerStatus is not (ServerState.Reconnecting or ServerState.Disconnecting))
         {
             // we need to turn the button from the connected link to the disconnected link.
             using (ImRaii.PushColor(ImGuiCol.Text, color))
@@ -352,11 +359,23 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 // then display it
                 if (_uiShared.IconButton(connectedIcon))
                 { 
-                    // and toggle the full pause for the current server, save the config, and recreate the connections,
-                    // placing it into a disconnected state due to the full pause being active. (maybe change this later)
-                    _serverManager.CurrentServer.FullPause = !_serverManager.CurrentServer.FullPause;
-                    _serverManager.Save();
-                    _ = _apiController.CreateConnections();
+                    // Obtain the current fullPause state.
+                    var currentState = _serverManager.CurrentServer.FullPause;
+                    // If its true, make sure our ServerStatus is Connected, or if its false, make sure our ServerStatus is Disconnected or offline.
+                    if (!currentState && MainHub.ServerStatus is ServerState.Connected)
+                    {
+                        // If we are connected, we want to disconnect.
+                        _serverManager.CurrentServer.FullPause = !_serverManager.CurrentServer.FullPause;
+                        _serverManager.Save();
+                        _ = _apiHubMain.Disconnect(ServerState.Disconnected);
+                    }
+                    else if (currentState && MainHub.ServerStatus is (ServerState.Disconnected or ServerState.Offline))
+                    {
+                        // If we are disconnected, we want to connect.
+                        _serverManager.CurrentServer.FullPause = !_serverManager.CurrentServer.FullPause;
+                        _serverManager.Save();
+                        _ = _apiHubMain.Connect();
+                    }
                 }
             }
             // attach the tooltip for the connection / disconnection button)
@@ -374,7 +393,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + shardTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
             }
 
-            if (_uiShared.IconButton(addUserIcon))
+            if (_uiShared.IconButton(addUserIcon, disabled: !MainHub.IsConnected))
             {
                 _addingNewUser = !_addingNewUser;
             }
@@ -386,13 +405,13 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     /// <returns> The error message of the server.</returns>
     private string GetServerError()
     {
-        return ApiController.ServerState switch
+        return MainHub.ServerStatus switch
         {
             ServerState.Connecting => "Attempting to connect to the server.",
             ServerState.Reconnecting => "Connection to server interrupted, attempting to reconnect to the server.",
             ServerState.Disconnected => "Currently disconnected from the GagSpeak server.",
             ServerState.Disconnecting => "Disconnecting from server",
-            ServerState.Unauthorized => "Server Response: " + _apiController.AuthFailureMessage,
+            ServerState.Unauthorized => "Server Response: " + MainHub.AuthFailureMessage,
             ServerState.Offline => "The GagSpeak server is currently offline.",
             ServerState.VersionMisMatch => "Your plugin is out of date. Please update your plugin to fix.",
             ServerState.Connected => string.Empty,

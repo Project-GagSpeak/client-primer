@@ -43,7 +43,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         _mainConfig = mainConfig;
         _contextMenu = contextMenu;
 
-        Mediator.Subscribe<DisconnectedMessage>(this, (_) => ClearPairs());
+        Mediator.Subscribe<MainHubDisconnectedMessage>(this, (_) => ClearPairs());
         Mediator.Subscribe<CutsceneEndMessage>(this, (_) => ReapplyPairData());
 
         _directPairsInternal = DirectPairsLazy();
@@ -86,7 +86,6 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     /// </summary>
     public void AddUserPair(UserPairDto dto)
     {
-        Logger.LogTrace("Scanning all client pairs to see if added user already exists", LoggerType.PairManagement);
         // if the user is not in the client's pair list, create a new pair for them.
         if (!_allClientPairs.ContainsKey(dto.User))
         {
@@ -102,7 +101,6 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             _allClientPairs[dto.User].UserPair.IndividualPairStatus = dto.IndividualPairStatus;
             _allClientPairs[dto.User].ApplyLastReceivedIpcData();
         }
-        Logger.LogTrace("Recreating the lazy list of direct pairs.", LoggerType.PairManagement);
         // recreate the lazy list of direct pairs.
         RecreateLazy();
     }

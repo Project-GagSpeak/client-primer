@@ -20,7 +20,7 @@ namespace GagSpeak.UI.Components.UserPairList;
 /// </summary>
 public class DrawUserPair
 {
-    protected readonly ApiController _apiController;
+    protected readonly MainHub _apiHubMain;
     protected readonly IdDisplayHandler _displayHandler;
     protected readonly GagspeakMediator _mediator;
     protected Pair _pair;
@@ -32,13 +32,13 @@ public class DrawUserPair
     private string tooltipString = "";
     // store the created texturewrap for the supporter tier image so we are not loading it every single time.
     private IDalamudTextureWrap? _supporterWrap = null;
-    public DrawUserPair(ILogger<DrawUserPair> logger, string id, Pair entry, ApiController apiController,
+    public DrawUserPair(ILogger<DrawUserPair> logger, string id, Pair entry, MainHub apiHubMain,
         IdDisplayHandler uIDDisplayHandler, GagspeakMediator gagspeakMediator, SelectTagForPairUi selectTagForPairUi,
         UiSharedService uiSharedService)
     {
         _id = id;
         _pair = entry;
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _displayHandler = uIDDisplayHandler;
         _mediator = gagspeakMediator;
         _selectTagForPairUi = selectTagForPairUi;
@@ -243,7 +243,7 @@ public class DrawUserPair
             if (_uiSharedService.IconTextButton(pauseIcon, pauseText, _menuWidth, true))
             {
                 var perm = _pair.UserPair!.OwnPairPerms;
-                _ = _apiController.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_pair.UserData,
+                _ = _apiHubMain.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_pair.UserData,
                     new KeyValuePair<string, object>("IsPaused", !perm.IsPaused)));
             }
             UiSharedService.AttachToolTip(!_pair.UserPair!.OwnPairPerms.IsPaused
@@ -271,7 +271,7 @@ public class DrawUserPair
         {
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", _menuWidth, true) && KeyMonitor.CtrlPressed())
             {
-                _ = _apiController.UserRemovePair(new(_pair.UserData));
+                _ = _apiHubMain.UserRemovePair(new(_pair.UserData));
             }
             UiSharedService.AttachToolTip("Hold CTRL and click to unpair permanently from " + entryUID);
         }
@@ -279,7 +279,7 @@ public class DrawUserPair
         {
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, "Pair individually", _menuWidth, true))
             {
-                _ = _apiController.UserAddPair(new(_pair.UserData));
+                _ = _apiHubMain.UserAddPair(new(_pair.UserData));
             }
             UiSharedService.AttachToolTip("Pair individually with " + entryUID);
         }

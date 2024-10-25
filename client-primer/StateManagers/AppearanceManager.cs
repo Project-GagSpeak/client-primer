@@ -181,8 +181,8 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         }
 
         // see if we qualify for the achievement Auctioned off, and if so, fire it.
-        bool auctionedOffSatisfied = (setRef.EnabledBy != Globals.SelfApplied && setRef.EnabledBy != ApiController.UID)
-                            && (disablerUID != Globals.SelfApplied && disablerUID != ApiController.UID);
+        bool auctionedOffSatisfied = (setRef.EnabledBy != Globals.SelfApplied && setRef.EnabledBy != MainHub.UID)
+                            && (disablerUID != Globals.SelfApplied && disablerUID != MainHub.UID);
         if (triggerAchievement && (setRef.EnabledBy != disablerUID) && auctionedOffSatisfied)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.AuctionedOff);
 
@@ -294,7 +294,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintUnlocked));
 
         // If we should fire the sold slave achievement, fire it.
-        bool soldSlaveSatisfied = (previousAssigner != Globals.SelfApplied && previousAssigner != ApiController.UID) && (lockRemover != Globals.SelfApplied && lockRemover != ApiController.UID);
+        bool soldSlaveSatisfied = (previousAssigner != Globals.SelfApplied && previousAssigner != MainHub.UID) && (lockRemover != Globals.SelfApplied && lockRemover != MainHub.UID);
         if (triggerAchievement && (previousAssigner != lockRemover) && soldSlaveSatisfied)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.SoldSlave);
 

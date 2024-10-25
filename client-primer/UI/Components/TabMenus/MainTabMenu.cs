@@ -18,18 +18,18 @@ namespace GagSpeak.UI.Components;
 /// </summary>
 public class MainTabMenu
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly GagspeakMediator _mediator;
     private readonly PairManager _pairManager;
     private readonly UiSharedService _uiSharedService;
 
     private SelectedTab _selectedTab = SelectedTab.Homepage;
 
-    public MainTabMenu(GagspeakMediator mediator, ApiController apiController,
+    public MainTabMenu(GagspeakMediator mediator, MainHub apiHubMain,
         PairManager pairManager, UiSharedService uiSharedService)
     {
         _mediator = mediator;
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _pairManager = pairManager;
         _uiSharedService = uiSharedService;
     }

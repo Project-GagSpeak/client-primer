@@ -26,20 +26,20 @@ public class RemoteController : RemoteBase
     private readonly UiSharedService _uiShared;
     private readonly ToyboxVibeService _vibeService; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
-    private readonly ApiController _apiController;
+    private readonly ToyboxHub _apiHubToybox;
     private bool _isExpanded = false;
 
     public RemoteController(ILogger<RemoteController> logger,
         GagspeakMediator mediator, UiSharedService uiShared,
         ToyboxVibeService vibeService, ToyboxRemoteService remoteService,
-        ApiController apiController, PrivateRoom privateRoom) 
+        ToyboxHub apiHubToybox, PrivateRoom privateRoom) 
         : base(logger, mediator, uiShared, remoteService, vibeService, privateRoom.RoomName)
     {
         // grab the shared services
         _uiShared = uiShared;
         _vibeService = vibeService;
         _remoteService = remoteService;
-        _apiController = apiController;
+        _apiHubToybox = apiHubToybox;
         // initialize our private room data with the private room passed in on startup so we can properly interact with the correct data.
         PrivateRoomData = privateRoom;
         IsOpen = true;
@@ -96,7 +96,7 @@ public class RemoteController : RemoteBase
         });
 
         // close window on disconnect message.
-        Mediator.Subscribe<ToyboxDisconnectedMessage>(this, (_) => IsOpen = false);
+        Mediator.Subscribe<ToyboxHubDisconnectedMessage>(this, (_) => IsOpen = false);
     }
 
     public PrivateRoom PrivateRoomData { get; set; } = null!; // this is a shared service, so it should be fine.
@@ -161,8 +161,8 @@ public class RemoteController : RemoteBase
             {
                 // Send the message to the server
                 _logger.LogInformation($"Sending Message: {NextChatMessage}");
-                _apiController.PrivateRoomSendMessage(new RoomMessageDto
-                    (PrivateRoomData.GetParticipant(ApiController.UID).User, PrivateRoomData.RoomName, NextChatMessage)).ConfigureAwait(false);
+                _apiHubToybox.PrivateRoomSendMessage(new RoomMessageDto
+                    (PrivateRoomData.GetParticipant(MainHub.UID).User, PrivateRoomData.RoomName, NextChatMessage)).ConfigureAwait(false);
                 NextChatMessage = string.Empty;
             }
         }

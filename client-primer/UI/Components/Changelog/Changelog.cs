@@ -19,6 +19,17 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 6, 4)
+            .RegisterMain("Finally got around to making a better ApiController than Mare's Controller Format.")
+            .RegisterMain("Client-to-Server communication is now more streamlined and efficient.")
+            .RegisterMain("Communication Performance will see a 150-300% boost in speed.")
+            .RegisterMain("IF YOU ENCOUNTER ANY CONNECTION BUGS PLEASE REPORT THEM.")
+            .RegisterFeature("The Add User button now is no longer interactable while disconnected.")
+            .RegisterQol("Instead of Disconnecting/Reconnecting 2-4 times every time you try to reconnect, disconnect, or connect, it will now only do what it needs to, once.")
+            .RegisterQol("Achievement SaveData is updated on each disconnect, instead of each plugin disposal.")
+            .RegisterQol("Due to only needing to perform connection action once, connecting/disconnecting will see a 1.5-3x performance boost.")
+            .RegisterQol("(Backend Note: The Toybox & Main Hubs are now split into their own managed hubs, with shared Tokens, for better performance)")
+            .RegisterBugfix("The Horizontal line below the connection status no longer clips into the connection status when disconnected.");
         VersionEntry(0, 9, 6, 0)
             .RegisterMain("Full backend rework on Toybox Patterns, Alarms, Triggers for more streamlined functionality and future expandability.")
             .RegisterFeature("Toybox Actions should now be functional properly this time outside of the remote interfaces.")

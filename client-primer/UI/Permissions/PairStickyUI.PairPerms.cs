@@ -414,14 +414,14 @@ public partial class PairStickyUI
             case PermissionType.Global:
                 {
                     _logger.LogTrace($"Updated Other pair's global permission: {permissionName} to {newValue}", LoggerType.Permissions);
-                    _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData,
-                        new KeyValuePair<string, object>(permissionName, newValue), ApiController.PlayerUserData));
+                    _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData,
+                        new KeyValuePair<string, object>(permissionName, newValue), MainHub.PlayerUserData));
                 }
                 break;
             case PermissionType.UniquePairPerm:
                 {
                     _logger.LogTrace($"Updated other pair's unique pair permission: {permissionName} to {newValue}", LoggerType.Permissions);
-                    _ = _apiController.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
+                    _ = _apiHubMain.UserUpdateOtherPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
                         new KeyValuePair<string, object>(permissionName, newValue)));
                 }
                 break;

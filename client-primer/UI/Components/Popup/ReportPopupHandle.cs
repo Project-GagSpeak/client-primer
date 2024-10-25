@@ -11,14 +11,14 @@ namespace GagSpeak.UI.Components.Popup;
 
 internal class ReportPopupHandler : IPopupHandler
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly UiSharedService _uiSharedService;
     private Pair? _reportedPair;
     private string _reportReason = string.Empty;
 
-    public ReportPopupHandler(ApiController apiController, UiSharedService uiSharedService)
+    public ReportPopupHandler(MainHub apiHubMain, UiSharedService uiSharedService)
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _uiSharedService = uiSharedService;
     }
 
@@ -46,7 +46,7 @@ internal class ReportPopupHandler : IPopupHandler
             {
                 ImGui.CloseCurrentPopup();
                 var reason = _reportReason;
-                _ = _apiController.UserReportProfile(new(_reportedPair.UserData, reason));
+                _ = _apiHubMain.UserReportProfile(new(_reportedPair.UserData, reason));
             }
         }
     }

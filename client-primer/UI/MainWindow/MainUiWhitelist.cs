@@ -17,7 +17,7 @@ namespace GagSpeak.UI.MainWindow;
 /// </summary>
 public class MainUiWhitelist : DisposableMediatorSubscriberBase
 {
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
     private readonly UiFactory _uiFactory;
     private readonly UiSharedService _uiShared;
     private readonly UserPairListHandler _userPairListHandler;
@@ -26,13 +26,13 @@ public class MainUiWhitelist : DisposableMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigs;
 
     public MainUiWhitelist(ILogger<MainUiWhitelist> logger,
-        GagspeakMediator mediator, ApiController apiController,
+        GagspeakMediator mediator, MainHub apiHubMain,
         UiFactory uiFactory, UiSharedService uiSharedService, 
         UserPairListHandler userPairListHandler, PairManager pairManager,
         GagspeakConfigService gagspeakConfig,
         ServerConfigurationManager serverConfigs) : base(logger, mediator)
     {
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _uiFactory = uiFactory;
         _uiShared = uiSharedService;
         _userPairListHandler = userPairListHandler;

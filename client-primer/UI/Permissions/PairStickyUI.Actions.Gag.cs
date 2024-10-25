@@ -64,7 +64,7 @@ public partial class PairStickyUI
                             2 => DataUpdateKind.AppearanceGagAppliedLayerThree,
                             _ => throw new Exception("Invalid layer selected.")
                         };
-                        _ = _apiController.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
+                        _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
                         _logger.LogDebug("Applying Selected Gag "+onButtonPress.GagName()+" to "+UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.PairGagAction, onButtonPress);
                         Opened = InteractionType.None;
@@ -114,7 +114,7 @@ public partial class PairStickyUI
                             newAppearance.GagSlots[_permActions.GagLayer].Padlock = onButtonPress.ToName();
                             newAppearance.GagSlots[_permActions.GagLayer].Password = _permActions.Password;
                             newAppearance.GagSlots[_permActions.GagLayer].Timer = UiSharedService.GetEndTimeUTC(_permActions.Timer);
-                            newAppearance.GagSlots[_permActions.GagLayer].Assigner = ApiController.UID;
+                            newAppearance.GagSlots[_permActions.GagLayer].Assigner = MainHub.UID;
                             DataUpdateKind updateKind = _permActions.GagLayer switch
                             {
                                 0 => DataUpdateKind.AppearanceGagLockedLayerOne,
@@ -122,7 +122,7 @@ public partial class PairStickyUI
                                 2 => DataUpdateKind.AppearanceGagLockedLayerThree,
                                 _ => throw new Exception("Invalid layer selected.")
                             };
-                            _ = _apiController.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
+                            _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
                             _logger.LogDebug("Locking Gag with GagPadlock "+onButtonPress.ToName()+" to "+PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;
                         }
@@ -173,7 +173,7 @@ public partial class PairStickyUI
                             newAppearance.GagSlots[_permActions.GagLayer].Padlock = selected.ToName();
                             newAppearance.GagSlots[_permActions.GagLayer].Password = _permActions.Password;
                             newAppearance.GagSlots[_permActions.GagLayer].Timer = DateTimeOffset.UtcNow;
-                            newAppearance.GagSlots[_permActions.GagLayer].Assigner = ApiController.UID;
+                            newAppearance.GagSlots[_permActions.GagLayer].Assigner = MainHub.UID;
                             DataUpdateKind updateKind = _permActions.GagLayer switch
                             {
                                 0 => DataUpdateKind.AppearanceGagUnlockedLayerOne,
@@ -181,7 +181,7 @@ public partial class PairStickyUI
                                 2 => DataUpdateKind.AppearanceGagUnlockedLayerThree,
                                 _ => throw new Exception("Invalid layer selected.")
                             };
-                            _ = _apiController.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
+                            _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
                             _logger.LogDebug("Unlocking Gag with GagPadlock "+selected.ToName()+" to "+PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;
                         }
@@ -226,7 +226,7 @@ public partial class PairStickyUI
                             2 => DataUpdateKind.AppearanceGagRemovedLayerThree,
                             _ => throw new Exception("Invalid layer selected.")
                         };
-                        _ = _apiController.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
+                        _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
                         _logger.LogDebug("Removing Gag from "+PairNickOrAliasOrUID, LoggerType.Permissions);
                         Opened = InteractionType.None;
                     }

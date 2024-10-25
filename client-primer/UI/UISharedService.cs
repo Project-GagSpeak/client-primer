@@ -47,7 +47,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private const string _nicknameStart = "##GAGSPEAK_USER_NICKNAME_START##";   // the start of the nickname
     private readonly Dalamud.Localization _localization;                        // language localization for our plugin
 
-    private readonly ApiController _apiController;                              // our api controller for the server connectivity
+    private readonly MainHub _apiHubMain;                              // our api controller for the server connectivity
     private readonly ClientConfigurationManager _clientConfigs;    // the client-end related config service 
     private readonly ServerConfigurationManager _serverConfigs;    // the server-end related config manager
     private readonly OnFrameworkService _frameworkUtil;                         // helpers for functions that should occur dalamud's framework  thread
@@ -93,7 +93,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private IDalamudTextureWrap? GagSpeakLogoNoRadial = null;
 
     public UiSharedService(ILogger<UiSharedService> logger, GagspeakMediator mediator,
-        Dalamud.Localization localization, ApiController apiController,
+        Dalamud.Localization localization, MainHub apiHubMain,
         ClientConfigurationManager clientConfigurationManager,
         ServerConfigurationManager serverConfigurationManager,
         OnFrameworkService frameworkUtil, IpcManager ipcManager,
@@ -101,7 +101,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         : base(logger, mediator)
     {
         _localization = localization;
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
         _clientConfigs = clientConfigurationManager;
         _serverConfigs = serverConfigurationManager;
         _frameworkUtil = frameworkUtil;
@@ -145,7 +145,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         });
     }
 
-    public ApiController ApiController => _apiController;   // a public accessible api controller for the plugin, pulled from the private field
+/*    public ApiController ApiController => _apiController;   // a public accessible api controller for the plugin, pulled from the private field*/
     public IFontHandle GameFont { get; init; } // the current game font
     public IFontHandle IconFont { get; init; } // the current icon font
     public IFontHandle UidFont { get; init; } // the current UID font
@@ -1413,11 +1413,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.TextUnformatted(text);
     }
 
-    /// <summary> Retrieves the various UID text color based on the current server state.</summary>
+    /// <summary> 
+    /// Retrieves the various UID text color based on the current server state.
+    /// </summary>
     /// <returns> The color of the UID text in Vector4 format .</returns>
     public Vector4 GetUidColor()
     {
-        return ApiController.ServerState switch
+        return MainHub.ServerStatus switch
         {
             ServerState.Connecting => ImGuiColors.DalamudYellow,
             ServerState.Reconnecting => ImGuiColors.DalamudRed,
@@ -1432,11 +1434,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         };
     }
 
-    /// <summary> Retrieves the various UID text based on the current server state.</summary>
+    /// <summary> 
+    /// Retrieves the various UID text based on the current server state.
+    /// </summary>
     /// <returns> The text of the UID.</returns>
     public string GetUidText()
     {
-        return ApiController.ServerState switch
+        return MainHub.ServerStatus switch
         {
             ServerState.Reconnecting => "Reconnecting",
             ServerState.Connecting => "Connecting",
@@ -1446,7 +1450,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             ServerState.VersionMisMatch => "Version mismatch",
             ServerState.Offline => "Unavailable",
             ServerState.NoSecretKey => "No Secret Key",
-            ServerState.Connected => _apiController.DisplayName, // displays when connected, your UID
+            ServerState.Connected => MainHub.DisplayName, // displays when connected, your UID
             _ => string.Empty
         };
     }

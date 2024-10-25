@@ -27,9 +27,9 @@ public partial class PairStickyUI
         if(_playerManager.GlobalPerms is null)
             return;
 
-        if(ApiController.UID is null)
+        if(MainHub.UID is null)
         {
-            _logger.LogWarning("ApiController.UID is null, cannot draw hardcore actions.");
+            _logger.LogWarning("MainHub.UID is null, cannot draw hardcore actions.");
             return;
         }
 
@@ -38,22 +38,22 @@ public partial class PairStickyUI
             && Vector3.Distance(_clientState.LocalPlayer.Position, UserPairForPerms.VisiblePairGameObject.Position) < 3;
         // Conditionals for hardcore interactions
         var clientGlobals = _playerManager.GlobalPerms;
-        bool disableForceFollow = !inRange || !PairPerms.AllowForcedFollow || !UserPairForPerms.IsVisible || !PairGlobals.CanToggleFollow(ApiController.UID);
-        bool disableForceSit = !PairPerms.AllowForcedSit || !PairGlobals.CanToggleSit(ApiController.UID);
-        bool disableForceGroundSit = !PairPerms.AllowForcedSit || !PairGlobals.CanToggleSit(ApiController.UID);
-        bool disableForceToStay = !PairPerms.AllowForcedToStay || !PairGlobals.CanToggleStay(ApiController.UID);
-        bool disableBlindfoldToggle = !PairPerms.AllowBlindfold || !PairGlobals.CanToggleBlindfold(ApiController.UID);
-        bool disableChatVisibilityToggle = !PairPerms.AllowHidingChatboxes || !PairGlobals.CanToggleChatHidden(ApiController.UID);
-        bool disableChatInputVisibilityToggle = !PairPerms.AllowHidingChatInput || !PairGlobals.CanToggleChatInputHidden(ApiController.UID);
-        bool disableChatInputBlockToggle = !PairPerms.AllowChatInputBlocking || !PairGlobals.CanToggleChatInputBlocked(ApiController.UID);
+        bool disableForceFollow = !inRange || !PairPerms.AllowForcedFollow || !UserPairForPerms.IsVisible || !PairGlobals.CanToggleFollow(MainHub.UID);
+        bool disableForceSit = !PairPerms.AllowForcedSit || !PairGlobals.CanToggleSit(MainHub.UID);
+        bool disableForceGroundSit = !PairPerms.AllowForcedSit || !PairGlobals.CanToggleSit(MainHub.UID);
+        bool disableForceToStay = !PairPerms.AllowForcedToStay || !PairGlobals.CanToggleStay(MainHub.UID);
+        bool disableBlindfoldToggle = !PairPerms.AllowBlindfold || !PairGlobals.CanToggleBlindfold(MainHub.UID);
+        bool disableChatVisibilityToggle = !PairPerms.AllowHidingChatboxes || !PairGlobals.CanToggleChatHidden(MainHub.UID);
+        bool disableChatInputVisibilityToggle = !PairPerms.AllowHidingChatInput || !PairGlobals.CanToggleChatInputHidden(MainHub.UID);
+        bool disableChatInputBlockToggle = !PairPerms.AllowChatInputBlocking || !PairGlobals.CanToggleChatInputBlocked(MainHub.UID);
         bool pairAllowsDevotionalToggles = PairPerms.DevotionalStatesForPair;
 
         var forceFollowIcon = PairGlobals.IsFollowing() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.PersonWalkingArrowRight;
         var forceFollowText = PairGlobals.IsFollowing() ? $"Have {PairNickOrAliasOrUID} stop following you." : $"Make {PairNickOrAliasOrUID} follow you.";
         if (_uiShared.IconTextButton(forceFollowIcon, forceFollowText, WindowMenuWidth, true, disableForceFollow))
         {
-            string newStr = PairGlobals.IsFollowing() ? string.Empty : ApiController.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedFollow", newStr), ApiController.PlayerUserData));
+            string newStr = PairGlobals.IsFollowing() ? string.Empty : MainHub.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
+            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedFollow", newStr), MainHub.PlayerUserData));
         }
 
         var forceSitIcon = !string.IsNullOrEmpty(PairGlobals.ForcedSit) ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
@@ -61,8 +61,8 @@ public partial class PairStickyUI
         bool groundSitActive = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) && string.IsNullOrEmpty(PairGlobals.ForcedSit);
         if (_uiShared.IconTextButton(forceSitIcon, forceSitText, WindowMenuWidth, true, disableForceSit || groundSitActive, "##ForcedNormalsitAction"))
         {
-            string newStr = !string.IsNullOrEmpty(PairGlobals.ForcedSit) ? string.Empty : ApiController.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedSit", newStr), ApiController.PlayerUserData));
+            string newStr = !string.IsNullOrEmpty(PairGlobals.ForcedSit) ? string.Empty : MainHub.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
+            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedSit", newStr), MainHub.PlayerUserData));
         }
 
         var forceGroundSitIcon = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
@@ -71,48 +71,48 @@ public partial class PairStickyUI
         if (_uiShared.IconTextButton(forceGroundSitIcon, forceGroundSitText, WindowMenuWidth, true, disableForceGroundSit || normalSitActive, "##ForcedGroundsitAction"))
         {
             _logger.LogDebug("Sending ForcedGroundsit to " + PairNickOrAliasOrUID);
-            string newStr = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) ? string.Empty : ApiController.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedGroundsit", newStr), ApiController.PlayerUserData));
+            string newStr = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) ? string.Empty : MainHub.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
+            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedGroundsit", newStr), MainHub.PlayerUserData));
         }
 
         var forceToStayIcon = PairGlobals.IsStaying() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.HouseLock;
         var forceToStayText = PairGlobals.IsStaying() ? $"Release {PairNickOrAliasOrUID}." : $"Lock away {PairNickOrAliasOrUID}.";
         if (_uiShared.IconTextButton(forceToStayIcon, forceToStayText, WindowMenuWidth, true, disableForceToStay, "##ForcedToStayHardcoreAction"))
         {
-            string newStr = PairGlobals.IsStaying() ? string.Empty : ApiController.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedStay", newStr), ApiController.PlayerUserData));
+            string newStr = PairGlobals.IsStaying() ? string.Empty : MainHub.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
+            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedStay", newStr), MainHub.PlayerUserData));
         }
 
         var toggleBlindfoldIcon = PairGlobals.IsBlindfolded() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Mask;
         var toggleBlindfoldText = PairGlobals.IsBlindfolded() ? $"Remove {PairNickOrAliasOrUID}'s Blindfold." : $"Blindfold {PairNickOrAliasOrUID}.";
         if (_uiShared.IconTextButton(toggleBlindfoldIcon, toggleBlindfoldText, WindowMenuWidth, true, disableBlindfoldToggle, "##ForcedToBeBlindfoldedHardcoreAction"))
         {
-            string newStr = PairGlobals.IsBlindfolded() ? string.Empty : ApiController.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedBlindfold", newStr), ApiController.PlayerUserData));
+            string newStr = PairGlobals.IsBlindfolded() ? string.Empty : MainHub.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
+            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedBlindfold", newStr), MainHub.PlayerUserData));
         }
 
         var toggleChatboxIcon = PairGlobals.IsChatHidden() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentSlash;
         var toggleChatboxText = PairGlobals.IsChatHidden() ? "Make " + PairNickOrAliasOrUID + "'s Chat Visible." : "Hide "+PairNickOrAliasOrUID+"'s Chat Window.";
         if (_uiShared.IconTextButton(toggleChatboxIcon, toggleChatboxText, WindowMenuWidth, true, disableChatVisibilityToggle, "##ForcedChatboxVisibilityHardcoreAction"))
         {
-            string newStr = PairGlobals.IsChatHidden() ? string.Empty : ApiController.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatboxesHidden", newStr), ApiController.PlayerUserData));
+            string newStr = PairGlobals.IsChatHidden() ? string.Empty : MainHub.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
+            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatboxesHidden", newStr), MainHub.PlayerUserData));
         }
 
         var toggleChatInputIcon = PairGlobals.IsChatInputHidden() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentSlash;
         var toggleChatInputText = PairGlobals.IsChatInputHidden() ? "Make " + PairNickOrAliasOrUID + "'s Chat Input Visible." : "Hide "+PairNickOrAliasOrUID+"'s Chat Input.";
         if (_uiShared.IconTextButton(toggleChatInputIcon, toggleChatInputText, WindowMenuWidth, true, disableChatInputVisibilityToggle, "##ForcedChatInputVisibilityHardcoreAction"))
         {
-            string newStr = PairGlobals.IsChatInputHidden() ? string.Empty : ApiController.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatInputHidden", newStr), ApiController.PlayerUserData));
+            string newStr = PairGlobals.IsChatInputHidden() ? string.Empty : MainHub.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
+            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatInputHidden", newStr), MainHub.PlayerUserData));
         }
 
         var toggleChatBlockingIcon = PairGlobals.IsChatInputBlocked() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentDots;
         var toggleChatBlockingText = PairGlobals.IsChatInputBlocked() ? "Reallow "+PairNickOrAliasOrUID+"'s Chat Input." : "Block "+PairNickOrAliasOrUID+"'s Chat Input.";
         if (_uiShared.IconTextButton(toggleChatBlockingIcon, toggleChatBlockingText, WindowMenuWidth, true, disableChatInputBlockToggle, "##BlockedChatInputHardcoreAction"))
         {
-            string newStr = PairGlobals.IsChatInputBlocked() ? string.Empty : ApiController.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-            _ = _apiController.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatInputBlocked", newStr), ApiController.PlayerUserData));
+            string newStr = PairGlobals.IsChatInputBlocked() ? string.Empty : MainHub.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
+            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatInputBlocked", newStr), MainHub.PlayerUserData));
         }
         ImGui.Separator();
     }
@@ -156,7 +156,7 @@ public partial class PairStickyUI
                         else { newMaxDuration = (int)(Duration * 1000); }
 
                         _logger.LogDebug("Sending Shock to Shock Collar with duration: " + newMaxDuration + "(milliseconds)");
-                        _ = _apiController.UserShockActionOnPair(new ShockCollarActionDto(UserPairForPerms.UserData, 0, Intensity, newMaxDuration));
+                        _ = _apiHubMain.UserShockActionOnPair(new ShockCollarActionDto(UserPairForPerms.UserData, 0, Intensity, newMaxDuration));
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.ShockSent);
                         Opened = InteractionType.None;
                     }
@@ -195,7 +195,7 @@ public partial class PairStickyUI
                         else { newMaxDuration = (int)(VibeDuration * 1000); }
 
                         _logger.LogDebug("Sending Vibration to Shock Collar with duration: " + newMaxDuration + "(milliseconds)");
-                        _ = _apiController.UserShockActionOnPair(new ShockCollarActionDto(UserPairForPerms.UserData, 1, VibrateIntensity, newMaxDuration));
+                        _ = _apiHubMain.UserShockActionOnPair(new ShockCollarActionDto(UserPairForPerms.UserData, 1, VibrateIntensity, newMaxDuration));
                         Opened = InteractionType.None;
                     }
                 }
@@ -230,7 +230,7 @@ public partial class PairStickyUI
                         if (VibeDuration % 1 == 0 && VibeDuration >= 1 && VibeDuration <= 15) { newMaxDuration = (int)VibeDuration; }
                         else { newMaxDuration = (int)(VibeDuration * 1000); }
                         _logger.LogDebug("Sending Beep to Shock Collar with duration: " + newMaxDuration + "(note that values between 1 and 15 are full seconds)");
-                        _ = _apiController.UserShockActionOnPair(new ShockCollarActionDto(UserPairForPerms.UserData, 2, Intensity, newMaxDuration));
+                        _ = _apiHubMain.UserShockActionOnPair(new ShockCollarActionDto(UserPairForPerms.UserData, 2, Intensity, newMaxDuration));
                         Opened = InteractionType.None;
                     }
                 }

@@ -217,28 +217,28 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcoreAction.ForcedFollow, // Forced Follow Command Issued
                 (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
-                ApiController.UID, // We are the enactor
+                MainHub.UID, // We are the enactor
                 pair.UserData.UID); // and the pair is the target
 
         if (ChangedPermission == "IsForcedToSit" || ChangedPermission == "IsForcedToGroundSit" && (bool)ChangedValue is false)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcoreAction.ForcedSit, // Forced Follow Command Issued
                 (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
-                ApiController.UID, // We are the enactor
+                MainHub.UID, // We are the enactor
                 pair.UserData.UID); // and the pair is the target
 
         if (ChangedPermission == "IsForcedToStay" && (bool)ChangedValue is false)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcoreAction.ForcedStay, // Forced Follow Command Issued
                 (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
-                ApiController.UID, // We are the enactor
+                MainHub.UID, // We are the enactor
                 pair.UserData.UID); // and the pair is the target
 
         if (ChangedPermission == "IsBlindfolded" && (bool)ChangedValue is false)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
                 HardcoreAction.ForcedBlindfold, // Forced Follow Command Issued
                 (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
-                ApiController.UID, // We are the enactor
+                MainHub.UID, // We are the enactor
                 pair.UserData.UID); // and the pair is the target
 
         PropertyInfo? propertyInfo = typeof(UserPairPermissions).GetProperty(ChangedPermission);

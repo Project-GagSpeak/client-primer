@@ -10,6 +10,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Extensions;
@@ -60,13 +61,20 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         InitConfigs();
 
         // Subscribe to the connected message update so we know when to update our global permissions
-        Mediator.Subscribe<ConnectedMessage>(this, (msg) =>
+        Mediator.Subscribe<MainHubConnectedMessage>(this, _ =>
         {
+            // if our connection dto is null, we cannot proceed. (but it should never even happen.
+            if (MainHub.ConnectionDto is null)
+            {
+                Logger.LogError("MainHubConnectedMessage received with null value. (this shouldnt even be happening!!");
+                return;
+            }
+
             // update our configs to point to the new user.
-            if (msg.Connection.User.UID != _configService.Current.LastUidLoggedIn)
-                UpdateConfigs(msg.Connection.User.UID);
+            if (MainHub.ConnectionDto.User.UID != _configService.Current.LastUidLoggedIn)
+                UpdateConfigs(MainHub.ConnectionDto.User.UID);
             // update the last logged in UID
-            _configService.Current.LastUidLoggedIn = msg.Connection.User.UID;
+            _configService.Current.LastUidLoggedIn = MainHub.ConnectionDto.User.UID;
             Save();
         });
 

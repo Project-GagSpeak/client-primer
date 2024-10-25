@@ -20,7 +20,8 @@ public class UiFactory
 {
     private readonly ILoggerFactory _loggerFactory;
     private readonly GagspeakMediator _gagspeakMediator;
-    private readonly ApiController _apiController;
+    private readonly MainHub _apiHubMain;
+    private readonly ToyboxHub _apiHubToybox;
     private readonly UiSharedService _uiSharedService;
     private readonly ToyboxVibeService _vibeService;
     private readonly IdDisplayHandler _displayHandler;
@@ -37,7 +38,7 @@ public class UiFactory
     private readonly IClientState _clientState;
 
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator,
-        ApiController apiController, UiSharedService uiSharedService,
+        MainHub apiHubMain, ToyboxHub apiHubToybox, UiSharedService uiSharedService,
         ToyboxVibeService vibeService, IdDisplayHandler displayHandler,
         PairManager pairManager, PlayerCharacterData playerManager,
         ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
@@ -48,7 +49,8 @@ public class UiFactory
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;
-        _apiController = apiController;
+        _apiHubMain = apiHubMain;
+        _apiHubToybox = apiHubToybox;
         _uiSharedService = uiSharedService;
         _vibeService = vibeService;
         _displayHandler = displayHandler;
@@ -68,7 +70,7 @@ public class UiFactory
     public RemoteController CreateControllerRemote(PrivateRoom privateRoom)
     {
         return new RemoteController(_loggerFactory.CreateLogger<RemoteController>(), _gagspeakMediator,
-            _uiSharedService, _vibeService, _remoteService, _apiController, privateRoom);
+            _uiSharedService, _vibeService, _remoteService, _apiHubToybox, privateRoom);
     }
 
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)
@@ -82,6 +84,6 @@ public class UiFactory
     {
         return new PairStickyUI(_loggerFactory.CreateLogger<PairStickyUI>(), _gagspeakMediator, pair,
             drawType, _frameworkUtils, _clientConfigs, _playerManager, _displayHandler, _uiSharedService,
-            _apiController, _pairManager, _moodlesService, _presetService, _permActionHelpers, _clientState);
+            _apiHubMain, _pairManager, _moodlesService, _presetService, _permActionHelpers, _clientState);
     }
 }

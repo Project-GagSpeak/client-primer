@@ -5,6 +5,8 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
+using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Enums;
@@ -43,7 +45,7 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         _appearanceHandler = appearanceHandler;
 
         // Potentially move this until after all checks for validation are made to prevent invalid startups.
-        Mediator.Subscribe<ConnectedMessage>(this, (msg) => OnConnected(msg.Connection));
+        Mediator.Subscribe<MainHubConnectedMessage>(this, _ => OnConnected());
 
         Mediator.Subscribe<OnlinePairsLoadedMessage>(this, _ => CheckHardcore());
 
@@ -52,13 +54,19 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         Mediator.Subscribe<CustomizeDispose>(this, _ => _playerData.CustomizeProfiles = new List<CustomizeProfile>());
     }
 
-    private async void OnConnected(ConnectionDto connectionDto)
+    private async void OnConnected()
     {
+        if(MainHub.ConnectionDto is null)
+        {
+            Logger.LogError("Connection DTO is null. Cannot proceed with OnConnected Service. (This shouldnt even be possible)", LoggerType.ClientPlayerData);
+            return;
+        }
+
         Logger.LogInformation("------- Connected Message Received. Processing State Synchronization -------");
 
         Logger.LogDebug("Setting Global Perms & Appearance from Server.", LoggerType.ClientPlayerData);
-        _playerData.GlobalPerms = connectionDto.UserGlobalPermissions;
-        _playerData.AppearanceData = connectionDto.CharacterAppearanceData;
+        _playerData.GlobalPerms = MainHub.ConnectionDto.UserGlobalPermissions;
+        _playerData.AppearanceData = MainHub.ConnectionDto.CharacterAppearanceData;
         Logger.LogDebug("Data Set", LoggerType.ClientPlayerData);
 
         await _playerData.GetGlobalPiShockPerms();
@@ -75,7 +83,7 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         }
 
         Logger.LogInformation("Syncing Data with Connection DTO", LoggerType.ClientPlayerData);
-        var serverData = connectionDto.CharacterActiveStateData;
+        var serverData = MainHub.ConnectionDto.CharacterActiveStateData;
         // We should sync the active Restraint Set with the server's Active Set Name.
         if (serverData.ActiveSetName != string.Empty)
         {

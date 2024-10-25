@@ -65,7 +65,7 @@ public class BlindfoldUI : WindowMediatorSubscriberBase
         // set the stopwatch to send an elapsed time event after 2 seconds then stop
         _TimerRecorder = new UpdateTimer(2000, ToggleWindow);
 
-        Mediator.Subscribe<DisconnectedMessage>(this, (_) => IsOpen = false);
+        Mediator.Subscribe<MainHubDisconnectedMessage>(this, (_) => IsOpen = false);
 
         Mediator.Subscribe<BlindfoldUiTypeChange>(this, (msg) =>
         {

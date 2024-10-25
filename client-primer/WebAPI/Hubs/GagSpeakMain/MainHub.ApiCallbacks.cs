@@ -14,11 +14,14 @@ using FFXIVClientStructs.FFXIV.Common.Lua;
 
 namespace GagSpeak.WebAPI;
 
-public partial class ApiController // Partial class for MainHub Callbacks
+/// <summary>
+/// The Callbacks received from the server.
+/// </summary>
+public partial class MainHub
 {
-    /// <summary> Called when the server sends a message to the client. </summary>
-    /// <param name="messageSeverity">the severity level of the message</param>
-    /// <param name="message">the content of the message</param>
+    /// <summary> 
+    /// Called when the server sends a message to the client. 
+    /// </summary>
     public Task Client_ReceiveServerMessage(MessageSeverity messageSeverity, string message)
     {
         switch (messageSeverity)
@@ -34,9 +37,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
                 break;
 
             case MessageSeverity.Information:
-                if (_doNotNotifyOnNextInfo)
+                if (SuppressNextNotification)
                 {
-                    _doNotNotifyOnNextInfo = false;
+                    SuppressNextNotification = false;
                     break;
                 }
                 Mediator.Publish(new NotificationMessage("Info from " +
@@ -62,9 +65,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
                 break;
 
             case MessageSeverity.Information:
-                if (_doNotNotifyOnNextInfo)
+                if (SuppressNextNotification)
                 {
-                    _doNotNotifyOnNextInfo = false;
+                    SuppressNextNotification = false;
                     break;
                 }
                 Mediator.Publish(new NotificationMessage("Info from " +
@@ -72,42 +75,35 @@ public partial class ApiController // Partial class for MainHub Callbacks
                 break;
         }
         // we need to update the api server state to be stopped if connected
-        if (ServerState == ServerState.Connected)
+        if (ServerStatus is ServerState.Connected)
         {
             _ = Task.Run(async () =>
             {
                 // pause the server state
                 _serverConfigs.CurrentServer.FullPause = true;
                 _serverConfigs.Save();
-                _doNotNotifyOnNextInfo = true;
+                SuppressNextNotification = true;
                 // create a new connection to force the disconnect.
-                await CreateConnections().ConfigureAwait(false);
+                await Disconnect(ServerState.Disconnected).ConfigureAwait(false);
                 // after it stops, switch the connection pause back to false and create a new connection.
                 _serverConfigs.CurrentServer.FullPause = false;
                 _serverConfigs.Save();
-                _doNotNotifyOnNextInfo = true;
-                await CreateConnections().ConfigureAwait(false);
+                SuppressNextNotification = true;
+                await Connect().ConfigureAwait(false);
             });
         }
         // return completed
         return Task.CompletedTask;
     }
-
-    /// <summary> 
-    /// 
-    /// The server has just sent the client a Dto of its SystemInfo.
-    /// 
-    /// </summary>
+    
     public Task Client_UpdateSystemInfo(SystemInfoDto systemInfo)
     {
-        SystemInfoDto = systemInfo;
+        ServerSystemInfo = systemInfo;
         return Task.CompletedTask;
     }
 
     /// <summary> 
-    /// 
     /// Server has sent us a UserPairDto from one of our connected client pairs.
-    /// 
     /// </summary>
     public Task Client_UserAddClientPair(UserPairDto dto)
     {
@@ -117,9 +113,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     }
 
     /// <summary> 
-    /// 
     /// Server has sent us a UserDto that is requesting to be removed from our client pairs.
-    /// 
     /// </summary>
     public Task Client_UserRemoveClientPair(UserDto dto)
     {
@@ -145,7 +139,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserApplyMoodlesByStatus(ApplyMoodlesByStatusDto dto)
     {
         Logger.LogDebug("Client_UserApplyMoodlesByStatus: "+dto, LoggerType.Callbacks);
-        // obtain the localplayername and world
+        // obtain the local player name and world
         string NameWithWorld = _frameworkUtils.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtils.ClientPlayerAddress).GetAwaiter().GetResult()?.GetNameWithWorld() ?? string.Empty;
         ExecuteSafely(() => _clientCallbacks.ApplyStatusesToSelf(dto, NameWithWorld));
         return Task.CompletedTask;
@@ -190,7 +184,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateSelfAllGlobalPerms(UserAllGlobalPermChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.UID == _connectionDto?.User.UID)
+        if (dto.User.UID == ConnectionDto?.User.UID)
         {
             Logger.LogInformation("Updating all global permissions in bulk for self.", LoggerType.Callbacks);
             ExecuteSafely(() => _clientCallbacks.SetGlobalPerms(dto.GlobalPermissions));
@@ -206,7 +200,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateSelfAllUniquePerms(UserPairUpdateAllUniqueDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.UID == _connectionDto?.User.UID)
+        if (dto.User.UID == ConnectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -251,7 +245,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
 
     }
 
-    /// <summary> Sent to client from server informing them to update their own permission edit access settings </summary>
+    /// <summary> 
+    /// Inform another pair to update their pair perm access for you
+    /// </summary>
     public Task Client_UserUpdateSelfPairPermAccess(UserPairAccessChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfPairPermAccess: "+dto, LoggerType.Callbacks);
@@ -266,7 +262,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherAllPairPerms(UserPairUpdateAllPermsDto dto)
     {
         Logger.LogDebug("Client_UserUpdateOtherAllPairPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.UID == _connectionDto?.User.UID)
+        if (dto.User.UID == ConnectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -282,7 +278,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherAllGlobalPerms(UserAllGlobalPermChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.UID == _connectionDto?.User.UID)
+        if (dto.User.UID == ConnectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -298,7 +294,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherAllUniquePerms(UserPairUpdateAllUniqueDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfAllGlobalPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.UID == _connectionDto?.User.UID)
+        if (dto.User.UID == ConnectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -317,7 +313,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherPairPermsGlobal(UserGlobalPermChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateOtherPairPermsGlobal: "+dto, LoggerType.Callbacks);
-        if (dto.User.UID == _connectionDto?.User.UID)
+        if (dto.User.UID == ConnectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -336,7 +332,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherPairPerms(UserPairPermChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateOtherPairPerms: "+dto, LoggerType.Callbacks);
-        if (dto.User.UID == _connectionDto?.User.UID)
+        if (dto.User.UID == ConnectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -361,7 +357,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserUpdateOtherPairPermAccess(UserPairAccessChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateOtherPairPermAccess: "+dto, LoggerType.Callbacks);
-        if (dto.User.UID == _connectionDto?.User.UID)
+        if (dto.User.UID == ConnectionDto?.User.UID)
         {
             Logger.LogError("When updating permissions of otherUser, you shouldn't be calling yourself!");
             return Task.CompletedTask;
@@ -381,7 +377,7 @@ public partial class ApiController // Partial class for MainHub Callbacks
     public Task Client_UserReceiveCharacterDataComposite(OnlineUserCompositeDataDto dataDto)
     {
         Logger.LogTrace("Client_UserReceiveCharacterDataComposite:"+dataDto.User, LoggerType.Callbacks);
-        if (dataDto.User.UID == _connectionDto?.User.UID)
+        if (dataDto.User.UID == ConnectionDto?.User.UID)
         {
             Logger.LogWarning("Why are you trying to receive your own composite data? There is no need for this???");
             return Task.CompletedTask;
@@ -395,14 +391,18 @@ public partial class ApiController // Partial class for MainHub Callbacks
     }
 
 
-    /// <summary> Update Own Appearance Data </summary>
+    /// <summary> 
+    /// Update Own Appearance Data
+    /// </summary>
     public Task Client_UserReceiveOwnDataIpc(OnlineUserCharaIpcDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataIpc (not executing any functions):"+dataDto.User, LoggerType.Callbacks);
         return Task.CompletedTask;
     }
 
-    /// <summary> Update Other UserPair Ipc Data </summary>
+    /// <summary> 
+    /// Update Other UserPair Ipc Data 
+    /// </summary>
     public Task Client_UserReceiveOtherDataIpc(OnlineUserCharaIpcDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherDataIpc: "+dataDto, LoggerType.Callbacks);
@@ -411,7 +411,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
     }
 
 
-    /// <summary> Update Own Appearance Data </summary>
+    /// <summary> 
+    /// Update Own Appearance Data 
+    /// </summary>
     public Task Client_UserReceiveOwnDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataAppearance:"+dataDto.User, LoggerType.Callbacks);
@@ -420,7 +422,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
-    /// <summary> Update Other UserPair Appearance Data </summary>
+    /// <summary> 
+    /// Update Other UserPair Appearance Data
+    /// </summary>
     public Task Client_UserReceiveOtherDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherDataAppearance: {user}{updateKind}\n{data}", dataDto.User, dataDto.UpdateKind, dataDto.AppearanceData.ToString());
@@ -428,7 +432,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
-    /// <summary> Update Own Wardrobe Data </summary>
+    /// <summary>
+    /// Update Own Wardrobe Data 
+    /// </summary>
     public Task Client_UserReceiveOwnDataWardrobe(OnlineUserCharaWardrobeDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataWardrobe:"+dataDto.User, LoggerType.Callbacks);
@@ -438,7 +444,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
 
     }
 
-    /// <summary> Update Other UserPair Wardrobe Data </summary>
+    /// <summary> 
+    /// Update Other UserPair Wardrobe Data 
+    /// </summary>
     public Task Client_UserReceiveOtherDataWardrobe(OnlineUserCharaWardrobeDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherDataWardrobe:"+dataDto.User, LoggerType.Callbacks);
@@ -446,7 +454,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
-    /// <summary> Update Own UserPair Alias Data </summary>
+    /// <summary> 
+    /// Update Own UserPair Alias Data 
+    /// </summary>
     public Task Client_UserReceiveOwnDataAlias(OnlineUserCharaAliasDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataAlias:"+dataDto.User, LoggerType.Callbacks);
@@ -455,7 +465,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
-    /// <summary> Update Other UserPair Alias Data </summary>
+    /// <summary> 
+    /// Update Other UserPair Alias Data
+    /// </summary>
     public Task Client_UserReceiveOtherDataAlias(OnlineUserCharaAliasDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherDataAlias:"+dataDto.User, LoggerType.Callbacks);
@@ -463,7 +475,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
-    /// <summary> Update Own UserPair Toybox Data </summary>
+    /// <summary> 
+    /// Update Own UserPair Toybox Data 
+    /// </summary>
     public Task Client_UserReceiveOwnDataToybox(OnlineUserCharaToyboxDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnDataToybox:"+dataDto.User, LoggerType.Callbacks);
@@ -472,7 +486,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
-    /// <summary> Update Other UserPair Toybox Data </summary>
+    /// <summary> 
+    /// Update Other UserPair Toybox Data 
+    /// </summary>
     public Task Client_UserReceiveOtherDataToybox(OnlineUserCharaToyboxDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherDataToybox:"+dataDto.User, LoggerType.Callbacks);
@@ -488,7 +504,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
-    /// <summary> Receive a Shock Instruction from another Pair. </summary>
+    /// <summary> 
+    /// Receive a Shock Instruction from another Pair. 
+    /// </summary>
     public Task Client_UserReceiveShockInstruction(ShockCollarActionDto dto)
     {
         Logger.LogInformation("Received Instruction from: {dto}" + Environment.NewLine
@@ -525,7 +543,9 @@ public partial class ApiController // Partial class for MainHub Callbacks
     }
 
 
-    /// <summary> Receive a Global Chat Message. DO NOT LOG THIS. </summary>
+    /// <summary> 
+    /// Receive a Global Chat Message. DO NOT LOG THIS. 
+    /// </summary>
     public Task Client_GlobalChatMessage(GlobalChatMessageDto dto)
     {
         ExecuteSafely(() => Mediator.Publish(new GlobalChatMessage(dto, (dto.MessageSender.UID == UID))));
@@ -533,8 +553,11 @@ public partial class ApiController // Partial class for MainHub Callbacks
     }
 
 
-    /// <summary> Server has sent us a UserDto has just went offline, and is notifying all connected pairs about it.
-    /// <para> Use this info to update the UserDto in our pair manager so they are marked as offline.</para>
+    /// <summary> 
+    /// Server has sent us a UserDto has just went offline, and is notifying all connected pairs about it.
+    /// <para> 
+    /// Use this info to update the UserDto in our pair manager so they are marked as offline.
+    /// </para>
     /// </summary>
     public Task Client_UserSendOffline(UserDto dto)
     {
@@ -543,8 +566,11 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
-    /// <summary> Server has sent us a OnlineUserIdentDto that is notifying all connected pairs about a user going online.
-    /// <para> Use this info to update the UserDto in our pair manager so they are marked as online.</para>
+    /// <summary> 
+    /// Server has sent us a OnlineUserIdentDto that is notifying all connected pairs about a user going online.
+    /// <para> 
+    /// Use this info to update the UserDto in our pair manager so they are marked as online.
+    /// </para>
     /// </summary>
     public Task Client_UserSendOnline(OnlineUserIdentDto dto)
     {
@@ -553,8 +579,11 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
-    /// <summary> Server has sent us a UserDto from one of our client pairs that has just updated their profile.
-    /// <para> Use this information to publish a new message to our mediator so update it.</para>
+    /// <summary> 
+    /// Server has sent us a UserDto from one of our client pairs that has just updated their profile.
+    /// <para> 
+    /// Use this information to publish a new message to our mediator so update it.
+    /// </para>
     /// </summary>
     public Task Client_UserUpdateProfile(UserDto dto)
     {
@@ -570,252 +599,237 @@ public partial class ApiController // Partial class for MainHub Callbacks
         return Task.CompletedTask;
     }
 
-
-    /// <summary> A helper method to ensure the action is executed safely, and if an exception is thrown, it is logged.</summary>
-    /// <param name="act">the action to execute</param>
-    private void ExecuteSafely(Action act)
-    {
-        try
-        {
-            act();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogCritical(ex, "Error on executing safely");
-        }
-    }
-
     /* --------------------------------- void methods from the API to call the hooks --------------------------------- */
     public void OnReceiveServerMessage(Action<MessageSeverity, string> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_ReceiveServerMessage), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_ReceiveServerMessage), act);
     }
 
     public void OnReceiveHardReconnectMessage(Action<MessageSeverity, string, ServerState> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_ReceiveHardReconnectMessage), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_ReceiveHardReconnectMessage), act);
     }
 
     public void OnUpdateSystemInfo(Action<SystemInfoDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UpdateSystemInfo), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UpdateSystemInfo), act);
     }
 
     public void OnUserAddClientPair(Action<UserPairDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserAddClientPair), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserAddClientPair), act);
     }
 
     public void OnUserRemoveClientPair(Action<UserDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserRemoveClientPair), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserRemoveClientPair), act);
     }
 
     public void OnUserApplyMoodlesByGuid(Action<ApplyMoodlesByGuidDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserApplyMoodlesByGuid), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserApplyMoodlesByGuid), act);
     }
 
     public void OnUserApplyMoodlesByStatus(Action<ApplyMoodlesByStatusDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserApplyMoodlesByStatus), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserApplyMoodlesByStatus), act);
     }
 
     public void OnUserRemoveMoodles(Action<RemoveMoodlesDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserRemoveMoodles), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserRemoveMoodles), act);
     }
 
     public void OnUserClearMoodles(Action<UserDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserClearMoodles), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserClearMoodles), act);
     }
 
     public void OnUpdateUserIndividualPairStatusDto(Action<UserIndividualPairStatusDto> action)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UpdateUserIndividualPairStatusDto), action);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UpdateUserIndividualPairStatusDto), action);
     }
 
     public void OnUserUpdateSelfAllGlobalPerms(Action<UserAllGlobalPermChangeDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateSelfAllGlobalPerms), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateSelfAllGlobalPerms), act);
     }
 
     public void OnUserUpdateSelfAllUniquePerms(Action<UserPairUpdateAllUniqueDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateSelfAllUniquePerms), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateSelfAllUniquePerms), act);
     }
 
     public void OnUserUpdateSelfPairPermsGlobal(Action<UserGlobalPermChangeDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateSelfPairPermsGlobal), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateSelfPairPermsGlobal), act);
     }
 
     public void OnUserUpdateSelfPairPerms(Action<UserPairPermChangeDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateSelfPairPerms), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateSelfPairPerms), act);
     }
 
     public void OnUserUpdateSelfPairPermAccess(Action<UserPairAccessChangeDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateSelfPairPermAccess), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateSelfPairPermAccess), act);
     }
 
     public void OnUserUpdateOtherAllPairPerms(Action<UserPairUpdateAllPermsDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateOtherAllPairPerms), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateOtherAllPairPerms), act);
     }
 
     public void OnUserUpdateOtherAllGlobalPerms(Action<UserAllGlobalPermChangeDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateOtherAllGlobalPerms), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateOtherAllGlobalPerms), act);
     }
 
     public void OnUserUpdateOtherAllUniquePerms(Action<UserPairUpdateAllUniqueDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateOtherAllUniquePerms), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateOtherAllUniquePerms), act);
     }
 
     public void OnUserUpdateOtherPairPermsGlobal(Action<UserGlobalPermChangeDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateOtherPairPermsGlobal), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateOtherPairPermsGlobal), act);
     }
 
     public void OnUserUpdateOtherPairPerms(Action<UserPairPermChangeDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateOtherPairPerms), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateOtherPairPerms), act);
     }
     public void OnUserUpdateOtherPairPermAccess(Action<UserPairAccessChangeDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateOtherPairPermAccess), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateOtherPairPermAccess), act);
     }
 
     public void OnUserReceiveCharacterDataComposite(Action<OnlineUserCompositeDataDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveCharacterDataComposite), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveCharacterDataComposite), act);
     }
 
     public void OnUserReceiveOwnDataIpc(Action<OnlineUserCharaIpcDataDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveOwnDataIpc), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOwnDataIpc), act);
     }
 
     public void OnUserReceiveOtherDataIpc(Action<OnlineUserCharaIpcDataDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataIpc), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOtherDataIpc), act);
     }
 
     public void OnUserReceiveOwnDataAppearance(Action<OnlineUserCharaAppearanceDataDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveOwnDataAppearance), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOwnDataAppearance), act);
     }
 
     public void OnUserReceiveOtherDataAppearance(Action<OnlineUserCharaAppearanceDataDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataAppearance), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOtherDataAppearance), act);
     }
 
     public void OnUserReceiveOwnDataWardrobe(Action<OnlineUserCharaWardrobeDataDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveOwnDataWardrobe), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOwnDataWardrobe), act);
     }
 
     public void OnUserReceiveOtherDataWardrobe(Action<OnlineUserCharaWardrobeDataDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataWardrobe), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOtherDataWardrobe), act);
     }
 
     public void OnUserReceiveOwnDataAlias(Action<OnlineUserCharaAliasDataDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveOwnDataAlias), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOwnDataAlias), act);
     }
 
     public void OnUserReceiveOtherDataAlias(Action<OnlineUserCharaAliasDataDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataAlias), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOtherDataAlias), act);
     }
 
     public void OnUserReceiveOwnDataToybox(Action<OnlineUserCharaToyboxDataDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveOwnDataToybox), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOwnDataToybox), act);
     }
 
     public void OnUserReceiveOtherDataToybox(Action<OnlineUserCharaToyboxDataDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveOtherDataToybox), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOtherDataToybox), act);
     }
 
     public void OnUserReceiveDataPiShock(Action<OnlineUserCharaPiShockPermDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveDataPiShock), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveDataPiShock), act);
     }
 
     public void OnUserReceiveShockInstruction(Action<ShockCollarActionDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserReceiveShockInstruction), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveShockInstruction), act);
     }
 
     public void OnGlobalChatMessage(Action<GlobalChatMessageDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_GlobalChatMessage), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_GlobalChatMessage), act);
     }
 
     public void OnUserSendOffline(Action<UserDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserSendOffline), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserSendOffline), act);
     }
 
     public void OnUserSendOnline(Action<OnlineUserIdentDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserSendOnline), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserSendOnline), act);
     }
 
     public void OnUserUpdateProfile(Action<UserDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_UserUpdateProfile), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserUpdateProfile), act);
     }
 
     public void OnDisplayVerificationPopup(Action<VerificationDto> act)
     {
-        if (_initialized) return;
-        _gagspeakHub!.On(nameof(Client_DisplayVerificationPopup), act);
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_DisplayVerificationPopup), act);
     }
 }

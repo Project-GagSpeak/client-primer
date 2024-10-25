@@ -87,6 +87,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
                 else
                 {
                     Logger.LogInformation("User has empty achievement Save Data. Creating new Save Data.", LoggerType.Achievements);
+                    SaveData = new AchievementSaveData(_completionNotifier);
                 }
             }
 

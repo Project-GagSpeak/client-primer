@@ -18,9 +18,8 @@ namespace GagSpeak.UpdateMonitoring;
 /// <summary>
 /// The service responsible for handling framework updates and other Dalamud related services.
 /// </summary>
-public class OnFrameworkService : IHostedService, IMediatorSubscriber
+public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedService
 {
-    private readonly ILogger<OnFrameworkService> _logger;
     private readonly IClientState _clientState;
     private readonly ICondition _condition;
     private readonly IDataManager _gameData;
@@ -61,17 +60,12 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
     public string MainCityName => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Aetheryte>()?
         .FirstOrDefault(x => x.IsAetheryte && x.Territory.Row == _clientState.TerritoryType && x.Territory.Value?.TerritoryIntendedUse == 0)?.PlaceName.ToString() ?? "Unknown";
 
-
     public bool IsFrameworkUnloading => _framework.IsFrameworkUnloading;
-
-    // the mediator for Gagspeak's event services
-    public GagspeakMediator Mediator { get; }
 
     public OnFrameworkService(ILogger<OnFrameworkService> logger, GagspeakMediator mediator,
         IClientState clientState, ICondition condition, IDataManager gameData, IFramework framework, 
-        IGameGui gameGui, IObjectTable objectTable, IPartyList partyList, ITargetManager targetManager)
+        IGameGui gameGui, IObjectTable objectTable, IPartyList partyList, ITargetManager targetManager) : base(logger, mediator)
     {
-        _logger = logger;
         _clientState = clientState;
         _condition = condition;
         _gameData = gameData;
@@ -80,7 +74,6 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         _objectTable = objectTable;
         _partyList = partyList;
         _targetManager = targetManager;
-        Mediator = mediator;
 
         ClientPlayerAddress = GetPlayerPointerAsync().GetAwaiter().GetResult();
 
@@ -92,8 +85,6 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                 .Where(w => w.IsPublic && !w.Name.RawData.IsEmpty)
                 .ToDictionary(w => (ushort)w.RowId, w => w.Name.ToString());
         });
-
-        _clientState.ClassJobChanged += OnJobChanged;
 
         // stores added pairs character name and addresses when added.
         mediator.Subscribe<TargetPairMessage>(this, (msg) =>
@@ -108,6 +99,18 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                 targetManager.Target = CreateGameObject(addr);
             }).ConfigureAwait(false);
         });
+
+        _clientState.ClassJobChanged += OnJobChanged;
+        _clientState.Logout += OnLogout;
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+
+        // unsubscribe from the events.
+        _clientState.ClassJobChanged -= OnJobChanged;
+        _clientState.Logout -= OnLogout;
     }
 
     private void OnJobChanged(uint jobId)
@@ -115,6 +118,14 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         PlayerClassJobId = jobId;
         IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.JobChange);
     }
+
+    private void OnLogout()
+    {
+        Logger.LogWarning("Player Logged out from their client.");
+        IsLoggedIn = false;
+        Mediator.Publish(new DalamudLogoutMessage());
+    }
+
 
     public void OpenMapWithMapLink(MapLinkPayload mapLink) => _gameGui.OpenMapWithMapLink(mapLink);
     public string GetEmoteName(uint emoteId) => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Emote>()?.GetRow(emoteId)?.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") ?? $"Emote#{emoteId}";
@@ -316,7 +327,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
             await _framework.RunOnFrameworkThread(act).ContinueWith((_) => Task.CompletedTask).ConfigureAwait(false);
             while (_framework.IsInFrameworkUpdateThread) // yield the thread again, should technically never be triggered
             {
-                _logger.LogTrace("Still on framework");
+                Logger.LogTrace("Still on framework");
                 await Task.Delay(1).ConfigureAwait(false);
             }
         }
@@ -334,7 +345,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
             var result = await _framework.RunOnFrameworkThread(func).ContinueWith((task) => task.Result).ConfigureAwait(false);
             while (_framework.IsInFrameworkUpdateThread) // yield the thread again, should technically never be triggered
             {
-                _logger.LogTrace("Still on framework");
+                Logger.LogTrace("Still on framework");
                 await Task.Delay(1).ConfigureAwait(false);
             }
             return result;
@@ -346,17 +357,17 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        _logger.LogInformation("Starting OnFrameworkService");
+        Logger.LogInformation("Starting OnFrameworkService");
         // subscribe to the framework updates
         _framework.Update += FrameworkOnUpdate;
 
-        _logger.LogInformation("Started OnFrameworkService");
+        Logger.LogInformation("Started OnFrameworkService");
         return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
-        _logger.LogTrace("Stopping {type}", GetType());
+        Logger.LogTrace("Stopping {type}", GetType());
         // unsubscribe from all mediator messages
         Mediator.UnsubscribeAll(this);
         // unsubscribe from the framework updates
@@ -418,26 +429,26 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
 
         if (InCutsceneEvent && !IsInCutscene)
         {
-            _logger.LogDebug("Cutscene start");
+            Logger.LogDebug("Cutscene start");
             IsInCutscene = true;
             Mediator.Publish(new CutsceneBeginMessage());
         }
         else if (!InCutsceneEvent && IsInCutscene)
         {
-            _logger.LogDebug("Cutscene end");
+            Logger.LogDebug("Cutscene end");
             IsInCutscene = false;
             Mediator.Publish(new CutsceneEndMessage());
         }
 
         if(_clientState.IsGPosing && !IsInGpose)
         {
-            _logger.LogDebug("Gpose start");
+            Logger.LogDebug("Gpose start");
             IsInGpose = true;
             Mediator.Publish(new GPoseStartMessage());
         }
         else if(!_clientState.IsGPosing && IsInGpose)
         {
-            _logger.LogDebug("Gpose end");
+            Logger.LogDebug("Gpose end");
             IsInGpose = false;
             Mediator.Publish(new GPoseEndMessage());
         }
@@ -456,7 +467,7 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
                 if (!_sentBetweenAreas)
                 {
                     // we know we are starting a zone switch, so publish it to the mediator and set sent between areas to true
-                    _logger.LogDebug("Zone switch start");
+                    Logger.LogDebug("Zone switch start");
                     _sentBetweenAreas = true;
                     Mediator.Publish(new ZoneSwitchStartMessage(_lastZone));
                 }
@@ -468,14 +479,14 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         // this is called while are zoning between areas has ended
         if (_sentBetweenAreas)
         {
-            _logger.LogDebug("Zone switch end");
+            Logger.LogDebug("Zone switch end");
             _sentBetweenAreas = false;
             Mediator.Publish(new ZoneSwitchEndMessage());
             // if our commendation count is different, update it and invoke the event with the difference.
             var newCommendations = PlayerState.Instance()->PlayerCommendations;
             if (newCommendations != LastCommendationsCount)
             {
-                _logger.LogDebug("Our Previous Commendation Count was: "+LastCommendationsCount+" and our new commendation count is: "+newCommendations);
+                Logger.LogDebug("Our Previous Commendation Count was: "+LastCommendationsCount+" and our new commendation count is: "+newCommendations);
                 Mediator.Publish(new CommendationsIncreasedMessage(newCommendations - LastCommendationsCount));
                 LastCommendationsCount = newCommendations;
 
@@ -499,21 +510,13 @@ public class OnFrameworkService : IHostedService, IMediatorSubscriber
         if (localPlayer != null && !IsLoggedIn)
         {
             // they have logged in, so set IsLoggedIn to true, and publish the DalamudLoginMessage
-            _logger.LogDebug("Logged in");
+            Logger.LogDebug("Logged in");
             IsLoggedIn = true;
             _lastZone = _clientState.TerritoryType;
             ClientPlayerAddress = GetPlayerPointerAsync().GetAwaiter().GetResult();
             PlayerClassJobId = _clientState.LocalPlayer?.ClassJob.Id ?? 0;
             LastCommendationsCount = PlayerState.Instance()->PlayerCommendations;
             Mediator.Publish(new DalamudLoginMessage());
-        }
-        // otherwise, if the local player is null and isLoggedIn is true, meaning they just logged out
-        else if (localPlayer == null && IsLoggedIn)
-        {
-            // so log it and publish the DalamudLogoutMessage
-            _logger.LogDebug("Logged out");
-            IsLoggedIn = false;
-            Mediator.Publish(new DalamudLogoutMessage());
         }
 
         // push the delayed framework update message to the mediator for things like the UI and the online player manager

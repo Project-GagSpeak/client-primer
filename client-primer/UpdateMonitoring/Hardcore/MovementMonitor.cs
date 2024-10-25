@@ -4,6 +4,7 @@ using Dalamud.Game.ClientState.Objects;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
+using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Common.Lua;
 using GagSpeak.GagspeakConfiguration.Models;
@@ -21,6 +22,7 @@ using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using static Lumina.Data.Parsing.Layer.LayerCommon;
 using XivControl = FFXIVClientStructs.FFXIV.Client.Game.Control;
 
 namespace GagSpeak.UpdateMonitoring;
@@ -202,14 +204,31 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             if (!_condition[ConditionFlag.OccupiedInQuestEvent] && !_frameworkUtils._sentBetweenAreas)
             {
                 // grab all the event object nodes (door interactions)
-                var nodes = _objectTable.Where(x => x.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.EventObj && GetTargetDistance(x) < 2f).ToList();
-                // Interact with the node Labeled "Entrance"
-                foreach (var obj in nodes)
-                    if (obj.Name.TextValue is "Entrance" or "Apartment Building Entrance" or "Entrance to Additional Chambers")
-                    {
-                        _targetManager.Target = obj;
-                        TargetSystem.Instance()->InteractWithObject((GameObject*)obj.Address, false);
-                    }
+                var node = _objectTable.Where(x => x.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.EventObj)
+                .FirstOrDefault(o =>
+                {
+                    // skip if the object is null
+                    if (o == null) return false;
+
+                    // Satisfies conditions for Estate / Apartment Complex entrance.
+                    var dis = GetTargetDistance(o);
+                    if (o.Name.TextValue is "Entrance" or "Apartment Building Entrance" && dis < 3.5f)
+                        return true;
+
+                    // Satisfies conditons for chamber enterance.
+                    if (o.Name.TextValue is "Entrance to Additional Chambers" && dis < 2f)
+                        return true;
+
+                    // its false in all other cases.
+                    return false;
+                });
+
+                // if we have a node, set it as the target and interact with it.
+                if (node is not null)
+                {
+                    _targetManager.Target = node;
+                    TargetSystem.Instance()->InteractWithObject((GameObject*)node.Address, false);
+                }
             }
         }
 

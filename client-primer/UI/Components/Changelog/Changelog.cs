@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 6, 6)
+            .RegisterFeature("Removed the import button as it's no longer necessary with the Pattern Hub")
+            .RegisterBugfix("Fixed Distances being incorrectly measured during Hardcore ForcedStay");
         VersionEntry(0, 9, 6, 4)
             .RegisterMain("Finally got around to making a better ApiController than Mare's Controller Format.")
             .RegisterMain("Client-to-Server communication is now more streamlined and efficient.")

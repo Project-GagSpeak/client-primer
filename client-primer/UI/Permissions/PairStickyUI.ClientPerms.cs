@@ -353,14 +353,14 @@ public partial class PairStickyUI
             true, PermissionType.Hardcore);
 
 
-        string shockCollarPairShareCode = UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode ?? string.Empty;
+        string shockCollarPairShareCode = OwnPerms.ShockCollarShareCode ?? string.Empty;
         using (var group = ImRaii.Group())
         {
             float width = IconButtonTextWidth - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Sync, "Refresh") + ImGui.GetFrameHeight();
             if (_uiShared.IconInputText("ShockCollarShareCode" + PairUID, FontAwesomeIcon.ShareAlt, string.Empty, "Unique Share Code...",
             ref shockCollarPairShareCode, 40, width, true, false))
             {
-                UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode = shockCollarPairShareCode;
+                OwnPerms.ShockCollarShareCode = shockCollarPairShareCode;
             }
             // Set the permission once deactivated. If invalid, set to default.
             if (ImGui.IsItemDeactivatedAfterEdit())

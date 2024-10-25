@@ -75,7 +75,6 @@ public class ToyboxPatterns
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
         var iconSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Plus);
-        var importSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.FileImport, "Import");
         Vector2 textSize;
         using (_uiShared.UidFont.Push())
         {
@@ -98,18 +97,6 @@ public class ToyboxPatterns
             ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(startYpos);
             _uiShared.BigText("New Pattern");
-
-            // now calculate it so that the cursors Y position centers the button in the middle height of the text
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - importSize - ImGui.GetStyle().ItemSpacing.X);
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
-
-            // draw revert button at the same location but right below that button
-            if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import"))
-            {
-                // Paste in the pattern data from the clipboard if valid.
-                SetFromClipboard();
-            }
-            UiSharedService.AttachToolTip("Click me paste in a new pattern currently copied to your clipboard!");
         }
     }
 
@@ -241,30 +228,33 @@ public class ToyboxPatterns
     {
         var region = ImGui.GetContentRegionAvail();
         var topLeftSideHeight = region.Y;
-        for (int i = 0; i < FilteredPatternsList.Count; i++)
+
+        using (var rightChild = ImRaii.Child($"###WardrobeSetPreview", region with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
         {
-            var set = FilteredPatternsList[i];
-            DrawPatternSelectable(set, i);
-
-            if (ImGui.IsItemHovered())
-                LastHoveredIndex = i;
-
-            // if the item is right clicked, open the popup
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredPatternsList[i].IsActive)
+            for (int i = 0; i < FilteredPatternsList.Count; i++)
             {
-                ImGui.OpenPopup($"PatternDataContext{i}");
-            }
-        }
+                var set = FilteredPatternsList[i];
+                DrawPatternSelectable(set, i);
 
-        if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredPatternsList.Count)
-        {
-            if (ImGui.BeginPopup($"PatternDataContext{LastHoveredIndex}"))
-            {
-                if (ImGui.Selectable("Delete Pattern") && FilteredPatternsList[LastHoveredIndex] is not null)
+                if (ImGui.IsItemHovered())
+                    LastHoveredIndex = i;
+
+                // if the item is right clicked, open the popup
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredPatternsList[i].IsActive)
                 {
-                    _handler.RemovePattern(FilteredPatternsList[LastHoveredIndex].UniqueIdentifier);
+                    ImGui.OpenPopup($"PatternDataContext{i}");
                 }
-                ImGui.EndPopup();
+            }
+            if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredPatternsList.Count)
+            {
+                if (ImGui.BeginPopup($"PatternDataContext{LastHoveredIndex}"))
+                {
+                    if (ImGui.Selectable("Delete Pattern") && FilteredPatternsList[LastHoveredIndex] is not null)
+                    {
+                        _handler.RemovePattern(FilteredPatternsList[LastHoveredIndex].UniqueIdentifier);
+                    }
+                    ImGui.EndPopup();
+                }
             }
         }
     }

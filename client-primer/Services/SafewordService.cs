@@ -111,6 +111,19 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             }
             Logger.LogInformation("Everything Disabled.", LoggerType.Safeword);
 
+            // Revert any pairs we have the "InHardcoreMode" permission set.
+            foreach (var pair in _pairManager.DirectPairs)
+            {
+                if (pair.UserPair.OwnPairPerms.InHardcore)
+                {
+                    // put us out of hardcore, and disable any active hardcore stuff.
+                    pair.UserPairOwnUniquePairPerms.InHardcore = false;
+                    // send the updates to the server.
+                    if (MainHub.ServerStatus is ServerState.Connected)
+                        _ = _apiHubMain.UserUpdateOwnPairPerm(new(pair.UserData, new KeyValuePair<string, object>("InHardcore", false)));
+                }
+            }
+
             // reverting character.
             IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.Safeword);
 
@@ -164,6 +177,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
                 pair.UserPairOwnUniquePairPerms.InHardcore = false;
                 pair.UserPairOwnUniquePairPerms.AllowForcedFollow = false;
                 pair.UserPairOwnUniquePairPerms.AllowForcedSit = false;
+                pair.UserPairOwnUniquePairPerms.AllowForcedEmote = false;
                 pair.UserPairOwnUniquePairPerms.AllowForcedToStay = false;
                 pair.UserPairOwnUniquePairPerms.AllowBlindfold = false;
                 pair.UserPairOwnUniquePairPerms.AllowHidingChatboxes = false;

@@ -198,46 +198,6 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                 Marshal.WriteByte((nint)gameControl, 24131, 0x1);
         }
 
-        // FORCED Emote LOGIC Logic.
-        if (_handler.MonitorEmoteLogic)
-        {
-            // Enable the movement Lock
-            _MoveController.EnableMovementLock();
-            // If our Forced Emote State UIS is not string.empty, we should attempt to execute the emote.
-            if (_handler.ForcedEmoteState.UID != string.Empty)
-            {
-                // We should be executing an emote, so get our current EmoteID.
-                ushort currentEmote = _emoteMonitor.CurrentEmoteId();
-                // If the Emote to force is 50, ensure we are sitting.
-                if(_handler.ForcedEmoteState.EmoteID is 50 && !EmoteMonitor.IsSitting(currentEmote))
-                {
-                    Logger.LogDebug("Forcing Normal Sit");
-                    EmoteMonitor.ExecuteEmote(50);
-                }
-                else if(_handler.ForcedEmoteState.EmoteID is not 52 && EmoteMonitor.IsGroundSitting(currentEmote))
-                {
-                    Logger.LogDebug("Forcing GroundSit");
-                    EmoteMonitor.ExecuteEmote(52);
-                }
-                // if the emote requested was a sit/groundSit type, handle the cycle pose state.
-                if (_handler.ForcedEmoteState.EmoteID is (50 or 52))
-                {
-                    // Force the cycle pose state to the expected state.
-                    if (_emoteMonitor.CurrentCyclePose() != _handler.ForcedEmoteState.CyclePoseByte)
-                        _emoteMonitor.ForceCyclePose(_handler.ForcedEmoteState.CyclePoseByte);
-                }
-                else
-                {
-                    // Its just another looped emote, so force the emote to play if we are not set to the requested.
-                    if (currentEmote != _handler.ForcedEmoteState.EmoteID)
-                    {
-                        Logger.LogDebug("Forcing Emote: " + _handler.ForcedEmoteState.EmoteID);
-                        EmoteMonitor.ExecuteEmote(_handler.ForcedEmoteState.EmoteID);
-                    }
-                }
-            }
-        }
-
         // FORCED STAY LOGIC: Handle Forced Stay
         if (_handler.MonitorStayLogic)
         {
@@ -314,6 +274,49 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         {
             if (cameraManager->Camera is not null && cameraManager->Camera->Mode is not (int)CameraControlMode.FirstPerson)
                 cameraManager->Camera->Mode = (int)CameraControlMode.FirstPerson;
+        }
+
+        // FORCED Emote LOGIC Logic.
+        if (_handler.MonitorEmoteLogic)
+        {
+            // Enable the movement Lock
+            _MoveController.EnableMovementLock();
+            // If our Forced Emote State UIS is not string.empty, we should attempt to execute the emote.
+            if (_handler.ForcedEmoteState.UID != string.Empty)
+            {
+                // We should be executing an emote, so get our current EmoteID.
+                ushort currentEmote = _emoteMonitor.CurrentEmoteId();
+                // ignore it if we dont have it unlocked.
+                if (!EmoteMonitor.CanUseEmote(_handler.ForcedEmoteState.EmoteID))
+                    return;
+
+                // Check to see if we should be handling the expected at all.
+                if(_emoteMonitor.ShouldHandleExpected(_handler.ForcedEmoteState, out bool doEmote, out bool doCyclePose, out bool ensureNoSit))
+                {
+                    // If we should do the emote, perform the emote check.
+                    if (doEmote)
+                    {
+                        if(ensureNoSit)
+                        {
+                            Logger.LogDebug("Forcing Emote: /SIT. (Current emote was: " + currentEmote + ")");
+                            EmoteMonitor.ExecuteEmote(50);
+                        }
+                        else
+                        {
+                            Logger.LogDebug("Forcing Emote: " + _handler.ForcedEmoteState.EmoteID + "(Current emote was: " + currentEmote + ")");
+                            EmoteMonitor.ExecuteEmote(_handler.ForcedEmoteState.EmoteID);
+                        }
+                    }
+
+                    // If we should do the cycle pose, perform the cycle pose check.
+                    if (doCyclePose && !EmoteMonitor.IsCyclePoseTaskRunning)
+                    {
+                        // Force the cycle pose state to the expected state.
+                        if (_emoteMonitor.CurrentCyclePose() != _handler.ForcedEmoteState.CyclePoseByte)
+                            _emoteMonitor.ForceCyclePose(_handler.ForcedEmoteState.CyclePoseByte);
+                    }
+                }
+            }
         }
     }
 

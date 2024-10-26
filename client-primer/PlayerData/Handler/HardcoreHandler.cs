@@ -169,10 +169,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         if (newState is NewState.Enabled)
         {
             Logger.LogDebug("Enabled forced Emote State for pair.", LoggerType.HardcoreMovement);
-            // if the emote requested is not what our current emote is, update it.
-            var currentPose = _emoteMonitor.CurrentEmoteId();
-            if(ForcedEmoteState.EmoteID != 0 && currentPose != ForcedEmoteState.EmoteID)
-                EmoteMonitor.ExecuteEmote(ForcedEmoteState.EmoteID);
+            // The update handler will take care of this.
         }
 
         if (newState is NewState.Disabled)

@@ -117,39 +117,5 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         {
             Mediator.Publish(new UiToggleMessage(typeof(AchievementsUI)));
         }
-
-        // Emote Monitor Testing:
-        UiSharedService.ColorText("Emote ID: ", ImGuiColors.ParsedGold);
-        ImGui.SameLine();
-        ImGui.TextUnformatted(_emoteMonitor.CurrentEmoteId().ToString());
-        UiSharedService.ColorText("Cycle Pose: ", ImGuiColors.ParsedGold);
-        ImGui.SameLine();
-        ImGui.TextUnformatted(_emoteMonitor.CurrentCyclePose().ToString());
-
-        _uiShared.DrawComboSearchable("EmoteList", 225f, ref emoteSearchString, EmoteMonitor.EmoteData.Values.ToArray(), chosen => chosen.ComboEmoteName(), 
-            false, (chosen) => _selectedEmote = chosen, _selectedEmote ?? EmoteMonitor.EmoteData.Values.First());
-        ImGui.SameLine();
-        if (ImGui.Button("Do It"))
-        {
-            if(_selectedEmote is not null)
-                EmoteMonitor.ExecuteEmote((ushort)_selectedEmote.RowId);
-        }
-
-        using (ImRaii.Disabled(!EmoteMonitor.IsAnyPoseWithCyclePose(_emoteMonitor.CurrentEmoteId())))
-        {
-            // Add a dropdown here for the cpose byte selection, can pick between 0-4 for sitting, 0 and 3 for ground sitting.
-            int max = EmoteMonitor.EmoteCyclePoses(_emoteMonitor.CurrentEmoteId());
-            ImGui.SetNextItemWidth(50f);
-            ImGui.SliderInt("##EnforceCyclePose", ref _cyclePose, 0, max-1);
-            ImGui.SameLine();
-            if (ImGui.Button("Force Pose"))
-            {
-                _emoteMonitor.ForceCyclePose((byte)_cyclePose);
-            }
-        }
-
     }
-    private int _cyclePose = 0;
-    private string emoteSearchString = string.Empty;
-    private Emote? _selectedEmote;
 }

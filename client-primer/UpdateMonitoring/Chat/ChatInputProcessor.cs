@@ -95,7 +95,7 @@ public unsafe class ChatInputDetour : IDisposable
             }
 
             // Handle unique condition for being in a forced sit state.
-            if (/*!_playerManager.GlobalPerms.ForcedEmoteState.NullOrEmpty()*/true)
+            if (!_playerManager.GlobalPerms.ForcedEmoteState.NullOrEmpty())
             {
                 // cancel all emote commands if we are in a forced emote state.
                 var emoteAttemptCmd = Encoding.UTF8.GetString(*message, bc);

@@ -89,6 +89,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         Mediator.Subscribe<SafewordHardcoreUsedMessage>(this, _ => SafewordUsed());
 
         Mediator.Subscribe<FrameworkUpdateMessage>(this, _ => FrameworkUpdate());
+        Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, _ => EmoteUpdate());
 
         IpcFastUpdates.HardcoreTraitsEventFired += ToggleHardcoreTraits;
     }
@@ -278,34 +279,34 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
 
         // FORCED Emote LOGIC Logic.
         if (_handler.MonitorEmoteLogic)
-        {
-            // Enable the movement Lock
             _MoveController.EnableMovementLock();
+    }
+
+    private unsafe void EmoteUpdate()
+    {
+        if (_handler.MonitorEmoteLogic)
+        {
             // If our Forced Emote State UIS is not string.empty, we should attempt to execute the emote.
             if (_handler.ForcedEmoteState.UID != string.Empty)
             {
                 // We should be executing an emote, so get our current EmoteID.
                 ushort currentEmote = _emoteMonitor.CurrentEmoteId();
-                // ignore it if we dont have it unlocked.
-                if (!EmoteMonitor.CanUseEmote(_handler.ForcedEmoteState.EmoteID))
+                if (currentEmote is 51)
                     return;
 
                 // Check to see if we should be handling the expected at all.
-                if(_emoteMonitor.ShouldHandleExpected(_handler.ForcedEmoteState, out bool doEmote, out bool doCyclePose, out bool ensureNoSit))
+                if (_emoteMonitor.ShouldHandleExpected(_handler.ForcedEmoteState, out bool doEmote, out bool doCyclePose, out bool ensureNoSit))
                 {
                     // If we should do the emote, perform the emote check.
-                    if (doEmote)
+                    if (ensureNoSit)
                     {
-                        if(ensureNoSit)
-                        {
-                            Logger.LogDebug("Forcing Emote: /SIT. (Current emote was: " + currentEmote + ").");
-                            EmoteMonitor.ExecuteEmote(50);
-                        }
-                        else
-                        {
-                            Logger.LogDebug("Forcing Emote: " + _handler.ForcedEmoteState.EmoteID + "(Current emote was: " + currentEmote + ")");
-                            EmoteMonitor.ExecuteEmote(_handler.ForcedEmoteState.EmoteID);
-                        }
+                        Logger.LogDebug("Forcing Emote: /SIT. (Current emote was: " + currentEmote + ").");
+                        EmoteMonitor.ExecuteEmote(50);
+                    }
+                    else if (doEmote)
+                    {
+                        Logger.LogDebug("Forcing Emote: " + _handler.ForcedEmoteState.EmoteID + "(Current emote was: " + currentEmote + ")");
+                        EmoteMonitor.ExecuteEmote(_handler.ForcedEmoteState.EmoteID);
                     }
 
                     // If we should do the cycle pose, perform the cycle pose check.

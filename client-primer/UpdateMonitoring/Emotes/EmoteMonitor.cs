@@ -1,10 +1,12 @@
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagspeakAPI.Extensions;
+using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
+using Lumina.Text;
 using System.Collections.ObjectModel;
 using ClientStructFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
@@ -27,19 +29,37 @@ public class EmoteMonitor
         _frameworkUtils = frameworkUtils;
         _clientState = clientState;
         _gameData = dataManager;
-        EmoteData = _gameData.GetExcelSheet<Emote>()!.Where(x=> x.RowId is (50 or 52) || x.EmoteMode.Value?.ConditionMode is 3).ToDictionary(x => x.RowId, x => x).AsReadOnly();
+        EmoteDataAll = _gameData.GetExcelSheet<Emote>()!;
+        EmoteDataLoops = EmoteDataAll.Where(x => x.RowId is (50 or 52) || x.EmoteMode.Value?.ConditionMode is 3).ToDictionary(x => x.RowId, x => x).AsReadOnly();
+        // initialize the commands list.
+        foreach (var emoteCommand in EmoteDataAll)
+        {
+            var cmd = emoteCommand.TextCommand.Value?.Command;
+            if (cmd != null && cmd != "") EmoteCommands.Add(cmd);
+            cmd = emoteCommand.TextCommand.Value?.ShortCommand;
+            if (cmd != null && cmd != "") EmoteCommands.Add(cmd);
+            cmd = emoteCommand.TextCommand.Value?.Alias;
+            if (cmd != null && cmd != "") EmoteCommands.Add(cmd);
+            cmd = emoteCommand.TextCommand.Value?.ShortAlias;
+            if (cmd != null && cmd != "") EmoteCommands.Add(cmd);
+        }
+        // log all recorded emotes.
+        _logger.LogDebug("Emote Commands: " + string.Join(", ", EmoteCommands));
     }
 
     public static readonly ushort[] StandIdleList = new ushort[] { 0, 91, 92, 107, 108, 218, 219 };
     public static readonly ushort[] SitIdList = new ushort[] { 50, 95, 96, 254, 255 };
     public static readonly ushort[] GroundSitIdList = new ushort[] { 52, 97, 98, 117 };
-    public static ReadOnlyDictionary<uint, Emote> EmoteData = new ReadOnlyDictionary<uint, Emote>(new Dictionary<uint, Emote>());
+    public static ExcelSheet<Emote> EmoteDataAll = null!;
+    public static ReadOnlyDictionary<uint, Emote> EmoteDataLoops = null!;
+    public static HashSet<string> EmoteCommands = [];
+
     // create a IEnumerable array that only consists of the emote data from keys of 50 and 52.
-    public static IEnumerable<Emote> SitEmoteComboList => EmoteData.Where(x => x.Key == 50 || x.Key == 52).Select(x => x.Value);
-    public static IEnumerable<Emote> EmoteComboList => EmoteData.Values.ToArray();
+    public static IEnumerable<Emote> SitEmoteComboList => EmoteDataLoops.Where(x => x.Key == 50 || x.Key == 52).Select(x => x.Value);
+    public static IEnumerable<Emote> EmoteComboList => EmoteDataLoops.Values.ToArray();
     public static string GetEmoteName(uint emoteId)
     {
-        if (EmoteData.TryGetValue(emoteId, out var emote)) return emote?.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") ?? $"Emote#{emoteId}";
+        if (EmoteDataLoops.TryGetValue(emoteId, out var emote)) return emote?.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") ?? $"Emote#{emoteId}";
         return $"Emote#{emoteId}";
     }
 
@@ -49,20 +69,20 @@ public class EmoteMonitor
 
     // This is valid for both if its not unlocked or if you are on cooldown.
     public static unsafe bool CanUseEmote(ushort emoteId) => EmoteAgentRef->CanUseEmote(emoteId);
-    
+
     // Perform the Emote if we can execute it.
     public static unsafe void ExecuteEmote(ushort emoteId)
     {
-        if (!CanUseEmote(emoteId)) return; 
+        if (!CanUseEmote(emoteId)) return;
         EmoteAgentRef->ExecuteEmote(emoteId);
     }
 
     // Obtain the number of cycle poses available for the given emote ID.
     public static int EmoteCyclePoses(ushort emoteId)
     {
-        if(IsStandingIdle(emoteId)) return 7;
-        if(IsSitting(emoteId)) return 4;
-        if(IsGroundSitting(emoteId)) return 3;
+        if (IsStandingIdle(emoteId)) return 7;
+        if (IsSitting(emoteId)) return 4;
+        if (IsGroundSitting(emoteId)) return 3;
         return 0;
     }
     public static bool IsStandingIdle(ushort emoteId) => StandIdleList.Contains(emoteId);
@@ -150,6 +170,7 @@ public class EmoteMonitor
         // if our expected state is not 50 or 52, but we are in any state, we need to execute /sit instead.
         if (IsSittingAny(currentEmote) && emoteState.EmoteID is not (50 or 52))
         {
+            _logger.LogDebug("Forcing player to stand up from sitting state.", LoggerType.HardcoreMovement);
             // We are sitting, so we need to execute the sit emote, but not the cycle pose.
             ensureNoSit = true;
             return true;

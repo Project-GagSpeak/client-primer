@@ -95,16 +95,16 @@ public unsafe class ChatInputDetour : IDisposable
             }
 
             // Handle unique condition for being in a forced sit state.
-            if (_playerManager.GlobalPerms.IsSitting() && _emoteMonitor.CurrentEmoteId() is 97)
+            if (/*!_playerManager.GlobalPerms.ForcedEmoteState.NullOrEmpty()*/true)
             {
-                // cancel the message if it is a /cpose while being forced to sit on knees.
-                var cposeAttemptStr = Encoding.UTF8.GetString(*message, bc);
-                if (cposeAttemptStr.StartsWith("/"))
+                // cancel all emote commands if we are in a forced emote state.
+                var emoteAttemptCmd = Encoding.UTF8.GetString(*message, bc);
+                if (emoteAttemptCmd.StartsWith("/"))
                 {
                     // cancel the message if it is a /cpose while forced to sit and on our knees, deny it.
-                    if (cposeAttemptStr.StartsWith("/cpose") || cposeAttemptStr.StartsWith("/sit") || cposeAttemptStr.StartsWith("/groundsit"))
+                    if (EmoteMonitor.EmoteCommands.Any(cmd => emoteAttemptCmd.Contains(cmd, StringComparison.OrdinalIgnoreCase)))
                     {
-                        _logger.LogTrace("Attempted to execute /cpose while being forced to sit. Blocking!", LoggerType.HardcoreMovement);
+                        _logger.LogTrace("Attempted to execute emote while being forced to emote. Blocking!", LoggerType.HardcoreMovement);
                         // Send an empty string
                         var emptyString = "";
                         var emptyBytes = Encoding.UTF8.GetBytes(emptyString);

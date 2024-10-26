@@ -346,7 +346,8 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
     {
         try
         {
-            //Logger.LogTrace($" UseActionDetour called {acId} {type}");
+            // Log all detours from the action called.
+            Logger.LogTrace($"UseActionDetour called ACid: {acId} Type: {type} Target: {target} A5: {a5} A6: {a6} A7: {a7}", LoggerType.HardcoreActions);
 
             // If someone is forcing us to stay, we should block access to teleports and other methods of death.
             if (_hardcoreHandler.MonitorStayLogic)

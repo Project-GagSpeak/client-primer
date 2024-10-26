@@ -19,6 +19,11 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 6, 9)
+            .RegisterMain("Nice Version Number.")
+            .RegisterMain("Hopefully fixes most of the emotelock commands.")
+            .RegisterFeature("Please note that it's still going through some of its kinks and its difficult to account for every edge case. Im looking into a better way to catch emote execution but for now what it offers is its best.")
+            .RegisterFeature("PLEASE Keep an eye out on your logs when you are using this, if you get flooded with emote messages being forced /safewordhardcore");
         VersionEntry(0, 9, 6, 7)
             .RegisterMain("Reworked Hardcore ForcedSit and ForcedGroundsit to ForcedEmote.")
             .RegisterFeature("You can now force Pairs to maintain ANY looped emote state.")

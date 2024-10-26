@@ -70,20 +70,20 @@ public partial class PairStickyUI
             ? $"Let {PairNickOrAliasOrUID} move again." : (PairPerms.AllowForcedEmote ? $"Force {PairNickOrAliasOrUID} into an Emote State." : $"Force {PairNickOrAliasOrUID} to Sit.");
         if (_uiShared.IconTextButton(forceEmoteIcon, forceEmoteText, WindowMenuWidth, true, disableForceSit || disableForceEmoteState, "##ForcedEmoteAction"))
         {
-            Opened = Opened == InteractionType.ForcedEmoteState ? InteractionType.None : InteractionType.ShockAction;
+            Opened = Opened == InteractionType.ForcedEmoteState ? InteractionType.None : InteractionType.ForcedEmoteState;
         }
         UiSharedService.AttachToolTip("Force " + PairNickOrAliasOrUID + "To Perform any Looped Emote State.");
 
         if (Opened is InteractionType.ForcedEmoteState)
         {
-            using (var actionChild = ImRaii.Child("ForcedEmoteStateActionChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight() * 3 + ImGui.GetStyle().ItemSpacing.Y*2), false))
+            using (var actionChild = ImRaii.Child("ForcedEmoteStateActionChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight() * 2 + ImGui.GetStyle().ItemSpacing.Y), false))
             {
                 if (!actionChild) return;
 
                 var width = WindowMenuWidth - ImGuiHelpers.GetButtonSize("Force State").X - ImGui.GetStyle().ItemInnerSpacing.X;
 
                 // Have User select the emote they want.
-                _uiShared.DrawComboSearchable("EmoteList", 225f, ref EmoteSearchString, EmoteMonitor.EmoteData.Values.ToArray(), chosen => chosen.ComboEmoteName(), false, 
+                _uiShared.DrawComboSearchable("EmoteList", WindowMenuWidth, ref EmoteSearchString, EmoteMonitor.EmoteData.Values.ToArray(), chosen => chosen.ComboEmoteName(), false, 
                 (chosen) =>
                 {
                     SelectedEmote = chosen;
@@ -93,26 +93,26 @@ public partial class PairStickyUI
                 {
                     // Get the Max CyclePoses for this emote.
                     int maxCycles = EmoteMonitor.EmoteCyclePoses((ushort)(SelectedEmote?.RowId ?? 0));
-                    if(maxCycles is 1) SelectedCPose = 0;
+                    if (maxCycles is 1) SelectedCPose = 0;
                     // Draw out the slider for the enforced cycle pose.
                     ImGui.SetNextItemWidth(width);
                     ImGui.SliderInt("##EnforceCyclePose", ref SelectedCPose, 0, maxCycles - 1);
-                    ImUtf8.SameLineInner();
-                    try
-                    {
-                        if (ImGui.Button("Force State##ForceEmoteStateTo" + PairNickOrAliasOrUID))
-                        {
-                            // Compile the string for sending.
-                            string newStr = PairGlobals.IsStaying() ? string.Empty : 
-                                MainHub.UID + "|" + SelectedEmote?.RowId.ToString() + "|" + SelectedCPose.ToString() + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-
-                            _logger.LogDebug("Sending EmoteState update for emote: "+ (SelectedEmote?.Name ?? "UNK"));
-                            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedStay", newStr), MainHub.PlayerUserData));
-                            Opened = InteractionType.None;
-                        }
-                    }
-                    catch (Exception e) { _logger.LogError("Failed to push EmoteState Update: " + e.Message); }
                 }
+                ImUtf8.SameLineInner();
+                try
+                {
+                    if (ImGui.Button("Force State##ForceEmoteStateTo" + PairNickOrAliasOrUID))
+                    {
+                        // Compile the string for sending.
+                        string newStr = PairGlobals.IsStaying() ? string.Empty : 
+                            MainHub.UID + "|" + SelectedEmote?.RowId.ToString() + "|" + SelectedCPose.ToString() + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
+
+                        _logger.LogDebug("Sending EmoteState update for emote: "+ (SelectedEmote?.Name ?? "UNK"));
+                        _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedEmoteState", newStr), MainHub.PlayerUserData));
+                        Opened = InteractionType.None;
+                    }
+                }
+                catch (Exception e) { _logger.LogError("Failed to push EmoteState Update: " + e.Message); }
             }
             ImGui.Separator();
         }

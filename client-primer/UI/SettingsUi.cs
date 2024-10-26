@@ -1317,6 +1317,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Separator();
                         ImGui.Text($"AllowForcedFollow: {clientPair.UserPairUniquePairPerms.AllowForcedFollow}");
                         ImGui.Text($"AllowForcedSit: {clientPair.UserPairUniquePairPerms.AllowForcedSit}");
+                        ImGui.Text($"AllowForcedEmoteState: {clientPair.UserPairUniquePairPerms.AllowForcedEmote}");
                         ImGui.Text($"AllowForcedToStay: {clientPair.UserPairUniquePairPerms.AllowForcedToStay}");
                         ImGui.Text($"AllowBlindfold: {clientPair.UserPairUniquePairPerms.AllowBlindfold}");
                         ImGui.Text($"AllowHiddenChat: {clientPair.UserPairUniquePairPerms.AllowHidingChatboxes}");

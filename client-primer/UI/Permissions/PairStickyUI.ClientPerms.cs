@@ -328,16 +328,23 @@ public partial class PairStickyUI
 
             ImGui.SameLine(specialWidth);
             bool refState = OwnPerms.AllowForcedSit;
-            if (ImGui.Checkbox("##AllowForcedSit"+PairUID, ref refState))
+            if (ImGui.Checkbox("##AllowForcedSit", ref refState))
+            {
                 if (refState != OwnPerms.AllowForcedSit)
                     SetOwnPermission(PermissionType.UniquePairPerm, nameof(OwnPerms.AllowForcedSit), refState);
+            }
             UiSharedService.AttachToolTip("Limit "+PairNickOrAliasOrUID +" to only Force Sit or GroundSit Action for you when checked.");
 
             ImUtf8.SameLineInner();
             bool refState2 = OwnPerms.AllowForcedEmote;
-            if (ImGui.Checkbox("##AllowForcedEmote" + PairUID, ref refState2))
-                if (refState != OwnPerms.AllowForcedEmote)
+            if (ImGui.Checkbox("##AllowForcedEmote", ref refState2))
+            {
+                if (refState2 != OwnPerms.AllowForcedEmote)
+                {
+                    _logger.LogInformation("Setting is now " + refState2);
                     SetOwnPermission(PermissionType.UniquePairPerm, nameof(OwnPerms.AllowForcedEmote), refState2);
+                }
+            }
             UiSharedService.AttachToolTip("Allow " + PairNickOrAliasOrUID + " to force you to perform any looped emote.");
         }
 

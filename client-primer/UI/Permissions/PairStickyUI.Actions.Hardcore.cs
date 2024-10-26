@@ -110,11 +110,11 @@ public partial class PairStickyUI
         bool disableForceSit = !PairPerms.AllowForcedSit || !canToggleEmoteState;
         bool disableForceEmoteState = !PairPerms.AllowForcedEmote || !canToggleEmoteState;
 
-        if(PairGlobals.ForcedEmoteState.NullOrEmpty())
+        if(!PairGlobals.ForcedEmoteState.NullOrEmpty())
         {
             //////////////////// DRAW OUT FOR STOPPING FORCED EMOTE HERE /////////////////////
             if (_uiShared.IconTextButton(FontAwesomeIcon.StopCircle, "Let "+PairNickOrAliasOrUID+" move again.", WindowMenuWidth, true, id: "##ForcedToStayHardcoreAction"))
-                _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedStay", string.Empty), MainHub.PlayerUserData));
+                _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedEmoteState", string.Empty), MainHub.PlayerUserData));
         }
         else
         {

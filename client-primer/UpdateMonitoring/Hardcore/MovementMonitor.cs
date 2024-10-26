@@ -298,7 +298,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                     {
                         if(ensureNoSit)
                         {
-                            Logger.LogDebug("Forcing Emote: /SIT. (Current emote was: " + currentEmote + ")");
+                            Logger.LogDebug("Forcing Emote: /SIT. (Current emote was: " + currentEmote + ").");
                             EmoteMonitor.ExecuteEmote(50);
                         }
                         else

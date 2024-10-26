@@ -625,8 +625,9 @@ public partial class AchievementManager
                     }
                 }
                 break;
-            case HardcoreAction.ForcedSit:
+            case HardcoreAction.ForcedEmoteState:
                 // if we are the affected UID:
+                // TODO: This will probably break due to us not passing in the changed string on emoteID shift.
                 if (affectedPairUID == MainHub.UID)
                 {
                     if (state is NewState.Enabled)

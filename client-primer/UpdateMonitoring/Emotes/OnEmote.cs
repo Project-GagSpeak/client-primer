@@ -68,7 +68,7 @@ public class OnEmote : IDisposable
             {
                 var emoteCaller = _frameworkUtils.CreateGameObject((nint)emoteCallerAddr);
                 var emoteCallerName = (emoteCaller as IPlayerCharacter)?.GetNameWithWorld() ?? "No Player Was Emote Caller";
-                var emoteName = _frameworkUtils.GetEmoteName(emoteId);
+                var emoteName = EmoteMonitor.GetEmoteName(emoteId);
                 var targetObj = (_frameworkUtils.SearchObjectTableById((uint)targetId));
                 var targetName = (targetObj as IPlayerCharacter)?.GetNameWithWorld() ?? "No Player Was Target";
                 _logger.LogTrace("OnEmote >> [" + emoteCallerName + "] used Emote [" + emoteName + "](ID:"+emoteId+") on Target: [" + targetName+"]", LoggerType.ChatDetours);

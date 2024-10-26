@@ -163,7 +163,7 @@ public class SettingsHardcore
     private void DisplayTextButtons()
     {
         // replace disabled with ForcedStay == true
-        if (_uiShared.IconTextButton(FontAwesomeIcon.SearchPlus, "Add Last Seen TextNode", disabled: false))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.SearchPlus, "Last Seen TextNode", disabled: false))
         {
             _clientConfigs.AddLastSeenNode();
         }
@@ -172,18 +172,27 @@ public class SettingsHardcore
             + "(Auto-selecting yes is not an allowed option)");
 
         ImGui.SameLine();
-        if (_uiShared.IconTextButton(FontAwesomeIcon.PlusCircle, "Add New TextNode", disabled: false))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.PlusCircle, "New TextNode", disabled: false))
         {
             _clientConfigs.CreateTextNode();
         }
         UiSharedService.AttachToolTip("Add a new TextNode to the ForcedStay Prompt List.");
 
         ImGui.SameLine();
-        if (_uiShared.IconTextButton(FontAwesomeIcon.PlusCircle, "Add New ChamberNode", disabled: false))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.PlusCircle, "New ChamberNode", disabled: false))
         {
             _clientConfigs.CreateChamberNode();
         }
         UiSharedService.AttachToolTip("Add a new ChamberNode to the ForcedStay Prompt List.");
+        ImGui.SameLine();
+        var icon = _clientConfigs.GagspeakConfig.MoveToChambersInEstates ? FontAwesomeIcon.Check: FontAwesomeIcon.Ban;
+        var text = _clientConfigs.GagspeakConfig.MoveToChambersInEstates ? "Will AutoMove to Chambers" : "Won't AutoMove to Chambers";
+        if (_uiShared.IconTextButton(icon, text, disabled: false))
+        {
+            _clientConfigs.GagspeakConfig.MoveToChambersInEstates = !_clientConfigs.GagspeakConfig.MoveToChambersInEstates;
+        }
+        UiSharedService.AttachToolTip("Automatically move to the Chambers while inside of an estate during forced stay while this is enabled.");
+        
         ImGui.Separator();
     }
 

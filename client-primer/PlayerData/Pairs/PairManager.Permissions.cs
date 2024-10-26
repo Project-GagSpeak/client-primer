@@ -173,8 +173,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         var interactionType = hardcoreChangeType switch
         {
             HardcoreAction.ForcedFollow => InteractionType.ForcedFollow,
-            HardcoreAction.ForcedSit => InteractionType.ForcedSit,
-            HardcoreAction.ForcedGroundsit => InteractionType.ForcedSit,
+            HardcoreAction.ForcedEmoteState => InteractionType.ForcedEmoteState,
             HardcoreAction.ForcedStay => InteractionType.ForcedStay,
             HardcoreAction.ForcedBlindfold => InteractionType.ForcedBlindfold,
             HardcoreAction.ChatboxHiding => InteractionType.ForcedChatVisibility,
@@ -211,35 +210,6 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (ChangedPermission == "IsPaused")
             if (pair.UserPair.OtherPairPerms.IsPaused != (bool)ChangedValue)
                 Mediator.Publish(new ClearProfileDataMessage(dto.User));
-
-        // We were the applier, the pair is the target, and we disabled the action
-        if (ChangedPermission == "IsForcedToFollow" && (bool)ChangedValue is false)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
-                HardcoreAction.ForcedFollow, // Forced Follow Command Issued
-                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
-                MainHub.UID, // We are the enactor
-                pair.UserData.UID); // and the pair is the target
-
-        if (ChangedPermission == "IsForcedToSit" || ChangedPermission == "IsForcedToGroundSit" && (bool)ChangedValue is false)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
-                HardcoreAction.ForcedSit, // Forced Follow Command Issued
-                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
-                MainHub.UID, // We are the enactor
-                pair.UserData.UID); // and the pair is the target
-
-        if (ChangedPermission == "IsForcedToStay" && (bool)ChangedValue is false)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
-                HardcoreAction.ForcedStay, // Forced Follow Command Issued
-                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
-                MainHub.UID, // We are the enactor
-                pair.UserData.UID); // and the pair is the target
-
-        if (ChangedPermission == "IsBlindfolded" && (bool)ChangedValue is false)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.HardcoreForcedPairAction,
-                HardcoreAction.ForcedBlindfold, // Forced Follow Command Issued
-                (bool)ChangedValue ? NewState.Enabled : NewState.Disabled, // It Started/Stopped.
-                MainHub.UID, // We are the enactor
-                pair.UserData.UID); // and the pair is the target
 
         PropertyInfo? propertyInfo = typeof(UserPairPermissions).GetProperty(ChangedPermission);
         if (propertyInfo != null)

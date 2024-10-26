@@ -1270,8 +1270,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"ToyIntensity: {clientPair.UserPairGlobalPerms.ToyIntensity}");
                         ImGui.Text($"SpatialVibratorAudio: {clientPair.UserPairGlobalPerms.SpatialVibratorAudio}");
                         ImGui.Text($"ForcedFollow: {clientPair.UserPairGlobalPerms.ForcedFollow}");
-                        ImGui.Text($"ForcedSit: {clientPair.UserPairGlobalPerms.ForcedSit}");
-                        ImGui.Text($"ForcedGroundsit: {clientPair.UserPairGlobalPerms.ForcedGroundsit}");
+                        ImGui.Text($"ForcedEmoteState: {clientPair.UserPairGlobalPerms.ForcedEmoteState}");
                         ImGui.Text($"ForcedToStay: {clientPair.UserPairGlobalPerms.ForcedStay}");
                         ImGui.Text($"Blindfold: {clientPair.UserPairGlobalPerms.ForcedBlindfold}");
                         ImGui.Text($"HiddenChat: {clientPair.UserPairGlobalPerms.ChatboxesHidden}");
@@ -1484,8 +1483,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.Text($"ToyIntensity: {globalPerms.ToyIntensity}");
         ImGui.Text($"SpatialVibratorAudio: {globalPerms.SpatialVibratorAudio}");
         ImGui.Text($"ForcedFollow: {globalPerms.ForcedFollow}");
-        ImGui.Text($"ForcedSit: {globalPerms.ForcedSit}");
-        ImGui.Text($"ForcedGroundsit: {globalPerms.ForcedGroundsit}");
+        ImGui.Text($"ForcedEmoteState: {globalPerms.ForcedEmoteState}");
         ImGui.Text($"ForcedToStay: {globalPerms.ForcedStay}");
         ImGui.Text($"Blindfold: {globalPerms.ForcedBlindfold}");
         ImGui.Text($"HiddenChat: {globalPerms.ChatboxesHidden}");

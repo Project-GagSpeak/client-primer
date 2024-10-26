@@ -23,7 +23,7 @@ public unsafe class ChatInputDetour : IDisposable
     private readonly GagspeakConfigService _config;
     private readonly PlayerCharacterData _playerManager;
     private readonly GagManager _gagManager;
-    private readonly OnFrameworkService _frameworkUtils;
+    private readonly EmoteMonitor _emoteMonitor;
 
     // define our delegates.
     private unsafe delegate byte ProcessChatInputDelegate(IntPtr uiModule, byte** message, IntPtr a3);
@@ -32,14 +32,14 @@ public unsafe class ChatInputDetour : IDisposable
 
     internal ChatInputDetour(ILogger<ChatInputDetour> logger, GagspeakConfigService config,
         PlayerCharacterData playerManager, GagManager gagManager,
-        OnFrameworkService frameworkUtils, ISigScanner scanner, IGameInteropProvider interop)
+        EmoteMonitor emoteMonitor, ISigScanner scanner, IGameInteropProvider interop)
     {
         // initialize the classes
         _logger = logger;
         _config = config;
         _playerManager = playerManager;
         _gagManager = gagManager;
-        _frameworkUtils = frameworkUtils;
+        _emoteMonitor = emoteMonitor;
 
         // try to get the chat-input-interceptor delegate
         try
@@ -95,7 +95,7 @@ public unsafe class ChatInputDetour : IDisposable
             }
 
             // Handle unique condition for being in a forced sit state.
-            if (_playerManager.GlobalPerms.IsSitting() && _frameworkUtils.CurrentEmoteId() is 97)
+            if (_playerManager.GlobalPerms.IsSitting() && _emoteMonitor.CurrentEmoteId() is 97)
             {
                 // cancel the message if it is a /cpose while being forced to sit on knees.
                 var cposeAttemptStr = Encoding.UTF8.GetString(*message, bc);

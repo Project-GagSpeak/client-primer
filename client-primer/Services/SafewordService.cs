@@ -139,8 +139,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
         {
             _playerManager.GlobalPerms.HardcoreSafewordUsed = true;
             _playerManager.GlobalPerms.ForcedFollow = string.Empty;
-            _playerManager.GlobalPerms.ForcedSit = string.Empty;
-            _playerManager.GlobalPerms.ForcedGroundsit = string.Empty;
+            _playerManager.GlobalPerms.ForcedEmoteState = string.Empty;
             _playerManager.GlobalPerms.ForcedStay = string.Empty;
             _playerManager.GlobalPerms.ForcedBlindfold = string.Empty;
             _playerManager.GlobalPerms.ChatboxesHidden = string.Empty;

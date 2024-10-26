@@ -317,11 +317,29 @@ public partial class PairStickyUI
             _playerManager.GlobalPerms.IsFollowing() ? $"You are currently being forced to follow {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently forcing you to follow them.",
             true, PermissionType.Hardcore);
 
-        DrawOwnSetting("ForcedSit", "AllowForcedSit",
-            _playerManager.GlobalPerms.IsSitting() ? "Currently Forced to Sit" : "Not Forced to Sit",
-            _playerManager.GlobalPerms.IsSitting() ? FontAwesomeIcon.Chair : FontAwesomeIcon.Ban,
-            _playerManager.GlobalPerms.IsSitting() ? $"You are currently being forced to sit by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently forcing you to sit.",
-            true, PermissionType.Hardcore);
+        using (ImRaii.Group())
+        {
+            var icon = _playerManager.GlobalPerms.ForcedEmoteState.NullOrEmpty() ? FontAwesomeIcon.Ban : (OwnPerms.AllowForcedEmote ? FontAwesomeIcon.PersonArrowDownToLine : FontAwesomeIcon.Chair);
+            var txt = _playerManager.GlobalPerms.ForcedEmoteState.NullOrEmpty() ? "Not Forced to Sit/Emote" : "Currently Forced to Sit/Emote";
+            var tooltipStr = _playerManager.GlobalPerms.ForcedEmoteState.NullOrEmpty() ? $"{PairNickOrAliasOrUID} is not currently forcing you to sit or emote." : $"You are currently being forced to sit or emote by {PairNickOrAliasOrUID}";
+            var specialWidth = IconButtonTextWidth - ImGui.GetFrameHeightWithSpacing();
+            _uiShared.IconTextButton(icon, txt, specialWidth, true, true);
+            UiSharedService.AttachToolTip(tooltipStr);
+
+            ImGui.SameLine(specialWidth);
+            bool refState = OwnPerms.AllowForcedSit;
+            if (ImGui.Checkbox("##AllowForcedSit"+PairUID, ref refState))
+                if (refState != OwnPerms.AllowForcedSit)
+                    SetOwnPermission(PermissionType.UniquePairPerm, nameof(OwnPerms.AllowForcedSit), refState);
+            UiSharedService.AttachToolTip("Limit "+PairNickOrAliasOrUID +" to only Force Sit or GroundSit Action for you when checked.");
+
+            ImUtf8.SameLineInner();
+            bool refState2 = OwnPerms.AllowForcedEmote;
+            if (ImGui.Checkbox("##AllowForcedEmote" + PairUID, ref refState2))
+                if (refState != OwnPerms.AllowForcedEmote)
+                    SetOwnPermission(PermissionType.UniquePairPerm, nameof(OwnPerms.AllowForcedEmote), refState2);
+            UiSharedService.AttachToolTip("Allow " + PairNickOrAliasOrUID + " to force you to perform any looped emote.");
+        }
 
         DrawOwnSetting("ForcedStay", "AllowForcedToStay",
             _playerManager.GlobalPerms.IsStaying() ? "Currently Forced to Stay" : "Not Forced to Stay",
@@ -338,13 +356,13 @@ public partial class PairStickyUI
         DrawOwnSetting("ChatboxesHidden", "AllowHidingChatboxes",
             _playerManager.GlobalPerms.IsChatHidden() ? "Chatbox is Hidden" : "Chatbox is Visible",
             _playerManager.GlobalPerms.IsChatHidden() ? FontAwesomeIcon.CommentSlash : FontAwesomeIcon.Ban,
-            _playerManager.GlobalPerms.IsChatHidden() ? _playerManager.GlobalPerms.ChatHiddenUID() + " has hidden your Chatbox!" : "Nobody is hiding your Chat.",
+            _playerManager.GlobalPerms.IsChatHidden() ? _playerManager.GlobalPerms.ChatboxesHidden.HardcorePermUID() + " has hidden your Chatbox!" : "Nobody is hiding your Chat.",
             true, PermissionType.Hardcore);
 
         DrawOwnSetting("ChatInputHidden", "AllowHidingChatInput",
             _playerManager.GlobalPerms.IsChatInputHidden() ? "Chat Input is Hidden" : "Chat Input is Visible",
             _playerManager.GlobalPerms.IsChatInputHidden() ? FontAwesomeIcon.CommentSlash : FontAwesomeIcon.Ban,
-            _playerManager.GlobalPerms.IsChatInputHidden() ? _playerManager.GlobalPerms.ChatInputHiddenUID() + " has hidden your Chatbox Input!" : "Nobody is hiding your Chat Input.",
+            _playerManager.GlobalPerms.IsChatInputHidden() ? _playerManager.GlobalPerms.ChatInputHidden.HardcorePermUID() + " has hidden your Chatbox Input!" : "Nobody is hiding your Chat Input.",
             true, PermissionType.Hardcore);
         DrawOwnSetting("ChatInputBlocked", "AllowChatInputBlocking",
             _playerManager.GlobalPerms.IsChatInputBlocked() ? "Chat Input Blocked" : "Chat Input Available",

@@ -169,6 +169,7 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<MovementMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ActionEffectMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<OnEmote>();
+            _runtimeServiceScope.ServiceProvider.GetRequiredService<EmoteMonitor>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<TriggerService>();
 
             // stuff that should probably be a hosted service but isnt yet.

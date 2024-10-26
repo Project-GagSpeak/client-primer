@@ -74,5 +74,6 @@ public class GagspeakConfig : IGagspeakConfiguration
     public BlindfoldType BlindfoldStyle { get; set; } = BlindfoldType.Sensual; // Blindfold Format
     public bool ForceLockFirstPerson { get; set; } = false; // Force First-Person state while blindfolded.
     public TextFolderNode ForcedStayPromptList { get; private set; } = new TextFolderNode { FriendlyName = "ForcedDeclineList" }; // ForcedToStay storage
+    public bool MoveToChambersInEstates { get; set; } = false; // Move to Chambers in Estates during ForcedStay
 }
 

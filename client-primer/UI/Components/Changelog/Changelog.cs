@@ -19,6 +19,12 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 6, 7)
+            .RegisterMain("Reworked Hardcore ForcedSit and ForcedGroundsit to ForcedEmote.")
+            .RegisterFeature("You can now force Pairs to maintain ANY looped emote state.")
+            .RegisterFeature("You can now force pairs into a spesific Cycle Pose State.")
+            .RegisterQol("The Hardcore Action buttons for these have been refined.")
+            .RegisterMain("CAUTION: THIS IS A TEST BUILD, THESE NEW FEATURES COULD WORK OR GO INCREDIBLY WRONG.");
         VersionEntry(0, 9, 6, 6)
             .RegisterFeature("Removed the import button as it's no longer necessary with the Pattern Hub")
             .RegisterBugfix("Fixed Distances being incorrectly measured during Hardcore ForcedStay");

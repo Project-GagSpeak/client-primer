@@ -1,6 +1,7 @@
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.ClientState.Objects;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
@@ -20,6 +21,7 @@ using GagspeakAPI.Data.Permissions;
 using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Reflection;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using static Lumina.Data.Parsing.Layer.LayerCommon;
@@ -35,6 +37,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
     private readonly YesNoPrompt _promptsYesNo;
     private readonly RoomSelectPrompt _promptsRooms;
     private readonly OnFrameworkService _frameworkUtils;
+    private readonly EmoteMonitor _emoteMonitor;
     private readonly MoveController _MoveController;
     private readonly ICondition _condition;
     private readonly IClientState _clientState;
@@ -56,8 +59,9 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         HardcoreHandler hardcoreHandler, WardrobeHandler outfitHandler,
         ClientConfigurationManager clientConfigs, SelectStringPrompt stringPrompts,
         YesNoPrompt yesNoPrompts, RoomSelectPrompt rooms, OnFrameworkService frameworkUtils,
-        MoveController moveController, ICondition condition, IClientState clientState,
-        IKeyState keyState, IObjectTable objectTable, ITargetManager targetManager) : base(logger, mediator)
+        EmoteMonitor emoteMonitor, MoveController moveController, ICondition condition, 
+        IClientState clientState, IKeyState keyState, IObjectTable objectTable, 
+        ITargetManager targetManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _handler = hardcoreHandler;
@@ -66,6 +70,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         _promptsYesNo = yesNoPrompts;
         _promptsRooms = rooms;
         _frameworkUtils = frameworkUtils;
+        _emoteMonitor = emoteMonitor;
         _MoveController = moveController;
         _condition = condition;
         _clientState = clientState;
@@ -193,9 +198,45 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                 Marshal.WriteByte((nint)gameControl, 24131, 0x1);
         }
 
-        // FORCED SIT LOGIC Logic.
-        if (_handler.MonitorSitLogic)
+        // FORCED Emote LOGIC Logic.
+        if (_handler.MonitorEmoteLogic)
+        {
+            // Enable the movement Lock
             _MoveController.EnableMovementLock();
+            // If our Forced Emote State UIS is not string.empty, we should attempt to execute the emote.
+            if (_handler.ForcedEmoteState.UID != string.Empty)
+            {
+                // We should be executing an emote, so get our current EmoteID.
+                ushort currentEmote = _emoteMonitor.CurrentEmoteId();
+                // If the Emote to force is 50, ensure we are sitting.
+                if(_handler.ForcedEmoteState.EmoteID is 50 && !EmoteMonitor.IsSitting(currentEmote))
+                {
+                    Logger.LogDebug("Forcing Normal Sit");
+                    EmoteMonitor.ExecuteEmote(50);
+                }
+                else if(_handler.ForcedEmoteState.EmoteID is not 52 && EmoteMonitor.IsGroundSitting(currentEmote))
+                {
+                    Logger.LogDebug("Forcing GroundSit");
+                    EmoteMonitor.ExecuteEmote(52);
+                }
+                // if the emote requested was a sit/groundSit type, handle the cycle pose state.
+                if (_handler.ForcedEmoteState.EmoteID is (50 or 52))
+                {
+                    // Force the cycle pose state to the expected state.
+                    if (_emoteMonitor.CurrentCyclePose() != _handler.ForcedEmoteState.CyclePoseByte)
+                        _emoteMonitor.ForceCyclePose(_handler.ForcedEmoteState.CyclePoseByte);
+                }
+                else
+                {
+                    // Its just another looped emote, so force the emote to play if we are not set to the requested.
+                    if (currentEmote != _handler.ForcedEmoteState.EmoteID)
+                    {
+                        Logger.LogDebug("Forcing Emote: " + _handler.ForcedEmoteState.EmoteID);
+                        EmoteMonitor.ExecuteEmote(_handler.ForcedEmoteState.EmoteID);
+                    }
+                }
+            }
+        }
 
         // FORCED STAY LOGIC: Handle Forced Stay
         if (_handler.MonitorStayLogic)
@@ -204,30 +245,38 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             if (!_condition[ConditionFlag.OccupiedInQuestEvent] && !_frameworkUtils._sentBetweenAreas)
             {
                 // grab all the event object nodes (door interactions)
-                var node = _objectTable.Where(x => x.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.EventObj)
-                .FirstOrDefault(o =>
+                var nodes = _objectTable.Where(x => x.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.EventObj).ToList();
+                foreach (var node in nodes)
                 {
-                    // skip if the object is null
-                    if (o == null) return false;
+                    // Grab distance to object.
+                    var distance = GetTargetDistance(node);
+                    // If its a estate entrance, and we are within 3.5f, interact with it.
+                    if (node.Name.TextValue is "Entrance" or "Apartment Building Entrance" && distance < 3.5f)
+                    {
+                        _targetManager.Target = node;
+                        TargetSystem.Instance()->InteractWithObject((GameObject*)node.Address, false);
+                        break;
+                    }
+                    // If its a node that is an Entrance to Additional Chambers.
+                    if (node.Name.TextValue is "Entrance to Additional Chambers")
+                    {
+                        // if we are not within 2f of it, attempt to execute the task.
+                        if (distance > 2f && _clientConfigs.GagspeakConfig.MoveToChambersInEstates)
+                        {
+                            if (_moveToChambersTask is not null && !_moveToChambersTask.IsCompleted)
+                                return;
+                            Logger.LogDebug("Moving to Additional Chambers", LoggerType.HardcoreMovement);
+                            _moveToChambersTask = GoToChambersEntrance(node);
+                        }
 
-                    // Satisfies conditions for Estate / Apartment Complex entrance.
-                    var dis = GetTargetDistance(o);
-                    if (o.Name.TextValue is "Entrance" or "Apartment Building Entrance" && dis < 3.5f)
-                        return true;
-
-                    // Satisfies conditons for chamber enterance.
-                    if (o.Name.TextValue is "Entrance to Additional Chambers" && dis < 2f)
-                        return true;
-
-                    // its false in all other cases.
-                    return false;
-                });
-
-                // if we have a node, set it as the target and interact with it.
-                if (node is not null)
-                {
-                    _targetManager.Target = node;
-                    TargetSystem.Instance()->InteractWithObject((GameObject*)node.Address, false);
+                        // if we are within 2f, interact with it.
+                        if(distance <= 2f)
+                        {
+                            _targetManager.Target = node;
+                            TargetSystem.Instance()->InteractWithObject((GameObject*)node.Address, false);
+                        }
+                        break;
+                    }
                 }
             }
         }
@@ -248,8 +297,8 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         }
 
 
-        // Cancel Keys if forced follow or immobilization is active.
-        if (_handler.MonitorFollowLogic || HandleImmobilize)
+        // Cancel Keys if forced follow or immobilization is active. (Also disable our keys we are performing the Chambers Task)
+        if (_handler.MonitorFollowLogic || HandleImmobilize || _moveToChambersTask is not null)
             CancelMoveKeys();
         else
             ResetCancelledMoveKeys();
@@ -268,9 +317,38 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         }
     }
 
+    private Task? _moveToChambersTask;
+
+    private async Task GoToChambersEntrance(IGameObject nodeToWalkTo)
+    {
+        try
+        {
+            Logger.LogDebug("Node for Chambers Detected, Auto Walking to it for 5 seconds.");
+            // Set the target to the node.
+            _targetManager.Target = nodeToWalkTo;
+            // lock onto the object
+            _handler.SendMessageHardcore("lockon");
+            await Task.Delay(500);
+            _handler.SendMessageHardcore("automove");
+            // set mode to run
+            unsafe
+            {
+                uint isWalking = Marshal.ReadByte((nint)gameControl, 24131);
+                // they are walking, so make them run.
+                if (isWalking is not 0) 
+                    Marshal.WriteByte((nint)gameControl, 24131, 0x0);
+            }
+            // await for 5 seconds then complete the task.
+            await Task.Delay(5000);
+        }
+        finally
+        {
+            _moveToChambersTask = null;
+        }
+    }
 
     // Helper functions for minimizing the content in the framework update code section above
-    public float GetTargetDistance(Dalamud.Game.ClientState.Objects.Types.IGameObject target)
+    public float GetTargetDistance(IGameObject target)
     {
         Vector2 position = new(target.Position.X, target.Position.Z);
         Vector2 selfPosition = new(_clientState.LocalPlayer!.Position.X, _clientState.LocalPlayer.Position.Z);

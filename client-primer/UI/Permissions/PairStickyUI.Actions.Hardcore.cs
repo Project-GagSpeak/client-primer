@@ -2,6 +2,8 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.UpdateMonitoring;
+using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
@@ -9,6 +11,7 @@ using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Enums;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
+using Lumina.Excel.GeneratedSheets;
 using OtterGui.Text;
 using System.Numerics;
 
@@ -22,6 +25,9 @@ namespace GagSpeak.UI.Permissions;
 /// </summary>
 public partial class PairStickyUI
 {
+    private string EmoteSearchString = string.Empty;
+    private Emote? SelectedEmote = null;
+    private int SelectedCPose = 0;
     private void DrawHardcoreActions()
     {
         if(_playerManager.GlobalPerms is null)
@@ -38,9 +44,10 @@ public partial class PairStickyUI
             && Vector3.Distance(_clientState.LocalPlayer.Position, UserPairForPerms.VisiblePairGameObject.Position) < 3;
         // Conditionals for hardcore interactions
         var clientGlobals = _playerManager.GlobalPerms;
+        var canToggleEmoteState = PairGlobals.CanToggleEmoteState(MainHub.UID);
         bool disableForceFollow = !inRange || !PairPerms.AllowForcedFollow || !UserPairForPerms.IsVisible || !PairGlobals.CanToggleFollow(MainHub.UID);
-        bool disableForceSit = !PairPerms.AllowForcedSit || !PairGlobals.CanToggleSit(MainHub.UID);
-        bool disableForceGroundSit = !PairPerms.AllowForcedSit || !PairGlobals.CanToggleSit(MainHub.UID);
+        bool disableForceSit = !PairPerms.AllowForcedSit || !canToggleEmoteState;
+        bool disableForceEmoteState = !PairPerms.AllowForcedEmote || !canToggleEmoteState;
         bool disableForceToStay = !PairPerms.AllowForcedToStay || !PairGlobals.CanToggleStay(MainHub.UID);
         bool disableBlindfoldToggle = !PairPerms.AllowBlindfold || !PairGlobals.CanToggleBlindfold(MainHub.UID);
         bool disableChatVisibilityToggle = !PairPerms.AllowHidingChatboxes || !PairGlobals.CanToggleChatHidden(MainHub.UID);
@@ -56,23 +63,58 @@ public partial class PairStickyUI
             _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedFollow", newStr), MainHub.PlayerUserData));
         }
 
-        var forceSitIcon = !string.IsNullOrEmpty(PairGlobals.ForcedSit) ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
-        var forceSitText = !string.IsNullOrEmpty(PairGlobals.ForcedSit) ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to sit.";
-        bool groundSitActive = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) && string.IsNullOrEmpty(PairGlobals.ForcedSit);
-        if (_uiShared.IconTextButton(forceSitIcon, forceSitText, WindowMenuWidth, true, disableForceSit || groundSitActive, "##ForcedNormalsitAction"))
+        // Determine which button to draw based on the kind of permissions they have for the user.
+        var forceEmoteIcon = !PairGlobals.ForcedEmoteState.NullOrEmpty() 
+            ? FontAwesomeIcon.StopCircle : (PairPerms.AllowForcedEmote ? FontAwesomeIcon.PersonArrowDownToLine : FontAwesomeIcon.Chair);
+        var forceEmoteText = !PairGlobals.ForcedEmoteState.NullOrEmpty() 
+            ? $"Let {PairNickOrAliasOrUID} move again." : (PairPerms.AllowForcedEmote ? $"Force {PairNickOrAliasOrUID} into an Emote State." : $"Force {PairNickOrAliasOrUID} to Sit.");
+        if (_uiShared.IconTextButton(forceEmoteIcon, forceEmoteText, WindowMenuWidth, true, disableForceSit || disableForceEmoteState, "##ForcedEmoteAction"))
         {
-            string newStr = !string.IsNullOrEmpty(PairGlobals.ForcedSit) ? string.Empty : MainHub.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedSit", newStr), MainHub.PlayerUserData));
+            Opened = Opened == InteractionType.ForcedEmoteState ? InteractionType.None : InteractionType.ShockAction;
         }
+        UiSharedService.AttachToolTip("Force " + PairNickOrAliasOrUID + "To Perform any Looped Emote State.");
 
-        var forceGroundSitIcon = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.Chair;
-        var forceGroundSitText = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) ? $"Let {PairNickOrAliasOrUID} stand again." : $"Force {PairNickOrAliasOrUID} to their knees.";
-        bool normalSitActive = !string.IsNullOrEmpty(PairGlobals.ForcedSit) && string.IsNullOrEmpty(PairGlobals.ForcedGroundsit);
-        if (_uiShared.IconTextButton(forceGroundSitIcon, forceGroundSitText, WindowMenuWidth, true, disableForceGroundSit || normalSitActive, "##ForcedGroundsitAction"))
+        if (Opened is InteractionType.ForcedEmoteState)
         {
-            _logger.LogDebug("Sending ForcedGroundsit to " + PairNickOrAliasOrUID);
-            string newStr = !string.IsNullOrEmpty(PairGlobals.ForcedGroundsit) ? string.Empty : MainHub.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedGroundsit", newStr), MainHub.PlayerUserData));
+            using (var actionChild = ImRaii.Child("ForcedEmoteStateActionChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight() * 3 + ImGui.GetStyle().ItemSpacing.Y*2), false))
+            {
+                if (!actionChild) return;
+
+                var width = WindowMenuWidth - ImGuiHelpers.GetButtonSize("Force State").X - ImGui.GetStyle().ItemInnerSpacing.X;
+
+                // Have User select the emote they want.
+                _uiShared.DrawComboSearchable("EmoteList", 225f, ref EmoteSearchString, EmoteMonitor.EmoteData.Values.ToArray(), chosen => chosen.ComboEmoteName(), false, 
+                (chosen) =>
+                {
+                    SelectedEmote = chosen;
+                }, SelectedEmote ?? EmoteMonitor.EmoteData.Values.First());
+                // Only allow setting the CPose State if the emote is a sitting one.
+                using (ImRaii.Disabled(!EmoteMonitor.IsAnyPoseWithCyclePose((ushort)(SelectedEmote?.RowId ?? 0))))
+                {
+                    // Get the Max CyclePoses for this emote.
+                    int maxCycles = EmoteMonitor.EmoteCyclePoses((ushort)(SelectedEmote?.RowId ?? 0));
+                    if(maxCycles is 1) SelectedCPose = 0;
+                    // Draw out the slider for the enforced cycle pose.
+                    ImGui.SetNextItemWidth(width);
+                    ImGui.SliderInt("##EnforceCyclePose", ref SelectedCPose, 0, maxCycles - 1);
+                    ImUtf8.SameLineInner();
+                    try
+                    {
+                        if (ImGui.Button("Force State##ForceEmoteStateTo" + PairNickOrAliasOrUID))
+                        {
+                            // Compile the string for sending.
+                            string newStr = PairGlobals.IsStaying() ? string.Empty : 
+                                MainHub.UID + "|" + SelectedEmote?.RowId.ToString() + "|" + SelectedCPose.ToString() + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
+
+                            _logger.LogDebug("Sending EmoteState update for emote: "+ (SelectedEmote?.Name ?? "UNK"));
+                            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ForcedStay", newStr), MainHub.PlayerUserData));
+                            Opened = InteractionType.None;
+                        }
+                    }
+                    catch (Exception e) { _logger.LogError("Failed to push EmoteState Update: " + e.Message); }
+                }
+            }
+            ImGui.Separator();
         }
 
         var forceToStayIcon = PairGlobals.IsStaying() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.HouseLock;

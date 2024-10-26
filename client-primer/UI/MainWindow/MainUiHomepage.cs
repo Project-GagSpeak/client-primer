@@ -1,9 +1,7 @@
 using Dalamud.Interface;
-using Dalamud.Interface.Utility;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
-using FFXIVClientStructs.FFXIV.Client.Game.GoldSaucer;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UI.UiOrders;
@@ -11,10 +9,11 @@ using GagSpeak.UI.UiPuppeteer;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.UI.UiToybox;
 using GagSpeak.UI.UiWardrobe;
-using GagSpeak.UpdateMonitoring.Chat;
+using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using ImGuiNET;
-using OtterGui.Text;
+using Lumina.Excel.GeneratedSheets;
+using OtterGui.Classes;
 using System.Numerics;
 
 namespace GagSpeak.UI.MainWindow;
@@ -26,10 +25,12 @@ namespace GagSpeak.UI.MainWindow;
 public class MainUiHomepage : DisposableMediatorSubscriberBase
 {
     private readonly UiSharedService _uiShared;
-    public MainUiHomepage(ILogger<MainUiHomepage> logger, GagspeakMediator mediator, 
-        UiSharedService uiSharedService) : base(logger, mediator)
+    private readonly EmoteMonitor _emoteMonitor;
+    public MainUiHomepage(ILogger<MainUiHomepage> logger, GagspeakMediator mediator,
+        UiSharedService uiSharedService, EmoteMonitor emoteMonitor) : base(logger, mediator)
     {
         _uiShared = uiSharedService;
+        _emoteMonitor = emoteMonitor;
     }
 
     public float DrawHomepageSection(IDalamudPluginInterface pi)
@@ -116,5 +117,39 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         {
             Mediator.Publish(new UiToggleMessage(typeof(AchievementsUI)));
         }
+
+        // Emote Monitor Testing:
+        UiSharedService.ColorText("Emote ID: ", ImGuiColors.ParsedGold);
+        ImGui.SameLine();
+        ImGui.TextUnformatted(_emoteMonitor.CurrentEmoteId().ToString());
+        UiSharedService.ColorText("Cycle Pose: ", ImGuiColors.ParsedGold);
+        ImGui.SameLine();
+        ImGui.TextUnformatted(_emoteMonitor.CurrentCyclePose().ToString());
+
+        _uiShared.DrawComboSearchable("EmoteList", 225f, ref emoteSearchString, EmoteMonitor.EmoteData.Values.ToArray(), chosen => chosen.ComboEmoteName(), 
+            false, (chosen) => _selectedEmote = chosen, _selectedEmote ?? EmoteMonitor.EmoteData.Values.First());
+        ImGui.SameLine();
+        if (ImGui.Button("Do It"))
+        {
+            if(_selectedEmote is not null)
+                EmoteMonitor.ExecuteEmote((ushort)_selectedEmote.RowId);
+        }
+
+        using (ImRaii.Disabled(!EmoteMonitor.IsAnyPoseWithCyclePose(_emoteMonitor.CurrentEmoteId())))
+        {
+            // Add a dropdown here for the cpose byte selection, can pick between 0-4 for sitting, 0 and 3 for ground sitting.
+            int max = EmoteMonitor.EmoteCyclePoses(_emoteMonitor.CurrentEmoteId());
+            ImGui.SetNextItemWidth(50f);
+            ImGui.SliderInt("##EnforceCyclePose", ref _cyclePose, 0, max-1);
+            ImGui.SameLine();
+            if (ImGui.Button("Force Pose"))
+            {
+                _emoteMonitor.ForceCyclePose((byte)_cyclePose);
+            }
+        }
+
     }
+    private int _cyclePose = 0;
+    private string emoteSearchString = string.Empty;
+    private Emote? _selectedEmote;
 }

@@ -177,7 +177,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ChatSender>(), s.GetRequiredService<TriggerController>(), cg, cs, dm))
         .AddSingleton((s) => new ChatSender(ss))
         .AddSingleton((s) => new ChatInputDetour(s.GetRequiredService<ILogger<ChatInputDetour>>(), s.GetRequiredService<GagspeakConfigService>(), 
-            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<GagManager>(), s.GetRequiredService<OnFrameworkService>(), ss, gip))
+            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<GagManager>(), s.GetRequiredService<EmoteMonitor>(), ss, gip))
 
         // Hardcore services.
         .AddSingleton((s) => new SelectStringPrompt(s.GetRequiredService<ILogger<SelectStringPrompt>>(), s.GetRequiredService<ClientConfigurationManager>(),
@@ -198,7 +198,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new HardcoreHandler(s.GetRequiredService<ILogger<HardcoreHandler>>(), s.GetRequiredService<GagspeakMediator>(), 
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<AppearanceManager>(),
             s.GetRequiredService<PairManager>(), s.GetRequiredService<MainHub>(), s.GetRequiredService<MoveController>(), 
-            s.GetRequiredService<ChatSender>(), s.GetRequiredService<OnFrameworkService>(), tm))
+            s.GetRequiredService<ChatSender>(), s.GetRequiredService<EmoteMonitor>(), tm))
         .AddSingleton<PlayerCharacterData>()
         .AddSingleton<GameObjectHandlerFactory>()
         .AddSingleton<PairFactory>()
@@ -235,7 +235,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new MovementMonitor(s.GetRequiredService<ILogger<MovementMonitor>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<ClientConfigurationManager>(),
             s.GetRequiredService<SelectStringPrompt>(), s.GetRequiredService<YesNoPrompt>(), s.GetRequiredService<RoomSelectPrompt>(),
-            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<MoveController>(), con, cs, ks, ot, tm))
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<EmoteMonitor>(), s.GetRequiredService<MoveController>(), con, cs, ks, ot, tm))
         .AddSingleton((s) => new MoveController(s.GetRequiredService<ILogger<MoveController>>(), gip, ot))
         .AddSingleton((s) => new ForcedStayCallback(s.GetRequiredService<ILogger<ForcedStayCallback>>(), s.GetRequiredService<ClientConfigurationManager>(), ss, gip))
 
@@ -249,8 +249,9 @@ public static class GagSpeakServiceExtensions
 
         .AddSingleton((s) => new ActionEffectMonitor(s.GetRequiredService<ILogger<ActionEffectMonitor>>(),
             s.GetRequiredService<GagspeakConfigService>(), ss, gip))
-        .AddSingleton((s) => new OnEmote(s.GetRequiredService<ILogger<OnEmote>>(),
-            s.GetRequiredService<OnFrameworkService>(), ss, gip))
+        .AddSingleton((s) => new OnEmote(s.GetRequiredService<ILogger<OnEmote>>(), s.GetRequiredService<OnFrameworkService>(), ss, gip))
+        .AddSingleton((s) => new EmoteMonitor(s.GetRequiredService<ILogger<EmoteMonitor>>(), s.GetRequiredService<ChatSender>(),
+            s.GetRequiredService<OnFrameworkService>(), cs, dm))
         .AddSingleton((s) => new TriggerController(s.GetRequiredService<ILogger<TriggerController>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<ActionEffectMonitor>(),
             s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<GagManager>(),

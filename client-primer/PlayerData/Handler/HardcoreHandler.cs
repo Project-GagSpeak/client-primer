@@ -24,7 +24,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     private readonly MainHub _apiHubMain; // for sending the updates.
     private readonly MoveController _moveController; // for movement logic
     private readonly ChatSender _chatSender; // for sending chat commands
-    private readonly OnFrameworkService _frameworkUtils; // for handling the blindfold logic
+    private readonly EmoteMonitor _emoteMonitor; // for handling the blindfold logic
     private readonly ITargetManager _targetManager; // for targetting pair on follows.
 
     public unsafe GameCameraManager* cameraManager = GameCameraManager.Instance(); // for the camera manager object
@@ -32,7 +32,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
         AppearanceManager appearanceHandler, PairManager pairManager,
         MainHub apiHubMain, MoveController moveController, ChatSender chatSender,
-        OnFrameworkService frameworkUtils, ITargetManager targetManager) : base(logger, mediator)
+        EmoteMonitor emoteMonitor, ITargetManager targetManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerData = playerData;
@@ -41,7 +41,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         _apiHubMain = apiHubMain;
         _moveController = moveController;
         _chatSender = chatSender;
-        _frameworkUtils = frameworkUtils;
+        _emoteMonitor = emoteMonitor;
         _targetManager = targetManager;
 
         Mediator.Subscribe<HardcoreActionMessage>(this, (msg) =>
@@ -49,8 +49,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             switch (msg.type)
             {
                 case HardcoreAction.ForcedFollow: UpdateForcedFollow(msg.State); break;
-                case HardcoreAction.ForcedSit: UpdateForcedSitState(msg.State, false); break;
-                case HardcoreAction.ForcedGroundsit: UpdateForcedSitState(msg.State, true); break;
+                case HardcoreAction.ForcedEmoteState: UpdateForcedEmoteState(msg.State); break;
                 case HardcoreAction.ForcedStay: UpdateForcedStayState(msg.State); break;
                 case HardcoreAction.ForcedBlindfold: UpdateBlindfoldState(msg.State); break;
                 case HardcoreAction.ChatboxHiding: UpdateHideChatboxState(msg.State); break;
@@ -65,15 +64,16 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     public UserGlobalPermissions? PlayerPerms => _playerData.GlobalPerms;
 
     public bool IsForcedToFollow => _playerData.GlobalPerms?.IsFollowing() ?? false;
-    public bool IsForcedToSit => _playerData.GlobalPerms?.IsSitting() ?? false;
+    public bool IsForcedToEmote => !(_playerData.GlobalPerms?.ForcedEmoteState.NullOrEmpty() ?? true); // This is the inverse I think?
     public bool IsForcedToStay => _playerData.GlobalPerms?.IsStaying() ?? false;
     public bool IsBlindfolded => _playerData.GlobalPerms?.IsBlindfolded() ?? false;
     public bool IsHidingChat => _playerData.GlobalPerms?.IsChatHidden() ?? false;
     public bool IsHidingChatInput => _playerData.GlobalPerms?.IsChatInputHidden() ?? false;
     public bool IsBlockingChatInput => _playerData.GlobalPerms?.IsChatInputBlocked() ?? false;
+    public GlobalPermExtensions.EmoteState ForcedEmoteState => _playerData.GlobalPerms?.ExtractEmoteState() ?? new GlobalPermExtensions.EmoteState();
 
     public bool MonitorFollowLogic => IsForcedToFollow;
-    public bool MonitorSitLogic => IsForcedToSit;
+    public bool MonitorEmoteLogic => IsForcedToEmote;
     public bool MonitorStayLogic => IsForcedToStay;
     public bool MonitorBlindfoldLogic => IsBlindfolded;
     public DateTimeOffset LastMovementTime { get; set; } = DateTimeOffset.Now;
@@ -93,7 +93,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         Logger.LogInformation("Turning all Hardcore Functionality in 3 seconds.", LoggerType.Safeword);
         await Task.Delay(2000);
         UpdateForcedFollow(NewState.Disabled);
-        UpdateForcedSitState(NewState.Disabled, false);
+        UpdateForcedEmoteState(NewState.Disabled);
         UpdateForcedStayState(NewState.Disabled);
         UpdateBlindfoldState(NewState.Disabled);
         UpdateHideChatboxState(NewState.Disabled);
@@ -101,15 +101,18 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         UpdateChatInputBlocking(NewState.Disabled);
     }
 
+    public void SendMessageHardcore(string commandNoSlash)
+        => _chatSender.SendMessage("/" + commandNoSlash);
+
     public void UpdateForcedFollow(NewState newState)
     {
         // if we are enabling, adjust the lastMovementTime to now.
         if (newState is NewState.Enabled)
         {
             LastMovementTime = DateTimeOffset.UtcNow;
-            Logger.LogDebug("Following UID: [" + _playerData.GlobalPerms?.FollowUID()+"]", LoggerType.HardcoreMovement);
+            Logger.LogDebug("Following UID: [" + _playerData.GlobalPerms?.ForcedFollow.HardcorePermUID()+"]", LoggerType.HardcoreMovement);
             // grab the pair from the pair manager to obtain its game object and begin following it.
-            var pairToFollow = _pairManager.DirectPairs.FirstOrDefault(pair => pair.UserData.UID == _playerData.GlobalPerms?.FollowUID());
+            var pairToFollow = _pairManager.DirectPairs.FirstOrDefault(pair => pair.UserData.UID == _playerData.GlobalPerms?.ForcedFollow.HardcorePermUID());
             if (pairToFollow is null)
             {
                 Logger.LogWarning("Ordered to follow but the pair who did it is not visible or targetable.");
@@ -119,7 +122,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             if (pairToFollow.VisiblePairGameObject?.IsTargetable ?? false)
             {
                 _targetManager.Target = pairToFollow.VisiblePairGameObject;
-                _chatSender.SendMessage("/follow <t>");
+                SendMessageHardcore("follow <t>");
                 Logger.LogDebug("Enabled forced follow for pair.", LoggerType.HardcoreMovement);
             }
         }
@@ -161,70 +164,25 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    public void UpdateForcedSitState(NewState newState, bool isGroundsit)
+    public void UpdateForcedEmoteState(NewState newState)
     {
         if (newState is NewState.Enabled)
         {
-            Logger.LogDebug("Enabled forced " + (isGroundsit ? "groundsit" : "sit") + " for pair.", LoggerType.HardcoreMovement);
-            // Send the message for the sit, only if we are not already in that state.
-            if (isGroundsit)
-            {
-                var currentPose = _frameworkUtils.CurrentEmoteId();
-                if (!GroundsitIdList.Contains(currentPose))
-                    _chatSender.SendMessage("/groundsit");
-            }
-            else
-            {
-                var currentPose = _frameworkUtils.CurrentEmoteId();
-                if (!SitIdList.Contains(currentPose))
-                    _chatSender.SendMessage("/sit");
-            }
-
-            // Run a Task to cycle to our knees state.
-            Logger.LogDebug("Running Task to ensure we get down on our knees");
-            _ = EnsureOnKnees();
+            Logger.LogDebug("Enabled forced Emote State for pair.", LoggerType.HardcoreMovement);
+            // if the emote requested is not what our current emote is, update it.
+            var currentPose = _emoteMonitor.CurrentEmoteId();
+            if(ForcedEmoteState.EmoteID != 0 && currentPose != ForcedEmoteState.EmoteID)
+                EmoteMonitor.ExecuteEmote(ForcedEmoteState.EmoteID);
         }
 
         if (newState is NewState.Disabled)
         {
             Logger.LogDebug("Pair has allowed you to stand again.", LoggerType.HardcoreMovement);
             // set it on client before getting change back from server.
-            if (isGroundsit)
-                _playerData.GlobalPerms!.ForcedGroundsit = string.Empty;
-            else
-                _playerData.GlobalPerms!.ForcedSit = string.Empty;
+            _playerData.GlobalPerms!.ForcedEmoteState = string.Empty;
             // Disable the movement lock after we set our permissions for validation.
             _moveController.DisableMovementLock();
         }
-    }
-
-    private static readonly ushort[] SitIdList = new ushort[] { 50, 95, 96, 254, 255 };
-    private static readonly ushort[] GroundsitIdList = new ushort[] { 52, 97, 98, 117 };
-    private async Task EnsureOnKnees()
-    {
-        // wait a bit for the message to send to update our emote id.
-        await Task.Delay(500);
-        // Only do this task if we are currently in a groundsit pose.
-        var currentPose = _frameworkUtils.CurrentEmoteId();
-        if (GroundsitIdList.Contains(currentPose))
-        {
-            Logger.LogDebug("Ensuring we are on our knees after a groundsit.", LoggerType.HardcoreMovement);
-            // Attempt 4 times to cycle the cpose to cpose 1
-            for (var i = 0; i < 4; i++)
-            {
-                // Grab our current cpose.
-                var currentCpose = _frameworkUtils.CurrentCpose();
-
-                if (currentCpose is 1)
-                    break;
-
-                Logger.LogDebug("Sending /cpose to cycle to cpose 1. (Current was " + currentCpose + ")");
-                _chatSender.SendMessage("/cpose");
-                await Task.Delay(500);
-            }
-            return;
-        }
-        Logger.LogDebug("We are not in a groundsit pose, skipping the cpose cycle.", LoggerType.HardcoreMovement);
     }
 
     public void UpdateForcedStayState(NewState newState)

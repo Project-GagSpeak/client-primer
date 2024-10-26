@@ -176,10 +176,15 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             };
             var errorText = MainHub.ServerStatus switch
             {
-                ServerState.NoSecretKey => "No secret key is set for this current character. To create UID's for your alt characters, be sure to claim your account in the CK discord.",
-                ServerState.VersionMisMatch => "GagSpeak installation is out of date. Current version is " + MainHub.ExpectedVerString + ", Expected version is " + MainHub.ExpectedVerString 
-                    + ". It's recommended to keep GagSpeak up to date. Open /xlplugins and update the plugin.",
-                ServerState.Unauthorized => "You are Unauthorized to access GagSpeak Servers with this account. If you are reading this, this means your key has Been revoked, or you have been Banned.",
+                ServerState.NoSecretKey => "No secret key is set for this current character. To create UID's for your " +
+                "alt characters, be sure to claim your account in the CK discord.",
+                ServerState.VersionMisMatch => "Current Ver: " + MainHub.ClientVerString + Environment.NewLine
+                + "Expected Ver: " + MainHub.ExpectedVerString +
+                "\n\nThis Means that your client is outdated, and you need to update it." +
+                "\n\nIf there is no update Available, then this message Likely Means Cordy is running some last minute tests " +
+                "to ensure everyone doesn't crash with the latest update. Hang in there!",
+                ServerState.Unauthorized => "You are Unauthorized to access GagSpeak Servers with this account. If you are reading this, " +
+                "this means your key has Been revoked, or you have been Banned.",
                 _ => "Unknown Reasoning for this error."
             };
             // push the notice that we are unsupported
@@ -188,7 +193,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 var uidTextSize = ImGui.CalcTextSize(errorTitle);
                 ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X + ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
                 ImGui.AlignTextToFramePadding();
-                ImGui.TextColored(ImGuiColors.DalamudRed, errorTitle);
+                ImGui.TextColored(ImGuiColors.ParsedPink, errorTitle);
             }
             // the wrapped text explanation based on the error.
             UiSharedService.ColorTextWrapped(errorText, ImGuiColors.ParsedGold);

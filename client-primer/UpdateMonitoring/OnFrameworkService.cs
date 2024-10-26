@@ -115,6 +115,10 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
 
     private void OnJobChanged(uint jobId)
     {
+        // Ignore if we are not logged in
+        if (!_clientState.IsLoggedIn)
+            return;
+
         PlayerClassJobId = jobId;
         IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.JobChange);
     }
@@ -128,13 +132,7 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
 
 
     public void OpenMapWithMapLink(MapLinkPayload mapLink) => _gameGui.OpenMapWithMapLink(mapLink);
-    public string GetEmoteName(uint emoteId) => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Emote>()?.GetRow(emoteId)?.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") ?? $"Emote#{emoteId}";
     public static unsafe short GetCurrentCommendationCount() => PlayerState.Instance()->PlayerCommendations;
-    public unsafe ushort CurrentEmoteId() => ((Character*)(ClientPlayerAddress))->EmoteController.EmoteId;
-    public unsafe byte CurrentCpose() => ((Character*)(ClientPlayerAddress))->EmoteController.CPoseState;
-
-
-
     public DeepDungeonType? GetDeepDungeonType()
     {
         if (_gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.TerritoryType>()?.GetRow(_clientState.TerritoryType) is { } territoryInfo)

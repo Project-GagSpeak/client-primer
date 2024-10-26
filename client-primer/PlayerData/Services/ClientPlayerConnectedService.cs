@@ -154,13 +154,9 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
             _hardcoreHandler.UpdateForcedFollow(NewState.Disabled);
 
         // Re-Enable forced Sit if it is disabled.
-        if(_hardcoreHandler.IsForcedToSit)
-        {
-            if(!string.IsNullOrEmpty(_playerData.GlobalPerms?.ForcedSit) && string.IsNullOrEmpty(_playerData.GlobalPerms.ForcedGroundsit))
-                _hardcoreHandler.UpdateForcedSitState(NewState.Enabled, false);
-            else
-                _hardcoreHandler.UpdateForcedSitState(NewState.Enabled, true);
-        }
+        if(_hardcoreHandler.IsForcedToEmote)
+            if(!string.IsNullOrEmpty(_playerData.GlobalPerms?.ForcedEmoteState))
+                _hardcoreHandler.UpdateForcedEmoteState(NewState.Enabled);
 
         // Re-Enable Forcd Stay if it was enabled.
         if (_hardcoreHandler.IsForcedToStay)

@@ -175,8 +175,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
             var interactionType = hardcoreChangeType switch
             {
                 HardcoreAction.ForcedFollow => InteractionType.ForcedFollow,
-                HardcoreAction.ForcedSit => InteractionType.ForcedSit,
-                HardcoreAction.ForcedGroundsit => InteractionType.ForcedSit,
+                HardcoreAction.ForcedEmoteState => InteractionType.ForcedEmoteState,
                 HardcoreAction.ForcedStay => InteractionType.ForcedStay,
                 HardcoreAction.ForcedBlindfold => InteractionType.ForcedBlindfold,
                 HardcoreAction.ChatboxHiding => InteractionType.ForcedChatVisibility,

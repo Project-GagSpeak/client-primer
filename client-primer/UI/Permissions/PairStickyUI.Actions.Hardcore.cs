@@ -68,7 +68,7 @@ public partial class PairStickyUI
             ? FontAwesomeIcon.StopCircle : (PairPerms.AllowForcedEmote ? FontAwesomeIcon.PersonArrowDownToLine : FontAwesomeIcon.Chair);
         var forceEmoteText = !PairGlobals.ForcedEmoteState.NullOrEmpty() 
             ? $"Let {PairNickOrAliasOrUID} move again." : (PairPerms.AllowForcedEmote ? $"Force {PairNickOrAliasOrUID} into an Emote State." : $"Force {PairNickOrAliasOrUID} to Sit.");
-        if (_uiShared.IconTextButton(forceEmoteIcon, forceEmoteText, WindowMenuWidth, true, disableForceSit || disableForceEmoteState, "##ForcedEmoteAction"))
+        if (_uiShared.IconTextButton(forceEmoteIcon, forceEmoteText, WindowMenuWidth, true, disableForceSit && disableForceEmoteState, "##ForcedEmoteAction"))
         {
             Opened = Opened == InteractionType.ForcedEmoteState ? InteractionType.None : InteractionType.ForcedEmoteState;
         }
@@ -83,7 +83,8 @@ public partial class PairStickyUI
                 var width = WindowMenuWidth - ImGuiHelpers.GetButtonSize("Force State").X - ImGui.GetStyle().ItemInnerSpacing.X;
 
                 // Have User select the emote they want.
-                _uiShared.DrawComboSearchable("EmoteList", WindowMenuWidth, ref EmoteSearchString, EmoteMonitor.EmoteData.Values.ToArray(), chosen => chosen.ComboEmoteName(), false, 
+                var listToShow = disableForceEmoteState ? EmoteMonitor.SitEmoteComboList : EmoteMonitor.EmoteComboList;
+                _uiShared.DrawComboSearchable("EmoteList", WindowMenuWidth, ref EmoteSearchString, listToShow, chosen => chosen.ComboEmoteName(), false, 
                 (chosen) =>
                 {
                     SelectedEmote = chosen;

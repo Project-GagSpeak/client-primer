@@ -34,7 +34,9 @@ public class EmoteMonitor
     public static readonly ushort[] SitIdList = new ushort[] { 50, 95, 96, 254, 255 };
     public static readonly ushort[] GroundsitIdList = new ushort[] { 52, 97, 98, 117 };
     public static ReadOnlyDictionary<uint, Emote> EmoteData = new ReadOnlyDictionary<uint, Emote>(new Dictionary<uint, Emote>());
-
+    // create a IEnumerable array that only consists of the emote data from keys of 50 and 52.
+    public static IEnumerable<Emote> SitEmoteComboList => EmoteData.Where(x => x.Key == 50 || x.Key == 52).Select(x => x.Value);
+    public static IEnumerable<Emote> EmoteComboList => EmoteData.Values.ToArray();
     public static string GetEmoteName(uint emoteId)
     {
         if (EmoteData.TryGetValue(emoteId, out var emote))

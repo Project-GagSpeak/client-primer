@@ -54,7 +54,7 @@ public abstract class GagspeakHubBase : DisposableMediatorSubscriberBase
     public const string MainServiceUri = "wss://gagspeak.kinkporium.studio";
 
     public static Version ClientVersion => Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0);
-    public static Version ExpectedClientVersion => ConnectionDto?.CurrentClientVersion ?? new Version(0, 0, 0, 0);
+    public static Version ExpectedClientVersion { get; set; } = new Version(0, 0, 0, 0); // Set upon each connection
     public static int ExpectedApiVersion => ConnectionDto?.ServerVersion ?? 0;
     public static bool IsClientVersionOutdated => ExpectedClientVersion > ClientVersion;
     public static bool IsClientApiOutdated => ExpectedApiVersion != IGagspeakHub.ApiVersion;
@@ -62,7 +62,17 @@ public abstract class GagspeakHubBase : DisposableMediatorSubscriberBase
     public static string ExpectedVerString => "[Server: v" + ExpectedClientVersion + " (Api " + ExpectedApiVersion + ")]";
 
     // The GagSpeakHub-Main's ConnectionDto
-    public static ConnectionDto? ConnectionDto = null;
+    private static ConnectionDto? _connectionDto = null;
+    public static ConnectionDto? ConnectionDto
+    {
+        get => _connectionDto;
+        set
+        {
+            _connectionDto = value;
+            if (value != null)
+                ExpectedClientVersion = _connectionDto?.CurrentClientVersion ?? new Version(0, 0, 0, 0);
+        }
+    }
     protected static SystemInfoDto? ServerSystemInfo = null;
     protected string? LastToken;
     protected bool SuppressNextNotification = false;

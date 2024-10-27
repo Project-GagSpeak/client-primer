@@ -186,12 +186,21 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
                     return; // (Prevent further reconnections)
                 }
 
-                // Another HTTP Exception type, so disconnect, then attempt reconnection.
-                Logger.LogWarning("Failed to establish connection, retrying");
-                await Disconnect(ServerState.Disconnected).ConfigureAwait(false);
-                // Reconnect in 5-20 seconds. (prevents server overload)
-                ServerStatus = ServerState.Reconnecting;
-                await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), connectionToken).ConfigureAwait(false);
+                try
+                {
+                    // Another HTTP Exception type, so disconnect, then attempt reconnection.
+                    Logger.LogWarning("Failed to establish connection, retrying");
+                    await Disconnect(ServerState.Disconnected).ConfigureAwait(false);
+                    // Reconnect in 5-20 seconds. (prevents server overload)
+                    ServerStatus = ServerState.Reconnecting;
+                    await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), connectionToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.LogWarning("Operation Cancelled during Reconnection Attempt");
+                    return; // (Prevent further reconnections)
+                }
+
             }
             catch (InvalidOperationException ex)
             {
@@ -201,9 +210,16 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
             }
             catch (Exception ex)
             {
-                // if we had any other exception, log it and attempt to reconnect
-                Logger.LogWarning("Exception on Connection (Attempting Reconnection soon): " + ex.Message);
-                await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), connectionToken).ConfigureAwait(false);
+                try
+                {
+                    Logger.LogWarning("Exception on Connection (Attempting Reconnection soon): " + ex.Message);
+                    await Task.Delay(TimeSpan.FromSeconds(new Random().Next(5, 20)), connectionToken).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    Logger.LogWarning("Operation Cancelled during Reconnection Attempt");
+                    return; // (Prevent further reconnections)
+                }
             }
         }
     }

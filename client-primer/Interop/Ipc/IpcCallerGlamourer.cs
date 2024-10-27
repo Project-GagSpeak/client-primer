@@ -14,6 +14,7 @@ using GagSpeak.Utils;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using GagSpeak.GagspeakConfiguration;
+using GagSpeak.PlayerData.Handlers;
 
 namespace GagSpeak.Interop.Ipc;
 
@@ -378,6 +379,15 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             //Logger.LogTrace($"GlamourEvent Blocked: {changeType}", LoggerType.IpcGlamourer);
             return;
         }
+
+        // Block if we are currently processing an Appearance Change Task
+        if (AppearanceManager.IsApplierProcessing)
+        {
+            if(changeType is not (StateChangeType.Equip or StateChangeType.Stains))
+                Logger.LogTrace($"GlamourEvent Blocked: [Appearance Managers Applier is Processing]", LoggerType.IpcGlamourer);
+            return;
+        }
+
 
         if(changeType is StateChangeType.Reset or StateChangeType.Design or StateChangeType.Reapply or StateChangeType.Equip or StateChangeType.Stains)
         {

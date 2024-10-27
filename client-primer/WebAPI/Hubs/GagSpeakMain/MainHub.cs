@@ -181,6 +181,7 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
                 Logger.LogWarning("HttpRequestException on Connection:" + ex.Message);
                 if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
+                    Logger.LogWarning("This HTTP Exception was caused by GagSpeakAuthFailure. Message was: "+AuthFailureMessage , LoggerType.ApiCore);
                     await Disconnect(ServerState.Unauthorized).ConfigureAwait(false);
                     return; // (Prevent further reconnections)
                 }
@@ -602,6 +603,22 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
     {
         if (ServerStatus is not (ServerState.Connected or ServerState.Connecting or ServerState.Reconnecting))
             throw new InvalidDataException("GagSpeakHub-Toybox Not connected");
+    }
+
+    /// <summary> 
+    /// A helper method to ensure the action is executed safely, and if an exception is thrown, it is logged.
+    /// </summary>
+    /// <param name="act">the action to execute</param>
+    private void ExecuteSafely(Action act)
+    {
+        try
+        {
+            act();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogCritical(ex, "Error on executing safely");
+        }
     }
 }
 #pragma warning restore MA0040

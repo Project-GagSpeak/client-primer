@@ -183,8 +183,8 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 "\n\nThis Means that your client is outdated, and you need to update it." +
                 "\n\nIf there is no update Available, then this message Likely Means Cordy is running some last minute tests " +
                 "to ensure everyone doesn't crash with the latest update. Hang in there!",
-                ServerState.Unauthorized => "You are Unauthorized to access GagSpeak Servers with this account. If you are reading this, " +
-                "this means your key has Been revoked, or you have been Banned.",
+                ServerState.Unauthorized => "You are Unauthorized to access GagSpeak Servers with this account due to an Unauthorization. Details:\n"
+                + GagspeakHubBase.AuthFailureMessage,
                 _ => "Unknown Reasoning for this error."
             };
             // push the notice that we are unsupported

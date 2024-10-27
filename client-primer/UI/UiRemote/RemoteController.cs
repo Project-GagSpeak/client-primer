@@ -144,7 +144,7 @@ public class RemoteController : RemoteBase
             // Create a child for the chat log
             using (var chatlogChild = ImRaii.Child($"###ChatlogChild", new Vector2(CurrentRegion.X, chatLogHeight - inputTextHeight), false))
             {
-                PrivateRoomData.PrivateRoomChatlog.PrintImgui();
+                PrivateRoomData.PrivateRoomChatlog.PrintChatLogHistory();
             }
 
             // Now draw out the input text field

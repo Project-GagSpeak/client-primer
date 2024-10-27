@@ -460,5 +460,21 @@ public sealed partial class ToyboxHub : GagspeakHubBase, IToyboxHubClient
         if (ServerStatus is not (ServerState.Connected or ServerState.Connecting or ServerState.Reconnecting))
             throw new InvalidDataException("GagSpeakHub-Toybox Not connected");
     }
+
+    /// <summary> 
+    /// A helper method to ensure the action is executed safely, and if an exception is thrown, it is logged.
+    /// </summary>
+    /// <param name="act">the action to execute</param>
+    private void ExecuteSafely(Action act)
+    {
+        try
+        {
+            act();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogCritical(ex, "Error on executing safely");
+        }
+    }
 }
 #pragma warning restore MA0040

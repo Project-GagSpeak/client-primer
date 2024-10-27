@@ -10,30 +10,39 @@ public class ChatLog
     private int PreviousMessageCount = 0;
     private readonly Dictionary<string, Vector4> UserColors = new();
 
+    private static Vector4 CKMistressColor = new Vector4(0.886f, 0.407f, 0.658f, 1f);
+
     public void AddMessage(ChatMessage message)
         => Messages.PushBack(message);
 
     public void ClearMessages()
         => Messages.Clear();
 
-    public void PrintImgui()
+    public void PrintChatLogHistory()
     {
-        ImGui.BeginChild("Chat_log");
+        ImGui.BeginChild("GagSpeakGlobalChat");
 
         foreach (var x in Messages)
         {
             if (!UserColors.ContainsKey(x.UID))
             {
-                Vector4 color;
-                do
+                if (x.SupporterTier is CkSupporterTier.KinkporiumMistress)
                 {
-                    float r = (float)new Random().NextDouble();
-                    float g = (float)new Random().NextDouble();
-                    float b = (float)new Random().NextDouble();
-                    color = new Vector4(r, g, b, 1.0f);
-                } while ((color.X < 0.4f && color.Y < 0.4f && color.Z < 0.4f) || UserColors.ContainsValue(color));
-
-                UserColors[x.UID] = color;
+                    UserColors[x.UID] = CKMistressColor;
+                }
+                else
+                {
+                    // Generate a random color for the user (excluding dark colors)
+                    Vector4 color;
+                    do
+                    {
+                        float r = (float)new Random().NextDouble();
+                        float g = (float)new Random().NextDouble();
+                        float b = (float)new Random().NextDouble();
+                        color = new Vector4(r, g, b, 1.0f);
+                    } while ((color.X < 0.4f && color.Y < 0.4f && color.Z < 0.4f) || UserColors.ContainsValue(color));
+                    UserColors[x.UID] = color;
+                }
             }
 
             // grab cursorscreenpox

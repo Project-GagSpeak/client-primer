@@ -19,6 +19,13 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 6, 13)
+            .RegisterMain("Adding a chat message preview to the global chat.")
+            .RegisterFeature("Everyone can now see if the Main GagSpeak dev is in global chat.")
+            .RegisterFeature("You keep your chat input focus after sending a message in global chat.")
+            .RegisterFeature("Updated Customize+ IPC so it works again")
+            .RegisterBugfix("Fixed some other boxs relating to keybind issues.")
+            .RegisterBugfix("At the moment some people are sending duplicate calls and im not sure why. Hopefully this is fixed soon.");
         VersionEntry(0, 9, 6, 12)
             .RegisterBugfix("Fixed hopefully all remaining bugs with the forced emote system.");
         VersionEntry(0, 9, 6, 9)

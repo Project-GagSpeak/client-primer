@@ -206,21 +206,4 @@ public abstract class GagspeakHubBase : DisposableMediatorSubscriberBase
     /// try removing it later and see if anything faults.
     /// </summary>
     protected abstract void CheckConnection();
-
-
-    /// <summary> 
-    /// A helper method to ensure the action is executed safely, and if an exception is thrown, it is logged.
-    /// </summary>
-    /// <param name="act">the action to execute</param>
-    protected void ExecuteSafely(Action act)
-    {
-        try
-        {
-            act();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogCritical(ex, "Error on executing safely");
-        }
-    }
 }

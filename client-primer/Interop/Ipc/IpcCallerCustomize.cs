@@ -74,7 +74,7 @@ public sealed class IpcCallerCustomize : DisposableMediatorSubscriberBase, IIpcC
         try
         {
             var version = _apiVersion.InvokeFunc();
-            APIAvailable = (version.Item1 == 5 && version.Item2 >= 0);
+            APIAvailable = (version.Item1 == 6 && version.Item2 >= 0);
         }
         catch
         {

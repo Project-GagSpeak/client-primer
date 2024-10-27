@@ -1,7 +1,9 @@
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils.ChatLog;
 using GagspeakAPI.Enums;
+using Microsoft.Extensions.Hosting;
 
 namespace GagSpeak.Services;
 
@@ -9,15 +11,14 @@ namespace GagSpeak.Services;
 public class DiscoverService : DisposableMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
-    public ChatLog GagspeakGlobalChat { get; private set; }
+    public ChatLog GlobalChat { get; private set; } = new ChatLog();
     private bool _connectedFirstTime = false;
-    public DiscoverService(ILogger<DiscoverService> logger, GagspeakMediator mediator,
-        PairManager pairManager) : base(logger, mediator)
+
+    public DiscoverService(ILogger<DiscoverService> logger, 
+        GagspeakMediator mediator, PairManager pairManager) : base(logger, mediator)
     {
         _pairManager = pairManager;
 
-        // set the chat log up.
-        GagspeakGlobalChat = new ChatLog();
         Mediator.Subscribe<GlobalChatMessage>(pairManager, (msg) => AddChatMessage(msg));
 
         Mediator.Subscribe<MainHubConnectedMessage>(this, _ =>
@@ -32,7 +33,7 @@ public class DiscoverService : DisposableMediatorSubscriberBase
 
     private void AddSystemWelcome()
     {
-        GagspeakGlobalChat.AddMessage(new ChatMessage("System", "System", null, "Welcome to the GagSpeak Global Chat!. " +
+        GlobalChat.AddMessage(new ChatMessage("System", "System", null, "Welcome to the GagSpeak Global Chat!. " +
             "Your Name in here is Anonymous to anyone you have not yet added. Feel free to say hi!"));
     }
 
@@ -47,8 +48,15 @@ public class DiscoverService : DisposableMediatorSubscriberBase
         var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == userData.UID);
 
         // determine the displayname
-        if (msg.FromSelf) SenderName = msg.ChatMessage.MessageSender.AliasOrUID;
-        if (matchedPair != null) SenderName = matchedPair.GetNickname() ?? matchedPair.UserData.AliasOrUID;
+        if (msg.FromSelf) 
+            SenderName = msg.ChatMessage.MessageSender.AliasOrUID;
+
+        if (matchedPair != null) 
+            SenderName = matchedPair.GetNickAliasOrUid();
+
+        // if the supporter role is the highest role, give them a special label.
+        if (userData.SupporterTier is CkSupporterTier.KinkporiumMistress)
+            SenderName = $"Mistress Cordy";
 
         // construct the chat message struct to add.
         ChatMessage msgToAdd = new ChatMessage
@@ -59,6 +67,6 @@ public class DiscoverService : DisposableMediatorSubscriberBase
             Message = msg.ChatMessage.Message,
         };
 
-        GagspeakGlobalChat.AddMessage(msgToAdd);
+        GlobalChat.AddMessage(msgToAdd);
     }
 }

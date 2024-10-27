@@ -179,7 +179,7 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
                     NotificationType.Error));
 
                 // publish a disconnected message and throw an exception.
-                _logger.LogWarning("Originally, a Disconnected Message was fired here. If its needed, restore it.");
+                Mediator.Publish(new MainHubDisconnectedMessage());
                 throw new GagspeakAuthFailureException(response);
             }
 

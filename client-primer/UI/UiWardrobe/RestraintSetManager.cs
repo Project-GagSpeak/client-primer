@@ -244,7 +244,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             var currentYpos = ImGui.GetCursorPosY();
             // draw revert button at the same location but right below that button
             if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import Gear",
-                disabled: !IpcCallerGlamourer.APIAvailable || CreatedRestraintSet is null || !KeyMonitor.CtrlPressed()))
+                disabled: !IpcCallerGlamourer.APIAvailable || CreatedRestraintSet is null || !KeyMonitor.ShiftPressed()))
             {
                 _ipcGlamourer.SetRestraintEquipmentFromState(CreatedRestraintSet!);
                 Logger.LogDebug("EquipmentImported from current State");
@@ -312,7 +312,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             var currentYpos = ImGui.GetCursorPosY();
             // draw revert button at the same location but right below that button
             if (_uiShared.IconTextButton(FontAwesomeIcon.FileImport, "Import Gear", 
-                disabled: !IpcCallerGlamourer.APIAvailable || _handler.ClonedSetForEdit is null || !KeyMonitor.CtrlPressed()))
+                disabled: !IpcCallerGlamourer.APIAvailable || _handler.ClonedSetForEdit is null || !KeyMonitor.ShiftPressed()))
             {
                 _ipcGlamourer.SetRestraintEquipmentFromState(_handler.ClonedSetForEdit!);
                 Logger.LogDebug("EquipmentImported from current State");

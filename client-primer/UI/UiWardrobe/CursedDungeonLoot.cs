@@ -234,7 +234,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
             ImGui.SetCursorPosY(yPos + ((ImGui.GetFrameHeight() - 23) / 2) + 0.5f); // 23 is the input text box height
             ImGui.SetNextItemWidth(150 * ImGuiHelpers.GlobalScale);
             var itemName = NewItem.Name;
-            if (ImGui.InputTextWithHint("##ItemName" + NewItem.LootId, "Item Name...", ref itemName, 36, ImGuiInputTextFlags.EnterReturnsTrue))
+            if (ImGui.InputTextWithHint("##ItemName" + NewItem.LootId, "Item Name...", ref itemName, 36))
                 NewItem.Name = itemName;
         }
         else

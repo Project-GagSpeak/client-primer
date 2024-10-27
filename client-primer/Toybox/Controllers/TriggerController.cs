@@ -17,6 +17,7 @@ using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Extensions;
 using System.Text.RegularExpressions;
 using GameAction = Lumina.Excel.GeneratedSheets.Action;
@@ -28,7 +29,6 @@ public class TriggerController : DisposableMediatorSubscriberBase
 {
     private readonly PlayerCharacterData _playerManager;
     private readonly ToyboxFactory _playerMonitorFactory;
-    private readonly ActionEffectMonitor _receiveActionEffectHookManager;
     private readonly WardrobeHandler _wardrobeHandler;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly GagManager _gagManager;
@@ -43,7 +43,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
     public TriggerController(ILogger<TriggerController> logger, GagspeakMediator mediator,
         PlayerCharacterData playerManager, ToyboxFactory playerMonitorFactory,
-        ActionEffectMonitor receiveActionEffectHookManager, WardrobeHandler wardrobeHandler,
+        WardrobeHandler wardrobeHandler,
         ClientConfigurationManager clientConfigs, GagManager gagManager,
         PairManager pairManager, AppearanceManager appearanceHandler, 
         OnFrameworkService frameworkService, ToyboxVibeService vibeService,
@@ -52,7 +52,6 @@ public class TriggerController : DisposableMediatorSubscriberBase
     {
         _playerManager = playerManager;
         _playerMonitorFactory = playerMonitorFactory;
-        _receiveActionEffectHookManager = receiveActionEffectHookManager;
         _wardrobeHandler = wardrobeHandler;
         _clientConfigs = clientConfigs;
         _gagManager = gagManager;
@@ -374,7 +373,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 Logger.LogInformation("Applying Restraint Set "+trigger.RestraintNameAction+" with state "+NewState.Enabled, LoggerType.ToyboxTriggers);
                 var idx = _clientConfigs.GetRestraintSetIdxByName(trigger.RestraintNameAction);
                 var set = _clientConfigs.GetRestraintSet(idx);
-                await _wardrobeHandler.EnableRestraintSet(set.RestraintId, Globals.SelfApplied, true);
+                await _wardrobeHandler.EnableRestraintSet(set.RestraintId, MainHub.UID, true);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                 break;
 

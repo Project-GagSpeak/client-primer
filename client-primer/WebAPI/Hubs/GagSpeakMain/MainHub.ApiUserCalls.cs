@@ -432,7 +432,7 @@ public partial class MainHub
 
         try // if connected, try to push the data to the server
         {
-            Logger.LogDebug("Pushing Character IPC data to "+string.Join(", ", visibleCharacters.Select(v => v.AliasOrUID)), LoggerType.VisiblePairs);
+            Logger.LogDebug("Pushing Character IPC data to "+string.Join(", ", visibleCharacters.Select(v => v.AliasOrUID)) + "[" + updateKind + "]", LoggerType.VisiblePairs);
             await UserPushDataIpc(new(visibleCharacters, data, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogWarning("Upload operation was cancelled"); }
@@ -453,7 +453,7 @@ public partial class MainHub
         {
             if (onlineCharacters.Any())
             {
-                Logger.LogDebug("Pushing Character Appearance data to " + string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)), LoggerType.OnlinePairs);
+                Logger.LogDebug("Pushing Character Appearance data to " + string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)) + "[" + updateKind + "]", LoggerType.OnlinePairs);
             }
             else
             {
@@ -477,7 +477,7 @@ public partial class MainHub
 
         try // if connected, try to push the data to the server
         {
-            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character Wardrobe data to " + string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)), LoggerType.OnlinePairs);
+            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character Wardrobe data to " + string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)) + "["+updateKind+"]", LoggerType.OnlinePairs);
             else Logger.LogDebug("Updating WardrobeData to stored ActiveStateData", LoggerType.OnlinePairs);
             await UserPushDataWardrobe(new(onlineCharacters, data, updateKind)).ConfigureAwait(false);
         }
@@ -497,7 +497,7 @@ public partial class MainHub
 
         try // if connected, try to push the data to the server
         {
-            Logger.LogDebug("Pushing Character Alias data to "+string.Join(", ", onlineCharacter.AliasOrUID), LoggerType.OnlinePairs);
+            Logger.LogDebug("Pushing Character Alias data to "+string.Join(", ", onlineCharacter.AliasOrUID) + "[" + updateKind + "]", LoggerType.OnlinePairs);
             await UserPushDataAlias(new(onlineCharacter, data, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogWarning("Upload operation was cancelled"); }
@@ -515,7 +515,7 @@ public partial class MainHub
 
         try // if connected, try to push the data to the server
         {
-            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character PatternInfo to "+string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)), LoggerType.VisiblePairs);
+            if(onlineCharacters.Any()) Logger.LogDebug("Pushing Character PatternInfo to "+string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)) + "[" + updateKind + "]", LoggerType.VisiblePairs);
             else Logger.LogDebug("Updating ToyboxData to stored ActiveStateData", LoggerType.OnlinePairs);
             await UserPushDataToybox(new(onlineCharacters, data, updateKind)).ConfigureAwait(false);
         }
@@ -529,7 +529,7 @@ public partial class MainHub
 
         try
         {
-            if (userToPushTo.Any()) Logger.LogDebug("Pushing PiShock to "+string.Join(", ", userToPushTo.Select(v => v.AliasOrUID)), LoggerType.OnlinePairs);
+            if (userToPushTo.Any()) Logger.LogDebug("Pushing PiShock to "+string.Join(", ", userToPushTo.Select(v => v.AliasOrUID)) + "[" + updateKind + "]", LoggerType.OnlinePairs);
             await UserPushPiShockUpdate(new(userToPushTo, perms, updateKind)).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }

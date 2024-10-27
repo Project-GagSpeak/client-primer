@@ -314,7 +314,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
         var userCount = MainHub.MainOnlineUsers.ToString(CultureInfo.InvariantCulture);
         var userSize = ImGui.CalcTextSize(userCount);
-        var textSize = ImGui.CalcTextSize("Users Online");
+        var textSize = ImGui.CalcTextSize("Kinksters Online");
 
         var shardConnection = $"Main GagSpeak Server";
 
@@ -327,9 +327,9 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             // fancy math shit for clean display, adjust when moving things around
             ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) 
                 / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
-            ImGui.TextColored(ImGuiColors.ParsedGreen, userCount);
+            ImGui.TextColored(ImGuiColors.ParsedPink, userCount);
             ImGui.SameLine();
-            ImGui.TextUnformatted("Users Online");
+            ImGui.TextUnformatted("Kinksters Online");
         }
         // otherwise, if we are not connected, display that we aren't connected.
         else

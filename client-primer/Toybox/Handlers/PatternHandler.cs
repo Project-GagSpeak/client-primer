@@ -2,6 +2,7 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -64,7 +65,7 @@ public class PatternHandler : MediatorSubscriberBase
     }
 
     public void EnablePattern(PatternData pattern)
-        => _toyboxStateManager.EnablePattern(pattern.UniqueIdentifier);
+        => _toyboxStateManager.EnablePattern(pattern.UniqueIdentifier, MainHub.UID);
 
     public void DisablePattern(PatternData pattern)
         => _toyboxStateManager.DisablePattern(pattern.UniqueIdentifier);

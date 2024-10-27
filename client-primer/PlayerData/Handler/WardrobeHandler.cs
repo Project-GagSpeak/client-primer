@@ -5,6 +5,7 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.PlayerData.Handlers;
 /// <summary>
@@ -72,7 +73,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     public List<RestraintSet> GetAllSetsForSearch() => _clientConfigs.StoredRestraintSets;
     public RestraintSet GetRestraintSet(int idx) => _clientConfigs.GetRestraintSet(idx);
 
-    public async Task EnableRestraintSet(Guid id, string assignerUID = Globals.SelfApplied, bool pushToServer = true)
+    public async Task EnableRestraintSet(Guid id, string assignerUID, bool pushToServer = true)
     {
         if (!WardrobeEnabled || !RestraintSetsEnabled) {
             Logger.LogInformation("Wardrobe or Restraint Sets are disabled, cannot enable restraint set.", LoggerType.Restraints);
@@ -88,7 +89,7 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         // Enable the new set.
         await _appearanceHandler.EnableRestraintSet(id, assignerUID, pushToServer);
     }
-    public async Task DisableRestraintSet(Guid id, string assignerUID = Globals.SelfApplied, bool pushToServer = true)
+    public async Task DisableRestraintSet(Guid id, string assignerUID, bool pushToServer = true)
     {
         if (!WardrobeEnabled || !RestraintSetsEnabled) 
         {

@@ -1,7 +1,9 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI;
 using ImGuiNET;
@@ -139,22 +141,34 @@ public class MainTabMenu
 
         // draw the global chat button
         ImGui.SameLine();
+        var xChat = ImGui.GetCursorScreenPos();
         using (ImRaii.PushFont(UiBuilder.IconFont))
         {
-            var x = ImGui.GetCursorScreenPos();
             if (ImGui.Button(FontAwesomeIcon.Comments.ToIconString(), buttonSize))
             {
                 TabSelection = SelectedTab.GlobalChat;
             }
-
-            ImGui.SameLine();
-            var xAfter = ImGui.GetCursorScreenPos();
-            if (TabSelection == SelectedTab.GlobalChat)
-                drawList.AddLine(x with { Y = x.Y + buttonSize.Y + spacing.Y },
-                    xAfter with { Y = xAfter.Y + buttonSize.Y + spacing.Y, X = xAfter.X - spacing.X },
-                    underlineColor, 2);
         }
         UiSharedService.AttachToolTip("Meet & Chat with others in a cross-region chat!");
+
+
+        // Calculate position for the message count text
+        var messageCountPosition = new Vector2(xChat.X + buttonSize.X / 2, xChat.Y - spacing.Y);
+
+        ImGui.SameLine();
+        var xChatAfter = ImGui.GetCursorScreenPos();
+        if (TabSelection == SelectedTab.GlobalChat)
+            drawList.AddLine(xChat with { Y = xChat.Y + buttonSize.Y + spacing.Y },
+                xChatAfter with { Y = xChatAfter.Y + buttonSize.Y + spacing.Y, X = xChatAfter.X - spacing.X },
+                underlineColor, 2);
+
+        // Assume `newMessageCount` is an integer holding the count of new messages
+        if(DiscoverService.NewMessages > 0)
+        {
+            // Display new message count above the icon
+            var messageText = DiscoverService.NewMessages > 99 ? "99+" : DiscoverService.NewMessages.ToString();
+            UiSharedService.DrawOutlinedFont(drawList, messageText, messageCountPosition, UiSharedService.Color(ImGuiColors.ParsedGold), 0xFF000000, 1);
+        }
 
         // draw the discoveries button
         ImGui.SameLine();

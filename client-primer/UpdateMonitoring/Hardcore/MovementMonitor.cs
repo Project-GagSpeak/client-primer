@@ -117,7 +117,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
 
     public void ToggleHardcoreTraits(NewState newState, RestraintSet restraintSet)
     {
-        if (restraintSet.EnabledBy is Globals.SelfApplied)
+        if (restraintSet.EnabledBy == MainHub.UID)
             return;
 
         // Grab properties.

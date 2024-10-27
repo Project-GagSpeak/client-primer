@@ -362,7 +362,7 @@ public partial class AchievementManager
             (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTiemers] as ProgressAchievement)?.IncrementProgress();
 
             // if we are the applier
-            if (enactorUID is Globals.SelfApplied)
+            if (enactorUID == MainHub.UID)
             {
                 (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.SelfBondageEnthusiast] as ProgressAchievement)?.IncrementProgress();
             }
@@ -387,7 +387,7 @@ public partial class AchievementManager
         }
         else // set is being disabled
         {
-            if (enactorUID is not Globals.SelfApplied)
+            if (enactorUID != MainHub.UID)
             {
                 // verify that the set is being disabled by someone else.
                 if (set.LockedBy != enactorUID)
@@ -425,7 +425,7 @@ public partial class AchievementManager
             if (padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock)
             {
                 // make sure we are the locker before continuing (Consider removing SelfApplied at some point)
-                if (enactorUID != MainHub.UID && enactorUID != Globals.SelfApplied)
+                if (enactorUID != MainHub.UID && enactorUID != MainHub.UID)
                 {
                     (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.FirstTimeBondage] as DurationAchievement)?.StartTracking(set.Name);
                     (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.AmateurBondage] as DurationAchievement)?.StartTracking(set.Name);

@@ -7,6 +7,7 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Services;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
@@ -267,7 +268,7 @@ public class ClientCallbackService
                     if (!_clientConfigs.GagspeakConfig.DisableSetUponUnlock)
                         return;
 
-                    await _wardrobeHandler.DisableRestraintSet(callbackSet.RestraintId, Globals.SelfApplied, true);
+                    await _wardrobeHandler.DisableRestraintSet(callbackSet.RestraintId, MainHub.UID, true);
                 }
             }
 
@@ -438,7 +439,7 @@ public class ClientCallbackService
                     _toyboxManager.DisablePattern(_clientConfigs.ActivePatternGuid());
                 }
                 // execute the pattern.
-                _toyboxManager.EnablePattern(idAffected);
+                _toyboxManager.EnablePattern(idAffected, MainHub.UID);
                 _logger.LogInformation("Pattern Executed by Server Callback.", LoggerType.Callbacks);
                 _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ActivatePattern, "Pattern Enabled")));
                 break;
@@ -510,7 +511,7 @@ public class ClientCallbackService
                 }
                 else
                 {
-                    _toyboxManager.EnableTrigger(idAffected);
+                    _toyboxManager.EnableTrigger(idAffected, callbackDto.User.UID);
                     _logger.LogInformation("Trigger Enabled by Server Callback.", LoggerType.Callbacks);
                     _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ToggleTrigger, "Trigger Enabled")));
                 }

@@ -19,6 +19,16 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 7, 0)
+            .RegisterMain("Global Chat has been given a light polish.")
+            .RegisterMain("Fixed Users Sending Duplicate calls of their Data Updates, " +
+            "causing some race conditions to ruin their actively stored states.")
+            .RegisterFeature("Devotional Locks now actually work (for real this time)")
+            .RegisterFeature("Updates now apply one after the other, in synchronization for a more stable experience.")
+            .RegisterFeature("You can now see how many new chat messages are in global chat by the Golden number next to the Global Chat Icon.")
+            .RegisterQol("The last 300 messages of global chat now persist between Plugin Loads, so long as you toggle it on the same day.")
+            .RegisterBugfix("Fixed the issue in where desyncs occurred (solved from the above features)")
+            .RegisterBugfix("Fixed some issues with hardcore emote forcing.");
         VersionEntry(0, 9, 6, 13)
             .RegisterMain("Adding a chat message preview to the global chat.")
             .RegisterFeature("Everyone can now see if the Main GagSpeak dev is in global chat.")

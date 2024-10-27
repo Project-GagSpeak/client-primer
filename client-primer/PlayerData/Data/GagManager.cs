@@ -3,10 +3,13 @@ using GagSpeak.MufflerCore.Handler;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Interfaces;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
+using NAudio.Wave;
 using OtterGui.Text;
+using System.DirectoryServices;
 using System.Text.RegularExpressions;
 
 namespace GagSpeak.PlayerData.Data;
@@ -173,7 +176,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new PlayerCharAppearanceChanged(updateKind));
     }
 
-    public bool PadlockVerifyLock<T>(T item, GagLayer layer, bool allowExtended, bool allowOwner) where T : IPadlockable
+    public bool PadlockVerifyLock<T>(T item, GagLayer layer, bool extended, bool owner, bool devotional, TimeSpan maxTime) where T : IPadlockable
     {
 
         var result = false;
@@ -195,49 +198,54 @@ public partial class GagManager : DisposableMediatorSubscriberBase
                 if (!result) Logger.LogWarning("Invalid password entered: {Password}", ActiveSlotPasswords[(int)layer]);
                 return result;
             case Padlocks.MimicPadlock:
-                var validTimeMimic = TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var mimicTime);
-                if (!validTimeMimic)
+                if(!TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var mimicTime))
                 {
                     Logger.LogWarning("Invalid time entered: {Timer}", ActiveSlotTimers[(int)layer]);
                     return false;
                 }
-                // Check if the TimeSpan is longer than one hour and extended locks are not allowed
-                if (mimicTime > TimeSpan.FromHours(1) && !allowExtended)
-                {
-                    Logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
-                    return false;
-                }
-                // return base case.
-                return validTimeMimic;
+                return true;
             case Padlocks.TimerPasswordPadlock:
-                if (TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var test))
+                if (TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var pwdTimer))
                 {
-                    if (test > TimeSpan.FromHours(1) && !allowExtended)
+                    if ((pwdTimer > TimeSpan.FromHours(1) && !extended) || pwdTimer > maxTime)
                     {
                         Logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
                         return false;
                     }
-                    result = ValidatePassword(ActiveSlotPasswords[(int)layer]) && test > TimeSpan.Zero;
+                    result = ValidatePassword(ActiveSlotPasswords[(int)layer]) && pwdTimer > TimeSpan.Zero;
                 }
                 if (!result) Logger.LogWarning("Invalid password or time entered: {Password} {Timer}", ActiveSlotPasswords[(int)layer], ActiveSlotTimers[(int)layer]);
                 return result;
             case Padlocks.OwnerPadlock:
-                return allowOwner;
+                return owner;
             case Padlocks.OwnerTimerPadlock:
-                var validTime = TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var test2);
-                if (!validTime)
+                if (!TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var ownerTime))
+                {
+                    Logger.LogWarning("Invalid time entered: {Timer}", ActiveSlotTimers[(int)layer]);
+                    return false;
+                }
+                if ((ownerTime > TimeSpan.FromHours(1) && !extended) || ownerTime > maxTime)
+                {
+                    Logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
+                    return false;
+                }
+                return owner;
+            case Padlocks.DevotionalPadlock:
+                return devotional;
+            case Padlocks.DevotionalTimerPadlock:
+                if (!TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var devotionalTime))
                 {
                     Logger.LogWarning("Invalid time entered: {Timer}", ActiveSlotTimers[(int)layer]);
                     return false;
                 }
                 // Check if the TimeSpan is longer than one hour and extended locks are not allowed
-                if (test2 > TimeSpan.FromHours(1) && !allowExtended)
+                if ((devotionalTime > TimeSpan.FromHours(1) && !extended) || devotionalTime > maxTime)
                 {
-                    Logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
+                    Logger.LogWarning("Attempted to lock for longer than you were allowed access for!");
                     return false;
                 }
                 // return base case.
-                return validTime && allowOwner;
+                return devotional;
         }
         return false;
     }
@@ -248,7 +256,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         ActiveSlotPasswords = new string[4] { "", "", "", "" };
     }
 
-    public bool PadlockVerifyUnlock<T>(T data, GagLayer layer, bool allowOwnerLocks) where T : IPadlockable
+    public bool PadlockVerifyUnlock<T>(T data, GagLayer layer, bool allowOwner, bool allowDevotional) where T : IPadlockable
     {
         switch (ActiveSlotPadlocks[(int)layer])
         {
@@ -267,8 +275,10 @@ public partial class GagManager : DisposableMediatorSubscriberBase
                 return resPass;
             case Padlocks.OwnerPadlock:
             case Padlocks.OwnerTimerPadlock:
-                var resOwner = allowOwnerLocks && Globals.SelfApplied == data.Assigner;
-                return resOwner;
+                return allowOwner;
+            case Padlocks.DevotionalPadlock:
+            case Padlocks.DevotionalTimerPadlock:
+                return allowDevotional && MainHub.UID == data.Assigner;
         }
         return false;
     }

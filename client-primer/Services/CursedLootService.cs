@@ -13,6 +13,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Extensions;
 using Microsoft.Extensions.Hosting;
 using OtterGui;
@@ -242,7 +243,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                     Layer = (GagLayer)availableSlot,
                     PadlockType = Padlocks.MimicPadlock, 
                     Timer = DateTimeOffset.UtcNow.Add(lockTimeGag), 
-                    Assigner = Globals.SelfApplied
+                    Assigner = MainHub.UID
                 };
                 _gagManager.OnGagLockChanged(padlockData, NewState.Locked, true, true);
                 _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTimeGag));

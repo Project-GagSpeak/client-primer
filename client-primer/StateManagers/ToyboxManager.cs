@@ -42,7 +42,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
     /// <summary>
     /// This logic will occur after a Restraint Set has been enabled via the WardrobeHandler.
     /// </summary>
-    public void EnablePattern(Guid id, string enactorUID = Globals.SelfApplied, bool fireToServer = true, bool fireAchievement = true)
+    public void EnablePattern(Guid id, string enactorUID, bool fireToServer = true, bool fireAchievement = true)
     {
         if (_clientConfigs.AnyPatternIsPlaying)
         {
@@ -177,7 +177,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
         _patternPlayback.StartPlayback(clonedDataForPlayback);
     }
 
-    public void EnableTrigger(Guid id, string enactorUID = Globals.SelfApplied, bool fireToServer = true, bool fireAchievement = true)
+    public void EnableTrigger(Guid id, string enactorUID, bool fireToServer = true, bool fireAchievement = true)
     {
         // make sure that the trigger actually exists too.
         var trigger = Triggers.FirstOrDefault(x => x.TriggerIdentifier == id);

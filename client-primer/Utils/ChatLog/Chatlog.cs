@@ -6,14 +6,29 @@ namespace GagSpeak.Utils.ChatLog;
 public class ChatLog
 {
     public readonly ChatCircularBuffer<ChatMessage> Messages = new(1000);
-    public bool Autoscroll = true;
     private int PreviousMessageCount = 0;
     private readonly Dictionary<string, Vector4> UserColors = new();
-
     private static Vector4 CKMistressColor = new Vector4(0.886f, 0.407f, 0.658f, 1f);
+
+    public DateTime TimeCreated { get; set; }
+    public bool Autoscroll = true;
+
+
+    public ChatLog()
+    {
+        TimeCreated = DateTime.UtcNow;
+    }
 
     public void AddMessage(ChatMessage message)
         => Messages.PushBack(message);
+
+    public void AddMessageRange(IEnumerable<ChatMessage> messages)
+    {
+        foreach (var message in messages)
+        {
+            Messages.PushBack(message);
+        }
+    }
 
     public void ClearMessages()
         => Messages.Clear();

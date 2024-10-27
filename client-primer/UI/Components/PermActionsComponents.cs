@@ -10,6 +10,7 @@ using ImGuiNET;
 using OtterGui;
 using OtterGui.Text;
 using System.Numerics;
+using GagspeakAPI.Data.Permissions;
 
 namespace GagSpeak.UI.Components;
 
@@ -177,7 +178,7 @@ public class PermActionsComponents
         }
     }
 
-    public bool PadlockVerifyLock<T>(T item, Padlocks selectedLock, bool allowExtended, bool allowOwner) where T : IPadlockable
+    public bool PadlockVerifyLock<T>(T item, Padlocks selectedLock, bool extended, bool owner, bool devotional, TimeSpan maxTime) where T : IPadlockable
     {
 
         var result = false;
@@ -198,34 +199,47 @@ public class PermActionsComponents
                 if (!result) _logger.LogWarning("Invalid password entered: {Password}", Password);
                 return result;
             case Padlocks.TimerPasswordPadlock:
-                if (_uiShared.TryParseTimeSpan(Timer, out var test))
+                if (_uiShared.TryParseTimeSpan(Timer, out var pwdTimer))
                 {
-                    if (test > TimeSpan.FromHours(1) && !allowExtended)
+                    if ((pwdTimer > TimeSpan.FromHours(1) && !extended) || pwdTimer > maxTime)
                     {
                         _logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
                         return false;
                     }
-                    result = _uiShared.ValidatePassword(Password) && test > TimeSpan.Zero;
+                    result = _uiShared.ValidatePassword(Password) && pwdTimer > TimeSpan.Zero;
                 }
                 if (!result) _logger.LogWarning("Invalid password or time entered: {Password} {Timer}", Password, Timer);
                 return result;
             case Padlocks.OwnerPadlock:
-                return allowOwner;
+                return owner;
             case Padlocks.OwnerTimerPadlock:
-                var validTime = _uiShared.TryParseTimeSpan(Timer, out var test2);
-                if (!validTime)
+                if(!_uiShared.TryParseTimeSpan(Timer, out var ownerTime))
+                {
+                    _logger.LogWarning("Invalid time entered: {Timer}", Timer);
+                    return false;
+                }
+                if ((ownerTime > TimeSpan.FromHours(1) && !extended) || ownerTime > maxTime)
+                {
+                    _logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
+                    return false;
+                }
+                return owner;
+            case Padlocks.DevotionalPadlock:
+                return devotional;
+            case Padlocks.DevotionalTimerPadlock:
+                if(!_uiShared.TryParseTimeSpan(Timer, out var devotionalTime))
                 {
                     _logger.LogWarning("Invalid time entered: {Timer}", Timer);
                     return false;
                 }
                 // Check if the TimeSpan is longer than one hour and extended locks are not allowed
-                if (test2 > TimeSpan.FromHours(1) && !allowExtended)
+                if ((devotionalTime > TimeSpan.FromHours(1) && !extended) || devotionalTime > maxTime)
                 {
-                    _logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
+                    _logger.LogWarning("Attempted to lock for longer than you were allowed access for!");
                     return false;
                 }
                 // return base case.
-                return validTime && allowOwner;
+                return devotional;
         }
         return false;
     }
@@ -236,7 +250,7 @@ public class PermActionsComponents
         _timer = string.Empty;
     }
 
-    public bool PadlockVerifyUnlock<T>(T data, Padlocks selectedPadlock, bool allowOwnerLocks) where T : IPadlockable
+    public bool PadlockVerifyUnlock<T>(T data, Padlocks selectedPadlock, bool allowOwner, bool allowDevotional) where T : IPadlockable
     {
         switch (selectedPadlock)
         {
@@ -254,8 +268,10 @@ public class PermActionsComponents
                 return resPass;
             case Padlocks.OwnerPadlock:
             case Padlocks.OwnerTimerPadlock:
-                var resOwner = allowOwnerLocks && MainHub.UID == data.Assigner;
-                return resOwner;
+                return allowOwner;
+            case Padlocks.DevotionalPadlock:
+            case Padlocks.DevotionalTimerPadlock:
+                return allowDevotional && MainHub.UID == data.Assigner;
         }
         return false;
     }

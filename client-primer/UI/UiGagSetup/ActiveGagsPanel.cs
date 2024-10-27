@@ -6,6 +6,7 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Enums;
 using GagspeakAPI.Extensions;
@@ -199,7 +200,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                 if (_gagManager.PasswordValidated(idx, currentlyLocked))
                 {
                     var data = new PadlockData((GagLayer)idx, GagManager.ActiveSlotPadlocks[idx], GagManager.ActiveSlotPasswords[idx],
-                        UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[idx]), Globals.SelfApplied);
+                        UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[idx]), MainHub.UID);
                     _gagManager.OnGagLockChanged(data, currentlyLocked ? NewState.Unlocked : NewState.Locked, true, true);
                 }
                 else
@@ -218,7 +219,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
     }
     private void DisplayTimeLeft(DateTimeOffset endTime, Padlocks padlock, string userWhoSetLock, float yPos)
     {
-        var prefixText = userWhoSetLock != Globals.SelfApplied
+        var prefixText = userWhoSetLock != MainHub.UID
             ? userWhoSetLock +"'s " : (padlock is Padlocks.MimicPadlock ? "The Devious " : "Self-Applied ");
         var gagText = padlock.ToName() + " has";
         var color = ImGuiColors.ParsedGold;

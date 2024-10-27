@@ -1,5 +1,6 @@
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -47,7 +48,7 @@ public class TriggerHandler
     }
 
     public void EnableTrigger(Trigger trigger)
-    => _toyboxStateManager.EnableTrigger(trigger.TriggerIdentifier);
+    => _toyboxStateManager.EnableTrigger(trigger.TriggerIdentifier, MainHub.UID);
 
     public void DisableTrigger(Trigger trigger)
         => _toyboxStateManager.DisableTrigger(trigger.TriggerIdentifier);

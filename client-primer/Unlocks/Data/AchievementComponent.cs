@@ -53,17 +53,9 @@ public class AchievementComponent
                 continue; // skip to next achievement
             }
 
-            if(lightAchievement.Type is AchievementType.TimeLimitConditional && Achievements[lightAchievement.Title] is TimeLimitConditionalAchievement timeLimited)
+            if (lightAchievement.Type is AchievementType.ConditionalThreshold && Achievements[lightAchievement.Title] is ConditionalThresholdAchievement conditionalThresholdAchievement)
             {
-                timeLimited.IsCompleted = lightAchievement.IsCompleted;
-                timeLimited.StartPoint = lightAchievement.StartTime;
-                continue; // skip to next achievement
-            }
-
-            if (lightAchievement.Type is AchievementType.RequiredTimeConditional && Achievements[lightAchievement.Title] is TimeRequiredConditionalAchievement timeRequired)
-            {
-                timeRequired.IsCompleted = lightAchievement.IsCompleted;
-                timeRequired.StartPoint = lightAchievement.StartTime;
+                conditionalThresholdAchievement.IsCompleted = lightAchievement.IsCompleted;
                 continue; // skip to next achievement
             }
 
@@ -79,6 +71,20 @@ public class AchievementComponent
             {
                 timedProgressAchievement.IsCompleted = lightAchievement.IsCompleted;
                 timedProgressAchievement.ProgressTimestamps = lightAchievement.RecordedDateTimes;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.TimeLimitConditional && Achievements[lightAchievement.Title] is TimeLimitConditionalAchievement timeLimited)
+            {
+                timeLimited.IsCompleted = lightAchievement.IsCompleted;
+                timeLimited.StartPoint = lightAchievement.StartTime;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.RequiredTimeConditional && Achievements[lightAchievement.Title] is TimeRequiredConditionalAchievement timeRequired)
+            {
+                timeRequired.IsCompleted = lightAchievement.IsCompleted;
+                timeRequired.StartPoint = lightAchievement.StartTime;
                 continue; // skip to next achievement
             }
         }

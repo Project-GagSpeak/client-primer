@@ -49,11 +49,10 @@ public class MainUiChat : DisposableMediatorSubscriberBase
     {
         // grab the content region of the current section
         var CurrentRegion = ImGui.GetContentRegionAvail();
-
-        // center cursor
         ImGuiUtil.Center("Global GagSpeak Chat");
-        // icon to display
-        FontAwesomeIcon Icon = _discoveryService.GlobalChat.Autoscroll ? FontAwesomeIcon.ArrowDownUpLock: FontAwesomeIcon.ArrowDownUpAcrossLine;
+
+
+        FontAwesomeIcon Icon = DiscoverService.GlobalChat.Autoscroll ? FontAwesomeIcon.ArrowDownUpLock: FontAwesomeIcon.ArrowDownUpAcrossLine;
         ImGui.Separator();
 
         // Calculate the height for the chat log, leaving space for the input text field
@@ -63,7 +62,7 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         // Create a child for the chat log
         using (var chatlogChild = ImRaii.Child($"###ChatlogChild", new Vector2(CurrentRegion.X, chatLogHeight - inputTextHeight), false))
         {
-            _discoveryService.GlobalChat.PrintChatLogHistory();
+            DiscoverService.GlobalChat.PrintChatLogHistory();
         }
 
         // Now draw out the input text field
@@ -112,8 +111,8 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         // Toggle AutoScroll functionality
         ImUtf8.SameLineInner();
         if (_uiSharedService.IconButton(Icon))
-            _discoveryService.GlobalChat.Autoscroll = !_discoveryService.GlobalChat.Autoscroll;
-        UiSharedService.AttachToolTip("Toggles the AutoScroll Functionality (Current: " + (_discoveryService.GlobalChat.Autoscroll ? "Enabled" : "Disabled") + ")");
+            DiscoverService.GlobalChat.Autoscroll = !DiscoverService.GlobalChat.Autoscroll;
+        UiSharedService.AttachToolTip("Toggles the AutoScroll Functionality (Current: " + (DiscoverService.GlobalChat.Autoscroll ? "Enabled" : "Disabled") + ")");
 
         // Draw the text wrap box if the user is typing
         if (showMessagePreview && !string.IsNullOrWhiteSpace(NextChatMessage))
@@ -145,7 +144,7 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         var boxPos = ImGui.GetCursorScreenPos() - new Vector2(0, boxSize.Y + 30);
 
         // Draw semi-transparent background
-        drawList.AddRectFilled(boxPos, boxPos + boxSize, ImGui.GetColorU32(new Vector4(0.973f, 0.616f, 0.839f, 0.190f)), 5);
+        drawList.AddRectFilled(boxPos, boxPos + boxSize, ImGui.GetColorU32(new Vector4(0.973f, 0.616f, 0.839f, 0.490f)), 5);
 
         // Begin a child region for the wrapped text
         ImGui.SetCursorScreenPos(boxPos + padding);
@@ -159,11 +158,5 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         // Reset cursor to avoid overlap
         ImGui.SetCursorScreenPos(boxPos + new Vector2(0, boxSize.Y + 5));
     }
-
-
-
-
-
-
 }
 

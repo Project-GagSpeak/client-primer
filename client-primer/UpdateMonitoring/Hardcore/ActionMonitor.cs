@@ -13,6 +13,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using System.Collections.Immutable;
 using System.Windows.Forms;
 using ClientStructFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
@@ -58,7 +59,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         UpdateJobList();
         // if we currently have an active restraint set...
         var activeSet = _clientConfigs.GetActiveSet();
-        if (activeSet is not null && activeSet.EnabledBy is not Globals.SelfApplied)
+        if (activeSet is not null && activeSet.EnabledBy != MainHub.UID)
         {
             if(activeSet.PropertiesEnabledForUser(activeSet.EnabledBy))
             {
@@ -121,7 +122,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
 
     public void ToggleHardcoreTraits(NewState newState, RestraintSet restraintSetRef)
     {
-        if (restraintSetRef.EnabledBy is not Globals.SelfApplied && newState is NewState.Enabled)
+        if (restraintSetRef.EnabledBy != MainHub.UID && newState is NewState.Enabled)
         {
             Logger.LogWarning(restraintSetRef.EnabledBy + " has enabled hardcore traits", LoggerType.HardcoreActions);
             _hardcoreHandler.ApplyMultiplier();
@@ -133,7 +134,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
             // Begin monitoring hardcore restraint properties.
             MonitorHardcoreRestraintSetProperties = true;
         }
-        if (restraintSetRef.EnabledBy is not Globals.SelfApplied && newState is NewState.Disabled)
+        if (restraintSetRef.EnabledBy != MainHub.UID && newState is NewState.Disabled)
         {
             Logger.LogWarning(restraintSetRef.EnabledBy + " has disabled hardcore traits", LoggerType.HardcoreActions);
             _hardcoreHandler.StimulationMultiplier = 1.0f;

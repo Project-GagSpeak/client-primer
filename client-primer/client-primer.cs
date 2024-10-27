@@ -252,10 +252,10 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new OnEmote(s.GetRequiredService<ILogger<OnEmote>>(), s.GetRequiredService<OnFrameworkService>(), ss, gip))
         .AddSingleton((s) => new EmoteMonitor(s.GetRequiredService<ILogger<EmoteMonitor>>(), s.GetRequiredService<OnFrameworkService>(), cs, dm))
         .AddSingleton((s) => new TriggerController(s.GetRequiredService<ILogger<TriggerController>>(), s.GetRequiredService<GagspeakMediator>(),
-            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<ActionEffectMonitor>(),
-            s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<GagManager>(),
-            s.GetRequiredService<PairManager>(), s.GetRequiredService<AppearanceManager>(), s.GetRequiredService<OnFrameworkService>(),
-            s.GetRequiredService<ToyboxVibeService>(), s.GetRequiredService<IpcCallerMoodles>(), cg, cs, dm))
+            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<WardrobeHandler>(), 
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<GagManager>(), s.GetRequiredService<PairManager>(), 
+            s.GetRequiredService<AppearanceManager>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<ToyboxVibeService>(), 
+            s.GetRequiredService<IpcCallerMoodles>(), cg, cs, dm))
 
         .AddSingleton((s) => new DtrBarService(s.GetRequiredService<ILogger<DtrBarService>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(), 
             s.GetRequiredService<EventAggregator>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<OnFrameworkService>(), cs, dm, dtr))
@@ -360,7 +360,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()
         .AddSingleton<GagspeakMediator>()
-        .AddSingleton<DiscoverService>()
+        .AddSingleton((s) => new DiscoverService(pi.ConfigDirectory.FullName, s.GetRequiredService<ILogger<DiscoverService>>(),
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainTabMenu>(), s.GetRequiredService<PairManager>()))
         .AddSingleton<PatternHubService>()
         .AddSingleton<PermissionPresetService>()
         .AddSingleton((s) => new ProfileService(s.GetRequiredService<ILogger<ProfileService>>(),

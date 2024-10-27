@@ -24,14 +24,12 @@ public partial class PairStickyUI
     {
         // verify that the unique pair perms and last recieved wardrobe data are not null.
         var lastWardrobeData = UserPairForPerms.LastReceivedWardrobeData;
-        var pairUniquePerms = UserPairForPerms.UserPairUniquePairPerms;
-        bool canUseOwnerLocks = pairUniquePerms.OwnerLocks;
-        if (lastWardrobeData == null || pairUniquePerms == null) return;
+        if (lastWardrobeData == null || PairPerms == null) return;
 
-        bool applyButtonDisabled = !pairUniquePerms.ApplyRestraintSets || lastWardrobeData.Outfits.Count <= 0 || (lastWardrobeData.ActiveSetName != string.Empty && lastWardrobeData.Padlock != Padlocks.None.ToName());
-        bool lockButtonDisabled = !pairUniquePerms.LockRestraintSets || lastWardrobeData.ActiveSetName == string.Empty || lastWardrobeData.Padlock != Padlocks.None.ToName();
-        bool unlockButtonDisabled = !pairUniquePerms.UnlockRestraintSets || lastWardrobeData.Padlock == "None";
-        bool removeButtonDisabled = !pairUniquePerms.RemoveRestraintSets || lastWardrobeData.ActiveSetName == string.Empty || lastWardrobeData.Padlock != Padlocks.None.ToName();
+        bool applyButtonDisabled = !PairPerms.ApplyRestraintSets || lastWardrobeData.Outfits.Count <= 0 || (lastWardrobeData.ActiveSetName != string.Empty && lastWardrobeData.Padlock != Padlocks.None.ToName());
+        bool lockButtonDisabled = !PairPerms.LockRestraintSets || lastWardrobeData.ActiveSetName == string.Empty || lastWardrobeData.Padlock != Padlocks.None.ToName();
+        bool unlockButtonDisabled = !PairPerms.UnlockRestraintSets || lastWardrobeData.Padlock == "None";
+        bool removeButtonDisabled = !PairPerms.RemoveRestraintSets || lastWardrobeData.ActiveSetName == string.Empty || lastWardrobeData.Padlock != Padlocks.None.ToName();
 
         ////////// APPLY RESTRAINT SET //////////
         if (_uiShared.IconTextButton(FontAwesomeIcon.Handcuffs, "Apply Restraint Set", WindowMenuWidth, true, applyButtonDisabled))
@@ -102,7 +100,7 @@ public partial class PairStickyUI
             {
                 if (!actionChild) return;
 
-                bool disabled = selected == Padlocks.None || !pairUniquePerms.LockRestraintSets;
+                bool disabled = selected == Padlocks.None || !PairPerms.LockRestraintSets;
 
                 using (ImRaii.Disabled(true))
                 {
@@ -121,7 +119,8 @@ public partial class PairStickyUI
                         var newWardrobeData = lastWardrobeData.DeepClone();
                         if (newWardrobeData == null) throw new Exception("Wardrobe data is null, not sending");
 
-                        if (_permActions.PadlockVerifyLock<IPadlockable>(newWardrobeData, onButtonPress, pairUniquePerms.ExtendedLockTimes, canUseOwnerLocks))
+                        if (_permActions.PadlockVerifyLock<IPadlockable>(newWardrobeData, onButtonPress, PairPerms.ExtendedLockTimes, 
+                            PairPerms.OwnerLocks, PairPerms.DevotionalLocks, PairPerms.MaxAllowedRestraintTime))
                         {
                             newWardrobeData.Padlock = onButtonPress.ToName();
                             newWardrobeData.Password = _permActions.Password;
@@ -158,7 +157,7 @@ public partial class PairStickyUI
             {
                 if (!actionChild) return;
 
-                bool disabled = selected == Padlocks.None || !pairUniquePerms.UnlockRestraintSets;
+                bool disabled = selected == Padlocks.None || !PairPerms.UnlockRestraintSets;
                 // Draw combo
                 float width = WindowMenuWidth - ImGui.GetStyle().ItemInnerSpacing.X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Unlock, "Unlock");
                 using (ImRaii.Disabled(true))
@@ -174,7 +173,7 @@ public partial class PairStickyUI
                         var newWardrobeData = lastWardrobeData.DeepClone();
                         if (newWardrobeData == null) throw new Exception("Wardrobe data is null, not sending");
 
-                        if (_permActions.PadlockVerifyUnlock<IPadlockable>(newWardrobeData, selected, canUseOwnerLocks))
+                        if (_permActions.PadlockVerifyUnlock<IPadlockable>(newWardrobeData, selected, PairPerms.OwnerLocks, PairPerms.DevotionalLocks))
                         {
                             newWardrobeData.Padlock = selected.ToName();
                             newWardrobeData.Password = _permActions.Password;

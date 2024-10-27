@@ -9,6 +9,7 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using ImGuiNET;
 using OtterGui.Classes;
 using OtterGui.Text;
@@ -488,9 +489,9 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 {
                     // set the enabled state of the restraintSet based on its current state so that we toggle it
                     if (set.Enabled)
-                        _handler.DisableRestraintSet(set.RestraintId).ConfigureAwait(false);
+                        _handler.DisableRestraintSet(set.RestraintId, set.EnabledBy).ConfigureAwait(false);
                     else
-                        _handler.EnableRestraintSet(set.RestraintId).ConfigureAwait(false);
+                        _handler.EnableRestraintSet(set.RestraintId, MainHub.UID).ConfigureAwait(false);
                     // toggle the state & early return so we dont access the child clicked button
                     return;
                 }
@@ -517,7 +518,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 string remainingTimeStr = $"{remainingTime.Days}d{remainingTime.Hours}h{remainingTime.Minutes}m{remainingTime.Seconds}s";
                 var lockedDescription = set.Locked ? $"Locked for {remainingTimeStr}" : "Self-lock: XdXhXmXs format..";
                 // draw the padlock dropdown
-                var isLockedByPair = set.LockedBy != Globals.SelfApplied && set.LockType.ToPadlock() != Padlocks.None;
+                var isLockedByPair = set.LockedBy != MainHub.UID && set.LockType.ToPadlock() != Padlocks.None;
                 var padlockType = set.Locked ? set.LockType.ToPadlock() : GagManager.ActiveSlotPadlocks[3];
 
                 var padlockList = isLockedByPair ? GenericHelpers.NoMimicPadlockList : GenericHelpers.NoOwnerPadlockList;
@@ -557,7 +558,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                             Logger.LogTrace($"Locking Restraint Set {set.Name}");
                             Logger.LogTrace("Parsing Timer with value[" + GagManager.ActiveSlotTimers[3] + "]");
                             _handler.LockRestraintSet(set.RestraintId, GagManager.ActiveSlotPadlocks[3], GagManager.ActiveSlotPasswords[3], 
-                                UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[3]), Globals.SelfApplied);
+                                UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[3]), MainHub.UID);
                         }
                     }
                     else
@@ -569,7 +570,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 }
                 UiSharedService.AttachToolTip(GagManager.ActiveSlotPadlocks[3] == Padlocks.None ? "Select a padlock type before locking" :
                     set.Locked == false ? "Self-Lock this Restraint Set" :
-                    set.LockedBy != Globals.SelfApplied ? "Only" + set.LockedBy + "can unlock your set." : "Unlock this set.");
+                    set.LockedBy != MainHub.UID ? "Only" + set.LockedBy + "can unlock your set." : "Unlock this set.");
                 // display associated password field for padlock type.
                 _gagManager.DisplayPadlockFields(3, set.Locked, width);
             }

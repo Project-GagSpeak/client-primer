@@ -19,7 +19,7 @@ public static class UtilsExtensions
 {
     public static string ComboEmoteName(this Lumina.Excel.GeneratedSheets.Emote emote)
     {
-        return emote.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") + "("+ emote.RowId + ")";
+        return emote.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") + "(" + emote.RowId + ")";
     }
     /// <summary> Draw a game icon display (not icon button or anything) </summary>
     public static void DrawIcon(this EquipItem item, TextureService textures, Vector2 size, EquipSlot slot)

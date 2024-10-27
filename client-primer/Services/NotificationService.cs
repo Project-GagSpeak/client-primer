@@ -28,6 +28,7 @@ public class NotificationService : DisposableMediatorSubscriberBase
         _notifications = notifications;
 
         Mediator.Subscribe<NotificationMessage>(this, ShowNotification);
+        Mediator.Subscribe<NotifyChatMessage>(this, ShowChat);
 
         // notify about live chat garbler on zone switch.
         Mediator.Subscribe<ZoneSwitchStartMessage>(this, (_) =>
@@ -56,6 +57,26 @@ public class NotificationService : DisposableMediatorSubscriberBase
     }
 
     private void ShowChat(NotificationMessage msg)
+    {
+        switch (msg.Type)
+        {
+            case NotificationType.Info:
+            case NotificationType.Success:
+            case NotificationType.None:
+                PrintInfoChat(msg.Message);
+                break;
+
+            case NotificationType.Warning:
+                PrintWarnChat(msg.Message);
+                break;
+
+            case NotificationType.Error:
+                PrintErrorChat(msg.Message);
+                break;
+        }
+    }
+
+    private void ShowChat(NotifyChatMessage msg)
     {
         switch (msg.Type)
         {

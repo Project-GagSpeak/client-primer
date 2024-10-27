@@ -15,25 +15,25 @@ namespace GagSpeak.UpdateMonitoring;
 public class EmoteMonitor
 {
     private readonly ILogger<EmoteMonitor> _logger;
-    private readonly ChatSender _chatSender;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly IClientState _clientState;
     private readonly IDataManager _gameData;
 
     private static unsafe AgentEmote* EmoteAgentRef = (AgentEmote*)ClientStructFramework.Instance()->GetUIModule()->GetAgentModule()->GetAgentByInternalId(AgentId.Emote);
-    public unsafe EmoteMonitor(ILogger<EmoteMonitor> logger, ChatSender chatSender,
-        OnFrameworkService frameworkUtils, IClientState clientState, IDataManager dataManager)
+    public unsafe EmoteMonitor(ILogger<EmoteMonitor> logger, OnFrameworkService frameworkUtils, 
+        IClientState clientState, IDataManager dataManager)
     {
         _logger = logger;
-        _chatSender = chatSender;
         _frameworkUtils = frameworkUtils;
         _clientState = clientState;
         _gameData = dataManager;
         EmoteDataAll = _gameData.GetExcelSheet<Emote>()!;
         EmoteDataLoops = EmoteDataAll.Where(x => x.RowId is (50 or 52) || x.EmoteMode.Value?.ConditionMode is 3).ToDictionary(x => x.RowId, x => x).AsReadOnly();
+        // .Where(x => x.RowId is (50 or 52) || x.EmoteMode.Value?.ConditionMode is 3).ToDictionary(x => x.RowId, x => x).AsReadOnly();
         // initialize the commands list.
-        foreach (var emoteCommand in EmoteDataAll)
+        foreach (var emoteCommand in EmoteDataAll.Where(x=> x.EmoteCategory?.Value?.RowId is not 3))
         {
+            // if the row id is (42 or 24), add it to a temporary list.
             var cmd = emoteCommand.TextCommand.Value?.Command;
             if (cmd != null && cmd != "") EmoteCommands.Add(cmd);
             cmd = emoteCommand.TextCommand.Value?.ShortCommand;
@@ -43,6 +43,25 @@ public class EmoteMonitor
             cmd = emoteCommand.TextCommand.Value?.ShortAlias;
             if (cmd != null && cmd != "") EmoteCommands.Add(cmd);
         }
+        // sort the EmoteCommands alphabetically.
+        EmoteCommands = EmoteCommands.OrderBy(x => x).ToHashSet();
+
+        // Obtain all the yes no commands.
+        var yesNoCommands = new HashSet<string>();
+        foreach (var emoteCommand in EmoteDataAll.Where(x => x.RowId is (42 or 24) && x.EmoteCategory?.Value?.RowId is not 3))
+        {
+            // if the row id is (42 or 24), add it to a temporary list.
+            var cmd = emoteCommand.TextCommand.Value?.Command;
+            if (cmd != null && cmd != "") yesNoCommands.Add(cmd);
+            cmd = emoteCommand.TextCommand.Value?.ShortCommand;
+            if (cmd != null && cmd != "") yesNoCommands.Add(cmd);
+            cmd = emoteCommand.TextCommand.Value?.Alias;
+            if (cmd != null && cmd != "") yesNoCommands.Add(cmd);
+            cmd = emoteCommand.TextCommand.Value?.ShortAlias;
+            if (cmd != null && cmd != "") yesNoCommands.Add(cmd);
+        }
+        // Make the EmoteCommandsYesNoAccepted the EmoteCommands.Except the yesNoCommands.
+        EmoteCommandsYesNoAccepted = EmoteCommands.Except(yesNoCommands).ToHashSet();
         // log all recorded emotes.
         _logger.LogDebug("Emote Commands: " + string.Join(", ", EmoteCommands));
     }
@@ -53,6 +72,7 @@ public class EmoteMonitor
     public static ExcelSheet<Emote> EmoteDataAll = null!;
     public static ReadOnlyDictionary<uint, Emote> EmoteDataLoops = null!;
     public static HashSet<string> EmoteCommands = [];
+    public static HashSet<string> EmoteCommandsYesNoAccepted = [];
 
     // create a IEnumerable array that only consists of the emote data from keys of 50 and 52.
     public static IEnumerable<Emote> SitEmoteComboList => EmoteDataLoops.Where(x => x.Key == 50 || x.Key == 52).Select(x => x.Value);
@@ -209,10 +229,8 @@ public class EmoteMonitor
             // if our emote is not any type of sit, dont perform this task.
             if (IsAnyPoseWithCyclePose(currentPose))
             {
-                // Set the cycle attempts based on the type of sit being used, so it is equal to the cpose count.
-                var cycleAttempts = EmoteMonitor.EmoteCyclePoses(currentPose);
-                // Attempt the cycles.
-                for (var i = 0; i < cycleAttempts; i++)
+                // Attempt the cycles, break out when we hit the count.
+                for (var i = 0; i < 7; i++)
                 {
                     var current = CurrentCyclePose();
 
@@ -220,7 +238,7 @@ public class EmoteMonitor
                         break;
 
                     _logger.LogTrace("Cycle Pose State was [" + current + "], expected [" + expectedCyclePose + "]. Sending /cpose.", LoggerType.HardcoreMovement);
-                    _chatSender.SendMessage("/cpose");
+                    ExecuteEmote(90);
                     // give some delay before re-execution.
                     await Task.Delay(500);
                 }

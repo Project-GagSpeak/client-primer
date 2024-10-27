@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 6, 12)
+            .RegisterBugfix("Fixed hopefully all remaining bugs with the forced emote system.");
         VersionEntry(0, 9, 6, 9)
             .RegisterMain("Nice Version Number.")
             .RegisterMain("Hopefully fixes most of the emotelock commands.")

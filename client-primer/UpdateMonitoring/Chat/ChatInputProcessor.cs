@@ -1,12 +1,15 @@
 using Dalamud.Game;
 using Dalamud.Hooking;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using Dalamud.Utility.Signatures;
 using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Data;
+using GagSpeak.Services.Mediator;
 using GagspeakAPI.Extensions;
+using Lumina.Excel.GeneratedSheets;
 using System.Runtime.InteropServices;
 
 // I swear to god, if any contributors even attempt to tinker with this file, I will swat you over the head. DO NOT DO IT.
@@ -21,6 +24,7 @@ public unsafe class ChatInputDetour : IDisposable
 {
     private readonly ILogger<ChatInputDetour> _logger;
     private readonly GagspeakConfigService _config;
+    private readonly GagspeakMediator _mediator;
     private readonly PlayerCharacterData _playerManager;
     private readonly GagManager _gagManager;
     private readonly EmoteMonitor _emoteMonitor;
@@ -30,12 +34,13 @@ public unsafe class ChatInputDetour : IDisposable
     [Signature("E8 ?? ?? ?? ?? FE 86 ?? ?? ?? ?? C7 86 ?? ?? ?? ?? ?? ?? ?? ??", DetourName = nameof(ProcessChatInputDetour), Fallibility = Fallibility.Auto)]
     private Hook<ProcessChatInputDelegate> ProcessChatInputHook { get; set; } = null!;
 
-    internal ChatInputDetour(ILogger<ChatInputDetour> logger, GagspeakConfigService config,
-        PlayerCharacterData playerManager, GagManager gagManager,
+    internal ChatInputDetour(ILogger<ChatInputDetour> logger, GagspeakMediator mediator,
+        GagspeakConfigService config, PlayerCharacterData playerManager, GagManager gagManager,
         EmoteMonitor emoteMonitor, ISigScanner scanner, IGameInteropProvider interop)
     {
         // initialize the classes
         _logger = logger;
+        _mediator = mediator;
         _config = config;
         _playerManager = playerManager;
         _gagManager = gagManager;
@@ -101,9 +106,13 @@ public unsafe class ChatInputDetour : IDisposable
                 var emoteAttemptCmd = Encoding.UTF8.GetString(*message, bc);
                 if (emoteAttemptCmd.StartsWith("/"))
                 {
+                    // Grab current EmoteID.
+                    var emoteId = _emoteMonitor.CurrentEmoteId();
+                    var blockersList = EmoteMonitor.IsSittingAny(emoteId) ? EmoteMonitor.EmoteCommandsYesNoAccepted : EmoteMonitor.EmoteCommands;
                     // cancel the message if it is a /cpose while forced to sit and on our knees, deny it.
-                    if (EmoteMonitor.EmoteCommands.Any(cmd => emoteAttemptCmd.Contains(cmd, StringComparison.OrdinalIgnoreCase)))
+                    if (blockersList.Any(cmd => emoteAttemptCmd.Contains(cmd, StringComparison.OrdinalIgnoreCase)))
                     {
+                        _mediator.Publish(new NotifyChatMessage("You Tried to Execute an Emote while being Forced to Stay!", NotificationType.Warning));
                         _logger.LogTrace("Attempted to execute emote while being forced to emote. Blocking!", LoggerType.HardcoreMovement);
                         // Send an empty string
                         var emptyString = "";

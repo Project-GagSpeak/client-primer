@@ -167,10 +167,10 @@ public class ChatLog
         var boxSize = new Vector2(currentRegion.X, lineCount * singleLineHeight + padding.Y * 2);
 
         // Position the box above the input, offset by box height
-        var boxPos = ImGui.GetCursorScreenPos() - new Vector2(0, boxSize.Y + 30);
+        var boxPos = ImGui.GetCursorScreenPos() - new Vector2(0, boxSize.Y +10);
 
         // Draw semi-transparent background
-        drawList.AddRectFilled(boxPos, boxPos + boxSize, ImGui.GetColorU32(new Vector4(0f, 0f, 0f, 1f)), 5);
+        drawList.AddRectFilled(boxPos, boxPos + boxSize, ImGui.GetColorU32(new Vector4(0.1f, 0.1f, 0.1f, .7f)), 5);
 
         // Begin a child region for the wrapped text
         ImGui.SetCursorScreenPos(boxPos + padding);

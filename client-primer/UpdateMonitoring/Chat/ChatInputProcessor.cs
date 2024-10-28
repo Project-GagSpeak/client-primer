@@ -88,6 +88,12 @@ public unsafe class ChatInputDetour : IDisposable
             foreach (var payload in originalSeString.Payloads)
                 _logger.LogTrace($"Message Payload [{payload.Type}]: {payload.ToString()}", LoggerType.ChatDetours);
 
+            if (string.IsNullOrWhiteSpace(messageDecoded))
+            {
+                _logger.LogTrace("Message was null or whitespace, returning original.", LoggerType.ChatDetours);
+                return ProcessChatInputHook.Original(uiModule, message, a3);
+            }
+
             // Create the new string to send.
             var newSeStringBuilder = new SeStringBuilder();
 
@@ -122,7 +128,7 @@ public unsafe class ChatInputDetour : IDisposable
                         else // return original if invalid.
                         {
                             _logger.LogError("Chat Garbler Variant of Message was longer than max message length!");
-                            return 0;
+                            return ProcessChatInputHook.Original(uiModule, message, a3);
                         }
                     }
                 }
@@ -202,7 +208,15 @@ public unsafe class ChatInputDetour : IDisposable
                     newSeStringBuilder.Add(new TextPayload(output));
 
                     // DEBUG MESSAGE: (Remove when not debugging)
-                    _logger.LogTrace(output, LoggerType.ChatDetours);
+                    _logger.LogTrace("Output: "+output, LoggerType.ChatDetours);
+
+                    // if the message is empty add a blank text payload.
+                    if (string.IsNullOrWhiteSpace(output))
+                    {
+                        _logger.LogTrace("Message was null or whitespace, forbidding text from sending", LoggerType.ChatDetours);
+                        return 0;
+                    }
+
 
                     // Construct it for finalization.
                     var newSeString = newSeStringBuilder.Build();
@@ -217,7 +231,7 @@ public unsafe class ChatInputDetour : IDisposable
                     else // return original if invalid.
                     {
                         _logger.LogError("Chat Garbler Variant of Message was longer than max message length!");
-                        return 0; // fucking ABORT!
+                        return ProcessChatInputHook.Original(uiModule, message, a3);
                     }
                 }
                 catch (Exception e)

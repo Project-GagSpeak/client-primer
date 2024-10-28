@@ -73,7 +73,7 @@ public class ChatLog
                     }
                 }
 
-                // grab cursorscreenposx
+                // grab cursor screen pos x
                 var cursorPos = ImGui.GetCursorScreenPos();
                 // Print the user name with color
                 ImGui.TextColored(UserColors[x.UID], $"[{x.Name}]");

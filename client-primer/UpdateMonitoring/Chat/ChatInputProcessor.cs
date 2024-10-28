@@ -1,9 +1,13 @@
 using Dalamud.Game;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Hooking;
 using Dalamud.Interface.ImGuiNotification;
+using Dalamud.Memory;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using Dalamud.Utility.Signatures;
+using FFXIVClientStructs.FFXIV.Client.System.String;
 using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Data;
@@ -11,6 +15,9 @@ using GagSpeak.Services.Mediator;
 using GagspeakAPI.Extensions;
 using Lumina.Excel.GeneratedSheets;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics.X86;
+using System.Text.RegularExpressions;
+using static System.Net.Mime.MediaTypeNames;
 
 // I swear to god, if any contributors even attempt to tinker with this file, I will swat you over the head. DO NOT DO IT.
 namespace GagSpeak.UpdateMonitoring.Chat.ChatMonitors;
@@ -69,97 +76,76 @@ public unsafe class ChatInputDetour : IDisposable
         // Put all this shit in a try-catch loop so we can catch any possible thrown exception.
         try
         {
-            // begin the chat-input bit counter.
-            var bc = 0;
-            int matchSequence = 0; // (TODO: Consider Removing this) 4 means that message contains autocomplete marker so we ignore message completely
-
-            // Check each bit in the length of the message (cannot exceed 500 bits) for an invalid send.
-            for (var i = 0; i <= 500; i++)
-            {
-                // match autocomplete byte pattern 02 2e ... f2 ... 03
-                if (i + 5 < 500 && (*message)[i] == 0x02 && (*message)[i + 1] == 0x2e) matchSequence += 2;
-                if ((*message)[i] == 0xf2 && matchSequence == 2) matchSequence++;
-                if ((*message)[i] == 0x03 && matchSequence == 3) matchSequence++;
-                // if message contain autocomplete matchSequence will be 4
-                if (matchSequence == 4) break;
-
-                if (*(*message + i) != 0) continue; // if the message is empty, break
-                bc = i; // increment bc
-                break;
-            }
-            if (bc < 2 || bc > 500 || matchSequence == 4)
-            {
-                // If message is invalid, so send original untranslated text.
-                return ProcessChatInputHook.Original(uiModule, message, a3);
-            }
-
             // if our chat garbler is disabled or we dont have any active gags, dont worry about anything past this point and return original.
             if(_playerManager.GlobalPerms is null) 
-            { 
                 return ProcessChatInputHook.Original(uiModule, message, a3); 
-            }
 
-            // Handle unique condition for being in a forced sit state.
+            // Grab the original string.
+            var originalSeString = MemoryHelper.ReadSeStringNullTerminated((nint)(*message));
+            var messageDecoded = originalSeString.ToString(); // the decoded message format.
+
+            // Debug the output (remove later)
+            foreach (var payload in originalSeString.Payloads)
+                _logger.LogTrace($"Message Payload [{payload.Type}]: {payload.ToString()}", LoggerType.ChatDetours);
+
+            // Create the new string to send.
+            var newSeStringBuilder = new SeStringBuilder();
+
+            // If we are being forced to emote, cancel all emote commands.
             if (!_playerManager.GlobalPerms.ForcedEmoteState.NullOrEmpty())
             {
                 // cancel all emote commands if we are in a forced emote state.
-                var emoteAttemptCmd = Encoding.UTF8.GetString(*message, bc);
-                if (emoteAttemptCmd.StartsWith("/"))
+                if (messageDecoded.StartsWith("/"))
                 {
                     // Grab current EmoteID.
                     var emoteId = _emoteMonitor.CurrentEmoteId();
                     var blockersList = EmoteMonitor.IsSittingAny(emoteId) ? EmoteMonitor.EmoteCommandsYesNoAccepted : EmoteMonitor.EmoteCommands;
                     // cancel the message if it is a /cpose while forced to sit and on our knees, deny it.
-                    if (blockersList.Any(cmd => emoteAttemptCmd.Contains(cmd, StringComparison.OrdinalIgnoreCase)))
+                    if (blockersList.Any(cmd => messageDecoded.Contains(cmd, StringComparison.OrdinalIgnoreCase)))
                     {
                         _mediator.Publish(new NotifyChatMessage("You Tried to Execute an Emote while being Forced to Stay!", NotificationType.Warning));
                         _logger.LogTrace("Attempted to execute emote while being forced to emote. Blocking!", LoggerType.HardcoreMovement);
-                        // Send an empty string
-                        var emptyString = "";
-                        var emptyBytes = Encoding.UTF8.GetBytes(emptyString);
-                        var mem1 = Marshal.AllocHGlobal(400);
-                        var mem2 = Marshal.AllocHGlobal(emptyBytes.Length + 30);
-                        Marshal.Copy(emptyBytes, 0, mem2, emptyBytes.Length);
-                        Marshal.WriteByte(mem2 + emptyBytes.Length, 0);
-                        Marshal.WriteInt64(mem1, mem2.ToInt64());
-                        Marshal.WriteInt64(mem1 + 8, 64);
-                        Marshal.WriteInt64(mem1 + 8 + 8, emptyBytes.Length + 1);
-                        Marshal.WriteInt64(mem1 + 8 + 8 + 8, 0);
-                        var r = ProcessChatInputHook.Original(uiModule, (byte**)mem1.ToPointer(), a3);
-                        Marshal.FreeHGlobal(mem1);
-                        Marshal.FreeHGlobal(mem2);
-                        return r;
+
+                        // we should add a singular TextPayload to the string builder with no text.
+                        newSeStringBuilder.Add(new TextPayload(""));
+
+                        // Construct it for finalization.
+                        var newSeString = newSeStringBuilder.Build();
+
+                        // Verify its a legal width
+                        if (newSeString.TextValue.Length <= 500)
+                        {
+                            var utf8String = Utf8String.FromString(".");
+                            utf8String->SetString(newSeString.Encode());
+                            return ProcessChatInputHook.Original(uiModule, (byte**)((nint)utf8String).ToPointer(), a3);
+                        }
+                        else // return original if invalid.
+                        {
+                            _logger.LogError("Chat Garbler Variant of Message was longer than max message length!");
+                            return 0;
+                        }
                     }
                 }
             }
 
-
-            // Handle Chat Garbling.
+            // If we are not meant to garble the message, then return original.
             if (!_playerManager.GlobalPerms.LiveChatGarblerActive || !_gagManager.AnyGagActive) 
-            { 
                 return ProcessChatInputHook.Original(uiModule, message, a3);
-            }
-
 
             /* -------------------------- MUFFLERCORE / GAGSPEAK CHAT GARBLER TRANSLATION LOGIC -------------------------- */
-            var inputString = Encoding.UTF8.GetString(*message, bc);
             var matchedCommand = "";
             var matchedChannelType = "";
-            // DEBUG MESSAGE: (remove when not debugging)
-            _logger.LogTrace($"Detouring Message: {inputString}", LoggerType.ChatDetours);
-
-            // if the message is a command, see if the command is a channel command. If so, still use for translation, otherwise, return original.
-            // TODO: Implement configured allowed channels for this later.
-            if (inputString.StartsWith("/"))
+            // At this point, make sure that the message is not a command, if it is we should ignore it.
+            _logger.LogTrace($"Detouring Message: {messageDecoded}", LoggerType.ChatDetours);
+            if (messageDecoded.StartsWith("/"))
             {
                 // Match Command if Command being used is in our list of allowed Channels to translate in.
                 var allowedChannels = _config.Current.ChannelsGagSpeak.GetChatChannelsListAliases();
-                matchedCommand = allowedChannels.FirstOrDefault(prefix => inputString.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+                matchedCommand = allowedChannels.FirstOrDefault(prefix => messageDecoded.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
 
-                // If MatchedCommand is empty, it means it is not a channel command, or that it wasn't a channel we allowed, so send original untranslated text.
+                // This means its not a chat channel command and just a normal command, so return original.
                 if (matchedCommand.IsNullOrEmpty())
                 {
-                    // DEBUG MESSAGE: (remove when not debugging)
                     _logger.LogTrace("Ignoring Message as it is a command", LoggerType.ChatDetours);
                     return ProcessChatInputHook.Original(uiModule, message, a3);
                 }
@@ -167,64 +153,72 @@ public unsafe class ChatInputDetour : IDisposable
                 // Set the matched command to the matched channel type. 
                 matchedChannelType = matchedCommand;
 
+                // if tell command is matched, need extra step to protect target name
+                if (matchedCommand.StartsWith("/tell") || matchedCommand.StartsWith("/t"))
+                {
+                    _logger.LogTrace($"[Chat Processor]: Matched Command is a tell command");
+                    /// Using /gag command on yourself sends /tell which should be caught by this
+                    /// Depends on <seealso cref="MsgEncoder.MessageEncoder"/> message to start like :"/tell {targetPlayer} *{playerPayload.PlayerName}"
+                    /// Since only outgoing tells are affected, {targetPlayer} and {playerPayload.PlayerName} will be the same
+                    var selfTellRegex = @"(?<=^|\s)/t(?:ell)?\s{1}(?<name>\S+\s{1}\S+)@\S+\s{1}\*\k<name>(?=\s|$)";
+                    if (!Regex.Match(messageDecoded, selfTellRegex).Value.IsNullOrEmpty())
+                    {
+                        _logger.LogTrace("[Chat Processor]: Ignoring Message as it is a self tell garbled message.");
+                        return ProcessChatInputHook.Original(uiModule, message, a3);
+                    }
+                    // Match any other outgoing tell to preserve target name
+                    var tellRegex = @"(?<=^|\s)/t(?:ell)?\s{1}(?:\S+\s{1}\S+@\S+|\<r\>)\s?(?=\S|\s|$)";
+                    matchedCommand = Regex.Match(messageDecoded, tellRegex).Value;
+                }
                 _logger.LogTrace($"Matched Command [{matchedCommand}] for matchedChannelType: [{matchedChannelType}]", LoggerType.ChatDetours);
             }
 
             // If current channel message is being sent to is in list of enabled channels, translate it.
             if (_config.Current.ChannelsGagSpeak.Contains(ChatChannel.GetChatChannel()) || _config.Current.ChannelsGagSpeak.IsAliasForAnyActiveChannel(matchedChannelType.Trim()))
             {
-                // DEBUG MESSAGE: (Remove when not debugging)
-                _logger.LogTrace($"MatchedCommand ->{matchedCommand} || Input ->{inputString}", LoggerType.ChatDetours);
-
                 try
                 {
-                    // create the output string that will be processed.
-                    var stringToProcess = inputString.Substring(matchedCommand.Length);
-
                     // see if this is an outgoing tell, if it is, we must make sure it isn't garbled for encoded messages
                     if (ChatChannel.GetChatChannel() == ChatChannel.Channels.Tell || matchedChannelType.Contains("/t") || matchedChannelType.Contains("/tell"))
                     {
                         // it is a tell, we need to make sure it is not garbled if it is an encoded message
-                        _logger.LogTrace($"Message is a tell message, skipping garbling", LoggerType.ChatDetours);
+                        _logger.LogTrace($"Message is a outgoing tell message, skipping garbling", LoggerType.ChatDetours);
+                        return ProcessChatInputHook.Original(uiModule, message, a3);
                     }
 
-                    // Translate the original message into Garbled Speech.
-                    var output = _gagManager.ProcessMessage(stringToProcess);
-                    
-                    // Append the matched command to the front if one was included. If none was, it will be simply the message.
-                    output = matchedCommand + output;
+                    // only obtain the text payloads from this message, as nothing else should madder.
+                    var textPayloads = originalSeString.Payloads.OfType<TextPayload>().ToList();
+
+                    // merge together the text of all the split text payloads.
+                    var originalText = string.Join("", textPayloads.Select(tp => tp.Text));
+
+                    // after we have done that, take this string and get the substring with the matched command length.
+                    var stringToProcess = originalText.Substring(matchedCommand.Length);
+
+                    // once we have done that, garble that string, and then merge it back with the output command in front.
+                    var output = matchedCommand + _gagManager.ProcessMessage(stringToProcess);
+
+                    // append this to the newSeStringBuilder.
+                    newSeStringBuilder.Add(new TextPayload(output));
 
                     // DEBUG MESSAGE: (Remove when not debugging)
-                    _logger.LogTrace(output);
+                    _logger.LogTrace(output, LoggerType.ChatDetours);
 
-                    // If Garbled Variant of string if less than 500 bytes in size, we can process it for sending.
-                    if (output.Length <= 500)
+                    // Construct it for finalization.
+                    var newSeString = newSeStringBuilder.Build();
+
+                    // Verify its a legal width
+                    if (newSeString.TextValue.Length <= 500)
                     {
-                        // DEBUG MESSAGE: (Remove when not debugging)
-                        _logger.LogTrace($"New Packet Message: {output}", LoggerType.ChatDetours);
-                        // encode the new string
-                        var bytes = Encoding.UTF8.GetBytes(output);
-                        // allocate the memory
-                        var mem1 = Marshal.AllocHGlobal(400);
-                        var mem2 = Marshal.AllocHGlobal(bytes.Length + 30);
-                        // copy and write the new memory into the allocated memory
-                        Marshal.Copy(bytes, 0, mem2, bytes.Length);
-                        Marshal.WriteByte(mem2 + bytes.Length, 0);
-                        Marshal.WriteInt64(mem1, mem2.ToInt64());
-                        Marshal.WriteInt64(mem1 + 8, 64);
-                        Marshal.WriteInt64(mem1 + 8 + 8, bytes.Length + 1);
-                        Marshal.WriteInt64(mem1 + 8 + 8 + 8, 0);
-                        // properly send off the new message by setting it to r at the right pointer
-                        var r = ProcessChatInputHook.Original(uiModule, (byte**)mem1.ToPointer(), a3);
-                        // free up the memory we used for assigning
-                        Marshal.FreeHGlobal(mem1);
-                        Marshal.FreeHGlobal(mem2);
-                        // return the result of the alias
-                        return r;
+                        var utf8String = Utf8String.FromString(".");
+                        utf8String->SetString(newSeString.Encode());
+                        return ProcessChatInputHook.Original(uiModule, (byte**)((nint)utf8String).ToPointer(), a3);
                     }
-                    // if we reached this point, it means our message was longer than 500 character, inform the user!
-                    _logger.LogError("Chat Garbler Variant of Message was longer than max message length!");
-                    return 0; // fucking ABORT!
+                    else // return original if invalid.
+                    {
+                        _logger.LogError("Chat Garbler Variant of Message was longer than max message length!");
+                        return 0; // fucking ABORT!
+                    }
                 }
                 catch (Exception e)
                 {   

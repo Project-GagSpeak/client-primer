@@ -34,25 +34,18 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         _discoveryService = discoverService;
     }
 
-    private string NextChatMessage = string.Empty;
+    public void DrawDiscoverySection() => DrawGlobalChatlog();
 
-    /// <summary> Main Draw function for this tab </summary>
-    public void DrawDiscoverySection()
-    {
-        // stuff
-        DrawGlobalChatlog();
-    }
     private bool shouldFocusChatInput = false;
     private bool showMessagePreview = false;
+    private string NextChatMessage = string.Empty;
 
     private void DrawGlobalChatlog()
     {
+        using var scrollbar = ImRaii.PushStyle(ImGuiStyleVar.ScrollbarSize, 10f);
         // grab the content region of the current section
         var CurrentRegion = ImGui.GetContentRegionAvail();
         ImGuiUtil.Center("Global GagSpeak Chat");
-
-
-        FontAwesomeIcon Icon = DiscoverService.GlobalChat.Autoscroll ? FontAwesomeIcon.ArrowDownUpLock: FontAwesomeIcon.ArrowDownUpAcrossLine;
         ImGui.Separator();
 
         // Calculate the height for the chat log, leaving space for the input text field
@@ -60,9 +53,9 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         float chatLogHeight = CurrentRegion.Y - inputTextHeight;
 
         // Create a child for the chat log
-        using (var chatlogChild = ImRaii.Child($"###ChatlogChild", new Vector2(CurrentRegion.X, chatLogHeight - inputTextHeight), false))
+        using (var chatlogChild = ImRaii.Child($"###ChatlogChildGlobal", new Vector2(CurrentRegion.X, chatLogHeight - inputTextHeight), false))
         {
-            DiscoverService.GlobalChat.PrintChatLogHistory();
+            DiscoverService.GlobalChat.PrintChatLogHistory(showMessagePreview, NextChatMessage);
         }
 
         // Now draw out the input text field
@@ -76,6 +69,7 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         }
 
         // Set width for input box and create it with a hint
+        FontAwesomeIcon Icon = DiscoverService.GlobalChat.Autoscroll ? FontAwesomeIcon.ArrowDownUpLock : FontAwesomeIcon.ArrowDownUpAcrossLine;
         ImGui.SetNextItemWidth(CurrentRegion.X - _uiSharedService.GetIconButtonSize(Icon).X - ImGui.GetStyle().ItemInnerSpacing.X);
         if (ImGui.InputTextWithHint("##ChatInputBox", "chat message here...", ref nextMessageRef, 300))
         {
@@ -113,50 +107,6 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         if (_uiSharedService.IconButton(Icon))
             DiscoverService.GlobalChat.Autoscroll = !DiscoverService.GlobalChat.Autoscroll;
         UiSharedService.AttachToolTip("Toggles the AutoScroll Functionality (Current: " + (DiscoverService.GlobalChat.Autoscroll ? "Enabled" : "Disabled") + ")");
-
-        // Draw the text wrap box if the user is typing
-        if (showMessagePreview && !string.IsNullOrWhiteSpace(NextChatMessage))
-        {
-            DrawTextWrapBox(NextChatMessage, CurrentRegion);
-        }
-
-    }
-
-    private void DrawTextWrapBox(string message, Vector2 currentRegion)
-    {
-        var drawList = ImGui.GetWindowDrawList();
-        var padding = new Vector2(5, 2);
-
-        // Set the wrap width based on the available region
-        var wrapWidth = currentRegion.X - padding.X * 2;
-
-        // Estimate text size with wrapping
-        var textSize = ImGui.CalcTextSize(message, wrapWidth: wrapWidth);
-
-        // Calculate the height of a single line for the given wrap width
-        float singleLineHeight = ImGui.CalcTextSize("A").Y;
-        int lineCount = (int)Math.Ceiling(textSize.Y / singleLineHeight);
-
-        // Calculate the total box size based on line count
-        var boxSize = new Vector2(currentRegion.X, lineCount * singleLineHeight + padding.Y * 2);
-
-        // Position the box above the input, offset by box height
-        var boxPos = ImGui.GetCursorScreenPos() - new Vector2(0, boxSize.Y + 30);
-
-        // Draw semi-transparent background
-        drawList.AddRectFilled(boxPos, boxPos + boxSize, ImGui.GetColorU32(new Vector4(0.973f, 0.616f, 0.839f, 0.490f)), 5);
-
-        // Begin a child region for the wrapped text
-        ImGui.SetCursorScreenPos(boxPos + padding);
-        using (ImRaii.Child("##TextWrapBox", new Vector2(wrapWidth, boxSize.Y), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
-        {
-            ImGui.PushTextWrapPos(ImGui.GetCursorPos().X + wrapWidth);
-            ImGui.TextWrapped(message);
-            ImGui.PopTextWrapPos();
-        }
-
-        // Reset cursor to avoid overlap
-        ImGui.SetCursorScreenPos(boxPos + new Vector2(0, boxSize.Y + 5));
     }
 }
 

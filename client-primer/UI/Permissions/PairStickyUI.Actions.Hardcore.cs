@@ -41,8 +41,8 @@ public partial class PairStickyUI
         }
 
         // conditions for disabled actions
-        bool inRange = _clientState.LocalPlayer is not null && UserPairForPerms.VisiblePairGameObject is not null 
-            && Vector3.Distance(_clientState.LocalPlayer.Position, UserPairForPerms.VisiblePairGameObject.Position) < 3;
+        bool inRange = _frameworkUtils.ClientState.LocalPlayer is not null && UserPairForPerms.VisiblePairGameObject is not null 
+            && Vector3.Distance(_frameworkUtils.ClientState.LocalPlayer.Position, UserPairForPerms.VisiblePairGameObject.Position) < 3;
         // Conditionals for hardcore interactions
         bool disableForceFollow = !inRange || !PairPerms.AllowForcedFollow || !UserPairForPerms.IsVisible || !PairGlobals.CanToggleFollow(MainHub.UID);
         bool disableForceToStay = !PairPerms.AllowForcedToStay || !PairGlobals.CanToggleStay(MainHub.UID);

@@ -14,6 +14,10 @@ using GagspeakAPI.Dto.Toybox;
 using OtterGui;
 using System.Numerics;
 using System.Timers;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
+using GagSpeak.PlayerData.Data;
+using GagSpeak.Services;
+using OtterGui.Text;
 
 namespace GagSpeak.UI.UiRemote;
 
@@ -22,20 +26,22 @@ namespace GagSpeak.UI.UiRemote;
 /// </summary>
 public class RemoteController : RemoteBase
 {
-    // the class includes are shared however (i think), so dont worry about that.
+    private readonly PlayerCharacterData _playerManager;
+    private readonly GagManager _gagManager;
     private readonly UiSharedService _uiShared;
     private readonly ToyboxVibeService _vibeService; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
     private readonly ToyboxHub _apiHubToybox;
     private bool _isExpanded = false;
 
-    public RemoteController(ILogger<RemoteController> logger,
-        GagspeakMediator mediator, UiSharedService uiShared,
-        ToyboxVibeService vibeService, ToyboxRemoteService remoteService,
-        ToyboxHub apiHubToybox, PrivateRoom privateRoom) 
-        : base(logger, mediator, uiShared, remoteService, vibeService, privateRoom.RoomName)
+    public RemoteController(ILogger<RemoteController> logger, GagspeakMediator mediator, 
+        PlayerCharacterData playerManager, GagManager gagManager, UiSharedService uiShared,
+        ToyboxVibeService vibeService, ToyboxRemoteService remoteService, ToyboxHub apiHubToybox, 
+        PrivateRoom privateRoom) : base(logger, mediator, uiShared, remoteService, vibeService, privateRoom.RoomName)
     {
         // grab the shared services
+        _playerManager = playerManager;
+        _gagManager = gagManager;
         _uiShared = uiShared;
         _vibeService = vibeService;
         _remoteService = remoteService;
@@ -125,7 +131,10 @@ public class RemoteController : RemoteBase
         }
     }
 
+    private bool shouldFocusChatInput = false;
+    private bool showMessagePreview = false;
     private string NextChatMessage = string.Empty;
+
     public override void DrawExtraDetails()
     {
         // grab the content region of the current section
@@ -142,14 +151,15 @@ public class RemoteController : RemoteBase
             float chatLogHeight = CurrentRegion.Y - inputTextHeight;
 
             // Create a child for the chat log
-            using (var chatlogChild = ImRaii.Child($"###ChatlogChild", new Vector2(CurrentRegion.X, chatLogHeight - inputTextHeight), false))
+            using (var chatlogChild = ImRaii.Child($"###ChatlogChildRemote", new Vector2(CurrentRegion.X, chatLogHeight - inputTextHeight), false))
             {
-                PrivateRoomData.PrivateRoomChatlog.PrintChatLogHistory();
+                PrivateRoomData.PrivateRoomChatlog.PrintChatLogHistory(showMessagePreview, NextChatMessage);
             }
 
             // Now draw out the input text field
             var nextMessageRef = NextChatMessage;
-            ImGui.SetNextItemWidth(CurrentRegion.X);
+            FontAwesomeIcon Icon = DiscoverService.GlobalChat.Autoscroll ? FontAwesomeIcon.ArrowDownUpLock : FontAwesomeIcon.ArrowDownUpAcrossLine;
+            ImGui.SetNextItemWidth(CurrentRegion.X - _uiShared.GetIconButtonSize(Icon).X - ImGui.GetStyle().ItemInnerSpacing.X);
             if (ImGui.InputTextWithHint("##ChatInputBox", "chat message here...", ref nextMessageRef, 300))
             {
                 // Update the stored message
@@ -159,12 +169,30 @@ public class RemoteController : RemoteBase
             // Check if the input text field is focused and the Enter key is pressed
             if (ImGui.IsItemFocused() && ImGui.IsKeyPressed(ImGuiKey.Enter))
             {
+                shouldFocusChatInput = true;
+
+                // If message is empty, return
+                if (string.IsNullOrWhiteSpace(NextChatMessage))
+                    return;
+
+                // Process message if gagged
+                if (_playerManager.IsPlayerGagged)
+                    NextChatMessage = _gagManager.ProcessMessage(NextChatMessage);
+
                 // Send the message to the server
                 _logger.LogInformation($"Sending Message: {NextChatMessage}");
                 _apiHubToybox.PrivateRoomSendMessage(new RoomMessageDto
                     (PrivateRoomData.GetParticipant(MainHub.UID).User, PrivateRoomData.RoomName, NextChatMessage)).ConfigureAwait(false);
                 NextChatMessage = string.Empty;
             }
+
+            // Update preview display based on input field activity
+            showMessagePreview = ImGui.IsItemActive();
+
+            // Toggle AutoScroll functionality
+            ImUtf8.SameLineInner();
+            if (_uiShared.IconButton(Icon))
+                DiscoverService.GlobalChat.Autoscroll = !DiscoverService.GlobalChat.Autoscroll;
         }
     }
 

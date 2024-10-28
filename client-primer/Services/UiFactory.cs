@@ -22,6 +22,7 @@ public class UiFactory
     private readonly GagspeakMediator _gagspeakMediator;
     private readonly MainHub _apiHubMain;
     private readonly ToyboxHub _apiHubToybox;
+    private readonly GagManager _gagManager;
     private readonly UiSharedService _uiSharedService;
     private readonly ToyboxVibeService _vibeService;
     private readonly IdDisplayHandler _displayHandler;
@@ -35,22 +36,20 @@ public class UiFactory
     private readonly MoodlesService _moodlesService;
     private readonly PermissionPresetService _presetService;
     private readonly PermActionsComponents _permActionHelpers;
-    private readonly IClientState _clientState;
 
-    public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator,
-        MainHub apiHubMain, ToyboxHub apiHubToybox, UiSharedService uiSharedService,
-        ToyboxVibeService vibeService, IdDisplayHandler displayHandler,
-        PairManager pairManager, PlayerCharacterData playerManager,
-        ToyboxRemoteService remoteService, ServerConfigurationManager serverConfigs,
-        ProfileService profileManager, OnFrameworkService frameworkUtils,
-        ClientConfigurationManager clientConfigs, MoodlesService moodlesService,
-        PermissionPresetService presetService, PermActionsComponents permActionHelpers,
-        IClientState clientState)
+    public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator, MainHub apiHubMain, 
+        ToyboxHub apiHubToybox, GagManager gagManager, UiSharedService uiSharedService, 
+        ToyboxVibeService vibeService, IdDisplayHandler displayHandler, PairManager pairManager, 
+        PlayerCharacterData playerManager, ToyboxRemoteService remoteService, 
+        ServerConfigurationManager serverConfigs, ProfileService profileManager, OnFrameworkService frameworkUtils,
+        ClientConfigurationManager clientConfigs, MoodlesService moodlesService, PermissionPresetService presetService, 
+        PermActionsComponents permActionHelpers)
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;
         _apiHubMain = apiHubMain;
         _apiHubToybox = apiHubToybox;
+        _gagManager = gagManager;
         _uiSharedService = uiSharedService;
         _vibeService = vibeService;
         _displayHandler = displayHandler;
@@ -64,13 +63,12 @@ public class UiFactory
         _moodlesService = moodlesService;
         _presetService = presetService;
         _permActionHelpers = permActionHelpers;
-        _clientState = clientState;
     }
 
     public RemoteController CreateControllerRemote(PrivateRoom privateRoom)
     {
         return new RemoteController(_loggerFactory.CreateLogger<RemoteController>(), _gagspeakMediator,
-            _uiSharedService, _vibeService, _remoteService, _apiHubToybox, privateRoom);
+            _playerManager, _gagManager, _uiSharedService, _vibeService, _remoteService, _apiHubToybox, privateRoom);
     }
 
     public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)
@@ -84,6 +82,6 @@ public class UiFactory
     {
         return new PairStickyUI(_loggerFactory.CreateLogger<PairStickyUI>(), _gagspeakMediator, pair,
             drawType, _frameworkUtils, _clientConfigs, _playerManager, _displayHandler, _uiSharedService,
-            _apiHubMain, _pairManager, _moodlesService, _presetService, _permActionHelpers, _clientState);
+            _apiHubMain, _pairManager, _moodlesService, _presetService, _permActionHelpers);
     }
 }

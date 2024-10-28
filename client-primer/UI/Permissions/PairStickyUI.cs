@@ -31,16 +31,12 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
     private readonly PermissionPresetService _presetService;
     private readonly PermActionsComponents _permActions;
     private readonly PiShockProvider _shockProvider;
-    private readonly IClientState _clientState;
 
-    public PairStickyUI(ILogger<PairStickyUI> logger,
-        GagspeakMediator mediator, Pair pairToDrawFor, StickyWindowType drawType,
-        OnFrameworkService frameworkUtils, ClientConfigurationManager clientConfigs,
-        PlayerCharacterData pcManager, IdDisplayHandler displayHandler,
-        UiSharedService uiSharedService, MainHub apiHubMain,
-        PairManager pairManager, MoodlesService moodlesService,
-        PermissionPresetService presetService, PermActionsComponents permActionHelpers,
-        IClientState clientState) : base(logger, mediator, "PairStickyUI for " + pairToDrawFor.UserData.UID + "pair.")
+    public PairStickyUI(ILogger<PairStickyUI> logger, GagspeakMediator mediator, Pair pairToDrawFor, 
+        StickyWindowType drawType, OnFrameworkService frameworkUtils, ClientConfigurationManager clientConfigs,
+        PlayerCharacterData pcManager, IdDisplayHandler displayHandler, UiSharedService uiSharedService, 
+        MainHub apiHubMain, PairManager pairManager, MoodlesService moodlesService, PermissionPresetService presetService, 
+        PermActionsComponents permActionHelpers) : base(logger, mediator, "PairStickyUI for " + pairToDrawFor.UserData.UID + "pair.")
     {
         _frameworkUtils = frameworkUtils;
         _clientConfigs = clientConfigs;
@@ -52,7 +48,6 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
         _displayHandler = displayHandler;
         _presetService = presetService;
         _permActions = permActionHelpers;
-        _clientState = clientState;
 
         UserPairForPerms = pairToDrawFor; // set the pair we're drawing for
         DrawType = drawType; // set the type of window we're drawing

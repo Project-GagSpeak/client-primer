@@ -86,7 +86,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         RedrawTokenSource?.Dispose();
     }
 
-    public static bool IsApplierProcessing => _applierSlim.CurrentCount > 0;
+    public static bool IsApplierProcessing => _applierSlim.CurrentCount == 0;
     private CancellationTokenSource _applierSlimCTS = new CancellationTokenSource();
     private static SemaphoreSlim _applierSlim = new SemaphoreSlim(1, 1);
 

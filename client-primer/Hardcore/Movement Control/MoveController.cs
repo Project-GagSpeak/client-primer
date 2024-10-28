@@ -1,13 +1,9 @@
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility.Signatures;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using PInvoke;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
-using MButtonHoldState = FFXIVClientStructs.FFXIV.Client.Game.Control.InputManager.MouseButtonHoldState;
 
 namespace GagSpeak.Hardcore.Movement;
 #nullable enable
@@ -25,37 +21,6 @@ public class MoveController : IDisposable
     internal unsafe ref int ForceDisableMovement => ref *(int*)(forceDisableMovementPtr + 4);
 
     // prevents LMB+RMB moving by processing it prior to the games update movement check.
-    /*
-    public unsafe delegate byte MoveOnMousePreventorDelegate(MoveControllerSubMemberForMine* thisx);
-    [Signature("40 55 53 48 8D 6C 24 ?? 48 81 EC ?? ?? ?? ?? 48 83 79", DetourName = nameof(MovementUpdate), Fallibility = Fallibility.Auto)]
-    public static Hook<MoveOnMousePreventorDelegate>? MouseAutoMoveHook { get; set; } = null!;
-    [return: MarshalAs(UnmanagedType.U1)]
-    public unsafe byte MovementUpdate(MoveControllerSubMemberForMine* thisx)
-    {
-        // get the current mouse button hold state, note that because we are doing this during the move update,
-        // we are getting and updating the mouse state PRIOR to the game doing so, allowing us to change it
-        MButtonHoldState* hold = InputManager.GetMouseButtonHoldState();
-        MButtonHoldState original = *hold;
-        // modify the hold state
-        if (*hold == (MButtonHoldState.Left | MButtonHoldState.Right))
-        {
-            _logger.LogDebug($"Preventing LMB+RMB movement", LoggerType.HardcoreMovement);
-            *hold = 0;
-        }
-        if(thisx->Moved != 0 && thisx->WishdirChanged == 2)
-        {
-            _logger.LogDebug($"Preventing movement due to WishdirChanged (Current Hold State was: "+original, LoggerType.HardcoreMovement);
-            *hold = 0;
-        }
-
-        // update the original
-        byte ret = MouseAutoMoveHook.Original(thisx);
-        // restore the original
-        *hold = original;
-        // return 
-        return ret;
-    }*/
-
     public unsafe delegate void MoveOnMousePreventor2Delegate(MoveControllerSubMemberForMine* thisx, float wishdir_h, float wishdir_v, char arg4, byte align_with_camera, Vector3* direction);
     [Signature("48 8b c4 48 89 70 ?? 48 89 78 ?? 55 41 56 41 57", DetourName = nameof(MovementUpdate), Fallibility = Fallibility.Auto)]
     public static Hook<MoveOnMousePreventor2Delegate>? MouseAutoMove2Hook { get; set; } = null!;
@@ -155,7 +120,7 @@ public class MoveController : IDisposable
     public void EnableMovementLock()
     {
         // If all Movement is already disabled by this plugin or any other, dont interact with it.
-        if(AllMovementIsDisabled)
+        if (AllMovementIsDisabled)
             return;
 
         // If it is at 0, we need to change it to 1.
@@ -163,10 +128,10 @@ public class MoveController : IDisposable
         ForceDisableMovement = 1;
     }
 
-    public void DisableMovementLock() 
+    public void DisableMovementLock()
     {
         // If the movement is already re-enabled by this plugin or any other, dont interact with it.
-        if(!AllMovementIsDisabled)
+        if (!AllMovementIsDisabled)
             return;
 
         // Otherwise, re-enable movement.
@@ -177,7 +142,7 @@ public class MoveController : IDisposable
     public void EnableUnfollowHook()
     {
         // If our unfollow hook is ready but has not been enabled, we should enable it.
-        if(UnfollowHook is not null && !UnfollowHook.IsEnabled)
+        if (UnfollowHook is not null && !UnfollowHook.IsEnabled)
         {
             UnfollowHook.Enable();
             _logger.LogTrace($"UnfollowHook is enabled due to Hardcore Active State", LoggerType.HardcoreMovement);

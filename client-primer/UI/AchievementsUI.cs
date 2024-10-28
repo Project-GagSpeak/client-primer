@@ -243,9 +243,6 @@ public class AchievementsUI : WindowMediatorSubscriberBase
                         }
                     }
                 } // End of Table
-
-                /*                // underneath this, we should draw the current progress towards the goal.
-                                DrawProgressForAchievement(achievementItem);*/
             }
             catch (Exception e)
             {

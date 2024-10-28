@@ -19,6 +19,13 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 7, 1)
+            .RegisterMain("Global chat preview no longer overlaps with the text chat, but will snap to the bottom of the chat, meaning if you scroll up it will go away.")
+            .RegisterMain("This is the compromise i had to make in order for it to work.")
+            .RegisterMain("Live Chat Garbler Algorithm has been rewritten, and should now allow auto translate messages to be present in messages, " +
+            "while removing them and still garbling the text")
+            .RegisterBugfix("Fixed an issue in where sending auto translate messages by themselves caused a crash.")
+            .RegisterBugfix("IF YOU CRASH WITH THE NEW CHAT GARBLER PLEASE REPORT IT.");
         VersionEntry(0, 9, 7, 0)
             .RegisterMain("Global Chat has been given a light polish.")
             .RegisterMain("Fixed Users Sending Duplicate calls of their Data Updates, " +

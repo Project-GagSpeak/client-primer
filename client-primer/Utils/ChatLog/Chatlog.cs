@@ -21,7 +21,7 @@ public class ChatLog
 
     public ChatLog()
     {
-        TimeCreated = DateTime.UtcNow;
+        TimeCreated = DateTime.Now;
     }
 
     public void AddMessage(ChatMessage message)
@@ -37,6 +37,8 @@ public class ChatLog
 
     public void ClearMessages()
         => Messages.Clear();
+
+    public bool ShouldScrollToBottom = false;
 
     public void PrintChatLogHistory(bool showMessagePreview, string previewMessage)
     {
@@ -134,8 +136,9 @@ public class ChatLog
 
             // Always scroll to the bottom after rendering messages
             // Only scroll to the bottom if auto-scroll is enabled and a new message is received
-            if (Autoscroll && Messages.Count() != PreviousMessageCount)
+            if (ShouldScrollToBottom || (Autoscroll && Messages.Count() != PreviousMessageCount))
             {
+                ShouldScrollToBottom = false;
                 ImGui.SetScrollHereY(1.0f);
                 PreviousMessageCount = Messages.Count();
             }
@@ -151,7 +154,7 @@ public class ChatLog
     private void DrawTextWrapBox(string message, Vector2 currentRegion)
     {
         var drawList = ImGui.GetWindowDrawList();
-        var padding = new Vector2(5, 2);
+        var padding = new Vector2(5, 5);
 
         // Set the wrap width based on the available region
         var wrapWidth = currentRegion.X - padding.X * 2;
@@ -167,10 +170,10 @@ public class ChatLog
         var boxSize = new Vector2(currentRegion.X, lineCount * singleLineHeight + padding.Y * 2);
 
         // Position the box above the input, offset by box height
-        var boxPos = ImGui.GetCursorScreenPos() - new Vector2(0, boxSize.Y +10);
+        var boxPos = ImGui.GetCursorScreenPos() - new Vector2(0, boxSize.Y);
 
         // Draw semi-transparent background
-        drawList.AddRectFilled(boxPos, boxPos + boxSize, ImGui.GetColorU32(new Vector4(0.1f, 0.1f, 0.1f, .7f)), 5);
+        drawList.AddRectFilled(boxPos, boxPos + boxSize, ImGui.GetColorU32(new Vector4(0.05f, 0.025f, 0.05f, .9f)), 5);
 
         // Begin a child region for the wrapped text
         ImGui.SetCursorScreenPos(boxPos + padding);

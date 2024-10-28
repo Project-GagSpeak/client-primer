@@ -36,8 +36,11 @@ public class DiscoverService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<GlobalChatMessage>(pairManager, (msg) => AddChatMessage(msg));
         Mediator.Subscribe<MainWindowTabChangeMessage>(this, (msg) => 
         {
-            if (msg.NewTab is MainTabMenu.SelectedTab.GlobalChat) 
-                NewMessages = 0; 
+            if (msg.NewTab is MainTabMenu.SelectedTab.GlobalChat)
+            {
+                GlobalChat.ShouldScrollToBottom = true;
+                NewMessages = 0;
+            }
         });
     }
     public static ChatLog GlobalChat { get; private set; }
@@ -143,7 +146,7 @@ public class DiscoverService : DisposableMediatorSubscriberBase
         }
 
         // If the de-serialized date is not the same date as our current date, do not restore the data.
-        if (savedChatlog.DateStarted.DayOfYear != DateTime.UtcNow.DayOfYear)
+        if (savedChatlog.DateStarted.DayOfYear != DateTime.Now.DayOfYear)
         {
             Logger.LogInformation("Chat log is from a different day. Not restoring.", LoggerType.GlobalChat);
             AddWelcomeMessage();

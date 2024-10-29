@@ -69,7 +69,7 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         }
 
         // Set width for input box and create it with a hint
-        FontAwesomeIcon Icon = DiscoverService.GlobalChat.Autoscroll ? FontAwesomeIcon.ArrowDownUpLock : FontAwesomeIcon.ArrowDownUpAcrossLine;
+        FontAwesomeIcon Icon = DiscoverService.GlobalChat.AutoScroll ? FontAwesomeIcon.ArrowDownUpLock : FontAwesomeIcon.ArrowDownUpAcrossLine;
         ImGui.SetNextItemWidth(CurrentRegion.X - _uiSharedService.GetIconButtonSize(Icon).X - ImGui.GetStyle().ItemInnerSpacing.X);
         if (ImGui.InputTextWithHint("##ChatInputBox", "chat message here...", ref nextMessageRef, 300))
         {
@@ -105,8 +105,8 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         // Toggle AutoScroll functionality
         ImUtf8.SameLineInner();
         if (_uiSharedService.IconButton(Icon))
-            DiscoverService.GlobalChat.Autoscroll = !DiscoverService.GlobalChat.Autoscroll;
-        UiSharedService.AttachToolTip("Toggles the AutoScroll Functionality (Current: " + (DiscoverService.GlobalChat.Autoscroll ? "Enabled" : "Disabled") + ")");
+            DiscoverService.GlobalChat.AutoScroll = !DiscoverService.GlobalChat.AutoScroll;
+        UiSharedService.AttachToolTip("Toggles the AutoScroll Functionality (Current: " + (DiscoverService.GlobalChat.AutoScroll ? "Enabled" : "Disabled") + ")");
     }
 }
 

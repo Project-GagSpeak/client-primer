@@ -19,6 +19,10 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 7, 2)
+            .RegisterFeature("KinkPlate™ Draft outline startings...")
+            .RegisterBugfix("Fixed issue where calculations depended on settings instead of the application of said data.")
+            .RegisterQol("You can now view the time a message in global chat was sent by hovering over the name that sent it.");
         VersionEntry(0, 9, 7, 1)
             .RegisterMain("Global chat preview no longer overlaps with the text chat, but will snap to the bottom of the chat, meaning if you scroll up it will go away.")
             .RegisterMain("This is the compromise i had to make in order for it to work.")

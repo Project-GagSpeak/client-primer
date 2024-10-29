@@ -71,10 +71,10 @@ public class UiFactory
             _playerManager, _gagManager, _uiSharedService, _vibeService, _remoteService, _apiHubToybox, privateRoom);
     }
 
-    public StandaloneProfileUi CreateStandaloneProfileUi(Pair pair)
+    public KinkPlateUI CreateStandaloneProfileUi(Pair pair)
     {
-        return new StandaloneProfileUi(_loggerFactory.CreateLogger<StandaloneProfileUi>(), _gagspeakMediator,
-            _uiSharedService, _serverConfigs, _gagspeakProfileManager, _pairManager, pair);
+        return new KinkPlateUI(_loggerFactory.CreateLogger<KinkPlateUI>(), _gagspeakMediator,
+            _pairManager, _serverConfigs, _gagspeakProfileManager, _uiSharedService, pair);
     }
 
     // create a new instance window of the userpair permissions window every time a new pair is selected.

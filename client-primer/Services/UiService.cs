@@ -93,7 +93,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         /* ---------- The following subscribers are for factory made windows, meant to be unique to each pair ---------- */
         Mediator.Subscribe<ProfileOpenStandaloneMessage>(this, (msg) =>
         {
-            if (!_createdWindows.Exists(p => p is StandaloneProfileUi ui
+            if (!_createdWindows.Exists(p => p is KinkPlateUI ui
                 && string.Equals(ui.Pair.UserData.AliasOrUID, msg.Pair.UserData.AliasOrUID, StringComparison.Ordinal)))
             {
                 var window = _uiFactory.CreateStandaloneProfileUi(msg.Pair);

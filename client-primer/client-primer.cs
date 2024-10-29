@@ -446,7 +446,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<MainUiHomepage>(), s.GetRequiredService<MainUiWhitelist>(),
             s.GetRequiredService<MainUiPatternHub>(), s.GetRequiredService<MainUiChat>(), s.GetRequiredService<MainUiAccount>(),
             s.GetRequiredService<MainTabMenu>(), s.GetRequiredService<DrawEntityFactory>(), pi))
-        .AddScoped<WindowMediatorSubscriberBase, PopoutProfileUi>()
+        .AddScoped<WindowMediatorSubscriberBase, PopoutKinkPlateUi>()
         .AddScoped<WindowMediatorSubscriberBase, InteractionEventsUI>()
         .AddScoped<WindowMediatorSubscriberBase, DtrVisibleWindow>()
         .AddScoped<WindowMediatorSubscriberBase, ChangelogUI>()

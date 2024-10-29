@@ -1,11 +1,17 @@
 using Dalamud.Interface.Textures.TextureWraps;
+using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.WebAPI;
 
 namespace GagSpeak.Services;
+
+/// <summary>
+/// Determines the configuration data stored within a GagSpeak profile object.
+/// </summary>
 public class GagspeakProfile : DisposableMediatorSubscriberBase
 {
+    private readonly PlayerCharacterData _playerData;
     private readonly UiSharedService _uiShared; // TODO: Migrate this to a scoped shared texture service.
     // in order for it to be a host to a shared texture service, methods that access it MUST be made in a draw.
 

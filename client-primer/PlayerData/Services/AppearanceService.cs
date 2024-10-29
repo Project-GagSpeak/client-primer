@@ -142,10 +142,6 @@ public class AppearanceService : DisposableMediatorSubscriberBase
                 await RevertPlayer();
             }
 
-
-            // if it is not a safeword, process if core data is not null.
-            if (_playerManager.CoreDataNull) return;
-
             Logger.LogDebug("Processing Appearance Refresh due to UpdateType: [" + updateKind.ToString() + "]", LoggerType.ClientPlayerData);
             await Task.Run(() => _frameworkUtils.RunOnFrameworkThread(() => ReapplyAppearance()));
         });
@@ -185,21 +181,22 @@ public class AppearanceService : DisposableMediatorSubscriberBase
     /// </summary>
     private async Task ReapplyAppearance()
     {
-        if (_playerManager.CoreDataNull) return;
+        if (_playerManager.CoreDataNull) 
+            return;
 
         Logger.LogDebug("Refreshing Appearance", LoggerType.ClientPlayerData);
         // If the AppearanceHandler has done its job, all data should be stored to
-        // the latest appearnace. We should only need to apply it now.
+        // the latest appearance. We should only need to apply it now.
 
         // Store tasks in a list
         var tasks = new List<Task>();
 
         // Queue the task to apply glamour items and metadata.
-        if (ItemsToApply.Any())
+        if (ItemsToApply.Any() && _playerManager.GlobalPerms!.WardrobeEnabled && _playerManager.GlobalPerms!.RestraintSetAutoEquip)
             tasks.Add(UpdateGlamour());
 
         // Queue the task to apply moodles.
-        if (ExpectedMoodles.Any())
+        if (ExpectedMoodles.Any() && _playerManager.GlobalPerms!.MoodlesEnabled)
             tasks.Add(UpdateMoodles());
 
         // Run all tasks concurrently

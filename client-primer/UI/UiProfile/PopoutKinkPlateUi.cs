@@ -13,7 +13,7 @@ using System.Numerics;
 
 namespace GagSpeak.UI.Profile;
 
-public class PopoutProfileUi : WindowMediatorSubscriberBase
+public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
 {
     private readonly ProfileService _gagspeakProfileManager;
     private readonly PairManager _pairManager;
@@ -21,7 +21,7 @@ public class PopoutProfileUi : WindowMediatorSubscriberBase
     private readonly UiSharedService _uiShared;
     private Pair? _pair; // pair to display the profile of.
 
-    public PopoutProfileUi(ILogger<PopoutProfileUi> logger, GagspeakMediator mediator,
+    public PopoutKinkPlateUi(ILogger<PopoutKinkPlateUi> logger, GagspeakMediator mediator,
         UiSharedService uiBuilder, ServerConfigurationManager serverManager,
         GagspeakConfigService gagspeakConfigService, ProfileService gagspeakProfileManager,
         PairManager pairManager) : base(logger, mediator, "###GagSpeakPopoutProfileUI")

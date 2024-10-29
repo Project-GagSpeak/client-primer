@@ -84,13 +84,11 @@ public class DiscoverService : DisposableMediatorSubscriberBase
             SenderName = $"Mistress Cordy";
 
         // construct the chat message struct to add.
-        ChatMessage msgToAdd = new ChatMessage
-        {
-            UID = userData.UID,
-            Name = SenderName,
-            SupporterTier = userData.SupporterTier ?? CkSupporterTier.NoRole,
-            Message = msg.ChatMessage.Message,
-        };
+        ChatMessage msgToAdd = new ChatMessage(
+            userData.UID,
+            SenderName,
+            userData.SupporterTier ?? CkSupporterTier.NoRole,
+            msg.ChatMessage.Message);
 
         GlobalChat.AddMessage(msgToAdd);
     }

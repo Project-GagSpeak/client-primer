@@ -3,6 +3,7 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.UI;
 using ImGuiNET;
 using OtterGui.Text;
+using System.Globalization;
 using System.Numerics;
 using System.Windows.Forms;
 
@@ -16,7 +17,10 @@ public class ChatLog
     private static Vector4 CKMistressColor = new Vector4(0.886f, 0.407f, 0.658f, 1f);
     private static Vector4 CkMistressText = new Vector4(1, 0.711f, 0.843f, 1f);
     public DateTime TimeCreated { get; set; }
-    public bool Autoscroll = true;
+    public bool AutoScroll = true;
+
+    // Define which users to ignore.
+    public List<string> UidSilenceList = new List<string>();
 
 
     public ChatLog()
@@ -79,17 +83,15 @@ public class ChatLog
                 var cursorPos = ImGui.GetCursorScreenPos();
                 // Print the user name with color
                 ImGui.TextColored(UserColors[x.UID], $"[{x.Name}]");
-
-                // Calculate the width of the user's name plus brackets
-                var nameWidth = ImGui.CalcTextSize($"[{x.Name}]").X;
+                UiSharedService.AttachToolTip("Sent @ " + x.TimeStamp.ToString("T", CultureInfo.CurrentCulture));
+                ImUtf8.SameLineInner();
 
                 // Get the remaining width available in the current row
-                var availableWidth = ImGui.GetContentRegionAvail().X - nameWidth;
+                var remainingWidth = ImGui.GetContentRegionAvail().X;
                 float msgWidth = ImGui.CalcTextSize(x.Message).X;
                 // If the total width is less than available, print in one go
-                if (msgWidth <= availableWidth)
+                if (msgWidth <= remainingWidth)
                 {
-                    ImUtf8.SameLineInner();
                     if(x.SupporterTier is CkSupporterTier.KinkporiumMistress)
                         UiSharedService.ColorText(x.Message, CkMistressText);
                     else
@@ -108,7 +110,7 @@ public class ChatLog
                         float wordWidth = ImGui.CalcTextSize(word + " ").X;
 
                         // Check if adding this word exceeds the available width
-                        if (currentWidth + wordWidth > availableWidth)
+                        if (currentWidth + wordWidth > remainingWidth)
                         {
                             break; // Stop if it doesn't fit
                         }
@@ -136,7 +138,7 @@ public class ChatLog
 
             // Always scroll to the bottom after rendering messages
             // Only scroll to the bottom if auto-scroll is enabled and a new message is received
-            if (ShouldScrollToBottom || (Autoscroll && Messages.Count() != PreviousMessageCount))
+            if (ShouldScrollToBottom || (AutoScroll && Messages.Count() != PreviousMessageCount))
             {
                 ShouldScrollToBottom = false;
                 ImGui.SetScrollHereY(1.0f);
@@ -145,9 +147,7 @@ public class ChatLog
 
             // draw the text preview if we should.
             if (showMessagePreview && !string.IsNullOrWhiteSpace(previewMessage))
-            {
                 DrawTextWrapBox(previewMessage, region);
-            }
         }
     }
 

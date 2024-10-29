@@ -84,6 +84,8 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         IpcFastUpdates.StatusManagerChangedEventFired -= (addr) => RefreshMoodles(addr).ConfigureAwait(false);
         RedrawTokenSource?.Cancel();
         RedrawTokenSource?.Dispose();
+        _applierSlimCTS?.Cancel();
+        _applierSlimCTS?.Dispose();
     }
 
     public static bool IsApplierProcessing => _applierSlim.CurrentCount == 0;
@@ -482,7 +484,8 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     private async Task RemoveMoodles(IMoodlesAssociable data)
     {
         Logger.LogTrace("Removing Moodles");
-        if (_playerData.IpcDataNull) return;
+        if (_playerData.IpcDataNull) 
+            return;
 
         // if our preset is not null, store the list of guids respective of them.
         var statuses = new List<Guid>();
@@ -573,7 +576,10 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     {
         // Return if the core data is null.
         if (_playerData.CoreDataNull)
+        {
+            Logger.LogWarning("Core Data is Null, Skipping Recalculation.", LoggerType.ClientPlayerData);
             return;
+        }
 
         Logger.LogDebug("Recalculating Appearance Data.", LoggerType.ClientPlayerData);
         // Temp Storage for Data Collection during reapply
@@ -582,138 +588,131 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         List<Guid> ExpectedMoodles = new List<Guid>();
 
         // store the data to apply from the active set.
-        if (_playerData.GlobalPerms!.WardrobeEnabled && _playerData.GlobalPerms.RestraintSetAutoEquip)
+        Logger.LogTrace("Wardrobe is Enabled, Collecting Data from Active Set.", LoggerType.ClientPlayerData);
+        // we need to store a reference to the active sets draw data.
+        var activeSetRef = _clientConfigs.GetActiveSet();
+        if (activeSetRef is not null)
         {
-            // we need to store a reference to the active sets draw data.
-            var activeSetRef = _clientConfigs.GetActiveSet();
-            if (activeSetRef is not null)
+            foreach (var item in activeSetRef.DrawData)
             {
-                foreach (var item in activeSetRef.DrawData)
-                {
-                    if (!item.Value.IsEnabled && item.Value.GameItem.Equals(ItemIdVars.NothingItem(item.Value.Slot)))
-                        continue;
+                if (!item.Value.IsEnabled && item.Value.GameItem.Equals(ItemIdVars.NothingItem(item.Value.Slot)))
+                    continue;
 
-                    Logger.LogTrace("Adding item to apply: " + item.Key, LoggerType.ClientPlayerData);
-                    ItemsToApply[item.Key] = item.Value;
+                Logger.LogTrace("Adding item to apply: " + item.Key, LoggerType.ClientPlayerData);
+                ItemsToApply[item.Key] = item.Value;
+            }
+            // Add the moodles from the active set.
+            if (!_playerData.IpcDataNull)
+            {
+                if (activeSetRef.AssociatedMoodles.Count > 0)
+                    ExpectedMoodles.AddRange(activeSetRef.AssociatedMoodles);
+                if (activeSetRef.AssociatedMoodlePreset != Guid.Empty)
+                {
+                    var statuses = _playerData.LastIpcData!.MoodlesPresets.FirstOrDefault(p => p.Item1 == activeSetRef.AssociatedMoodlePreset).Item2;
+                    if (statuses is not null)
+                        ExpectedMoodles.AddRange(statuses);
                 }
-                // Add the moodles from the active set.
+            }
+            
+            // Apply meta changes if any were on.
+        }
+
+        // Collect gag info if used.
+        Logger.LogTrace("Collecting Data from Active Gags.", LoggerType.ClientPlayerData);
+        // grab the active gags, should grab in order (underlayer, middle, uppermost)
+        var gagSlots = _playerData.AppearanceData!.GagSlots.Where(slot => slot.GagType.ToGagType() != GagType.None).ToList();
+
+        // update the stored data.
+        foreach (var slot in gagSlots)
+        {
+            var data = _clientConfigs.GetDrawData(slot.GagType.ToGagType());
+            if (data is not null && data.IsEnabled)
+            {
+                ItemsToApply[data.Slot] = data;
+
+                // continue if moodles data is not present.
                 if (!_playerData.IpcDataNull)
                 {
-                    if (activeSetRef.AssociatedMoodles.Count > 0)
-                        ExpectedMoodles.AddRange(activeSetRef.AssociatedMoodles);
-                    if (activeSetRef.AssociatedMoodlePreset != Guid.Empty)
+                    if (data.AssociatedMoodles.Count > 0)
+                        ExpectedMoodles.AddRange(data.AssociatedMoodles);
+                    if (data.AssociatedMoodlePreset != Guid.Empty)
                     {
-                        var statuses = _playerData.LastIpcData!.MoodlesPresets.FirstOrDefault(p => p.Item1 == activeSetRef.AssociatedMoodlePreset).Item2;
+                        var statuses = _playerData.LastIpcData!.MoodlesPresets.FirstOrDefault(p => p.Item1 == data.AssociatedMoodlePreset).Item2;
                         if (statuses is not null)
                             ExpectedMoodles.AddRange(statuses);
                     }
                 }
 
-                // Apply meta changes if any were on.
-
-            }
-        }
-
-        // Collect gag info if used.
-        if (_playerData.GlobalPerms.ItemAutoEquip)
-        {
-            // grab the active gags, should grab in order (underlayer, middle, uppermost)
-            var gagSlots = _playerData.AppearanceData!.GagSlots.Where(slot => slot.GagType.ToGagType() != GagType.None).ToList();
-
-            // update the stored data.
-            foreach (var slot in gagSlots)
-            {
-                var data = _clientConfigs.GetDrawData(slot.GagType.ToGagType());
-                if (data is not null && data.IsEnabled)
-                {
-                    ItemsToApply[data.Slot] = data;
-
-                    // continue if moodles data is not present.
-                    if (!_playerData.IpcDataNull)
-                    {
-                        if (data.AssociatedMoodles.Count > 0)
-                            ExpectedMoodles.AddRange(data.AssociatedMoodles);
-                        if (data.AssociatedMoodlePreset != Guid.Empty)
-                        {
-                            var statuses = _playerData.LastIpcData!.MoodlesPresets.FirstOrDefault(p => p.Item1 == data.AssociatedMoodlePreset).Item2;
-                            if (statuses is not null)
-                                ExpectedMoodles.AddRange(statuses);
-                        }
-                    }
-
-                    // Apply the metadata stored in this gag item. Any gags after it will overwrite previous meta set.
-                    MetaToApply = (data.ForceHeadgearOnEnable && data.ForceVisorOnEnable)
-                        ? IpcCallerGlamourer.MetaData.Both : (data.ForceHeadgearOnEnable)
-                            ? IpcCallerGlamourer.MetaData.Hat : (data.ForceVisorOnEnable)
-                                ? IpcCallerGlamourer.MetaData.Visor : IpcCallerGlamourer.MetaData.None;
-                }
+                // Apply the metadata stored in this gag item. Any gags after it will overwrite previous meta set.
+                MetaToApply = (data.ForceHeadgearOnEnable && data.ForceVisorOnEnable)
+                    ? IpcCallerGlamourer.MetaData.Both : (data.ForceHeadgearOnEnable)
+                        ? IpcCallerGlamourer.MetaData.Hat : (data.ForceVisorOnEnable)
+                            ? IpcCallerGlamourer.MetaData.Visor : IpcCallerGlamourer.MetaData.None;
             }
         }
 
         // Collect the data from the blindfold.
         if (_playerData.GlobalPerms.IsBlindfolded())
         {
-            Logger.LogDebug("We are Blindfolded!");
+            Logger.LogTrace("We are Blindfolded!");
             var blindfoldData = _clientConfigs.GetBlindfoldItem();
             ItemsToApply[blindfoldData.Slot] = blindfoldData;
         }
 
         // collect the data from the cursed sets.
-        if (_clientConfigs.GagspeakConfig.CursedDungeonLoot)
-        {
-            // track the items that will be applied.
-            var cursedItems = _clientConfigs.CursedLootConfig.CursedLootStorage.CursedItems
-                .Where(x => x.AppliedTime != DateTimeOffset.MinValue)
-                .Take(6)
-                .OrderBy(x => x.AppliedTime)
-                .ToList();
-            Logger.LogDebug("Found " + cursedItems.Count + " Cursed Items to Apply.", LoggerType.ClientPlayerData);
-            var appliedItems = new Dictionary<EquipSlot, CursedItem>();
+        Logger.LogTrace("Collecting Data from Cursed Items.", LoggerType.ClientPlayerData);
+        // track the items that will be applied.
+        var cursedItems = _clientConfigs.CursedLootConfig.CursedLootStorage.CursedItems
+            .Where(x => x.AppliedTime != DateTimeOffset.MinValue)
+            .Take(6)
+            .OrderBy(x => x.AppliedTime)
+            .ToList();
+        Logger.LogDebug("Found " + cursedItems.Count + " Cursed Items to Apply.", LoggerType.ClientPlayerData);
+        var appliedItems = new Dictionary<EquipSlot, CursedItem>();
 
-            foreach (var cursedItem in cursedItems)
+        foreach (var cursedItem in cursedItems)
+        {
+            if (appliedItems.TryGetValue(cursedItem.AppliedItem.Slot, out var existingItem))
             {
-                if (appliedItems.TryGetValue(cursedItem.AppliedItem.Slot, out var existingItem))
+                // if an item was already applied to that slot, only apply if it satisfied conditions.
+                if (existingItem.CanOverride && cursedItem.OverridePrecedence >= existingItem.OverridePrecedence)
                 {
-                    // if an item was already applied to that slot, only apply if it satisfied conditions.
-                    if (existingItem.CanOverride && cursedItem.OverridePrecedence >= existingItem.OverridePrecedence)
-                    {
-                        Logger.LogDebug($"Slot: " + cursedItem.AppliedItem.Slot + " already had an item [" + existingItem.Name + "]. "
-                            + "but [" + cursedItem.Name + "] had higher precedence", LoggerType.ClientPlayerData);
-                        appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
-                    }
-                }
-                else
-                {
-                    Logger.LogDebug($"Storing Cursed Item [" + cursedItem.Name + "] to Slot: " + cursedItem.AppliedItem.Slot, LoggerType.ClientPlayerData);
+                    Logger.LogDebug($"Slot: " + cursedItem.AppliedItem.Slot + " already had an item [" + existingItem.Name + "]. "
+                        + "but [" + cursedItem.Name + "] had higher precedence", LoggerType.ClientPlayerData);
                     appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
                 }
-
-                // add in the moodle if it exists.
-                if (!_playerData.IpcDataNull)
-                {
-                    if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus && cursedItem.MoodleIdentifier != Guid.Empty)
-                        ExpectedMoodles.Add(cursedItem.MoodleIdentifier);
-                    else if (cursedItem.MoodleType is IpcToggleType.MoodlesPreset && cursedItem.MoodleIdentifier != Guid.Empty)
-                        ExpectedMoodles.AddRange(
-                            _playerData.LastIpcData!.MoodlesPresets
-                            .Where(p => p.Item1 == cursedItem.MoodleIdentifier)
-                            .SelectMany(p => p.Item2));
-                }
+            }
+            else
+            {
+                Logger.LogDebug($"Storing Cursed Item [" + cursedItem.Name + "] to Slot: " + cursedItem.AppliedItem.Slot, LoggerType.ClientPlayerData);
+                appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
             }
 
-            // take the dictionary of applied items and replace any existing items in the ItemsToApply dictionary.
-            foreach (var item in appliedItems)
+            // add in the moodle if it exists.
+            if (!_playerData.IpcDataNull)
             {
-                Logger.LogInformation($"Applying Cursed Item to Slot: {item.Key}", LoggerType.ClientPlayerData);
-                if (item.Value.IsGag)
-                {
-                    var drawData = _clientConfigs.GetDrawData(item.Value.GagType);
-                    ItemsToApply[drawData.Slot] = drawData;
-                }
-                else
-                {
-                    ItemsToApply[item.Key] = item.Value.AppliedItem;
-                }
+                if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus && cursedItem.MoodleIdentifier != Guid.Empty)
+                    ExpectedMoodles.Add(cursedItem.MoodleIdentifier);
+                else if (cursedItem.MoodleType is IpcToggleType.MoodlesPreset && cursedItem.MoodleIdentifier != Guid.Empty)
+                    ExpectedMoodles.AddRange(
+                        _playerData.LastIpcData!.MoodlesPresets
+                        .Where(p => p.Item1 == cursedItem.MoodleIdentifier)
+                        .SelectMany(p => p.Item2));
+            }
+        }
+
+        // take the dictionary of applied items and replace any existing items in the ItemsToApply dictionary.
+        foreach (var item in appliedItems)
+        {
+            Logger.LogInformation($"Applying Cursed Item to Slot: {item.Key}", LoggerType.ClientPlayerData);
+            if (item.Value.IsGag)
+            {
+                var drawData = _clientConfigs.GetDrawData(item.Value.GagType);
+                ItemsToApply[drawData.Slot] = drawData;
+            }
+            else
+            {
+                ItemsToApply[item.Key] = item.Value.AppliedItem;
             }
         }
 

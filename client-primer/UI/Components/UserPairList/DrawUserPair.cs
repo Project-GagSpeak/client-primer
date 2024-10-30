@@ -4,9 +4,11 @@ using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
 using GagSpeak.UI.Handlers;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.UserPair;
 using ImGuiNET;
@@ -25,24 +27,24 @@ public class DrawUserPair
     protected readonly GagspeakMediator _mediator;
     protected Pair _pair;
     private readonly string _id;
-    private readonly SelectTagForPairUi _selectTagForPairUi;
-    private readonly UiSharedService _uiSharedService;
+    private readonly CosmeticService _cosmetics;
+    private readonly UiSharedService _uiShared;
     private float _menuWidth = -1;
     private bool _wasHovered = false;
     private string tooltipString = "";
-    // store the created texturewrap for the supporter tier image so we are not loading it every single time.
+    // store the created texture wrap for the supporter tier image so we are not loading it every single time.
     private IDalamudTextureWrap? _supporterWrap = null;
     public DrawUserPair(ILogger<DrawUserPair> logger, string id, Pair entry, MainHub apiHubMain,
-        IdDisplayHandler uIDDisplayHandler, GagspeakMediator gagspeakMediator, SelectTagForPairUi selectTagForPairUi,
-        UiSharedService uiSharedService)
+        IdDisplayHandler uIDDisplayHandler, GagspeakMediator mediator,
+        CosmeticService cosmetics, UiSharedService uiShared)
     {
         _id = id;
         _pair = entry;
         _apiHubMain = apiHubMain;
         _displayHandler = uIDDisplayHandler;
-        _mediator = gagspeakMediator;
-        _selectTagForPairUi = selectTagForPairUi;
-        _uiSharedService = uiSharedService;
+        _mediator = mediator;
+        _cosmetics = cosmetics;
+        _uiShared = uiShared;
     }
 
     public Pair Pair => _pair;
@@ -74,7 +76,7 @@ public class DrawUserPair
                 var posX = ImGui.GetCursorPosX();
 
                 float rightSide = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()
-                                  - (_uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV).X);
+                                  - (_uiShared.GetIconButtonSize(FontAwesomeIcon.EllipsisV).X);
 
                 if (showRightButtons)
                 {
@@ -102,23 +104,23 @@ public class DrawUserPair
             switch (_pair.UserData.SupporterTier)
             {
                 case CkSupporterTier.ServerBooster:
-                    _supporterWrap = _uiSharedService.RentSupporterBooster();
+                    _supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterBooster];
                     tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting the discord with a server Boost!";
                     break;
                 case CkSupporterTier.IllustriousSupporter:
-                    _supporterWrap = _uiSharedService.RentSupporterTierOne();
+                    _supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier1];
                     tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting CK as a Illustrious Supporter";
                     break;
                 case CkSupporterTier.EsteemedPatron:
-                    _supporterWrap = _uiSharedService.RentSupporterTierTwo();
+                    _supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier2];
                     tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting CK as a Esteemed Patron";
                     break;
                 case CkSupporterTier.DistinguishedConnoisseur:
-                    _supporterWrap = _uiSharedService.RentSupporterTierThree();
+                    _supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier3];
                     tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting CK as a Distinguished Connoisseur";
                     break;
                 case CkSupporterTier.KinkporiumMistress:
-                    _supporterWrap = _uiSharedService.RentSupporterTierFour();
+                    _supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier4];
                     tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is the Shop Mistress of CK, and the Dev of GagSpeak.";
                     break;
                 default:
@@ -129,7 +131,7 @@ public class DrawUserPair
         if ((_supporterWrap is { } supporterImage))
         {
             ImGui.SameLine(cursorPos);
-            ImGui.SetCursorPosX(cursorPos - _uiSharedService.GetIconData(FontAwesomeIcon.EllipsisV).X - ImGui.GetStyle().ItemSpacing.X);
+            ImGui.SetCursorPosX(cursorPos - _uiShared.GetIconData(FontAwesomeIcon.EllipsisV).X - ImGui.GetStyle().ItemSpacing.X);
             ImGui.Image(supporterImage.ImGuiHandle, new Vector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight()));
             UiSharedService.AttachToolTip(tooltipString);
         }
@@ -145,7 +147,7 @@ public class DrawUserPair
         if (!_pair.IsOnline)
         {
             using var _ = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudRed);
-            _uiSharedService.IconText(_pair.IndividualPairStatus == IndividualPairStatus.OneSided
+            _uiShared.IconText(_pair.IndividualPairStatus == IndividualPairStatus.OneSided
                 ? FontAwesomeIcon.ArrowsLeftRight
                 : _pair.IndividualPairStatus == IndividualPairStatus.Bidirectional
                     ? FontAwesomeIcon.User : FontAwesomeIcon.Users);
@@ -153,7 +155,7 @@ public class DrawUserPair
         }
         else if (_pair.IsVisible)
         {
-            _uiSharedService.IconText(FontAwesomeIcon.Eye, ImGuiColors.ParsedGreen);
+            _uiShared.IconText(FontAwesomeIcon.Eye, ImGuiColors.ParsedGreen);
             userPairText = _pair.UserData.AliasOrUID + " is visible: " + _pair.PlayerName + Environment.NewLine + "Click to target this player";
             if (ImGui.IsItemClicked())
             {
@@ -163,7 +165,7 @@ public class DrawUserPair
         else
         {
             using var _ = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.HealerGreen);
-            _uiSharedService.IconText(_pair.IndividualPairStatus == IndividualPairStatus.Bidirectional
+            _uiShared.IconText(_pair.IndividualPairStatus == IndividualPairStatus.Bidirectional
                 ? FontAwesomeIcon.User : FontAwesomeIcon.Users);
             userPairText = _pair.UserData.AliasOrUID + " is online";
         }
@@ -190,15 +192,15 @@ public class DrawUserPair
 
     private float DrawRightSide()
     {
-        var permissionsButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Cog);
-        var barButtonSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.EllipsisV);
+        var permissionsButtonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Cog);
+        var barButtonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.EllipsisV);
         var spacingX = ImGui.GetStyle().ItemSpacing.X / 2;
         var windowEndX = ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth();
         var currentRightSide = windowEndX - barButtonSize.X;
 
         ImGui.SameLine(currentRightSide);
         ImGui.AlignTextToFramePadding();
-        if (_uiSharedService.IconButton(FontAwesomeIcon.EllipsisV))
+        if (_uiShared.IconButton(FontAwesomeIcon.EllipsisV))
         {
             // open the permission setting window
             _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairActionFunctions, false));
@@ -206,7 +208,7 @@ public class DrawUserPair
 
         currentRightSide -= permissionsButtonSize.X + spacingX;
         ImGui.SameLine(currentRightSide);
-        if (_uiSharedService.IconButton(FontAwesomeIcon.Cog))
+        if (_uiShared.IconButton(FontAwesomeIcon.Cog))
         {
             if (Pair != null) _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.ClientPermsForPair, false));
         }
@@ -214,7 +216,7 @@ public class DrawUserPair
 
         currentRightSide -= permissionsButtonSize.X + spacingX;
         ImGui.SameLine(currentRightSide);
-        if (_uiSharedService.IconButton(FontAwesomeIcon.Search))
+        if (_uiShared.IconButton(FontAwesomeIcon.Search))
         {
             // if we press the cog, we should modify its appearance, and set that we are drawing for this pair to true
             _mediator.Publish(new OpenUserPairPermissions(_pair, StickyWindowType.PairPerms, false));
@@ -228,7 +230,7 @@ public class DrawUserPair
     {
         if (!_pair.IsPaused)
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.User, "Open Profile", _menuWidth, true))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.User, "Open Profile", _menuWidth, true))
             {
                 _displayHandler.OpenProfile(_pair);
                 ImGui.CloseCurrentPopup();
@@ -238,9 +240,9 @@ public class DrawUserPair
         if (_pair.IsPaired)
         {
             var pauseIcon = _pair.UserPair!.OwnPairPerms.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
-            var pauseIconSize = _uiSharedService.GetIconButtonSize(pauseIcon);
+            var pauseIconSize = _uiShared.GetIconButtonSize(pauseIcon);
             var pauseText = _pair.UserPair!.OwnPairPerms.IsPaused ? $"Unpause {_pair.UserData.AliasOrUID}" : $"Pause {_pair.UserData.AliasOrUID}";
-            if (_uiSharedService.IconTextButton(pauseIcon, pauseText, _menuWidth, true))
+            if (_uiShared.IconTextButton(pauseIcon, pauseText, _menuWidth, true))
             {
                 var perm = _pair.UserPair!.OwnPairPerms;
                 _ = _apiHubMain.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_pair.UserData,
@@ -252,7 +254,7 @@ public class DrawUserPair
         }
         if (_pair.IsVisible)
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Sync, "Reload last data", _menuWidth, true))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Reload last data", _menuWidth, true))
             {
                 _pair.ApplyLastReceivedIpcData(forced: true);
                 ImGui.CloseCurrentPopup();
@@ -269,7 +271,7 @@ public class DrawUserPair
 
         if (_pair.IndividualPairStatus != IndividualPairStatus.None)
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", _menuWidth, true) && KeyMonitor.CtrlPressed())
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", _menuWidth, true) && KeyMonitor.CtrlPressed())
             {
                 _ = _apiHubMain.UserRemovePair(new(_pair.UserData));
             }
@@ -277,7 +279,7 @@ public class DrawUserPair
         }
         else
         {
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Plus, "Pair individually", _menuWidth, true))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Pair individually", _menuWidth, true))
             {
                 _ = _apiHubMain.UserAddPair(new(_pair.UserData));
             }

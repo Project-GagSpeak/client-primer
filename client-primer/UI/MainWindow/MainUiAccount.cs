@@ -26,13 +26,13 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
     private readonly UiSharedService _uiShared;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly GagspeakConfigService _config;
-    private readonly ProfileService _profileManager;
+    private readonly KinkPlateService _profileManager;
     private readonly IDalamudPluginInterface _pi;
 
     public MainUiAccount(ILogger<MainUiAccount> logger,
         GagspeakMediator mediator, MainHub apiHubMain,
         UiSharedService uiShared, OnFrameworkService frameworkUtils,
-        GagspeakConfigService config, ProfileService profileManager,
+        GagspeakConfigService config, KinkPlateService profileManager,
         IDalamudPluginInterface pi) : base(logger, mediator)
     {
         _apiHubMain = apiHubMain;
@@ -58,10 +58,10 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
             {
                 // fetch own profile data to store / display.
                 // This function itself does no API calls unless the requested UID is different.
-                var profileData = _profileManager.GetGagspeakProfile(new UserData(MainHub.UID));
+                var profileData = _profileManager.GetKinkPlate(new UserData(MainHub.UID));
 
                 // if the profile is flagged, say so.
-                if (profileData.Flagged)
+                if (profileData.KinkPlateInfo.Flagged)
                 {
                     UiSharedService.ColorTextWrapped("Your profile has been flagged for inappropriate content. Please review your profile.", ImGuiColors.DalamudRed);
                 }

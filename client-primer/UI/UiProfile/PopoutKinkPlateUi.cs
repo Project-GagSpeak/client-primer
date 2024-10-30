@@ -15,7 +15,7 @@ namespace GagSpeak.UI.Profile;
 
 public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
 {
-    private readonly ProfileService _gagspeakProfileManager;
+    private readonly KinkPlateService _KinkPlateManager;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly UiSharedService _uiShared;
@@ -23,12 +23,12 @@ public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
 
     public PopoutKinkPlateUi(ILogger<PopoutKinkPlateUi> logger, GagspeakMediator mediator,
         UiSharedService uiBuilder, ServerConfigurationManager serverManager,
-        GagspeakConfigService gagspeakConfigService, ProfileService gagspeakProfileManager,
+        GagspeakConfigService gagspeakConfigService, KinkPlateService KinkPlateManager,
         PairManager pairManager) : base(logger, mediator, "###GagSpeakPopoutProfileUI")
     {
         _uiShared = uiBuilder;
         _serverConfigs = serverManager;
-        _gagspeakProfileManager = gagspeakProfileManager;
+        _KinkPlateManager = KinkPlateManager;
         _pairManager = pairManager;
         Flags = ImGuiWindowFlags.NoDecoration;
 
@@ -81,12 +81,12 @@ public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
 
             var spacing = ImGui.GetStyle().ItemSpacing;
             // grab our profile.
-            var pairProfile = _gagspeakProfileManager.GetGagspeakProfile(_pair.UserData);
+            var pairProfile = _KinkPlateManager.GetKinkPlate(_pair.UserData);
 
             // check if flagged
-            if (pairProfile.Flagged)
+            if (pairProfile.KinkPlateInfo.Flagged)
             {
-                UiSharedService.ColorTextWrapped(pairProfile.Description, ImGuiColors.DalamudRed);
+                UiSharedService.ColorTextWrapped(pairProfile.KinkPlateInfo.Description, ImGuiColors.DalamudRed);
                 return;
             }
 

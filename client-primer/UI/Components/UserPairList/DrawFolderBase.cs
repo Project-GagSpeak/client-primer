@@ -14,7 +14,6 @@ namespace GagSpeak.UI.Components.UserPairList;
 /// </summary>
 public abstract class DrawFolderBase : IDrawFolder
 {
-    private readonly ILogger<DrawEntityFactory> _logger;
     public IImmutableList<DrawUserPair> DrawPairs { get; init; }
     protected readonly string _id;
     protected readonly IImmutableList<Pair> _allPairs;
@@ -28,15 +27,13 @@ public abstract class DrawFolderBase : IDrawFolder
     public string ID => _id;
 
     protected DrawFolderBase(string id, IImmutableList<DrawUserPair> drawPairs,
-        IImmutableList<Pair> allPairs, TagHandler tagHandler, UiSharedService uiSharedService,
-        ILogger<DrawEntityFactory> logger)
+        IImmutableList<Pair> allPairs, TagHandler tagHandler, UiSharedService uiSharedService)
     {
         _id = id;
         DrawPairs = drawPairs;
         _allPairs = allPairs;
         _tagHandler = tagHandler;
         _uiSharedService = uiSharedService;
-        _logger = logger;
     }
 
     protected abstract bool RenderIfEmpty { get; }

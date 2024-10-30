@@ -133,30 +133,30 @@ public partial class MainHub
         await GagSpeakHubMain!.InvokeAsync(nameof(UserUpdateAchievementData), dto).ConfigureAwait(false);
     }
 
-    public async Task<UserProfileDto> UserGetProfile(UserDto dto)
+    public async Task<UserKinkPlateDto> UserGetKinkPlate(UserDto dto)
     {
         // if we are not connected, return a new user profile dto with the user data and disabled set to false
-        if (!IsConnected) return new UserProfileDto(dto.User, Disabled: false, ProfilePictureBase64: null, Description: null);
-        // otherwise, if we are connected, invoke the UserGetProfile function on the server with the user data transfer object
-        return await GagSpeakHubMain!.InvokeAsync<UserProfileDto>(nameof(UserGetProfile), dto).ConfigureAwait(false);
+        if (!IsConnected) return new UserKinkPlateDto(dto.User, Info: new KinkPlateContent(), ProfilePictureBase64: string.Empty);
+        // otherwise, if we are connected, invoke the UserGetKinkPlate function on the server with the user data transfer object
+        return await GagSpeakHubMain!.InvokeAsync<UserKinkPlateDto>(nameof(UserGetKinkPlate), dto).ConfigureAwait(false);
     }
 
-    public async Task UserReportProfile(UserProfileReportDto userProfileDto)
+    public async Task UserReportKinkPlate(UserKinkPlateReportDto userProfileDto)
     {
         // if we are not connected, return
         if (!IsConnected) return;
         // if we are connected, send the report to the server
-        await GagSpeakHubMain!.InvokeAsync(nameof(UserReportProfile), userProfileDto).ConfigureAwait(false);
+        await GagSpeakHubMain!.InvokeAsync(nameof(UserReportKinkPlate), userProfileDto).ConfigureAwait(false);
     }
 
 
     /// <summary> 
     /// Sets the profile of the client user, updating it to the clients paired users and the DB.
     /// </summary>
-    public async Task UserSetProfile(UserProfileDto userDescription)
+    public async Task UserSetKinkPlate(UserKinkPlateDto userDescription)
     {
         if (!IsConnected) return;
-        await GagSpeakHubMain!.InvokeAsync(nameof(UserSetProfile), userDescription).ConfigureAwait(false);
+        await GagSpeakHubMain!.InvokeAsync(nameof(UserSetKinkPlate), userDescription).ConfigureAwait(false);
     }
 
     /// <summary> Moodles IPC senders. </summary>

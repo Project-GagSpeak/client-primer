@@ -22,10 +22,10 @@ public class DrawFolderTag : DrawFolderBase
     private readonly MainHub _apiHubMain;
     private readonly SelectPairForTagUi _selectPairForTagUi;
 
-    public DrawFolderTag(string id, IImmutableList<DrawUserPair> drawPairs, IImmutableList<Pair> allPairs,
-        TagHandler tagHandler, MainHub apiHubMain, SelectPairForTagUi selectPairForTagUi,
-        UiSharedService uiSharedService, ILogger<DrawEntityFactory> logger)
-        : base(id, drawPairs, allPairs, tagHandler, uiSharedService, logger)
+    public DrawFolderTag(string id, IImmutableList<DrawUserPair> drawPairs, 
+        IImmutableList<Pair> allPairs, TagHandler tagHandler, MainHub apiHubMain, 
+        SelectPairForTagUi selectPairForTagUi, UiSharedService uiSharedService)
+        : base(id, drawPairs, allPairs, tagHandler, uiSharedService)
     {
         _apiHubMain = apiHubMain;
         _selectPairForTagUi = selectPairForTagUi;

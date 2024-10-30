@@ -20,12 +20,12 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverConfigs;
-    private readonly ProfileService _profileService;
+    private readonly KinkPlateService _profileService;
     private readonly UiSharedService _uiShared;
 
     public KinkPlateUI(ILogger<KinkPlateUI> logger, GagspeakMediator mediator,
         PairManager pairManager, ServerConfigurationManager serverConfigs,
-        ProfileService profileService, UiSharedService uiShared,
+        KinkPlateService profileService, UiSharedService uiShared,
         Pair pair) : base(logger, mediator, pair.UserData.AliasOrUID + "'s KinkPlate##GagspeakKinkPlateUI" + pair.UserData.AliasOrUID)
     {
         _pairManager = pairManager;
@@ -56,19 +56,19 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         //_logger.LogDebug("RectMin: {rectMin}, RectMax: {rectMax}", rectMin, rectMax);
 
         // obtain the profile for this userPair.
-        var gagspeakProfile = _profileService.GetGagspeakProfile(Pair.UserData);
-        if (gagspeakProfile.Flagged)
+        var KinkPlate = _profileService.GetKinkPlate(Pair.UserData);
+        if (KinkPlate.KinkPlateInfo.Flagged)
         {
             ImGui.TextUnformatted("This profile is flagged by moderation.");
             return;
         }
 
         // Draw KinkPlateUI Function here.
-        DrawKinkPlateWhole(drawList, gagspeakProfile);
+        DrawKinkPlateWhole(drawList, KinkPlate);
     }
 
     // Size = 750 by 450
-    private void DrawKinkPlateWhole(ImDrawListPtr drawList, GagspeakProfile profile)
+    private void DrawKinkPlateWhole(ImDrawListPtr drawList, KinkPlate profile)
     {
         // Draw the close button.
         CloseButton(drawList);

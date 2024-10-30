@@ -44,11 +44,10 @@ public class ChatLog
 
     public bool ShouldScrollToBottom = false;
 
-    public void PrintChatLogHistory(bool showMessagePreview, string previewMessage)
+    public void PrintChatLogHistory(bool showMessagePreview, string previewMessage, Vector2 region)
     {
-        using (ImRaii.Child("##GlobalChatLog"+TimeCreated.ToString()))
+        using (ImRaii.Child("##GlobalChatLog" + TimeCreated.ToString(), region, false, ImGuiWindowFlags.NoDecoration))
         {
-            var region = ImGui.GetContentRegionAvail();
             var ySpacing = ImGui.GetStyle().ItemInnerSpacing.Y;
             foreach (var x in Messages)
             {
@@ -92,7 +91,7 @@ public class ChatLog
                 // If the total width is less than available, print in one go
                 if (msgWidth <= remainingWidth)
                 {
-                    if(x.SupporterTier is CkSupporterTier.KinkporiumMistress)
+                    if (x.SupporterTier is CkSupporterTier.KinkporiumMistress)
                         UiSharedService.ColorText(x.Message, CkMistressText);
                     else
                         ImGui.Text(x.Message);
@@ -121,7 +120,7 @@ public class ChatLog
 
                     // Print the fitting part of the message
                     ImUtf8.SameLineInner();
-                    if(x.SupporterTier is CkSupporterTier.KinkporiumMistress)
+                    if (x.SupporterTier is CkSupporterTier.KinkporiumMistress)
                         UiSharedService.ColorText(fittingMessage.TrimEnd(), CkMistressText);
                     else
                         ImGui.Text(fittingMessage.TrimEnd());
@@ -129,7 +128,7 @@ public class ChatLog
                     // Draw the remaining part of the message wrapped
                     string wrappedMessage = x.Message.Substring(fittingMessage.Length).TrimStart();
                     ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ySpacing);
-                    if(x.SupporterTier is CkSupporterTier.KinkporiumMistress)
+                    if (x.SupporterTier is CkSupporterTier.KinkporiumMistress)
                         UiSharedService.ColorTextWrapped(wrappedMessage, CkMistressText);
                     else
                         ImGui.TextWrapped(wrappedMessage);
@@ -144,6 +143,9 @@ public class ChatLog
                 ImGui.SetScrollHereY(1.0f);
                 PreviousMessageCount = Messages.Count();
             }
+
+            // head all the way to the bottom of the windows region to draw the text wrap box.
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y);
 
             // draw the text preview if we should.
             if (showMessagePreview && !string.IsNullOrWhiteSpace(previewMessage))

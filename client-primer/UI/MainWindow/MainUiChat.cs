@@ -53,9 +53,10 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         float chatLogHeight = CurrentRegion.Y - inputTextHeight;
 
         // Create a child for the chat log
-        using (var chatlogChild = ImRaii.Child($"###ChatlogChildGlobal", new Vector2(CurrentRegion.X, chatLogHeight - inputTextHeight), false))
+        var region = new Vector2(CurrentRegion.X, chatLogHeight - inputTextHeight);
+        using (var chatlogChild = ImRaii.Child($"###ChatlogChildGlobal", region, false))
         {
-            DiscoverService.GlobalChat.PrintChatLogHistory(showMessagePreview, NextChatMessage);
+            DiscoverService.GlobalChat.PrintChatLogHistory(showMessagePreview, NextChatMessage, region);
         }
 
         // Now draw out the input text field

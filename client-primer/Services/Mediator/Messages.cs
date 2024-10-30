@@ -154,7 +154,7 @@ public record CompactUiChange(Vector2 Size, Vector2 Position) : MessageBase; // 
 public record ProfileOpenStandaloneMessage(Pair Pair) : MessageBase; // for opening the profile standlone window.
 public record ProfilePopoutToggle(Pair? Pair) : MessageBase; // toggles the profile popout window for a paired client.
 public record ClearProfileDataMessage(UserData? UserData = null) : MessageBase; // a message indicating the need to clear profile data.
-public record ReportGagSpeakProfileMessage(Pair PairToReport) : MessageBase; // for reporting a GagSpeak profile.
+public record ReportKinkPlateMessage(Pair PairToReport) : MessageBase; // for reporting a GagSpeak profile.
 public record VerificationPopupMessage(VerificationDto VerificationCode) : MessageBase; // indicating that we have received a verification code popup.
 public record PatternSavePromptMessage(List<byte> StoredData, TimeSpan Duration) : MessageBase; // prompts the popup and passes in savedata
 public record BlindfoldUiTypeChange(BlindfoldType NewType) : MessageBase; // for changing blindfold type.

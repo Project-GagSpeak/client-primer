@@ -1,5 +1,6 @@
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components.UserPairList;
 using GagSpeak.UI.Handlers;
 using GagSpeak.UI.Permissions;
@@ -10,41 +11,37 @@ namespace GagSpeak.UI;
 
 public class DrawEntityFactory
 {
-    private readonly ILogger<DrawEntityFactory> _logger;
-    private readonly ILoggerFactory _loggerfactory;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly MainHub _apiHubMain;
     private readonly GagspeakMediator _mediator;
-    private readonly SelectPairForTagUi _selectPairForTagUi;
-    private readonly UiSharedService _uiSharedService;
-    private readonly SelectTagForPairUi _selectTagForPairUi;
+    private readonly SelectPairForTagUi _pairsForTag;
     private readonly TagHandler _tagHandler;
     private readonly IdDisplayHandler _uidDisplayHandler;
+    private readonly CosmeticService _cosmetics;
+    private readonly UiSharedService _uiShared;
 
-    public DrawEntityFactory(ILogger<DrawEntityFactory> logger, MainHub apiHubMain,
-        IdDisplayHandler uidDisplayHandler, SelectTagForPairUi selectTagForPairUi, 
-        GagspeakMediator mediator, ILoggerFactory loggerfactory, TagHandler tagHandler, 
-        SelectPairForTagUi selectPairForTagUi, UiSharedService uiSharedService)
+    public DrawEntityFactory(ILoggerFactory loggerFactory, MainHub apiHubMain, 
+        GagspeakMediator mediator, SelectPairForTagUi pairsForTag, TagHandler tagHandler, 
+        IdDisplayHandler uidDisplayHandler, CosmeticService cosmetics, UiSharedService uiShared)
     {
-        _loggerfactory = loggerfactory;
-        _logger = logger;
+        _loggerFactory = loggerFactory;
         _apiHubMain = apiHubMain;
-        _uidDisplayHandler = uidDisplayHandler;
-        _selectTagForPairUi = selectTagForPairUi;
         _mediator = mediator;
+        _pairsForTag = pairsForTag;
         _tagHandler = tagHandler;
-        _selectPairForTagUi = selectPairForTagUi;
-        _uiSharedService = uiSharedService;
+        _uidDisplayHandler = uidDisplayHandler;
+        _cosmetics = cosmetics;
+        _uiShared = uiShared;
     }
-
     public DrawFolderTag CreateDrawTagFolder(string tag, List<Pair> filteredPairs, IImmutableList<Pair> allPairs)
     {
         return new(tag, filteredPairs.Select(u => CreateDrawPair(tag, u)).ToImmutableList(), allPairs,
-            _tagHandler, _apiHubMain, _selectPairForTagUi, _uiSharedService, _logger);
+            _tagHandler, _apiHubMain, _pairsForTag, _uiShared);
     }
 
     public DrawUserPair CreateDrawPair(string id, Pair user)
     {
-        return new DrawUserPair(_loggerfactory.CreateLogger<DrawUserPair>(), id + user.UserData.UID,
-            user, _apiHubMain, _uidDisplayHandler, _mediator, _selectTagForPairUi, _uiSharedService);
+        return new DrawUserPair(_loggerFactory.CreateLogger<DrawUserPair>(), id + user.UserData.UID,
+            user, _apiHubMain, _uidDisplayHandler, _mediator, _cosmetics, _uiShared);
     }
 }

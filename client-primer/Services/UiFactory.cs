@@ -31,7 +31,7 @@ public class UiFactory
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly ToyboxRemoteService _remoteService;
     private readonly ServerConfigurationManager _serverConfigs;
-    private readonly ProfileService _gagspeakProfileManager;
+    private readonly KinkPlateService _KinkPlateManager;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly MoodlesService _moodlesService;
     private readonly PermissionPresetService _presetService;
@@ -41,7 +41,7 @@ public class UiFactory
         ToyboxHub apiHubToybox, GagManager gagManager, UiSharedService uiSharedService, 
         ToyboxVibeService vibeService, IdDisplayHandler displayHandler, PairManager pairManager, 
         PlayerCharacterData playerManager, ToyboxRemoteService remoteService, 
-        ServerConfigurationManager serverConfigs, ProfileService profileManager, OnFrameworkService frameworkUtils,
+        ServerConfigurationManager serverConfigs, KinkPlateService profileManager, OnFrameworkService frameworkUtils,
         ClientConfigurationManager clientConfigs, MoodlesService moodlesService, PermissionPresetService presetService, 
         PermActionsComponents permActionHelpers)
     {
@@ -57,7 +57,7 @@ public class UiFactory
         _playerManager = playerManager;
         _remoteService = remoteService;
         _serverConfigs = serverConfigs;
-        _gagspeakProfileManager = profileManager;
+        _KinkPlateManager = profileManager;
         _frameworkUtils = frameworkUtils;
         _clientConfigs = clientConfigs;
         _moodlesService = moodlesService;
@@ -74,7 +74,7 @@ public class UiFactory
     public KinkPlateUI CreateStandaloneProfileUi(Pair pair)
     {
         return new KinkPlateUI(_loggerFactory.CreateLogger<KinkPlateUI>(), _gagspeakMediator,
-            _pairManager, _serverConfigs, _gagspeakProfileManager, _uiSharedService, pair);
+            _pairManager, _serverConfigs, _KinkPlateManager, _uiSharedService, pair);
     }
 
     // create a new instance window of the userpair permissions window every time a new pair is selected.

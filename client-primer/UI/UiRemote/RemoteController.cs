@@ -151,9 +151,10 @@ public class RemoteController : RemoteBase
             float chatLogHeight = CurrentRegion.Y - inputTextHeight;
 
             // Create a child for the chat log
-            using (var chatlogChild = ImRaii.Child($"###ChatlogChildRemote", new Vector2(CurrentRegion.X, chatLogHeight - inputTextHeight), false))
+            var region = new Vector2(CurrentRegion.X, chatLogHeight - inputTextHeight);
+            using (var chatlogChild = ImRaii.Child($"###ChatlogChildRemote", region, false))
             {
-                PrivateRoomData.PrivateRoomChatlog.PrintChatLogHistory(showMessagePreview, NextChatMessage);
+                PrivateRoomData.PrivateRoomChatlog.PrintChatLogHistory(showMessagePreview, NextChatMessage, region);
             }
 
             // Now draw out the input text field

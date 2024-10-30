@@ -46,12 +46,12 @@ internal class ReportPopupHandler : IPopupHandler
             {
                 ImGui.CloseCurrentPopup();
                 var reason = _reportReason;
-                _ = _apiHubMain.UserReportProfile(new(_reportedPair.UserData, reason));
+                _ = _apiHubMain.UserReportKinkPlate(new(_reportedPair.UserData, reason));
             }
         }
     }
 
-    public void Open(ReportGagSpeakProfileMessage msg)
+    public void Open(ReportKinkPlateMessage msg)
     {
         _reportedPair = msg.PairToReport;
         _reportReason = string.Empty;

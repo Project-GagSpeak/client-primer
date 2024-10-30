@@ -8,6 +8,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin.Services;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagSpeak.WebAPI.Utils;
@@ -26,17 +27,18 @@ public class EditProfileUi : WindowMediatorSubscriberBase
 {
     private readonly MainHub _apiHubMain;
     private readonly FileDialogManager _fileDialogManager;
-    private readonly ProfileService _gagspeakProfileManager;
-    private readonly UiSharedService _uiSharedService;
-    private bool _adjustedForScollBarsLocalProfile = false;
-    private bool _adjustedForScollBarsOnlineProfile = false;
+    private readonly KinkPlateService _KinkPlateManager;
+    private readonly CosmeticService _cosmetics;
+    private readonly UiSharedService _uiShared;
+    private bool _adjustedForScrollBarsLocalProfile = false;
+    private bool _adjustedForScrollBarsOnlineProfile = false;
     private bool _showFileDialogError = false;
     private bool _wasOpen;
 
     public EditProfileUi(ILogger<EditProfileUi> logger, GagspeakMediator mediator,
-        MainHub apiHubMain, UiSharedService uiSharedService,
-        FileDialogManager fileDialogManager, ProfileService gagspeakProfileManager)
-        : base(logger, mediator, "Edit Avatar###GagSpeakEditProfileUI")
+        MainHub apiHubMain, FileDialogManager fileDialogManager, 
+        KinkPlateService KinkPlateManager, CosmeticService cosmetics,
+        UiSharedService uiSharedService) : base(logger, mediator, "Edit Avatar###GagSpeakEditProfileUI")
     {
         IsOpen = false;
         this.SizeConstraints = new()
@@ -45,9 +47,10 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             MaximumSize = new(768, 2000)
         };
         _apiHubMain = apiHubMain;
-        _uiSharedService = uiSharedService;
         _fileDialogManager = fileDialogManager;
-        _gagspeakProfileManager = gagspeakProfileManager;
+        _KinkPlateManager = KinkPlateManager;
+        _cosmetics = cosmetics;
+        _uiShared = uiSharedService;
 
         Mediator.Subscribe<MainHubDisconnectedMessage>(this, (_) => IsOpen = false);
     }
@@ -85,12 +88,12 @@ public class EditProfileUi : WindowMediatorSubscriberBase
     {
         var spacing = ImGui.GetStyle().ItemSpacing.X;
         // grab our profile.
-        var profile = _gagspeakProfileManager.GetGagspeakProfile(new UserData(MainHub.UID));
+        var profile = _KinkPlateManager.GetKinkPlate(new UserData(MainHub.UID));
 
         // check if flagged
-        if (profile.Flagged)
+        if (profile.KinkPlateInfo.Flagged)
         {
-            UiSharedService.ColorTextWrapped(profile.Description, ImGuiColors.DalamudRed);
+            UiSharedService.ColorTextWrapped(profile.KinkPlateInfo.Description, ImGuiColors.DalamudRed);
             return;
         }
 
@@ -114,7 +117,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             Environment.NewLine + "The Rounded variant is as seen in the account page and in other profile inspections." +
             Environment.NewLine + "At the moment non-rounded serves no current purpose, but could in the future");
         // move down to the newline and draw the buttons for adding and removing images
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.FileUpload, "Upload new profile picture", 256f, false))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.FileUpload, "Upload new profile picture", 256f, false))
         {
             _fileDialogManager.OpenFileDialog("Select new Profile picture", ".png", (success, file) =>
             {
@@ -168,7 +171,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                                 _cropX = 0.5f;
                                 _cropY = 0.5f;
 
-                                _uploadedImageToShow = _uiSharedService.LoadImage(_uploadedImageData);
+                                _uploadedImageToShow = _cosmetics.GetProfilePicture(_uploadedImageData);
                                 ScaledFileSize = $"{_scopedData.Length / 1024.0:F2} KB";
 
                                 // Update the preview image
@@ -188,14 +191,14 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         UiSharedService.AttachToolTip("Select and upload a new profile picture");
 
         ImGui.SameLine();
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Trash, "Clear uploaded profile picture", 256f, false, !KeyMonitor.CtrlPressed()))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Clear uploaded profile picture", 256f, false, !KeyMonitor.CtrlPressed()))
         {
             _uploadedImageData = null!;
             _croppedImageData = null!;
             _uploadedImageToShow = null;
             _croppedImageToShow = null;
             _useCompressedImage = false;
-            _ = _apiHubMain.UserSetProfile(new UserProfileDto(new UserData(MainHub.UID), Disabled: false, "", Description: null));
+            _ = _apiHubMain.UserSetKinkPlate(new UserKinkPlateDto(new UserData(MainHub.UID), profile.KinkPlateInfo, string.Empty));
         }
         UiSharedService.AttachToolTip("Clear your currently uploaded profile picture");
         if (_showFileDialogError)
@@ -206,16 +209,16 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         ImGui.Separator();
         if (_uploadedImageData != null)
         {
-            DrawNewProfileDisplay();
+            DrawNewProfileDisplay(profile);
         }
 
-        _uiSharedService.BigText("Profile Settings");
-        var refText = profile.Description;
+        _uiShared.BigText("Profile Settings");
+        var refText = profile.KinkPlateInfo.Description;
         ImGui.InputTextMultiline("##pfpDescription", ref refText, 1000, ImGuiHelpers.ScaledVector2(
             ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeightWithSpacing()*3));
         if(ImGui.IsItemDeactivatedAfterEdit())
         {
-            profile.Description = refText;
+            profile.KinkPlateInfo.Description = refText;
         }
         /*
         if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, "Save Profile"))
@@ -225,10 +228,10 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         UiSharedService.AttachToolTip("Updated your stored profile with latest information");
     }
 
-    private void DrawNewProfileDisplay()
+    private void DrawNewProfileDisplay(KinkPlate profile)
     {
         var spacing = ImGui.GetStyle().ItemSpacing.X;
-        _uiSharedService.BigText("Setup Profile Image");
+        _uiShared.BigText("Setup Profile Image");
 
         if (_uploadedImageData != null)
         {
@@ -254,7 +257,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         {
             if (_croppedImageData != null)
             {
-                if (_uiSharedService.IconTextButton(FontAwesomeIcon.Compress, "Compress Image", 150f))
+                if (_uiShared.IconTextButton(FontAwesomeIcon.Compress, "Compress Image", 150f))
                 {
                     CompressImage();
                 }
@@ -312,7 +315,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             ImGui.AlignTextToFramePadding();
             ImGui.TextUnformatted("Cropped Image Size: " + CroppedFileSize);
 
-            if (_uiSharedService.IconTextButton(FontAwesomeIcon.Upload, "Upload Profile Pic to Server", 200f, false, _croppedImageData == null))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Upload, "Upload Profile Pic to Server", 200f, false, _croppedImageData == null))
             {
                 _ = Task.Run(async () =>
                 {
@@ -341,7 +344,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                     }
                     try
                     {
-                        await _apiHubMain.UserSetProfile(new UserProfileDto(new UserData(MainHub.UID), Disabled: false, Convert.ToBase64String(_croppedImageData!), Description: null)).ConfigureAwait(false);
+                        await _apiHubMain.UserSetKinkPlate(new(MainHub.PlayerUserData, profile.KinkPlateInfo, Convert.ToBase64String(_croppedImageData!))).ConfigureAwait(false);
                         _logger.LogInformation("Image Sent to server successfully.");
                     }
                     catch (Exception ex)
@@ -397,7 +400,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 _compressedImageData = ms.ToArray();
 
                 // Load the cropped image for preview
-                _compressedImageToShow = _uiSharedService.LoadImage(_compressedImageData);
+                _compressedImageToShow = _cosmetics.GetProfilePicture(_compressedImageData);
                 _useCompressedImage = true;
                 // _logger.LogDebug($"New Image width and height is: {resizedImage.Width}x{resizedImage.Height} from {croppedImage.Width}x{croppedImage.Height}");
                 CroppedFileSize = $"{_croppedImageData.Length / 1024.0:F2} KB";
@@ -457,7 +460,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                 _croppedImageData = ms.ToArray();
 
                 // Load the cropped image for preview
-                _croppedImageToShow = _uiSharedService.LoadImage(_croppedImageData);
+                _croppedImageToShow = _cosmetics.GetProfilePicture(_croppedImageData);
                 CroppedFileSize = $"{_croppedImageData.Length / 1024.0:F2} KB";
                 // _logger.LogInformation($"Cropped image to {cropRectangle}");
             }

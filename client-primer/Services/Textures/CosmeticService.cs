@@ -4,6 +4,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
+using GagspeakAPI.Data.IPC;
 using Microsoft.Extensions.Hosting;
 
 namespace GagSpeak.Services.Textures;
@@ -31,57 +32,97 @@ public class CosmeticService : IHostedService, IDisposable
         _logger.LogInformation("GagSpeak Profile Cosmetic Cache Initializing.");
 
         // fire an async task to occur on the framework thread that will fetch and load in our image data.
-        Task.Run(async () => await LoadAllCosmetics());
+        Task.Run(async () =>
+        {
+            await LoadAllCoreTextures();
+            await LoadAllCosmetics();
+        });
     }
 
     // we need to store a local static cache of our image data so
     // that they can load instantly whenever required.
-    public Dictionary<string, IDalamudTextureWrap?> InternalCosmeticCache = [];
+    public Dictionary<string, IDalamudTextureWrap> InternalCosmeticCache = [];
 
-
+    public Dictionary<CorePluginTexture, IDalamudTextureWrap> CorePluginTextures = [];
 
     // MUST ensure ALL images are disposed of or else we will leak a very large amount of memory.
     public void Dispose()
     {
         _logger.LogInformation("GagSpeak Profile Cosmetic Cache Disposing.");
+        foreach (var texture in CorePluginTextures.Values)
+        {
+            texture?.Dispose();
+            // if we run into issues with this not going to null, a null should have been here.
+        }
         foreach (var texture in InternalCosmeticCache.Values)
         {
             texture?.Dispose();
             // if we run into issues with this not going to null, a null should have been here.
         }
         // clear the dictionary, erasing all disposed textures.
+        CorePluginTextures.Clear();
         InternalCosmeticCache.Clear();
+    }
+
+    public async Task LoadAllCoreTextures()
+    {
+        foreach (var label in CosmeticLabels.NecessaryImages)
+        {
+            var key = label.Key;
+            var path = label.Value;
+            _logger.LogInformation("Cosmetic Key: " + key);
+
+            if (string.IsNullOrEmpty(path))
+            {
+                _logger.LogError("Cosmetic Key: " + key + " Texture Path is Empty.");
+                return;
+            }
+
+            _logger.LogInformation("Renting image to store in Cache: " + key);
+            var texture = RentImageFromFile(path);
+            if (texture != null)
+            {
+                _logger.LogInformation("Cosmetic Key: " + key + " Texture Loaded Successfully: " + path);
+                CorePluginTextures[key] = texture;
+            }
+            else
+            {
+                _logger.LogError("Cosmetic Key: " + key + " Texture Failed to Load: " + path);
+            }
+        }
+        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all Image Data!");
     }
 
     public async Task LoadAllCosmetics()
     {
-        await _frameworkUtils.RunOnFrameworkThread(() =>
+        // load in all the images to the dictionary by iterating through all public const strings stored in the cosmetic labels and appending them as new texture wraps that should be stored into the cache.
+        foreach (var label in CosmeticLabels.Labels)
         {
-            // load in all the images to the dictionary by iterating through all public const strings stored in the cosmetic labels and appending them as new texture wraps that should be stored into the cache.
-            foreach (var label in CosmeticLabels.Labels)
+            var key = label.Key;
+            var path = label.Value;
+            _logger.LogInformation("Cosmetic Key: " + key);
+
+            if (string.IsNullOrEmpty(path))
             {
-                var key = label.Key;
-                var path = label.Value;
-                _logger.LogInformation("Cosmetic Key: " + key);
+                _logger.LogError("Cosmetic Key: " + key + " Texture Path is Empty.");
+                return;
+            }
 
-                if (string.IsNullOrEmpty(path)) continue;
-
-                _logger.LogInformation("Renting image to store in Cache: " + key);
-                var texture = RentImageFromFile(path);
-                if (texture != null)
-                {
-                    _logger.LogInformation("Cosmetic Key: " + key + " Texture Loaded Successfully: " + path);
-                    InternalCosmeticCache[key] = texture;
-                }
-                else
-                {
-                    _logger.LogError("Cosmetic Key: " + key + " Texture Failed to Load: " + path);
-                }
+            _logger.LogInformation("Renting image to store in Cache: " + key);
+            var texture = RentImageFromFile(path);
+            if (texture != null)
+            {
+                _logger.LogInformation("Cosmetic Key: " + key + " Texture Loaded Successfully: " + path);
+                InternalCosmeticCache[key] = texture;
+            }
+            else
+            {
+                _logger.LogError("Cosmetic Key: " + key + " Texture Failed to Load: " + path);
             }
             // Corby Note: If this is too much to handle in a single thread,
             // see if there is a way to batch send requests that can be returned overtime when retrieved.
             _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all Image Data!");
-        });
+        }
     }
 
     public bool isImageValid(string keyName)
@@ -91,28 +132,25 @@ public class CosmeticService : IHostedService, IDisposable
         return true;
     }
 
+    /// <summary>
+    /// Obtain an image from the assets folder as wrap or empty for display. This is NOT RENTED.
+    /// </summary>
+    public IDalamudTextureWrap GetImageFromDirectoryFile(string path)
+    => _textures.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path)).GetWrapOrEmpty();
 
-    // Rent the file async. Note that this MUST be done on the framework thread.
-    public IDalamudTextureWrap? RentImageFromFile(string path)
-    {
-        // grab the file and load it into the sharedTextures State
-        _sharedTextures = _textures.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path));
+    private IDalamudTextureWrap RentImageFromFile(string path)
+        => _textures.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path)).RentAsync().Result;
 
-        // if the wrap is not successful, return null.
-        if (_sharedTextures.GetWrapOrDefault() == null) return null;
+    /// <summary>
+    /// Used to fetch profile image from the image byte data.
+    /// </summary>
+    public IDalamudTextureWrap GetProfilePicture(byte[] imageData)
+        => _textures.CreateFromImageAsync(imageData).Result;
 
-        // if it is successful, grab the texture from the shared Service via a RentAsync.
-
-        // NOTE: Calling this Creates a new instance of the Texture fetched from the _sharedTextures.
-        //       This texture is then guaranteed to be available until IDispose is called.
-        else return _sharedTextures.RentAsync().Result;
-    }
-
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("GagSpeak Profile Cosmetic Cache Started.");
-        await LoadAllCosmetics();
-        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Loaded.");
+        return Task.CompletedTask;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
@@ -129,5 +167,16 @@ public static class CosmeticLabels
     public static readonly Dictionary<string, string> Labels = new Dictionary<string, string>
     {
         { "DummyTest", "RequiredImages\\icon256bg.png" }, // Dummy File
+    };
+
+    public static readonly Dictionary<CorePluginTexture, string> NecessaryImages = new()
+    {
+        { CorePluginTexture.Logo256, "RequiredImages\\icon256.png" },
+        { CorePluginTexture.Logo256bg, "RequiredImages\\icon256bg.png" },
+        { CorePluginTexture.SupporterBooster, "RequiredImages\\BoosterIcon.png" },
+        { CorePluginTexture.SupporterTier1, "RequiredImages\\Tier1Icon.png" },
+        { CorePluginTexture.SupporterTier2, "RequiredImages\\Tier2Icon.png" },
+        { CorePluginTexture.SupporterTier3, "RequiredImages\\Tier3Icon.png" },
+        { CorePluginTexture.SupporterTier4, "RequiredImages\\Tier4Icon.png" }
     };
 }

@@ -74,24 +74,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private const string OwnerT4 = "RequiredImages\\Tier4Icon.png";
     // helpers to get the static images
     public IDalamudTextureWrap GetLogo() => GetImageFromDirectoryFile(Logo256Path);
-    public IDalamudTextureWrap? RentLogo() => RentImageFromFile(Logo256Path);
-    public IDalamudTextureWrap GetLogoNoRadial() => GetImageFromDirectoryFile(Logo256bgPath);
-    public IDalamudTextureWrap? RentLogoNoRadial() => RentImageFromFile(Logo256bgPath);
-    public IDalamudTextureWrap GetSupporterBooster() => GetImageFromDirectoryFile(SupporterBooster);
-    public IDalamudTextureWrap? RentSupporterBooster() => RentImageFromFile(SupporterBooster);
-    public IDalamudTextureWrap GetSupporterTierOne() => GetImageFromDirectoryFile(SupporterT1);
-    public IDalamudTextureWrap? RentSupporterTierOne() => RentImageFromFile(SupporterT1);
-    public IDalamudTextureWrap GetSupporterTierTwo() => GetImageFromDirectoryFile(SupporterT2);
-    public IDalamudTextureWrap? RentSupporterTierTwo() => RentImageFromFile(SupporterT2);
-    public IDalamudTextureWrap GetSupporterTierThree() => GetImageFromDirectoryFile(SupporterT3);
-    public IDalamudTextureWrap? RentSupporterTierThree() => RentImageFromFile(SupporterT3);
-    public IDalamudTextureWrap GetSupporterTierFour() => GetImageFromDirectoryFile(OwnerT4);
-    public IDalamudTextureWrap? RentSupporterTierFour() => RentImageFromFile(OwnerT4);
-
-    // a rented version of the gagspeak logo cached throughout the instance.
-    // ONLY TO BE USED IN PLUGIN WHERE IT MUST SERVE AS A REPLACEMENT FOR LOADED PROFILE IMAGES.
-    private IDalamudTextureWrap? GagSpeakLogoNoRadial = null;
-
     public UiSharedService(ILogger<UiSharedService> logger, GagspeakMediator mediator,
         Dalamud.Localization localization, MainHub apiHubMain,
         ClientConfigurationManager clientConfigurationManager,
@@ -134,15 +116,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         GameFont = _pi.UiBuilder.FontAtlas.NewGameFontHandle(new(GameFontFamilyAndSize.Axis12));
         // the font atlas for our icon font
         IconFont = _pi.UiBuilder.IconFontFixedWidthHandle;
-
-        // load the image on startup, so it always appears while we load other profiles. Ensure we dispose of it upon plugin close.
-        Task.Run(async () =>
-        {
-            await frameworkUtil.RunOnFrameworkThread(() =>
-            {
-                GagSpeakLogoNoRadial = RentImageFromFile(Logo256bgPath);
-            });
-        });
     }
 
 /*    public ApiController ApiController => _apiController;   // a public accessible api controller for the plugin, pulled from the private field*/
@@ -160,8 +133,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         if (!disposing) return;
 
         base.Dispose(disposing);
-        GagSpeakLogoNoRadial?.Dispose();
-        GagSpeakLogoNoRadial = null;
         UidFont.Dispose();
         GameFont.Dispose();
     }
@@ -169,21 +140,9 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public IDalamudTextureWrap GetImageFromDirectoryFile(string path)
         => _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path)).GetWrapOrEmpty();
 
-    public IDalamudTextureWrap? RentImageFromFile(string path)
-    {
-        _sharedTextures = _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path));
-        if (_sharedTextures.GetWrapOrDefault() == null) return null;
-        else return _sharedTextures.RentAsync().Result;
-    }
-
     public IDalamudTextureWrap GetGameStatusIcon(uint IconId)
     {
         return _textureProvider.GetFromGameIcon(new GameIconLookup(IconId)).GetWrapOrEmpty();
-    }
-
-    public IDalamudTextureWrap LoadImage(byte[] imageData)
-    {
-        return _textureProvider.CreateFromImageAsync(imageData).Result;
     }
 
     /// <summary> 

@@ -266,7 +266,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<GagSpeakHost>()
         .AddSingleton<ModAssociations>()
         .AddSingleton<MoodlesAssociations>()
-        .AddSingleton<ProfileFactory>()
+        .AddSingleton<KinkPlateFactory>()
 
         // Register ObjectIdentification and ItemData
         .AddSingleton<ObjectIdentification>()
@@ -337,7 +337,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new MainUiAccount(s.GetRequiredService<ILogger<MainUiAccount>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(),
             s.GetRequiredService<UiSharedService>(), s.GetRequiredService<OnFrameworkService>(),
-            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<ProfileService>(), pi))
+            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<KinkPlateService>(), pi))
 
         // WebAPI Services
         .AddSingleton<MainHub>()
@@ -364,9 +364,9 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainTabMenu>(), s.GetRequiredService<PairManager>()))
         .AddSingleton<PatternHubService>()
         .AddSingleton<PermissionPresetService>()
-        .AddSingleton((s) => new ProfileService(s.GetRequiredService<ILogger<ProfileService>>(),
+        .AddSingleton((s) => new KinkPlateService(s.GetRequiredService<ILogger<KinkPlateService>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(),
-            s.GetRequiredService<ProfileFactory>()))
+            s.GetRequiredService<KinkPlateFactory>()))
         .AddSingleton((s) => new OnFrameworkService(s.GetRequiredService<ILogger<OnFrameworkService>>(),
             s.GetRequiredService<GagspeakMediator>(), cs, con, dm, fw, gg, ot, pl, tm));
     #endregion GenericServices

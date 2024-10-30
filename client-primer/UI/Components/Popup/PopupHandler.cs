@@ -54,7 +54,7 @@ public class PopupHandler : WindowMediatorSubscriberBase
             IsOpen = true;
         });
 
-        Mediator.Subscribe<ReportGagSpeakProfileMessage>(this, (msg) =>
+        Mediator.Subscribe<ReportKinkPlateMessage>(this, (msg) =>
         {
             // open the save pattern popup, and label the handler that one is open.
             _openPopup = true;

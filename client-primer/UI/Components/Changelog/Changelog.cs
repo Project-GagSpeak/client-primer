@@ -19,6 +19,16 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 7, 5)
+            .RegisterMain("Backend has now been restructured to handle KinkPlates™.")
+            .RegisterFeature("Kink Plate foundation for profile pop-outs is slowly being put together now")
+            .RegisterQol("All Core GagSpeak Images are now internally cached for single loads during plugin lifetime, to optimize plate load times and other loads.")
+            .RegisterBugfix("Should no longer crash when attempting to use emotes while forced to emote.")
+            .RegisterBugfix("KNOWN BUG: Hardcore traits are not being reverted under certain conditions.")
+            .RegisterBugfix("KNOWN BUG: Account Management is still a big wonky on what gets transferred or not, this will be looked into after profiles.");
+
+        VersionEntry(0, 9, 7, 4)
+            .RegisterBugfix("Using Emotes in ForcedEmote no longer crashes game.");
         VersionEntry(0, 9, 7, 3)
             .RegisterFeature("KinkPlate™ Draft outline startings...")
             .RegisterBugfix("Fixed issue where calculations depended on settings instead of the application of said data.")

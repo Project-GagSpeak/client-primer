@@ -99,7 +99,7 @@ public partial class PairStickyUI
             if (_uiShared.IconTextButton(FontAwesomeIcon.ExclamationTriangle, "Report GagSpeak Profile", WindowMenuWidth, true))
             {
                 ImGui.CloseCurrentPopup();
-                Mediator.Publish(new ReportGagSpeakProfileMessage(UserPairForPerms));
+                Mediator.Publish(new ReportKinkPlateMessage(UserPairForPerms));
             }
             UiSharedService.AttachToolTip("Snapshot this user's ProfileData and send it as a reported profile.");
         }

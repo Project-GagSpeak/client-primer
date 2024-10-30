@@ -1,19 +1,22 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
+using FFXIVClientStructs;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using ImGuiNET;
 using System.Numerics;
+using static Penumbra.GameData.Data.GamePaths.Monster;
 
 namespace GagSpeak.UI.Profile;
 
 /// <summary>
 /// The UI Design for the KinkPlates.
 /// </summary>
-public class KinkPlateUI : WindowMediatorSubscriberBase
+public partial class KinkPlateUI : WindowMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverConfigs;
@@ -31,78 +34,94 @@ public class KinkPlateUI : WindowMediatorSubscriberBase
         _uiShared = uiShared;
         Pair = pair;
 
-        Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize;
-
+        Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoTitleBar;
         Size = new Vector2(750, 450);
-
         IsOpen = true;
     }
 
+    private bool HoveringCloseButton { get; set; } = false;
     public Pair Pair { get; init; } // The pair this profile is being drawn for.
 
     protected override void PreDrawInternal() { }
     
     protected override void PostDrawInternal() { }
 
-
     protected override void DrawInternal()
     {
-        // get some data for the drawing we will need to do.
-        var spacing = ImGui.GetStyle().ItemSpacing;
+        using var padding = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, Vector2.Zero);
+        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.WindowRounding, 5f);
         var drawList = ImGui.GetWindowDrawList();
-        var rectMin = drawList.GetClipRectMin();
-        var rectMax = drawList.GetClipRectMax();
+        RectMin = drawList.GetClipRectMin();
+        RectMax = drawList.GetClipRectMax();
+        //_logger.LogDebug("RectMin: {rectMin}, RectMax: {rectMax}", rectMin, rectMax);
 
         // obtain the profile for this userPair.
         var gagspeakProfile = _profileService.GetGagspeakProfile(Pair.UserData);
-
-        // if the profile is flagged, mark that it is flagged and return.
         if (gagspeakProfile.Flagged)
         {
-            ImGui.TextUnformatted("This profile is flagged.");
+            ImGui.TextUnformatted("This profile is flagged by moderation.");
             return;
         }
 
-        // obtain the profile picture wrap for the character.
-        var pfpWrap = gagspeakProfile.GetCurrentProfileOrDefault();
-        try
-        {
-            // Draw the circular profile here (if the texture wrap is valid)
-            if (pfpWrap is { } wrap)
-            {
-                var region = ImGui.GetContentRegionAvail();
-                ImGui.Spacing();
-                Vector2 imgSize = new Vector2(180f, 180f);
-                // move the x position so that it centeres the image to the center of the window.
-                _uiShared.SetCursorXtoCenter(imgSize.X);
-                var currentPosition = ImGui.GetCursorPos();
-
-                var pos = ImGui.GetCursorScreenPos();
-                ImGui.GetWindowDrawList().AddImageRounded(wrap.ImGuiHandle, pos, pos + imgSize, Vector2.Zero, Vector2.One,
-                    ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)), 90f);
-                ImGui.SetCursorPos(new Vector2(currentPosition.X, currentPosition.Y + imgSize.Y));
-
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Error: {ex}");
-        }
+        // Draw KinkPlateUI Function here.
+        DrawKinkPlateWhole(drawList, gagspeakProfile);
     }
 
-    private void DrawKinkPlateOverview(ImDrawList drawList)
+    // Size = 750 by 450
+    private void DrawKinkPlateWhole(ImDrawListPtr drawList, GagspeakProfile profile)
+    {
+        // Draw the close button.
+        CloseButton(drawList);
+
+        // Draw the profile Picture
+        var pfpWrap = profile.GetCurrentProfileOrDefault();
+        AddImageRounded(drawList, pfpWrap, ProfilePicturePos, ProfilePictureSize, ProfilePictureSize.Y/2);
+        // and its border.
+        drawList.AddCircle(ProfilePictureBorderPos + ProfilePictureBorderSize / 2, 
+            ProfilePictureBorderSize.X / 2, 
+            ImGui.GetColorU32(ImGuiColors.ParsedPink), 
+            0, 4f); // 8 from end to end, marking 4 if radius.
+
+        // Draw out Supporter Icon Black BG base.
+        drawList.AddCircleFilled(SupporterIconBorderPos + SupporterIconBorderSize / 2, 
+            SupporterIconBorderSize.X / 2, 
+            ImGui.GetColorU32(new Vector4(0,0,0,1)));
+        // Draw out Supporter Icon.
+        // TODO;
+
+        // Draw out the border for the icon.
+        drawList.AddCircle(SupporterIconBorderPos + SupporterIconBorderSize / 2,
+            SupporterIconBorderSize.X / 2,
+            ImGui.GetColorU32(ImGuiColors.ParsedPink),
+            0,
+            3f);
+
+
+
+
+        // Draw the profile picture title group.
+        DrawPfpImageTitleGroup(drawList);
+        DrawKinkPlateOverview(drawList);
+        DrawKinkPlateDescription(drawList);
+        DrawKinkPlateStats(drawList);
+
+    }
+
+    private void DrawKinkPlateOverview(ImDrawListPtr drawList)
+    {
+
+
+    }
+
+    private void DrawKinkPlateDescription(ImDrawListPtr drawList)
     {
 
     }
-    private void DrawKinkPlateDescription(ImDrawList drawList)
+    private void DrawKinkPlateStats(ImDrawListPtr drawList)
     {
 
     }
-    private void DrawKinkPlateStats(ImDrawList drawList)
-    {
-
-    }
-    private void DrawPfpImageTitleGroup(ImDrawList drawList)
+    private void DrawPfpImageTitleGroup(ImDrawListPtr drawList)
     {
 
     }

@@ -112,24 +112,7 @@ public unsafe class ChatInputDetour : IDisposable
                         _mediator.Publish(new NotifyChatMessage("You Tried to Execute an Emote while being Forced to Stay!", NotificationType.Warning));
                         _logger.LogTrace("Attempted to execute emote while being forced to emote. Blocking!", LoggerType.HardcoreMovement);
 
-                        // we should add a singular TextPayload to the string builder with no text.
-                        newSeStringBuilder.Add(new TextPayload(""));
-
-                        // Construct it for finalization.
-                        var newSeString = newSeStringBuilder.Build();
-
-                        // Verify its a legal width
-                        if (newSeString.TextValue.Length <= 500)
-                        {
-                            var utf8String = Utf8String.FromString(".");
-                            utf8String->SetString(newSeString.Encode());
-                            return ProcessChatInputHook.Original(uiModule, (byte**)((nint)utf8String).ToPointer(), a3);
-                        }
-                        else // return original if invalid.
-                        {
-                            _logger.LogError("Chat Garbler Variant of Message was longer than max message length!");
-                            return ProcessChatInputHook.Original(uiModule, message, a3);
-                        }
+                        return 0;
                     }
                 }
             }

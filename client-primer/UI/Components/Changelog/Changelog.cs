@@ -19,7 +19,7 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
-        VersionEntry(0, 9, 7, 2)
+        VersionEntry(0, 9, 7, 3)
             .RegisterFeature("KinkPlate™ Draft outline startings...")
             .RegisterBugfix("Fixed issue where calculations depended on settings instead of the application of said data.")
             .RegisterQol("You can now view the time a message in global chat was sent by hovering over the name that sent it.");

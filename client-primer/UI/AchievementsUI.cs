@@ -183,8 +183,8 @@ public class AchievementsUI : WindowMediatorSubscriberBase
                 {
                     if (!table) return;
 
-                    ImGui.TableSetupColumn("##AchievementIcon", ImGuiTableColumnFlags.WidthStretch);
-                    ImGui.TableSetupColumn("##AchievementText", ImGuiTableColumnFlags.WidthFixed, AchievementIconSize.X);
+                    ImGui.TableSetupColumn("##AchievementText", ImGuiTableColumnFlags.WidthStretch);
+                    ImGui.TableSetupColumn("##AchievementIcon", ImGuiTableColumnFlags.WidthFixed, AchievementIconSize.X);
 
                     // draw the information about the achievement and its progress bar within the first section.
                     // maybe the progress bar could span the bottom if icon image size is too much of a concern idk.

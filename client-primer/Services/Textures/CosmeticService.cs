@@ -29,14 +29,7 @@ public class CosmeticService : IHostedService, IDisposable
         _textures = tp;
         _pi = pi;
 
-        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Initializing.");
-
-        // fire an async task to occur on the framework thread that will fetch and load in our image data.
-        Task.Run(async () =>
-        {
-            await LoadAllCoreTextures();
-            await LoadAllCosmetics();
-        });
+        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Initializing:" + Environment.StackTrace);
     }
 
     // we need to store a local static cache of our image data so
@@ -90,7 +83,7 @@ public class CosmeticService : IHostedService, IDisposable
                 _logger.LogError("Cosmetic Key: " + key + " Texture Failed to Load: " + path);
             }
         }
-        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all Image Data!");
+        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all NecessaryImages!");
     }
 
     public async Task LoadAllCosmetics()
@@ -121,7 +114,7 @@ public class CosmeticService : IHostedService, IDisposable
             }
             // Corby Note: If this is too much to handle in a single thread,
             // see if there is a way to batch send requests that can be returned overtime when retrieved.
-            _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all Image Data!");
+            _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all Cosmetic Images!");
         }
     }
 
@@ -136,20 +129,21 @@ public class CosmeticService : IHostedService, IDisposable
     /// Obtain an image from the assets folder as wrap or empty for display. This is NOT RENTED.
     /// </summary>
     public IDalamudTextureWrap GetImageFromDirectoryFile(string path)
-    => _textures.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path)).GetWrapOrEmpty();
+        => _textures.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path)).GetWrapOrEmpty();
+    public IDalamudTextureWrap GetProfilePicture(byte[] imageData)
+        => _textures.CreateFromImageAsync(imageData).Result;
 
     private IDalamudTextureWrap RentImageFromFile(string path)
         => _textures.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path)).RentAsync().Result;
 
-    /// <summary>
-    /// Used to fetch profile image from the image byte data.
-    /// </summary>
-    public IDalamudTextureWrap GetProfilePicture(byte[] imageData)
-        => _textures.CreateFromImageAsync(imageData).Result;
-
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("GagSpeak Profile Cosmetic Cache Started.");
+        Task.Run(async () =>
+        {
+            await LoadAllCoreTextures();
+            await LoadAllCosmetics();
+        });
         return Task.CompletedTask;
     }
 

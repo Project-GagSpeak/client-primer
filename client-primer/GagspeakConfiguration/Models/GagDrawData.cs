@@ -1,6 +1,7 @@
 using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
+using GagspeakAPI.Data.Struct;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 
@@ -30,7 +31,16 @@ public record GagDrawData : IMoodlesAssociable, IGlamourItem
 
     public GagDrawData(EquipItem gameItem) => GameItem = gameItem;
 
-    // In EquipDrawData
+    public AppliedSlot ToAppliedSlot()
+    {
+        return new AppliedSlot()
+        {
+            Slot = (byte)Slot,
+            CustomItemId = GameItem.Id.Id,
+        };
+    }
+
+
     public JObject Serialize()
     {
         return new JObject()

@@ -30,6 +30,7 @@ using System.Numerics;
 using GagSpeak.Utils;
 using Lumina.Excel.GeneratedSheets2;
 using GagSpeak.Hardcore.Movement;
+using Penumbra.GameData.Enums;
 
 namespace GagSpeak.UI;
 
@@ -1419,6 +1420,49 @@ public class SettingsUi : WindowMediatorSubscriberBase
                             ImGui.Text($"{tmptext} :: INPUT -> {alias.InputCommand}");
                             ImGui.Text($"OUTPUT -> {alias.OutputCommand}");
                         }
+                        ImGui.Unindent();
+                    }
+                }
+                if (clientPair.LastReceivedLightStorage is not null)
+                {
+                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Light Storage Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
+                    {
+                        ImGui.Text("Gags with Glamour's:");
+                        ImGui.Indent();
+                        foreach (var gag in clientPair.LastReceivedLightStorage.GagItems)
+                            ImGui.Text($"Gag with Glamour: {gag.Key}");
+                        ImGui.Unindent();
+                        ImGui.Spacing();
+                        ImGui.Text("Restraints:");
+                        ImGui.Indent();
+                        foreach (var restraint in clientPair.LastReceivedLightStorage.Restraints)
+                            ImGui.Text("[Identifier: " + restraint.Identifier + "] [Name: " + restraint.Name + "] [AffectedSlots: " + restraint.AffectedSlots.Count + "]");
+                        ImGui.Unindent();
+                        ImGui.Spacing();
+                        ImGui.Text("Blindfold Item Slot: " + (EquipSlot)clientPair.LastReceivedLightStorage.BlindfoldItem.Slot);
+                        ImGui.Spacing();
+                        ImGui.Text("Cursed Items: ");
+                        ImGui.Indent();
+                        foreach (var cursedItem in clientPair.LastReceivedLightStorage.CursedItems)
+                            ImGui.Text("[Identifier: " + cursedItem.Identifier + "] [Name: " + cursedItem.Name + "]");
+                        ImGui.Unindent();
+                        ImGui.Spacing();
+                        ImGui.Text("Patterns: ");
+                        ImGui.Indent();
+                        foreach (var pattern in clientPair.LastReceivedLightStorage.Patterns)
+                            ImGui.Text("[Identifier: " + pattern.Identifier + "] [Name: " + pattern.Name + "]");
+                        ImGui.Unindent();
+                        ImGui.Spacing();
+                        ImGui.Text("Alarms: ");
+                        ImGui.Indent();
+                        foreach (var alarm in clientPair.LastReceivedLightStorage.Alarms)
+                            ImGui.Text("[Identifier: " + alarm.Identifier + "] [Name: " + alarm.Name + "]");
+                        ImGui.Unindent();
+                        ImGui.Spacing();
+                        ImGui.Text("Triggers: ");
+                        ImGui.Indent();
+                        foreach (var trigger in clientPair.LastReceivedLightStorage.Triggers)
+                            ImGui.Text("[Identifier: " + trigger.Identifier + "] [Name: " + trigger.Name + "]");
                         ImGui.Unindent();
                     }
                 }

@@ -354,7 +354,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     /// I swear to god, so not set anything inside this object through this fetch. Treat it as readonly.
     /// </summary>
     internal List<RestraintSet> StoredRestraintSets => WardrobeConfig.WardrobeStorage.RestraintSets;
-    public List<LightRestraintData> LightRestraintData => WardrobeConfig.WardrobeStorage.RestraintSets.Select(set => set.ToLightData()).ToList();
     internal int GetActiveSetIdx() => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Enabled);
     internal int GetSetIdxByGuid(Guid id) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.RestraintId == id);
     internal string GetSetNameByGuid(Guid id) => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.RestraintId == id)?.Name ?? "Unknown";
@@ -721,9 +720,9 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     {
         return new CharaStorageData
         {
-            GagItems = new Dictionary<GagType, AppliedSlot>(),
-            Restraints = new List<LightRestraintData>(),
-            CursedItems = new List<LightCursedItem>(),
+            GagItems = GagStorageConfig.GagStorage.GetAppliedSlotGagData(),
+            Restraints = WardrobeConfig.WardrobeStorage.RestraintSets.Select(x => x.ToLightData()).ToList(),
+            CursedItems = CursedLootConfig.CursedLootStorage.CursedItems.Select(x => x.ToLightData()).ToList(),
             BlindfoldItem = WardrobeConfig.WardrobeStorage.BlindfoldInfo.GetAppliedSlot(),
             Patterns = PatternConfig.PatternStorage.Patterns.Select(x => x.ToLightData()).ToList(),
             Alarms = AlarmConfig.AlarmStorage.Alarms.Select(x => x.ToLightData()).ToList(),

@@ -1,6 +1,8 @@
 using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
+using GagspeakAPI.Data;
 using GagspeakAPI.Data.IPC;
+using GagspeakAPI.Data.Struct;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 
@@ -79,6 +81,22 @@ public record CursedItem
         {
             IsEnabled = false,
             Slot = EquipSlot.Head
+        };
+    }
+
+    public LightCursedItem ToLightData()
+    {
+        return new LightCursedItem()
+        {
+            Identifier = LootId,
+            Name = Name,
+            GagType = GagType,
+            AffectedSlot = new AppliedSlot()
+            {
+
+                Slot = (byte)AppliedItem.Slot,
+                CustomItemId = AppliedItem.GameItem.Id.Id,
+            }
         };
     }
 

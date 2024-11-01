@@ -19,6 +19,13 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 8, 0)
+            .RegisterMain("The Entire Interaction Backend System has been restructured.")
+            .RegisterMain("Please expect any potential bugs with interacting with pairs and report them to me.")
+            .RegisterFeature("You can now store a lightweight storage of pairs data for your actions to reference and know what to apply.")
+            .RegisterFeature("You should now be able to set descriptions in your profiles.")
+            .RegisterQol("All achievement data can now be easily obtained via this new method, and will be integrated shortly.");
+
         VersionEntry(0, 9, 7, 7)
             .RegisterMain("KinkPlate Designs are now finished being implemented, functionality will be added next.")
             .RegisterFeature("KinkPlates will now appear by middle clicking another pairs name in the whitelist tab.");

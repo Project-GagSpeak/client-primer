@@ -14,15 +14,14 @@ using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Extensions;
 using Penumbra.Api.Enums;
 using Penumbra.GameData.Enums;
-using System.Threading;
 
 namespace GagSpeak.PlayerData.Handlers;
 
 /// <summary>
-/// AppearanceHandler is responcible for handling any changes to the client player's appearance.
+/// AppearanceHandler is responsible for handling any changes to the client player's appearance.
 /// These changes can be made by self or other players.
 /// <para>
-/// Appearance Handler's Primary responcibility is to ensure that the data in the Appearance Service 
+/// Appearance Handler's Primary responsibility is to ensure that the data in the Appearance Service 
 /// class remains synchronized with the most recent information.
 /// </para>
 /// </summary>
@@ -172,9 +171,9 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, true, assignerUID);
             Logger.LogInformation("ENABLE SET [" + setRef.Name + "] END", LoggerType.Restraints);
 
-            if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied));
-
             await RecalcAndReload(false);
+
+            if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied));
         });
     }
 
@@ -221,10 +220,9 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             // Update our active Set monitor.
 
             Logger.LogInformation("DISABLE SET [" + setRef.Name + "] END", LoggerType.Restraints);
+            await RecalcAndReload(true, true);
 
             if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintDisabled));
-
-            await RecalcAndReload(true, true);
         });
     }
 
@@ -268,8 +266,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             Mediator.Publish(new RestraintSetToggledMessage(setIdx, assigner, NewState.Locked));
 
             // After this, we should push our changes to the server, if we have marked for us to.
-            if (pushToServer)
-                Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked));
+            if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked));
 
             // Finally, we should fire to our achievement manager, if we have marked for us to.
             if (triggerAchievement)
@@ -484,7 +481,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     private async Task RemoveMoodles(IMoodlesAssociable data)
     {
         Logger.LogTrace("Removing Moodles");
-        if (_playerData.IpcDataNull) 
+        if (_playerData.IpcDataNull)
             return;
 
         // if our preset is not null, store the list of guids respective of them.
@@ -613,7 +610,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                         ExpectedMoodles.AddRange(statuses);
                 }
             }
-            
+
             // Apply meta changes if any were on.
         }
 

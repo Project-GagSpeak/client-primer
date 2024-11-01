@@ -200,6 +200,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     /// <param name="text"> The text to display in the tooltip. </param>
     public static void AttachToolTip(string text)
     {
+        using var padding = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, Vector2.One * 4f);
+        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.WindowRounding, 0f);
         // if the item is currently hovered, with the ImGuiHoveredFlags set to allow when disabled
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
         {
@@ -207,10 +209,10 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             ImGui.BeginTooltip();
             // push the text wrap position to the font size times 35
             ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35f);
-            // we will then check to see if the text contains a tooltip seperator
+            // we will then check to see if the text contains a tooltip
             if (text.Contains(TooltipSeparator, StringComparison.Ordinal))
             {
-                // if it does, we will split the text by the tooltip seperator
+                // if it does, we will split the text by the tooltip
                 var splitText = text.Split(TooltipSeparator, StringSplitOptions.RemoveEmptyEntries);
                 // for each of the split text, we will display the text unformatted
                 for (int i = 0; i < splitText.Length; i++)
@@ -219,7 +221,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                     if (i != splitText.Length - 1) ImGui.Separator();
                 }
             }
-            // otherwise, if it contains no tooltip seperator, then we will display the text unformatted
+            // otherwise, if it contains no tooltip, then we will display the text unformatted
             else
             {
                 ImGui.TextUnformatted(text);

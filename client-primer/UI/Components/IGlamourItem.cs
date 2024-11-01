@@ -5,7 +5,7 @@ namespace GagSpeak.UI.Components;
 public interface IGlamourItem
 {
     /// <summary>
-    /// Determines wether or not to apply the item as direct, or as overlay.
+    /// Determines whether or not to apply the item as direct, or as overlay.
     /// <para> OVERLAY MODE should skip over the item if it is a nothing item. </para>
     /// <para> DIRECT MODE will apply the item regardless of what it is. </para>
     /// </summary>

@@ -5,7 +5,9 @@ using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
+using GagspeakAPI.Data;
 using GagspeakAPI.Data.IPC;
+using GagspeakAPI.Dto.User;
 using ImGuiNET;
 using System.Numerics;
 
@@ -87,24 +89,59 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
     // Size = 750 by 450
     private void DrawKinkPlateWhole(ImDrawListPtr drawList, KinkPlate profile)
     {
-        var info = profile.KinkPlateInfo;
+        DrawPlate(drawList, profile.KinkPlateInfo);
+
+        DrawSummary(drawList, profile);
+
+        DrawDescription(drawList, profile);
+
+
+        // Now let's draw out the chosen achievement Name..
+        using (_uiShared.GagspeakTitleFont.Push())
+        {
+            var titleHeightGap = TitleLineStartPos.Y - (RectMin.Y + 4f);
+            var chosenTitleSize = ImGui.CalcTextSize("Sample Title Chosen");
+            // calculate the Y height it should be drawn on by taking the gap height and dividing it by 2 and subtracting the text height.
+            var yHeight = (titleHeightGap - chosenTitleSize.Y) / 2;
+
+            ImGui.SetCursorScreenPos(new Vector2(TitleLineStartPos.X + TitleLineSize.X / 2 - chosenTitleSize.X / 2, TitleLineStartPos.Y - chosenTitleSize.Y - yHeight));
+            // display it, it should be green if connected and red when not.
+            ImGui.TextColored(ImGuiColors.ParsedGold, "Sample Title Chosen");
+        }
+        // move over to the top area to draw out the achievement title line wrap.
+        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.AchievementLineSplit], TitleLineStartPos, TitleLineSize);
+
+
+        DrawGagInfo(drawList, profile.KinkPlateInfo);
+
+        DrawStats(drawList, profile.KinkPlateInfo);
+
+        DrawBlockedSlots(drawList, profile.KinkPlateInfo);
+    }
+
+    private void DrawPlate(ImDrawListPtr drawList, KinkPlateContent info)
+    {
         // draw out the background for the window.
         if (_cosmetics.TryGetBackground(ProfileComponent.Plate, info.PlateBackground, out var plateBG))
             AddImageRounded(drawList, plateBG, RectMin, PlateSize, 25f);
 
-        // draw out the border ontop of that.
+        // draw out the border on top of that.
         if (_cosmetics.TryGetBorder(ProfileComponent.Plate, info.PlateBorder, out var plateBorder))
             AddImageRounded(drawList, plateBorder, RectMin, PlateSize, 20f);
 
         // Draw the close button.
         CloseButton(drawList);
+    }
+
+    private void DrawSummary(ImDrawListPtr drawList, KinkPlate profile)
+    {
 
         // Draw the profile Picture
         var pfpWrap = profile.GetCurrentProfileOrDefault();
         AddImageRounded(drawList, pfpWrap, ProfilePicturePos, ProfilePictureSize, ProfilePictureSize.Y / 2);
 
         // draw out the border for the profile picture
-        if (_cosmetics.TryGetBorder(ProfileComponent.ProfilePicture, info.ProfilePictureBorder, out var pfpBorder))
+        if (_cosmetics.TryGetBorder(ProfileComponent.ProfilePicture, profile.KinkPlateInfo.ProfilePictureBorder, out var pfpBorder))
             AddImageRounded(drawList, pfpBorder, ProfilePictureBorderPos, ProfilePictureBorderSize, ProfilePictureSize.Y / 2);
 
         // Draw out Supporter Icon Black BG base.
@@ -116,7 +153,6 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         if (supporterInfo.SupporterWrap is { } wrap)
         {
             AddImageRounded(drawList, wrap, SupporterIconPos, SupporterIconSize, SupporterIconSize.Y / 2);
-            //UiSharedService.AttachToolTip(supporterInfo.Tooltip); TODO: add tooltips later using scaled dummy objects.
         }
 
         // Draw out the border for the icon.
@@ -152,41 +188,31 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ForcedStay], iconOverviewPos, Vector2.One * 34, ImGuiColors.DalamudGrey3);
         iconOverviewPos.X += iconWidthPlusSpacing;
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ChatBlocked], iconOverviewPos, Vector2.One * 34, ImGuiColors.DalamudGrey3);
+    }
 
-
+    private void DrawDescription(ImDrawListPtr drawList, KinkPlate profile)
+    {
         // draw out the description background.
-        if (_cosmetics.TryGetBackground(ProfileComponent.Description, info.DescriptionBackground, out var descBG))
+        if (_cosmetics.TryGetBackground(ProfileComponent.Description, profile.KinkPlateInfo.DescriptionBackground, out var descBG))
             AddImageRounded(drawList, descBG, DescriptionBorderPos, DescriptionBorderSize, 2f);
 
         // description border
-        if (_cosmetics.TryGetBorder(ProfileComponent.Description, info.DescriptionBorder, out var descBorder))
+        if (_cosmetics.TryGetBorder(ProfileComponent.Description, profile.KinkPlateInfo.DescriptionBorder, out var descBorder))
             AddImageRounded(drawList, descBorder, DescriptionBorderPos, DescriptionBorderSize, 2f);
 
         // description overlay.
-        if (_cosmetics.TryGetOverlay(ProfileComponent.Description, info.DescriptionOverlay, out var descOverlay))
+        if (_cosmetics.TryGetOverlay(ProfileComponent.Description, profile.KinkPlateInfo.DescriptionOverlay, out var descOverlay))
             AddImageRounded(drawList, descOverlay, DescriptionBorderPos, DescriptionBorderSize, 2f);
 
         // draw out the description text here.
         ImGui.SetCursorScreenPos(DescriptionBorderPos + Vector2.One * 10f);
-        var description = info.Description.IsNullOrEmpty() ? "No Description Was Set.." : info.Description;
-        var color = info.Description.IsNullOrEmpty() ? ImGuiColors.DalamudGrey2 : ImGuiColors.DalamudWhite;
+        var description = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? "No Description Was Set.." : profile.KinkPlateInfo.Description;
+        var color = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? ImGuiColors.DalamudGrey2 : ImGuiColors.DalamudWhite;
         UiSharedService.ColorTextWrapped(description, color);
+    }
 
-        // Now let's draw out the chosen achievement Name..
-        using (_uiShared.GagspeakTitleFont.Push())
-        {
-            var titleHeightGap = TitleLineStartPos.Y - (RectMin.Y + 4f);
-            var chosenTitleSize = ImGui.CalcTextSize("Sample Title Chosen");
-            // calculate the Y height it should be drawn on by taking the gap height and dividing it by 2 and subtracting the text height.
-            var yHeight = (titleHeightGap - chosenTitleSize.Y) / 2;
-
-            ImGui.SetCursorScreenPos(new Vector2(TitleLineStartPos.X + TitleLineSize.X / 2 - chosenTitleSize.X / 2, TitleLineStartPos.Y - chosenTitleSize.Y - yHeight));
-            // display it, it should be green if connected and red when not.
-            ImGui.TextColored(ImGuiColors.ParsedGold, "Sample Title Chosen");
-        }
-        // move over to the top area to draw out the achievement title line wrap.
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.AchievementLineSplit], TitleLineStartPos, TitleLineSize);
-
+    private void DrawGagInfo(ImDrawListPtr drawList, KinkPlateContent info)
+    {
         // Draw out the background for the gag layer one item.
         if (_cosmetics.TryGetBackground(ProfileComponent.GagSlot, info.GagSlotBackground, out var gagSlotBG))
         {
@@ -246,7 +272,10 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
             AddImageRounded(drawList, padlockOverlay, GagLockTwoBorderPos, GagLockBorderSize, 10f);
             AddImageRounded(drawList, padlockOverlay, GagLockThreeBorderPos, GagLockBorderSize, 10f);
         }
+    }
 
+    private void DrawStats(ImDrawListPtr drawList, KinkPlateContent info)
+    {
         // jump down to where we should draw out the stats, and draw out the achievement icon.
         var statsPos = StatsPos;
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Clock], statsPos, Vector2.One * 20, ImGuiColors.ParsedGold);
@@ -256,18 +285,17 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         ImGui.SetCursorScreenPos(statsPos);
         UiSharedService.ColorText("MM-DD-YYYY", ImGuiColors.ParsedGold);
         var textWidth = ImGui.CalcTextSize($"MM-DD-YYYY").X;
-
         statsPos += new Vector2(textWidth + 4, 0);
-
         // to the right of this, draw out the achievement icon.
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Achievement], statsPos, Vector2.One * 20, ImGuiColors.ParsedGold);
         // to the right of this, draw the players total earned achievements scoring.
         statsPos += new Vector2(24, 0);
         ImGui.SetCursorScreenPos(statsPos);
         UiSharedService.ColorText("100/141", ImGuiColors.ParsedGold);
+    }
 
-
-        // Now we must draw out the restrained slots section.
+    private void DrawBlockedSlots(ImDrawListPtr drawList, KinkPlateContent info)
+    {
         // draw out the background for the window.
         if (_cosmetics.TryGetBackground(ProfileComponent.BlockedSlots, info.BlockedSlotsBackground, out var lockedSlotsPanelBG))
             AddImageRounded(drawList, lockedSlotsPanelBG, LockedSlotsPanelBorderPos, LockedSlotsPanelBorderSize, 10f);
@@ -351,10 +379,8 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Weighty], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3);
         hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Stimulated], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3);
-
-
-
     }
+
 
     public override void OnClose()
     {

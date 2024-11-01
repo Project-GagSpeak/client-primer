@@ -316,20 +316,13 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         _allClientPairs[dto.User].ApplyAppearanceData(new(dto.User, dto.CompositeData.AppearanceData, dto.UpdateKind));
         _allClientPairs[dto.User].ApplyWardrobeData(new(dto.User, dto.CompositeData.WardrobeData, dto.User, dto.UpdateKind));
         _allClientPairs[dto.User].ApplyToyboxData(new(dto.User, dto.CompositeData.ToyboxData, dto.UpdateKind));
-        _allClientPairs[dto.User].ApplyPiShockPermData(new(dto.User, dto.CompositeData.GlobalShockPermissions, DataUpdateKind.PiShockGlobalUpdated));
-
+        _allClientPairs[dto.User].ApplyLightStorageData(new(dto.User, dto.CompositeData.LightStorageData));
 
         // first see if our clientUID exists as a key in dto.CompositeData.AliasData. If it does not, define it as an empty data.
         if (dto.CompositeData.AliasData.ContainsKey(clientUID))
             _allClientPairs[dto.User].ApplyAliasData(new(dto.User, dto.CompositeData.AliasData[clientUID], dto.UpdateKind));
         else
-            _allClientPairs[dto.User].ApplyAliasData(new(dto.User, new CharacterAliasData(), dto.UpdateKind));
-
-        // pishock perms for pair.
-        if (dto.CompositeData.PairShockPermissions.ContainsKey(clientUID))
-            _allClientPairs[dto.User].ApplyPiShockPermData(new(dto.User, dto.CompositeData.PairShockPermissions[clientUID], DataUpdateKind.PiShockPairPermsForUserUpdated));
-        else
-            _allClientPairs[dto.User].ApplyPiShockPermData(new(dto.User, new PiShockPermissions(), DataUpdateKind.PiShockPairPermsForUserUpdated));
+            _allClientPairs[dto.User].ApplyAliasData(new(dto.User, new CharaAliasData(), dto.UpdateKind));
     }
 
     /// <summary> Method similar to compositeData, but this will only update the IPC data of the user pair. </summary>
@@ -397,17 +390,15 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         _allClientPairs[dto.User].ApplyToyboxData(dto);
     }
 
-    /// <summary> Method similar to compositeData, but this will only update the shock permissions of the user pair. </summary>
-    public void ReceiveCharaPiShockPermData(OnlineUserCharaPiShockPermDto dto)
+    /// <summary> Method similar to compositeData, but this will only update the latest Light Storage Data of the user pair. </summary>
+    public void ReceiveCharaLightStorageData(OnlineUserStorageUpdateDto dto)
     {
         // if the user in the Dto is not in our client's pair list, throw an exception.
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Recieved Character PiShock Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
-
-        // apply the shock permissions data to the pair.
-        _allClientPairs[dto.User].ApplyPiShockPermData(dto);
+        Logger.LogInformation("Received Character Light Storage Data Update from" + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        _allClientPairs[dto.User].ApplyLightStorageData(dto);
     }
 
 

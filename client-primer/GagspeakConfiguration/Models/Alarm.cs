@@ -15,11 +15,10 @@ public record Alarm
     public TimeSpan PatternDuration { get; set; } = TimeSpan.Zero;
     public List<DayOfWeek> RepeatFrequency { get; set; } = [];
 
-    public AlarmDto ToDto()
-        => new AlarmDto
+    public LightAlarm ToLightData()
+        => new LightAlarm
         {
             Identifier = Identifier,
-            Enabled = Enabled,
             Name = Name,
             SetTimeUTC = SetTimeUTC,
             PatternThatPlays = PatternToPlay.ToString()

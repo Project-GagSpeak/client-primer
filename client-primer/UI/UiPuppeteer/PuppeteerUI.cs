@@ -275,7 +275,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         DrawTriggerPhraseDetailBox(pairTriggerData);
     }
 
-    private void DrawPairAliasList(CharacterAliasData? pairAliasData)
+    private void DrawPairAliasList(CharaAliasData? pairAliasData)
     {
         if (!AliasDataListExists || MainHub.ServerStatus is not ServerState.Connected || pairAliasData == null)
         {

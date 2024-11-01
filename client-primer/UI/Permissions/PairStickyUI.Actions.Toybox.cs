@@ -7,6 +7,7 @@ using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Enums;
+using GagspeakAPI.Extensions;
 using ImGuiNET;
 using OtterGui;
 using System.Numerics;
@@ -24,15 +25,16 @@ public partial class PairStickyUI
     private void DrawToyboxActions()
     {
         var lastToyboxData = UserPairForPerms.LastReceivedToyboxData;
-        if (lastToyboxData is null) 
+        var lastLightStorage = UserPairForPerms.LastReceivedLightStorage;
+        if (lastToyboxData is null || lastLightStorage is null)
             return;
 
         bool openVibeRemoteDisabled = !UserPairForPerms.OnlineToyboxUser || !PairPerms.CanUseVibeRemote;
-        bool patternExecuteDisabled = !PairPerms.CanExecutePatterns || !UserPairForPerms.UserPairGlobalPerms.ToyIsActive || !lastToyboxData.PatternList.Any();
-        bool patternStopDisabled = !PairPerms.CanStopPatterns || !UserPairForPerms.UserPairGlobalPerms.ToyIsActive || !lastToyboxData.PatternList.Any(x => x.Enabled);
-        bool alarmToggleDisabled = !PairPerms.CanToggleAlarms || !lastToyboxData.AlarmList.Any();
+        bool patternExecuteDisabled = !PairPerms.CanExecutePatterns || !UserPairForPerms.UserPairGlobalPerms.ToyIsActive || !lastLightStorage.Patterns.Any();
+        bool patternStopDisabled = !PairPerms.CanStopPatterns || !UserPairForPerms.UserPairGlobalPerms.ToyIsActive || !lastToyboxData.ActivePatternId.IsEmptyGuid();
+        bool alarmToggleDisabled = !PairPerms.CanToggleAlarms || !lastLightStorage.Alarms.Any();
         bool alarmSendDisabled = !PairPerms.CanSendAlarms;
-        bool triggerToggleDisabled = !PairPerms.CanToggleTriggers || !lastToyboxData.TriggerList.Any();
+        bool triggerToggleDisabled = !PairPerms.CanToggleTriggers || !lastLightStorage.Triggers.Any();
 
         ////////// TOGGLE PAIRS ACTIVE TOYS //////////
         string toyToggleText = UserPairForPerms.UserPairGlobalPerms.ToyIsActive ? "Turn Off " + PairUID + "'s Toys" : "Turn On " + PairUID + "'s Toys";
@@ -66,15 +68,14 @@ public partial class PairStickyUI
                 if (!actionChild) return;
 
                 // Grab the currently stored selected PatternDto.
-                PatternDto storedPatternName = _permActions.GetSelectedItem<PatternDto>("ExecutePatternForPairPermCombo", PairUID) ?? new PatternDto();
-
+                LightPattern selectedPattern = _permActions.GetSelectedItem<LightPattern>("ExecutePatternForPairPermCombo", PairUID) ?? new LightPattern();
                 _permActions.DrawGenericComboButton(PairUID, "ExecutePatternForPairPermCombo", "Play", WindowMenuWidth,
-                    comboItems: lastToyboxData.PatternList, 
+                    comboItems: lastLightStorage.Patterns, 
                     itemToName: (Pattern) => Pattern.Name + "(" + Pattern.Duration.Minutes + "m + " + Pattern.Duration.Seconds + "s)" + (Pattern.ShouldLoop ? " Loop" : ""),
                     isSearchable: true, 
-                    buttonDisabled: storedPatternName.Identifier == Guid.Empty,
+                    buttonDisabled: selectedPattern.Identifier.IsEmptyGuid(),
                     isIconButton: true,
-                    initialSelectedItem: lastToyboxData.PatternList.FirstOrDefault(x => x.Enabled) ?? lastToyboxData.PatternList.First(),
+                    initialSelectedItem: lastLightStorage.Patterns.FirstOrDefault(x => x.Identifier == selectedPattern.Identifier) ?? lastLightStorage.Patterns.First(),
                     icon: FontAwesomeIcon.Play,
                     onSelected: (selected) => { _logger.LogDebug("Selected Pattern Set: " + selected, LoggerType.Permissions); },
                     onButton: (onButtonPress) =>
@@ -84,7 +85,8 @@ public partial class PairStickyUI
                             var newToyboxData = lastToyboxData.DeepClone();
                             if (newToyboxData is null || onButtonPress is null) throw new Exception("Toybox data is null, not sending");
                             // set all other stored patterns active state to false, and the pattern with the onButtonPress matching GUID to true.
-                            newToyboxData.TransactionId = onButtonPress.Identifier;
+                            newToyboxData.InteractionId = onButtonPress.Identifier;
+                            newToyboxData.ActivePatternId = onButtonPress.Identifier;
 
                             // Run the call to execute the pattern to the server.
                             _ = _apiHubMain.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxPatternExecuted));
@@ -123,17 +125,18 @@ public partial class PairStickyUI
             using (var actionChild = ImRaii.Child("AlarmToggleChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
                 if (!actionChild) return;
-                
-                
-                AlarmDto selectedAlarm = _permActions.GetSelectedItem<AlarmDto>("ToggleAlarmForPairPermCombo", PairUID) ?? new AlarmDto();
-                
-                _permActions.DrawGenericComboButton(PairUID, "ExecutePatternForPairPermCombo", (selectedAlarm.Enabled ? "Disable" : "Enable"), WindowMenuWidth, 
-                    comboItems: lastToyboxData.AlarmList, 
+
+
+                LightAlarm selectedAlarm = _permActions.GetSelectedItem<LightAlarm>("ToggleAlarmForPairPermCombo", PairUID) ?? new LightAlarm();
+                bool isEnabled = UserPairForPerms.LastReceivedToyboxData?.ActiveAlarms.Contains(selectedAlarm.Identifier) ?? false;
+
+                _permActions.DrawGenericComboButton(PairUID, "ExecutePatternForPairPermCombo", (isEnabled ? "Disable" : "Enable"), WindowMenuWidth, 
+                    comboItems: lastLightStorage.Alarms, 
                     itemToName: (Alarm) => Alarm.Name + " (" + (Alarm.SetTimeUTC.ToLocalTime().ToString("HH:mm")) + ") (Plays: " + Alarm.PatternThatPlays + ")",
                     isSearchable: true,
                     buttonDisabled: selectedAlarm.Name == string.Empty,
                     isIconButton: false,
-                    initialSelectedItem: lastToyboxData.AlarmList.FirstOrDefault(x => x.Name == selectedAlarm.Name) ?? lastToyboxData.AlarmList.First(),
+                    initialSelectedItem: lastLightStorage.Alarms.FirstOrDefault(x => x.Identifier == selectedAlarm.Identifier) ?? lastLightStorage.Alarms.First(),
                     onSelected: (selected) => { _logger.LogDebug("Selected Alarm: " + selected?.Name); },
                     onButton: (onButtonPress) =>
                     {
@@ -141,11 +144,16 @@ public partial class PairStickyUI
                         {
                             if (onButtonPress is null) throw new Exception("Alarm is null, not sending");
                             var newToyboxData = lastToyboxData.DeepClone();
-                            var alarmToToggle = newToyboxData.AlarmList.FirstOrDefault(x => x.Identifier == onButtonPress.Identifier);
+                            var alarmToToggle = lastLightStorage.Alarms.FirstOrDefault(x => x.Identifier == onButtonPress.Identifier);
                             if (alarmToToggle is null) throw new Exception("Alarm not found in list.");
                             // toggle the alarm state.
-                            alarmToToggle.Enabled = !alarmToToggle.Enabled;
-                            newToyboxData.TransactionId = onButtonPress.Identifier;
+                            newToyboxData.InteractionId = onButtonPress.Identifier;
+                            // if the id was in the active alarm list, remove it, otherwise, add it.
+                            if (newToyboxData.ActiveAlarms.Contains(onButtonPress.Identifier)) 
+                                newToyboxData.ActiveAlarms.Remove(onButtonPress.Identifier);
+                            else 
+                                newToyboxData.ActiveAlarms.Add(onButtonPress.Identifier);
+
                             // Send out the command.
                             _ = _apiHubMain.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxAlarmToggled));
                             _logger.LogDebug("Toggling Alarm " + onButtonPress.Name + " on " + PairNickOrAliasOrUID + "'s AlarmList", LoggerType.Permissions);
@@ -169,10 +177,11 @@ public partial class PairStickyUI
             {
                 if (!actionChild) return;
 
-                TriggerDto selected = _permActions.GetSelectedItem<TriggerDto>("ToggleTriggerForPairPermCombo", PairUID) ?? new TriggerDto();
+                LightTrigger selected = _permActions.GetSelectedItem<LightTrigger>("ToggleTriggerForPairPermCombo", PairUID) ?? new LightTrigger();
+                bool isEnabled = lastToyboxData.ActiveTriggers.Contains(selected.Identifier);
 
-                _permActions.DrawGenericComboButton(PairUID, "ToggleTriggerForPairPermCombo", selected.Enabled ? "Disable" : "Enable", WindowMenuWidth,
-                   comboItems: lastToyboxData.TriggerList,
+                _permActions.DrawGenericComboButton(PairUID, "ToggleTriggerForPairPermCombo", isEnabled ? "Disable" : "Enable", WindowMenuWidth,
+                   comboItems: lastLightStorage.Triggers,
                    itemToName: (Trigger) => Trigger.Name + " (Type: " + Trigger.Type.TriggerKindToString()+ ") (" + Trigger.ActionOnTrigger.ToName() + ")",
                    isSearchable: true,
                    buttonDisabled: selected.Name == string.Empty,
@@ -183,11 +192,16 @@ public partial class PairStickyUI
                         {
                             if (onButtonPress is null) throw new Exception("Trigger is null, not sending");
                             var newToyboxData = lastToyboxData.DeepClone();
-                            var triggerToToggle = newToyboxData.TriggerList.FirstOrDefault(x => x.Identifier == onButtonPress.Identifier);
+                            var triggerToToggle = lastLightStorage.Triggers.FirstOrDefault(x => x.Identifier == onButtonPress.Identifier);
                             if (triggerToToggle is null) throw new Exception("Trigger not found in list.");
                             // toggle the trigger state.
-                            triggerToToggle.Enabled = !triggerToToggle.Enabled;
-                            newToyboxData.TransactionId = onButtonPress.Identifier;
+                            newToyboxData.InteractionId = onButtonPress.Identifier;
+                            // if the id was in the active alarm list, remove it, otherwise, add it.
+                            if (newToyboxData.ActiveTriggers.Contains(onButtonPress.Identifier)) 
+                                newToyboxData.ActiveTriggers.Remove(onButtonPress.Identifier);
+                            else 
+                                newToyboxData.ActiveTriggers.Add(onButtonPress.Identifier);
+
                             _ = _apiHubMain.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxTriggerToggled));
                             _logger.LogDebug("Toggling Trigger "+onButtonPress.Name+" on "+PairNickOrAliasOrUID+"'s TriggerList", LoggerType.Permissions);
                             Opened = InteractionType.None;

@@ -21,7 +21,6 @@ public abstract class GagspeakHubBase : DisposableMediatorSubscriberBase
 {
     // make any accessible classes in here protected.
     protected readonly HubFactory _hubFactory;
-    protected readonly PiShockProvider _piShockProvider;
     protected readonly TokenProvider _tokenProvider;
     protected readonly PairManager _pairManager;
     protected readonly ServerConfigurationManager _serverConfigs;
@@ -29,14 +28,12 @@ public abstract class GagspeakHubBase : DisposableMediatorSubscriberBase
     protected readonly ClientCallbackService _clientCallbacks;
     protected readonly OnFrameworkService _frameworkUtils;
 
-    public GagspeakHubBase(ILogger logger, GagspeakMediator mediator,
-        HubFactory hubFactory, PiShockProvider piShockProvider, TokenProvider tokenProvider, 
-        PairManager pairManager, ServerConfigurationManager serverConfigs, 
+    public GagspeakHubBase(ILogger logger, GagspeakMediator mediator, HubFactory hubFactory, 
+        TokenProvider tokenProvider, PairManager pairManager, ServerConfigurationManager serverConfigs, 
         GagspeakConfigService mainConfig, ClientCallbackService callbackService,
         OnFrameworkService frameworkUtils) : base(logger, mediator)
     {
         _hubFactory = hubFactory;
-        _piShockProvider = piShockProvider;
         _tokenProvider = tokenProvider;
         _pairManager = pairManager;
         _serverConfigs = serverConfigs;

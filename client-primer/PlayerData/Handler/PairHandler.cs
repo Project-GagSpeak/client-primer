@@ -26,7 +26,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private CancellationTokenSource? _applicationCTS = new();
 
     // the cached data for the paired player.
-    private CharacterIPCData? _cachedIpcData = null;
+    private CharaIPCData? _cachedIpcData = null;
 
     // primarily used for initialization and address checking for visibility
     private GameObjectHandler? _charaHandler;
@@ -150,7 +150,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// GagSpeak will be able to take over for the supported IPC it can work with.
     /// </para>
     /// </summary>
-    public void ApplyCharacterData(Guid applicationBase, CharacterIPCData characterData)
+    public void ApplyCharacterData(Guid applicationBase, CharaIPCData characterData)
     {
         // publish the message to the mediator that we are applying character data
         Logger.LogDebug("Applying Character IPC Data for (" + PlayerName + ")", LoggerType.PairManagement);
@@ -192,7 +192,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// Applies the visible alterations to a character's IPC data.
     /// This means only IPC related changes should be monitored here. Not anything else.
     /// </summary>
-    private async Task CallAlterationsToIpcAsync(Guid applicationId, HashSet<PlayerChanges> changes, CharacterIPCData charaData, CancellationToken token)
+    private async Task CallAlterationsToIpcAsync(Guid applicationId, HashSet<PlayerChanges> changes, CharaIPCData charaData, CancellationToken token)
     {
         if (PairAddress == nint.Zero) return;
         // pointer address to playerCharacter address, which is equal to the gameobject handlers address.

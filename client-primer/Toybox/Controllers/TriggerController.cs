@@ -354,7 +354,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 break;
 
             case TriggerActionKind.ShockCollar:
-                if (_playerManager.GlobalPerms == null || _playerManager.GlobalPerms.GlobalShockShareCode.IsNullOrEmpty() || _playerManager.GlobalPiShockPerms.MaxIntensity == -1)
+                if (_playerManager.GlobalPerms == null || _playerManager.GlobalPerms.GlobalShockShareCode.IsNullOrEmpty() || !_playerManager.GlobalPerms.HasValidShareCode())
                 {
                     Logger.LogError("Cannot apply a shock collar action without global permissions set.\n These are used for Trigger Limitations.");
                 }

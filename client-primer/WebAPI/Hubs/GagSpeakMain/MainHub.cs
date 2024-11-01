@@ -7,14 +7,11 @@ using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
-using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Dto.Connection;
-using GagspeakAPI.Enums;
 using GagspeakAPI.SignalR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
-using System.Reflection;
 
 namespace GagSpeak.WebAPI;
 #pragma warning disable MA0040
@@ -30,12 +27,11 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
     private CancellationTokenSource HubConnectionCTS;
     private CancellationTokenSource? HubHealthCTS = new();
 
-    public MainHub(ILogger<MainHub> logger, GagspeakMediator mediator, HubFactory hubFactory, 
-        TokenProvider tokenProvider, PairManager pairs, AchievementManager achievements, 
-        PiShockProvider piShockProvider, ServerConfigurationManager serverConfigs, 
-        GagspeakConfigService mainConfig, ClientCallbackService callbackService,
-        OnFrameworkService frameworkUtils) : base(logger, mediator, hubFactory, piShockProvider, 
-            tokenProvider, pairs, serverConfigs, mainConfig, callbackService, frameworkUtils)
+    public MainHub(ILogger<MainHub> logger, GagspeakMediator mediator, HubFactory hubFactory,
+        TokenProvider tokenProvider, PairManager pairs, AchievementManager achievements,
+        ServerConfigurationManager serverConfigs, GagspeakConfigService mainConfig,
+        ClientCallbackService callbackService, OnFrameworkService frameworkUtils)
+        : base(logger, mediator, hubFactory, tokenProvider, pairs, serverConfigs, mainConfig, callbackService, frameworkUtils)
     {
         _achievementManager = achievements;
 
@@ -181,7 +177,7 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
                 Logger.LogWarning("HttpRequestException on Connection:" + ex.Message);
                 if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
-                    Logger.LogWarning("This HTTP Exception was caused by GagSpeakAuthFailure. Message was: "+AuthFailureMessage , LoggerType.ApiCore);
+                    Logger.LogWarning("This HTTP Exception was caused by GagSpeakAuthFailure. Message was: " + AuthFailureMessage, LoggerType.ApiCore);
                     await Disconnect(ServerState.Unauthorized).ConfigureAwait(false);
                     return; // (Prevent further reconnections)
                 }
@@ -425,7 +421,8 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
         OnUserReceiveOtherDataAlias(dto => _ = Client_UserReceiveOtherDataAlias(dto));
         OnUserReceiveOwnDataToybox(dto => _ = Client_UserReceiveOwnDataToybox(dto));
         OnUserReceiveOtherDataToybox(dto => _ = Client_UserReceiveOtherDataToybox(dto));
-        OnUserReceiveDataPiShock(dto => _ = Client_UserReceiveDataPiShock(dto));
+        OnUserReceiveOwnLightStorage(dto => _ = Client_UserReceiveOwnLightStorage(dto));
+        OnUserReceiveOtherLightStorage(dto => _ = Client_UserReceiveOtherLightStorage(dto));
 
         OnUserReceiveShockInstruction(dto => _ = Client_UserReceiveShockInstruction(dto));
         OnGlobalChatMessage(dto => _ = Client_GlobalChatMessage(dto));

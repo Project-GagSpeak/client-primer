@@ -28,15 +28,12 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PairManager _pairManager;
-    private readonly PiShockProvider _piShockProvider;
 
-    public PlayerCharacterData(ILogger<PlayerCharacterData> logger,
-        GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        PairManager pairManager, PiShockProvider piShockProvider) : base(logger, mediator)
+    public PlayerCharacterData(ILogger<PlayerCharacterData> logger, GagspeakMediator mediator, 
+        ClientConfigurationManager clientConfigs, PairManager pairManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _pairManager = pairManager;
-        _piShockProvider = piShockProvider;
 
         Mediator.Subscribe<PlayerCharAppearanceChanged>(this, (msg) => PushAppearanceDataToAPI(msg));
 
@@ -46,63 +43,21 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<PlayerCharToyboxChanged>(this, (msg) => PushToyboxDataToAPI(msg));
 
-        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastIpcData = msg.CharacterIPCData);
+        Mediator.Subscribe<PlayerCharStorageUpdated>(this, _ => PushLightStorageToAPI());
+
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastIpcData = msg.CharaIPCData);
     }
 
     public UserGlobalPermissions? GlobalPerms { get; set; } = null;
-    public CharacterAppearanceData? AppearanceData { get; set; } = null;
-    public CharacterIPCData? LastIpcData { get; set; } = null;
+    public CharaAppearanceData? AppearanceData { get; set; } = null;
+    public CharaIPCData? LastIpcData { get; set; } = null;
     public List<CustomizeProfile> CustomizeProfiles { get; set; } = new();
-    public PiShockPermissions GlobalPiShockPerms { get; set; } = new();
 
     public bool CoreDataNull => GlobalPerms is null || AppearanceData is null;
     public bool IpcDataNull => LastIpcData is null;
     private bool CustomizeNull => CustomizeProfiles is null || CustomizeProfiles.Count == 0;
-    private bool ShockPermsNull => GlobalPiShockPerms.MaxIntensity == -1;
     public bool IsPlayerGagged => AppearanceData?.GagSlots.Any(x => x.GagType != GagType.None.GagName()) ?? false;
     public int TotalGagsEquipped => AppearanceData?.GagSlots.Count(x => x.GagType != GagType.None.GagName()) ?? 0;
-
-    // Method Helpers For Data Compilation
-    public async Task<PiShockPermissions> GetGlobalPiShockPerms()
-    {
-        if (CoreDataNull || ShockPermsNull)
-        {
-            // potentially edit this to always grab refreshed info on each connect, but idk.
-            Logger.LogDebug("Global PiShockPerms already initialized. Returning.", LoggerType.PiShock);
-            return GlobalPiShockPerms;
-        }
-
-        GlobalPiShockPerms = await _piShockProvider.GetPermissionsFromCode(GlobalPerms!.GlobalShockShareCode);
-        return GlobalPiShockPerms;
-    }
-
-    public async void UpdateGlobalPiShockPerms()
-    {
-        if (CoreDataNull) return;
-
-        GlobalPiShockPerms = await _piShockProvider.GetPermissionsFromCode(GlobalPerms!.GlobalShockShareCode);
-        Mediator.Publish(new CharacterPiShockGlobalPermDataUpdatedMessage(GlobalPiShockPerms, DataUpdateKind.PiShockGlobalUpdated));
-    }
-
-    private async Task<PiShockPermissions> GetPairPiShockPerms(Pair pair)
-    {
-        // Return the permissions as they are already initialized
-        if (pair.LastOwnPiShockPermsForPair.MaxIntensity != -1 && !pair.UserPairOwnUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty())
-        {
-            return pair.LastOwnPiShockPermsForPair;
-        }
-        // otherwise, if the code is not null or empty but the permissions are not initialized, initialize them.
-        else if (!pair.UserPairOwnUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty())
-        {
-            pair.LastOwnPiShockPermsForPair = await _piShockProvider.GetPermissionsFromCode(pair.UserPairOwnUniquePairPerms.ShockCollarShareCode);
-            return pair.LastOwnPiShockPermsForPair;
-        }
-        // otherwise, if the code is null or empty, so return default
-        else
-        {
-            return new();
-        }
-    }
 
     /// <summary> Updates the changed permission from server callback to global permissions </summary>
     public void ApplyGlobalPermChange(UserGlobalPermChangeDto changeDto)
@@ -115,19 +70,14 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         object newValue = changeDto.ChangedPermission.Value;
         PropertyInfo? propertyInfo = typeof(UserGlobalPermissions).GetProperty(propertyName);
 
-        if (propertyName is nameof(UserGlobalPermissions.GlobalShockShareCode))
-        {
-            Logger.LogDebug($"Attempting to grab latest PiShockPerms for Global", LoggerType.PiShock);
-            Task.Run(async () => GlobalPiShockPerms = await GetGlobalPiShockPerms());
-            return;
-        }
-
         if (propertyInfo is null)
             return;
 
+        // See if someone else did this.
+        var changedPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserData.UID == changeDto.Enactor.UID);
+
         // Get the Hardcore Change Type before updating the property (if it is not valid it wont return anything but none anyways)
         HardcoreAction hardcoreChangeType = GlobalPerms!.GetHardcoreChange(propertyName, newValue);
-
 
         // If the property exists and is found, update its value
         if (newValue is UInt64 && propertyInfo.PropertyType == typeof(TimeSpan))
@@ -153,8 +103,6 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
             return;
         }
 
-        // Publish Interaction Event
-        var changedPair = _pairManager.DirectPairs.FirstOrDefault(x => x.UserData.UID == changeDto.User.UID);
         // If not a hardcore change but another perm change, publish that.
         if (changedPair is not null && hardcoreChangeType is HardcoreAction.None)
             Mediator.Publish(new EventMessage(new(changedPair.GetNickAliasOrUid(), changedPair.UserData.UID, InteractionType.ForcedPermChange, "Permission (" + changeDto + ") Changed")));
@@ -189,18 +137,9 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
     }
 
 
-
-    // helper method to decompile a received composite data message
-    public async Task<CharacterCompositeData> CompileCompositeDataToSend()
+    private void OldPiShockDataGrab()
     {
-        // make use of the various compiling methods to construct our composite data.
-        CharacterAppearanceData appearanceData = CompileAppearanceToAPI();
-        CharacterWardrobeData wardrobeData = CompileWardrobeToAPI();
-
-        Dictionary<string, CharacterAliasData> aliasData = new();
-        Dictionary<string, PiShockPermissions> pairShockData = new();
-
-        var userPairs = _pairManager.GetOnlineUserPairs();
+/*        var userPairs = _pairManager.GetOnlineUserPairs();
 
         bool hasApiOn = !string.IsNullOrEmpty(_clientConfigs.GagspeakConfig.PiShockApiKey) && !string.IsNullOrEmpty(_clientConfigs.GagspeakConfig.PiShockUsername);
 
@@ -234,30 +173,42 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
             }
         }
 
-        CharacterToyboxData toyboxData = CompileToyboxToAPI();
-
         PiShockPermissions globalShockPerms = hasApiOn ? await GetGlobalPiShockPerms() : new PiShockPermissions();
+        */
+    }
 
-        return new CharacterCompositeData
+
+    // helper method to decompile a received composite data message
+    public CharaCompositeData CompileCompositeDataToSend()
+    {
+        // make use of the various compiling methods to construct our composite data.
+        CharaAppearanceData appearanceData = CompileAppearanceToAPI();
+        CharaWardrobeData wardrobeData = CompileWardrobeToAPI();
+
+        Dictionary<string, CharaAliasData> aliasData = new();
+        CharaToyboxData toyboxData = _clientConfigs.CompileToyboxToAPI();
+
+        CharaStorageData lightStorageData = _clientConfigs.CompileLightStorageToAPI();
+
+        return new CharaCompositeData
         {
             AppearanceData = appearanceData,
             WardrobeData = wardrobeData,
             AliasData = aliasData,
             ToyboxData = toyboxData,
-            GlobalShockPermissions = globalShockPerms,
-            PairShockPermissions = pairShockData
+            LightStorageData = lightStorageData
         };
     }
 
-    private CharacterAppearanceData CompileAppearanceToAPI()
+    private CharaAppearanceData CompileAppearanceToAPI()
     {
         if (AppearanceData == null)
         {
             Logger.LogError("Appearance data is null. This should not be possible.");
-            return new CharacterAppearanceData();
+            return new CharaAppearanceData();
         }
 
-        CharacterAppearanceData dataToPush = new CharacterAppearanceData
+        CharaAppearanceData dataToPush = new CharaAppearanceData
         {
             GagSlots = new GagSlot[3]
             {
@@ -291,37 +242,25 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         return dataToPush;
     }
 
-    private CharacterWardrobeData CompileWardrobeToAPI()
+    private CharaWardrobeData CompileWardrobeToAPI()
     {
-        CharacterWardrobeData dataToPush = new CharacterWardrobeData
-        {
-            Outfits = _clientConfigs.GetRestraintSetDtos
-        };
-
         // attempt to locate the active restraint set
-        var activeSetIdx = _clientConfigs.GetActiveSetIdx();
-
-        // make sure the value is not -1, or greater than the outfitNames count. If it is in bounds, assign variables. Otherwise, use the defaults.
-        if (activeSetIdx != -1 && activeSetIdx <= dataToPush.Outfits.Count)
+        var activeSet = _clientConfigs.GetActiveSet();
+        return new CharaWardrobeData
         {
-            // grab the set and set the variables.
-            RestraintSet activeSet = _clientConfigs.GetRestraintSet(activeSetIdx);
-            dataToPush.ActiveSetId = activeSet.RestraintId;
-            dataToPush.ActiveSetName = activeSet.Name;
-            dataToPush.ActiveSetEnabledBy = activeSet.EnabledBy;
-            dataToPush.Padlock = activeSet.LockType;
-            dataToPush.Password = activeSet.LockPassword;
-            dataToPush.Timer = activeSet.LockedUntil;
-            dataToPush.Assigner = activeSet.LockedBy;
-        }
-
-        return dataToPush;
+            ActiveSetId = activeSet?.RestraintId ?? Guid.Empty,
+            ActiveSetEnabledBy = activeSet?.EnabledBy ?? string.Empty,
+            Padlock = activeSet?.LockType ?? Padlocks.None.ToName(),
+            Password = activeSet?.LockPassword ?? "",
+            Timer = activeSet?.LockedUntil ?? DateTimeOffset.MinValue,
+            Assigner = activeSet?.LockedBy ?? ""
+        };
     }
 
-    private CharacterAliasData CompileAliasToAPI(string UserUID)
+    private CharaAliasData CompileAliasToAPI(string UserUID)
     {
         var AliasStorage = _clientConfigs.FetchAliasStorageForPair(UserUID);
-        CharacterAliasData dataToPush = new CharacterAliasData
+        CharaAliasData dataToPush = new CharaAliasData
         {
             // don't include names here to secure privacy.
             AliasList = AliasStorage.AliasList
@@ -330,7 +269,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         return dataToPush;
     }
 
-    private CharacterToyboxData CompileToyboxToAPI()
+    private CharaToyboxData CompileToyboxToAPI()
     {
         return _clientConfigs.CompileToyboxToAPI();
     }
@@ -343,7 +282,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
 
     public void PushWardrobeDataToAPI(PlayerCharWardrobeChanged msg)
     {
-        CharacterWardrobeData dataToPush = CompileWardrobeToAPI();
+        CharaWardrobeData dataToPush = CompileWardrobeToAPI();
         Mediator.Publish(new CharacterWardrobeDataCreatedMessage(dataToPush, msg.UpdateKind));
     }
 
@@ -364,5 +303,11 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
     {
         var dataToPush = _clientConfigs.CompileToyboxToAPI();
         Mediator.Publish(new CharacterToyboxDataCreatedMessage(dataToPush, msg.UpdateKind));
+    }
+
+    public void PushLightStorageToAPI()
+    {
+        var dataToPush = _clientConfigs.CompileLightStorageToAPI();
+        Mediator.Publish(new CharacterStorageDataCreatedMessage(dataToPush));
     }
 }

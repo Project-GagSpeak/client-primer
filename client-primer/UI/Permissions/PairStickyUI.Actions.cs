@@ -79,8 +79,8 @@ public partial class PairStickyUI
         DrawIndividualMenu();
     }
 
-    private bool UniqueShockCollarPermsExist() => !UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty() && UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1;
-    private bool GlobalShockCollarPermsExist() => !UserPairForPerms.UserPairGlobalPerms.GlobalShockShareCode.IsNullOrEmpty() && UserPairForPerms.LastPairGlobalShockPerms.MaxIntensity != -1;
+    private bool UniqueShockCollarPermsExist() => !UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty() && UserPairForPerms.UserPairGlobalPerms.MaxIntensity != -1;
+    private bool GlobalShockCollarPermsExist() => !UserPairForPerms.UserPairGlobalPerms.GlobalShockShareCode.IsNullOrEmpty() && UserPairForPerms.UserPairGlobalPerms.MaxIntensity != -1;
 
     private void DrawCommonClientMenu()
     {
@@ -140,7 +140,7 @@ public partial class PairStickyUI
             var world = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult();
             var worldName = _uiShared.WorldData[(ushort)world];
             // compile the alias data to send including our own name and world information, along with an empty alias list.
-            var dataToPush = new CharacterAliasData()
+            var dataToPush = new CharaAliasData()
             {
                 CharacterName = name,
                 CharacterWorld = worldName,

@@ -83,7 +83,6 @@ public record TooltipSetItemToCursedItemMessage(EquipSlot Slot, EquipItem Item) 
 public record RestraintSetToggledMessage(int SetIdx, string AssignerUID, NewState State) : MessageBase;
 public record HardcoreActionMessage(HardcoreAction type, NewState State) : MessageBase;
 public record HardcoreRemoveBlindfoldMessage : MessageBase;
-public record HardcoreUpdatedShareCodeForPair(Pair pair, string ShareCode) : MessageBase;
 public record MoodlesPermissionsUpdated(string NameWithWorld) : MessageBase;
 
 ////////////// PUPPETEER RELATED RECORDS //////////////
@@ -111,6 +110,7 @@ public record PlayerCharAppearanceChanged(DataUpdateKind UpdateKind) : MessageBa
 public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharAliasChanged(string UpdatedPairUID, DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
+public record PlayerCharStorageUpdated : MessageBase;
 
 
 /* ------------------ IPC HANDLER RECORDS------------------ */
@@ -124,17 +124,17 @@ public record MoodlesStatusModified(Guid Guid) : MessageBase; // when we change 
 public record MoodlesPresetModified(Guid Guid) : MessageBase; // when we change one of our moodles presets.
 public record MoodlesApplyStatusToPair(ApplyMoodlesByStatusDto StatusDto) : MessageBase;
 public record MoodlesUpdateNotifyMessage : MessageBase; // for pinging the moodles.
+public record PiShockExecuteOperation(string shareCode, int OpCode, int Intensity, int Duration) : MessageBase;
 
 
 /* ----------------- Character Cache Creation Records ----------------- */
-public record CharacterDataCreatedMessage(CharacterIPCData CharacterData) : MessageBase; // TODO: See how to remove this?
-public record CharacterIpcDataCreatedMessage(CharacterIPCData CharacterIPCData, DataUpdateKind UpdateKind) : SameThreadMessage;
-public record CharacterAppearanceDataCreatedMessage(CharacterAppearanceData CharacterAppearanceData, DataUpdateKind UpdateKind) : SameThreadMessage;
-public record CharacterWardrobeDataCreatedMessage(CharacterWardrobeData CharacterWardrobeData, DataUpdateKind UpdateKind) : SameThreadMessage;
-public record CharacterAliasDataCreatedMessage(CharacterAliasData CharacterAliasData, UserData userData, DataUpdateKind UpdateKind) : SameThreadMessage;
-public record CharacterToyboxDataCreatedMessage(CharacterToyboxData CharacterToyboxData, DataUpdateKind UpdateKind) : SameThreadMessage;
-public record CharacterPiShockPermDataCreatedMessage(string ShareCode, PiShockPermissions ShockPermsForPair, UserData UserData, DataUpdateKind UpdateKind) : SameThreadMessage;
-public record CharacterPiShockGlobalPermDataUpdatedMessage(PiShockPermissions GlobalShockPermissions, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterDataCreatedMessage(CharaIPCData CharacterData) : MessageBase; // TODO: See how to remove this?
+public record CharacterIpcDataCreatedMessage(CharaIPCData CharaIPCData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterAppearanceDataCreatedMessage(CharaAppearanceData CharaAppearanceData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterWardrobeDataCreatedMessage(CharaWardrobeData CharaWardrobeData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterAliasDataCreatedMessage(CharaAliasData CharaAliasData, UserData userData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterToyboxDataCreatedMessage(CharaToyboxData CharaToyboxData, DataUpdateKind UpdateKind) : SameThreadMessage;
+public record CharacterStorageDataCreatedMessage(CharaStorageData CharacterStorageData) : SameThreadMessage;
 public record GameObjectHandlerCreatedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
 public record GameObjectHandlerDestroyedMessage(GameObjectHandler GameObjectHandler, bool OwnedObject) : MessageBase;
 

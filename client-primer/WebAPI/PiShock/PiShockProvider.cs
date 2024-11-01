@@ -1,8 +1,7 @@
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
-using GagspeakAPI.Enums;
-using GagspeakAPI.Data.Permissions;
+using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Routes;
 using System.Net;
 using System.Text.Json;
@@ -14,36 +13,24 @@ public sealed class PiShockProvider : DisposableMediatorSubscriberBase
 {
     private readonly GagspeakConfigService _mainConfig;
     private readonly PairManager _pairManager;
+    private readonly MainHub _mainHub;
     private readonly HttpClient _httpClient;
 
-    public PiShockProvider(ILogger<PiShockProvider> logger, GagspeakMediator mediator, 
-        GagspeakConfigService mainConfig, PairManager pairManager) : base(logger, mediator)
+    public PiShockProvider(ILogger<PiShockProvider> logger, GagspeakMediator mediator,
+        GagspeakConfigService mainConfig, PairManager pairManager, MainHub mainHub) : base(logger, mediator)
     {
         _mainConfig = mainConfig;
         _pairManager = pairManager;
+        _mainHub = mainHub;
         _httpClient = new HttpClient();
 
-        Mediator.Subscribe<HardcoreUpdatedShareCodeForPair>(this, (msg) => GetPermsFromShareCode(msg));
+        Mediator.Subscribe<PiShockExecuteOperation>(this, (msg) => ExecuteOperation(msg.shareCode, msg.OpCode, msg.Intensity, msg.Duration));
     }
 
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
         _httpClient.Dispose();
-    }
-
-    private async void GetPermsFromShareCode(HardcoreUpdatedShareCodeForPair msg)
-    {
-        var shareCode = msg.ShareCode;
-        var perms = await GetPermissionsFromCode(shareCode);
-        // apply these permissions to the paired user 
-        var pairMatch = _pairManager.DirectPairs.FirstOrDefault(x => x.UserData.UID == msg.pair.UserData.UID);
-        if(pairMatch != null) 
-        {
-            Logger.LogDebug("Updating PiShock Permissions for Pair: {pair}", pairMatch.UserData.UID);
-            pairMatch.LastOwnPiShockPermsForPair = perms;
-            Mediator.Publish(new CharacterPiShockPermDataCreatedMessage(msg.ShareCode, perms, pairMatch.UserData, DataUpdateKind.PiShockOwnPermsForPairUpdated));
-        }
     }
 
     // grab basic information from shock collar.
@@ -114,7 +101,7 @@ public sealed class PiShockProvider : DisposableMediatorSubscriberBase
                 Logger.LogTrace("PiShock Permissions obtained: {result}", result);
                 return result;
             }
-            else if(response.StatusCode == HttpStatusCode.InternalServerError)
+            else if (response.StatusCode == HttpStatusCode.InternalServerError)
             {
                 Logger.LogWarning("The Credentials for your API Key and Username do not match any profile in PiShock");
                 return new();

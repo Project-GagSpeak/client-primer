@@ -155,7 +155,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             _playerManager.GlobalPerms.ForcedEmoteState = string.Empty;
             _playerManager.GlobalPerms.ForcedStay = string.Empty;
             _playerManager.GlobalPerms.ForcedBlindfold = string.Empty;
-            _playerManager.GlobalPerms.ChatboxesHidden = string.Empty;
+            _playerManager.GlobalPerms.ChatBoxesHidden = string.Empty;
             _playerManager.GlobalPerms.ChatInputHidden = string.Empty;
             _playerManager.GlobalPerms.ChatInputBlocked = string.Empty;
 
@@ -180,7 +180,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
                 pair.UserPairOwnUniquePairPerms.AllowForcedEmote = false;
                 pair.UserPairOwnUniquePairPerms.AllowForcedToStay = false;
                 pair.UserPairOwnUniquePairPerms.AllowBlindfold = false;
-                pair.UserPairOwnUniquePairPerms.AllowHidingChatboxes = false;
+                pair.UserPairOwnUniquePairPerms.AllowHidingChatBoxes = false;
                 pair.UserPairOwnUniquePairPerms.AllowHidingChatInput = false;
                 pair.UserPairOwnUniquePairPerms.AllowChatInputBlocking = false;
                 // send the updates to the server.

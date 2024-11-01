@@ -25,10 +25,11 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
     private readonly HashSet<UserData> _newOnlinePairs = [];
 
     // Store the most recently sent component of our API formats from our player character
-    private CharacterAppearanceData? _lastAppearanceData;
-    private CharacterWardrobeData? _lastWardrobeData;
-    private CharacterAliasData? _lastAliasData;
-    private CharacterToyboxData? _lastToyboxData;
+    private CharaAppearanceData? _lastAppearanceData;
+    private CharaWardrobeData? _lastWardrobeData;
+    private CharaAliasData? _lastAliasData;
+    private CharaToyboxData? _lastToyboxData;
+    private CharaStorageData? _lastLightStorage;
     private string _lastShockPermShareCode = string.Empty;
 
     public OnlinePairManager(ILogger<OnlinePairManager> logger,
@@ -56,7 +57,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         // Fired whenever our Appearance data updates. We then send this data to all online pairs.
         Mediator.Subscribe<CharacterAppearanceDataCreatedMessage>(this, (msg) =>
         {
-            var newAppearanceData = msg.CharacterAppearanceData;
+            var newAppearanceData = msg.CharaAppearanceData;
             if (_lastAppearanceData == null || !Equals(newAppearanceData, _lastAppearanceData))
             {
                 _lastAppearanceData = newAppearanceData;
@@ -71,7 +72,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         // Fired whenever our Wardrobe data updates. We then send this data to all online pairs.
         Mediator.Subscribe<CharacterWardrobeDataCreatedMessage>(this, (msg) =>
         {
-            var newWardrobeData = msg.CharacterWardrobeData;
+            var newWardrobeData = msg.CharaWardrobeData;
             if (_lastWardrobeData == null || !Equals(newWardrobeData, _lastWardrobeData))
             {
                 _lastWardrobeData = newWardrobeData;
@@ -86,7 +87,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         // Fired whenever our Alias data updates. We then send this data to all online pairs.
         Mediator.Subscribe<CharacterAliasDataCreatedMessage>(this, (msg) =>
         {
-            var newAliasData = msg.CharacterAliasData;
+            var newAliasData = msg.CharaAliasData;
             if (_lastAliasData == null || !Equals(newAliasData, _lastAliasData))
             {
                 _lastAliasData = newAliasData;
@@ -101,7 +102,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         // Fired whenever our Toybox data updates. We then send this data to all online pairs.
         Mediator.Subscribe<CharacterToyboxDataCreatedMessage>(this, (msg) =>
         {
-            var newToyboxData = msg.CharacterToyboxData;
+            var newToyboxData = msg.CharaToyboxData;
             if (_lastToyboxData == null || !Equals(newToyboxData, _lastToyboxData))
             {
                 _lastToyboxData = newToyboxData;
@@ -114,22 +115,19 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         });
 
         // Fired whenever our Alias data updates. We then send this data to all online pairs.
-        Mediator.Subscribe<CharacterPiShockPermDataCreatedMessage>(this, (msg) =>
+        Mediator.Subscribe<CharacterStorageDataCreatedMessage>(this, (msg) =>
         {
-            var newShockPermShareCode = msg.ShareCode;
-            if (_lastShockPermShareCode == null || !Equals(newShockPermShareCode, _lastShockPermShareCode))
+            var newLightStorageData = msg.CharacterStorageData;
+            if (_lastLightStorage == null || !Equals(newLightStorageData, _lastLightStorage))
             {
-                _lastShockPermShareCode = newShockPermShareCode;
-                PushCharacterPiShockPerms(new List<UserData>(){ msg.UserData }, msg.ShockPermsForPair, msg.UpdateKind);
+                _lastLightStorage = newLightStorageData;
+                PushCharacterLightStorageData(_pairManager.GetOnlineUserDatas());
             }
             else
             {
-                Logger.LogDebug("PiShock Data was no different. Not sending data", LoggerType.OnlinePairs);
+                Logger.LogDebug("Light-Storage Data was no different. Not sending data", LoggerType.OnlinePairs);
             }
         });
-
-        Mediator.Subscribe<CharacterPiShockGlobalPermDataUpdatedMessage>(this, (msg) => 
-            PushCharacterPiShockPerms(_pairManager.GetOnlineUserDatas(), msg.GlobalShockPermissions, msg.UpdateKind));
     }
 
     private void FrameworkOnUpdate()
@@ -152,7 +150,7 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
             // Send the data to all online players.
             _ = Task.Run(async () =>
             {
-                CharacterCompositeData compiledDataToSend = await _playerManager.CompileCompositeDataToSend();
+                CharaCompositeData compiledDataToSend = _playerManager.CompileCompositeDataToSend();
                 Logger.LogDebug("new Online Pairs Identified, pushing latest Composite data", LoggerType.OnlinePairs);
                 await _apiHubMain.PushCharacterCompositeData(compiledDataToSend, newOnlinePairs).ConfigureAwait(false);
             });
@@ -224,19 +222,19 @@ public class OnlinePairManager : DisposableMediatorSubscriberBase
         }
     }
 
-    private void PushCharacterPiShockPerms(List<UserData> onlinePairToPushTo, PiShockPermissions perms, DataUpdateKind updateKind)
+    /// <summary> Pushes the character toybox data to the server for the visible players </summary>
+    private void PushCharacterLightStorageData(List<UserData> onlinePlayers)
     {
-        // Can be used for both global and individual updates.
-        if (_lastShockPermShareCode != string.Empty)
+        if (_lastLightStorage != null)
         {
             _ = Task.Run(async () =>
             {
-                await _apiHubMain.PushCharacterPiShockData(perms, onlinePairToPushTo, updateKind).ConfigureAwait(false);
+                await _apiHubMain.PushCharacterLightStorageData(_lastLightStorage, onlinePlayers).ConfigureAwait(false);
             });
         }
         else
         {
-            Logger.LogWarning("No PiShock data to push to online players");
+            Logger.LogWarning("No Toybox data to push to online players");
         }
     }
 }

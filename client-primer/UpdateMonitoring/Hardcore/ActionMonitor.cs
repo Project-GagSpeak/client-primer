@@ -14,6 +14,7 @@ using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data;
 using System.Collections.Immutable;
 using System.Windows.Forms;
 using ClientStructFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
@@ -66,7 +67,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
                 Logger.LogDebug("Hardcore RestraintSet is now active", LoggerType.HardcoreActions);
                 // apply stimulation modifier, if any (TODO)
                 _hardcoreHandler.ApplyMultiplier();
-                if (activeSet.SetProperties[activeSet.EnabledBy].StimulationLevel is not StimulationLevel.None)
+                if (activeSet.SetTraits[activeSet.EnabledBy].StimulationLevel is not StimulationLevel.None)
                     UpdateJobList();
 
                 // activate hotbar lock, if we have any properties enabled (we always will since this subscriber is only called if there is)
@@ -83,7 +84,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         IpcFastUpdates.HardcoreTraitsEventFired += ToggleHardcoreTraits;
     }
 
-    public static bool MonitorHardcoreRestraintSetProperties = false;
+    public static bool MonitorHardcoreRestraintSetTraits = false;
 
     protected override void Dispose(bool disposing)
     {
@@ -115,7 +116,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         await Task.Delay(3000);
         // set lock to visable again
         HotbarLocker.SetHotbarLockState(NewState.Unlocked);
-        MonitorHardcoreRestraintSetProperties = false;
+        MonitorHardcoreRestraintSetTraits = false;
         // restore saved slots
         RestoreSavedSlots();
     }
@@ -127,12 +128,12 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
             Logger.LogWarning(restraintSetRef.EnabledBy + " has enabled hardcore traits", LoggerType.HardcoreActions);
             _hardcoreHandler.ApplyMultiplier();
             // recalculate the cooldowns for the current job if using stimulation
-            if (restraintSetRef.SetProperties[restraintSetRef.EnabledBy].StimulationLevel is not StimulationLevel.None)
+            if (restraintSetRef.SetTraits[restraintSetRef.EnabledBy].StimulationLevel is not StimulationLevel.None)
                 UpdateJobList();
 
             HotbarLocker.SetHotbarLockState(NewState.Locked);
             // Begin monitoring hardcore restraint properties.
-            MonitorHardcoreRestraintSetProperties = true;
+            MonitorHardcoreRestraintSetTraits = true;
         }
         if (restraintSetRef.EnabledBy != MainHub.UID && newState is NewState.Disabled)
         {
@@ -141,7 +142,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
             RestoreSavedSlots();
             HotbarLocker.SetHotbarLockState(NewState.Unlocked);
             // Halt monitoring of properties
-            MonitorHardcoreRestraintSetProperties = false;
+            MonitorHardcoreRestraintSetTraits = false;
         }
     }
 
@@ -162,7 +163,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
     }
 
     // fired on framework tick while a set is active
-    private unsafe void UpdateSlots(HardcoreSetProperties setProperties)
+    private unsafe void UpdateSlots(HardcoreTraits setProperties)
     {
         var hotbarSpan = raptureHotbarModule->StandardHotbars; // the length of our hotbar count
         for (var i = 0; i < hotbarSpan.Length; i++)
@@ -333,12 +334,12 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
 
 
         // This seems redundant? Since we recalculate on job change and also lock hotbar and ability to move slots around? But idk.
-        if (MonitorHardcoreRestraintSetProperties)
+        if (MonitorHardcoreRestraintSetTraits)
         {
             // Probably just remove it if we need to.
             var activeSet = _clientConfigs.GetActiveSet();
             if (activeSet is not null && activeSet.PropertiesEnabledForUser(activeSet.EnabledBy))
-                UpdateSlots(activeSet.SetProperties[activeSet.EnabledBy]);
+                UpdateSlots(activeSet.SetTraits[activeSet.EnabledBy]);
         }
     }
 
@@ -368,7 +369,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
             }
 
             //Logger.LogTrace($" UseActionDetour called {acId} {type}");
-            if (MonitorHardcoreRestraintSetProperties)
+            if (MonitorHardcoreRestraintSetTraits)
             {
                 // Shortcut to avoid fetching active set for stimulation level every action.
                 if (_hardcoreHandler.StimulationMultiplier is not 1.0)

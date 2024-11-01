@@ -12,6 +12,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components.Combos;
 using GagSpeak.UI.Handlers;
 using GagSpeak.Utils;
+using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 using ImGuiNET;
 using OtterGui;
@@ -55,11 +56,11 @@ public class RestraintSetEditor : IMediatorSubscriber
         StainColorCombos = _itemStainHandler.ObtainStainCombos(ComboWidth);
         BonusItemCombos = _itemStainHandler.ObtainBonusItemCombos();
 
-        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharaIPCData);
     }
 
     // Info related to the person we are inspecting.
-    private CharacterIPCData LastCreatedCharacterData = null!;
+    private CharaIPCData LastCreatedCharacterData = null!;
     private readonly GameItemCombo[] ItemCombos;
     private readonly StainColorCombo StainColorCombos;
     private readonly BonusItemCombo[] BonusItemCombos;
@@ -357,7 +358,7 @@ public class RestraintSetEditor : IMediatorSubscriber
             return;
 
         // draw a singular checkbox to grant a view access or remove them.
-        bool pairHasAccess = refRestraintSet.SetProperties.ContainsKey(selectedPairRef.UserData.UID);
+        bool pairHasAccess = refRestraintSet.SetTraits.ContainsKey(selectedPairRef.UserData.UID);
         FontAwesomeIcon icon = pairHasAccess ? FontAwesomeIcon.UserMinus : FontAwesomeIcon.UserPlus;
         string text = pairHasAccess
             ? "Prevent " + (selectedPairRef.GetNickname() ?? selectedPairRef.UserData.AliasOrUID) + " from interacting with this set."
@@ -367,54 +368,54 @@ public class RestraintSetEditor : IMediatorSubscriber
         {
             if (pairHasAccess)
             {
-                refRestraintSet.SetProperties.Remove(selectedPairRef.UserData.UID);
+                refRestraintSet.SetTraits.Remove(selectedPairRef.UserData.UID);
             }
             else
             {
-                refRestraintSet.SetProperties[selectedPairRef.UserData.UID] = new HardcoreSetProperties();
+                refRestraintSet.SetTraits[selectedPairRef.UserData.UID] = new HardcoreTraits();
             }
         }
 
         ImGui.Separator();
 
         // if the pair is not in the list, return.
-        if (!refRestraintSet.SetProperties.ContainsKey(selectedPairRef.UserData.UID))
+        if (!refRestraintSet.SetTraits.ContainsKey(selectedPairRef.UserData.UID))
             return;
 
-        bool legsBound = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LegsRestrained;
-        bool armsBound = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].ArmsRestrained;
-        bool gagged = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Gagged;
-        bool blindfolded = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Blindfolded;
-        bool immobile = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Immobile;
-        bool weighty = refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Weighty;
+        bool legsBound = refRestraintSet.SetTraits[selectedPairRef.UserData.UID].LegsRestrained;
+        bool armsBound = refRestraintSet.SetTraits[selectedPairRef.UserData.UID].ArmsRestrained;
+        bool gagged = refRestraintSet.SetTraits[selectedPairRef.UserData.UID].Gagged;
+        bool blindfolded = refRestraintSet.SetTraits[selectedPairRef.UserData.UID].Blindfolded;
+        bool immobile = refRestraintSet.SetTraits[selectedPairRef.UserData.UID].Immobile;
+        bool weighty = refRestraintSet.SetTraits[selectedPairRef.UserData.UID].Weighty;
 
         if (ImGui.Checkbox("Legs will be restrainted", ref legsBound))
-            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].LegsRestrained = legsBound;
+            refRestraintSet.SetTraits[selectedPairRef.UserData.UID].LegsRestrained = legsBound;
         _uiShared.DrawHelpText("Any action which typically involves fast leg movement is restricted");
 
         if (ImGui.Checkbox("Arms will be restrainted", ref armsBound))
-            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].ArmsRestrained = armsBound;
+            refRestraintSet.SetTraits[selectedPairRef.UserData.UID].ArmsRestrained = armsBound;
         _uiShared.DrawHelpText("Any action which typically involves fast arm movement is restricted");
 
         if (ImGui.Checkbox("Gagged", ref gagged))
-            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Gagged = gagged;
+            refRestraintSet.SetTraits[selectedPairRef.UserData.UID].Gagged = gagged;
         _uiShared.DrawHelpText("Any action requiring speech is restricted");
 
         if (ImGui.Checkbox("Blindfolded", ref blindfolded))
-            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Blindfolded = blindfolded;
+            refRestraintSet.SetTraits[selectedPairRef.UserData.UID].Blindfolded = blindfolded;
         _uiShared.DrawHelpText("Any actions requiring awareness or sight is restricted");
 
         if (ImGui.Checkbox("Immobile", ref immobile))
-            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Immobile = immobile;
+            refRestraintSet.SetTraits[selectedPairRef.UserData.UID].Immobile = immobile;
         _uiShared.DrawHelpText("Player becomes unable to move in this set");
 
         if (ImGui.Checkbox("Weighty", ref weighty))
-            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].Weighty = weighty;
+            refRestraintSet.SetTraits[selectedPairRef.UserData.UID].Weighty = weighty;
         _uiShared.DrawHelpText("Player is forced to only walk while wearing this restraint");
 
         _uiShared.DrawCombo("Stimulation Level##" + refRestraintSet.RestraintId + "stimulationLevel", 125f, Enum.GetValues<StimulationLevel>(),
-            (name) => name.ToString(), (i) => refRestraintSet.SetProperties[selectedPairRef.UserData.UID].StimulationLevel = i,
-            refRestraintSet.SetProperties[selectedPairRef.UserData.UID].StimulationLevel);
+            (name) => name.ToString(), (i) => refRestraintSet.SetTraits[selectedPairRef.UserData.UID].StimulationLevel = i,
+            refRestraintSet.SetTraits[selectedPairRef.UserData.UID].StimulationLevel);
         _uiShared.DrawHelpText("Any action requiring focus or concentration has its recast time slower and slower~");
     }
 

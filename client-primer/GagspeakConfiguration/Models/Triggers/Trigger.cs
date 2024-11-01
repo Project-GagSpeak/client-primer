@@ -34,12 +34,11 @@ public abstract record Trigger
     public GagType GagTypeAction { get; set; } = GagType.None;
     public Guid MoodlesIdentifier { get; set; } = Guid.Empty; // can be a status or preset, depending on TriggerActionKind
 
-    public TriggerDto ToDto()
+    public LightTrigger ToLightData()
     {
-        return new TriggerDto
+        return new LightTrigger
         {
             Identifier = TriggerIdentifier,
-            Enabled = Enabled,
             Name = Name,
             Type = Type,
             ActionOnTrigger = TriggerActionKind

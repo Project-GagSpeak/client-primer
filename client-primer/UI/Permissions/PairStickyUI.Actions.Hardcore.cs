@@ -47,7 +47,7 @@ public partial class PairStickyUI
         bool disableForceFollow = !inRange || !PairPerms.AllowForcedFollow || !UserPairForPerms.IsVisible || !PairGlobals.CanToggleFollow(MainHub.UID);
         bool disableForceToStay = !PairPerms.AllowForcedToStay || !PairGlobals.CanToggleStay(MainHub.UID);
         bool disableBlindfoldToggle = !PairPerms.AllowBlindfold || !PairGlobals.CanToggleBlindfold(MainHub.UID);
-        bool disableChatVisibilityToggle = !PairPerms.AllowHidingChatboxes || !PairGlobals.CanToggleChatHidden(MainHub.UID);
+        bool disableChatVisibilityToggle = !PairPerms.AllowHidingChatBoxes || !PairGlobals.CanToggleChatHidden(MainHub.UID);
         bool disableChatInputVisibilityToggle = !PairPerms.AllowHidingChatInput || !PairGlobals.CanToggleChatInputHidden(MainHub.UID);
         bool disableChatInputBlockToggle = !PairPerms.AllowChatInputBlocking || !PairGlobals.CanToggleChatInputBlocked(MainHub.UID);
         bool pairAllowsDevotionalToggles = PairPerms.DevotionalStatesForPair;
@@ -175,11 +175,14 @@ public partial class PairStickyUI
     private void DrawHardcoreShockCollarActions()
     {
         // the permissions to reference.
-        PiShockPermissions permissions = (UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1) ? UserPairForPerms.LastPairPiShockPermsForYou : UserPairForPerms.LastPairGlobalShockPerms;
-        TimeSpan maxVibeDuration = (UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1) ? PairPerms.MaxVibrateDuration : UserPairForPerms.UserPairGlobalPerms.GlobalShockVibrateDuration;
-        string piShockShareCodePref = (UserPairForPerms.LastPairPiShockPermsForYou.MaxIntensity != -1) ? PairPerms.ShockCollarShareCode : UserPairForPerms.UserPairGlobalPerms.GlobalShockShareCode;
+        bool AllowShocks = PairPerms.HasValidShareCode() ? PairPerms.AllowShocks : UserPairForPerms.UserPairGlobalPerms.AllowShocks;
+        bool AllowVibrations = PairPerms.HasValidShareCode() ? PairPerms.AllowVibrations : UserPairForPerms.UserPairGlobalPerms.AllowVibrations;
+        bool AllowBeeps = PairPerms.HasValidShareCode() ? PairPerms.AllowBeeps : UserPairForPerms.UserPairGlobalPerms.AllowBeeps;
+        int MaxIntensity = PairPerms.HasValidShareCode() ? PairPerms.MaxIntensity : UserPairForPerms.UserPairGlobalPerms.MaxIntensity;
+        TimeSpan maxVibeDuration = PairPerms.HasValidShareCode() ? PairPerms.GetTimespanFromDuration() : UserPairForPerms.UserPairGlobalPerms.GetTimespanFromDuration();
+        string piShockShareCodePref = PairPerms.HasValidShareCode() ? PairPerms.ShockCollarShareCode : UserPairForPerms.UserPairGlobalPerms.GlobalShockShareCode;
 
-        if (_uiShared.IconTextButton(FontAwesomeIcon.BoltLightning, "Shock " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, !permissions.AllowShocks))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.BoltLightning, "Shock " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, !AllowShocks))
         {
             Opened = Opened == InteractionType.ShockAction ? InteractionType.None : InteractionType.ShockAction;
         }
@@ -194,9 +197,9 @@ public partial class PairStickyUI
                 var width = WindowMenuWidth - ImGuiHelpers.GetButtonSize("Send Shock").X - ImGui.GetStyle().ItemInnerSpacing.X;
 
                 ImGui.SetNextItemWidth(WindowMenuWidth);
-                ImGui.SliderInt("##IntensitySliderRef" + PairNickOrAliasOrUID, ref Intensity, 0, permissions.MaxIntensity, "%d%%", ImGuiSliderFlags.None);
+                ImGui.SliderInt("##IntensitySliderRef" + PairNickOrAliasOrUID, ref Intensity, 0, MaxIntensity, "%d%%", ImGuiSliderFlags.None);
                 ImGui.SetNextItemWidth(width);
-                ImGui.SliderFloat("##DurationSliderRef" + PairNickOrAliasOrUID, ref Duration, 0.0f, ((float)permissions.GetTimespanFromDuration().TotalMilliseconds / 1000f), "%.1fs", ImGuiSliderFlags.None);
+                ImGui.SliderFloat("##DurationSliderRef" + PairNickOrAliasOrUID, ref Duration, 0.0f, ((float)maxVibeDuration.TotalMilliseconds / 1000f), "%.1fs", ImGuiSliderFlags.None);
                 ImUtf8.SameLineInner();
                 try
                 {
@@ -255,7 +258,7 @@ public partial class PairStickyUI
             ImGui.Separator();
         }
 
-        if (_uiShared.IconTextButton(FontAwesomeIcon.LandMineOn, "Beep " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, !permissions.AllowBeeps))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.LandMineOn, "Beep " + PairNickOrAliasOrUID + "'s Shock Collar", WindowMenuWidth, true, !AllowBeeps))
         {
             Opened = Opened == InteractionType.BeepAction ? InteractionType.None : InteractionType.BeepAction;
         }

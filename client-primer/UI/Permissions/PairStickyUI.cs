@@ -58,7 +58,7 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
         IsOpen = true; // open the window
     }
 
-    private CharacterIPCData? LastCreatedCharacterData => _playerManager.LastIpcData;
+    private CharaIPCData? LastCreatedCharacterData => _playerManager.LastIpcData;
     public override void OnClose() => Mediator.Publish(new RemoveWindowMessage(this)); // remove window on close.
 
     public Pair UserPairForPerms { get; init; } // pair we're drawing the sticky permissions for.

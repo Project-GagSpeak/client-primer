@@ -57,7 +57,7 @@ public class ClientCallbackService
     public bool ShockCodePresent => _playerData.CoreDataNull && _playerData.GlobalPerms!.GlobalShockShareCode.IsNullOrEmpty();
     public string GlobalPiShockShareCode => _playerData.GlobalPerms!.GlobalShockShareCode;
     public void SetGlobalPerms(UserGlobalPermissions perms) => _playerData.GlobalPerms = perms;
-    public void SetAppearanceData(CharacterAppearanceData appearanceData) => _playerData.AppearanceData = appearanceData;
+    public void SetAppearanceData(CharaAppearanceData appearanceData) => _playerData.AppearanceData = appearanceData;
     public void ApplyGlobalPerm(UserGlobalPermChangeDto dto) => _playerData.ApplyGlobalPermChange(dto);
     private bool CanDoWardrobeInteract() => !_playerData.CoreDataNull && _playerData.GlobalPerms!.WardrobeEnabled && _playerData.GlobalPerms.RestraintSetAutoEquip;
 
@@ -243,7 +243,7 @@ public class ClientCallbackService
     public async void CallbackWardrobeUpdate(OnlineUserCharaWardrobeDataDto callbackDto, bool callbackWasFromSelf)
     {
         var data = callbackDto.WardrobeData;
-        int callbackSetIdx = _clientConfigs.GetRestraintSetIdxByName(data.ActiveSetName);
+        int callbackSetIdx = _clientConfigs.GetSetIdxByGuid(data.ActiveSetId);
         RestraintSet? callbackSet = null;
         if(callbackSetIdx is not -1) callbackSet = _clientConfigs.GetRestraintSet(callbackSetIdx);
 
@@ -281,7 +281,7 @@ public class ClientCallbackService
         ////////// Callback was not from self past this point.
 
         var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
-        if (matchedPair == null) {
+        if (matchedPair is null ) {
             _logger.LogError("Received Update by player is no longer present.");
             return;
         }
@@ -295,10 +295,6 @@ public class ClientCallbackService
         {
             switch (callbackDto.UpdateKind)
             {
-                case DataUpdateKind.WardrobeRestraintOutfitsUpdated:
-                    _logger.LogError("Unexpected UpdateKind: WardrobeRestraintOutfitsUpdated.");
-                    break;
-
                 case DataUpdateKind.WardrobeRestraintApplied:
                     // Check to see if we need to reapply.
                     var activeSet = _clientConfigs.GetActiveSet();
@@ -308,18 +304,18 @@ public class ClientCallbackService
                         var newSetId = _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[callbackSetIdx].RestraintId;
                         // reapply.
                         await _appearanceManager.RestraintSwapped(newSetId, isSelfApplied: false);
-                        _logger.LogDebug($"{callbackDto.User.UID} has swapped your [{activeSet.Name}] restraint set to your [{data.ActiveSetName}] set!", LoggerType.Callbacks);
+                        _logger.LogDebug($"{callbackDto.User.UID} has swapped your [{activeSet.Name}] restraint set to another set!", LoggerType.Callbacks);
                         // Log the Interaction Event
-                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.SwappedRestraint, "Swapped Set to: "+data.ActiveSetName)));
+                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.SwappedRestraint, "Swapped Set to: "+ _clientConfigs.GetSetNameByGuid(data.ActiveSetId))));
                     }
                     else
                     {
                         if(callbackSet is not null)
                         {
-                            _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
+                            _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied one of your restraint sets!", LoggerType.Callbacks);
                             await _wardrobeHandler.EnableRestraintSet(callbackSet.RestraintId, callbackDto.User.UID, false);
                             // Log the Interaction Event
-                            _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ApplyRestraint, "Applied Set: " + data.ActiveSetName)));
+                            _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ApplyRestraint, "Applied Set: " + _clientConfigs.GetSetNameByGuid(data.ActiveSetId))));
                         }
                     }
                     break;
@@ -327,21 +323,21 @@ public class ClientCallbackService
                 case DataUpdateKind.WardrobeRestraintLocked:
                     if (callbackSet is not null)
                     {
-                        _logger.LogDebug($"{callbackDto.User.UID} has forcibly locked your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
-                        _appearanceManager.LockRestraintSet(callbackSet.RestraintId, data.Padlock.ToPadlock(), data.Password, data.Timer, callbackDto.User.UID, false);
+                        _logger.LogDebug($"{callbackDto.User.UID} has locked your active restraint set!", LoggerType.Callbacks);
+                        await _appearanceManager.LockRestraintSet(callbackSet.RestraintId, data.Padlock.ToPadlock(), data.Password, data.Timer, callbackDto.User.UID, false);
                         // Log the Interaction Event
-                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.LockRestraint, data.ActiveSetName + " is now locked")));
+                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.LockRestraint, _clientConfigs.GetSetNameByGuid(data.ActiveSetId) + " is now locked")));
                     }
                     break;
 
                 case DataUpdateKind.WardrobeRestraintUnlocked:
                     if (callbackSet != null)
                     {
-                        _logger.LogDebug($"{callbackDto.User.UID} has force unlocked your [{data.ActiveSetName}] restraint set!", LoggerType.Callbacks);
+                        _logger.LogDebug($"{callbackDto.User.UID} has unlocked your active restraint set!", LoggerType.Callbacks);
                         Padlocks previousPadlock = callbackSet.LockType.ToPadlock();
-                        _appearanceManager.UnlockRestraintSet(callbackSet.RestraintId, callbackDto.User.UID, false);
+                        await _appearanceManager.UnlockRestraintSet(callbackSet.RestraintId, callbackDto.User.UID, false);
                         // Log the Interaction Event
-                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.UnlockRestraint, data.ActiveSetName + " is now unlocked")));
+                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.UnlockRestraint, _clientConfigs.GetSetNameByGuid(data.ActiveSetId) + " is now unlocked")));
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, callbackSet, previousPadlock, false, callbackDto.User.UID);
                     }
                     break;
@@ -353,7 +349,7 @@ public class ClientCallbackService
                     {
                         await _wardrobeHandler.DisableRestraintSet(currentlyActiveSet.RestraintId, callbackDto.User.UID, false);
                         // Log the Interaction Event
-                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.RemoveRestraint, data.ActiveSetName + " has been removed")));
+                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.RemoveRestraint, _clientConfigs.GetSetNameByGuid(data.ActiveSetId) + " has been removed")));
                     }
                     break;
             }
@@ -389,20 +385,12 @@ public class ClientCallbackService
     {
         if (callbackFromSelf)
         {
-            if (callbackDto.UpdateKind is DataUpdateKind.ToyboxPatternListUpdated)
-                _logger.LogDebug("SelfApplied PATTERNLIST UPDATE Verified by Server Callback.", LoggerType.Callbacks);
             if (callbackDto.UpdateKind is DataUpdateKind.ToyboxPatternExecuted)
                 _logger.LogDebug("SelfApplied PATTERN EXECUTED Verified by Server Callback.", LoggerType.Callbacks);
             if (callbackDto.UpdateKind is DataUpdateKind.ToyboxPatternStopped)
                 _logger.LogDebug("SelfApplied PATTERN STOPPED Verified by Server Callback.", LoggerType.Callbacks);
-
-            if (callbackDto.UpdateKind is DataUpdateKind.ToyboxAlarmListUpdated)
-                _logger.LogDebug("SelfApplied ALARMLIST UPDATE Verified by Server Callback.", LoggerType.Callbacks);
             if (callbackDto.UpdateKind is DataUpdateKind.ToyboxAlarmToggled)
                 _logger.LogDebug("SelfApplied ALARM TOGGLED Verified by Server Callback.", LoggerType.Callbacks);
-
-            if (callbackDto.UpdateKind is DataUpdateKind.ToyboxTriggerListUpdated)
-                _logger.LogDebug("SelfApplied TRIGGERLIST UPDATE Verified by Server Callback.", LoggerType.Callbacks);
             if (callbackDto.UpdateKind is DataUpdateKind.ToyboxTriggerToggled)
                 _logger.LogDebug("SelfApplied TRIGGER TOGGLED Verified by Server Callback.", LoggerType.Callbacks);
             return;
@@ -410,17 +398,14 @@ public class ClientCallbackService
 
         // Verify who the pair was.
         var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
-        if (matchedPair is null)
+        if (matchedPair is null || matchedPair.LastReceivedLightStorage is null)
         {
             _logger.LogError("Received Update by pair that you no longer have added.");
             return;
         }
 
         // Update Appearance without calling any events so we don't loop back to the server.
-        var patternData = callbackDto.ToyboxInfo.PatternList;
-        var alarmData = callbackDto.ToyboxInfo.AlarmList;
-        var triggerData = callbackDto.ToyboxInfo.TriggerList;
-        Guid idAffected = callbackDto.ToyboxInfo.TransactionId;
+        Guid idAffected = callbackDto.ToyboxInfo.InteractionId;
         switch (callbackDto.UpdateKind)
         {
             case DataUpdateKind.ToyboxPatternExecuted:
@@ -518,5 +503,13 @@ public class ClientCallbackService
                 break;
         }
     }
+
+    public void CallbackLightStorageUpdate(OnlineUserStorageUpdateDto update)
+    {
+        _logger.LogDebug("Light Storage Update received successfully from server!", LoggerType.Callbacks);
+    }
+
+
+
 
 }

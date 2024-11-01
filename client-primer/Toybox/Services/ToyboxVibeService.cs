@@ -15,17 +15,14 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly DeviceController _deviceHandler; // handles the actual connected devices.
     private readonly VibeSimAudio _vibeSimAudio; // handles the simulated vibrator
-    private readonly PiShockProvider _piShockProvider;
 
     public ToyboxVibeService(ILogger<ToyboxVibeService> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        DeviceController deviceHandler, VibeSimAudio vibeSimAudio,
-        PiShockProvider piShockProvider) : base(logger, mediator)
+        DeviceController deviceHandler, VibeSimAudio vibeSimAudio) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _deviceHandler = deviceHandler;
         _vibeSimAudio = vibeSimAudio;
-        _piShockProvider = piShockProvider;
 
         // restore the chosen simulated audio type from the config
         _vibeSimAudio.ChangeAudioPath(VibeSimAudioPath(_clientConfigs.GagspeakConfig.VibeSimAudio));
@@ -83,7 +80,7 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
 
     public void ExecuteShockAction(string shareCode, ShockTriggerAction shockAction)
     {
-        _piShockProvider.ExecuteOperation(shareCode, (int)shockAction.OpCode, shockAction.Intensity, shockAction.Duration);
+        Mediator.Publish(new PiShockExecuteOperation(shareCode, (int)shockAction.OpCode, shockAction.Intensity, shockAction.Duration));
     }
 
     public void UpdateVibeSimAudioType(VibeSimType newType)

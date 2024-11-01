@@ -78,7 +78,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         Logger.LogTrace("GagTypeChanged event received.", LoggerType.GagManagement);
         bool IsApplying = (NewGagType is not GagType.None);
 
-        // Update the corresponding slot in CharacterAppearanceData based on the GagLayer
+        // Update the corresponding slot in CharaAppearanceData based on the GagLayer
         if (Layer is GagLayer.UnderLayer)
         {
             _characterManager.AppearanceData!.GagSlots[0].GagType = NewGagType.GagName();

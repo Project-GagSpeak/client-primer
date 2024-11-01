@@ -21,7 +21,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
     private readonly PairManager _pairManager;
 
     // Stores the last recieved IpcData from our client player characters cache creation service.
-    private CharacterIPCData LastIpcData = null!;
+    private CharaIPCData LastIpcData = null!;
 
     // stores the set of newly visible players to update with our latest IPC data.
     private readonly HashSet<PairHandler> _newVisiblePlayers = [];
@@ -42,7 +42,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
         // Fired whenever our IPC data is updated. Sends to visible players.
         Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) =>
         {
-            var newData = msg.CharacterIPCData;
+            var newData = msg.CharaIPCData;
             // Send if attached data is different from last sent data.
             // this check also helps us ensure that we are not receiving the same data as pairHandlerVisible
             if (LastIpcData == null || LastIpcData.Equals(newData))

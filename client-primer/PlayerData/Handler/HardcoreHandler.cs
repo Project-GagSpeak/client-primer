@@ -9,6 +9,7 @@ using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Extensions;
 using System.Numerics;
@@ -223,7 +224,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         if (newState is NewState.Disabled && (_playerData.GlobalPerms?.IsChatHidden() ?? false))
         {
             Logger.LogWarning("You were disconnected when invoking this disable, meaning it was likely triggered from a safeword. Manually switching off!");
-            _playerData.GlobalPerms.ChatboxesHidden = string.Empty;
+            _playerData.GlobalPerms.ChatBoxesHidden = string.Empty;
         }
     }
 
@@ -296,7 +297,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         if (activeSet is null)
             return;
 
-        var stimulationLvl = activeSet.SetProperties[activeSet.EnabledBy].StimulationLevel;
+        var stimulationLvl = activeSet.SetTraits[activeSet.EnabledBy].StimulationLevel;
         StimulationMultiplier = stimulationLvl switch
         {
             StimulationLevel.None => 1.0,

@@ -45,7 +45,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly SettingsHardcore _hardcoreSettingsUI;
     private readonly UiSharedService _uiShared;
-    private readonly MoveController _moveController;
+    private readonly PiShockProvider _shockProvider;
     private readonly AvfxManager _avfxManager;
     private readonly VfxSpawns _vfxSpawns;
     private bool _deleteAccountPopupModalShown = false;
@@ -62,7 +62,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     public SettingsUi(ILogger<SettingsUi> logger, UiSharedService uiShared,
         MainHub apiHubMain, GagspeakConfigService configService,
         PairManager pairManager, PlayerCharacterData playerCharacterManager,
-        ClientConfigurationManager clientConfigs, MoveController moveController,
+        ClientConfigurationManager clientConfigs, PiShockProvider shockProvider,
         AvfxManager avfxManager, VfxSpawns vfxSpawns, ServerConfigurationManager serverConfigs,
         GagspeakMediator mediator, IpcManager ipcManager, SettingsHardcore hardcoreSettingsUI,
         OnFrameworkService frameworkUtil) : base(logger, mediator, "GagSpeak Settings")
@@ -72,7 +72,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _configService = configService;
         _pairManager = pairManager;
         _clientConfigs = clientConfigs;
-        _moveController = moveController;
+        _shockProvider = shockProvider;
         _avfxManager = avfxManager;
         _vfxSpawns = vfxSpawns;
         _serverConfigs = serverConfigs;
@@ -100,14 +100,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
             MaximumSize = new Vector2(800, 2000),
         };
 
-        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharaIPCData);
         Mediator.Subscribe<OpenSettingsUiMessage>(this, (_) => Toggle());
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = false);
     }
 
-    public CharacterIPCData? LastCreatedCharacterData { private get; set; }
+    public CharaIPCData? LastCreatedCharacterData { private get; set; }
     private UserGlobalPermissions PlayerGlobalPerms => _playerCharacterManager.GlobalPerms!;
-    private PiShockPermissions PlayerGlobalPiShock => _playerCharacterManager.GlobalPiShockPerms;
 
     // Everything below here is temporary until I figure out something better.
     public Dictionary<string, string[]> LanguagesDialects { get; init; } // Languages and Dialects for Chat Garbler.
@@ -205,11 +204,11 @@ public class SettingsUi : WindowMediatorSubscriberBase
         string piShockUsername = _clientConfigs.GagspeakConfig.PiShockUsername;
 
         string globalShockCollarShareCode = PlayerGlobalPerms.GlobalShockShareCode;
-        bool allowGlobalShockShockCollar = PlayerGlobalPiShock.AllowShocks;
-        bool allowGlobalVibrateShockCollar = PlayerGlobalPiShock.AllowVibrations;
-        bool allowGlobalBeepShockCollar = PlayerGlobalPiShock.AllowBeeps;
-        int maxGlobalShockCollarIntensity = PlayerGlobalPiShock.MaxIntensity;
-        TimeSpan maxGlobalShockDuration = PlayerGlobalPiShock.GetTimespanFromDuration();
+        bool allowGlobalShockShockCollar = PlayerGlobalPerms.AllowShocks;
+        bool allowGlobalVibrateShockCollar = PlayerGlobalPerms.AllowVibrations;
+        bool allowGlobalBeepShockCollar = PlayerGlobalPerms.AllowBeeps;
+        int maxGlobalShockCollarIntensity = PlayerGlobalPerms.MaxIntensity;
+        TimeSpan maxGlobalShockDuration = PlayerGlobalPerms.GetTimespanFromDuration();
         int maxGlobalVibrateDuration = (int)PlayerGlobalPerms.GlobalShockVibrateDuration.TotalSeconds;
 
         _uiShared.BigText("Gags");
@@ -461,7 +460,20 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Refresh", null, false, DateTime.UtcNow - _lastRefresh < TimeSpan.FromSeconds(5)))
         {
             _lastRefresh = DateTime.UtcNow;
-            _playerCharacterManager.UpdateGlobalPiShockPerms();
+            // Send Mediator Event to grab updated settings for pair.
+            Task.Run(async () =>
+            {
+                if (_playerCharacterManager.CoreDataNull) return;
+                var newPerms = await _shockProvider.GetPermissionsFromCode(_playerCharacterManager.GlobalPerms!.GlobalShockShareCode);
+                // set the new permissions.
+                _playerCharacterManager.GlobalPerms.AllowShocks = newPerms.AllowShocks;
+                _playerCharacterManager.GlobalPerms.AllowVibrations = newPerms.AllowVibrations;
+                _playerCharacterManager.GlobalPerms.AllowBeeps = newPerms.AllowBeeps;
+                _playerCharacterManager.GlobalPerms.MaxDuration = newPerms.MaxDuration;
+                _playerCharacterManager.GlobalPerms.MaxIntensity = newPerms.MaxIntensity;
+                // update the permissions.
+                _ = _apiHubMain.UserPushAllGlobalPerms(new(MainHub.PlayerUserData, _playerCharacterManager.GlobalPerms));
+            });
         }
         UiSharedService.AttachToolTip("Forces Global PiShock Share Code to grab latest data from the API and push it to other online pairs.");
         ImUtf8.SameLineInner();
@@ -1011,7 +1023,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         { "Toybox", new[] { LoggerType.ToyboxDevices, LoggerType.ToyboxPatterns, LoggerType.ToyboxTriggers, LoggerType.ToyboxAlarms, LoggerType.VibeControl, LoggerType.PrivateRoom } },
         { "Update Monitoring", new[] { LoggerType.ChatDetours, LoggerType.ActionEffects, LoggerType.SpatialAudioController, LoggerType.SpatialAudioLogger } },
         { "UI", new[] { LoggerType.UiCore, LoggerType.UserPairDrawer, LoggerType.Permissions, LoggerType.Simulation } },
-        { "WebAPI", new[] { LoggerType.PiShock, LoggerType.ApiCore, LoggerType.Callbacks, LoggerType.Health, LoggerType.HubFactory, LoggerType.JwtTokens } }
+        { "WebAPI", new[] { LoggerType.PiShock, LoggerType.ApiCore, LoggerType.Callbacks, LoggerType.Health, LoggerType.HubFactory, LoggerType.JwtTokens, LoggerType.Textures } }
     };
 
     private void DrawLoggerSettings()
@@ -1273,7 +1285,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"ForcedEmoteState: {clientPair.UserPairGlobalPerms.ForcedEmoteState}");
                         ImGui.Text($"ForcedToStay: {clientPair.UserPairGlobalPerms.ForcedStay}");
                         ImGui.Text($"Blindfold: {clientPair.UserPairGlobalPerms.ForcedBlindfold}");
-                        ImGui.Text($"HiddenChat: {clientPair.UserPairGlobalPerms.ChatboxesHidden}");
+                        ImGui.Text($"HiddenChat: {clientPair.UserPairGlobalPerms.ChatBoxesHidden}");
                         ImGui.Text($"HiddenChatInput: {clientPair.UserPairGlobalPerms.ChatInputHidden}");
                         ImGui.Text($"BlockingChatInput: {clientPair.UserPairGlobalPerms.ChatInputBlocked}");
                     }
@@ -1320,7 +1332,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text($"AllowForcedEmoteState: {clientPair.UserPairUniquePairPerms.AllowForcedEmote}");
                         ImGui.Text($"AllowForcedToStay: {clientPair.UserPairUniquePairPerms.AllowForcedToStay}");
                         ImGui.Text($"AllowBlindfold: {clientPair.UserPairUniquePairPerms.AllowBlindfold}");
-                        ImGui.Text($"AllowHiddenChat: {clientPair.UserPairUniquePairPerms.AllowHidingChatboxes}");
+                        ImGui.Text($"AllowHiddenChat: {clientPair.UserPairUniquePairPerms.AllowHidingChatBoxes}");
                         ImGui.Text($"AllowHiddenChatInput: {clientPair.UserPairUniquePairPerms.AllowHidingChatInput}");
                         ImGui.Text($"AllowBlockingChatInput: {clientPair.UserPairUniquePairPerms.AllowChatInputBlocking}");
                     }
@@ -1387,15 +1399,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Wardrobe Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
-                        ImGui.Text($"OutfitList:");
-                        ImGui.Indent();
-                        foreach (var outfit in clientPair.LastReceivedWardrobeData.Outfits)
-                        {
-                            ImGui.Text($"{outfit}");
-                        }
-                        ImGui.Unindent();
                         ImGui.Text($"ActiveSetId: {clientPair.LastReceivedWardrobeData.ActiveSetId}");
-                        ImGui.Text($"ActiveSetName: {clientPair.LastReceivedWardrobeData.ActiveSetName}");
                         ImGui.Text($"ActiveSetEnabledBy: {clientPair.LastReceivedWardrobeData.ActiveSetEnabledBy}");
                         ImGui.Text($"ActiveSetLockType: {clientPair.LastReceivedWardrobeData.Padlock}");
                         ImGui.Text($"ActiveSetLockPassword: {clientPair.LastReceivedWardrobeData.Password}");
@@ -1418,38 +1422,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Unindent();
                     }
                 }
-                if (clientPair.LastReceivedToyboxData != null)
-                {
-                    if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Pattern Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
-                    {
-                        foreach (var pattern in clientPair.LastReceivedToyboxData.PatternList)
-                        {
-                            ImGui.Text("Identifier:" + pattern.Identifier);
-                            ImGui.Text($"Pattern Name: {pattern.Name}");
-                            ImGui.Text($"Pattern Duration: {pattern.Duration}");
-                            ImGui.Text($"Pattern ShouldLoop: {pattern.ShouldLoop}");
-                        }
-                        ImGui.Text("Transaction ID: " + clientPair.LastReceivedToyboxData.TransactionId);
-                    }
-                }
-
-                if (clientPair.HasCachedPlayer)
-                {
-                    ImGui.Text($"OnlineUser UID: {clientPair.CachedPlayerOnlineDto.User.UID}");
-                    ImGui.Text($"OnlineUser Alias: {clientPair.CachedPlayerOnlineDto.User.Alias}");
-                    ImGui.Text($"OnlineUser Identifier: {clientPair.CachedPlayerOnlineDto.Ident}");
-                    ImGui.Text($"HasCachedPlayer? : {clientPair.HasCachedPlayer}");
-                    ImGui.Text(clientPair.CachedPlayerString());
-                }
-                else
-                {
-                    ImGui.Text("Player has no cached data");
-                }
-                ImGui.Unindent();
             }
         }
-        // Note: Ensure that the _allClientPairs field in PairManager is accessible from SettingsUi.
-        // You might need to adjust its access modifier or provide a public method/property to access it safely.
     }
 
 
@@ -1487,7 +1461,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.Text($"ForcedEmoteState: {globalPerms.ForcedEmoteState}");
         ImGui.Text($"ForcedToStay: {globalPerms.ForcedStay}");
         ImGui.Text($"Blindfold: {globalPerms.ForcedBlindfold}");
-        ImGui.Text($"HiddenChat: {globalPerms.ChatboxesHidden}");
+        ImGui.Text($"HiddenChat: {globalPerms.ChatBoxesHidden}");
         ImGui.Text($"HiddenChatInput: {globalPerms.ChatInputHidden}");
         ImGui.Text($"BlockingChatInput: {globalPerms.ChatInputBlocked}");
     }

@@ -43,7 +43,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     // player object cache to create. Item1 == NULL while no changes have occurred.
     private CacheData _cacheToCreate;
 
-    private readonly CharacterIPCData _playerIpcData = new(); // handler for our player character's IPC data.
+    private readonly CharaIPCData _playerIpcData = new(); // handler for our player character's IPC data.
     private readonly GameObjectHandler _playerObject;         // handler for player characters object.
 
     public CacheCreationService(ILogger<CacheCreationService> logger, GagspeakMediator mediator,
@@ -194,7 +194,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     }
 
     /*   Creating and Buildering Character Information from IPC data */
-    public async Task BuildCharacterData(CharacterIPCData prevData, CacheData playerObjData, CancellationToken token)
+    public async Task BuildCharacterData(CharaIPCData prevData, CacheData playerObjData, CancellationToken token)
     {
         if (playerObjData.GameObj == null || playerObjData.GameObj.Address == nint.Zero) return;
 
@@ -258,14 +258,14 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         }
     }
 
-    private async Task StatusManagerUpdate(CharacterIPCData data, CacheData playerObjData)
+    private async Task StatusManagerUpdate(CharaIPCData data, CacheData playerObjData)
     {
         data.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(playerObjData.GameObj!.NameWithWorld).ConfigureAwait(false) ?? string.Empty;
         data.MoodlesDataStatuses = await _ipcManager.Moodles.GetStatusInfoAsync(playerObjData.GameObj.NameWithWorld).ConfigureAwait(false) ?? new();
         AppearanceManager.LatestClientMoodleStatusList = data.MoodlesDataStatuses; // Sync with latest Data
     }
 
-    private async Task StatusSettingsUpdate(CharacterIPCData data, CacheData playerObjData, Guid guid)
+    private async Task StatusSettingsUpdate(CharaIPCData data, CacheData playerObjData, Guid guid)
     {
         // Find the index of the tuple containing the GUID.
         var index = data.MoodlesStatuses.FindIndex(x => x.GUID == guid);
@@ -279,7 +279,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         }
     }
 
-    private async Task PresetSettingsUpdate(CharacterIPCData data, CacheData playerObjData, Guid guid)
+    private async Task PresetSettingsUpdate(CharaIPCData data, CacheData playerObjData, Guid guid)
     {
         // Find the index containing the GUID.
         var index = data.MoodlesPresets.FindIndex(x => x.Item1 == guid);

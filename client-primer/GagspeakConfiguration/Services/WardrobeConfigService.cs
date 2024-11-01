@@ -84,10 +84,10 @@ public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
             // Copy AssociatedMods directly
             v3Set["AssociatedMods"] = v2Set["AssociatedMods"];
 
-            // Initialize new collections for AssociatedMoodles, ViewAccess, SetProperties
+            // Initialize new collections for AssociatedMoodles, ViewAccess, SetTraits
             v3Set["AssociatedMoodles"] = new JArray();
             v3Set["ViewAccess"] = v2Set["ViewAccess"];
-            v3Set["SetProperties"] = v2Set["SetProperties"];
+            v3Set["SetTraits"] = v2Set["SetTraits"];
 
             v3RestraintSets.Add(v3Set);
         }

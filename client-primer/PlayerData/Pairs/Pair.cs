@@ -1,30 +1,33 @@
-using GagSpeak.PlayerData.Factories;
-using GagSpeak.PlayerData.Handlers;
-using GagSpeak.Services.Mediator;
-using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.WebAPI.Utils;
-using GagspeakAPI.Data;
-using GagspeakAPI.Enums;
-using GagspeakAPI.Dto.User;
-using GagspeakAPI.Data.Character;
-using GagspeakAPI.Dto.Connection;
-using GagspeakAPI.Dto.UserPair;
-using GagspeakAPI.Data.Permissions;
 using Dalamud.Game.ClientState.Objects.Types;
-using GagspeakAPI.Helpers;
 using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Game.Text.SeStringHandling;
-using Penumbra.GameData.Structs;
-using GagSpeak.Services.Textures;
 using Dalamud.Interface.Textures.TextureWraps;
+using GagSpeak.PlayerData.Factories;
+using GagSpeak.PlayerData.Handlers;
+using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
+using GagSpeak.WebAPI.Utils;
+using GagspeakAPI.Data;
+using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.IPC;
+using GagspeakAPI.Data.Permissions;
+using GagspeakAPI.Dto.Connection;
+using GagspeakAPI.Dto.UserPair;
 
 namespace GagSpeak.PlayerData.Pairs;
 
-/// <summary> Stores information about a paired user of the client.
-/// <para> The Pair object is created by the PairFactory, which is responsible for generating pair objects.</para>
-/// <para> These pair objects are then created and deleted via the pair manager</para>
-/// <para> The pair handler is what helps with the management of the CachedPlayer.</para>
+/// <summary> 
+/// Stores information about a paired user of the client.
+/// <para> 
+/// The Pair object is created by the PairFactory, which is responsible for generating pair objects.
+/// </para>
+/// <para> 
+/// These pair objects are then created and deleted via the pair manager
+/// </para>
+/// <para> 
+/// The pair handler is what helps with the management of the CachedPlayer.
+/// </para>
 /// </summary>
 public class Pair
 {
@@ -71,16 +74,14 @@ public class Pair
     public UserPairPermissions UserPairUniquePairPerms => UserPair.OtherPairPerms;  // the pair permissions of the pair.
     public UserEditAccessPermissions UserPairEditAccess => UserPair.OtherEditAccessPerms; // the edit permissions of the pair.
     public UserGlobalPermissions UserPairGlobalPerms => UserPair.OtherGlobalPerms;  // the global permissions of the pair.
-    
+
     // Latest cached data for this pair.
-    public CharacterIPCData? LastReceivedIpcData { get; set; }
-    public CharacterAppearanceData? LastReceivedAppearanceData { get; set; }
-    public CharacterWardrobeData? LastReceivedWardrobeData { get; set; }
-    public CharacterAliasData? LastReceivedAliasData { get; set; }
-    public CharacterToyboxData? LastReceivedToyboxData { get; set; }
-    public PiShockPermissions LastOwnPiShockPermsForPair { get; set; } = new();
-    public PiShockPermissions LastPairGlobalShockPerms { get; set; } = new();
-    public PiShockPermissions LastPairPiShockPermsForYou { get; set; } = new();
+    public CharaIPCData? LastReceivedIpcData { get; set; }
+    public CharaAppearanceData? LastReceivedAppearanceData { get; set; }
+    public CharaWardrobeData? LastReceivedWardrobeData { get; set; }
+    public CharaAliasData? LastReceivedAliasData { get; set; }
+    public CharaToyboxData? LastReceivedToyboxData { get; set; }
+    public CharaStorageData? LastReceivedLightStorage { get; set; }
 
 
     // Most of these attributes should be self explanatory, but they are public methods you can fetch from the pair manager.
@@ -141,7 +142,7 @@ public class Pair
         menuItem.OnClicked += clickedArgs => logger.LogInformation("Submenu Item 1 Clicked!", LoggerType.ContextDtr);
 
         menuItems.Add(menuItem);
-        
+
 
         var menuItem2 = new MenuItem();
         menuItem2.Name = "SubMenu Test Item 2";
@@ -191,7 +192,7 @@ public class Pair
                 if (!combined.IsCancellationRequested)
                 {
                     // apply the last received data
-                    _logger.LogDebug("Applying delayed data for "+data.User.UID, LoggerType.PairManagement);
+                    _logger.LogDebug("Applying delayed data for " + data.User.UID, LoggerType.PairManagement);
                     ApplyLastReceivedIpcData(); // in essence, this means apply the character data send in the Dto
                 }
             });
@@ -208,7 +209,7 @@ public class Pair
     /// </summary>
     public void ApplyAppearanceData(OnlineUserCharaAppearanceDataDto data)
     {
-        _logger.LogDebug("Applying updated appearance data for "+data.User.UID, LoggerType.PairManagement);
+        _logger.LogDebug("Applying updated appearance data for " + data.User.UID, LoggerType.PairManagement);
         LastReceivedAppearanceData = data.AppearanceData;
     }
 
@@ -218,7 +219,7 @@ public class Pair
     /// </summary>
     public void ApplyWardrobeData(OnlineUserCharaWardrobeDataDto data)
     {
-        _logger.LogDebug("Applying updated wardrobe data for "+data.User.UID, LoggerType.PairManagement);
+        _logger.LogDebug("Applying updated wardrobe data for " + data.User.UID, LoggerType.PairManagement);
         var previousSetId = LastReceivedWardrobeData?.ActiveSetId ?? Guid.Empty;
         var previousLock = LastReceivedWardrobeData?.Padlock.ToPadlock() ?? Padlocks.None;
 
@@ -274,45 +275,20 @@ public class Pair
         }
     }
 
-    /// <summary>
-    /// Applies the updated alias list the user pair has provided for you. 
-    /// This is sent to all online players, not just visible.
-    /// 
-    /// Because of this, simply applying the data is enough.
-    /// </summary>
     public void ApplyToyboxData(OnlineUserCharaToyboxDataDto data)
     {
         _logger.LogDebug("Applying updated toybox data for " + data.User.UID, LoggerType.PairManagement);
-        //_logger.LogTrace("Toybox Information: "+data.ToyboxInfo.ParseToString(), LoggerType.PairManagement);
         LastReceivedToyboxData = data.ToyboxInfo;
     }
 
-    public void ApplyPiShockPermData(OnlineUserCharaPiShockPermDto data)
+    public void ApplyLightStorageData(OnlineUserStorageUpdateDto data)
     {
-        if (data.UpdateKind == DataUpdateKind.PiShockGlobalUpdated)
-        {
-            LastPairGlobalShockPerms = data.shockPerms;
-        }
-        else if (data.UpdateKind == DataUpdateKind.PiShockOwnPermsForPairUpdated)
-        {
-            LastOwnPiShockPermsForPair = data.shockPerms;
-        }
-        else if (data.UpdateKind == DataUpdateKind.PiShockPairPermsForUserUpdated)
-        {
-            LastPairPiShockPermsForYou = data.shockPerms;
-        }
-        else
-        {
-            _logger.LogWarning("Failed to apply permission updates");
-        }
+        _logger.LogDebug("Applying updated light storage data for " + data.User.UID, LoggerType.PairManagement);
+        LastReceivedLightStorage = data.LightStorage;
     }
 
-    /// <summary> Method that applies the last received data to the cached player.
-    /// <para> It does this only if the CachedPlayer is not null, and the LastReceivedCharacterData is not null.</para>
-    /// </summary>
     public void ApplyLastReceivedIpcData(bool forced = false)
     {
-        // if we have not yet recieved data from the player at least once since being online, return and do not apply.
         // ( This implies that the pair object has had its CreateCachedPlayer method called )
         if (CachedPlayer == null) return;
 
@@ -323,9 +299,14 @@ public class Pair
         CachedPlayer.ApplyCharacterData(Guid.NewGuid(), LastReceivedIpcData);
     }
 
-    /// <summary> Method that creates the cached player (PairHandler) object for the client pair.
-    /// <para> This method is ONLY EVER CALLED BY THE PAIR MANAGER under the <c>MarkPairOnline</c> method!</para>
-    /// <para> Until the CachedPlayer object is made, the client will not apply any data sent from this paired user.</para>
+    /// <summary> 
+    /// Method that creates the cached player (PairHandler) object for the client pair.
+    /// <para> 
+    /// This method is ONLY EVER CALLED BY THE PAIR MANAGER under the <c>MarkPairOnline</c> method!
+    /// </para>
+    /// <para> 
+    /// Until the CachedPlayer object is made, the client will not apply any data sent from this paired user.
+    /// </para>
     /// </summary>
     public void CreateCachedPlayer(OnlineUserIdentDto? dto = null)
     {
@@ -449,7 +430,7 @@ public class Pair
             // dispose of the player object.
             player?.Dispose();
             // log the pair as offline
-            _logger.LogTrace("Marked "+UserData.UID+" as offline", LoggerType.PairManagement);
+            _logger.LogTrace("Marked " + UserData.UID + " as offline", LoggerType.PairManagement);
         }
         finally
         {

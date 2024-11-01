@@ -13,6 +13,7 @@ using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
+using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
 using Microsoft.IdentityModel.Tokens;
@@ -353,9 +354,11 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     /// I swear to god, so not set anything inside this object through this fetch. Treat it as readonly.
     /// </summary>
     internal List<RestraintSet> StoredRestraintSets => WardrobeConfig.WardrobeStorage.RestraintSets;
-    public List<RestraintDto> GetRestraintSetDtos => WardrobeConfig.WardrobeStorage.RestraintSets.Select(set => set.ToDto()).ToList();
+    public List<LightRestraintData> LightRestraintData => WardrobeConfig.WardrobeStorage.RestraintSets.Select(set => set.ToLightData()).ToList();
     internal int GetActiveSetIdx() => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Enabled);
     internal int GetSetIdxByGuid(Guid id) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.RestraintId == id);
+    internal string GetSetNameByGuid(Guid id) => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.RestraintId == id)?.Name ?? "Unknown";
+
     internal RestraintSet? GetActiveSet() => WardrobeConfig.WardrobeStorage.RestraintSets.FirstOrDefault(x => x.Enabled)!; // this can be null.
     internal RestraintSet GetRestraintSet(int setIndex) => WardrobeConfig.WardrobeStorage.RestraintSets[setIndex];
     internal int GetRestraintSetIdxByName(string name) => WardrobeConfig.WardrobeStorage.RestraintSets.FindIndex(x => x.Name == name);
@@ -368,7 +371,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _wardrobeConfig.Save();
         Logger.LogInformation("Restraint Set added to wardrobe", LoggerType.Restraints);
         // publish to mediator
-        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     internal void AddNewRestraintSet(RestraintSet newSet)
@@ -380,7 +383,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _wardrobeConfig.Save();
         Logger.LogInformation("Restraint Set added to wardrobe", LoggerType.Restraints);
         // publish to mediator
-        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     internal void AddNewRestraintSets(List<RestraintSet> newSets)
@@ -397,7 +400,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _wardrobeConfig.Save();
         Logger.LogInformation("Added " + newSets.Count + " Restraint Sets to wardrobe", LoggerType.Restraints);
         // publish to mediator
-        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     // remove a restraint set
@@ -405,7 +408,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     {
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.RemoveAt(setIndex);
         _wardrobeConfig.Save();
-        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     internal void SaveWardrobe() => _wardrobeConfig.Save();
@@ -422,7 +425,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     {
         WardrobeConfig.WardrobeStorage.RestraintSets[idxOfOriginal] = updatedSet;
         _wardrobeConfig.Save();
-        Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintOutfitsUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
         // Invoke the restraint updated achievement.
         UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintUpdated, updatedSet);
     }
@@ -561,7 +564,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _patternConfig.Save();
         // publish to mediator one was added
         Logger.LogInformation("Pattern Added: " + newPattern.Name, LoggerType.ToyboxPatterns);
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     // Bulk variant.
@@ -577,7 +580,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _patternConfig.Save();
         // publish to mediator one was added
         Logger.LogInformation("Added: " + newPattern.Count + " Patterns to Toybox", LoggerType.ToyboxPatterns);
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     public void RemovePattern(Guid identifierToRemove)
@@ -586,11 +589,8 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         var indexToRemove = PatternConfig.PatternStorage.Patterns.FindIndex(x => x.UniqueIdentifier == identifierToRemove);
         PatternConfig.PatternStorage.Patterns.RemoveAt(indexToRemove);
         _patternConfig.Save();
-        // publish to mediator one was removed
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
 
         // iterate through the alarms to see if we need to remove patterns from any of them.
-        bool anyChanged = false;
         foreach(var alarm in AlarmConfig.AlarmStorage.Alarms)
         {
             if (alarm.PatternToPlay == identifierToRemove)
@@ -598,12 +598,12 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
                 alarm.PatternToPlay = Guid.Empty;
                 alarm.PatternStartPoint = TimeSpan.Zero;
                 alarm.PatternDuration = TimeSpan.Zero;
-                anyChanged = true;
             }
         }
         _alarmConfig.Save();
-        if (anyChanged)
-            Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
+
+        // publish to mediator one was removed and any potential alarms were updated.
+        Mediator.Publish(new PlayerCharStorageUpdated());
 
     }
 
@@ -611,7 +611,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     {
         PatternConfig.PatternStorage.Patterns[idx] = pattern;
         _patternConfig.Save();
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxPatternListUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     internal void SavePatterns() => _patternConfig.Save();
@@ -628,7 +628,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _alarmConfig.Save();
 
         Logger.LogInformation("Alarm Added: " + alarm.Name, LoggerType.ToyboxAlarms);
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     public void RemoveAlarm(Alarm alarmToRemove)
@@ -636,14 +636,14 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Logger.LogInformation("Alarm Removed: " + alarmToRemove.Name, LoggerType.ToyboxAlarms);
         AlarmConfig.AlarmStorage.Alarms.RemoveAll(x => x.Identifier == alarmToRemove.Identifier);
         _alarmConfig.Save();
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     public void UpdateAlarm(Alarm alarm, int idx)
     {
         AlarmConfig.AlarmStorage.Alarms[idx] = alarm;
         _alarmConfig.Save();
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxAlarmListUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     internal void SaveAlarms() => _alarmConfig.Save();
@@ -667,7 +667,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _triggerConfig.Save();
 
         Logger.LogInformation("Trigger Added: " + trigger.Name, LoggerType.ToyboxTriggers);
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerListUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     public void RemoveTrigger(Trigger triggerToRemove)
@@ -675,14 +675,14 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Logger.LogInformation("Trigger Removed: " + triggerToRemove.Name, LoggerType.ToyboxTriggers);
         TriggerConfig.TriggerStorage.Triggers.RemoveAll(x => x.TriggerIdentifier == triggerToRemove.TriggerIdentifier);
         _triggerConfig.Save();
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerListUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     public void UpdateTrigger(Trigger trigger, int idx)
     {
         TriggerConfig.TriggerStorage.Triggers[idx] = trigger;
         _triggerConfig.Save();
-        Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerListUpdated));
+        Mediator.Publish(new PlayerCharStorageUpdated());
     }
 
     internal void SaveTriggers() => _triggerConfig.Save();
@@ -707,13 +707,27 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
 
     #region API Compilation
-    public CharacterToyboxData CompileToyboxToAPI()
+    public CharaToyboxData CompileToyboxToAPI()
     {
-        return new CharacterToyboxData
+        return new CharaToyboxData
         {
-            PatternList = PatternConfig.PatternStorage.Patterns.Select(x => x.ToDto()).ToList(),
-            AlarmList = AlarmConfig.AlarmStorage.Alarms.Select(x => x.ToDto()).ToList(),
-            TriggerList = TriggerConfig.TriggerStorage.Triggers.Select(x => x.ToDto()).ToList()
+            ActivePatternId = ActivePatternGuid(),
+            ActiveAlarms = AlarmConfig.AlarmStorage.Alarms.Where(x => x.Enabled).Select(x => x.Identifier).ToList(),
+            ActiveTriggers = TriggerConfig.TriggerStorage.Triggers.Where(x => x.Enabled).Select(x => x.TriggerIdentifier).ToList(),
+        };
+    }
+
+    public CharaStorageData CompileLightStorageToAPI()
+    {
+        return new CharaStorageData
+        {
+            GagItems = new Dictionary<GagType, AppliedSlot>(),
+            Restraints = new List<LightRestraintData>(),
+            CursedItems = new List<LightCursedItem>(),
+            BlindfoldItem = WardrobeConfig.WardrobeStorage.BlindfoldInfo.GetAppliedSlot(),
+            Patterns = PatternConfig.PatternStorage.Patterns.Select(x => x.ToLightData()).ToList(),
+            Alarms = AlarmConfig.AlarmStorage.Alarms.Select(x => x.ToLightData()).ToList(),
+            Triggers = TriggerConfig.TriggerStorage.Triggers.Select(x => x.ToLightData()).ToList(),
         };
     }
     #endregion API Compilation

@@ -37,11 +37,10 @@ public sealed partial class ToyboxHub : GagspeakHubBase, IToyboxHubClient
     public static ToyboxConnectionDto? ToyboxConnectionDto = null;
 
     public ToyboxHub(ILogger<ToyboxHub> logger, GagspeakMediator mediator, HubFactory hubFactory, 
-        TokenProvider tokenProvider, PairManager pairs, PiShockProvider piShockProvider, 
-        ServerConfigurationManager serverConfigs, GagspeakConfigService mainConfig, 
-        ClientCallbackService clientCallbacks, OnFrameworkService frameworkUtils, 
-        PrivateRoomManager privateRooms) : base(logger, mediator, hubFactory, piShockProvider, 
-            tokenProvider, pairs, serverConfigs, mainConfig, clientCallbacks, frameworkUtils)
+        TokenProvider tokenProvider, PairManager pairs, ServerConfigurationManager serverConfigs, 
+        GagspeakConfigService mainConfig, ClientCallbackService clientCallbacks, 
+        OnFrameworkService frameworkUtils, PrivateRoomManager privateRooms) 
+        : base(logger, mediator, hubFactory, tokenProvider, pairs, serverConfigs, mainConfig, clientCallbacks, frameworkUtils)
     {
         _privateRooms = privateRooms;
 

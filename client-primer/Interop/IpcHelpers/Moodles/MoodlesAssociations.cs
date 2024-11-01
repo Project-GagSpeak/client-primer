@@ -28,7 +28,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
     private Guid SelectedPresetGuid = Guid.Empty;
 
     // main draw function for the mod associations table
-    public void DrawMoodlesStatusesListForItem(IMoodlesAssociable associable, CharacterIPCData? lastPlayerIpcData, float paddingHeight, bool isPresets)
+    public void DrawMoodlesStatusesListForItem(IMoodlesAssociable associable, CharaIPCData? lastPlayerIpcData, float paddingHeight, bool isPresets)
     {
         if (lastPlayerIpcData == null) return;
 
@@ -104,7 +104,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
     }
 
 
-    private void DrawAssociatedMoodleRow(CharacterIPCData clientIpcData, Guid moodleGuid, int idx, out Guid? removedMoodleTmp)
+    private void DrawAssociatedMoodleRow(CharaIPCData clientIpcData, Guid moodleGuid, int idx, out Guid? removedMoodleTmp)
     {
         removedMoodleTmp = null;
         ImGui.TableNextColumn();
@@ -122,7 +122,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
         ImGui.Selectable($" {friendlyName}##name");
     }
 
-    private void DrawAssociatedMoodlePresetRow(CharacterIPCData clientIpcData, Guid presetGuid, int idx, out Guid? removedPresetTmp)
+    private void DrawAssociatedMoodlePresetRow(CharaIPCData clientIpcData, Guid presetGuid, int idx, out Guid? removedPresetTmp)
     {
         removedPresetTmp = null;
         ImGui.TableNextColumn();
@@ -148,7 +148,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
         }
     }
 
-    private void DrawSetNewMoodleRow(IMoodlesAssociable refSet, CharacterIPCData ipcData)
+    private void DrawSetNewMoodleRow(IMoodlesAssociable refSet, CharaIPCData ipcData)
     {
         var displayList = ipcData.MoodlesStatuses;
 
@@ -170,7 +170,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
             (i) => SelectedStatusGuid = i ?? Guid.Empty, 1.25f);
     }
 
-    private void DrawSetNewMoodlePresetRow(IMoodlesAssociable refSet, CharacterIPCData ipcData)
+    private void DrawSetNewMoodlePresetRow(IMoodlesAssociable refSet, CharaIPCData ipcData)
     {
         var displayList = ipcData.MoodlesPresets;
         // if the size is 0, then make the default preview value "No Presets Available"
@@ -195,7 +195,7 @@ public class MoodlesAssociations : DisposableMediatorSubscriberBase
             ipcData.MoodlesStatuses, (i) => SelectedPresetGuid = i ?? Guid.Empty);
     }
 
-    public void MoodlesStatusSelectorForCursedItem(CursedItem cursedItem, CharacterIPCData ipcData, float width)
+    public void MoodlesStatusSelectorForCursedItem(CursedItem cursedItem, CharaIPCData ipcData, float width)
     {
         if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus)
         {

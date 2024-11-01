@@ -52,11 +52,11 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         GameItemCombo = _itemStainHandler.ObtainItemCombos();
         StainCombo = _itemStainHandler.ObtainStainCombos(ComboWidth);
 
-        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharaIPCData);
     }
 
     // Info related to the person we are inspecting.
-    private CharacterIPCData LastCreatedCharacterData = null!;
+    private CharaIPCData LastCreatedCharacterData = null!;
     
     private LowerString GagSearchString = LowerString.Empty;
     private string CustomizePlusSearchString = LowerString.Empty;

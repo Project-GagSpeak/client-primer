@@ -1,3 +1,4 @@
+using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
@@ -45,12 +46,11 @@ public record PatternData
     /// <summary> The pattern byte data </summary>
     public List<byte> PatternByteData { get; set; } = new();
 
-    public PatternDto ToDto()
+    public LightPattern ToLightData()
     {
-        return new PatternDto()
+        return new LightPattern()
         {
             Identifier = UniqueIdentifier,
-            Enabled = IsActive,
             Name = Name,
             Duration = Duration,
             ShouldLoop = ShouldLoop,

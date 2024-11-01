@@ -1,5 +1,6 @@
 
 using GagSpeak.Utils;
+using GagspeakAPI.Data.Struct;
 using Penumbra.GameData.Enums;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
@@ -20,6 +21,15 @@ public class BlindfoldModel
     public bool ForceVisorOnEnable { get; set; } = false;
     public List<Guid> BlindfoldMoodles { get; set; } = new List<Guid>();
     public EquipDrawData BlindfoldItem { get; set; }
+
+    public AppliedSlot GetAppliedSlot()
+    {
+        return new AppliedSlot
+        {
+            Slot = (byte)BlindfoldItem.Slot,
+            CustomItemId = BlindfoldItem.GameItem.Id.Id,
+        };
+    }
 
     public JObject Serialize()
     {

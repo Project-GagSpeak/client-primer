@@ -3,6 +3,7 @@ using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Utils;
+using GagspeakAPI.Data;
 using GagspeakAPI.Extensions;
 using System.Runtime.InteropServices;
 
@@ -164,7 +165,7 @@ public partial class AchievementManager
             var activeSet = _clientConfigs.GetActiveSet();
             if (activeSet is null) return false;
 
-            if (activeSet.SetProperties.TryGetValue(activeSet.EnabledBy, out var prop))
+            if (activeSet.SetTraits.TryGetValue(activeSet.EnabledBy, out var prop))
                 return prop.StimulationLevel is not StimulationLevel.None;
 
             return false;
@@ -176,7 +177,7 @@ public partial class AchievementManager
             var activeSet = _clientConfigs.GetActiveSet();
             if (activeSet is null) return false;
 
-            if (activeSet.SetProperties.TryGetValue(activeSet.EnabledBy, out var prop))
+            if (activeSet.SetTraits.TryGetValue(activeSet.EnabledBy, out var prop))
                 return prop.ArmsRestrained || prop.LegsRestrained;
 
             return false;
@@ -188,7 +189,7 @@ public partial class AchievementManager
             var activeSet = _clientConfigs.GetActiveSet();
             if (activeSet is null) return false;
 
-            if (activeSet.SetProperties.TryGetValue(activeSet.EnabledBy, out var prop))
+            if (activeSet.SetTraits.TryGetValue(activeSet.EnabledBy, out var prop))
                 return prop.Blindfolded;
 
             return false;
@@ -257,7 +258,7 @@ public partial class AchievementManager
         toyboxComponent.AddDuration(ToyboxLabels.EnduranceQueen, "Play a pattern for an hour (59m) without pause.", TimeSpan.FromHours(1), DurationTimeUnit.Minutes);
 
         toyboxComponent.AddConditional(ToyboxLabels.MyFavoriteToys, "Connect a real device (Intiface / PiShock Device) to GagSpeak.", () =>
-            { return _playerData.GlobalPiShockPerms != null || _vibeService.DeviceHandler.AnyDeviceConnected; }, "Devices Connected");
+            { return (_playerData.GlobalPerms?.HasValidShareCode() ?? false)  || _vibeService.DeviceHandler.AnyDeviceConnected; }, "Devices Connected");
 
         toyboxComponent.AddRequiredTimeConditional(ToyboxLabels.MotivationForRestoration, "Play a pattern for over 30 minutes in Diadem.", TimeSpan.FromMinutes(30),
             () => _clientConfigs.ActivePatternGuid() != Guid.Empty, DurationTimeUnit.Minutes, suffix: " Vibrated in Diadem");

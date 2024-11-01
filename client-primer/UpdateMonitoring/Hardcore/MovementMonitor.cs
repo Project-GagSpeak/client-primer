@@ -121,7 +121,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             return;
 
         // Grab properties.
-        var properties = restraintSet.SetProperties[restraintSet.EnabledBy];
+        var properties = restraintSet.SetTraits[restraintSet.EnabledBy];
         // if the set has a weighty property, we need to disable the walking state
         if (properties.Weighty)
             HandleWeighty = newState is NewState.Enabled ? true : false;

@@ -196,7 +196,6 @@ public partial class MainHub
         {
             await GagSpeakHubMain!.InvokeAsync(nameof(UserPushData), dto).ConfigureAwait(false);
         }
-        // if it failed, log it
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed to Push character data");
@@ -213,7 +212,6 @@ public partial class MainHub
         {
             await GagSpeakHubMain!.InvokeAsync(nameof(UserPushDataIpc), dto).ConfigureAwait(false);
         }
-        // if it failed, log it
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed to Push character data");
@@ -230,7 +228,6 @@ public partial class MainHub
         {
             await GagSpeakHubMain!.InvokeAsync(nameof(UserPushDataAppearance), dto).ConfigureAwait(false);
         }
-        // if it failed, log it
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed to Push character data");
@@ -247,7 +244,6 @@ public partial class MainHub
         {
             await GagSpeakHubMain!.InvokeAsync(nameof(UserPushDataWardrobe), dto).ConfigureAwait(false);
         }
-        // if it failed, log it
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed to Push character data");
@@ -264,7 +260,6 @@ public partial class MainHub
         {
             await GagSpeakHubMain!.InvokeAsync(nameof(UserPushDataAlias), dto).ConfigureAwait(false);
         }
-        // if it failed, log it
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed to Push character data");
@@ -281,25 +276,28 @@ public partial class MainHub
         {
             await GagSpeakHubMain!.InvokeAsync(nameof(UserPushDataToybox), dto).ConfigureAwait(false);
         }
-        // if it failed, log it
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed to Push character data");
         }
     }
 
-    public async Task UserPushPiShockUpdate(UserCharaPiShockPermMessageDto dto)
+
+    /// <summary>
+    /// Pushes the toybox pattern & trigger information of the client to other recipients.
+    /// </summary>
+    public async Task UserPushDataLightStorage(UserCharaStorageUpdateDto dto)
     {
+        // try and push the character data dto to the server
         try
         {
-            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushPiShockUpdate), dto).ConfigureAwait(false);
+            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushDataLightStorage), dto).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Failed to Push PiShock update");
+            Logger.LogWarning(ex, "Failed to Push character data");
         }
     }
-
 
     public async Task UserPushAllGlobalPerms(UserAllGlobalPermChangeDto allGlobalPerms)
     {
@@ -406,9 +404,7 @@ public partial class MainHub
     /// <summary> 
     /// This will call upon characterDataInternal, which will handle the assignments and the recipients, storing them into the Dto
     /// </summary>
-    /// <param name="data"> the data to be sent to the list of users </param>
-    /// <param name="onlineCharacters"> the online characters the data will be sent to </param>
-    public async Task PushCharacterCompositeData(CharacterCompositeData data, List<UserData> onlineCharacters)
+    public async Task PushCharacterCompositeData(CharaCompositeData data, List<UserData> onlineCharacters)
     {
         if (!IsConnected) return;
 
@@ -424,9 +420,7 @@ public partial class MainHub
     /// <summary>
     /// Pushes Client's updated IPC data to the list of visible recipients.
     /// </summary>
-    /// <param name="data"> the data to be sent to the list of users </param>
-    /// <param name="visibleCharacters"> the currently visible characters who will recieve the updated IPC data </param>
-    public async Task PushCharacterIpcData(CharacterIPCData data, List<UserData> visibleCharacters, DataUpdateKind updateKind)
+    public async Task PushCharacterIpcData(CharaIPCData data, List<UserData> visibleCharacters, DataUpdateKind updateKind)
     {
         if (!IsConnected) return;
 
@@ -443,9 +437,7 @@ public partial class MainHub
     /// <summary>
     /// Pushes Client's updated appearance data to the list of online recipients.
     /// </summary>
-    /// <param name="data"></param>
-    /// <param name="onlineCharacters"></param>
-    public async Task PushCharacterAppearanceData(CharacterAppearanceData data, List<UserData> onlineCharacters, DataUpdateKind updateKind)
+    public async Task PushCharacterAppearanceData(CharaAppearanceData data, List<UserData> onlineCharacters, DataUpdateKind updateKind)
     {
         if (!IsConnected) return;
 
@@ -469,9 +461,7 @@ public partial class MainHub
     /// <summary>
     /// Pushes Client's updated wardrobe data to the list of online recipients.
     /// </summary>
-    /// <param name="data"> the data to be sent to the list of users </param>
-    /// <param name="onlineCharacters"> the online characters the data will be sent to </param>
-    public async Task PushCharacterWardrobeData(CharacterWardrobeData data, List<UserData> onlineCharacters, DataUpdateKind updateKind)
+    public async Task PushCharacterWardrobeData(CharaWardrobeData data, List<UserData> onlineCharacters, DataUpdateKind updateKind)
     {
         if (!IsConnected) return;
 
@@ -489,9 +479,7 @@ public partial class MainHub
     /// <summary>
     /// Pushes Client's updated alias list data to the respective recipient.
     /// </summary>
-    /// <param name="data"> the data to be sent to the list of users </param>
-    /// <param name="onlineCharacter"> the online pair the data will be sent to </param>
-    public async Task PushCharacterAliasListData(CharacterAliasData data, UserData onlineCharacter, DataUpdateKind updateKind)
+    public async Task PushCharacterAliasListData(CharaAliasData data, UserData onlineCharacter, DataUpdateKind updateKind)
     {
         if (!IsConnected) return;
 
@@ -507,9 +495,7 @@ public partial class MainHub
     /// <summary>
     /// Pushes Client's updated pattern information to the list of online recipients.
     /// </summary>
-    /// <param name="data"> the data to be sent to the list of users </param>
-    /// <param name="onlineCharacters"> the online characters the data will be sent to </param>
-    public async Task PushCharacterToyboxData(CharacterToyboxData data, List<UserData> onlineCharacters, DataUpdateKind updateKind)
+    public async Task PushCharacterToyboxData(CharaToyboxData data, List<UserData> onlineCharacters, DataUpdateKind updateKind)
     {
         if (!IsConnected) return;
 
@@ -523,33 +509,25 @@ public partial class MainHub
         catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Pattern Information"); }
     }
 
-    public async Task PushCharacterPiShockData(PiShockPermissions perms, List<UserData> userToPushTo, DataUpdateKind updateKind)
-    {
-        if(!IsConnected) return;
-
-        try
-        {
-            if (userToPushTo.Any()) Logger.LogDebug("Pushing PiShock to "+string.Join(", ", userToPushTo.Select(v => v.AliasOrUID)) + "[" + updateKind + "]", LoggerType.OnlinePairs);
-            await UserPushPiShockUpdate(new(userToPushTo, perms, updateKind)).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) { Logger.LogDebug("Upload operation was cancelled"); }
-        catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of PiShock Permissions"); }
-    }
-
     /// <summary>
-    /// Updates another pairs IPC data with the new changes you've made to them.
+    /// Pushes Client's updated Light Storage Data to the list of online recipients.
     /// </summary>
-    public async Task UserPushPairDataIpcUpdate(OnlineUserCharaIpcDataDto dto)
+    public async Task PushCharacterLightStorageData(CharaStorageData data, List<UserData> onlineCharacters)
     {
-        try
+        if (!IsConnected) return;
+
+        try // if connected, try to push the data to the server
         {
-            await GagSpeakHubMain!.InvokeAsync(nameof(UserPushPairDataIpcUpdate), dto).ConfigureAwait(false);
+            if (onlineCharacters.Any()) 
+                Logger.LogDebug("Pushing LightStorage Data to " + string.Join(", ", onlineCharacters.Select(v => v.AliasOrUID)) + "[Light Storage Update]", LoggerType.VisiblePairs);
+            
+            await UserPushDataLightStorage(new(onlineCharacters, data)).ConfigureAwait(false);
         }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, $"Failed to Push an update to {dto.User.UID}'s IPC data");
-        }
+        catch (OperationCanceledException) { Logger.LogWarning("Upload operation was cancelled"); }
+        catch (Exception ex) { Logger.LogWarning(ex, "Error during upload of Pattern Information"); }
     }
+
+
 
     /// <summary>
     /// Updates another pairs appearance data with the new changes you've made to them.

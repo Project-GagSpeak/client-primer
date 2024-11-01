@@ -190,7 +190,7 @@ public class PermissionPresetService
             AllowForcedSit = false,
             AllowForcedToStay = false,
             AllowBlindfold = false,
-            AllowHidingChatboxes = false,
+            AllowHidingChatBoxes = false,
             AllowHidingChatInput = false,
             AllowChatInputBlocking = false
         };
@@ -244,7 +244,7 @@ public class PermissionPresetService
             AllowForcedSit = false,
             AllowForcedToStay = false,
             AllowBlindfold = false,
-            AllowHidingChatboxes = false,
+            AllowHidingChatBoxes = false,
             AllowHidingChatInput = false,
             AllowChatInputBlocking = false
         };
@@ -299,7 +299,7 @@ public class PermissionPresetService
             AllowForcedSit = false,
             AllowForcedToStay = false,
             AllowBlindfold = false,
-            AllowHidingChatboxes = false,
+            AllowHidingChatBoxes = false,
             AllowHidingChatInput = false,
             AllowChatInputBlocking = false
         };
@@ -353,7 +353,7 @@ public class PermissionPresetService
             AllowForcedSit = false,
             AllowForcedToStay = false,
             AllowBlindfold = true,
-            AllowHidingChatboxes = false,
+            AllowHidingChatBoxes = false,
             AllowHidingChatInput = false,
             AllowChatInputBlocking = false
         };
@@ -408,7 +408,7 @@ public class PermissionPresetService
             AllowForcedSit = true,
             AllowForcedToStay = false,
             AllowBlindfold = true,
-            AllowHidingChatboxes = false,
+            AllowHidingChatBoxes = false,
             AllowHidingChatInput = false,
             AllowChatInputBlocking = false
         };
@@ -463,7 +463,7 @@ public class PermissionPresetService
             AllowForcedSit = true,
             AllowForcedToStay = true,
             AllowBlindfold = true,
-            AllowHidingChatboxes = false,
+            AllowHidingChatBoxes = false,
             AllowHidingChatInput = false,
             AllowChatInputBlocking = false
         };
@@ -518,7 +518,7 @@ public class PermissionPresetService
             AllowForcedSit = false,
             AllowForcedToStay = false,
             AllowBlindfold = true,
-            AllowHidingChatboxes = false,
+            AllowHidingChatBoxes = false,
             AllowHidingChatInput = false,
             AllowChatInputBlocking = false
         };
@@ -615,7 +615,7 @@ public class PermissionPresetService
             AllowForcedSit = true,
             AllowForcedToStay = false,
             AllowBlindfold = true,
-            AllowHidingChatboxes = false,
+            AllowHidingChatBoxes = false,
             AllowHidingChatInput = false,
             AllowChatInputBlocking = false
         };
@@ -712,7 +712,7 @@ public class PermissionPresetService
             AllowForcedSit = true,
             AllowForcedToStay = true,
             AllowBlindfold = true,
-            AllowHidingChatboxes = false,
+            AllowHidingChatBoxes = false,
             AllowHidingChatInput = false,
             AllowChatInputBlocking = false
         };

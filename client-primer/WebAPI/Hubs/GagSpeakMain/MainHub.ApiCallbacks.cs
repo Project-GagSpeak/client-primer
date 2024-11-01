@@ -489,20 +489,34 @@ public partial class MainHub
     /// <summary> 
     /// Update Other UserPair Toybox Data 
     /// </summary>
+    public Task Client_UserReceiveOwnLightStorage(OnlineUserStorageUpdateDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveOwnLightStorage:" + dataDto.User, LoggerType.Callbacks);
+        ExecuteSafely(() => _pairManager.ReceiveCharaLightStorageData(dataDto));
+        return Task.CompletedTask;
+    }
+
+    /// <summary> 
+    /// Update Own UserPair LightStorage Data 
+    /// </summary>
+    public Task Client_UserReceiveOtherLightStorage(OnlineUserStorageUpdateDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveOtherLightStorage:" + dataDto.User, LoggerType.Callbacks);
+        ExecuteSafely(() => _clientCallbacks.CallbackLightStorageUpdate(dataDto));
+        return Task.CompletedTask;
+    }
+
+    /// <summary> 
+    /// Update Other UserPair LightStorage Data 
+    /// </summary>
     public Task Client_UserReceiveOtherDataToybox(OnlineUserCharaToyboxDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOtherDataToybox:"+dataDto.User, LoggerType.Callbacks);
+        Logger.LogDebug("Client_UserReceiveOtherDataToybox:" + dataDto.User, LoggerType.Callbacks);
         ExecuteSafely(() => _pairManager.ReceiveCharaToyboxData(dataDto));
         return Task.CompletedTask;
     }
 
-    public Task Client_UserReceiveDataPiShock(OnlineUserCharaPiShockPermDto dataDto)
-    {
-        Logger.LogDebug("Client_UserReceiveOwnDataPiShock:"+dataDto.User, LoggerType.Callbacks);
-        // only case that doesn't offer feedback is updating own global, which should have been done before it was even sent out.
-        ExecuteSafely(() => _pairManager.ReceiveCharaPiShockPermData(dataDto));
-        return Task.CompletedTask;
-    }
+
 
     /// <summary> 
     /// Receive a Shock Instruction from another Pair. 
@@ -521,14 +535,14 @@ public partial class MainHub
                 if (!pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty())
                 {
                     Logger.LogDebug("Executing Shock Instruction to UniquePair ShareCode", LoggerType.Callbacks);
-                    _piShockProvider.ExecuteOperation(pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode, dto.OpCode, dto.Intensity, dto.Duration);
+                    Mediator.Publish(new PiShockExecuteOperation(pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode, dto.OpCode, dto.Intensity, dto.Duration));
                     if(dto.OpCode is 0)
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.ShockReceived);
                 }
                 else if (_clientCallbacks.ShockCodePresent)
                 {
                     Logger.LogDebug("Executing Shock Instruction to Global ShareCode", LoggerType.Callbacks);
-                    _piShockProvider.ExecuteOperation(_clientCallbacks.GlobalPiShockShareCode, dto.OpCode, dto.Intensity, dto.Duration);
+                    Mediator.Publish(new PiShockExecuteOperation(_clientCallbacks.GlobalPiShockShareCode, dto.OpCode, dto.Intensity, dto.Duration));
                     if (dto.OpCode is 0)
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.ShockReceived);
                 }
@@ -791,10 +805,16 @@ public partial class MainHub
         GagSpeakHubMain!.On(nameof(Client_UserReceiveOtherDataToybox), act);
     }
 
-    public void OnUserReceiveDataPiShock(Action<OnlineUserCharaPiShockPermDto> act)
+    public void OnUserReceiveOwnLightStorage(Action<OnlineUserStorageUpdateDto> act)
     {
         if (Initialized) return;
-        GagSpeakHubMain!.On(nameof(Client_UserReceiveDataPiShock), act);
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOwnLightStorage), act);
+    }
+
+    public void OnUserReceiveOtherLightStorage(Action<OnlineUserStorageUpdateDto> act)
+    {
+        if (Initialized) return;
+        GagSpeakHubMain!.On(nameof(Client_UserReceiveOtherLightStorage), act);
     }
 
     public void OnUserReceiveShockInstruction(Action<ShockCollarActionDto> act)

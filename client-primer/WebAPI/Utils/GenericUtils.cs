@@ -34,8 +34,8 @@ public static class GenericUtils
     /// One big nasty function for checking for updated data. (obviously i shorted it a lot lol)
     /// </summary>
     /// <returns></returns>
-    public static HashSet<PlayerChanges> CheckUpdatedData(this CharacterIPCData newData, Guid applicationBase,
-            CharacterIPCData? oldData, ILogger logger, PairHandler cachedPlayer)
+    public static HashSet<PlayerChanges> CheckUpdatedData(this CharaIPCData newData, Guid applicationBase,
+            CharaIPCData? oldData, ILogger logger, PairHandler cachedPlayer)
     {
         oldData ??= new();
         var charaDataToUpdate = new HashSet<PlayerChanges>();

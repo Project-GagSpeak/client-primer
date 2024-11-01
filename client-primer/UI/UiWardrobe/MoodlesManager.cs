@@ -27,14 +27,14 @@ public class MoodlesManager : MediatorSubscriberBase
         _pairManager = pairManager;
         _moodlesService = moodlesService;
 
-        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharacterIPCData);
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastCreatedCharacterData = msg.CharaIPCData);
     }
 
     // Private accessor vars for list management.
     private InspectType CurrentType = InspectType.Status;
 
     // Info related to the person we are inspecting.
-    private CharacterIPCData LastCreatedCharacterData = null!;
+    private CharaIPCData LastCreatedCharacterData = null!;
     private string PairSearchString = string.Empty;
     private Pair? PairToInspect = null;
     private int SelectedExamineIndex = 0;
@@ -149,7 +149,7 @@ public class MoodlesManager : MediatorSubscriberBase
         }
     }
 
-    private void DrawMoodles(CharacterIPCData? DataToDisplay, Vector2 cellPadding)
+    private void DrawMoodles(CharaIPCData? DataToDisplay, Vector2 cellPadding)
     {
         if (IpcCallerMoodles.APIAvailable == false)
         {
@@ -189,7 +189,7 @@ public class MoodlesManager : MediatorSubscriberBase
         }
     }
 
-    private void DrawPresets(CharacterIPCData? DataToDisplay, Vector2 cellPadding)
+    private void DrawPresets(CharaIPCData? DataToDisplay, Vector2 cellPadding)
     {
         if (IpcCallerMoodles.APIAvailable == false)
         {

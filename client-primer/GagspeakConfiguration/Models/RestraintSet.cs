@@ -2,7 +2,9 @@ using Dalamud.Utility;
 using GagSpeak.Interop.IpcHelpers.Moodles;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
+using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
+using GagspeakAPI.Data.Struct;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 
@@ -23,9 +25,6 @@ public record RestraintSet : IMoodlesAssociable
         // Initialize BonusDrawData in the constructor
         BonusDrawData = BonusExtensions.AllFlags.ToDictionary(
             slot => slot, slot => new BonusDrawData(BonusItem.Empty(slot)) { Slot = slot, IsEnabled = false });
-
-        // Initialize SetProperties in the constructor
-        SetProperties = new Dictionary<string, HardcoreSetProperties>();
     }
 
     public Guid RestraintId { get; set; } = Guid.NewGuid();
@@ -59,13 +58,25 @@ public record RestraintSet : IMoodlesAssociable
     /// If a key for a pair exists here, they are allowed to view the set.
     /// If any properties for a key are enabled, they are applied when enabled by that pair.
     /// </summary>
-    public Dictionary<string, HardcoreSetProperties> SetProperties { get; set; } = [];
+    public Dictionary<string, HardcoreTraits> SetTraits { get; set; } = new Dictionary<string, HardcoreTraits>();
 
     public int EquippedSlotsTotal => DrawData.Count(kvp => kvp.Value.GameItem.ItemId != ItemIdVars.NothingItem(kvp.Key).ItemId);
-    public bool HasPropertiesForUser(string uid) => SetProperties.ContainsKey(uid);
-    public bool PropertiesEnabledForUser(string uid) => HasPropertiesForUser(uid) && SetProperties[uid].AnyEnabled();
+    public bool HasPropertiesForUser(string uid) => SetTraits.ContainsKey(uid);
+    public bool PropertiesEnabledForUser(string uid) => HasPropertiesForUser(uid) && SetTraits[uid].AnyEnabled();
 
-    public RestraintDto ToDto() => new RestraintDto(){ Identifier = RestraintId, Name = Name };
+    public LightRestraintData ToLightData()
+    {
+        return new LightRestraintData()
+        {
+            Identifier = RestraintId,
+            Name = Name,
+            HardcoreTraits = SetTraits,
+            AffectedSlots = DrawData
+                .Where(kvp => kvp.Value.IsEnabled || kvp.Value.GameItem.Id != ItemIdVars.NothingItem(kvp.Key).Id)
+                .Select(kvp => new AppliedSlot() { Slot = (byte)kvp.Key, CustomItemId = kvp.Value.GameItem.Id.Id })
+                .ToList()
+        };
+    }
 
     public RestraintSet DeepCloneSet()
     {
@@ -86,7 +97,7 @@ public record RestraintSet : IMoodlesAssociable
             AssociatedMods = new List<AssociatedMod>(this.AssociatedMods.Select(mod => mod.DeepClone())),
             AssociatedMoodles = new List<Guid>(this.AssociatedMoodles),
             AssociatedMoodlePreset = this.AssociatedMoodlePreset,
-            SetProperties = new Dictionary<string, HardcoreSetProperties>(this.SetProperties)
+            SetTraits = new Dictionary<string, HardcoreTraits>(this.SetTraits)
         };
 
         // Deep clone DrawData
@@ -146,7 +157,7 @@ public record RestraintSet : IMoodlesAssociable
         // for the set properties
         var setPropertiesArray = new JArray();
         // serialize each item in it
-        var setPropertiesObject = JObject.FromObject(SetProperties);
+        var setPropertiesObject = JObject.FromObject(SetTraits);
 
 
         return new JObject()
@@ -168,7 +179,7 @@ public record RestraintSet : IMoodlesAssociable
             ["AssociatedMods"] = associatedModsArray,
             ["AssociatedMoodles"] = new JArray(AssociatedMoodles),
             ["AssociatedMoodlePresets"] = AssociatedMoodlePreset,
-            ["SetProperties"] = setPropertiesObject
+            ["SetTraits"] = setPropertiesObject
         };
     }
 
@@ -256,13 +267,13 @@ public record RestraintSet : IMoodlesAssociable
                 AssociatedMoodlePreset = Guid.Empty;
 
             // It should be JObject, so convert if it is not.
-            if (jsonObject["SetProperties"] is JArray dummyJArray)
+            if (jsonObject["SetTraits"] is JArray dummyJArray)
             {
-                SetProperties = new Dictionary<string, HardcoreSetProperties>();
+                SetTraits = new Dictionary<string, HardcoreTraits>();
             }
-            if (jsonObject["SetProperties"] is JObject setPropertiesObj)
+            if (jsonObject["SetTraits"] is JObject setPropertiesObj)
             {
-                SetProperties = setPropertiesObj.ToObject<Dictionary<string, HardcoreSetProperties>>() ?? new Dictionary<string, HardcoreSetProperties>();
+                SetTraits = setPropertiesObj.ToObject<Dictionary<string, HardcoreTraits>>() ?? new Dictionary<string, HardcoreTraits>();
             }
         }
         catch (Exception e)

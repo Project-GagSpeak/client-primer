@@ -1,6 +1,7 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
+using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Dto.Permissions;
@@ -360,10 +361,10 @@ public partial class PairStickyUI
             _playerManager.GlobalPerms.IsBlindfolded() ? $"You are currently blindfolded by {PairNickOrAliasOrUID}" : $"{PairNickOrAliasOrUID} is not currently blindfolding you.",
             true, PermissionType.Hardcore);
 
-        DrawOwnSetting("ChatboxesHidden", "AllowHidingChatboxes",
+        DrawOwnSetting("ChatBoxesHidden", "AllowHidingChatBoxes",
             _playerManager.GlobalPerms.IsChatHidden() ? "Chatbox is Hidden" : "Chatbox is Visible",
             _playerManager.GlobalPerms.IsChatHidden() ? FontAwesomeIcon.CommentSlash : FontAwesomeIcon.Ban,
-            _playerManager.GlobalPerms.IsChatHidden() ? _playerManager.GlobalPerms.ChatboxesHidden.HardcorePermUID() + " has hidden your Chatbox!" : "Nobody is hiding your Chat.",
+            _playerManager.GlobalPerms.IsChatHidden() ? _playerManager.GlobalPerms.ChatBoxesHidden.HardcorePermUID() + " has hidden your Chatbox!" : "Nobody is hiding your Chat.",
             true, PermissionType.Hardcore);
 
         DrawOwnSetting("ChatInputHidden", "AllowHidingChatInput",
@@ -391,8 +392,6 @@ public partial class PairStickyUI
             if (ImGui.IsItemDeactivatedAfterEdit())
             {
                 SetOwnPermission(PermissionType.UniquePairPerm, "ShockCollarShareCode", shockCollarPairShareCode);
-                // Send Mediator Event to grab updated settings for pair.
-                Mediator.Publish(new HardcoreUpdatedShareCodeForPair(UserPairForPerms, shockCollarPairShareCode));
             }
             UiSharedService.AttachToolTip($"Unique Share Code for {PairNickOrAliasOrUID}." + Environment.NewLine
             + "This should be a Separate Share Code from your Global Code." + Environment.NewLine
@@ -401,7 +400,19 @@ public partial class PairStickyUI
             if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Refresh", null, false, DateTime.UtcNow - LastRefresh < TimeSpan.FromSeconds(15) || !UniqueShockCollarPermsExist()))
             {
                 LastRefresh = DateTime.UtcNow;
-                Mediator.Publish(new HardcoreUpdatedShareCodeForPair(UserPairForPerms, shockCollarPairShareCode));
+                // Send Mediator Event to grab updated settings for pair.
+                Task.Run(async () =>
+                {
+                    var newPerms = await _shockProvider.GetPermissionsFromCode(shockCollarPairShareCode);
+                    // set the new permissions.
+                    OwnPerms.AllowShocks = newPerms.AllowShocks;
+                    OwnPerms.AllowVibrations = newPerms.AllowVibrations;
+                    OwnPerms.AllowBeeps = newPerms.AllowBeeps;
+                    OwnPerms.MaxDuration = newPerms.MaxDuration;
+                    OwnPerms.MaxIntensity = newPerms.MaxIntensity;
+                    // update the permissions.
+                    _ = _apiHubMain.UserPushAllUniquePerms(new(UserPairForPerms.UserData, OwnPerms, UserPairForPerms.UserPairOwnEditAccess));
+                });
             }
         }
 
@@ -445,6 +456,7 @@ public partial class PairStickyUI
             switch (permissionType)
             {
                 case PermissionType.Global:
+                    if (_playerManager.GlobalPerms is null) return;
                     DrawOwnPermission(permissionType, _playerManager.GlobalPerms, textLabel, icon, tooltipStr, isLocked,
                         permissionName, permissionValueType, permissionAccessName);
                     break;
@@ -464,7 +476,7 @@ public partial class PairStickyUI
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to update permissions for {MainHub.PlayerUserData.AliasOrUID} :: {ex}");
+            _logger.LogError($"Failed to update permissions for {MainHub.PlayerUserData.AliasOrUID} :: {ex.StackTrace}");
         }
     }
 
@@ -568,29 +580,36 @@ public partial class PairStickyUI
     private void DrawHardcorePermission(string permissionName, string permissionAccessName, string textLabel, FontAwesomeIcon icon,
         string tooltipStr, bool isLocked)
     {
-        // Grab the current value.
-        string currValState = (string)(_playerManager.GlobalPerms?.GetType().GetProperty(permissionName)?.GetValue(_playerManager?.GlobalPerms) ?? string.Empty);
-
-        using (ImRaii.Group())
+        try
         {
-            // Disabled Button
-            _uiShared.IconTextButton(icon, textLabel, IconButtonTextWidth, true, true);
-            UiSharedService.AttachToolTip(tooltipStr);
+            // Grab the current value.
+            string currValState = (string)(_playerManager.GlobalPerms?.GetType().GetProperty(permissionName)?.GetValue(_playerManager?.GlobalPerms) ?? string.Empty);
 
-            if (!permissionAccessName.IsNullOrEmpty()) // only display checkbox if we should.
+            using (ImRaii.Group())
             {
-                ImGui.SameLine(IconButtonTextWidth);
-                bool refState = (bool)OwnPerms.GetType().GetProperty(permissionAccessName)?.GetValue(OwnPerms)!;
-                if (ImGui.Checkbox("##" + permissionAccessName, ref refState))
+                // Disabled Button
+                _uiShared.IconTextButton(icon, textLabel, IconButtonTextWidth, true, true);
+                UiSharedService.AttachToolTip(tooltipStr);
+
+                if (!permissionAccessName.IsNullOrEmpty()) // only display checkbox if we should.
                 {
-                    // if the new state is not the same as the current state, then we should update the permission access.
-                    if (refState != (bool)OwnPerms.GetType().GetProperty(permissionAccessName)?.GetValue(OwnPerms)!)
-                        SetOwnPermission(PermissionType.UniquePairPerm, permissionAccessName, refState);
+                    ImGui.SameLine(IconButtonTextWidth);
+                    bool refState = (bool)OwnPerms.GetType().GetProperty(permissionAccessName)?.GetValue(OwnPerms)!;
+                    if (ImGui.Checkbox("##" + permissionAccessName, ref refState))
+                    {
+                        // if the new state is not the same as the current state, then we should update the permission access.
+                        if (refState != (bool)OwnPerms.GetType().GetProperty(permissionAccessName)?.GetValue(OwnPerms)!)
+                            SetOwnPermission(PermissionType.UniquePairPerm, permissionAccessName, refState);
+                    }
+                    UiSharedService.AttachToolTip(refState
+                        ? "Revoke " + PairNickOrAliasOrUID + "'s control over this permission."
+                        : "Grant " + PairNickOrAliasOrUID + " control over this permission, allowing them to change what you've set for them at will.");
                 }
-                UiSharedService.AttachToolTip(refState
-                    ? "Revoke " + PairNickOrAliasOrUID + "'s control over this permission."
-                    : "Grant " + PairNickOrAliasOrUID + " control over this permission, allowing them to change what you've set for them at will.");
             }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed for {MainHub.PlayerUserData.AliasOrUID} on {permissionAccessName} :: {ex.StackTrace}");
         }
     }
 

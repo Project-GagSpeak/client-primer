@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 7, 7)
+            .RegisterMain("KinkPlate Designs are now finished being implemented, functionality will be added next.")
+            .RegisterFeature("KinkPlates will now appear by middle clicking another pairs name in the whitelist tab.");
         VersionEntry(0, 9, 7, 5)
             .RegisterMain("Backend has now been restructured to handle KinkPlates™.")
             .RegisterFeature("Kink Plate foundation for profile pop-outs is slowly being put together now")

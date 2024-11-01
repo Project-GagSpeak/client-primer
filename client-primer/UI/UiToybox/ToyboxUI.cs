@@ -2,8 +2,10 @@ using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
+using GagspeakAPI.Data.IPC;
 using ImGuiNET;
 using System.Numerics;
 
@@ -11,7 +13,6 @@ namespace GagSpeak.UI.UiToybox;
 
 public class ToyboxUI : WindowMediatorSubscriberBase
 {
-    private readonly UiSharedService _uiShared;
     private readonly ToyboxTabMenu _tabMenu;
     private readonly ToyboxOverview _toysOverview;
     private readonly ToyboxPrivateRooms _vibeServer;
@@ -19,20 +20,23 @@ public class ToyboxUI : WindowMediatorSubscriberBase
     private readonly ToyboxTriggerManager _triggerManager;
     private readonly ToyboxAlarmManager _alarmManager;
     private readonly PatternPlayback _patternPlayback;
+    private readonly CosmeticService _cosmetics;
+    private readonly UiSharedService _uiShared;
 
     public ToyboxUI(ILogger<ToyboxUI> logger, GagspeakMediator mediator,
-        UiSharedService uiSharedService, ToyboxOverview toysOverview,
-        ToyboxPrivateRooms vibeServer, ToyboxPatterns patterns,
+        ToyboxOverview toysOverview, ToyboxPrivateRooms vibeServer, ToyboxPatterns patterns,
         ToyboxTriggerManager triggerManager, ToyboxAlarmManager alarmManager,
-        PatternPlayback playback) : base(logger, mediator, "Toybox UI")
+        PatternPlayback playback, CosmeticService cosmetics, UiSharedService uiSharedService) 
+        : base(logger, mediator, "Toybox UI")
     {
-        _uiShared = uiSharedService;
         _toysOverview = toysOverview;
         _vibeServer = vibeServer;
         _patterns = patterns;
         _triggerManager = triggerManager;
         _alarmManager = alarmManager;
         _patternPlayback = playback;
+        _cosmetics = cosmetics;
+        _uiShared = uiSharedService;
 
         AllowPinning = false;
         AllowClickthrough = false;
@@ -103,12 +107,8 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                 using (var leftChild = ImRaii.Child($"###ToyboxLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
                     // attempt to obtain an image wrap for it
-                    var iconTexture = _uiShared.GetLogo();
-                    if (!(iconTexture is { } wrap))
-                    {
-                        /*_logger.LogWarning("Failed to render image!");*/
-                    }
-                    else
+                    var iconTexture = _cosmetics.CorePluginTextures[CorePluginTexture.Logo256];
+                    if (iconTexture is { } wrap)
                     {
                         // aligns the image in the center like we want.
                         UtilsExtensions.ImGuiLineCentered("###ToyboxLogo", () =>

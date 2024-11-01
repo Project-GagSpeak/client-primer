@@ -4,6 +4,7 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.PrivateRooms;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
 using GagSpeak.Toybox.Services;
 using GagSpeak.UI;
 using GagSpeak.UI.Components;
@@ -35,6 +36,7 @@ public class UiFactory
     private readonly OnFrameworkService _frameworkUtils;
     private readonly MoodlesService _moodlesService;
     private readonly PermissionPresetService _presetService;
+    private readonly CosmeticService _cosmetics;
     private readonly PermActionsComponents _permActionHelpers;
 
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator, MainHub apiHubMain, 
@@ -42,8 +44,8 @@ public class UiFactory
         ToyboxVibeService vibeService, IdDisplayHandler displayHandler, PairManager pairManager, 
         PlayerCharacterData playerManager, ToyboxRemoteService remoteService, 
         ServerConfigurationManager serverConfigs, KinkPlateService profileManager, OnFrameworkService frameworkUtils,
-        ClientConfigurationManager clientConfigs, MoodlesService moodlesService, PermissionPresetService presetService, 
-        PermActionsComponents permActionHelpers)
+        ClientConfigurationManager clientConfigs, MoodlesService moodlesService, PermissionPresetService presetService,
+        CosmeticService cosmetics, PermActionsComponents permActionHelpers)
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;
@@ -62,6 +64,7 @@ public class UiFactory
         _clientConfigs = clientConfigs;
         _moodlesService = moodlesService;
         _presetService = presetService;
+        _cosmetics = cosmetics;
         _permActionHelpers = permActionHelpers;
     }
 
@@ -74,7 +77,7 @@ public class UiFactory
     public KinkPlateUI CreateStandaloneProfileUi(Pair pair)
     {
         return new KinkPlateUI(_loggerFactory.CreateLogger<KinkPlateUI>(), _gagspeakMediator,
-            _pairManager, _serverConfigs, _KinkPlateManager, _uiSharedService, pair);
+            _pairManager, _serverConfigs, _KinkPlateManager, _cosmetics, _uiSharedService, pair);
     }
 
     // create a new instance window of the userpair permissions window every time a new pair is selected.

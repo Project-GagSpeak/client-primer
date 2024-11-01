@@ -3,8 +3,10 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
+using GagspeakAPI.Data.IPC;
 using ImGuiNET;
 using System.Numerics;
 
@@ -12,26 +14,27 @@ namespace GagSpeak.UI.UiWardrobe;
 
 public class WardrobeUI : WindowMediatorSubscriberBase
 {
-    private readonly UiSharedService _uiSharedService;
     private readonly WardrobeTabMenu _tabMenu;
     private readonly WardrobeHandler _handler;
     private readonly RestraintSetManager _overviewPanel;
     private readonly StruggleSim _struggleSimPanel;
     private readonly CursedDungeonLoot _cursedLootPanel;
     private readonly MoodlesManager _moodlesPanel;
-    public WardrobeUI(ILogger<WardrobeUI> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
+    private readonly CosmeticService _cosmetics;
+    private readonly UiSharedService _uiShared;
+    public WardrobeUI(ILogger<WardrobeUI> logger, GagspeakMediator mediator, 
         WardrobeHandler handler, RestraintSetManager restraintOverview, 
         StruggleSim struggleSim, CursedDungeonLoot cursedLoot,
-        MoodlesManager moodlesManager) 
-        : base(logger, mediator, "Wardrobe UI")
+        MoodlesManager moodlesManager, CosmeticService cosmetics,
+        UiSharedService uiSharedService) : base(logger, mediator, "Wardrobe UI")
     {
-        _uiSharedService = uiSharedService;
         _handler = handler;
         _overviewPanel = restraintOverview;
         _struggleSimPanel = struggleSim;
         _cursedLootPanel = cursedLoot;
         _moodlesPanel = moodlesManager;
+        _cosmetics = cosmetics;
+        _uiShared = uiSharedService;
 
         AllowPinning = false;
         AllowClickthrough = false;
@@ -83,7 +86,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
         var cellPadding = ImGui.GetStyle().CellPadding;
 
         // create the draw-table for the selectable and viewport displays
-        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiSharedService.GetFontScalerFloat(), 0));
+        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiShared.GetFontScalerFloat(), 0));
         try
         {
             using (var table = ImRaii.Table($"WardrobeUiWindowTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
@@ -99,7 +102,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
 
                 using (var leftChild = ImRaii.Child($"###WardrobeLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
-                    var iconTexture = _uiSharedService.GetLogo();
+                    var iconTexture = _cosmetics.CorePluginTextures[CorePluginTexture.Logo256];
                     if (!(iconTexture is { } wrap))
                     {
                         /*_logger.LogWarning("Failed to render image!");*/
@@ -108,7 +111,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                     {
                         UtilsExtensions.ImGuiLineCentered("###WardrobeLogo", () =>
                         {
-                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiSharedService.GetFontScalerFloat(), 125f * _uiSharedService.GetFontScalerFloat()));
+                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiShared.GetFontScalerFloat(), 125f * _uiShared.GetFontScalerFloat()));
                             if (ImGui.IsItemHovered())
                             {
                                 ImGui.BeginTooltip();
@@ -123,7 +126,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                     ImGui.Spacing();
                     ImGui.Separator();
                     // add the tab menu for the left side.
-                    using (_uiSharedService.UidFont.Push())
+                    using (_uiShared.UidFont.Push())
                     {
                         _tabMenu.DrawSelectableTabMenu();
                     }

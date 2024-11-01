@@ -7,6 +7,7 @@ using GagSpeak.Achievements;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components;
+using GagspeakAPI.Data.IPC;
 using ImGuiNET;
 using OtterGui.Text;
 using System.Numerics;
@@ -224,7 +225,7 @@ public class AchievementsUI : WindowMediatorSubscriberBase
                     // draw the text in the second column.
                     ImGui.TableNextColumn();
                     // we should fetch the cached image from our texture cache service
-                    var achievementCosmetic = _cosmeticTextures.InternalCosmeticCache["DummyTest"];
+                    var achievementCosmetic = _cosmeticTextures.CorePluginTextures[CorePluginTexture.Logo256bg];
                     // Ensure its a valid texture wrap
                     if (!(achievementCosmetic is { } wrap))
                     {

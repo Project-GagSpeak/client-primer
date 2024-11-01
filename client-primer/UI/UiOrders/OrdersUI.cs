@@ -4,9 +4,11 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components;
 using GagSpeak.UI.UiToybox;
 using GagSpeak.Utils;
+using GagspeakAPI.Data.IPC;
 using ImGuiNET;
 using System.Numerics;
 
@@ -14,24 +16,23 @@ namespace GagSpeak.UI.UiOrders;
 
 public class OrdersUI : WindowMediatorSubscriberBase
 {
-    private readonly IDalamudPluginInterface _pi;
-    private readonly UiSharedService _uiSharedService;
     private readonly OrdersTabMenu _tabMenu;
     private readonly OrdersViewActive _activePanel;
     private readonly OrdersCreator _creatorPanel;
     private readonly OrdersAssigner _assignerPanel;
-    private ITextureProvider _textureProvider;
-    private ISharedImmediateTexture _sharedSetupImage;
+    private readonly CosmeticService _cosmetics;
+    private readonly UiSharedService _uiShared;
 
-    public OrdersUI(ILogger<OrdersUI> logger, 
-        GagspeakMediator mediator, UiSharedService uiSharedService, 
+    public OrdersUI(ILogger<OrdersUI> logger, GagspeakMediator mediator, 
         OrdersViewActive activePanel, OrdersCreator creatorPanel, 
-        OrdersAssigner assignerPanel) : base(logger, mediator, "Orders UI")
+        OrdersAssigner assignerPanel, CosmeticService cosmetics,
+        UiSharedService uiShared) : base(logger, mediator, "Orders UI")
     {
-        _uiSharedService = uiSharedService;
         _activePanel = activePanel;
         _creatorPanel = creatorPanel;
         _assignerPanel = assignerPanel;
+        _cosmetics = cosmetics;
+        _uiShared = uiShared;
 
         _tabMenu = new OrdersTabMenu();
         // define initial size of window and to not respect the close hotkey.
@@ -61,7 +62,7 @@ public class OrdersUI : WindowMediatorSubscriberBase
         var topLeftSideHeight = region.Y;
 
         // create the draw-table for the selectable and viewport displays
-        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiSharedService.GetFontScalerFloat(), 0));
+        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiShared.GetFontScalerFloat(), 0));
         try
         {
             using (var table = ImRaii.Table($"OrdersUiWindowTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
@@ -78,7 +79,7 @@ public class OrdersUI : WindowMediatorSubscriberBase
                 using (var leftChild = ImRaii.Child($"###OrdersLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
                     // attempt to obtain an image wrap for it
-                    var iconTexture = _uiSharedService.GetLogo();
+                    var iconTexture = _cosmetics.CorePluginTextures[CorePluginTexture.Logo256];
                     if (!(iconTexture is { } wrap))
                     {
                         /*_logger.LogWarning("Failed to render image!");*/
@@ -88,7 +89,7 @@ public class OrdersUI : WindowMediatorSubscriberBase
                         // aligns the image in the center like we want.
                         UtilsExtensions.ImGuiLineCentered("###OrdersLogo", () =>
                         {
-                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiSharedService.GetFontScalerFloat(), 125f * _uiSharedService.GetFontScalerFloat()));
+                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiShared.GetFontScalerFloat(), 125f * _uiShared.GetFontScalerFloat()));
                             if (ImGui.IsItemHovered())
                             {
                                 ImGui.BeginTooltip();
@@ -103,7 +104,7 @@ public class OrdersUI : WindowMediatorSubscriberBase
                     ImGui.Spacing();
                     ImGui.Separator();
                     // add the tab menu for the left side.
-                    using (_uiSharedService.UidFont.Push())
+                    using (_uiShared.UidFont.Push())
                     {
                         _tabMenu.DrawSelectableTabMenu();
                     }

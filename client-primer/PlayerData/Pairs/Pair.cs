@@ -15,6 +15,9 @@ using GagspeakAPI.Helpers;
 using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Game.Text.SeStringHandling;
 using Penumbra.GameData.Structs;
+using GagSpeak.Services.Textures;
+using Dalamud.Interface.Textures.TextureWraps;
+using GagspeakAPI.Data.IPC;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -25,22 +28,25 @@ namespace GagSpeak.PlayerData.Pairs;
 /// </summary>
 public class Pair
 {
-    private readonly PairHandlerFactory _cachedPlayerFactory;                       // the factory for making cached players
-    private readonly SemaphoreSlim _creationSemaphore = new(1);                     // the semaphore for creation of the cached player
-    private readonly ILogger<Pair> _logger;                                         // the logger for the pair class
-    private readonly GagspeakMediator _mediator;                                    // GagspeakMediator
-    private readonly ServerConfigurationManager _serverConfigurationManager;        // the server configuration manager
-    private CancellationTokenSource _applicationCts = new CancellationTokenSource();// the application CTS
-    private OnlineUserIdentDto? _onlineUserIdentDto = null;                         // the onlineUserIdentDto of the pair
+    private readonly PairHandlerFactory _cachedPlayerFactory;
+    private readonly SemaphoreSlim _creationSemaphore = new(1);
+    private readonly ILogger<Pair> _logger;
+    private readonly GagspeakMediator _mediator;
+    private readonly ServerConfigurationManager _serverConfigs;
+    private readonly CosmeticService _cosmetics;
+
+    private CancellationTokenSource _applicationCts = new CancellationTokenSource();
+    private OnlineUserIdentDto? _onlineUserIdentDto = null;
 
     public Pair(ILogger<Pair> logger, UserPairDto userPair,
         PairHandlerFactory cachedPlayerFactory, GagspeakMediator mediator,
-        ServerConfigurationManager serverConfigurationManager)
+        ServerConfigurationManager serverConfigs, CosmeticService cosmetics)
     {
         _logger = logger;
         _cachedPlayerFactory = cachedPlayerFactory;
         _mediator = mediator;
-        _serverConfigurationManager = serverConfigurationManager;
+        _serverConfigs = serverConfigs;
+        _cosmetics = cosmetics;
         UserPair = userPair;
     }
 
@@ -365,10 +371,50 @@ public class Pair
         }
     }
 
+    public (IDalamudTextureWrap? SupporterWrap, string Tooltip) GetSupporterInfo()
+    {
+        IDalamudTextureWrap? supporterWrap = null;
+        string tooltipString = string.Empty;
+
+        switch (UserData.SupporterTier)
+        {
+            case CkSupporterTier.ServerBooster:
+                supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterBooster];
+                tooltipString = GetNickAliasOrUid() + " is supporting the discord with a server Boost!";
+                break;
+
+            case CkSupporterTier.IllustriousSupporter:
+                supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier1];
+                tooltipString = GetNickAliasOrUid() + " is supporting CK as an Illustrious Supporter";
+                break;
+
+            case CkSupporterTier.EsteemedPatron:
+                supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier2];
+                tooltipString = GetNickAliasOrUid() + " is supporting CK as an Esteemed Patron";
+                break;
+
+            case CkSupporterTier.DistinguishedConnoisseur:
+                supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier3];
+                tooltipString = GetNickAliasOrUid() + " is supporting CK as a Distinguished Connoisseur";
+                break;
+
+            case CkSupporterTier.KinkporiumMistress:
+                supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier4];
+                tooltipString = GetNickAliasOrUid() + " is the Shop Mistress of CK, and the Dev of GagSpeak.";
+                break;
+
+            default:
+                tooltipString = GetNickAliasOrUid() + " has an unknown supporter tier.";
+                break;
+        }
+
+        return (supporterWrap, tooltipString);
+    }
+
     /// <summary> Get the nicknames for the user. (still dont know how this is meant to have any value at all) </summary>
     public string? GetNickname()
     {
-        return _serverConfigurationManager.GetNicknameForUid(UserData.UID);
+        return _serverConfigs.GetNicknameForUid(UserData.UID);
     }
 
     public string GetNickAliasOrUid() => GetNickname() ?? UserData.AliasOrUID;

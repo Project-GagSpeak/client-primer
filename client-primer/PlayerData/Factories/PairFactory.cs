@@ -3,23 +3,27 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.ConfigurationServices;
 using GagspeakAPI.Dto.UserPair;
+using GagSpeak.Services.Textures;
 
 namespace GagSpeak.PlayerData.Factories;
 
 public class PairFactory
 {
-    private readonly PairHandlerFactory _cachedPlayerFactory;               // the factory of cached players
-    private readonly ILoggerFactory _loggerFactory;                         // the logger factory
-    private readonly GagspeakMediator _gagspeakMediator;                    // the gagspeak Mediator service
-    private readonly ServerConfigurationManager _serverConfigurationManager;// the server configuration manager (primary i think?)
+    private readonly PairHandlerFactory _cachedPlayerFactory;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly GagspeakMediator _gagspeakMediator;
+    private readonly ServerConfigurationManager _serverConfigs;
+    private readonly CosmeticService _cosmetics;
 
     public PairFactory(ILoggerFactory loggerFactory, PairHandlerFactory cachedPlayerFactory,
-        GagspeakMediator gagspeakMediator, ServerConfigurationManager serverConfigurationManager)
+        GagspeakMediator gagspeakMediator, ServerConfigurationManager serverConfigs, 
+        CosmeticService cosmetics)
     {
         _loggerFactory = loggerFactory;
         _cachedPlayerFactory = cachedPlayerFactory;
         _gagspeakMediator = gagspeakMediator;
-        _serverConfigurationManager = serverConfigurationManager;
+        _serverConfigs = serverConfigs;
+        _cosmetics = cosmetics;
     }
 
     /// <summary> Creates a new Pair object from the UserPairDto</summary>
@@ -29,6 +33,6 @@ public class PairFactory
     {
         return new Pair(_loggerFactory.CreateLogger<Pair>(), new(userPairDto.User, userPairDto.IndividualPairStatus,
             userPairDto.OwnPairPerms, userPairDto.OwnEditAccessPerms, userPairDto.OtherGlobalPerms, userPairDto.OtherPairPerms,
-            userPairDto.OtherEditAccessPerms), _cachedPlayerFactory, _gagspeakMediator, _serverConfigurationManager);
+            userPairDto.OtherEditAccessPerms), _cachedPlayerFactory, _gagspeakMediator, _serverConfigs, _cosmetics);
     }
 }

@@ -6,11 +6,13 @@ using Dalamud.Utility;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
 using GagSpeak.UI.Handlers;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
+using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Enums;
 using ImGuiNET;
 using OtterGui.Text;
@@ -25,21 +27,23 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
     private readonly PuppeteerHandler _puppeteerHandler;
     private readonly UserPairListHandler _userPairListHandler;
     private readonly ClientConfigurationManager _clientConfigs;
+    private readonly CosmeticService _cosmetics;
     private readonly UiSharedService _uiShared;
-    
+
     private PuppeteerTab _currentTab = PuppeteerTab.TriggerPhrases;
     private enum PuppeteerTab { TriggerPhrases, ClientAliasList, PairAliasList }
 
     public PuppeteerUI(ILogger<PuppeteerUI> logger, GagspeakMediator mediator,
         MainHub apiHubMain, AliasTable aliasTable, PuppeteerHandler handler,
         UserPairListHandler userPairListHandler, ClientConfigurationManager clientConfigs,
-        UiSharedService uiShared) : base(logger, mediator, "Puppeteer UI")
+        CosmeticService cosmetics, UiSharedService uiShared) : base(logger, mediator, "Puppeteer UI")
     {
         _apiHubMain = apiHubMain;
         _clientConfigs = clientConfigs;
         _userPairListHandler = userPairListHandler;
         _puppeteerHandler = handler;
         _aliasTable = aliasTable;
+        _cosmetics = cosmetics;
         _uiShared = uiShared;
 
         AllowPinning = false;
@@ -90,12 +94,8 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
 
             using (var leftChild = ImRaii.Child($"###PuppeteerLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
             {
-                var iconTexture = _uiShared.GetLogo();
-                if (!(iconTexture is { } wrap))
-                {
-                    /*_logger.LogWarning("Failed to render image!");*/
-                }
-                else
+                var iconTexture = _cosmetics.CorePluginTextures[CorePluginTexture.Logo256];
+                if (iconTexture is { } wrap)
                 {
                     UtilsExtensions.ImGuiLineCentered("###PuppeteerLogo", () =>
                     {
@@ -132,6 +132,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             }
         }
     }
+    
 
     // Main Right-half Draw function for puppeteer.
     private void DrawPuppeteer(Vector2 DefaultCellPadding)

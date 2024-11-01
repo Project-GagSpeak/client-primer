@@ -4,9 +4,11 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components;
 using GagSpeak.UI.Tabs.WardrobeTab;
 using GagSpeak.Utils;
+using GagspeakAPI.Data.IPC;
 using ImGuiNET;
 using System.Numerics;
 
@@ -14,23 +16,25 @@ namespace GagSpeak.UI.UiGagSetup;
 
 public class GagSetupUI : WindowMediatorSubscriberBase
 {
-    private readonly UiSharedService _uiSharedService;
     private readonly GagSetupTabMenu _tabMenu;
     private readonly ActiveGagsPanel _activeGags;
     private readonly LockPickerSim _lockPickSim;
     private readonly GagStoragePanel _gagStorage;
     private readonly PlayerCharacterData _playerManager;
+    private readonly CosmeticService _cosmetics;
+    private readonly UiSharedService _uiShared;
 
     public GagSetupUI(ILogger<GagSetupUI> logger, GagspeakMediator mediator,
-        UiSharedService uiSharedService, ActiveGagsPanel activeGags,
-        LockPickerSim lockPickSim, GagStoragePanel gagStorage, 
-        PlayerCharacterData playerManager) : base(logger, mediator, "Gag Setup UI")
+        ActiveGagsPanel activeGags, LockPickerSim lockPickSim, GagStoragePanel gagStorage, 
+        PlayerCharacterData playerManager, CosmeticService cosmetics,
+        UiSharedService uiShared) : base(logger, mediator, "Gag Setup UI")
     {
-        _uiSharedService = uiSharedService;
         _playerManager = playerManager;
         _activeGags = activeGags;
         _lockPickSim = lockPickSim;
         _gagStorage = gagStorage;
+        _cosmetics = cosmetics;
+        _uiShared = uiShared;
 
         AllowPinning = false;
         AllowClickthrough = false;
@@ -80,7 +84,7 @@ public class GagSetupUI : WindowMediatorSubscriberBase
         var topLeftSideHeight = region.Y;
 
         // create the draw-table for the selectable and viewport displays
-        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiSharedService.GetFontScalerFloat(), 0));
+        ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(5f * _uiShared.GetFontScalerFloat(), 0));
         try
         {
             using (var table = ImRaii.Table($"GagSetupUiWindowTable", 2, ImGuiTableFlags.SizingFixedFit | ImGuiTableFlags.BordersInnerV))
@@ -97,8 +101,8 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                 using (var leftChild = ImRaii.Child($"###GagSetupLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
                     // get the gag setup logo image
-                    //var iconTexture = _uiSharedService.GetImageFromDirectoryFile("icon.png");
-                    var iconTexture = _uiSharedService.GetLogo();
+                    //var iconTexture = _uiShared.GetImageFromDirectoryFile("icon.png");
+                    var iconTexture = _cosmetics.CorePluginTextures[CorePluginTexture.Logo256];
                     if (!(iconTexture is { } wrap))
                     {
                         /*_logger.LogWarning("Failed to render image!");*/
@@ -108,7 +112,7 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                         // aligns the image in the center like we want.
                         UtilsExtensions.ImGuiLineCentered("###GagSetupLogo", () =>
                         {
-                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiSharedService.GetFontScalerFloat(), 125f * _uiSharedService.GetFontScalerFloat()));
+                            ImGui.Image(wrap.ImGuiHandle, new(125f * _uiShared.GetFontScalerFloat(), 125f * _uiShared.GetFontScalerFloat()));
                             if (ImGui.IsItemHovered())
                             {
                                 ImGui.BeginTooltip();
@@ -123,7 +127,7 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                     ImGui.Spacing();
                     ImGui.Separator();
                     // add the tab menu for the left side.
-                    using (_uiSharedService.UidFont.Push())
+                    using (_uiShared.UidFont.Push())
                     {
                         _tabMenu.DrawSelectableTabMenu();
                     }

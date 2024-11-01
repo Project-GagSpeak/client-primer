@@ -4,6 +4,7 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagSpeak.WebAPI.Utils;
+using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Interfaces;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
@@ -43,10 +44,15 @@ public partial class PairStickyUI
             {
                 if (!actionChild) return;
 
-                string storedSelectedSet = _permActions.GetSelectedItem<string>("ApplyRestraintSetForPairPermCombo", UserPairForPerms.UserData.UID) ?? string.Empty;
+                RestraintDto storedSelectedSet = _permActions.GetSelectedItem<RestraintDto>("ApplyRestraintSetForPairPermCombo", UserPairForPerms.UserData.UID) ?? new RestraintDto();
 
-                _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ApplyRestraintSetForPairPermCombo", "Apply Set",
-                WindowMenuWidth, lastWardrobeData.Outfits.Select(o => o.Name), (RSet) => RSet, true, storedSelectedSet == string.Empty, true, default,
+                _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ApplyRestraintSetForPairPermCombo", "Apply Set", WindowMenuWidth,
+                    comboItems: lastWardrobeData.Outfits, 
+                    itemToName: (RSet) => RSet.Name,
+                    isSearchable: true,
+                    buttonDisabled: storedSelectedSet.Identifier == Guid.Empty,
+                    isIconButton: true,
+                    initialSelectedItem: default,
                 FontAwesomeIcon.Female, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Restraint Set: " + selected, LoggerType.Permissions); },
                 (onButtonPress) =>
                 {
@@ -55,7 +61,8 @@ public partial class PairStickyUI
                         var newWardrobe = UserPairForPerms.LastReceivedWardrobeData.DeepClone();
                         if (newWardrobe == null || onButtonPress == null) throw new Exception("Wardrobe data is null, not sending");
 
-                        newWardrobe.ActiveSetName = onButtonPress;
+                        newWardrobe.ActiveSetId = onButtonPress.Identifier;
+                        newWardrobe.ActiveSetName = onButtonPress.Name;
                         newWardrobe.ActiveSetEnabledBy = MainHub.UID;
                         _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobe, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintApplied));
                         _logger.LogDebug("Applying Restraint Set with GagPadlock " + onButtonPress.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);

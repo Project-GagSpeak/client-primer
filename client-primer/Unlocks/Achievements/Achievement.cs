@@ -3,6 +3,7 @@ using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using GagSpeak.Services.Mediator;
+using GagspeakAPI.Data.IPC;
 using static PInvoke.User32;
 
 namespace GagSpeak.Achievements;
@@ -84,8 +85,8 @@ public abstract class Achievement
 
         Notify.AddNotification(new Notification()
         {
-            Content = "Completed Achievement: "+Title,
             Title = "Achievement Completed!",
+            Content = "Completed Achievement: "+Title,
             Type = NotificationType.Info,
             Icon = INotificationIcon.From(FontAwesomeIcon.Award),
             Minimized = false,

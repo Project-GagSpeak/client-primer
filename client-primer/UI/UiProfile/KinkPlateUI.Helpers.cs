@@ -31,13 +31,16 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         catch (Exception ex) { _logger.LogError($"Error: {ex}"); }
     }
 
-    private void AddImage(ImDrawListPtr drawList, IDalamudTextureWrap? wrap, Vector2 topLeftPos, Vector2 size)
+    private void AddImage(ImDrawListPtr drawList, IDalamudTextureWrap? wrap, Vector2 topLeftPos, Vector2 size, Vector4? tint = null)
     {
         try
         {
             if (wrap is { } validWrap)
             {
-                drawList.AddImage(validWrap.ImGuiHandle, topLeftPos, topLeftPos + size);
+                // handle tint.
+                var actualTint = tint ?? new Vector4(1f, 1f, 1f, 1f);
+                // handle image.
+                drawList.AddImage(validWrap.ImGuiHandle, topLeftPos, topLeftPos + size, Vector2.Zero, Vector2.One, ImGui.GetColorU32(actualTint));
             }
         }
         catch (Exception ex) { _logger.LogError($"Error: {ex}"); }
@@ -50,8 +53,8 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
         var closeButtonColor = HoveringCloseButton ? ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)) : ImGui.GetColorU32(ImGuiColors.ParsedPink);
 
-        drawList.AddLine(btnPos, btnPos + btnSize, closeButtonColor, 2);
-        drawList.AddLine(new Vector2(btnPos.X + btnSize.X, btnPos.Y), new Vector2(btnPos.X, btnPos.Y + btnSize.Y), closeButtonColor, 2);
+        drawList.AddLine(btnPos, btnPos + btnSize, closeButtonColor, 3);
+        drawList.AddLine(new Vector2(btnPos.X + btnSize.X, btnPos.Y), new Vector2(btnPos.X, btnPos.Y + btnSize.Y), closeButtonColor, 3);
 
 
         ImGui.SetCursorScreenPos(btnPos);

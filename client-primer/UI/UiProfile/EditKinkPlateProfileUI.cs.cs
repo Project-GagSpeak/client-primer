@@ -213,7 +213,7 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         }
 
         _uiShared.BigText("Profile Settings");
-        var refText = profile.KinkPlateInfo.Description;
+        var refText = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? "Description is Null" : profile.KinkPlateInfo.Description;
         ImGui.InputTextMultiline("##pfpDescription", ref refText, 1000, ImGuiHelpers.ScaledVector2(
             ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeightWithSpacing()*3));
         if(ImGui.IsItemDeactivatedAfterEdit())

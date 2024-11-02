@@ -3,6 +3,7 @@ using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Utility;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using GagSpeak.Services.Textures;
 using ImGuiNET;
@@ -22,7 +23,7 @@ public static class UtilsExtensions
         return emote.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") + "(" + emote.RowId + ")";
     }
     /// <summary> Draw a game icon display (not icon button or anything) </summary>
-    public static void DrawIcon(this EquipItem item, TextureService textures, Vector2 size, EquipSlot slot)
+    public static void DrawIcon(this EquipItem item, TextureService textures, Vector2 size, EquipSlot slot, bool doHover = true)
     {
         var isEmpty = item.PrimaryId.Id == 0;
         var (ptr, textureSize, empty) = textures.GetIcon(item, slot);
@@ -40,7 +41,8 @@ public static class UtilsExtensions
         }
         else
         {
-            ImGuiUtil.HoverIcon(ptr, textureSize, size);
+            ImGui.Image(ptr, size);
+            if(doHover) ImGuiUtil.HoverIconTooltip(ptr, size, textureSize);
         }
     }
 

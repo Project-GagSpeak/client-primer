@@ -73,7 +73,12 @@ public record RestraintSet : IMoodlesAssociable
             HardcoreTraits = SetTraits,
             AffectedSlots = DrawData
                 .Where(kvp => kvp.Value.IsEnabled || kvp.Value.GameItem.Id != ItemIdVars.NothingItem(kvp.Key).Id)
-                .Select(kvp => new AppliedSlot() { Slot = (byte)kvp.Key, CustomItemId = kvp.Value.GameItem.Id.Id })
+                .Select(kvp => new AppliedSlot() 
+                { 
+                    Slot = (byte)kvp.Key, 
+                    CustomItemId = kvp.Value.GameItem.Id.Id,
+                    Tooltip = "This Slot is Locked! --SEP--An active Restraint set is occupying this slot as part of its set!",
+                })
                 .ToList()
         };
     }

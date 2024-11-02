@@ -311,18 +311,21 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Recieved Character Composite Data from "+(pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character Composite Data from "+(pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
+        _allClientPairs[dto.User].ApplyLightStorageData(new(dto.User, dto.CompositeData.LightStorageData));
         _allClientPairs[dto.User].ApplyAppearanceData(new(dto.User, dto.CompositeData.AppearanceData, dto.UpdateKind));
         _allClientPairs[dto.User].ApplyWardrobeData(new(dto.User, dto.CompositeData.WardrobeData, dto.User, dto.UpdateKind));
         _allClientPairs[dto.User].ApplyToyboxData(new(dto.User, dto.CompositeData.ToyboxData, dto.UpdateKind));
-        _allClientPairs[dto.User].ApplyLightStorageData(new(dto.User, dto.CompositeData.LightStorageData));
 
         // first see if our clientUID exists as a key in dto.CompositeData.AliasData. If it does not, define it as an empty data.
         if (dto.CompositeData.AliasData.ContainsKey(clientUID))
             _allClientPairs[dto.User].ApplyAliasData(new(dto.User, dto.CompositeData.AliasData[clientUID], dto.UpdateKind));
         else
             _allClientPairs[dto.User].ApplyAliasData(new(dto.User, new CharaAliasData(), dto.UpdateKind));
+
+        // do an initial slot update.
+        _allClientPairs[dto.User].UpdateCachedLockedSlots();
     }
 
     /// <summary> Method similar to compositeData, but this will only update the IPC data of the user pair. </summary>
@@ -332,7 +335,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Recieved Character IPC Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character IPC Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         // apply the IPC data to the pair.
         _allClientPairs[dto.User].ApplyVisibleData(dto);
@@ -345,7 +348,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // publish event if found.
-        Logger.LogInformation("Recieved Character Appearance Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character Appearance Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         // Apply the update.
         _allClientPairs[dto.User].ApplyAppearanceData(dto);
@@ -358,7 +361,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Recieved Character Wardrobe Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character Wardrobe Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         // apply the wardrobe data to the pair.
         _allClientPairs[dto.User].ApplyWardrobeData(dto);
@@ -371,7 +374,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Recieved Character Alias Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character Alias Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         // apply the alias data to the pair.
         _allClientPairs[dto.User].ApplyAliasData(dto);
@@ -384,7 +387,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Recieved Character Toybox Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character Toybox Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
 
         // apply the pattern data to the pair.
         _allClientPairs[dto.User].ApplyToyboxData(dto);

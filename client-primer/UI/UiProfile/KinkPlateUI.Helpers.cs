@@ -1,5 +1,7 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Textures.TextureWraps;
+using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Mediator;
 using ImGuiNET;
@@ -12,7 +14,7 @@ namespace GagSpeak.UI.Profile;
 /// </summary>
 public partial class KinkPlateUI : WindowMediatorSubscriberBase
 {
-    private void AddImageRounded(ImDrawListPtr drawList, IDalamudTextureWrap? wrap, Vector2 topLeftPos, Vector2 size, float rounding)
+    private void AddImageRounded(ImDrawListPtr drawList, IDalamudTextureWrap? wrap, Vector2 topLeftPos, Vector2 size, float rounding, bool tt = false, string ttText = "")
     {
         try
         {
@@ -26,12 +28,16 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
                     Vector2.One,
                     ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)),
                     rounding);
+                if(tt)
+                {
+                    AddRelativeTooltip(topLeftPos, size, ttText);
+                }
             }
         }
         catch (Exception ex) { _logger.LogError($"Error: {ex}"); }
     }
 
-    private void AddImage(ImDrawListPtr drawList, IDalamudTextureWrap? wrap, Vector2 topLeftPos, Vector2 size, Vector4? tint = null)
+    private void AddImage(ImDrawListPtr drawList, IDalamudTextureWrap? wrap, Vector2 pos, Vector2 size, Vector4? tint = null, bool tt = false, string ttText = "")
     {
         try
         {
@@ -40,7 +46,11 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
                 // handle tint.
                 var actualTint = tint ?? new Vector4(1f, 1f, 1f, 1f);
                 // handle image.
-                drawList.AddImage(validWrap.ImGuiHandle, topLeftPos, topLeftPos + size, Vector2.Zero, Vector2.One, ImGui.GetColorU32(actualTint));
+                drawList.AddImage(validWrap.ImGuiHandle, pos, pos + size, Vector2.Zero, Vector2.One, ImGui.GetColorU32(actualTint));
+                if(tt)
+                {
+                    AddRelativeTooltip(pos, size, ttText);
+                }
             }
         }
         catch (Exception ex) { _logger.LogError($"Error: {ex}"); }
@@ -63,5 +73,13 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
             this.IsOpen = false;
         }
         HoveringCloseButton = ImGui.IsItemHovered();
+    }
+
+    private void AddRelativeTooltip(Vector2 pos, Vector2 size, string text)
+    {
+        // add a scaled dummy over this area.
+        ImGui.SetCursorScreenPos(pos);
+        ImGuiHelpers.ScaledDummy(size);
+        UiSharedService.AttachToolTip(text);
     }
 }

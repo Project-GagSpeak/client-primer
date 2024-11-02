@@ -253,7 +253,8 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
             Padlock = activeSet?.LockType ?? Padlocks.None.ToName(),
             Password = activeSet?.LockPassword ?? "",
             Timer = activeSet?.LockedUntil ?? DateTimeOffset.MinValue,
-            Assigner = activeSet?.LockedBy ?? ""
+            Assigner = activeSet?.LockedBy ?? "",
+            ActiveCursedItems = _clientConfigs.ActiveCursedItems
         };
     }
 

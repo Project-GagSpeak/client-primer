@@ -28,6 +28,7 @@ public class BlindfoldModel
         {
             Slot = (byte)BlindfoldItem.Slot,
             CustomItemId = BlindfoldItem.GameItem.Id.Id,
+            Tooltip = "This Slot is Locked! --SEP--An equipped blindfold is occupying this slot!",
         };
     }
 

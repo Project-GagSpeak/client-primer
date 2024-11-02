@@ -7,6 +7,7 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
+using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
@@ -14,6 +15,9 @@ using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.UserPair;
+using GagspeakAPI.Extensions;
+using Penumbra.GameData.Enums;
+using Penumbra.GameData.Structs;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -98,10 +102,12 @@ public class Pair
     public string PlayerName => CachedPlayer?.PlayerName ?? UserData.AliasOrUID ?? string.Empty;  // Name of pair player. If empty, (pair handler) CachedData is not initialized yet.
     public string PlayerNameWithWorld => CachedPlayer?.PlayerNameWithWorld ?? string.Empty;
     public string CachedPlayerString() => CachedPlayer?.ToString() ?? "No Cached Player"; // string representation of the cached player.
+    public Dictionary<EquipSlot, (EquipItem, string)> LockedSlots { get; private set; } = new(); // the locked slots of the pair. Used for quick reference in profile viewer.
+
 
     public void AddContextMenu(IMenuOpenedArgs args)
     {
-        // if the visible player is not cached, not our target, or not a valid object, or paused, don't display./
+        // if the visible player is not cached, not our target, or not a valid object, or paused, don't display.
         if (CachedPlayer == null || (args.Target is not MenuTargetDefault target) || target.TargetObjectId != VisiblePairGameObject?.GameObjectId || IsPaused) return;
 
         _logger.LogDebug("Adding Context Menu for " + UserData.UID, LoggerType.ContextDtr);
@@ -211,6 +217,13 @@ public class Pair
     {
         _logger.LogDebug("Applying updated appearance data for " + data.User.UID, LoggerType.PairManagement);
         LastReceivedAppearanceData = data.AppearanceData;
+
+        // update the locked slots.
+        if (data.UpdateKind is DataUpdateKind.AppearanceGagAppliedLayerOne or DataUpdateKind.AppearanceGagAppliedLayerTwo or DataUpdateKind.AppearanceGagAppliedLayerThree
+            or DataUpdateKind.AppearanceGagRemovedLayerOne or DataUpdateKind.AppearanceGagRemovedLayerTwo or DataUpdateKind.AppearanceGagRemovedLayerThree)
+        {
+            UpdateCachedLockedSlots();
+        }
     }
 
     /// <summary>
@@ -226,7 +239,7 @@ public class Pair
         LastReceivedWardrobeData = data.WardrobeData;
 
         // depend on the EnabledBy field to know if we applied.
-        if (data.UpdateKind == DataUpdateKind.WardrobeRestraintApplied)
+        if (data.UpdateKind is DataUpdateKind.WardrobeRestraintApplied)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintApplied, data.WardrobeData.ActiveSetId, true, data.WardrobeData.ActiveSetEnabledBy);
 
         // We can only detect the lock uid by listening for the assigner UID. Unlocks are processed via the actions tab.
@@ -240,6 +253,11 @@ public class Pair
         // For removal
         if (data.UpdateKind is DataUpdateKind.WardrobeRestraintDisabled)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintApplied, previousSetId, false, data.Enactor.UID);
+    
+        // if the type was apply or removal, we should update the locked slots.
+        if (data.UpdateKind is DataUpdateKind.WardrobeRestraintApplied or DataUpdateKind.WardrobeRestraintDisabled)
+            UpdateCachedLockedSlots();
+    
     }
 
     /// <summary>
@@ -350,6 +368,88 @@ public class Pair
             // release the creation semaphore
             _creationSemaphore.Release();
         }
+    }
+
+    public void UpdateCachedLockedSlots()
+    {
+        var result = new Dictionary<EquipSlot, (EquipItem, string)>();
+        // return false instantly if the wardrobe data or light data is null.
+        if (LastReceivedWardrobeData is null || LastReceivedLightStorage is null || LastReceivedAppearanceData is null)
+        {
+            _logger.LogWarning("Wardrobe or LightStorage Data is null for " + UserData.UID, LoggerType.PairManagement);
+            return;
+        }
+
+        // we must check in the priority of Cursed Items -> Blindfold -> Gag -> Restraints
+
+        // If the pair has any cursed items active.
+        if (LastReceivedWardrobeData.ActiveCursedItems.Any())
+        {
+            // iterate through the active cursed items, and stop at the first
+            foreach (var cursedItem in LastReceivedWardrobeData.ActiveCursedItems)
+            {
+                // locate the light cursed item associated with the ID.
+                var lightCursedItem = LastReceivedLightStorage.CursedItems.FirstOrDefault(x => x.Identifier == cursedItem);
+                if (lightCursedItem != null)
+                {
+                    // if the cursed item is a Gag, locate the gag glamour first.
+                    if (lightCursedItem.IsGag)
+                    {
+                        if (LastReceivedLightStorage.GagItems.TryGetValue(lightCursedItem.GagType, out var gagItem))
+                        {
+                            // if the gag item's slot is not yet occupied by anything, add it, otherwise, skip.
+                            if (!result.ContainsKey((EquipSlot)gagItem.Slot))
+                                result.Add(
+                                    (EquipSlot)gagItem.Slot, 
+                                    (ItemIdVars.Resolve((EquipSlot)gagItem.Slot, new CustomItemId(gagItem.CustomItemId)), 
+                                    gagItem.Tooltip));
+                        }
+                        continue; // Move to next item. (Early Skip)
+                    }
+
+                    // Cursed Item should be referenced by its applied item instead, so check to see if its already in the dictionary, if it isnt, add it.
+                    if (!result.ContainsKey((EquipSlot)lightCursedItem.AffectedSlot.Slot))
+                        result.Add(
+                            (EquipSlot)lightCursedItem.AffectedSlot.Slot,
+                            (ItemIdVars.Resolve((EquipSlot)lightCursedItem.AffectedSlot.Slot, new CustomItemId(lightCursedItem.AffectedSlot.CustomItemId)), 
+                            lightCursedItem.AffectedSlot.Tooltip));
+                }
+            }
+        }
+
+        // Next check the blindfold item if they are blindfolded.
+        if (UserPairGlobalPerms.IsBlindfolded())
+        {
+            // add the blindfold item to a slot if it is not occupied.
+            if (!result.ContainsKey((EquipSlot)LastReceivedLightStorage.BlindfoldItem.Slot))
+                result.Add(
+                    (EquipSlot)LastReceivedLightStorage.BlindfoldItem.Slot,
+                    (ItemIdVars.Resolve((EquipSlot)LastReceivedLightStorage.BlindfoldItem.Slot, new CustomItemId(LastReceivedLightStorage.BlindfoldItem.CustomItemId)),
+                    LastReceivedLightStorage.BlindfoldItem.Tooltip));
+        }
+
+        // next iterate through our locked gags, adding any gag glamour's to locked slots if they are present.
+        foreach (var gagSlot in LastReceivedAppearanceData.GagSlots.Where(x => x.GagType.ToGagType() is not GagType.None))
+        {
+            // if the pairs stored gag items contains a glamour for that item, attempt to add it, if possible.
+            if (LastReceivedLightStorage.GagItems.TryGetValue(gagSlot.GagType.ToGagType(), out var gagItem))
+                if (!result.ContainsKey((EquipSlot)gagItem.Slot))
+                    result.Add((EquipSlot)gagItem.Slot, (ItemIdVars.Resolve((EquipSlot)gagItem.Slot, new CustomItemId(gagItem.CustomItemId)), gagItem.Tooltip));
+        }
+
+        // finally, locate the active restraint set, and iterate through the restraint item glamours, adding them if not already a part of the dictionary.
+        if (!LastReceivedWardrobeData.ActiveSetId.IsEmptyGuid())
+        {
+            var activeSet = LastReceivedLightStorage.Restraints.FirstOrDefault(x => x.Identifier == LastReceivedWardrobeData.ActiveSetId);
+            if (activeSet is not null)
+            {
+                foreach (var restraintAffectedSlot in activeSet.AffectedSlots)
+                    if (!result.ContainsKey((EquipSlot)restraintAffectedSlot.Slot))
+                        result.Add((EquipSlot)restraintAffectedSlot.Slot, (ItemIdVars.Resolve((EquipSlot)restraintAffectedSlot.Slot, new CustomItemId(restraintAffectedSlot.CustomItemId)), restraintAffectedSlot.Tooltip));
+            }
+        }
+        _logger.LogDebug("Updated Locked Slots for " + UserData.UID, LoggerType.PairManagement);
+        LockedSlots = result;
     }
 
     public (IDalamudTextureWrap? SupporterWrap, string Tooltip) GetSupporterInfo()

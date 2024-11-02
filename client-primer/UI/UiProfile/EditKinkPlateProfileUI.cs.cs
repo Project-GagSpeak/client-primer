@@ -220,11 +220,11 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         {
             profile.KinkPlateInfo.Description = refText;
         }
-        /*
-        if (_uiSharedService.IconTextButton(FontAwesomeIcon.Save, "Save Profile"))
+        
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Save, "Save Profile"))
         {
-            // _ = _apiHubMain.UserSetProfile(new UserProfileDto(new UserData(MainHub.UID), Disabled: false, profile.Base64ProfilePicture, profile.Description));
-        }*/
+            _ = _apiHubMain.UserSetKinkPlate(new UserKinkPlateDto(new UserData(MainHub.UID), profile.KinkPlateInfo, profile.Base64ProfilePicture));
+        }
         UiSharedService.AttachToolTip("Updated your stored profile with latest information");
     }
 

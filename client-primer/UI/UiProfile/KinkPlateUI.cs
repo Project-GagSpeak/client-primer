@@ -1,14 +1,22 @@
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Utility;
 using Dalamud.Utility;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
+using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Dto.User;
+using GagspeakAPI.Extensions;
 using ImGuiNET;
+using Microsoft.IdentityModel.Tokens;
+using NAudio.Gui;
+using Penumbra.GameData.Enums;
+using System;
 using System.Numerics;
 
 namespace GagSpeak.UI.Profile;
@@ -22,20 +30,21 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly KinkPlateService _profileService;
     private readonly CosmeticService _cosmetics;
+    private readonly TextureService _textures;
     private readonly UiSharedService _uiShared;
 
     private bool ThemePushed = false;
-
     public KinkPlateUI(ILogger<KinkPlateUI> logger, GagspeakMediator mediator,
         PairManager pairManager, ServerConfigurationManager serverConfigs,
         KinkPlateService profileService, CosmeticService cosmetics,
-        UiSharedService uiShared, Pair pair)
+        TextureService textureService, UiSharedService uiShared, Pair pair)
         : base(logger, mediator, pair.UserData.AliasOrUID + "'s KinkPlate##GagspeakKinkPlateUI" + pair.UserData.AliasOrUID)
     {
         _pairManager = pairManager;
         _serverConfigs = serverConfigs;
         _profileService = profileService;
         _cosmetics = cosmetics;
+        _textures = textureService;
         _uiShared = uiShared;
         Pair = pair;
 
@@ -46,6 +55,10 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
     private bool HoveringCloseButton { get; set; } = false;
     public Pair Pair { get; init; } // The pair this profile is being drawn for.
+    private string DisplayName => Pair.UserData.AliasOrUID;
+    private string PairUID => Pair.UserData.UID;
+
+    private static Vector4 Gold = new Vector4(1f, 0.851f, 0.299f, 1f);
 
     protected override void PreDrawInternal()
     {
@@ -91,7 +104,9 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
     {
         DrawPlate(drawList, profile.KinkPlateInfo);
 
-        DrawSummary(drawList, profile);
+        DrawProfilePic(drawList, profile);
+
+        DrawIconSummary(drawList, profile);
 
         DrawDescription(drawList, profile);
 
@@ -131,9 +146,10 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
         // Draw the close button.
         CloseButton(drawList);
+        AddRelativeTooltip(CloseButtonPos, CloseButtonSize, "Close "+ DisplayName +"'s KinkPlate™");
     }
 
-    private void DrawSummary(ImDrawListPtr drawList, KinkPlate profile)
+    private void DrawProfilePic(ImDrawListPtr drawList, KinkPlate profile)
     {
 
         // Draw the profile Picture
@@ -152,42 +168,77 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         var supporterInfo = Pair.GetSupporterInfo();
         if (supporterInfo.SupporterWrap is { } wrap)
         {
-            AddImageRounded(drawList, wrap, SupporterIconPos, SupporterIconSize, SupporterIconSize.Y / 2);
+            AddImageRounded(drawList, wrap, SupporterIconPos, SupporterIconSize, SupporterIconSize.Y / 2, true, supporterInfo.Tooltip);
         }
-
         // Draw out the border for the icon.
         drawList.AddCircle(SupporterIconBorderPos + SupporterIconBorderSize / 2, SupporterIconBorderSize.X / 2,
             ImGui.GetColorU32(ImGuiColors.ParsedPink), 0, 4f);
+
 
         // draw out the UID here. We must make it centered. To do this, we must fist calculate how to center it.
         var widthToCenterOn = ProfilePictureBorderSize.X;
         // determine the height gap between the icon overview and bottom of the profile picture.
         var gapHeight = IconOverviewListPos.Y - (ProfilePictureBorderPos.Y + ProfilePictureBorderSize.Y);
+        string ttText = DisplayName == PairUID ? "This Pairs UID" : "This Pairs Alias --SEP-- Their UID is: " + PairUID;
         using (_uiShared.UidFont.Push())
         {
-            var aliasOrUidSize = ImGui.CalcTextSize(Pair.UserData.AliasOrUID);
-            // calculate the Y height it should be drawn on by taking the gap height and dividing it by 2 and subtracting the text height.
+            var aliasOrUidSize = ImGui.CalcTextSize(DisplayName);
             var yHeight = (gapHeight - aliasOrUidSize.Y) / 2;
 
             ImGui.SetCursorScreenPos(new Vector2(ProfilePictureBorderPos.X + widthToCenterOn / 2 - aliasOrUidSize.X / 2, ProfilePictureBorderPos.Y + ProfilePictureBorderSize.Y + yHeight));
             // display it, it should be green if connected and red when not.
-            ImGui.TextColored(ImGuiColors.ParsedPink, Pair.UserData.AliasOrUID);
+            ImGui.TextColored(ImGuiColors.ParsedPink, DisplayName);
         }
+        UiSharedService.AttachToolTip(ttText);
+    }
 
+    private void DrawIconSummary(ImDrawListPtr drawList, KinkPlate profile)
+    {
         int iconWidthPlusSpacing = 38;
         var iconOverviewPos = IconOverviewListPos;
-        // draw out the icon row.
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Vibrator], iconOverviewPos, Vector2.One * 34, ImGuiColors.DalamudGrey3);
+        
+        // draw out the icon row. For each item, we will first determine the color, and its tooltip text.
+        var vibeColor = Pair.UserPairGlobalPerms.ToyIsActive ? Gold : ImGuiColors.DalamudGrey3;
+        var vibeTT = Pair.UserPairGlobalPerms.ToyIsActive 
+            ? DisplayName + " has a Sex Toy connected and active." 
+            : DisplayName + " does not have any Sex Toys connected and active.";
+        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Vibrator], iconOverviewPos, Vector2.One * 34, vibeColor, true, vibeTT);
         iconOverviewPos.X += iconWidthPlusSpacing;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ShockCollar], iconOverviewPos, Vector2.One * 34, ImGuiColors.DalamudGrey3);
+
+        var shockColor = Pair.UserPairGlobalPerms.HasValidShareCode() ? Gold : ImGuiColors.DalamudGrey3;
+        var shockTT = Pair.UserPairGlobalPerms.HasValidShareCode()
+            ? DisplayName + " is connected to their Shock Collar while in Hardcore Mode."
+            : DisplayName + " has not connected a Shock Collar.";
+        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ShockCollar], iconOverviewPos, Vector2.One * 34, shockColor, true, shockTT);
         iconOverviewPos.X += iconWidthPlusSpacing;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Leash], iconOverviewPos, Vector2.One * 34, ImGuiColors.DalamudGrey3);
+
+        var forcedFollowColor = !Pair.UserPairGlobalPerms.ForcedFollow.NullOrEmpty() ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey3;
+        var forcedFollowTT = !Pair.UserPairGlobalPerms.ForcedFollow.NullOrEmpty()
+            ? DisplayName + " is being leashed around by another pair while in Hardcore Mode."
+            : DisplayName + " is not following anyone.";
+        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Leash], iconOverviewPos, Vector2.One * 34, forcedFollowColor, true, forcedFollowTT);
         iconOverviewPos.X += iconWidthPlusSpacing;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ForcedEmote], iconOverviewPos, Vector2.One * 34, ImGuiColors.DalamudGrey3);
+
+        var forcedEmoteColor = !Pair.UserPairGlobalPerms.ForcedEmoteState.NullOrEmpty() ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey3;
+        var forcedEmoteTT = !Pair.UserPairGlobalPerms.ForcedEmoteState.NullOrEmpty()
+            ? DisplayName + " is being put on display for another pair while in Hardcore Mode."
+            : DisplayName + " is not on display for anyone.";
+        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ForcedEmote], iconOverviewPos, Vector2.One * 34, forcedEmoteColor, true, forcedEmoteTT);
         iconOverviewPos.X += iconWidthPlusSpacing;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ForcedStay], iconOverviewPos, Vector2.One * 34, ImGuiColors.DalamudGrey3);
+
+        var forcedStayColor = !Pair.UserPairGlobalPerms.ForcedStay.NullOrEmpty() ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey3;
+        var forcedStayTT = !Pair.UserPairGlobalPerms.ForcedStay.NullOrEmpty()
+            ? DisplayName + " has been ordered to stay put for another pair while in Hardcore Mode."
+            : DisplayName + " has not been ordered to stay put by anyone.";
+        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ForcedStay], iconOverviewPos, Vector2.One * 34, forcedStayColor, true, forcedStayTT);
         iconOverviewPos.X += iconWidthPlusSpacing;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ChatBlocked], iconOverviewPos, Vector2.One * 34, ImGuiColors.DalamudGrey3);
+
+        bool chatManipulated = Pair.UserPairGlobalPerms.IsChatHidden() || Pair.UserPairGlobalPerms.IsChatInputHidden() || Pair.UserPairGlobalPerms.IsChatInputBlocked();
+        var chatBlockedColor = chatManipulated ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey3;
+        var chatBlockedTT = chatManipulated
+            ? DisplayName + " is having their chat access restricted by another pair while in Hardcore Mode."
+            : DisplayName + " is not under any chat restrictions.";
+        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ChatBlocked], iconOverviewPos, Vector2.One * 34, chatBlockedColor, true, chatBlockedTT);
     }
 
     private void DrawDescription(ImDrawListPtr drawList, KinkPlate profile)
@@ -235,6 +286,26 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
             AddImageRounded(drawList, gagSlotBorder, GagSlotThreeBorderPos, GagSlotBorderSize, 10f);
         }
 
+        // we should draw out the gag images here if valid.
+        if (Pair.LastReceivedAppearanceData is not null)
+        {
+            if (Pair.LastReceivedAppearanceData.GagSlots[0].GagType.ToGagType() is not GagType.None)
+            {
+                var gagImage = _cosmetics.GetImageFromDirectoryFile("GagImages\\" + Pair.LastReceivedAppearanceData.GagSlots[0].GagType + ".png" ?? $"ItemMouth\\None.png");
+                AddImageRounded(drawList, gagImage, GagSlotOnePos, GagSlotSize, 10f);
+            }
+            if(Pair.LastReceivedAppearanceData.GagSlots[1].GagType.ToGagType() is not GagType.None)
+            {
+                var gagImage = _cosmetics.GetImageFromDirectoryFile("GagImages\\" + Pair.LastReceivedAppearanceData.GagSlots[1].GagType + ".png" ?? $"ItemMouth\\None.png");
+                AddImageRounded(drawList, gagImage, GagSlotTwoPos, GagSlotSize, 10f);
+            }
+            if (Pair.LastReceivedAppearanceData.GagSlots[2].GagType.ToGagType() is not GagType.None)
+            {
+                var gagImage = _cosmetics.GetImageFromDirectoryFile("GagImages\\" + Pair.LastReceivedAppearanceData.GagSlots[2].GagType + ".png" ?? $"ItemMouth\\None.png");
+                AddImageRounded(drawList, gagImage, GagSlotThreePos, GagSlotSize, 10f);
+            }
+        }
+
         // draw out the overlays.
         if (_cosmetics.TryGetOverlay(ProfileComponent.GagSlot, info.GagSlotOverlay, out var gagSlotOverlay))
         {
@@ -255,6 +326,26 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
             drawList.AddCircleFilled(GagLockOneBorderPos + GagLockBorderSize / 2, GagLockBorderSize.X / 2, ImGui.GetColorU32(new Vector4(0, 0, 0, 1)));
             drawList.AddCircleFilled(GagLockTwoBorderPos + GagLockBorderSize / 2, GagLockBorderSize.X / 2, ImGui.GetColorU32(new Vector4(0, 0, 0, 1)));
             drawList.AddCircleFilled(GagLockThreeBorderPos + GagLockBorderSize / 2, GagLockBorderSize.X / 2, ImGui.GetColorU32(new Vector4(0, 0, 0, 1)));
+        }
+
+        // we should draw out the lock images here if valid.
+        if (Pair.LastReceivedAppearanceData is not null)
+        {
+            if (Pair.LastReceivedAppearanceData.GagSlots[0].Padlock.ToPadlock() is not Padlocks.None)
+            {
+                var padlockImage = _cosmetics.GetImageFromDirectoryFile("PadlockImages\\" + Pair.LastReceivedAppearanceData.GagSlots[0].Padlock.ToPadlock() + ".png" ?? "Padlocks\\None.png");
+                AddImageRounded(drawList, padlockImage, GagLockOnePos, GagLockSize, GagLockSize.X / 2);
+            }
+            if (Pair.LastReceivedAppearanceData.GagSlots[1].Padlock.ToPadlock() is not Padlocks.None)
+            {
+                var padlockImage = _cosmetics.GetImageFromDirectoryFile("PadlockImages\\" + Pair.LastReceivedAppearanceData.GagSlots[1].Padlock.ToPadlock() + ".png" ?? "Padlocks\\None.png");
+                AddImageRounded(drawList, padlockImage, GagLockTwoPos, GagLockSize, GagLockSize.X / 2);
+            }
+            if (Pair.LastReceivedAppearanceData.GagSlots[2].Padlock.ToPadlock() is not Padlocks.None)
+            {
+                var padlockImage = _cosmetics.GetImageFromDirectoryFile("PadlockImages\\" + Pair.LastReceivedAppearanceData.GagSlots[2].Padlock.ToPadlock() + ".png" ?? "Padlocks\\None.png");
+                AddImageRounded(drawList, padlockImage, GagLockThreePos, GagLockSize, GagLockSize.X / 2);
+            }
         }
 
         // draw out the padlock borders.
@@ -292,6 +383,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         statsPos += new Vector2(24, 0);
         ImGui.SetCursorScreenPos(statsPos);
         UiSharedService.ColorText("100/141", ImGuiColors.ParsedGold);
+        UiSharedService.AttachToolTip("The total achievements "+ DisplayName + " has earned.");
     }
 
     private void DrawBlockedSlots(ImDrawListPtr drawList, KinkPlateContent info)
@@ -300,27 +392,77 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         if (_cosmetics.TryGetBackground(ProfileComponent.BlockedSlots, info.BlockedSlotsBackground, out var lockedSlotsPanelBG))
             AddImageRounded(drawList, lockedSlotsPanelBG, LockedSlotsPanelBorderPos, LockedSlotsPanelBorderSize, 10f);
 
-        // draw out the border ontop of that.
+        // draw out the border on top of that.
         if (_cosmetics.TryGetBorder(ProfileComponent.BlockedSlots, info.BlockedSlotsBorder, out var lockedSlotsPanelBorder))
             AddImageRounded(drawList, lockedSlotsPanelBorder, LockedSlotsPanelBorderPos, LockedSlotsPanelBorderSize, 10f);
 
-        // draw out the overlay ontop of that.
+        // draw out the overlay on top of that.
         if (_cosmetics.TryGetOverlay(ProfileComponent.BlockedSlots, info.BlockedSlotsOverlay, out var lockedSlotsPanelOverlay))
             AddImageRounded(drawList, lockedSlotsPanelOverlay, LockedSlotsPanelBorderPos, LockedSlotsPanelBorderSize, 10f);
 
         // draw out the blocked causes icon row.
         var blockedAffecterPos = LockAffectersRowPos;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Restrained], blockedAffecterPos, LockAffecterIconSize, ImGuiColors.DalamudGrey3);
+        var restrainedColor = Pair.LastReceivedWardrobeData?.ActiveSetId.IsEmptyGuid() ?? true ? ImGuiColors.DalamudGrey3 : Gold;
+        var restrainedTT = Pair.LastReceivedWardrobeData?.ActiveSetId.IsEmptyGuid() ?? true
+            ? DisplayName + " is not wearing a restraint set."
+            : DisplayName + " has an active restraint set.";
+        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Restrained], blockedAffecterPos, LockAffecterIconSize, restrainedColor, true, restrainedTT);
         blockedAffecterPos.X += LockAffecterIconSize.X + LockAffecterSpacing.X;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.CursedLoot], blockedAffecterPos, LockAffecterIconSize, ImGuiColors.DalamudGrey3);
-        blockedAffecterPos.X += LockAffecterIconSize.X + 11f;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Blindfolded], blockedAffecterPos, LockAffecterIconSize, ImGuiColors.DalamudGrey3);
 
+        var mimicColor = (Pair.LastReceivedWardrobeData?.ActiveCursedItems.Any() ?? false) ? Gold : ImGuiColors.DalamudGrey3;
+        var mimicTT = (Pair.LastReceivedWardrobeData?.ActiveCursedItems.Any() ?? false)
+            ? DisplayName + " is restrained by Cursed Loot!"
+            : DisplayName + " is not restrained with Cursed Loot.";
+        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.CursedLoot], blockedAffecterPos, LockAffecterIconSize, mimicColor, true, mimicTT);
+        blockedAffecterPos.X += LockAffecterIconSize.X + 11f;
+
+        var blindfoldedColor = Pair.UserPairGlobalPerms.IsBlindfolded() && Pair.LastReceivedLightStorage?.BlindfoldItem is not null ? Gold : ImGuiColors.DalamudGrey3;
+        var blindfoldedTT = Pair.UserPairGlobalPerms.IsBlindfolded() && Pair.LastReceivedLightStorage?.BlindfoldItem is not null
+            ? DisplayName + " is blindfolded."
+            : DisplayName + " is not blindfolded.";
+        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Blindfolded], blockedAffecterPos, LockAffecterIconSize, blindfoldedColor, true, blindfoldedTT);
+        // we will need to draw out all of the slot icons here from the game, based on the pairs locked slot status.
+        if (!Pair.LockedSlots.IsNullOrEmpty())
+        {
+            var blockedSlotsPos = LockedSlotsGroupPos;
+            // Iterate through each equip slot type
+            foreach (var equipSlot in EquipSlotExtensions.EqdpSlots)
+            {
+                // Determine if the slot is locked and set the appropriate icon
+                if (Pair.LockedSlots.ContainsKey(equipSlot))
+                {
+                    // Get the locked item icon and tooltip
+                    var (ptr, textureSize, empty) = _textures.GetIcon(Pair.LockedSlots[equipSlot].Item1, equipSlot);
+                    if (!empty)
+                    {
+                        drawList.AddImageRounded(ptr, blockedSlotsPos, blockedSlotsPos + LockedSlotSize, Vector2.Zero, Vector2.One, ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)), 15f);
+                        AddRelativeTooltip(blockedSlotsPos, LockedSlotSize, Pair.LockedSlots[equipSlot].Item2);
+                    }
+                }
+                else
+                {
+                    // Draw the empty icon if the slot is not locked
+                    var (ptr, textureSize, empty) = _textures.GetIcon(ItemIdVars.NothingItem(equipSlot), equipSlot);
+                    if (!empty)
+                    {
+                        drawList.AddImageRounded(ptr, blockedSlotsPos, blockedSlotsPos + LockedSlotSize, Vector2.Zero, Vector2.One, ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)), 15f);
+                    }
+                }
+
+                // Update the position for the next slot
+                blockedSlotsPos.Y += LockedSlotSize.Y + LockedSlotSpacing.Y;
+                if (blockedSlotsPos.Y >= LockedSlotsGroupPos.Y + (LockedSlotSize.Y + LockedSlotSpacing.Y) * 5) // Assuming a 5-row layout
+                {
+                    blockedSlotsPos.Y = LockedSlotsGroupPos.Y;
+                    blockedSlotsPos.X += LockedSlotSize.X + LockedSlotSpacing.X;
+                }
+            }
+        }
 
         // draw out the background for the head slot.
         if (_cosmetics.TryGetBorder(ProfileComponent.BlockedSlot, info.BlockedSlotBorder, out var blockedSlotBG))
         {
-            // obtain the start position, then start drawing all of the backgrounds at once.
+            // obtain the start position, then start drawing all of the borders at once.
             var blockedSlotBorderPos = LockedSlotsGroupPos;
             AddImageRounded(drawList, blockedSlotBG, blockedSlotBorderPos, LockedSlotSize, 10f);
             AddImageRounded(drawList, blockedSlotBG, blockedSlotBorderPos + new Vector2(LockedSlotSize.X + LockedSlotSpacing.X, 0), LockedSlotSize, 10f);
@@ -345,7 +487,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         // draw out the background for the head slot.
         if (_cosmetics.TryGetOverlay(ProfileComponent.BlockedSlot, info.BlockedSlotOverlay, out var blockedSlotOverlay))
         {
-            // obtain the start position, then start drawing all of the backgrounds at once.
+            // obtain the start position, then start drawing all of the overlays at once.
             var blockedSlotOverlayPos = LockedSlotsGroupPos;
             AddImageRounded(drawList, blockedSlotBG, blockedSlotOverlayPos, LockedSlotSize, 10f);
             AddImageRounded(drawList, blockedSlotBG, blockedSlotOverlayPos + new Vector2(LockedSlotSize.X + LockedSlotSpacing.X, 0), LockedSlotSize, 10f);
@@ -370,15 +512,50 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
         // draw the icon list underneath that displays the hardcore traits and shit
         var hardcoreTraitsPos = HardcoreTraitsRowPos;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.RestrainedArmsLegs], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3);
-        hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Gagged], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3);
-        hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.SightLoss], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3);
-        hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Weighty], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3);
-        hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
-        AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Stimulated], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3);
+        var activeSetLight = Pair.LastReceivedLightStorage?.Restraints.FirstOrDefault(x => x.Identifier == Pair.LastReceivedWardrobeData?.ActiveSetId) ?? null;
+        if(Pair.LastReceivedWardrobeData is not null && activeSetLight is not null && activeSetLight.HardcoreTraits.TryGetValue(Pair.LastReceivedWardrobeData.ActiveSetEnabledBy, out var traits))
+        {
+            if (traits.ArmsRestrained || traits.ArmsRestrained)
+                AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.RestrainedArmsLegs], hardcoreTraitsPos, HardcoreTraitIconSize, Gold, true, "Hardcore Trait: Arms/Legs Restrained--SEP--Restricts Actions that require the use of arms/legs, whichever option is enabled.");
+            else
+                AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.RestrainedArmsLegs], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Arms/Legs Restrained");
+            
+            hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
+            if (traits.Gagged)
+                AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Gagged], hardcoreTraitsPos, HardcoreTraitIconSize, Gold, true, "Hardcore Trait: Gagged--SEP--Restricts Actions that have your character shout/speak");
+            else
+                AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Gagged], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Gagged");
+
+            hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
+            if (traits.Blindfolded)
+                AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.SightLoss], hardcoreTraitsPos, HardcoreTraitIconSize, Gold, true, "Hardcore Trait: Blindfolded--SEP--Restricts Actions that require sight to be used.");
+            else
+                AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.SightLoss], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Blindfolded");
+
+            hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
+            if (traits.Weighty)
+                AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Weighty], hardcoreTraitsPos, HardcoreTraitIconSize, Gold, true, "Hardcore Trait: Weighty--SEP--With heavy bondage applied, this trait forces them to only walk.");
+            else
+                AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Weighty], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Weighty");
+
+            hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
+            if(traits.StimulationLevel is not StimulationLevel.None)
+                AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Stimulated], hardcoreTraitsPos, HardcoreTraitIconSize, Gold, true, "Hardcore Trait: Stimulated--SEP--Distracted with stimulation, you care for combat less, increasing GCD Cooldown time in proportion to arousal level.");
+            else
+                AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Stimulated], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Stimulated");
+        }
+        else
+        {
+            AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.RestrainedArmsLegs], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Arms/Legs Restrained");
+            hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
+            AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Gagged], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Gagged");
+            hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
+            AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.SightLoss], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Blindfolded");
+            hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
+            AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Weighty], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Weighty");
+            hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
+            AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Stimulated], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Stimulated");
+        }
     }
 
 

@@ -427,7 +427,7 @@ public partial class MainHub
     /// </summary>
     public Task Client_UserReceiveOtherDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
     {
-        Logger.LogDebug("Client_UserReceiveOtherDataAppearance: {user}{updateKind}\n{data}", dataDto.User, dataDto.UpdateKind, dataDto.AppearanceData.ToString());
+        Logger.LogDebug("Client_UserReceiveOtherDataAppearance: {user}{updateKind}\n{data}", dataDto.User, dataDto.UpdateKind, dataDto.AppearanceData.ToGagString());
         ExecuteSafely(() => _pairManager.ReceiveCharaAppearanceData(dataDto));
         return Task.CompletedTask;
     }
@@ -487,12 +487,22 @@ public partial class MainHub
     }
 
     /// <summary> 
+    /// Update Other UserPair LightStorage Data 
+    /// </summary>
+    public Task Client_UserReceiveOtherDataToybox(OnlineUserCharaToyboxDataDto dataDto)
+    {
+        Logger.LogDebug("Client_UserReceiveOtherDataToybox:" + dataDto.User, LoggerType.Callbacks);
+        ExecuteSafely(() => _pairManager.ReceiveCharaToyboxData(dataDto));
+        return Task.CompletedTask;
+    }
+
+    /// <summary> 
     /// Update Other UserPair Toybox Data 
     /// </summary>
     public Task Client_UserReceiveOwnLightStorage(OnlineUserStorageUpdateDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOwnLightStorage:" + dataDto.User, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.ReceiveCharaLightStorageData(dataDto));
+        ExecuteSafely(() => _clientCallbacks.CallbackLightStorageUpdate(dataDto));
         return Task.CompletedTask;
     }
 
@@ -502,17 +512,7 @@ public partial class MainHub
     public Task Client_UserReceiveOtherLightStorage(OnlineUserStorageUpdateDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherLightStorage:" + dataDto.User, LoggerType.Callbacks);
-        ExecuteSafely(() => _clientCallbacks.CallbackLightStorageUpdate(dataDto));
-        return Task.CompletedTask;
-    }
-
-    /// <summary> 
-    /// Update Other UserPair LightStorage Data 
-    /// </summary>
-    public Task Client_UserReceiveOtherDataToybox(OnlineUserCharaToyboxDataDto dataDto)
-    {
-        Logger.LogDebug("Client_UserReceiveOtherDataToybox:" + dataDto.User, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.ReceiveCharaToyboxData(dataDto));
+        ExecuteSafely(() => _pairManager.ReceiveCharaLightStorageData(dataDto));
         return Task.CompletedTask;
     }
 

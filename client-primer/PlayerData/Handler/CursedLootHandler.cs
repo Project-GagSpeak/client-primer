@@ -40,13 +40,11 @@ public class CursedLootHandler : DisposableMediatorSubscriberBase
     /// </summary>
     public List<CursedItem> ActiveItems => Data.CursedItems
         .Where(x => x.AppliedTime != DateTimeOffset.MinValue)
-        .Take(10)
         .OrderBy(x => x.AppliedTime)
         .ToList();
 
     public List<CursedItem> ActiveItemsDecending => Data.CursedItems
     .Where(x => x.AppliedTime != DateTimeOffset.MinValue)
-    .Take(6)
     .OrderByDescending(x => x.AppliedTime)
     .ToList();
 

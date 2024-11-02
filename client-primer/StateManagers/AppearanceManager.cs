@@ -427,7 +427,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     /// For applying cursed items.
     /// </summary>
     /// <param name="gagLayer"> Ignore this if the cursed item's IsGag is false. </param>
-    public async Task CursedItemApplied(CursedItem cursedItem, GagLayer gagLayer = GagLayer.UnderLayer)
+    public async Task CursedItemApplied(CursedItem cursedItem, GagLayer gagLayer = GagLayer.UnderLayer, bool publish = true)
     {
         await ExecuteWithApplierSlim(async () =>
         {
@@ -445,36 +445,40 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
                 await RecalcAndReload(false);
             }
+            if (publish)
+                Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.CursedItemApplied));
         });
     }
 
-    public async Task CursedItemRemoved(CursedItem cursedItem)
+    public async Task CursedItemRemoved(CursedItem cursedItem, bool publish = true)
     {
         await ExecuteWithApplierSlim(async () =>
         {
             Logger.LogTrace("CURSED-REMOVED Executed");
             // If the Cursed Item is a GagItem, it will be handled automatically by lock expiration. 
             // However, it also means none of the below will process, so we should return if it is.
-            if (cursedItem.IsGag)
-                return;
-
-            // We are removing a Equip-based CursedItem
-            await PenumbraModsToggle(NewState.Disabled, new List<AssociatedMod>() { cursedItem.AssociatedMod });
-
-            // The attached Moodle will need to be removed as well. (need to handle seperately since it stores moodles differently)
-            if (!_playerData.IpcDataNull && cursedItem.MoodleIdentifier != Guid.Empty)
+            if (!cursedItem.IsGag)
             {
-                if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus)
-                    await _ipcManager.Moodles.RemoveOwnStatusByGuid(new List<Guid>() { cursedItem.MoodleIdentifier });
-                else if (cursedItem.MoodleType is IpcToggleType.MoodlesPreset)
+                // We are removing a Equip-based CursedItem
+                await PenumbraModsToggle(NewState.Disabled, new List<AssociatedMod>() { cursedItem.AssociatedMod });
+
+                // The attached Moodle will need to be removed as well. (need to handle seperately since it stores moodles differently)
+                if (!_playerData.IpcDataNull && cursedItem.MoodleIdentifier != Guid.Empty)
                 {
-                    var statuses = _playerData.LastIpcData!.MoodlesPresets
-                        .FirstOrDefault(p => p.Item1 == cursedItem.MoodleIdentifier).Item2;
-                    await _ipcManager.Moodles.RemoveOwnStatusByGuid(statuses);
+                    if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus)
+                        await _ipcManager.Moodles.RemoveOwnStatusByGuid(new List<Guid>() { cursedItem.MoodleIdentifier });
+                    else if (cursedItem.MoodleType is IpcToggleType.MoodlesPreset)
+                    {
+                        var statuses = _playerData.LastIpcData!.MoodlesPresets
+                            .FirstOrDefault(p => p.Item1 == cursedItem.MoodleIdentifier).Item2;
+                        await _ipcManager.Moodles.RemoveOwnStatusByGuid(statuses);
+                    }
                 }
+                await RecalcAndReload(true, true);
             }
 
-            await RecalcAndReload(true, true);
+            if (publish)
+                Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.CursedItemRemoved));
         });
     }
 
@@ -661,7 +665,6 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         // track the items that will be applied.
         var cursedItems = _clientConfigs.CursedLootConfig.CursedLootStorage.CursedItems
             .Where(x => x.AppliedTime != DateTimeOffset.MinValue)
-            .Take(6)
             .OrderBy(x => x.AppliedTime)
             .ToList();
         Logger.LogDebug("Found " + cursedItems.Count + " Cursed Items to Apply.", LoggerType.ClientPlayerData);

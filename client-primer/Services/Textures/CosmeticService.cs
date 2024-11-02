@@ -82,15 +82,7 @@ public class CosmeticService : IHostedService, IDisposable
 
             _logger.LogTrace("Renting image to store in Cache: " + key);
             if (TryRentImageFromFile(path, out var texture))
-            {
                 InternalCosmeticCache[key] = texture;
-            }
-            else
-            {
-                // This will make the key for the dictionary no longer exist, which is why we need the TryGetValue functions.
-                _logger.LogWarning("Cosmetic Key: " + key + " Texture Failed to Load: " + path);
-                continue;
-            }
         }
         _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all Cosmetic Images!");
 

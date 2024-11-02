@@ -37,6 +37,7 @@ public class UiFactory
     private readonly MoodlesService _moodlesService;
     private readonly PermissionPresetService _presetService;
     private readonly CosmeticService _cosmetics;
+    private readonly TextureService _textures;
     private readonly PermActionsComponents _permActionHelpers;
 
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator, MainHub apiHubMain, 
@@ -45,7 +46,7 @@ public class UiFactory
         PlayerCharacterData playerManager, ToyboxRemoteService remoteService, 
         ServerConfigurationManager serverConfigs, KinkPlateService profileManager, OnFrameworkService frameworkUtils,
         ClientConfigurationManager clientConfigs, MoodlesService moodlesService, PermissionPresetService presetService,
-        CosmeticService cosmetics, PermActionsComponents permActionHelpers)
+        CosmeticService cosmetics, TextureService textures, PermActionsComponents permActionHelpers)
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;
@@ -65,6 +66,7 @@ public class UiFactory
         _moodlesService = moodlesService;
         _presetService = presetService;
         _cosmetics = cosmetics;
+        _textures = textures;
         _permActionHelpers = permActionHelpers;
     }
 
@@ -77,7 +79,7 @@ public class UiFactory
     public KinkPlateUI CreateStandaloneProfileUi(Pair pair)
     {
         return new KinkPlateUI(_loggerFactory.CreateLogger<KinkPlateUI>(), _gagspeakMediator,
-            _pairManager, _serverConfigs, _KinkPlateManager, _cosmetics, _uiSharedService, pair);
+            _pairManager, _serverConfigs, _KinkPlateManager, _cosmetics, _textures, _uiSharedService, pair);
     }
 
     // create a new instance window of the userpair permissions window every time a new pair is selected.

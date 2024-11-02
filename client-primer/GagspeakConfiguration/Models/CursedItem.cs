@@ -96,6 +96,7 @@ public record CursedItem
 
                 Slot = (byte)AppliedItem.Slot,
                 CustomItemId = AppliedItem.GameItem.Id.Id,
+                Tooltip = "This Slot is Locked!--SEP--An item on this slot is securely locked in place after an encounter\nwith a dungeon mimic chest that contained Cursed Loot!",
             }
         };
     }

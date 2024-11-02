@@ -433,6 +433,12 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     /* --------------------- Cursed Loot Config Methods --------------------- */
     #region Cursed Loot Config Methods
+    internal List<Guid> ActiveCursedItems => CursedLootConfig.CursedLootStorage.CursedItems
+        .Where(x => x.AppliedTime != DateTimeOffset.MinValue)
+        .OrderByDescending(x => x.AppliedTime) // reverse this if wrong order.
+        .Select(x => x.LootId)
+        .ToList();
+
     internal void AddCursedItem(CursedItem newItem)
     {
         newItem.Name = EnsureUniqueName(newItem.Name, CursedLootConfig.CursedLootStorage.CursedItems, item => item.Name);
@@ -471,16 +477,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     internal void SaveCursedLoot() => _cursedLootConfig.Save();
 
-    // Occurs due to safeword, will deactivate all active sets whose apply time is not dateTimeOffset.MinValue.
-    internal void ClearCursedItems()
-    {
-        foreach (var item in CursedLootConfig.CursedLootStorage.CursedItems.Where(x => x.AppliedTime != DateTimeOffset.MinValue))
-        {
-            item.AppliedTime = DateTimeOffset.MinValue;
-            item.ReleaseTime = DateTimeOffset.MinValue;
-        }
-        _cursedLootConfig.Save();
-    }
 
     #endregion Cursed Loot Config Methods
 

@@ -167,6 +167,10 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             return;
         }
 
+        // if the hardcore change is a blindfold change, we should update our slots for the pair.
+        if (hardcoreChangeType is HardcoreAction.ForcedBlindfold)
+            pair.UpdateCachedLockedSlots();
+
         var newState = string.IsNullOrEmpty((string)ChangedValue) ? NewState.Disabled : NewState.Enabled;
         Logger.LogInformation(hardcoreChangeType.ToString() + " has changed, and is now " + ChangedValue, LoggerType.PairManagement);
         // If the changed Pair is not null, we should map the type and log the interaction event.

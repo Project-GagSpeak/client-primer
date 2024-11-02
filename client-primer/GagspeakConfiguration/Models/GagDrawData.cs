@@ -37,6 +37,7 @@ public record GagDrawData : IMoodlesAssociable, IGlamourItem
         {
             Slot = (byte)Slot,
             CustomItemId = GameItem.Id.Id,
+            Tooltip = "This Slot is Locked! --SEP--An equipped gag has its glamour occupying this slot!",
         };
     }
 

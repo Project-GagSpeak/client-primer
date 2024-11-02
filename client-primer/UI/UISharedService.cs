@@ -198,13 +198,15 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     /// A helper function to attach a tooltip to a section in the UI currently hovered. 
     /// </summary>
     /// <param name="text"> The text to display in the tooltip. </param>
-    public static void AttachToolTip(string text)
+    public static void AttachToolTip(string text, float borderSize = 1f)
     {
-        using var padding = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, Vector2.One * 4f);
-        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.WindowRounding, 0f);
         // if the item is currently hovered, with the ImGuiHoveredFlags set to allow when disabled
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
         {
+            using var padding = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, Vector2.One * 4f);
+            using var rounding = ImRaii.PushStyle(ImGuiStyleVar.WindowRounding, 4f);
+            using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, borderSize);
+            using var frameColor = ImRaii.PushColor(ImGuiCol.Border, ImGuiColors.ParsedPink);
             // begin the tooltip interface
             ImGui.BeginTooltip();
             // push the text wrap position to the font size times 35

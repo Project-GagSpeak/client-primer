@@ -19,6 +19,11 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 8, 1)
+            .RegisterMain("Profiles now display everything they should properly! YIPPEE!")
+            .RegisterFeature("You can now save and update your descriptions.")
+            .RegisterBugfix("No longer fails to load some textures.")
+            .RegisterQol("Better aligned the portait so the border doesnt crop off the ends anymore.");
         VersionEntry(0, 9, 8, 0)
             .RegisterMain("The Entire Interaction Backend System has been restructured.")
             .RegisterMain("Please expect any potential bugs with interacting with pairs and report them to me.")

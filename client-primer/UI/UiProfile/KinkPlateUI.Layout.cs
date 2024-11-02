@@ -19,10 +19,10 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
     private Vector2 CloseButtonSize => Vector2.One * 24f;
 
     private Vector2 ProfilePictureBorderPos => RectMin + Vector2.One * 12f;
-    private Vector2 ProfilePictureBorderSize => Vector2.One * 224f;
+    private Vector2 ProfilePictureBorderSize => Vector2.One * 226f;
 
-    private Vector2 ProfilePicturePos => RectMin + Vector2.One * 16f;
-    private Vector2 ProfilePictureSize => Vector2.One * 216f;
+    private Vector2 ProfilePicturePos => RectMin + Vector2.One * 18f;
+    private Vector2 ProfilePictureSize => Vector2.One * 214f;
 
     private Vector2 SupporterIconBorderPos => RectMin + new Vector2(182, 16);
     private Vector2 SupporterIconBorderSize => Vector2.One * 52f;

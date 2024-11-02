@@ -71,6 +71,20 @@ public sealed class UiService : DisposableMediatorSubscriberBase
                 _createdWindows.Remove(window);
                 window.Dispose();
             }
+
+/*            // close any windows that are not the main window.
+            var otherWindows = _createdWindows
+                .Where(p => p is not MainWindowUI)
+                .ToList();
+
+            foreach (var window in otherWindows)
+            {
+                _windowSystem.RemoveWindow(window);
+                _createdWindows.Remove(window);
+                window.Dispose();
+            }*/
+
+
         });
 
         // subscribe to the event message for removing a window
@@ -91,14 +105,35 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         });
 
         /* ---------- The following subscribers are for factory made windows, meant to be unique to each pair ---------- */
-        Mediator.Subscribe<ProfileOpenStandaloneMessage>(this, (msg) =>
+        Mediator.Subscribe<KinkPlateOpenStandaloneMessage>(this, (msg) =>
         {
             if (!_createdWindows.Exists(p => p is KinkPlateUI ui
                 && string.Equals(ui.Pair.UserData.UID, msg.Pair.UserData.UID, StringComparison.Ordinal)))
             {
-                var window = _uiFactory.CreateStandaloneProfileUi(msg.Pair);
+                var window = _uiFactory.CreateStandaloneKinkPlateUi(msg.Pair);
                 _createdWindows.Add(window);
                 _windowSystem.AddWindow(window);
+            }
+        });
+
+        Mediator.Subscribe<KinkPlateOpenStandaloneLightMessage>(this, (msg) =>
+        {
+            if (!_createdWindows.Exists(p => p is KinkPlateLightUI ui
+                && string.Equals(ui.UserDataToDisplay.UID, msg.UserData.UID, StringComparison.Ordinal)))
+            {
+                var window = _uiFactory.CreateStandaloneKinkPlateLightUi(msg.UserData);
+                _createdWindows.Add(window);
+                _windowSystem.AddWindow(window);
+            }
+            else
+            {
+                // the window does exist, so toggle its open state.
+                var window = _createdWindows.FirstOrDefault(p => p is KinkPlateLightUI ui
+                    && string.Equals(ui.UserDataToDisplay.UID, msg.UserData.UID, StringComparison.Ordinal));
+                if (window != null)
+                {
+                    window.Toggle();
+                }
             }
         });
 
@@ -134,7 +169,17 @@ public sealed class UiService : DisposableMediatorSubscriberBase
             {
                 // If a matching window is found, toggle it
                 _logger.LogTrace("Toggling existing sticky window for pair "+msg.Pair?.UserData.AliasOrUID, LoggerType.Permissions);
-                existingWindow.Toggle();
+                // if it is open, destroy it.
+                if (existingWindow.IsOpen)
+                {
+                    _windowSystem.RemoveWindow(existingWindow);
+                    _createdWindows.Remove(existingWindow);
+                    existingWindow.Dispose();
+                }
+                else
+                {
+                    existingWindow.Toggle();
+                }
             }
             else
             {

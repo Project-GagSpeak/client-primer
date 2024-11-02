@@ -14,6 +14,7 @@ using GagSpeak.UI.Profile;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data;
 
 namespace GagSpeak.Services;
 
@@ -31,9 +32,9 @@ public class UiFactory
     private readonly PlayerCharacterData _playerManager;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly ToyboxRemoteService _remoteService;
-    private readonly ServerConfigurationManager _serverConfigs;
     private readonly KinkPlateService _KinkPlateManager;
     private readonly OnFrameworkService _frameworkUtils;
+    private readonly KinkPlateLight _kinkPlateLight;
     private readonly MoodlesService _moodlesService;
     private readonly PermissionPresetService _presetService;
     private readonly CosmeticService _cosmetics;
@@ -43,10 +44,10 @@ public class UiFactory
     public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator, MainHub apiHubMain, 
         ToyboxHub apiHubToybox, GagManager gagManager, UiSharedService uiSharedService, 
         ToyboxVibeService vibeService, IdDisplayHandler displayHandler, PairManager pairManager, 
-        PlayerCharacterData playerManager, ToyboxRemoteService remoteService, 
-        ServerConfigurationManager serverConfigs, KinkPlateService profileManager, OnFrameworkService frameworkUtils,
-        ClientConfigurationManager clientConfigs, MoodlesService moodlesService, PermissionPresetService presetService,
-        CosmeticService cosmetics, TextureService textures, PermActionsComponents permActionHelpers)
+        PlayerCharacterData playerManager, ToyboxRemoteService remoteService, KinkPlateLight kinkPlateLight,
+        KinkPlateService profileManager, OnFrameworkService frameworkUtils, ClientConfigurationManager clientConfigs, 
+        MoodlesService moodlesService, PermissionPresetService presetService, CosmeticService cosmetics, 
+        TextureService textures, PermActionsComponents permActionHelpers)
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;
@@ -59,8 +60,8 @@ public class UiFactory
         _pairManager = pairManager;
         _playerManager = playerManager;
         _remoteService = remoteService;
-        _serverConfigs = serverConfigs;
         _KinkPlateManager = profileManager;
+        _kinkPlateLight = kinkPlateLight;
         _frameworkUtils = frameworkUtils;
         _clientConfigs = clientConfigs;
         _moodlesService = moodlesService;
@@ -76,10 +77,16 @@ public class UiFactory
             _playerManager, _gagManager, _uiSharedService, _vibeService, _remoteService, _apiHubToybox, privateRoom);
     }
 
-    public KinkPlateUI CreateStandaloneProfileUi(Pair pair)
+    public KinkPlateUI CreateStandaloneKinkPlateUi(Pair pair)
     {
         return new KinkPlateUI(_loggerFactory.CreateLogger<KinkPlateUI>(), _gagspeakMediator,
-            _pairManager, _serverConfigs, _KinkPlateManager, _cosmetics, _textures, _uiSharedService, pair);
+            _pairManager, _KinkPlateManager, _cosmetics, _textures, _uiSharedService, pair);
+    }
+
+    public KinkPlateLightUI CreateStandaloneKinkPlateLightUi(UserData pairUserData)
+    {
+        return new KinkPlateLightUI(_loggerFactory.CreateLogger<KinkPlateLightUI>(), _gagspeakMediator,
+            _kinkPlateLight, _KinkPlateManager, _pairManager, _uiSharedService, pairUserData);
     }
 
     // create a new instance window of the userpair permissions window every time a new pair is selected.

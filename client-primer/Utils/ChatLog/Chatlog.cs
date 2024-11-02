@@ -1,5 +1,6 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
+using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using ImGuiNET;
 using OtterGui.Text;
@@ -11,6 +12,8 @@ namespace GagSpeak.Utils.ChatLog;
 // an instance of a chatlog.
 public class ChatLog
 {
+    private readonly GagspeakMediator _mediator;
+
     public readonly ChatCircularBuffer<ChatMessage> Messages = new(1000);
     private int PreviousMessageCount = 0;
     private readonly Dictionary<string, Vector4> UserColors = new();
@@ -22,9 +25,9 @@ public class ChatLog
     // Define which users to ignore.
     public List<string> UidSilenceList = new List<string>();
 
-
-    public ChatLog()
+    public ChatLog(GagspeakMediator mediator)
     {
+        _mediator = mediator;
         TimeCreated = DateTime.Now;
     }
 
@@ -82,7 +85,15 @@ public class ChatLog
                 var cursorPos = ImGui.GetCursorScreenPos();
                 // Print the user name with color
                 ImGui.TextColored(UserColors[x.UID], $"[{x.Name}]");
-                UiSharedService.AttachToolTip("Sent @ " + x.TimeStamp.ToString("T", CultureInfo.CurrentCulture));
+                // Attach tooltip and if clicked.
+                if(ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                {
+                    if(x.UID != "System")
+                        _mediator.Publish(new KinkPlateOpenStandaloneLightMessage(x.UserData));
+                }
+                UiSharedService.AttachToolTip(
+                    "Sent @ " + x.TimeStamp.ToString("T", CultureInfo.CurrentCulture)
+                    + "--SEP--Right-Click to view Light KinkPlate.");
                 ImUtf8.SameLineInner();
 
                 // Get the remaining width available in the current row

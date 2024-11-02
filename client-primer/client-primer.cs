@@ -327,7 +327,7 @@ public static class GagSpeakServiceExtensions
         // UI Components
         .AddSingleton<PermActionsComponents>()
         .AddSingleton<IdDisplayHandler>()
-        .AddSingleton<KinkPlateLightUI>()
+        .AddSingleton<KinkPlateLight>()
         .AddSingleton<SelectPairForTagUi>()
         .AddSingleton<TagHandler>()
         .AddSingleton<UserPairListHandler>()

@@ -202,29 +202,28 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         }
         UiSharedService.AttachToolTip("Clear your currently uploaded profile picture");
         if (_showFileDialogError)
-        {
             UiSharedService.ColorTextWrapped("The profile picture must be a PNG file", ImGuiColors.DalamudRed);
-        }
 
         ImGui.Separator();
         if (_uploadedImageData != null)
-        {
             DrawNewProfileDisplay(profile);
-        }
 
         _uiShared.BigText("Profile Settings");
         var refText = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? "Description is Null" : profile.KinkPlateInfo.Description;
         ImGui.InputTextMultiline("##pfpDescription", ref refText, 1000, ImGuiHelpers.ScaledVector2(
-            ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeightWithSpacing()*3));
+            ImGui.GetContentRegionAvail().X*.65f, ImGui.GetTextLineHeightWithSpacing()*5));
         if(ImGui.IsItemDeactivatedAfterEdit())
-        {
             profile.KinkPlateInfo.Description = refText;
-        }
-        
+
+        // beside this, draw a checkbox to change if its public or not.
+        ImGui.SameLine();
+        var publicRef = profile.KinkPlateInfo.PublicPlate;
+        if(ImGui.Checkbox("Public Profile", ref publicRef))
+            profile.KinkPlateInfo.PublicPlate = publicRef;
+
+
         if (_uiShared.IconTextButton(FontAwesomeIcon.Save, "Save Profile"))
-        {
             _ = _apiHubMain.UserSetKinkPlate(new UserKinkPlateDto(new UserData(MainHub.UID), profile.KinkPlateInfo, profile.Base64ProfilePicture));
-        }
         UiSharedService.AttachToolTip("Updated your stored profile with latest information");
     }
 

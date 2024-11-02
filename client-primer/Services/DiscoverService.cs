@@ -28,7 +28,7 @@ public class DiscoverService : DisposableMediatorSubscriberBase
         _pairManager = pairManager;
 
         // Create a new chat log
-        GlobalChat = new ChatLog();
+        GlobalChat = new ChatLog(Mediator);
 
         // Load the chat log
         LoadChatLog(GlobalChat);
@@ -56,7 +56,7 @@ public class DiscoverService : DisposableMediatorSubscriberBase
 
     private void AddWelcomeMessage()
     {
-        GlobalChat.AddMessage(new ChatMessage("System", "System", null, "Welcome to the GagSpeak Global Chat!. " +
+        GlobalChat.AddMessage(new ChatMessage(new("System"), "System", "Welcome to the GagSpeak Global Chat!. " +
             "Your Name in here is Anonymous to anyone you have not yet added. Feel free to say hi!"));
     }
 
@@ -85,11 +85,7 @@ public class DiscoverService : DisposableMediatorSubscriberBase
             SenderName = $"Mistress Cordy";
 
         // construct the chat message struct to add.
-        ChatMessage msgToAdd = new ChatMessage(
-            userData.UID,
-            SenderName,
-            userData.SupporterTier ?? CkSupporterTier.NoRole,
-            msg.ChatMessage.Message);
+        ChatMessage msgToAdd = new ChatMessage(userData, SenderName, msg.ChatMessage.Message);
 
         GlobalChat.AddMessage(msgToAdd);
     }
@@ -136,6 +132,10 @@ public class DiscoverService : DisposableMediatorSubscriberBase
             version = bytes.DecompressToString(out var decompressed);
             // Deserialize the JSON string back to the object
             savedChatlog = JsonConvert.DeserializeObject<SerializableChatLog>(decompressed);
+
+            // if any user datas are null, throw an exception.
+            if (savedChatlog.Messages.Any(m => m.UserData is null))
+                throw new Exception("One or more user datas are null in the chat log.");
         }
         catch (Exception ex)
         {

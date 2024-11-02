@@ -19,6 +19,11 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 8, 3)
+            .RegisterMain("Light KinkPlates are here!")
+            .RegisterFeature("Light KinkPlates™ display the minimum information about yourself on profile popout or mini profile view.")
+            .RegisterFeature("To see another Kinksters Light KinkPlate™, right click their name in Global Chat or in a Vibe Server Private Room!")
+            .RegisterQol("README HERE:\nIn the profile editor, you can set if your profile is public. Public profiles mean their Light KinkPlate™ displays their description and profile image to non-pairs.");
         VersionEntry(0, 9, 8, 2)
             .RegisterMain("Added Popout 'Light KinkPlates' for quick access to profiles.")
             .RegisterFeature("You can now see the last 3 alphanumerics of Anon. Kinksters UID's so you have a way to communicate with people you may be trying to establish contact with over private rooms or global chat.")

@@ -151,7 +151,9 @@ public record AchievementWindowTabChangeMessage(AchievementTabsMenu.SelectedTab 
 public record ClosedMainUiMessage : MessageBase; // indicates the main UI has been closed.
 public record RemoveWindowMessage(WindowMediatorSubscriberBase Window) : MessageBase; // fired upon request to remove a window from the UI service.
 public record CompactUiChange(Vector2 Size, Vector2 Position) : MessageBase; // fired whenever we change the window size or position
-public record ProfileOpenStandaloneMessage(Pair Pair) : MessageBase; // for opening the profile standalone window.
+public record KinkPlateOpenStandaloneMessage(Pair Pair) : MessageBase; // for opening the profile standalone window.
+public record KinkPlateOpenStandaloneLightMessage(UserData UserData) : MessageBase; // for opening the profile standalone window.
+
 public record ProfilePopoutToggle(UserData? PairUserData) : MessageBase; // toggles the profile popout window for a paired client.
 public record ClearProfileDataMessage(UserData? UserData = null) : MessageBase; // a message indicating the need to clear profile data.
 public record ReportKinkPlateMessage(Pair PairToReport) : MessageBase; // for reporting a GagSpeak profile.

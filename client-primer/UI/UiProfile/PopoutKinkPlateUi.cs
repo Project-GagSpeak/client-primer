@@ -17,18 +17,19 @@ namespace GagSpeak.UI.Profile;
 
 public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
 {
-    private readonly KinkPlateLightUI _lightUI;
+    private readonly KinkPlateLight _lightUI;
     private readonly KinkPlateService _KinkPlateManager;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly UiSharedService _uiShared;
     private UserData? _userDataToDisplay;
+    private bool _showFullUID;
 
     private bool ThemePushed = false;
 
     public PopoutKinkPlateUi(ILogger<PopoutKinkPlateUi> logger, GagspeakMediator mediator,
         UiSharedService uiBuilder, ServerConfigurationManager serverManager,
-        GagspeakConfigService gagspeakConfigService, KinkPlateLightUI plateLightUi,
+        GagspeakConfigService gagspeakConfigService, KinkPlateLight plateLightUi,
         KinkPlateService KinkPlateManager, PairManager pairManager)
         : base(logger, mediator, "###GagSpeakPopoutProfileUI")
     {
@@ -41,8 +42,8 @@ public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
 
         Mediator.Subscribe<ProfilePopoutToggle>(this, (msg) =>
         {
-            _logger.LogDebug("Profile Popout Toggle Message Received.");
             IsOpen = msg.PairUserData != null; // only open if the pair sent is not null
+            _showFullUID = _pairManager.DirectPairs.Any(x => x.UserData.UID == msg.PairUserData?.UID);
             _userDataToDisplay = msg.PairUserData; // set the pair to display the popout profile for.
         });
 
@@ -92,11 +93,7 @@ public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
             return;
         }
 
-        string DisplayName = KinkPlate.KinkPlateInfo.PublicPlate
-            ? _userDataToDisplay.AliasOrUID
-            : "Anon.Kinkster-" + _userDataToDisplay.UID.Substring(_userDataToDisplay.UID.Length - 3);
-
-        // draw the plate.
-        _lightUI.DrawKinkPlateLight(KinkPlate, DisplayName, _userDataToDisplay, false, () => this.IsOpen = false);
+        string DisplayName = _userDataToDisplay.AliasOrUID;
+        _lightUI.DrawKinkPlateLight(KinkPlate, DisplayName, _userDataToDisplay, true, false, () => this.IsOpen = false);
     }
 }

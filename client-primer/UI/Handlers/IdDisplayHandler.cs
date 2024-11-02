@@ -113,7 +113,7 @@ public class IdDisplayHandler
 
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Middle))
                 {
-                    _mediator.Publish(new ProfileOpenStandaloneMessage(pair));
+                    _mediator.Publish(new KinkPlateOpenStandaloneMessage(pair));
                 }
             }
         }
@@ -183,7 +183,7 @@ public class IdDisplayHandler
 
     internal void OpenProfile(Pair entry)
     {
-        _mediator.Publish(new ProfileOpenStandaloneMessage(entry));
+        _mediator.Publish(new KinkPlateOpenStandaloneMessage(entry));
     }
 
     private bool ShowUidInsteadOfName(Pair pair)

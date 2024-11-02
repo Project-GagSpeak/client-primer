@@ -27,7 +27,6 @@ namespace GagSpeak.UI.Profile;
 public partial class KinkPlateUI : WindowMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
-    private readonly ServerConfigurationManager _serverConfigs;
     private readonly KinkPlateService _profileService;
     private readonly CosmeticService _cosmetics;
     private readonly TextureService _textures;
@@ -35,13 +34,12 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
     private bool ThemePushed = false;
     public KinkPlateUI(ILogger<KinkPlateUI> logger, GagspeakMediator mediator,
-        PairManager pairManager, ServerConfigurationManager serverConfigs,
-        KinkPlateService profileService, CosmeticService cosmetics,
-        TextureService textureService, UiSharedService uiShared, Pair pair)
+        PairManager pairManager, KinkPlateService profileService, 
+        CosmeticService cosmetics, TextureService textureService, 
+        UiSharedService uiShared, Pair pair)
         : base(logger, mediator, pair.UserData.AliasOrUID + "'s KinkPlate##GagspeakKinkPlateUI" + pair.UserData.AliasOrUID)
     {
         _pairManager = pairManager;
-        _serverConfigs = serverConfigs;
         _profileService = profileService;
         _cosmetics = cosmetics;
         _textures = textureService;

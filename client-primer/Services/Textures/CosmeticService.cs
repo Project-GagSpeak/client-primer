@@ -4,6 +4,7 @@ using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
+using GagspeakAPI.Data;
 using GagspeakAPI.Data.IPC;
 using Microsoft.Extensions.Hosting;
 using System.ComponentModel;
@@ -135,6 +136,47 @@ public class CosmeticService : IHostedService, IDisposable
         return false;
     }
 
+    public (IDalamudTextureWrap? SupporterWrap, string Tooltip) GetSupporterInfo(UserData userData)
+    {
+        IDalamudTextureWrap? supporterWrap = null;
+        string tooltipString = string.Empty;
+
+        switch (userData.SupporterTier)
+        {
+            case CkSupporterTier.ServerBooster:
+                supporterWrap = CorePluginTextures[CorePluginTexture.SupporterBooster];
+                tooltipString = userData.AliasOrUID + " is supporting the discord with a server Boost!";
+                break;
+
+            case CkSupporterTier.IllustriousSupporter:
+                supporterWrap = CorePluginTextures[CorePluginTexture.SupporterTier1];
+                tooltipString = userData.AliasOrUID + " is supporting CK as an Illustrious Supporter";
+                break;
+
+            case CkSupporterTier.EsteemedPatron:
+                supporterWrap = CorePluginTextures[CorePluginTexture.SupporterTier2];
+                tooltipString = userData.AliasOrUID + " is supporting CK as an Esteemed Patron";
+                break;
+
+            case CkSupporterTier.DistinguishedConnoisseur:
+                supporterWrap = CorePluginTextures[CorePluginTexture.SupporterTier3];
+                tooltipString = userData.AliasOrUID + " is supporting CK as a Distinguished Connoisseur";
+                break;
+
+            case CkSupporterTier.KinkporiumMistress:
+                supporterWrap = CorePluginTextures[CorePluginTexture.SupporterTier4];
+                tooltipString = userData.AliasOrUID + " is the Shop Mistress of CK, and the Dev of GagSpeak.";
+                break;
+
+            default:
+                tooltipString = userData.AliasOrUID + " has an unknown supporter tier.";
+                break;
+        }
+
+        return (supporterWrap, tooltipString);
+    }
+
+
     public IDalamudTextureWrap GetImageFromDirectoryFile(string path)
         => _textures.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path)).GetWrapOrEmpty();
     public IDalamudTextureWrap GetProfilePicture(byte[] imageData)
@@ -150,7 +192,8 @@ public class CosmeticService : IHostedService, IDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogWarning($"Failed to load texture from path: {path}");
+            // TODO: Remove surpression once we have defined proper images.
+            //_logger.LogWarning($"Failed to load texture from path: {path}");
             fileTexture = null!;
             return false;
         }
@@ -216,11 +259,14 @@ public static class CosmeticLabels
         var dictionary = new Dictionary<string, string>
         {
             { "DummyTest", "RequiredImages\\icon256bg.png" } // Dummy File
+
         };
 
         AddEntriesForComponent(dictionary, ProfileComponent.Plate, hasBackground: true, hasBorder: true, hasOverlay: false);
+        AddEntriesForComponent(dictionary, ProfileComponent.PlateLight, hasBackground: true, hasBorder: true, hasOverlay: false);        
         AddEntriesForComponent(dictionary, ProfileComponent.ProfilePicture, hasBackground: false, hasBorder: true, hasOverlay: true);
         AddEntriesForComponent(dictionary, ProfileComponent.Description, hasBackground: true, hasBorder: true, hasOverlay: true);
+        AddEntriesForComponent(dictionary, ProfileComponent.DescriptionLight, hasBackground: true, hasBorder: true, hasOverlay: true);
         AddEntriesForComponent(dictionary, ProfileComponent.GagSlot, hasBackground: true, hasBorder: true, hasOverlay: true);
         AddEntriesForComponent(dictionary, ProfileComponent.Padlock, hasBackground: true, hasBorder: true, hasOverlay: true);
         AddEntriesForComponent(dictionary, ProfileComponent.BlockedSlots, hasBackground: true, hasBorder: true, hasOverlay: true);

@@ -1,3 +1,4 @@
+using Dalamud.Game.ClientState.JobGauge.Enums;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
@@ -7,6 +8,7 @@ using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
+using GagspeakAPI.Data;
 using ImGuiNET;
 using OtterGui;
 using System.Numerics;
@@ -15,17 +17,22 @@ namespace GagSpeak.UI.Profile;
 
 public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
 {
+    private readonly KinkPlateLightUI _lightUI;
     private readonly KinkPlateService _KinkPlateManager;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly UiSharedService _uiShared;
-    private Pair? _pair; // pair to display the profile of.
+    private UserData? _userDataToDisplay;
+
+    private bool ThemePushed = false;
 
     public PopoutKinkPlateUi(ILogger<PopoutKinkPlateUi> logger, GagspeakMediator mediator,
         UiSharedService uiBuilder, ServerConfigurationManager serverManager,
-        GagspeakConfigService gagspeakConfigService, KinkPlateService KinkPlateManager,
-        PairManager pairManager) : base(logger, mediator, "###GagSpeakPopoutProfileUI")
+        GagspeakConfigService gagspeakConfigService, KinkPlateLightUI plateLightUi,
+        KinkPlateService KinkPlateManager, PairManager pairManager)
+        : base(logger, mediator, "###GagSpeakPopoutProfileUI")
     {
+        _lightUI = plateLightUi;
         _uiShared = uiBuilder;
         _serverConfigs = serverManager;
         _KinkPlateManager = KinkPlateManager;
@@ -34,28 +41,9 @@ public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
 
         Mediator.Subscribe<ProfilePopoutToggle>(this, (msg) =>
         {
-            IsOpen = msg.Pair != null; // only open if the pair sent is not null
-            _pair = msg.Pair; // set the pair to display the popout profile for.
-        });
-
-        // unsure how accurate this positioning is just yet.
-        Mediator.Subscribe<CompactUiChange>(this, (msg) =>
-        {
-            if (msg.Size != Vector2.Zero)
-            {
-                var border = ImGui.GetStyle().WindowBorderSize;
-                var padding = ImGui.GetStyle().WindowPadding;
-                Size = new(256 + (padding.X * 2) + border, _uiShared.LastMainUIWindowSize.Y / ImGuiHelpers.GlobalScale);
-            }
-            var mainPos = msg.Position == Vector2.Zero ? _uiShared.LastMainUIWindowPosition : msg.Position;
-            if (gagspeakConfigService.Current.ProfilePopoutRight)
-            {
-                Position = new(mainPos.X + _uiShared.LastMainUIWindowSize.X * ImGuiHelpers.GlobalScale, mainPos.Y);
-            }
-            else
-            {
-                Position = new(mainPos.X - Size!.Value.X * ImGuiHelpers.GlobalScale, mainPos.Y);
-            }
+            _logger.LogDebug("Profile Popout Toggle Message Received.");
+            IsOpen = msg.PairUserData != null; // only open if the pair sent is not null
+            _userDataToDisplay = msg.PairUserData; // set the pair to display the popout profile for.
         });
 
         IsOpen = false;
@@ -63,52 +51,52 @@ public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
 
     protected override void PreDrawInternal()
     {
-        // include our personalized theme for this window here if we have themes enabled.
+        if (!ThemePushed)
+        {
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 35f);
+
+            ThemePushed = true;
+        }
+
+        var position = _uiShared.LastMainUIWindowPosition;
+        position.X -= 256;
+        ImGui.SetNextWindowPos(position);
+
+        Flags |= ImGuiWindowFlags.NoMove;
+
+        var size = new Vector2(256, 512);
+
+        ImGui.SetNextWindowSize(size);
     }
     protected override void PostDrawInternal()
     {
-        // include our personalized theme for this window here if we have themes enabled.
+        if (ThemePushed)
+        {
+            ImGui.PopStyleVar(2);
+            ThemePushed = false;
+        }
     }
 
     protected override void DrawInternal()
     {
         // do not display if pair is null.
-        if (_pair == null) return;
+        if (_userDataToDisplay is null)
+            return;
 
-        // create a child window to house this information.
-        using (ImRaii.Child($"PopoutWindow{_pair.UserData.AliasOrUID}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 0), false, ImGuiWindowFlags.NoScrollbar))
+        // obtain the profile for this userPair.
+        var KinkPlate = _KinkPlateManager.GetKinkPlate(_userDataToDisplay);
+        if (KinkPlate.KinkPlateInfo.Flagged)
         {
-
-            var spacing = ImGui.GetStyle().ItemSpacing;
-            // grab our profile.
-            var pairProfile = _KinkPlateManager.GetKinkPlate(_pair.UserData);
-
-            // check if flagged
-            if (pairProfile.KinkPlateInfo.Flagged)
-            {
-                UiSharedService.ColorTextWrapped(pairProfile.KinkPlateInfo.Description, ImGuiColors.DalamudRed);
-                return;
-            }
-
-            var pfpWrap = pairProfile.GetCurrentProfileOrDefault();
-
-            if (!(pfpWrap is { } wrap))
-            {
-                /* Consume Wrap until Generated */
-            }
-            else
-            {
-                var region = ImGui.GetContentRegionAvail();
-                ImGui.Spacing();
-                // move the x position so that it centeres the image to the center of the window.
-                _uiShared.SetCursorXtoCenter(pfpWrap.Width);
-                var currentPosition = ImGui.GetCursorPos();
-
-                var pos = ImGui.GetCursorScreenPos();
-                ImGui.GetWindowDrawList().AddImageRounded(wrap.ImGuiHandle, pos, pos + pfpWrap.Size, Vector2.Zero, Vector2.One,
-                    ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)), 128f);
-                ImGui.SetCursorPos(new Vector2(currentPosition.X, currentPosition.Y + pfpWrap.Height));
-            }
+            ImGui.TextUnformatted("This profile is flagged by moderation.");
+            return;
         }
+
+        string DisplayName = KinkPlate.KinkPlateInfo.PublicPlate
+            ? _userDataToDisplay.AliasOrUID
+            : "Anon.Kinkster-" + _userDataToDisplay.UID.Substring(_userDataToDisplay.UID.Length - 3);
+
+        // draw the plate.
+        _lightUI.DrawKinkPlateLight(KinkPlate, DisplayName, _userDataToDisplay, false, () => this.IsOpen = false);
     }
 }

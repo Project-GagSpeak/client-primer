@@ -14,7 +14,7 @@ namespace GagSpeak.UI.Profile;
 /// </summary>
 public partial class KinkPlateUI : WindowMediatorSubscriberBase
 {
-    private void AddImageRounded(ImDrawListPtr drawList, IDalamudTextureWrap? wrap, Vector2 topLeftPos, Vector2 size, float rounding, bool tt = false, string ttText = "")
+    public static void AddImageRounded(ImDrawListPtr drawList, IDalamudTextureWrap? wrap, Vector2 topLeftPos, Vector2 size, float rounding, bool tt = false, string ttText = "")
     {
         try
         {
@@ -34,10 +34,10 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
                 }
             }
         }
-        catch (Exception ex) { _logger.LogError($"Error: {ex}"); }
+        catch (Exception ex) { StaticLogger.Logger.LogError($"Error: {ex}"); }
     }
 
-    private void AddImage(ImDrawListPtr drawList, IDalamudTextureWrap? wrap, Vector2 pos, Vector2 size, Vector4? tint = null, bool tt = false, string ttText = "")
+    public static void AddImage(ImDrawListPtr drawList, IDalamudTextureWrap? wrap, Vector2 pos, Vector2 size, Vector4? tint = null, bool tt = false, string ttText = "")
     {
         try
         {
@@ -53,7 +53,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
                 }
             }
         }
-        catch (Exception ex) { _logger.LogError($"Error: {ex}"); }
+        catch (Exception ex) { StaticLogger.Logger.LogError($"Error: {ex}"); }
     }
 
     private void CloseButton(ImDrawListPtr drawList)
@@ -75,7 +75,57 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         HoveringCloseButton = ImGui.IsItemHovered();
     }
 
-    private void AddRelativeTooltip(Vector2 pos, Vector2 size, string text)
+    private void DrawLimitedDescription(string desc, Vector4 color, Vector2 size)
+    {
+        // Get the basic line height.
+        float lineHeight = ImGui.CalcTextSize("A").Y;
+        int totalLines = (int)(size.Y / lineHeight) - 1; // Total lines to display based on height
+        string newDescText = "";
+        string[] words = desc.Split(' ');
+        int currentLines = 0;
+
+        while (newDescText.Length < desc.Length && currentLines < totalLines)
+        {
+            // Calculate how much of the message fits in the available space
+            string fittingMessage = string.Empty;
+            float currentWidth = 0;
+
+            // Build the fitting message
+            foreach (var word in words)
+            {
+                float wordWidth = ImGui.CalcTextSize(word + " ").X;
+
+                // Check if adding this word exceeds the available width
+                if (currentWidth + wordWidth > size.X)
+                {
+                    break; // Stop if it doesn't fit
+                }
+
+                fittingMessage += word + " ";
+                currentWidth += wordWidth;
+            }
+
+            currentLines++;
+            newDescText += fittingMessage.TrimEnd();
+
+            // Only add newline if we're not on the last line
+            if (currentLines < totalLines && newDescText.Length < desc.Length)
+            {
+                newDescText += "\n";
+            }
+
+            if (newDescText.Length < desc.Length)
+            {
+                words = desc.Substring(newDescText.Length).TrimStart().Split(' ');
+            }
+        }
+
+        // Final check of truncated text before rendering
+        _logger.LogDebug($"Truncated Description:\n {newDescText}");
+        UiSharedService.ColorTextWrapped(newDescText, color);
+    }
+
+    public static void AddRelativeTooltip(Vector2 pos, Vector2 size, string text)
     {
         // add a scaled dummy over this area.
         ImGui.SetCursorScreenPos(pos);

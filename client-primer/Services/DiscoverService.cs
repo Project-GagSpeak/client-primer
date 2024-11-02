@@ -65,7 +65,8 @@ public class DiscoverService : DisposableMediatorSubscriberBase
         if (_tabMenu.TabSelection is not MainTabMenu.SelectedTab.GlobalChat)
             NewMessages++;
 
-        string SenderName = "Anon. Kinkster";
+        string SenderName = "Kinkster-" + msg.ChatMessage.MessageSender.UID.Substring(msg.ChatMessage.MessageSender.UID.Length - 3);
+
 
         // extract the user data from the message
         var userData = msg.ChatMessage.MessageSender;

@@ -19,11 +19,15 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 8, 2)
+            .RegisterMain("Added Popout 'Light KinkPlates' for quick access to profiles.")
+            .RegisterFeature("You can now see the last 3 alphanumerics of Anon. Kinksters UID's so you have a way to communicate with people you may be trying to establish contact with over private rooms or global chat.")
+            .RegisterQol("Descriptions are now properly text wrapped.");
         VersionEntry(0, 9, 8, 1)
             .RegisterMain("Profiles now display everything they should properly! YIPPEE!")
             .RegisterFeature("You can now save and update your descriptions.")
             .RegisterBugfix("No longer fails to load some textures.")
-            .RegisterQol("Better aligned the portait so the border doesnt crop off the ends anymore.");
+            .RegisterQol("Better aligned the portrait so the border doesnt crop off the ends anymore.");
         VersionEntry(0, 9, 8, 0)
             .RegisterMain("The Entire Interaction Backend System has been restructured.")
             .RegisterMain("Please expect any potential bugs with interacting with pairs and report them to me.")

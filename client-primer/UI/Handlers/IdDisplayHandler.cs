@@ -1,13 +1,10 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility.Raii;
-using ImGuiNET;
-using ImGuiScene;
-using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services.Mediator;
-using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.GagspeakConfiguration;
-using Dalamud.Interface.Textures.TextureWraps;
-using GagspeakAPI.Enums;
+using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services.ConfigurationServices;
+using GagSpeak.Services.Mediator;
+using ImGuiNET;
 using System.Numerics;
 
 namespace GagSpeak.UI.Handlers;
@@ -62,7 +59,7 @@ public class IdDisplayHandler
                     if (_popupTime < DateTime.UtcNow && !_popupShown)
                     {
                         _popupShown = true;
-                        _mediator.Publish(new ProfilePopoutToggle(pair));
+                        _mediator.Publish(new ProfilePopoutToggle(pair.UserData));
                     }
                 }
 
@@ -82,7 +79,7 @@ public class IdDisplayHandler
                 {
                     if (string.Equals(_lastMouseOverUid, id))
                     {
-                        _mediator.Publish(new ProfilePopoutToggle(Pair: null));
+                        _mediator.Publish(new ProfilePopoutToggle(PairUserData: null));
                         _lastMouseOverUid = string.Empty;
                         _popupShown = false;
                     }
@@ -91,7 +88,7 @@ public class IdDisplayHandler
 
             if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
             {
-                if(canTogglePairTextDisplay)
+                if (canTogglePairTextDisplay)
                 {
                     var prevState = textIsUid;
                     if (_showIdForEntry.ContainsKey(pair.UserData.UID))
@@ -103,7 +100,7 @@ public class IdDisplayHandler
                 returnVal = true;
             }
 
-            if(canTogglePairTextDisplay)
+            if (canTogglePairTextDisplay)
             {
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {

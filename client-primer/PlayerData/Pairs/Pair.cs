@@ -452,46 +452,6 @@ public class Pair
         LockedSlots = result;
     }
 
-    public (IDalamudTextureWrap? SupporterWrap, string Tooltip) GetSupporterInfo()
-    {
-        IDalamudTextureWrap? supporterWrap = null;
-        string tooltipString = string.Empty;
-
-        switch (UserData.SupporterTier)
-        {
-            case CkSupporterTier.ServerBooster:
-                supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterBooster];
-                tooltipString = GetNickAliasOrUid() + " is supporting the discord with a server Boost!";
-                break;
-
-            case CkSupporterTier.IllustriousSupporter:
-                supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier1];
-                tooltipString = GetNickAliasOrUid() + " is supporting CK as an Illustrious Supporter";
-                break;
-
-            case CkSupporterTier.EsteemedPatron:
-                supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier2];
-                tooltipString = GetNickAliasOrUid() + " is supporting CK as an Esteemed Patron";
-                break;
-
-            case CkSupporterTier.DistinguishedConnoisseur:
-                supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier3];
-                tooltipString = GetNickAliasOrUid() + " is supporting CK as a Distinguished Connoisseur";
-                break;
-
-            case CkSupporterTier.KinkporiumMistress:
-                supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier4];
-                tooltipString = GetNickAliasOrUid() + " is the Shop Mistress of CK, and the Dev of GagSpeak.";
-                break;
-
-            default:
-                tooltipString = GetNickAliasOrUid() + " has an unknown supporter tier.";
-                break;
-        }
-
-        return (supporterWrap, tooltipString);
-    }
-
     /// <summary> Get the nicknames for the user. (still dont know how this is meant to have any value at all) </summary>
     public string? GetNickname()
     {

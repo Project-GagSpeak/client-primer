@@ -96,11 +96,11 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         }
 
         // Draw KinkPlateUI Function here.
-        DrawKinkPlateWhole(drawList, KinkPlate);
+        DrawKinkPlatePair(drawList, KinkPlate);
     }
 
     // Size = 750 by 450
-    private void DrawKinkPlateWhole(ImDrawListPtr drawList, KinkPlate profile)
+    private void DrawKinkPlatePair(ImDrawListPtr drawList, KinkPlate profile)
     {
         DrawPlate(drawList, profile.KinkPlateInfo);
 
@@ -165,7 +165,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
             SupporterIconBorderSize.X / 2, ImGui.GetColorU32(new Vector4(0, 0, 0, 1)));
 
         // Draw out Supporter Icon.
-        var supporterInfo = Pair.GetSupporterInfo();
+        var supporterInfo = _cosmetics.GetSupporterInfo(Pair.UserData);
         if (supporterInfo.SupporterWrap is { } wrap)
         {
             AddImageRounded(drawList, wrap, SupporterIconPos, SupporterIconSize, SupporterIconSize.Y / 2, true, supporterInfo.Tooltip);
@@ -259,7 +259,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         ImGui.SetCursorScreenPos(DescriptionBorderPos + Vector2.One * 10f);
         var description = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? "No Description Was Set.." : profile.KinkPlateInfo.Description;
         var color = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? ImGuiColors.DalamudGrey2 : ImGuiColors.DalamudWhite;
-        UiSharedService.ColorTextWrapped(description, color);
+        DrawLimitedDescription(description, color, DescriptionBorderSize - Vector2.One * 4f);
     }
 
     private void DrawGagInfo(ImDrawListPtr drawList, KinkPlateContent info)

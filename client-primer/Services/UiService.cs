@@ -94,7 +94,7 @@ public sealed class UiService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<ProfileOpenStandaloneMessage>(this, (msg) =>
         {
             if (!_createdWindows.Exists(p => p is KinkPlateUI ui
-                && string.Equals(ui.Pair.UserData.AliasOrUID, msg.Pair.UserData.AliasOrUID, StringComparison.Ordinal)))
+                && string.Equals(ui.Pair.UserData.UID, msg.Pair.UserData.UID, StringComparison.Ordinal)))
             {
                 var window = _uiFactory.CreateStandaloneProfileUi(msg.Pair);
                 _createdWindows.Add(window);

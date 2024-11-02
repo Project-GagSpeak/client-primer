@@ -120,8 +120,6 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
             }
         }
 
-        // Final check of truncated text before rendering
-        _logger.LogDebug($"Truncated Description:\n {newDescText}");
         UiSharedService.ColorTextWrapped(newDescText, color);
     }
 

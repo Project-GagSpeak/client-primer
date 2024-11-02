@@ -19,6 +19,10 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 8, 4)
+            .RegisterMain("You can now preview your own Light KinkPlate in the profile editor.")
+            .RegisterFeature("If someone is spamming global chat and being a bother to you, simply Middle-Click the name to silence them from your chat. This applies until plugin reload.")
+            .RegisterQol("The preview chat text should now be properly aligned to the bottom (yes, finally)");
         VersionEntry(0, 9, 8, 3)
             .RegisterMain("Light KinkPlates are here!")
             .RegisterFeature("Light KinkPlates™ display the minimum information about yourself on profile popout or mini profile view.")

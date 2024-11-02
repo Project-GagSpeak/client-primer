@@ -17,7 +17,9 @@ using Microsoft.IdentityModel.Tokens;
 using NAudio.Gui;
 using Penumbra.GameData.Enums;
 using System;
+using System.Globalization;
 using System.Numerics;
+using static FFXIVClientStructs.FFXIV.Client.Game.UI.MapMarkerData.Delegates;
 
 namespace GagSpeak.UI.Profile;
 
@@ -372,7 +374,10 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         statsPos += new Vector2(24, 0);
 
         ImGui.SetCursorScreenPos(statsPos);
-        UiSharedService.ColorText("MM-DD-YYYY", ImGuiColors.ParsedGold);
+        var formattedDate = Pair.UserData.createdOn ?? DateTime.MinValue;
+        string createdDate = formattedDate != DateTime.MinValue ? formattedDate.ToString("d", CultureInfo.CurrentCulture) : "MM-DD-YYYY";
+
+        UiSharedService.ColorText(createdDate, ImGuiColors.ParsedGold);
         var textWidth = ImGui.CalcTextSize($"MM-DD-YYYY").X;
         statsPos += new Vector2(textWidth + 4, 0);
         // to the right of this, draw out the achievement icon.

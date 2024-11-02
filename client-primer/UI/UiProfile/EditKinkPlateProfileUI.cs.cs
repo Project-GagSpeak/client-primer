@@ -218,9 +218,14 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         // beside this, draw a checkbox to change if its public or not.
         ImGui.SameLine();
         var publicRef = profile.KinkPlateInfo.PublicPlate;
-        if(ImGui.Checkbox("Public Profile", ref publicRef))
-            profile.KinkPlateInfo.PublicPlate = publicRef;
+        using (ImRaii.Group())
+        {
+            if (ImGui.Checkbox("Public Profile", ref publicRef))
+                profile.KinkPlateInfo.PublicPlate = publicRef;
 
+            if(_uiShared.IconTextButton(FontAwesomeIcon.Expand, "Preview Light KinkPlate", id: MainHub.UID + "KinkPlatePreview"))
+                Mediator.Publish(new KinkPlateOpenStandaloneLightMessage(MainHub.PlayerUserData));
+        }
 
         if (_uiShared.IconTextButton(FontAwesomeIcon.Save, "Save Profile"))
             _ = _apiHubMain.UserSetKinkPlate(new UserKinkPlateDto(new UserData(MainHub.UID), profile.KinkPlateInfo, profile.Base64ProfilePicture));

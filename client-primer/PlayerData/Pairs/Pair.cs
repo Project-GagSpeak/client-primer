@@ -121,17 +121,20 @@ public class Pair
         subMenu.PrefixColor = 561;
         subMenu.OnClicked += args => OpenSubMenuTest(args, _logger);
         args.AddMenuItem(subMenu);*/
+        args.AddMenuItem(new MenuItem()
+        {
+            Name = new SeStringBuilder().AddText("Open KinkPlate").Build(),
+            PrefixChar = 'G',
+            PrefixColor = 561,
+            OnClicked = (a) => { _mediator.Publish(new KinkPlateOpenStandaloneMessage(this)); },
+        });
 
         args.AddMenuItem(new MenuItem()
         {
-            Name = new SeStringBuilder().AddText("Open Actions").Build(),
+            Name = new SeStringBuilder().AddText("Pair Actions").Build(),
             PrefixChar = 'G',
             PrefixColor = 561,
-            OnClicked = (a) =>
-            {
-                // see if we need to toggle the main UI before this.
-                _mediator.Publish(new OpenUserPairPermissions(this, StickyWindowType.PairActionFunctions, true));
-            },
+            OnClicked = (a) => { _mediator.Publish(new OpenUserPairPermissions(this, StickyWindowType.PairActionFunctions, true)); },
         });
     }
 

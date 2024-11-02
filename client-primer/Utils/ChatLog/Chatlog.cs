@@ -2,8 +2,10 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
+using GagSpeak.WebAPI;
 using ImGuiNET;
 using OtterGui.Text;
+using System;
 using System.Globalization;
 using System.Numerics;
 using System.Windows.Forms;
@@ -46,14 +48,22 @@ public class ChatLog
         => Messages.Clear();
 
     public bool ShouldScrollToBottom = false;
+    private Vector2 RectMin { get; set; } = Vector2.Zero;
+    private Vector2 RectMax { get; set; } = Vector2.Zero;
 
     public void PrintChatLogHistory(bool showMessagePreview, string previewMessage, Vector2 region)
     {
         using (ImRaii.Child("##GlobalChatLog" + TimeCreated.ToString(), region, false, ImGuiWindowFlags.NoDecoration))
         {
+            var drawList = ImGui.GetWindowDrawList();
+            RectMin = drawList.GetClipRectMin();
+            RectMax = drawList.GetClipRectMax();
+
             var ySpacing = ImGui.GetStyle().ItemInnerSpacing.Y;
             foreach (var x in Messages)
             {
+                if(UidSilenceList.Contains(x.UID)) continue;
+
                 if (!UserColors.ContainsKey(x.UID))
                 {
                     if (x.SupporterTier is CkSupporterTier.KinkporiumMistress)
@@ -64,19 +74,18 @@ public class ChatLog
                     {
                         // Generate a random color for the user (excluding dark colors)
                         Vector4 color;
-                        bool isBright;
+                        float brightness;
                         do
                         {
                             float r = (float)new Random().NextDouble();
                             float g = (float)new Random().NextDouble();
                             float b = (float)new Random().NextDouble();
-                            // Calculate brightness as a sum of the RGB channels
-                            float brightness = r + g + b;
 
-                            // Ensure at least one channel is high or the brightness is above a threshold
-                            isBright = brightness > 1.8f || r > 0.5f || g > 0.5f || b > 0.5f;
+                            // Calculate brightness as the average of RGB values
+                            brightness = (r + g + b) / 3.0f;
                             color = new Vector4(r, g, b, 1.0f);
-                        } while (!isBright || UserColors.ContainsValue(color));
+
+                        } while (brightness < 0.55f || UserColors.ContainsValue(color)); // Adjust threshold as needed (e.g., 0.7 for lighter colors)
                         UserColors[x.UID] = color;
                     }
                 }
@@ -88,11 +97,16 @@ public class ChatLog
                 // Attach tooltip and if clicked.
                 if(ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
-                    if(x.UID != "System")
-                        _mediator.Publish(new KinkPlateOpenStandaloneLightMessage(x.UserData));
+                    if(x.UID != "System") _mediator.Publish(new KinkPlateOpenStandaloneLightMessage(x.UserData));
+                }
+                if(ImGui.IsItemClicked(ImGuiMouseButton.Middle))
+                {
+                    if(x.UID != "System" || x.UID != MainHub.UID) UidSilenceList.Add(x.UID);
                 }
                 UiSharedService.AttachToolTip(
                     "Sent @ " + x.TimeStamp.ToString("T", CultureInfo.CurrentCulture)
+                    + "--SEP--Middle-Click to add user to silence list.\n"
+                    + "This stays in affect until plugin restart."
                     + "--SEP--Right-Click to view Light KinkPlate.");
                 ImUtf8.SameLineInner();
 
@@ -155,22 +169,18 @@ public class ChatLog
                 PreviousMessageCount = Messages.Count();
             }
 
-            // head all the way to the bottom of the windows region to draw the text wrap box.
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + ImGui.GetContentRegionAvail().Y);
-
             // draw the text preview if we should.
             if (showMessagePreview && !string.IsNullOrWhiteSpace(previewMessage))
-                DrawTextWrapBox(previewMessage, region);
+                DrawTextWrapBox(previewMessage, drawList);
         }
     }
 
-    private void DrawTextWrapBox(string message, Vector2 currentRegion)
+    private void DrawTextWrapBox(string message, ImDrawListPtr drawList)
     {
-        var drawList = ImGui.GetWindowDrawList();
         var padding = new Vector2(5, 5);
 
         // Set the wrap width based on the available region
-        var wrapWidth = currentRegion.X - padding.X * 2;
+        var wrapWidth = (RectMax.X - RectMin.X) - padding.X * 2;
 
         // Estimate text size with wrapping
         var textSize = ImGui.CalcTextSize(message, wrapWidth: wrapWidth);
@@ -180,24 +190,18 @@ public class ChatLog
         int lineCount = (int)Math.Ceiling(textSize.Y / singleLineHeight);
 
         // Calculate the total box size based on line count
-        var boxSize = new Vector2(currentRegion.X, lineCount * singleLineHeight + padding.Y * 2);
+        var boxSize = new Vector2(RectMax.X, lineCount * singleLineHeight + padding.Y * 2);
 
         // Position the box above the input, offset by box height
-        var boxPos = ImGui.GetCursorScreenPos() - new Vector2(0, boxSize.Y);
+        var boxPos = new Vector2(0, RectMax.Y - boxSize.Y);
 
         // Draw semi-transparent background
         drawList.AddRectFilled(boxPos, boxPos + boxSize, ImGui.GetColorU32(new Vector4(0.05f, 0.025f, 0.05f, .9f)), 5);
 
-        // Begin a child region for the wrapped text
-        ImGui.SetCursorScreenPos(boxPos + padding);
-        using (ImRaii.Child("##TextWrapBox", new Vector2(wrapWidth, boxSize.Y), false, ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse))
-        {
-            ImGui.PushTextWrapPos(ImGui.GetCursorPos().X + wrapWidth);
-            ImGui.TextWrapped(message);
-            ImGui.PopTextWrapPos();
-        }
-
-        // Reset cursor to avoid overlap
-        ImGui.SetCursorScreenPos(boxPos + new Vector2(0, boxSize.Y + 5));
+        var startPos = new Vector2(ImGui.GetCursorScreenPos().X + padding.X, RectMax.Y - boxSize.Y + padding.Y);
+        ImGui.SetCursorScreenPos(startPos);
+        ImGui.PushTextWrapPos(wrapWidth);
+        ImGui.TextWrapped(message);
+        ImGui.PopTextWrapPos();
     }
 }

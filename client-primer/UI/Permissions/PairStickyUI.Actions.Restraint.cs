@@ -114,7 +114,7 @@ public partial class PairStickyUI
                 using (ImRaii.Disabled(true))
                 {
                     ImGui.SetNextItemWidth(WindowMenuWidth);
-                    if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", "Locking: [" + UserPairForPerms.LastReceivedWardrobeData?.ActiveSetId + "]" ?? "Not Set Active")) { ImGui.EndCombo(); }
+                    if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", "Locking: " + UserPairForPerms.ActiveSetName())) { ImGui.EndCombo(); }
                 }
 
                 // Draw combo

@@ -11,6 +11,7 @@ using OtterGui;
 using OtterGui.Text;
 using System.Numerics;
 using GagspeakAPI.Data.Permissions;
+using Dalamud.Utility;
 
 namespace GagSpeak.UI.Components;
 
@@ -178,70 +179,60 @@ public class PermActionsComponents
         }
     }
 
-    public bool PadlockVerifyLock<T>(T item, Padlocks selectedLock, bool extended, bool owner, bool devotional, TimeSpan maxTime) where T : IPadlockable
+    public (bool, string) PadlockVerifyLock<T>(T item, Padlocks selectedLock, bool extended, bool owner, bool devotional, TimeSpan maxTime) where T : IPadlockable
     {
 
         var result = false;
         switch (selectedLock)
         {
             case Padlocks.None:
-                return false;
+                return (false, "No padlock selected.");
+
             case Padlocks.MetalPadlock:
             case Padlocks.FiveMinutesPadlock:
                 _timer = "5m";
-                return true;
+                return (true, string.Empty);
+
             case Padlocks.CombinationPadlock:
                 result = _uiShared.ValidateCombination(Password);
-                if (!result) _logger.LogWarning("Invalid combination entered: {Password}", Password);
-                return result;
+                return (result, (result ? string.Empty : "Invalid combination entered: "+Password));
+
             case Padlocks.PasswordPadlock:
                 result = _uiShared.ValidatePassword(Password);
-                if (!result) _logger.LogWarning("Invalid password entered: {Password}", Password);
-                return result;
+                return (result, (result ? string.Empty : "Invalid password entered: "+Password));
+
             case Padlocks.TimerPasswordPadlock:
-                if (_uiShared.TryParseTimeSpan(Timer, out var pwdTimer))
+                if (_uiShared.TryParseTimeSpan(Timer, out var pwdTimer) || Timer.IsNullOrEmpty())
                 {
                     if ((pwdTimer > TimeSpan.FromHours(1) && !extended) || pwdTimer > maxTime)
-                    {
-                        _logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
-                        return false;
-                    }
+                        return (false, "Attempted to lock for more than 1 hour without permission.");
+
                     result = _uiShared.ValidatePassword(Password) && pwdTimer > TimeSpan.Zero;
                 }
                 if (!result) _logger.LogWarning("Invalid password or time entered: {Password} {Timer}", Password, Timer);
-                return result;
+                return (result, (result ? string.Empty : "Invalid field. PWD:"+Password+", TIME: "+Timer));
             case Padlocks.OwnerPadlock:
-                return owner;
+                return (owner, owner ? string.Empty : "You don't have Owner Lock permissions!");
             case Padlocks.OwnerTimerPadlock:
-                if(!_uiShared.TryParseTimeSpan(Timer, out var ownerTime))
-                {
-                    _logger.LogWarning("Invalid time entered: {Timer}", Timer);
-                    return false;
-                }
+                if (!_uiShared.TryParseTimeSpan(Timer, out var ownerTime) || Timer.IsNullOrEmpty())
+                    return (false, "Invalid Timer format: " + Timer);
+
                 if ((ownerTime > TimeSpan.FromHours(1) && !extended) || ownerTime > maxTime)
-                {
-                    _logger.LogWarning("Attempted to lock for more than 1 hour without permission.");
-                    return false;
-                }
-                return owner;
+                    return (false, "Attempted to lock for a timer longer than allowed.");
+
+                return (owner, owner ? string.Empty : "You don't have Owner Lock permissions!");
             case Padlocks.DevotionalPadlock:
-                return devotional;
+                return (devotional, devotional ? string.Empty : "You don't have Devotional Lock permissions!");
             case Padlocks.DevotionalTimerPadlock:
-                if(!_uiShared.TryParseTimeSpan(Timer, out var devotionalTime))
-                {
-                    _logger.LogWarning("Invalid time entered: {Timer}", Timer);
-                    return false;
-                }
+                if(!_uiShared.TryParseTimeSpan(Timer, out var devotionalTime) || Timer.IsNullOrEmpty())
+                    return (false, "Invalid Timer format: "+Timer);
                 // Check if the TimeSpan is longer than one hour and extended locks are not allowed
                 if ((devotionalTime > TimeSpan.FromHours(1) && !extended) || devotionalTime > maxTime)
-                {
-                    _logger.LogWarning("Attempted to lock for longer than you were allowed access for!");
-                    return false;
-                }
+                    return (false, "Attempted to lock for a timer longer than allowed.");
                 // return base case.
-                return devotional;
+                return (devotional, devotional ? string.Empty : "You don't have Devotional Lock permissions!");
         }
-        return false;
+        return (false, "Invalid padlock selected.");
     }
 
     public void ResetInputs()
@@ -250,34 +241,35 @@ public class PermActionsComponents
         _timer = string.Empty;
     }
 
-    public bool PadlockVerifyUnlock<T>(T data, Padlocks selectedPadlock, bool allowOwner, bool allowDevotional) where T : IPadlockable
+    public (bool, string) PadlockVerifyUnlock<T>(T data, Padlocks selectedPadlock, bool allowOwner, bool allowDevotional) where T : IPadlockable
     {
         switch (selectedPadlock)
         {
             case Padlocks.None:
-                return false;
+                return (false, "No padlock selected.");
             case Padlocks.MetalPadlock:
             case Padlocks.FiveMinutesPadlock:
-                return true;
+                return (true, string.Empty);
             case Padlocks.CombinationPadlock:
                 var resCombo = _uiShared.ValidateCombination(Password) && Password == data.Password;
-                return resCombo;
+                return (resCombo, resCombo ? string.Empty : "Invalid combination entered: "+Password);
             case Padlocks.PasswordPadlock:
             case Padlocks.TimerPasswordPadlock:
                 var resPass = _uiShared.ValidatePassword(Password) && Password == data.Password;
-                return resPass;
+                return (resPass, resPass ? string.Empty : "Invalid password entered: "+Password);
             case Padlocks.OwnerPadlock:
             case Padlocks.OwnerTimerPadlock:
-                return allowOwner;
+                return (allowOwner, allowOwner ? string.Empty : "You don't have Owner Lock Access");
             case Padlocks.DevotionalPadlock:
             case Padlocks.DevotionalTimerPadlock:
-                return allowDevotional && MainHub.UID == data.Assigner;
+                var canUnlock = allowDevotional && MainHub.UID == data.Assigner;
+                return (canUnlock, canUnlock ? string.Empty : "You aren't the Devotional Assigner");
         }
-        return false;
+        return (false, "Invalid padlock selected.");
     }
 
     public bool ExpandLockHeightCheck(Padlocks type)
-        => type is Padlocks.CombinationPadlock or Padlocks.PasswordPadlock or Padlocks.TimerPasswordPadlock or Padlocks.OwnerTimerPadlock;
+        => type is Padlocks.CombinationPadlock or Padlocks.PasswordPadlock or Padlocks.TimerPasswordPadlock or Padlocks.OwnerTimerPadlock or Padlocks.DevotionalTimerPadlock;
 
 
     public void DisplayPadlockFields(Padlocks selectedPadlock, bool unlocking = false)
@@ -310,6 +302,7 @@ public class PermActionsComponents
                 }
                 break;
             case Padlocks.OwnerTimerPadlock:
+            case Padlocks.DevotionalTimerPadlock:
                 ImGui.SetNextItemWidth(width);
                 ImGui.InputTextWithHint("##Timer_Input", "Ex: 0h2m7s", ref _timer, 12); 
                 break;

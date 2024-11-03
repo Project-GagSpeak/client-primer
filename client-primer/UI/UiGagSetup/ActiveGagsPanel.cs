@@ -245,6 +245,6 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
         UiSharedService.ColorText(prefixText + gagText, color);
         ImUtf8.SameLineInner();
         ImGui.SetCursorPosY(yPos);
-        UiSharedService.DrawTimeLeftFancy(endTime, color);
+        UiSharedService.ColorText(UiSharedService.TimeLeftFancy(endTime), color);
     }
 }

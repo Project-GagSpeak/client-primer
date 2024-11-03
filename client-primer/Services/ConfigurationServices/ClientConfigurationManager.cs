@@ -749,9 +749,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             ImGui.Text($"Lock Type: {ActiveSet.LockType}");
             ImGui.Text($"Lock Password: {ActiveSet.LockPassword}");
             ImGui.Text($"Locked By: {ActiveSet.LockedBy}");
-            ImGui.Text($"Locked Until: ");
-            ImGui.SameLine();
-            UiSharedService.DrawTimeLeftFancy(ActiveSet.LockedUntil);
+            ImGui.Text($"Locked Until Time: " + UiSharedService.TimeLeftFancy(ActiveSet.LockedUntil));
             ImGui.Unindent();
         }
     }

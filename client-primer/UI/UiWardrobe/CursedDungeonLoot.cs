@@ -412,7 +412,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         if (item.AppliedTime != DateTimeOffset.MinValue)
         {
             ImGui.SameLine();
-            UiSharedService.DrawTimeLeftFancy(item.ReleaseTime, ImGuiColors.HealerGreen);
+            UiSharedService.ColorText(UiSharedService.TimeLeftFancy(item.ReleaseTime), ImGuiColors.HealerGreen);
         }
     }
 

@@ -19,6 +19,14 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 8, 6)
+            .RegisterMain("Polished up the actions menu.")
+            .RegisterFeature("At the top of the actions menu, an error message will now display when a change fails to apply if possible.")
+            .RegisterQol("All actions now display Nick, Alias, or UID, in that order")
+            .RegisterQol("Tooltips are now decorated the same for default themed tooltip actions.")
+            .RegisterQol("Colored tooltip text is now built into the tooltip system.")
+            .RegisterBugfix("Fixed issue where timed locks allowed empty times, or times longer than the max allowed times.")
+            .RegisterBugfix("Fixed devotional timer locks not displaying the timer field.");
         VersionEntry(0, 9, 8, 5)
             .RegisterQol("Spacing with double ENTER's now pinches the gap on Full KinkPlates to allow more space for people who space out descriptions on their Light KinkPlates.")
             .RegisterQol("Now must use SHIFT+MIDDLE-CLICK to silence a user in global chat.")

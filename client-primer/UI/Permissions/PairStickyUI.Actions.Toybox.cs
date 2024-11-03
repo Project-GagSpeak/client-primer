@@ -31,20 +31,20 @@ public partial class PairStickyUI
 
         bool openVibeRemoteDisabled = !UserPairForPerms.OnlineToyboxUser || !PairPerms.CanUseVibeRemote;
         bool patternExecuteDisabled = !PairPerms.CanExecutePatterns || !UserPairForPerms.UserPairGlobalPerms.ToyIsActive || !lastLightStorage.Patterns.Any();
-        bool patternStopDisabled = !PairPerms.CanStopPatterns || !UserPairForPerms.UserPairGlobalPerms.ToyIsActive || !lastToyboxData.ActivePatternId.IsEmptyGuid();
+        bool patternStopDisabled = !PairPerms.CanStopPatterns || !UserPairForPerms.UserPairGlobalPerms.ToyIsActive || lastToyboxData.ActivePatternId.IsEmptyGuid();
         bool alarmToggleDisabled = !PairPerms.CanToggleAlarms || !lastLightStorage.Alarms.Any();
         bool alarmSendDisabled = !PairPerms.CanSendAlarms;
         bool triggerToggleDisabled = !PairPerms.CanToggleTriggers || !lastLightStorage.Triggers.Any();
 
         ////////// TOGGLE PAIRS ACTIVE TOYS //////////
-        string toyToggleText = UserPairForPerms.UserPairGlobalPerms.ToyIsActive ? "Turn Off " + PairUID + "'s Toys" : "Turn On " + PairUID + "'s Toys";
+        string toyToggleText = UserPairForPerms.UserPairGlobalPerms.ToyIsActive ? "Turn Off " + PairNickOrAliasOrUID + "'s Toys" : "Turn On " + PairNickOrAliasOrUID + "'s Toys";
         if (_uiShared.IconTextButton(FontAwesomeIcon.User, toyToggleText, WindowMenuWidth, true))
         {
             _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData,
                 new KeyValuePair<string, object>("ToyIsActive", !UserPairForPerms.UserPairGlobalPerms.ToyIsActive), MainHub.PlayerUserData));
-            _logger.LogDebug("Toggled Toybox for " + PairUID + "(New State: " + !UserPairForPerms.UserPairGlobalPerms.ToyIsActive + ")", LoggerType.Permissions);
+            _logger.LogDebug("Toggled Toybox for " + PairNickOrAliasOrUID + "(New State: " + !UserPairForPerms.UserPairGlobalPerms.ToyIsActive + ")", LoggerType.Permissions);
         }
-        UiSharedService.AttachToolTip("Toggles the state of " + PairUID + "'s connected Toys.");
+        UiSharedService.AttachToolTip("Toggles the state of " + PairNickOrAliasOrUID + "'s connected Toys.");
 
         ////////// OPEN VIBE REMOTE WITH PAIR //////////
         if (_uiShared.IconTextButton(FontAwesomeIcon.Mobile, "Create Vibe Remote with " + PairNickOrAliasOrUID, WindowMenuWidth, true, openVibeRemoteDisabled))
@@ -56,11 +56,11 @@ public partial class PairStickyUI
         UiSharedService.AttachToolTip("Open a Remote UI that let's you control " + PairNickOrAliasOrUID + "'s Toys.");
 
         ////////// EXECUTE PATTERN ON PAIR'S TOY //////////
-        if (_uiShared.IconTextButton(FontAwesomeIcon.PlayCircle, ("Activate " + PairUID + "'s Patterns"), WindowMenuWidth, true, patternExecuteDisabled))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.PlayCircle, ("Activate " + PairNickOrAliasOrUID + "'s Patterns"), WindowMenuWidth, true, patternExecuteDisabled))
         {
             Opened = (Opened == InteractionType.ActivatePattern) ? InteractionType.None : InteractionType.ActivatePattern;
         }
-        UiSharedService.AttachToolTip("Play one of " + PairUID + "'s patterns to their active Toy.");
+        UiSharedService.AttachToolTip("Play one of " + PairNickOrAliasOrUID + "'s patterns to their active Toy.");
         if (Opened is InteractionType.ActivatePattern)
         {
             using (var actionChild = ImRaii.Child("PatternExecuteChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))

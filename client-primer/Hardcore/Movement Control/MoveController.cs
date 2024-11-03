@@ -197,7 +197,6 @@ public class MoveController : IDisposable
         MouseAutoMove2Hook = null;
     }
 
-    // No Longer works since Dawntrail
     [StructLayout(LayoutKind.Explicit)]
     public unsafe struct UnkGameObjectStruct
     {

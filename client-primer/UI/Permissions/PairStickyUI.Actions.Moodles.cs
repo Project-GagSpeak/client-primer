@@ -175,11 +175,11 @@ public partial class PairStickyUI
 
 
         ////////// REMOVE MOODLES //////////
-        if (_uiShared.IconTextButton(FontAwesomeIcon.UserMinus, "Remove a Moodle from " + PairUID, WindowMenuWidth, true, RemovePairsMoodlesDisabled))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.UserMinus, "Remove a Moodle from " + PairNickOrAliasOrUID, WindowMenuWidth, true, RemovePairsMoodlesDisabled))
         {
             Opened = Opened == InteractionType.RemoveMoodle ? InteractionType.None : InteractionType.RemoveMoodle;
         }
-        UiSharedService.AttachToolTip("Removes a Moodle from " + PairUID + "'s Statuses.");
+        UiSharedService.AttachToolTip("Removes a Moodle from " + PairNickOrAliasOrUID + "'s Statuses.");
         if (Opened is InteractionType.RemoveMoodle)
         {
             using (var child = ImRaii.Child("RemoveMoodles", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
@@ -209,11 +209,11 @@ public partial class PairStickyUI
         }
 
         ////////// CLEAR MOODLES //////////
-        if (_uiShared.IconTextButton(FontAwesomeIcon.UserSlash, "Clear all Moodles from " + PairUID, WindowMenuWidth, true, ClearPairsMoodlesDisabled))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.UserSlash, "Clear all Moodles from " + PairNickOrAliasOrUID, WindowMenuWidth, true, ClearPairsMoodlesDisabled))
         {
             Opened = Opened == InteractionType.ClearMoodle ? InteractionType.None : InteractionType.ClearMoodle;
         }
-        UiSharedService.AttachToolTip("Clears all Moodles from " + PairUID + "'s Statuses.");
+        UiSharedService.AttachToolTip("Clears all Moodles from " + PairNickOrAliasOrUID + "'s Statuses.");
 
         if (Opened is InteractionType.ClearMoodle)
         {

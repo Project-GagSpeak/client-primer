@@ -437,7 +437,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 if (GenericHelpers.TimerPadlocks.Contains(set.LockType))
                 {
                     ImGui.SameLine();
-                    UiSharedService.DrawTimeLeftFancy(set.LockedUntil);
+                    UiSharedService.ColorText(UiSharedService.TimeLeftFancy(set.LockedUntil), ImGuiColors.ParsedPink);
                 }
                 // Restore the original cursor position
                 ImGui.SetCursorPos(originalCursorPos);

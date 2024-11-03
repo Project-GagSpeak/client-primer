@@ -38,9 +38,11 @@ namespace GagSpeak.UI;
 public partial class UiSharedService : DisposableMediatorSubscriberBase
 {
     public static readonly ImGuiWindowFlags PopupWindowFlags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
-    public const string TooltipSeparator = "--SEP--";                           // the tooltip seperator                                
-    private const string _nicknameEnd = "##GAGSPEAK_USER_NICKNAME_END##";       // the end of the nickname
-    private const string _nicknameStart = "##GAGSPEAK_USER_NICKNAME_START##";   // the start of the nickname
+
+    public const string TooltipSeparator = "--SEP--";
+    public const string ColorToggleSeparator = "--COL--";
+    private const string _nicknameEnd = "##GAGSPEAK_USER_NICKNAME_END##";
+    private const string _nicknameStart = "##GAGSPEAK_USER_NICKNAME_START##";
     private readonly Dalamud.Localization _localization;                        // language localization for our plugin
 
     private readonly MainHub _apiHubMain;                              // our api controller for the server connectivity
@@ -198,12 +200,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     /// A helper function to attach a tooltip to a section in the UI currently hovered. 
     /// </summary>
     /// <param name="text"> The text to display in the tooltip. </param>
-    public static void AttachToolTip(string text, float borderSize = 1f)
+    public static void AttachToolTip(string text, float borderSize = 1f, Vector4? color = null)
     {
         // if the item is currently hovered, with the ImGuiHoveredFlags set to allow when disabled
         if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
         {
-            using var padding = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, Vector2.One * 4f);
+            using var padding = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, Vector2.One * 8f);
             using var rounding = ImRaii.PushStyle(ImGuiStyleVar.WindowRounding, 4f);
             using var popupBorder = ImRaii.PushStyle(ImGuiStyleVar.PopupBorderSize, borderSize);
             using var frameColor = ImRaii.PushColor(ImGuiCol.Border, ImGuiColors.ParsedPink);
@@ -215,11 +217,35 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             if (text.Contains(TooltipSeparator, StringComparison.Ordinal))
             {
                 // if it does, we will split the text by the tooltip
-                var splitText = text.Split(TooltipSeparator, StringSplitOptions.RemoveEmptyEntries);
+                var splitText = text.Split(TooltipSeparator, StringSplitOptions.None);
                 // for each of the split text, we will display the text unformatted
                 for (int i = 0; i < splitText.Length; i++)
                 {
-                    ImGui.TextUnformatted(splitText[i]);
+                    if (splitText[i].Contains(ColorToggleSeparator, StringComparison.Ordinal) && color.HasValue)
+                    {
+                        var colorSplitText = splitText[i].Split(ColorToggleSeparator, StringSplitOptions.None);
+                        bool useColor = false;
+
+                        for (int j = 0; j < colorSplitText.Length; j++)
+                        {
+                            if (useColor)
+                            {
+                                ImGui.SameLine(0, 0); // Prevent new line
+                                ImGui.TextColored(color.Value, colorSplitText[j]);
+                            }
+                            else
+                            {
+                                if (j > 0) ImGui.SameLine(0, 0); // Prevent new line
+                                ImGui.TextUnformatted(colorSplitText[j]);
+                            }
+                            // Toggle the color for the next segment
+                            useColor = !useColor;
+                        }
+                    }
+                    else
+                    {
+                        ImGui.TextUnformatted(splitText[i]);
+                    }
                     if (i != splitText.Length - 1) ImGui.Separator();
                 }
             }
@@ -717,15 +743,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return true;
     }
 
-    public static void DrawTimeLeftFancy(DateTimeOffset lockEndTime, Vector4? color = null)
+    public static string TimeLeftFancy(DateTimeOffset lockEndTime)
     {
         TimeSpan remainingTime = (lockEndTime - DateTimeOffset.UtcNow);
         // if the remaining timespan is not a negative value, output the time.
         if (remainingTime.TotalSeconds <= 0)
-        {
-            ColorText("Expired", ImGuiColors.DalamudRed);
-            return;
-        }
+            return "Expired";
 
         var sb = new StringBuilder();
         if (remainingTime.Days > 0) sb.Append($"{remainingTime.Days}d ");
@@ -733,7 +756,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         if (remainingTime.Minutes > 0) sb.Append($"{remainingTime.Minutes}m ");
         if (remainingTime.Seconds > 0 || sb.Length == 0) sb.Append($"{remainingTime.Seconds}s ");
         string remainingTimeStr = sb.ToString().Trim();
-        ColorText(remainingTimeStr + " left..", color is null ? ImGuiColors.ParsedPink : color.Value);
+        return remainingTimeStr + " left..";
     }
 
 

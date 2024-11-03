@@ -23,15 +23,22 @@ public partial class PairStickyUI
 {
     private void DrawGagActions()
     {
+        if(UserPairForPerms.LastReceivedAppearanceData == null) 
+            return;
         // draw the layer
         _permActions.DrawGagLayerSelection(ImGui.GetContentRegionAvail().X, UserPairForPerms.UserData.UID);
 
-        bool disableLocking = UserPairForPerms.LastReceivedAppearanceData!.GagSlots[_permActions.GagLayer].GagType == GagType.None.GagName();
-        bool disableUnlocking = UserPairForPerms.LastReceivedAppearanceData!.GagSlots[_permActions.GagLayer].Padlock == Padlocks.None.ToName();
+        var gagSlot = UserPairForPerms.LastReceivedAppearanceData.GagSlots[_permActions.GagLayer];
+
+
+        bool disableLocking = gagSlot.GagType.ToGagType() is GagType.None;
+        bool disableUnlocking = gagSlot.Padlock.ToPadlock() is Padlocks.None;
         bool disableRemoving = !disableUnlocking;
+        bool disableApplying = !disableUnlocking || !PairPerms.GagFeatures;
 
         ////////// APPLY GAG //////////
-        if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, ("Apply a Gag to " + PairUID), WindowMenuWidth, true, !disableUnlocking || !PairPerms.GagFeatures))
+        string DisplayGagText = disableApplying ? "A " + gagSlot.GagType + " is applied." : "Apply a Gag to " + PairNickOrAliasOrUID;
+        if (_uiShared.IconTextButton(FontAwesomeIcon.CommentDots, DisplayGagText, WindowMenuWidth, true, disableApplying))
         {
             Opened = Opened == InteractionType.ApplyGag ? InteractionType.None : InteractionType.ApplyGag;
         }
@@ -74,16 +81,20 @@ public partial class PairStickyUI
         }
 
         ////////// LOCK GAG //////////
+        string DisplayText = disableUnlocking ? "Lock "+PairNickOrAliasOrUID+"'s Gag" : "Locked with a " + gagSlot.Padlock;
+        string tooltipText = disableUnlocking
+            ? "Locks the Gag on " + PairNickOrAliasOrUID+ ". Click to view options."
+            : "This Gag is locked with a " + gagSlot.Padlock;
         using (var color = ImRaii.PushColor(ImGuiCol.Text, disableUnlocking ? ImGuiColors.DalamudWhite : ImGuiColors.DalamudYellow))
         {
-            string DisplayText = disableUnlocking ? "Lock " + PairUID + "'s Gag"
-                : "Locked with a " + UserPairForPerms.LastReceivedAppearanceData!.GagSlots[_permActions.GagLayer].Padlock;
             if (_uiShared.IconTextButton(FontAwesomeIcon.Lock, DisplayText, WindowMenuWidth, true, disableLocking || (!disableLocking && !disableUnlocking) || !PairPerms.GagFeatures))
             {
                 Opened = Opened == InteractionType.LockGag ? InteractionType.None : InteractionType.LockGag;
             }
-            UiSharedService.AttachToolTip("Lock " + PairUID + "'s Gag. Click to view options.");
         }
+        UiSharedService.AttachToolTip(tooltipText + ((!disableUnlocking && GenericHelpers.TimerPadlocks.Contains(gagSlot.Padlock))
+            ? "--SEP----COL--" + UiSharedService.TimeLeftFancy(gagSlot.Timer) : ""), color: ImGuiColors.ParsedPink);
+
         if (Opened is InteractionType.LockGag)
         {
 
@@ -103,9 +114,11 @@ public partial class PairStickyUI
                 {
                     var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
                     if (newAppearance == null) throw new Exception("Appearance data is null or lock is invalid., not sending");
+                    
                     _logger.LogDebug("Verifying lock for padlock: " + onButtonPress.ToName(), LoggerType.PadlockManagement);
-                    if (_permActions.PadlockVerifyLock<IPadlockable>(newAppearance.GagSlots[_permActions.GagLayer], onButtonPress,
-                    PairPerms.ExtendedLockTimes, PairPerms.OwnerLocks, PairPerms.DevotionalLocks, PairPerms.MaxLockTime))
+                    var res = _permActions.PadlockVerifyLock<IPadlockable>(newAppearance.GagSlots[_permActions.GagLayer], onButtonPress,
+                                    PairPerms.ExtendedLockTimes, PairPerms.OwnerLocks, PairPerms.DevotionalLocks, PairPerms.MaxLockTime);
+                    if (res.Item1)
                     {
                         try
                         {
@@ -126,6 +139,11 @@ public partial class PairStickyUI
                         }
                         catch (Exception e) { _logger.LogError("Failed to push updated appearance data: " + e.Message); }
                     }
+                    else
+                    {
+                        // Fire and forget, additional triggers replace previous.
+                        _ = DisplayError(res.Item2);
+                    }
                     _permActions.ResetInputs();
                 });
                 // draw password field combos.
@@ -135,7 +153,7 @@ public partial class PairStickyUI
         }
 
         ////////// UNLOCK GAG //////////
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, ("Unlock " + PairUID + "'s Gag"), WindowMenuWidth, true, disableUnlocking || !PairPerms.GagFeatures))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, ("Unlock " + PairNickOrAliasOrUID + "'s Gag"), WindowMenuWidth, true, disableUnlocking || !PairPerms.GagFeatures))
         {
             Opened = Opened == InteractionType.UnlockGag ? InteractionType.None : InteractionType.UnlockGag;
         }
@@ -165,8 +183,11 @@ public partial class PairStickyUI
                     {
                         var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
                         if (newAppearance == null) throw new Exception("Appearance data is null or unlock is invalid. not sending");
+
                         _logger.LogDebug("Verifying password for padlock: " + selected.ToName() + "with password " + _permActions.Password, LoggerType.PadlockManagement);
-                        if (_permActions.PadlockVerifyUnlock<IPadlockable>(newAppearance.GagSlots[_permActions.GagLayer], selected, PairPerms.OwnerLocks, PairPerms.DevotionalLocks))
+                        var res = _permActions.PadlockVerifyUnlock<IPadlockable>(newAppearance.GagSlots[_permActions.GagLayer], selected, PairPerms.OwnerLocks, PairPerms.DevotionalLocks);
+                        
+                        if(res.Item1)
                         {
                             newAppearance.GagSlots[_permActions.GagLayer].Padlock = selected.ToName();
                             newAppearance.GagSlots[_permActions.GagLayer].Password = _permActions.Password;
@@ -185,7 +206,8 @@ public partial class PairStickyUI
                         }
                         else
                         {
-                            _logger.LogDebug("Invalid Password Validation");
+                            // Fire and forget, additional triggers replace previous.
+                            _ = DisplayError(res.Item2);
                         }
                         _permActions.ResetInputs();
                     }
@@ -198,12 +220,12 @@ public partial class PairStickyUI
         }
 
         ////////// REMOVE GAG //////////
-        if (_uiShared.IconTextButton(FontAwesomeIcon.TimesCircle, ("Remove " + PairUID + "'s Gag"), WindowMenuWidth, true,
+        if (_uiShared.IconTextButton(FontAwesomeIcon.TimesCircle, ("Remove " + PairNickOrAliasOrUID + "'s Gag"), WindowMenuWidth, true,
         (disableRemoving || !PairPerms.GagFeatures || disableLocking)))
         {
             Opened = Opened == InteractionType.RemoveGag ? InteractionType.None : InteractionType.RemoveGag;
         }
-        UiSharedService.AttachToolTip("Remove " + PairUID + "'s Gag. Click to view options.");
+        UiSharedService.AttachToolTip("Remove " + PairNickOrAliasOrUID + "'s Gag. Click to view options.");
         if (Opened is InteractionType.RemoveGag)
         {
             using (var actionChild = ImRaii.Child("GagRemoveChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))

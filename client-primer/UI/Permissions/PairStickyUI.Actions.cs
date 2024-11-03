@@ -96,27 +96,25 @@ public partial class PairStickyUI
 
         if (!UserPairForPerms.IsPaused)
         {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.ExclamationTriangle, "Report GagSpeak Profile", WindowMenuWidth, true))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.ExclamationTriangle, "Report "+ PairNickOrAliasOrUID +"'s KinkPlate", WindowMenuWidth, true))
             {
                 ImGui.CloseCurrentPopup();
                 Mediator.Publish(new ReportKinkPlateMessage(UserPairForPerms));
             }
-            UiSharedService.AttachToolTip("Snapshot this user's ProfileData and send it as a reported profile.");
+            UiSharedService.AttachToolTip("Snapshot "+ PairNickOrAliasOrUID+"'s KinkPlate and send it as a reported profile.");
         }
 
         if (UserPairForPerms.IsPaired)
         {
-            var pauseIcon = UserPairForPerms.UserPair!.OwnPairPerms.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
-            var pauseText = UserPairForPerms.UserPair!.OwnPairPerms.IsPaused ? $"Unpause {UserPairForPerms.UserData.AliasOrUID}" : $"Pause {UserPairForPerms.UserData.AliasOrUID}";
+            var pauseIcon = OwnPerms.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
+            var pauseText = OwnPerms.IsPaused ? "Unpause " + PairNickOrAliasOrUID : "Pause " + PairNickOrAliasOrUID;
             if (_uiShared.IconTextButton(pauseIcon, pauseText, WindowMenuWidth, true))
             {
-                var perm = UserPairForPerms.UserPair!.OwnPairPerms;
                 _ = _apiHubMain.UserUpdateOwnPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
-                    new KeyValuePair<string, object>("IsPaused", !perm.IsPaused)));
+                    new KeyValuePair<string, object>("IsPaused", !OwnPerms.IsPaused)));
             }
-            UiSharedService.AttachToolTip(!UserPairForPerms.UserPair!.OwnPairPerms.IsPaused
-            ? "Pause pairing with " + UserPairForPerms.UserData.AliasOrUID
-                : "Resume pairing with " + UserPairForPerms.UserData.AliasOrUID);
+            UiSharedService.AttachToolTip(!OwnPerms.IsPaused
+                ? "Pause pairing with " + PairNickOrAliasOrUID : "Resume pairing with " + PairNickOrAliasOrUID);
         }
         if (UserPairForPerms.IsVisible)
         {
@@ -134,7 +132,7 @@ public partial class PairStickyUI
     private void DrawPuppeteerActions()
     {
         // draw the Alias List popout ref button. (opens a popout window 
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Update " + PairUID + " with your Name", WindowMenuWidth, true))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Update " + PairNickOrAliasOrUID + " with your Name", WindowMenuWidth, true))
         {
             var name = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
             var world = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult();
@@ -149,7 +147,7 @@ public partial class PairStickyUI
 
             _ = _apiHubMain.UserPushPairDataAliasStorageUpdate(new OnlineUserCharaAliasDataDto
                 (UserPairForPerms.UserData, dataToPush, DataUpdateKind.PuppeteerPlayerNameRegistered));
-            _logger.LogDebug("Sent Puppeteer Name to " + UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
+            _logger.LogDebug("Sent Puppeteer Name to " + PairNickOrAliasOrUID, LoggerType.Permissions);
         }
         UiSharedService.AttachToolTip("Sends your Name & World to this pair so their puppeteer will listen for messages from you.");
         ImGui.Separator();
@@ -157,15 +155,13 @@ public partial class PairStickyUI
 
     private void DrawIndividualMenu()
     {
-        var entryUID = UserPairForPerms.UserData.AliasOrUID;
-
         if (UserPairForPerms.IndividualPairStatus != IndividualPairStatus.None)
         {
             if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", WindowMenuWidth, true, !KeyMonitor.CtrlPressed()))
             {
                 _ = _apiHubMain.UserRemovePair(new(UserPairForPerms.UserData));
             }
-            UiSharedService.AttachToolTip("Hold CTRL and click to unpair permanently from " + entryUID);
+            UiSharedService.AttachToolTip("Hold CTRL and click to unpair permanently from " + PairNickOrAliasOrUID);
         }
     }
 }

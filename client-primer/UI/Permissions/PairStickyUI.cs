@@ -1,3 +1,4 @@
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Plugin.Services;
 using GagSpeak.PlayerData.Data;
@@ -12,6 +13,7 @@ using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Enums;
+using GagspeakAPI.Extensions;
 using ImGuiNET;
 using OtterGui;
 using System.Numerics;
@@ -59,8 +61,6 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
     }
 
     private CharaIPCData? LastCreatedCharacterData => _playerManager.LastIpcData;
-    public override void OnClose() => Mediator.Publish(new RemoveWindowMessage(this)); // remove window on close.
-
     public Pair UserPairForPerms { get; init; } // pair we're drawing the sticky permissions for.
     private UserGlobalPermissions PairGlobals => UserPairForPerms.UserPairGlobalPerms;
     private UserPairPermissions OwnPerms => UserPairForPerms.UserPairOwnUniquePairPerms;
@@ -127,8 +127,17 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
         }
         else if (DrawType == StickyWindowType.PairActionFunctions)
         {
+            ImGuiUtil.Center("Actions For " + PairNickOrAliasOrUID);
+            if(!_currentErrorMessage.NullOrEmpty())
+               UiSharedService.ColorTextWrapped(_currentErrorMessage, ImGuiColors.DalamudRed);
+
+            ImGui.Separator();
+
+            ImGui.BeginChild("ActionsForPairContent", new Vector2(0, ImGui.GetContentRegionAvail().Y), false, ImGuiWindowFlags.NoScrollbar);
             // draw the pair action functions
             DrawPairActionFunctions();
+
+            ImGui.EndChild();
         }
         else if (DrawType == StickyWindowType.None)
         {
@@ -136,5 +145,44 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
         }
     }
 
+    #region ErrorHandler
+    private string _currentErrorMessage = string.Empty;
+    private CancellationTokenSource? _errorCTS;
+    private async Task DisplayError(string errorMessage)
+    {
+        // Cancel the previous error message display if it exists
+        _errorCTS?.Cancel();
+        _errorCTS = new CancellationTokenSource();
+
+        _currentErrorMessage = errorMessage;
+
+        try
+        {
+            // Wait for 5 seconds or until the task is cancelled
+            await Task.Delay(5000, _errorCTS.Token)
+                .ContinueWith(t =>
+                {
+                    // Clear the error message if the task was not cancelled
+                    if (!t.IsCanceled)
+                    {
+                        _currentErrorMessage = string.Empty;
+                    }
+                }, TaskScheduler.Default);
+        }
+        catch (TaskCanceledException)
+        {
+            // Task was cancelled, do nothing
+        }
+    }
+
+    #endregion ErrorHandler
+
+
+
     protected override void PostDrawInternal() { }
+
+    public override void OnClose()
+    {
+        Mediator.Publish(new RemoveWindowMessage(this));
+    }
 }

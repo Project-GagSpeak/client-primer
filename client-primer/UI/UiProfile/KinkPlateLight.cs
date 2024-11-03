@@ -44,11 +44,11 @@ public class KinkPlateLight
         _uiShared = uiShared;
     }
 
-    private Vector2 RectMin { get; set; } = Vector2.Zero;
-    private Vector2 RectMax { get; set; } = Vector2.Zero;
+    public Vector2 RectMin { get; set; } = Vector2.Zero;
+    public Vector2 RectMax { get; set; } = Vector2.Zero;
     private Vector2 PlateSize => RectMax - RectMin;
-    private Vector2 CloseButtonPos => RectMin + Vector2.One * 20f;
-    private Vector2 CloseButtonSize => Vector2.One * 24f;
+    public Vector2 CloseButtonPos => RectMin + Vector2.One * 20f;
+    public Vector2 CloseButtonSize => Vector2.One * 24f;
     private Vector2 ProfilePictureBorderPos => RectMin + Vector2.One * (PlateSize.X - ProfilePictureBorderSize.X) / 2;
     private Vector2 ProfilePictureBorderSize => Vector2.One * 226f;
     private Vector2 ProfilePicturePos => RectMin + Vector2.One * (6 + (PlateSize.X - ProfilePictureBorderSize.X) / 2);
@@ -62,19 +62,12 @@ public class KinkPlateLight
     private Vector2 TitleLineStartPos => RectMin + new Vector2(12, 317);
     private Vector2 TitleLineSize => new Vector2(232, 5);
     private Vector2 StatsPos => RectMin + new Vector2(40, 326);
-
-    private bool HoveringCloseButton { get; set; } = false;
-
     private static Vector4 Gold = new Vector4(1f, 0.851f, 0.299f, 1f);
 
-    public void DrawKinkPlateLight(KinkPlate profile, string displayName, UserData userData, bool isPair, bool drawClose, Action onClosed)
+    public void DrawKinkPlateLight(ImDrawListPtr drawList, KinkPlate profile, string displayName, UserData userData, bool isPair)
     {
-        var drawList = ImGui.GetWindowDrawList();
-        // clip based on the region of our draw space.
-        RectMin = drawList.GetClipRectMin();
-        RectMax = drawList.GetClipRectMax();
 
-        DrawPlate(drawList, profile.KinkPlateInfo, displayName, drawClose, onClosed);
+        DrawPlate(drawList, profile.KinkPlateInfo, displayName);
 
         DrawProfilePic(drawList, profile, displayName, userData, isPair);
 
@@ -95,7 +88,7 @@ public class KinkPlateLight
 
     }
 
-    private void DrawPlate(ImDrawListPtr drawList, KinkPlateContent info, string displayName, bool drawClose, Action onClosed)
+    private void DrawPlate(ImDrawListPtr drawList, KinkPlateContent info, string displayName)
     {
         // draw out the background for the window.
         if (_cosmetics.TryGetBackground(ProfileComponent.PlateLight, info.PlateBackground, out var plateBG))
@@ -104,13 +97,6 @@ public class KinkPlateLight
         // draw out the border on top of that.
         if (_cosmetics.TryGetBorder(ProfileComponent.PlateLight, info.PlateBorder, out var plateBorder))
             KinkPlateUI.AddImageRounded(drawList, plateBorder, RectMin, PlateSize, 20f);
-
-        // Draw the close button.
-        if (drawClose)
-        {
-            CloseButton(drawList, displayName, onClosed);
-            KinkPlateUI.AddRelativeTooltip(CloseButtonPos, CloseButtonSize, "Close " + displayName + "'s KinkPlate™");
-        }
     }
 
     private void DrawProfilePic(ImDrawListPtr drawList, KinkPlate profile, string displayName, UserData userData, bool isPair)
@@ -254,25 +240,5 @@ public class KinkPlateLight
         ImGui.SetCursorScreenPos(statsPos);
         UiSharedService.ColorText("100/141", ImGuiColors.ParsedGold);
         UiSharedService.AttachToolTip("The total achievements " + displayName + " has earned.");
-    }
-
-
-    private void CloseButton(ImDrawListPtr drawList, string displayName, Action onClosed)
-    {
-        var btnPos = CloseButtonPos;
-        var btnSize = CloseButtonSize;
-
-        var closeButtonColor = HoveringCloseButton ? ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)) : ImGui.GetColorU32(ImGuiColors.ParsedPink);
-
-        drawList.AddLine(btnPos, btnPos + btnSize, closeButtonColor, 3);
-        drawList.AddLine(new Vector2(btnPos.X + btnSize.X, btnPos.Y), new Vector2(btnPos.X, btnPos.Y + btnSize.Y), closeButtonColor, 3);
-
-
-        ImGui.SetCursorScreenPos(btnPos);
-        if (ImGui.InvisibleButton($"CloseButton##KinkPlateClose" + displayName, btnSize))
-        {
-            onClosed.Invoke();
-        }
-        HoveringCloseButton = ImGui.IsItemHovered();
     }
 }

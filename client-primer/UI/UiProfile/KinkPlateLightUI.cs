@@ -1,3 +1,4 @@
+using Dalamud.Interface.Colors;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
@@ -38,6 +39,7 @@ public class KinkPlateLightUI : WindowMediatorSubscriberBase
     }
 
     public UserData UserDataToDisplay { get; init; }
+    private bool HoveringCloseButton = false;
 
     protected override void PreDrawInternal()
     {
@@ -76,8 +78,34 @@ public class KinkPlateLightUI : WindowMediatorSubscriberBase
             ? UserDataToDisplay.AliasOrUID
             : "Anon.Kinkster-" + UserDataToDisplay.UID.Substring(UserDataToDisplay.UID.Length - 3);
 
+        var drawList = ImGui.GetWindowDrawList();
+        // clip based on the region of our draw space.
+        _lightUI.RectMin = drawList.GetClipRectMin();
+        _lightUI.RectMax = drawList.GetClipRectMax();
+
         // draw the plate.
-        _lightUI.DrawKinkPlateLight(KinkPlate, DisplayName, UserDataToDisplay, _showFullUID, true, () => this.IsOpen = false);
+        _lightUI.DrawKinkPlateLight(drawList, KinkPlate, DisplayName, UserDataToDisplay, _showFullUID);
+
+        // Draw the close button.
+        CloseButton(drawList, DisplayName);
+        KinkPlateUI.AddRelativeTooltip(_lightUI.CloseButtonPos, _lightUI.CloseButtonSize, "Close " + DisplayName + "'s KinkPlate™");
+    }
+
+    private void CloseButton(ImDrawListPtr drawList, string displayName)
+    {
+        var btnPos = _lightUI.CloseButtonPos;
+        var btnSize = _lightUI.CloseButtonSize;
+
+        var closeButtonColor = HoveringCloseButton ? ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)) : ImGui.GetColorU32(ImGuiColors.ParsedPink);
+
+        drawList.AddLine(btnPos, btnPos + btnSize, closeButtonColor, 3);
+        drawList.AddLine(new Vector2(btnPos.X + btnSize.X, btnPos.Y), new Vector2(btnPos.X, btnPos.Y + btnSize.Y), closeButtonColor, 3);
+
+        ImGui.SetCursorScreenPos(btnPos);
+        if (ImGui.InvisibleButton($"CloseButton##KinkPlateClose" + displayName, btnSize))
+            this.IsOpen = false;
+
+        HoveringCloseButton = ImGui.IsItemHovered();
     }
 
     public override void OnClose()

@@ -19,6 +19,10 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 8, 5)
+            .RegisterQol("Spacing with double ENTER's now pinches the gap on Full KinkPlates to allow more space for people who space out descriptions on their Light KinkPlates.")
+            .RegisterQol("Now must use SHIFT+MIDDLE-CLICK to silence a user in global chat.")
+            .RegisterBugfix("Fixed issue where you were able to mute yourself (you goober)");
         VersionEntry(0, 9, 8, 4)
             .RegisterMain("You can now preview your own Light KinkPlate in the profile editor.")
             .RegisterFeature("If someone is spamming global chat and being a bother to you, simply Middle-Click the name to silence them from your chat. This applies until plugin reload.")

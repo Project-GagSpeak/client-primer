@@ -77,50 +77,62 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
     private void DrawLimitedDescription(string desc, Vector4 color, Vector2 size)
     {
-        // Get the basic line height.
+        // Calculate the line height and determine the max lines based on available height
         float lineHeight = ImGui.CalcTextSize("A").Y;
-        int totalLines = (int)(size.Y / lineHeight) - 1; // Total lines to display based on height
+        int maxLines = (int)(size.Y / lineHeight);
+        var startX = ImGui.GetCursorScreenPos().X;
+        double currentLines = 1;
+        float lineWidth = size.X; // Max width for each line
+        string[] words = desc.Split(' '); // Split text by words
         string newDescText = "";
-        string[] words = desc.Split(' ');
-        int currentLines = 0;
+        string currentLine = "";
 
-        while (newDescText.Length < desc.Length && currentLines < totalLines)
+        foreach (var word in words)
         {
-            // Calculate how much of the message fits in the available space
-            string fittingMessage = string.Empty;
-            float currentWidth = 0;
+            // Try adding the current word to the line
+            string testLine = string.IsNullOrEmpty(currentLine) ? word : currentLine + " " + word;
+            float testLineWidth = ImGui.CalcTextSize(testLine).X;
 
-            // Build the fitting message
-            foreach (var word in words)
+            // if a word contains newlines, count how many, append, and add to current lines.
+            if (word.Contains("\n\n"))
             {
-                float wordWidth = ImGui.CalcTextSize(word + " ").X;
-
-                // Check if adding this word exceeds the available width
-                if (currentWidth + wordWidth > size.X)
-                {
-                    break; // Stop if it doesn't fit
-                }
-
-                fittingMessage += word + " ";
-                currentWidth += wordWidth;
+                // get the text both before and after it.
+                var split = word.Split("\n\n");
+                currentLine += split[0];
+                UiSharedService.ColorText(currentLine, color);
+                ImGui.SetCursorScreenPos(new Vector2(startX, ImGui.GetCursorScreenPos().Y + 5f));
+                currentLine = split[1];
+                currentLines += 1.5;
+                continue;
             }
 
-            currentLines++;
-            newDescText += fittingMessage.TrimEnd();
-
-            // Only add newline if we're not on the last line
-            if (currentLines < totalLines && newDescText.Length < desc.Length)
+            if (testLineWidth > lineWidth)
             {
-                newDescText += "\n";
+                // Current word exceeds line width; finalize the current line
+                currentLine += "\n";
+                UiSharedService.ColorText(currentLine, color);
+                ImGui.SetCursorScreenPos(new Vector2(startX, ImGui.GetCursorScreenPos().Y));
+                currentLine = word;
+                currentLines++;
+
+                // Check if maxLines is reached and break if so
+                if (currentLines >= maxLines)
+                    break;
             }
-
-            if (newDescText.Length < desc.Length)
+            else
             {
-                words = desc.Substring(newDescText.Length).TrimStart().Split(' ');
+                // Word fits in the current line; accumulate it
+                currentLine = testLine;
             }
         }
 
-        UiSharedService.ColorTextWrapped(newDescText, color);
+        // Add any remaining text if we haven’t hit max lines
+        if (currentLines < maxLines && !string.IsNullOrEmpty(currentLine))
+        {
+            newDescText += currentLine;
+            currentLines++; // Increment the line count for the final line
+        }
+        UiSharedService.ColorTextWrapped(newDescText.TrimEnd(), color);
     }
 
     public static void AddRelativeTooltip(Vector2 pos, Vector2 size, string text)

@@ -94,6 +94,10 @@ public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
         }
 
         string DisplayName = _userDataToDisplay.AliasOrUID;
-        _lightUI.DrawKinkPlateLight(KinkPlate, DisplayName, _userDataToDisplay, true, false, () => this.IsOpen = false);
+
+        var drawList = ImGui.GetWindowDrawList();
+        _lightUI.RectMin = drawList.GetClipRectMin();
+        _lightUI.RectMax = drawList.GetClipRectMax();
+        _lightUI.DrawKinkPlateLight(drawList, KinkPlate, DisplayName, _userDataToDisplay, true);
     }
 }

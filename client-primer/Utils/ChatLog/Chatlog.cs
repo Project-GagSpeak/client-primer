@@ -99,15 +99,14 @@ public class ChatLog
                 {
                     if(x.UID != "System") _mediator.Publish(new KinkPlateOpenStandaloneLightMessage(x.UserData));
                 }
-                if(ImGui.IsItemClicked(ImGuiMouseButton.Middle))
+                if(ImGui.IsItemClicked(ImGuiMouseButton.Middle) && KeyMonitor.ShiftPressed())
                 {
-                    if(x.UID != "System" || x.UID != MainHub.UID) UidSilenceList.Add(x.UID);
+                    if(x.UID != "System" && x.UID != MainHub.UID) UidSilenceList.Add(x.UID);
                 }
                 UiSharedService.AttachToolTip(
                     "Sent @ " + x.TimeStamp.ToString("T", CultureInfo.CurrentCulture)
-                    + "--SEP--Middle-Click to add user to silence list.\n"
-                    + "This stays in affect until plugin restart."
-                    + "--SEP--Right-Click to view Light KinkPlate.");
+                    + "--SEP--SHIFT+Middle-Click: Hides Global Messages from Kinkster."
+                    + "--SEP--Right-Click: View Light KinkPlate.");
                 ImUtf8.SameLineInner();
 
                 // Get the remaining width available in the current row

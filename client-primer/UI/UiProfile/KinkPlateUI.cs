@@ -259,7 +259,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         ImGui.SetCursorScreenPos(DescriptionBorderPos + Vector2.One * 10f);
         var description = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? "No Description Was Set.." : profile.KinkPlateInfo.Description;
         var color = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? ImGuiColors.DalamudGrey2 : ImGuiColors.DalamudWhite;
-        DrawLimitedDescription(description, color, DescriptionBorderSize - Vector2.One * 4f);
+        DrawLimitedDescription(description, color, DescriptionBorderSize - Vector2.One * 12f);
     }
 
     private void DrawGagInfo(ImDrawListPtr drawList, KinkPlateContent info)

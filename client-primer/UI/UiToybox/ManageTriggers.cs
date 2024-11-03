@@ -289,31 +289,42 @@ public class ToyboxTriggerManager
     {
         var region = ImGui.GetContentRegionAvail();
         var topLeftSideHeight = region.Y;
-        // if list size has changed, refresh the list of hovered items
-        for (int i = 0; i < FilteredTriggerList.Count; i++)
+        bool anyItemHovered = false;
+
+        using (var rightChild = ImRaii.Child($"###TriggerListPreview", region with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
         {
-            var set = FilteredTriggerList[i];
-            DrawTriggerSelectable(set, i);
-
-            if (ImGui.IsItemHovered())
-                LastHoveredIndex = i;
-
-            // if the item is right clicked, open the popup
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredTriggerList[i].Enabled)
+            // if list size has changed, refresh the list of hovered items
+            for (int i = 0; i < FilteredTriggerList.Count; i++)
             {
-                ImGui.OpenPopup($"TriggerDataContext{i}");
-            }
-        }
+                var set = FilteredTriggerList[i];
+                DrawTriggerSelectable(set, i);
 
-        if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredTriggerList.Count)
-        {
-            if (ImGui.BeginPopup($"TriggerDataContext{LastHoveredIndex}"))
-            {
-                if (ImGui.Selectable("Delete Trigger") && FilteredTriggerList[LastHoveredIndex] is not null)
+                if (ImGui.IsItemHovered())
                 {
-                    _handler.RemoveTrigger(FilteredTriggerList[LastHoveredIndex]);
+                    anyItemHovered = true;
+                    LastHoveredIndex = i;
                 }
-                ImGui.EndPopup();
+
+                // if the item is right clicked, open the popup
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredTriggerList[i].Enabled)
+                {
+                    ImGui.OpenPopup($"TriggerDataContext{i}");
+                }
+            }
+
+            // if no item is hovered, reset the last hovered index
+            if (!anyItemHovered) LastHoveredIndex = -1;
+
+            if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredTriggerList.Count)
+            {
+                if (ImGui.BeginPopup($"TriggerDataContext{LastHoveredIndex}"))
+                {
+                    if (ImGui.Selectable("Delete Trigger") && FilteredTriggerList[LastHoveredIndex] is not null)
+                    {
+                        _handler.RemoveTrigger(FilteredTriggerList[LastHoveredIndex]);
+                    }
+                    ImGui.EndPopup();
+                }
             }
         }
     }
@@ -352,7 +363,7 @@ public class ToyboxTriggerManager
         var devicesUsedTextSize = ImGui.CalcTextSize(devicesUsed);
         using (_uiShared.UidFont.Push()) { triggerTypeTextSize = ImGui.CalcTextSize(triggerType); }
 
-        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), !trigger.Enabled && LastHoveredIndex == idx);
+        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), LastHoveredIndex == idx);
         using (ImRaii.Child($"##EditTriggerHeader{trigger.TriggerIdentifier}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 65f)))
         {
             // create a group for the bounding area

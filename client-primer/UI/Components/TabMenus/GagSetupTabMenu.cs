@@ -7,7 +7,7 @@ public class GagSetupTabMenu : TabMenuBase
     /// <summary> Defines the type of tab selection to use. </summary>
     protected override Type TabSelectionType => typeof(GagSetupTabs.Tabs);
 
-    public GagSetupTabMenu() { }
+    public GagSetupTabMenu(UiSharedService uiShared) : base(uiShared) { }
 
     protected override string GetTabDisplayName(Enum tab)
     {

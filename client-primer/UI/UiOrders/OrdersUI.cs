@@ -34,7 +34,7 @@ public class OrdersUI : WindowMediatorSubscriberBase
         _cosmetics = cosmetics;
         _uiShared = uiShared;
 
-        _tabMenu = new OrdersTabMenu();
+        _tabMenu = new OrdersTabMenu(_uiShared);
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints
         {
@@ -104,10 +104,7 @@ public class OrdersUI : WindowMediatorSubscriberBase
                     ImGui.Spacing();
                     ImGui.Separator();
                     // add the tab menu for the left side.
-                    using (_uiShared.UidFont.Push())
-                    {
-                        _tabMenu.DrawSelectableTabMenu();
-                    }
+                    _tabMenu.DrawSelectableTabMenu();
                 }
                 // pop pushed style variables and draw next column.
                 ImGui.PopStyleVar();

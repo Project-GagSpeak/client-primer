@@ -18,6 +18,6 @@ public class OrdersViewActive
 
     public void DrawActiveOrdersPanel()
     {
-        ImGui.Text("My Active Orders");
+        ImGui.Text("My Active Orders\n(Still Under Development during Open Beta)");
     }
 }

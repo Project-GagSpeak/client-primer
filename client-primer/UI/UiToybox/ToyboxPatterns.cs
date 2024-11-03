@@ -228,8 +228,9 @@ public class ToyboxPatterns
     {
         var region = ImGui.GetContentRegionAvail();
         var topLeftSideHeight = region.Y;
+        bool anyItemHovered = false;
 
-        using (var rightChild = ImRaii.Child($"###WardrobeSetPreview", region with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
+        using (var rightChild = ImRaii.Child($"###PatternListPreview", region with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
         {
             for (int i = 0; i < FilteredPatternsList.Count; i++)
             {
@@ -237,7 +238,10 @@ public class ToyboxPatterns
                 DrawPatternSelectable(set, i);
 
                 if (ImGui.IsItemHovered())
+                {
+                    anyItemHovered = true;
                     LastHoveredIndex = i;
+                }
 
                 // if the item is right clicked, open the popup
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredPatternsList[i].IsActive)
@@ -245,6 +249,10 @@ public class ToyboxPatterns
                     ImGui.OpenPopup($"PatternDataContext{i}");
                 }
             }
+
+            // if no item is hovered, reset the last hovered index
+            if (!anyItemHovered) LastHoveredIndex = -1;
+
             if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredPatternsList.Count)
             {
                 if (ImGui.BeginPopup($"PatternDataContext{LastHoveredIndex}"))
@@ -286,7 +294,7 @@ public class ToyboxPatterns
         var patternToggleButtonSize = _uiShared.GetIconButtonSize(pattern.IsActive ? FontAwesomeIcon.Stop : FontAwesomeIcon.Play);
 
         // create the selectable
-        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), !pattern.IsActive && LastHoveredIndex == idx);
+        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), LastHoveredIndex == idx);
         using (ImRaii.Child($"##PatternSelectable{pattern.UniqueIdentifier}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 65f)))
         {
             // create a group for the bounding area
@@ -344,7 +352,6 @@ public class ToyboxPatterns
         {
             _handler.StartEditingPattern(pattern);
         }
-        UiSharedService.AttachToolTip("Click me to edit this pattern.");
     }
 
     private void DrawPatternEditor(PatternData patternToEdit)

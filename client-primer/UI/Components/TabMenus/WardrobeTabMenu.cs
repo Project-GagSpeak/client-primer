@@ -5,15 +5,11 @@ namespace GagSpeak.UI.Components;
 /// <summary> Tab Menu for the Wardrobe UI </summary>
 public class WardrobeTabMenu : TabMenuBase
 {
-    private readonly WardrobeHandler _wardrobeHandler;
-
     /// <summary> Defines the type of tab selection to use. </summary>
     protected override Type TabSelectionType => typeof(WardrobeTabs.Tabs);
 
-    public WardrobeTabMenu(WardrobeHandler wardrobeHandler)
-    {
-        _wardrobeHandler = wardrobeHandler;
-    }
+    public WardrobeTabMenu(UiSharedService uiShared) : base(uiShared) { }
+
     protected override string GetTabDisplayName(Enum tab)
     {
         if (tab is WardrobeTabs.Tabs wardrobeTab)

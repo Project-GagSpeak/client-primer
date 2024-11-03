@@ -18,6 +18,6 @@ public class OrdersCreator
 
     public void DrawOrderCreatorPanel()
     {
-        ImGui.Text("Order Creator");
+        ImGui.Text("Order Creator\n(Still Under Development during Open Beta)");
     }
 }

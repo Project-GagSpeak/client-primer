@@ -57,7 +57,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
             }
         };
 
-        _tabMenu = new WardrobeTabMenu(_handler);
+        _tabMenu = new WardrobeTabMenu(_uiShared);
 
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints
@@ -103,11 +103,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                 using (var leftChild = ImRaii.Child($"###WardrobeLeft", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
                 {
                     var iconTexture = _cosmetics.CorePluginTextures[CorePluginTexture.Logo256];
-                    if (!(iconTexture is { } wrap))
-                    {
-                        /*_logger.LogWarning("Failed to render image!");*/
-                    }
-                    else
+                    if (iconTexture is { } wrap)
                     {
                         UtilsExtensions.ImGuiLineCentered("###WardrobeLogo", () =>
                         {
@@ -126,10 +122,7 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                     ImGui.Spacing();
                     ImGui.Separator();
                     // add the tab menu for the left side.
-                    using (_uiShared.UidFont.Push())
-                    {
-                        _tabMenu.DrawSelectableTabMenu();
-                    }
+                    _tabMenu.DrawSelectableTabMenu();
                 }
                 // pop pushed style variables and draw next column.
                 ImGui.PopStyleVar();

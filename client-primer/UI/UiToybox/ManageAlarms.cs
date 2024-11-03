@@ -213,30 +213,40 @@ public class ToyboxAlarmManager
     {
         var region = ImGui.GetContentRegionAvail();
         var topLeftSideHeight = region.Y;
-        for (int i = 0; i < FilteredAlarmsList.Count; i++)
+        bool anyItemHovered = false;
+        using (var rightChild = ImRaii.Child($"###AlarmListPreview", region with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
         {
-            var set = FilteredAlarmsList[i];
-            DrawAlarmSelectable(set, i);
-
-            if (ImGui.IsItemHovered())
-                LastHoveredIndex = i;
-
-            // if the item is right clicked, open the popup
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredAlarmsList[i].Enabled)
+            for (int i = 0; i < FilteredAlarmsList.Count; i++)
             {
-                ImGui.OpenPopup($"AlarmItemContext{i}");
-            }
-        }
+                var set = FilteredAlarmsList[i];
+                DrawAlarmSelectable(set, i);
 
-        if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredAlarmsList.Count)
-        {
-            if (ImGui.BeginPopup($"AlarmItemContext{LastHoveredIndex}"))
-            {
-                if (ImGui.Selectable("Delete Alarm") && FilteredAlarmsList[LastHoveredIndex] is not null)
+                if (ImGui.IsItemHovered())
                 {
-                    _handler.RemoveAlarm(FilteredAlarmsList[LastHoveredIndex]);
+                    anyItemHovered = true;
+                    LastHoveredIndex = i;
                 }
-                ImGui.EndPopup();
+
+                // if the item is right clicked, open the popup
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredAlarmsList[i].Enabled)
+                {
+                    ImGui.OpenPopup($"AlarmItemContext{i}");
+                }
+            }
+
+            // if no item is hovered, reset the last hovered index
+            if (!anyItemHovered) LastHoveredIndex = -1;
+
+            if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredAlarmsList.Count)
+            {
+                if (ImGui.BeginPopup($"AlarmItemContext{LastHoveredIndex}"))
+                {
+                    if (ImGui.Selectable("Delete Alarm") && FilteredAlarmsList[LastHoveredIndex] is not null)
+                    {
+                        _handler.RemoveAlarm(FilteredAlarmsList[LastHoveredIndex]);
+                    }
+                    ImGui.EndPopup();
+                }
             }
         }
     }
@@ -278,7 +288,7 @@ public class ToyboxAlarmManager
         {
             alarmTextSize = ImGui.CalcTextSize($"{localTime}");
         }
-        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), !alarm.Enabled && LastHoveredIndex == idx);
+        using var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), LastHoveredIndex == idx);
         using (ImRaii.Child($"##EditAlarmHeader{alarm.Identifier}", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 65f)))
         {
             // create a group for the bounding area

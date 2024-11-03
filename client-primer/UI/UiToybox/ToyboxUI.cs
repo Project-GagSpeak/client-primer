@@ -59,7 +59,7 @@ public class ToyboxUI : WindowMediatorSubscriberBase
             }
         };
 
-        _tabMenu = new ToyboxTabMenu();
+        _tabMenu = new ToyboxTabMenu(_uiShared);
 
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints
@@ -128,10 +128,8 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                     ImGui.Spacing();
                     ImGui.Separator();
                     // add the tab menu for the left side.
-                    using (_uiShared.UidFont.Push())
-                    {
-                        _tabMenu.DrawSelectableTabMenu();
-                    }
+                    _tabMenu.DrawSelectableTabMenu();
+
                     ImGui.SetCursorPosY(region.Y - 80f);
                     _patternPlayback.DrawPlaybackDisplay();
                 }

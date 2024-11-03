@@ -6,7 +6,7 @@ public class OrdersTabMenu : TabMenuBase
     /// <summary> Defines the type of tab selection to use. </summary>
     protected override Type TabSelectionType => typeof(OrdersTabs.Tabs);
 
-    public OrdersTabMenu() { }
+    public OrdersTabMenu(UiSharedService uiShared) : base(uiShared) { }
 
     protected override string GetTabDisplayName(Enum tab)
     {

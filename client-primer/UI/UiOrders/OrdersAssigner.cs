@@ -19,6 +19,6 @@ public class OrdersAssigner
 
     public void DrawOrderAssignerPanel()
     {
-        ImGui.Text("Order Assigner Panel");
+        ImGui.Text("Order Assigner Panel\n(Still Under Development during Open Beta)");
     }
 }

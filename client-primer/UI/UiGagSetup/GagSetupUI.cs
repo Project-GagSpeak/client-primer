@@ -57,7 +57,7 @@ public class GagSetupUI : WindowMediatorSubscriberBase
             }
         };
 
-        _tabMenu = new GagSetupTabMenu();
+        _tabMenu = new GagSetupTabMenu(_uiShared);
 
         // define initial size of window and to not respect the close hotkey.
         SizeConstraints = new WindowSizeConstraints
@@ -103,11 +103,7 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                     // get the gag setup logo image
                     //var iconTexture = _uiShared.GetImageFromDirectoryFile("icon.png");
                     var iconTexture = _cosmetics.CorePluginTextures[CorePluginTexture.Logo256];
-                    if (!(iconTexture is { } wrap))
-                    {
-                        /*_logger.LogWarning("Failed to render image!");*/
-                    }
-                    else
+                    if (iconTexture is { } wrap)
                     {
                         // aligns the image in the center like we want.
                         UtilsExtensions.ImGuiLineCentered("###GagSetupLogo", () =>
@@ -127,10 +123,7 @@ public class GagSetupUI : WindowMediatorSubscriberBase
                     ImGui.Spacing();
                     ImGui.Separator();
                     // add the tab menu for the left side.
-                    using (_uiShared.UidFont.Push())
-                    {
-                        _tabMenu.DrawSelectableTabMenu();
-                    }
+                    _tabMenu.DrawSelectableTabMenu();
                 }
                 // pop pushed style variables and draw next column.
                 ImGui.PopStyleVar();

@@ -2,6 +2,7 @@ using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
+using GagSpeak.Achievements;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
@@ -28,6 +29,7 @@ namespace GagSpeak.UI.Profile;
 /// </summary>
 public partial class KinkPlateUI : WindowMediatorSubscriberBase
 {
+    private readonly AchievementManager _achievements;
     private readonly PairManager _pairManager;
     private readonly KinkPlateService _profileService;
     private readonly CosmeticService _cosmetics;
@@ -36,11 +38,12 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
     private bool ThemePushed = false;
     public KinkPlateUI(ILogger<KinkPlateUI> logger, GagspeakMediator mediator,
-        PairManager pairManager, KinkPlateService profileService, 
-        CosmeticService cosmetics, TextureService textureService, 
-        UiSharedService uiShared, Pair pair)
+        AchievementManager achievements, PairManager pairManager, 
+        KinkPlateService profileService, CosmeticService cosmetics, 
+        TextureService textureService, UiSharedService uiShared, Pair pair)
         : base(logger, mediator, pair.UserData.AliasOrUID + "'s KinkPlate##GagspeakKinkPlateUI" + pair.UserData.AliasOrUID)
     {
+        _achievements = achievements;
         _pairManager = pairManager;
         _profileService = profileService;
         _cosmetics = cosmetics;
@@ -114,14 +117,15 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         // Now let's draw out the chosen achievement Name..
         using (_uiShared.GagspeakTitleFont.Push())
         {
+            var titleName = _achievements.GetTitleById(profile.KinkPlateInfo.ChosenTitleId);
             var titleHeightGap = TitleLineStartPos.Y - (RectMin.Y + 4f);
-            var chosenTitleSize = ImGui.CalcTextSize("Sample Title Chosen");
+            var chosenTitleSize = ImGui.CalcTextSize(titleName);
             // calculate the Y height it should be drawn on by taking the gap height and dividing it by 2 and subtracting the text height.
             var yHeight = (titleHeightGap - chosenTitleSize.Y) / 2;
 
             ImGui.SetCursorScreenPos(new Vector2(TitleLineStartPos.X + TitleLineSize.X / 2 - chosenTitleSize.X / 2, TitleLineStartPos.Y - chosenTitleSize.Y - yHeight));
             // display it, it should be green if connected and red when not.
-            ImGui.TextColored(ImGuiColors.ParsedGold, "Sample Title Chosen");
+            ImGui.TextColored(ImGuiColors.ParsedGold, titleName);
         }
         // move over to the top area to draw out the achievement title line wrap.
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.AchievementLineSplit], TitleLineStartPos, TitleLineSize);
@@ -385,7 +389,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         // to the right of this, draw the players total earned achievements scoring.
         statsPos += new Vector2(24, 0);
         ImGui.SetCursorScreenPos(statsPos);
-        UiSharedService.ColorText("100/141", ImGuiColors.ParsedGold);
+        UiSharedService.ColorText(info.CompletedAchievementsTotal +"/141", ImGuiColors.ParsedGold);
         UiSharedService.AttachToolTip("The total achievements "+ DisplayName + " has earned.");
     }
 

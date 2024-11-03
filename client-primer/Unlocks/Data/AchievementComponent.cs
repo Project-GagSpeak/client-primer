@@ -3,10 +3,7 @@ using Dalamud.Plugin.Services;
 namespace GagSpeak.Achievements;
 
 public class AchievementComponent
-{
-    [JsonIgnore]
-    private readonly INotificationManager _notificationPinger;
-    
+{    
     [JsonIgnore]
     public int Total => Achievements.Count;
 
@@ -15,13 +12,7 @@ public class AchievementComponent
 
 
     // Abstract Achievements Dictionary, stores all other types of achievements within it.
-    public Dictionary<string, Achievement> Achievements { get; }
-
-    public AchievementComponent(INotificationManager completionNotification)
-    {
-        _notificationPinger = completionNotification;
-        Achievements = new Dictionary<string, Achievement>();
-    }
+    public Dictionary<string, Achievement> Achievements { get; } = new Dictionary<string, Achievement>();
 
     public void LoadFromLightAchievements(List<LightAchievement> lightAchievements)
     {
@@ -90,57 +81,57 @@ public class AchievementComponent
         }
     }
 
-    public void AddProgress(string title, string desc, int goal, string suffix = "", string prefix = "", bool isSecret = false)
+    public void AddProgress(uint id, string title, string desc, int goal, Action<uint, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
     {
-        var achievement = new ProgressAchievement(_notificationPinger, title, desc, goal, prefix, suffix, isSecret);
+        var achievement = new ProgressAchievement(id, title, desc, goal, onCompleted, prefix, suffix, isSecret);
         Achievements.Add(achievement.Title, achievement);
     }
 
-    public void AddConditional(string title, string desc, Func<bool> cond, string suffix = "", string prefix = "", bool isSecret = false)
+    public void AddConditional(uint id, string title, string desc, Func<bool> cond, Action<uint, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
     {
-        var achievement = new ConditionalAchievement(_notificationPinger, title, desc, cond, prefix, suffix, isSecret);
+        var achievement = new ConditionalAchievement(id, title, desc, cond, onCompleted, prefix, suffix, isSecret);
         Achievements.Add(achievement.Title, achievement);
     }
 
-    public void AddThreshold(string title, string desc, int goal, string suffix = "", string prefix = "", bool isSecret = false)
+    public void AddThreshold(uint id, string title, string desc, int goal, Action<uint, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
     {
-        var achievement = new ThresholdAchievement(_notificationPinger, title, desc, goal, prefix, suffix, isSecret);
+        var achievement = new ThresholdAchievement(id, title, desc, goal, onCompleted, prefix, suffix, isSecret);
         Achievements.Add(achievement.Title, achievement);
     }
 
-    public void AddDuration(string title, string desc, TimeSpan duration, DurationTimeUnit timeUnit, string suffix = "", string prefix = "", bool isSecret = false)
+    public void AddDuration(uint id, string title, string desc, TimeSpan duration, DurationTimeUnit timeUnit, Action<uint, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
     {
-        var achievement = new DurationAchievement(_notificationPinger, title, desc, duration, timeUnit, prefix, suffix, isSecret);
+        var achievement = new DurationAchievement(id, title, desc, duration, onCompleted, timeUnit, prefix, suffix, isSecret);
         Achievements.Add(achievement.Title, achievement);
     }
 
-    public void AddRequiredTimeConditional(string title, string desc, TimeSpan duration, Func<bool> cond, DurationTimeUnit timeUnit, string suffix = "", string prefix = "", bool isSecret = false)
+    public void AddRequiredTimeConditional(uint id, string title, string desc, TimeSpan duration, Func<bool> cond, DurationTimeUnit timeUnit, Action<uint, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
     {
-        var achievement = new TimeRequiredConditionalAchievement(_notificationPinger, title, desc, duration, cond, timeUnit, prefix, suffix, isSecret);
+        var achievement = new TimeRequiredConditionalAchievement(id, title, desc, duration, cond, onCompleted, timeUnit, prefix, suffix, isSecret);
         Achievements.Add(achievement.Title, achievement);
     }
 
-    public void AddTimeLimitedConditional(string title, string desc, TimeSpan dur, Func<bool> cond, DurationTimeUnit timeUnit, string suffix = "", string prefix = "", bool isSecret = false)
+    public void AddTimeLimitedConditional(uint id, string title, string desc, TimeSpan dur, Func<bool> cond, DurationTimeUnit timeUnit, Action<uint, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
     {
-        var achievement = new TimeLimitConditionalAchievement(_notificationPinger, title, desc, dur, cond, timeUnit, prefix, suffix, isSecret);
+        var achievement = new TimeLimitConditionalAchievement(id, title, desc, dur, cond, onCompleted, timeUnit, prefix, suffix, isSecret);
         Achievements.Add(achievement.Title, achievement);
     }
 
-    public void AddConditionalProgress(string title, string desc, int goal, Func<bool> cond, string suffix = "", string prefix = "", bool reqBeginAndFinish = true, bool isSecret = false)
+    public void AddConditionalProgress(uint id, string title, string desc, int goal, Func<bool> cond, Action<uint, string> onCompleted, string suffix = "", string prefix = "", bool reqBeginAndFinish = true, bool isSecret = false)
     {
-        var achievement = new ConditionalProgressAchievement(_notificationPinger, title, desc, goal, cond, reqBeginAndFinish, prefix, suffix, isSecret);
+        var achievement = new ConditionalProgressAchievement(id, title, desc, goal, cond, onCompleted, reqBeginAndFinish, prefix, suffix, isSecret);
         Achievements.Add(achievement.Title, achievement);
     }
 
-    public void AddConditionalThreshold(string title, string desc, int goal, Func<bool> cond, string suffix = "", string prefix = "", bool isSecret = false)
+    public void AddConditionalThreshold(uint id, string title, string desc, int goal, Func<bool> cond, Action<uint, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
     {
-        var achievement = new ConditionalThresholdAchievement(_notificationPinger, title, desc, goal, cond, prefix, suffix, isSecret);
+        var achievement = new ConditionalThresholdAchievement(id, title, desc, goal, cond, onCompleted, prefix, suffix, isSecret);
         Achievements.Add(achievement.Title, achievement);
     }
 
-    public void AddTimedProgress(string title, string desc, int goal, TimeSpan timeLimit, string suffix = "", string prefix = "", bool isSecret = false)
+    public void AddTimedProgress(uint id, string title, string desc, int goal, TimeSpan timeLimit, Action<uint, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
     {
-        var achievement = new TimedProgressAchievement(_notificationPinger, title, desc, goal, timeLimit, prefix, suffix, isSecret);
+        var achievement = new TimedProgressAchievement(id, title, desc, goal, timeLimit, onCompleted, prefix, suffix, isSecret);
         Achievements.Add(achievement.Title, achievement);
     }
 }

@@ -1,4 +1,5 @@
 using Dalamud.Plugin.Services;
+using GagSpeak.WebAPI;
 using System;
 
 namespace GagSpeak.Achievements;
@@ -16,8 +17,8 @@ public class ConditionalThresholdAchievement : Achievement
     /// </summary>
     private int LastRecordedThreshold { get; set; }
 
-    public ConditionalThresholdAchievement(INotificationManager notify, string title, string desc, int goal, Func<bool> condition,
-        string prefix = "", string suffix = "", bool isSecret = false) : base(notify, title, desc, goal, prefix, suffix, isSecret)
+    public ConditionalThresholdAchievement(uint id, string title, string desc, int goal, Func<bool> condition, Action<uint, string> onCompleted,
+        string prefix = "", string suffix = "", bool isSecret = false) : base(id, title, desc, goal, prefix, suffix, onCompleted, isSecret)
     {
         Condition = condition;
         LastRecordedThreshold = 0;
@@ -29,7 +30,7 @@ public class ConditionalThresholdAchievement : Achievement
 
     public void UpdateThreshold(int newestThreshold)
     {
-        if (IsCompleted) 
+        if (IsCompleted || !MainHub.IsConnected) 
             return;
 
         // if the condition is met, we should update it, otherwise, we should reset the threshold down to 0.
@@ -52,7 +53,7 @@ public class ConditionalThresholdAchievement : Achievement
     /// </summary>
     public override void CheckCompletion()
     {
-        if (IsCompleted) return;
+        if (IsCompleted || !MainHub.IsConnected) return;
 
         if (LastRecordedThreshold >= MilestoneGoal)
         {

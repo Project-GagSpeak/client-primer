@@ -61,7 +61,7 @@ public class CosmeticService : IHostedService, IDisposable
                 return;
             }
 
-            _logger.LogTrace("Renting image to store in Cache: " + key);
+            _logger.LogTrace("Renting image to store in Cache: " + key, LoggerType.Textures);
             if(TryRentImageFromFile(path, out var texture))
                 CorePluginTextures[key] = texture;
         }
@@ -81,7 +81,7 @@ public class CosmeticService : IHostedService, IDisposable
                 return;
             }
 
-            _logger.LogTrace("Renting image to store in Cache: " + key);
+            _logger.LogTrace("Renting image to store in Cache: " + key, LoggerType.Textures);
             if (TryRentImageFromFile(path, out var texture))
                 InternalCosmeticCache[key] = texture;
         }

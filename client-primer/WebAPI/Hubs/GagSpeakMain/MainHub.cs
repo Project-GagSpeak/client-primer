@@ -21,20 +21,15 @@ namespace GagSpeak.WebAPI;
 /// </summary>
 public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
 {
-    private readonly AchievementManager _achievementManager;
-
     // Cancellation Token Sources
     private CancellationTokenSource HubConnectionCTS;
     private CancellationTokenSource? HubHealthCTS = new();
 
     public MainHub(ILogger<MainHub> logger, GagspeakMediator mediator, HubFactory hubFactory,
-        TokenProvider tokenProvider, PairManager pairs, AchievementManager achievements,
-        ServerConfigurationManager serverConfigs, GagspeakConfigService mainConfig,
-        ClientCallbackService callbackService, OnFrameworkService frameworkUtils)
+        TokenProvider tokenProvider, PairManager pairs, ServerConfigurationManager serverConfigs, 
+        GagspeakConfigService mainConfig, ClientCallbackService callbackService, OnFrameworkService frameworkUtils)
         : base(logger, mediator, hubFactory, tokenProvider, pairs, serverConfigs, mainConfig, callbackService, frameworkUtils)
     {
-        _achievementManager = achievements;
-
         // Create our CTS for the hub connection
         HubConnectionCTS = new CancellationTokenSource();
 
@@ -226,7 +221,7 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
         if (ServerStatus is ServerState.Connected)
         {
             Logger.LogInformation("Sending Final Achievement SaveData Update before Hub Instance Disposal.", LoggerType.Achievements);
-            await UserUpdateAchievementData(new(new(UID), _achievementManager.GetSaveDataDtoString()));
+            await UserUpdateAchievementData(new(new(UID), AchievementManager.GetSaveDataDtoString()));
         }
 
         // Set new state to Disconnecting.

@@ -1,4 +1,5 @@
 using Dalamud.Plugin.Services;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
@@ -9,10 +10,10 @@ public class ConditionalAchievement : Achievement
     /// </summary>
     private Func<bool> Condition;
 
-    public ConditionalAchievement(INotificationManager notify, string title, string desc, Func<bool> condition, 
-        string prefix = "", string suffix = "", bool isSecret = false) : base(notify, title, desc, 1, prefix, suffix, isSecret)
+    public ConditionalAchievement(uint id, string title, string desc, Func<bool> cond, Action<uint, string> onCompleted, string prefix = "", 
+        string suffix = "", bool isSecret = false) : base(id, title, desc, 1, prefix, suffix, onCompleted, isSecret)
     {
-        Condition = condition;
+        Condition = cond;
     }
 
     public override int CurrentProgress() => IsCompleted ? 1 : 0;
@@ -21,7 +22,7 @@ public class ConditionalAchievement : Achievement
 
     public override void CheckCompletion()
     {
-        if (IsCompleted) 
+        if (IsCompleted || !MainHub.IsConnected)
             return;
 
         StaticLogger.Logger.LogDebug($"Checking if {Title} satisfies conditional", LoggerType.Achievements);

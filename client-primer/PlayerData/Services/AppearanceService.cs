@@ -38,7 +38,16 @@ public class AppearanceService : DisposableMediatorSubscriberBase
         // subscribe to our mediator for glamour changed
         IpcFastUpdates.GlamourEventFired += (msg) => RefreshAppearance(msg).ConfigureAwait(false);
         IpcFastUpdates.CustomizeEventFired += EnsureForcedCustomizeProfile;
+
         Mediator.Subscribe<ZoneSwitchEndMessage>(this, (_) => RefreshAppearance(GlamourUpdateType.ZoneChange).ConfigureAwait(false));
+
+        Mediator.Subscribe<DalamudLogoutMessage>(this, (_) =>
+        {
+            Logger.LogInformation("Player has logged out, clearing cached ItemsToApply and ExpectedMoodles");
+            ItemsToApply.Clear();
+            MetaToApply = IpcCallerGlamourer.MetaData.None;
+            ExpectedMoodles.Clear();
+        });
     }
 
     /// <summary>

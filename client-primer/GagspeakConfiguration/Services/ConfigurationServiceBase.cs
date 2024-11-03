@@ -1,4 +1,5 @@
 using GagSpeak.GagspeakConfiguration.Configurations;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.GagspeakConfiguration;
 
@@ -16,7 +17,6 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
     protected ConfigurationServiceBase(string configurationDirectory)
     {
         ConfigurationDirectory = configurationDirectory;
-
         // Load the UID from persistent storage
         _currentUid = LoadUid();
 

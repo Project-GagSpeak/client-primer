@@ -1,4 +1,5 @@
 using Dalamud.Plugin.Services;
+using GagSpeak.WebAPI;
 using System;
 using System.Diagnostics;
 
@@ -13,9 +14,9 @@ public class DurationAchievement : Achievement
 
     public DurationTimeUnit TimeUnit { get; init; }
 
-    public DurationAchievement(INotificationManager notify, string name, string desc, TimeSpan duration, 
+    public DurationAchievement(uint id, string name, string desc, TimeSpan duration, Action<uint, string> onCompleted,
         DurationTimeUnit timeUnit = DurationTimeUnit.Minutes, string prefix = "", string suffix = "", 
-        bool isSecret = false) : base(notify, name, desc, ConvertToUnit(duration, timeUnit), prefix, suffix, isSecret)
+        bool isSecret = false) : base(id, name, desc, ConvertToUnit(duration, timeUnit), prefix, suffix, onCompleted, isSecret)
     {
         MilestoneDuration = duration;
         TimeUnit = timeUnit;
@@ -36,7 +37,7 @@ public class DurationAchievement : Achievement
     public override int CurrentProgress()
     {
         // if completed, return the milestone goal.
-        if (IsCompleted) 
+        if (IsCompleted || !MainHub.IsConnected) 
             return MilestoneGoal;
 
         // otherwise, return the ActiveItem with the longest duration from the DateTime.UtcNow and return its value in total minutes.
@@ -85,7 +86,7 @@ public class DurationAchievement : Achievement
     /// </summary>
     public void StartTracking(string itemName)
     {
-        if (IsCompleted) 
+        if (IsCompleted || !MainHub.IsConnected) 
             return;
 
         if (!ActiveItems.ContainsKey(itemName))
@@ -104,7 +105,7 @@ public class DurationAchievement : Achievement
     /// </summary>
     public void StopTracking(string itemName)
     {
-        if (IsCompleted) 
+        if (IsCompleted || !MainHub.IsConnected) 
             return;
 
         StaticLogger.Logger.LogDebug($"Stopped Tracking item {itemName} for {Title}", LoggerType.Achievements);

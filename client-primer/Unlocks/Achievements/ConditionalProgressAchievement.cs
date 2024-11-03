@@ -1,4 +1,5 @@
 using Dalamud.Plugin.Services;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
@@ -29,9 +30,9 @@ public class ConditionalProgressAchievement : Achievement
     /// </summary>
     public bool ConditionalTaskFinished { get; set; }
 
-    public ConditionalProgressAchievement(INotificationManager notify, string title, string desc, int goal,
-        Func<bool> cond, bool reqBeginAndFinish = true, string prefix = "", string suffix = "", bool isSecret = false)
-        : base(notify, title, desc, goal, prefix, suffix, isSecret)
+    public ConditionalProgressAchievement(uint id, string title, string desc, int goal, Func<bool> cond, Action<uint, string> onCompleted,
+        bool reqBeginAndFinish = true, string prefix = "", string suffix = "", bool isSecret = false) 
+        : base(id, title, desc, goal, prefix, suffix, onCompleted, isSecret)
     {
         RequiredCondition = cond;
         Progress = 0;
@@ -56,7 +57,7 @@ public class ConditionalProgressAchievement : Achievement
 
     public async void BeginConditionalTask(int secondsDelayBeforeCheck = 0)
     {
-        if (IsCompleted)
+        if (IsCompleted || !MainHub.IsConnected)
             return;
 
         // wait the delayed time before checking the conditional task.
@@ -72,7 +73,7 @@ public class ConditionalProgressAchievement : Achievement
 
     public void FinishConditionalTask()
     {
-        if (IsCompleted)
+        if (IsCompleted || !MainHub.IsConnected)
             return;
 
         StaticLogger.Logger.LogDebug($"Finishing Conditional Task for {Title}");
@@ -82,7 +83,7 @@ public class ConditionalProgressAchievement : Achievement
 
     public void StartOverDueToInturrupt()
     {
-        if (IsCompleted)
+        if (IsCompleted || !MainHub.IsConnected)
             return;
 
         StaticLogger.Logger.LogDebug($"Achievement {Title} Requires conditional Begin & End, but we inturrupted before reaching end. Starting Over!", LoggerType.Achievements);
@@ -92,7 +93,7 @@ public class ConditionalProgressAchievement : Achievement
 
     public void CheckTaskProgress(int amountToIncOnSuccess = 1)
     {
-        if (IsCompleted) 
+        if (IsCompleted || !MainHub.IsConnected) 
             return;
 
         if (!ConditionalTaskBegun && RequireTaskBeginAndFinish) 

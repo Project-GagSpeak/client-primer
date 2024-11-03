@@ -102,9 +102,6 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             _charaHandler?.Dispose();
             _charaHandler = null;
 
-            // if the player name is not null or empty, publish an event message to the mediator for logging purposes
-            Logger.LogTrace("Disposing "+name+" complete", LoggerType.GameObjects);
-
             // if the hosted service lifetime is ending, return
             if (_lifetime.ApplicationStopping.IsCancellationRequested) return;
 
@@ -137,9 +134,10 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         finally
         {
             // ensure the player name is null and cachedData gets set to null
+            Logger.LogDebug("Disposing " + PlayerName + " complete", LoggerType.GameObjects);
+
             PlayerName = null;
             _cachedIpcData = null;
-            Logger.LogDebug("Disposing " + name + " complete", LoggerType.GameObjects);
         }
     }
 

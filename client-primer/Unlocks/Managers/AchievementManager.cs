@@ -1,5 +1,7 @@
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text;
+using Dalamud.Interface.ImGuiNotification;
+using Dalamud.Interface;
 using Dalamud.Plugin.Services;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
@@ -12,51 +14,49 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
+using GagSpeak.Services;
+using GagspeakAPI.Dto.User;
 
 // if present in diadem (https://github.com/Infiziert90/DiademCalculator/blob/d74a22c58840a864cda12131fe2646dfc45209df/DiademCalculator/Windows/Main/MainWindow.cs#L12)
 
 namespace GagSpeak.Achievements;
 public partial class AchievementManager : DisposableMediatorSubscriberBase
 {
+    private readonly MainHub _mainHub;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerData;
     private readonly PairManager _pairManager;
     private readonly OnFrameworkService _frameworkUtils;
+    private readonly KinkPlateService _kinkPlateService;
     private readonly ToyboxVibeService _vibeService;
     private readonly UnlocksEventManager _eventManager;
-    private readonly INotificationManager _completionNotifier;
+    private readonly INotificationManager _notify;
     private readonly IDutyState _dutyState;
 
     // Token used for updating achievement data.
     private CancellationTokenSource? _saveDataUpdateCTS;
 
-    // Used for a special case with the WarriorOfLewd Achievement, to ensure a Cutscene has been longer than 5 seconds.
-
     // Stores the last time we disconnected via an exception. Controlled via HubFactory/ApiController.
     public static DateTime _lastDisconnectTime = DateTime.MinValue;
 
-    // Dictates if our connection occured after an exception (within 5 minutes).
+    // Dictates if our connection occurred after an exception (within 5 minutes).
     private bool _reconnectedAfterException => DateTime.UtcNow - _lastDisconnectTime < TimeSpan.FromMinutes(5);
-
-    // The save data for the achievements.
-    public AchievementSaveData SaveData { get; private set; }
-
-    public AchievementManager(ILogger<AchievementManager> logger, GagspeakMediator mediator,
+    public AchievementManager(ILogger<AchievementManager> logger, GagspeakMediator mediator, MainHub mainHub,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData, PairManager pairManager, 
-        OnFrameworkService frameworkUtils, ToyboxVibeService vibeService, UnlocksEventManager eventManager, 
-        INotificationManager completionNotifier, IDutyState dutyState) : base(logger, mediator)
+        OnFrameworkService frameworkUtils, KinkPlateService kinkPlateService, ToyboxVibeService vibeService, 
+        UnlocksEventManager eventManager, INotificationManager notifs, IDutyState dutyState) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerData = playerData;
         _pairManager = pairManager;
         _frameworkUtils = frameworkUtils;
+        _kinkPlateService = kinkPlateService;
         _vibeService = vibeService;
         _eventManager = eventManager;
-        _completionNotifier = completionNotifier;
+
+        _notify = notifs;
         _dutyState = dutyState;
 
-        Logger.LogInformation("Initializing Achievement Save Data", LoggerType.Achievements);
-        SaveData = new AchievementSaveData(_completionNotifier);
         Logger.LogInformation("Initializing Achievement Save Data Achievements", LoggerType.Achievements);
         InitializeAchievements();
         Logger.LogInformation("Achievement Save Data Initialized", LoggerType.Achievements);
@@ -87,7 +87,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
                 else
                 {
                     Logger.LogInformation("User has empty achievement Save Data. Creating new Save Data.", LoggerType.Achievements);
-                    SaveData = new AchievementSaveData(_completionNotifier);
+                    SaveData = new AchievementSaveData();
                 }
             }
 
@@ -100,7 +100,148 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
         Mediator.Subscribe<MainHubDisconnectedMessage>(this, _ => _saveDataUpdateCTS?.Cancel());
 
-        #region Event Subscription
+        // must route the event subscription through frameworkUtils, as we unsubscribe from all beforehand.
+        Mediator.Subscribe<DalamudLoginMessage>(this, _ => SubscribeToEvents());
+        Mediator.Subscribe<DalamudLogoutMessage>(this, _ => UnsubscribeFromEvents());
+    }
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+
+        _saveDataUpdateCTS?.Cancel();
+        _saveDataUpdateCTS?.Dispose();
+
+        UnsubscribeFromEvents();
+    }
+
+    public static AchievementSaveData SaveData { get; private set; } = new AchievementSaveData();
+
+    public int TotalAchievements => SaveData.Achievements.Values.Sum(component => component.Achievements.Count);
+    public List<uint> CompletedAchievementIds => SaveData.Achievements.Values.SelectMany(component => component.Achievements.Values.Cast<Achievement>()).Where(x => x.IsCompleted).Select(x => x.AchievementId).ToList();
+    public int CompletedAchievementsCount => SaveData.Achievements.Values.Sum(component => component.Achievements.Count(x => x.Value.IsCompleted));
+    public List<Achievement> AllAchievements => SaveData.Achievements.Values.SelectMany(component => component.Achievements.Values.Cast<Achievement>()).ToList();
+    public AchievementComponent GetComponent(AchievementModuleKind type) => SaveData.Achievements[type];
+    public string GetTitleById(int id) => AllAchievements.FirstOrDefault(x => x.AchievementId == id)?.Title ?? "No Title Set";
+
+    /// <summary>
+    /// Fired whenever we complete an achievement.
+    /// </summary>
+    public async Task WasCompleted(uint id, string title)
+    {
+        // do anything we need to with the ID here, such as updating the list, our profile, ext.
+        Logger.LogInformation("Achievement Completed: " + title + " :: Updating total completed count to plate.", LoggerType.Achievements);
+        // fetch our current kink-plate info (do this directly, not via the service, we need to await it).
+        var profile = await _mainHub.UserGetKinkPlate(new(MainHub.PlayerUserData));
+        // if the profile is null, return.
+        if (profile is null)
+        {
+            Logger.LogError("Failed to fetch KinkPlate™ data for the user.", LoggerType.Achievements);
+            return;
+        }
+        // update the information with our new status.
+        profile.Info.CompletedAchievementsTotal = CompletedAchievementsCount;
+        // update the kinkPlate info.
+        await _mainHub.UserSetKinkPlate(new(MainHub.PlayerUserData, profile.Info, profile.ProfilePictureBase64));
+        Logger.LogInformation("Updated KinkPlate™ with new Achievement Completion", LoggerType.Achievements);
+
+        // publish the award notification to the notification manager.
+        _notify.AddNotification(new Notification()
+        {
+            Title = "Achievement Completed!",
+            Content = "Completed: " + title,
+            Type = NotificationType.Info,
+            Icon = INotificationIcon.From(FontAwesomeIcon.Award),
+            Minimized = false,
+            InitialDuration = TimeSpan.FromSeconds(10)
+        });
+    }
+
+    /// <summary>
+    /// Updater that sends our latest achievement Data to the server every 30 minutes.
+    /// </summary>
+    private async Task AchievementDataPeriodicUpdate(CancellationToken ct)
+    {
+        Logger.LogInformation("Starting SaveData Update Loop", LoggerType.Achievements);
+        var random = new Random();
+        while (!ct.IsCancellationRequested)
+        {
+            Logger.LogInformation("SaveData Update Task is running", LoggerType.Achievements);
+            try
+            {
+                // wait randomly between 4 and 16 seconds before sending the data.
+                // The 4 seconds gives us enough time to buffer any disconnects that inturrupt connection.
+                await Task.Delay(TimeSpan.FromSeconds(random.Next(4, 16)), ct).ConfigureAwait(false);
+                await SendUpdatedDataToServer();
+            }
+            catch (Exception)
+            {
+                Logger.LogDebug("Not sending Achievement SaveData due to disconnection canceling the loop.");
+            }
+
+            int delayMinutes = random.Next(20, 31); // Random delay between 20 and 30 minutes
+            Logger.LogInformation("SaveData Update Task Completed, Firing Again in " + delayMinutes + " Minutes");
+            await Task.Delay(TimeSpan.FromMinutes(delayMinutes), ct).ConfigureAwait(false);
+        }
+    }
+
+    public Task ResetAchievementData()
+    {
+        // Reset SaveData
+        SaveData = new AchievementSaveData();
+        InitializeAchievements();
+        Logger.LogInformation("Reset Achievement Data Completely!", LoggerType.Achievements);
+        // Send this off to the server.
+        SendUpdatedDataToServer();
+        return Task.CompletedTask;
+    }
+
+    // Your existing method to send updated data to the server
+    private Task SendUpdatedDataToServer()
+    {
+        var saveDataString = GetSaveDataDtoString();
+        // Logic to send base64Data to the server
+        Logger.LogInformation("Sending updated achievement data to the server", LoggerType.Achievements);
+        Mediator.Publish(new AchievementDataUpdateMessage(saveDataString));
+        return Task.CompletedTask;
+    }
+
+    public static string GetSaveDataDtoString()
+    {
+        // get the Dto-Ready data object of our saveData
+        LightSaveDataDto saveDataDto = SaveData.ToLightSaveDataDto();
+
+        // condense it into the json and compress it.
+        string json = JsonConvert.SerializeObject(saveDataDto);
+        var compressed = json.Compress(6);
+        string base64Data = Convert.ToBase64String(compressed);
+        return base64Data;
+    }
+
+    private void LoadSaveDataDto(string Base64saveDataToLoad)
+    {
+        try
+        {
+            Logger.LogDebug("Client Connected To Server with valid Achievement Data, loading in now!");
+            var bytes = Convert.FromBase64String(Base64saveDataToLoad);
+            var version = bytes[0];
+            version = bytes.DecompressToString(out var decompressed);
+
+            LightSaveDataDto item = JsonConvert.DeserializeObject<LightSaveDataDto>(decompressed)
+                ?? throw new Exception("Failed to deserialize achievement data from server.");
+
+            // Update the local achievement data
+            SaveData.LoadFromLightSaveDataDto(item);
+            Logger.LogInformation("Achievement Data Loaded from Server", LoggerType.Achievements);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to apply achievement data from server, or data is empty.");
+        }
+    }
+
+    private void SubscribeToEvents()
+    {
+        Logger.LogInformation("Player Logged In, Subscribing to Events!");
         _eventManager.Subscribe<OrderInteractionKind>(UnlocksEvent.OrderAction, OnOrderAction);
         _eventManager.Subscribe<GagLayer, GagType, bool, bool>(UnlocksEvent.GagAction, OnGagApplied);
         _eventManager.Subscribe<GagLayer, GagType, bool>(UnlocksEvent.GagRemoval, OnGagRemoval);
@@ -172,21 +313,10 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         ActionEffectMonitor.ActionEffectEntryEvent += OnActionEffectEvent;
         _dutyState.DutyStarted += OnDutyStart;
         _dutyState.DutyCompleted += OnDutyEnd;
-        #endregion Event Subscription
     }
 
-    public int TotalAchievements => SaveData.Achievements.Values.Sum(component => component.Achievements.Count);
-    public int CompletedAchievementsCount => SaveData.Achievements.Values.Sum(component => component.Achievements.Count(x => x.Value.IsCompleted));
-    public List<Achievement> AllAchievements => SaveData.Achievements.Values.SelectMany(component => component.Achievements.Values.Cast<Achievement>()).ToList();
-    public AchievementComponent GetComponent(AchievementModuleKind type) => SaveData.Achievements[type];
-
-    protected override void Dispose(bool disposing)
+    private void UnsubscribeFromEvents()
     {
-        base.Dispose(disposing);
-
-        _saveDataUpdateCTS?.Cancel();
-        _saveDataUpdateCTS?.Dispose();
-
         _eventManager.Unsubscribe<OrderInteractionKind>(UnlocksEvent.OrderAction, OnOrderAction);
         _eventManager.Unsubscribe<GagLayer, GagType, bool, bool>(UnlocksEvent.GagAction, OnGagApplied);
         _eventManager.Unsubscribe<GagLayer, GagType, bool>(UnlocksEvent.GagRemoval, OnGagRemoval);
@@ -235,90 +365,20 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Unsubscribe<int>(UnlocksEvent.PlayersInProximity, (count) => (SaveData.Achievements[AchievementModuleKind.Wardrobe].Achievements[WardrobeLabels.CrowdPleaser] as ConditionalThresholdAchievement)?.UpdateThreshold(count));
         _eventManager.Unsubscribe(UnlocksEvent.CutsceneInturrupted, () => (SaveData.Achievements[AchievementModuleKind.Generic].Achievements[GenericLabels.WarriorOfLewd] as ConditionalProgressAchievement)?.StartOverDueToInturrupt());
 
+        Mediator.Unsubscribe<PairHandlerVisibleMessage>(this);
+        Mediator.Unsubscribe<CommendationsIncreasedMessage>(this);
+        Mediator.Unsubscribe<PlaybackStateToggled>(this);
+        Mediator.Unsubscribe<SafewordUsedMessage>(this);
+        Mediator.Unsubscribe<GPoseStartMessage>(this);
+        Mediator.Unsubscribe<GPoseEndMessage>(this);
+        Mediator.Unsubscribe<CutsceneBeginMessage>(this);
+        Mediator.Unsubscribe<CutsceneEndMessage>(this);
+        Mediator.Unsubscribe<ZoneSwitchStartMessage>(this);
+        Mediator.Unsubscribe<ZoneSwitchEndMessage>(this);
+
         IpcFastUpdates.GlamourEventFired -= OnJobChange;
         ActionEffectMonitor.ActionEffectEntryEvent -= OnActionEffectEvent;
         _dutyState.DutyStarted -= OnDutyStart;
         _dutyState.DutyCompleted -= OnDutyEnd;
-    }
-
-    // Updater that sends our latest achievement Data to the server every 30 minutes.
-    private async Task AchievementDataPeriodicUpdate(CancellationToken ct)
-    {
-        Logger.LogInformation("Starting SaveData Update Loop", LoggerType.Achievements);
-        var random = new Random();
-        while (!ct.IsCancellationRequested)
-        {
-            Logger.LogInformation("SaveData Update Task is running", LoggerType.Achievements);
-            try
-            {
-                // wait randomly between 4 and 16 seconds before sending the data.
-                // The 4 seconds gives us enough time to buffer any disconnects that inturrupt connection.
-                await Task.Delay(TimeSpan.FromSeconds(random.Next(4, 16)), ct).ConfigureAwait(false);
-                await SendUpdatedDataToServer();
-            }
-            catch (Exception)
-            {
-                Logger.LogDebug("Not sending Achievement SaveData due to disconnection canceling the loop.");
-            }
-
-            int delayMinutes = random.Next(20, 31); // Random delay between 20 and 30 minutes
-            Logger.LogInformation("SaveData Update Task Completed, Firing Again in " + delayMinutes + " Minutes");
-            await Task.Delay(TimeSpan.FromMinutes(delayMinutes), ct).ConfigureAwait(false);
-        }
-    }
-
-    public Task ResetAchievementData()
-    {
-        // Reset SaveData
-        SaveData = new AchievementSaveData(_completionNotifier);
-        InitializeAchievements();
-        Logger.LogInformation("Reset Achievement Data Completely!", LoggerType.Achievements);
-        // Send this off to the server.
-        SendUpdatedDataToServer();
-        return Task.CompletedTask;
-    }
-
-    // Your existing method to send updated data to the server
-    private Task SendUpdatedDataToServer()
-    {
-        var saveDataString = GetSaveDataDtoString();
-        // Logic to send base64Data to the server
-        Logger.LogInformation("Sending updated achievement data to the server", LoggerType.Achievements);
-        Mediator.Publish(new AchievementDataUpdateMessage(saveDataString));
-        return Task.CompletedTask;
-    }
-
-    public string GetSaveDataDtoString()
-    {
-        // get the Dto-Ready data object of our saveData
-        LightSaveDataDto saveDataDto = SaveData.ToLightSaveDataDto();
-
-        // condense it into the json and compress it.
-        string json = JsonConvert.SerializeObject(saveDataDto);
-        var compressed = json.Compress(6);
-        string base64Data = Convert.ToBase64String(compressed);
-        return base64Data;
-    }
-
-    private void LoadSaveDataDto(string Base64saveDataToLoad)
-    {
-        try
-        {
-            Logger.LogDebug("Client Connected To Server with valid Achievement Data, loading in now!");
-            var bytes = Convert.FromBase64String(Base64saveDataToLoad);
-            var version = bytes[0];
-            version = bytes.DecompressToString(out var decompressed);
-
-            LightSaveDataDto item = JsonConvert.DeserializeObject<LightSaveDataDto>(decompressed)
-                ?? throw new Exception("Failed to deserialize achievement data from server.");
-
-            // Update the local achievement data
-            SaveData.LoadFromLightSaveDataDto(item);
-            Logger.LogInformation("Achievement Data Loaded from Server", LoggerType.Achievements);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to apply achievement data from server, or data is empty.");
-        }
     }
 }

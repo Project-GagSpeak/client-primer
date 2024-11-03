@@ -1,4 +1,5 @@
 using Dalamud.Plugin.Services;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
@@ -11,9 +12,9 @@ public class TimeRequiredConditionalAchievement : Achievement
     private CancellationTokenSource _cancellationTokenSource;
     private bool _taskStarted = false;
 
-    public TimeRequiredConditionalAchievement(INotificationManager notify, string name, string desc, TimeSpan dur, 
-        Func<bool> cond, DurationTimeUnit unit, string prefix = "", string suffix = "", bool isSecret = false) 
-        : base(notify, name, desc, ConvertToUnit(dur, unit), prefix, suffix, isSecret)
+    public TimeRequiredConditionalAchievement(uint id, string name, string desc, TimeSpan dur, Func<bool> cond, 
+        Action<uint, string> onCompleted, DurationTimeUnit unit, string prefix = "", string suffix = "", bool isSecret = false) 
+        : base(id, name, desc, ConvertToUnit(dur, unit), prefix, suffix, onCompleted, isSecret)
     {
         MilestoneDuration = dur;
         RequiredCondition = cond;
@@ -76,7 +77,7 @@ public class TimeRequiredConditionalAchievement : Achievement
 
     public override void CheckCompletion()
     {
-        if (IsCompleted)
+        if (IsCompleted || !MainHub.IsConnected)
             return;
 
         if (RequiredCondition())
@@ -94,7 +95,7 @@ public class TimeRequiredConditionalAchievement : Achievement
     // Method to Start the Task/Timer
     public void StartTask()
     {
-        if (IsCompleted || _taskStarted)
+        if (IsCompleted || _taskStarted || !MainHub.IsConnected)
             return;
 
         if (RequiredCondition())
@@ -109,7 +110,7 @@ public class TimeRequiredConditionalAchievement : Achievement
     // Method to interrupt and reset the task
     public void InterruptTask()
     {
-        if (IsCompleted)
+        if (IsCompleted || !MainHub.IsConnected)
             return;
 
         StaticLogger.Logger.LogDebug($"Interrupting task for {Title}.", LoggerType.Achievements);

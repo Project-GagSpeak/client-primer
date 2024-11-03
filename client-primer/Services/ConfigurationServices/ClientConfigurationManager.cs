@@ -70,10 +70,9 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
                 Logger.LogError("MainHubConnectedMessage received with null value. (this shouldnt even be happening!!");
                 return;
             }
-
             // update our configs to point to the new user.
-            if (MainHub.ConnectionDto.User.UID != _configService.Current.LastUidLoggedIn)
-                UpdateConfigs(MainHub.ConnectionDto.User.UID);
+            if (MainHub.UID != _configService.Current.LastUidLoggedIn)
+                UpdateConfigs(MainHub.UID);
             // update the last logged in UID
             _configService.Current.LastUidLoggedIn = MainHub.ConnectionDto.User.UID;
             Save();

@@ -1,4 +1,5 @@
 using Dalamud.Plugin.Services;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
@@ -9,8 +10,8 @@ public class ProgressAchievement : Achievement
     /// </summary>
     public int Progress { get; set; }
 
-    public ProgressAchievement(INotificationManager notify, string title, string desc, int goal, string prefix = "", string suffix = "", bool isSecret = false)
-        : base(notify, title, desc, goal, prefix, suffix, isSecret)
+    public ProgressAchievement(uint id, string title, string desc, int goal, Action<uint, string> onCompleted, string prefix = "", 
+        string suffix = "", bool isSecret = false) : base(id, title, desc, goal, prefix, suffix, onCompleted, isSecret)
     {
         Progress = 0;
     }
@@ -24,7 +25,7 @@ public class ProgressAchievement : Achievement
     /// </summary>
     public void IncrementProgress(int amount = 1)
     {
-        if (IsCompleted) 
+        if (IsCompleted || !MainHub.IsConnected) 
             return;
 
         StaticLogger.Logger.LogDebug($"Incrementing Progress by 1 for {Title}. Total Required: {MilestoneGoal}", LoggerType.Achievements);
@@ -38,7 +39,8 @@ public class ProgressAchievement : Achievement
     /// </summary>
     public override void CheckCompletion()
     {
-        if (IsCompleted) return;
+        if (IsCompleted || !MainHub.IsConnected) 
+            return;
 
         if (Progress >= MilestoneGoal)
         {

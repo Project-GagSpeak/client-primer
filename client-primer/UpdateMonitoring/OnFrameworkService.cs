@@ -485,7 +485,10 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
             if (newCommendations != LastCommendationsCount)
             {
                 Logger.LogDebug("Our Previous Commendation Count was: "+LastCommendationsCount+" and our new commendation count is: "+newCommendations);
-                Mediator.Publish(new CommendationsIncreasedMessage(newCommendations - LastCommendationsCount));
+                // publish to mediator if we are logged in
+                if(IsLoggedIn)
+                    Mediator.Publish(new CommendationsIncreasedMessage(newCommendations - LastCommendationsCount));
+                // update the count
                 LastCommendationsCount = newCommendations;
 
             }

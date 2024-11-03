@@ -9,10 +9,10 @@ namespace GagSpeak.Achievements;
 
 public class AchievementSaveData
 {
-    public AchievementSaveData(INotificationManager _completionNotifier)
+    public AchievementSaveData()
     {
         foreach (AchievementModuleKind type in Enum.GetValues(typeof(AchievementModuleKind)))
-            Achievements[type] = new AchievementComponent(_completionNotifier);
+            Achievements[type] = new AchievementComponent();
     }
 
     // Our Stored Achievements.

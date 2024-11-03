@@ -63,7 +63,7 @@ public class EmoteMonitor
         // Make the EmoteCommandsYesNoAccepted the EmoteCommands.Except the yesNoCommands.
         EmoteCommandsYesNoAccepted = EmoteCommands.Except(yesNoCommands).ToHashSet();
         // log all recorded emotes.
-        _logger.LogDebug("Emote Commands: " + string.Join(", ", EmoteCommands));
+        //_logger.LogDebug("Emote Commands: " + string.Join(", ", EmoteCommands));
     }
 
     public static readonly ushort[] StandIdleList = new ushort[] { 0, 91, 92, 107, 108, 218, 219 };

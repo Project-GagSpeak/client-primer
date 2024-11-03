@@ -1,16 +1,11 @@
-using Dalamud.Interface;
-using Dalamud.Interface.ImGuiNotification;
-using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.UI.Misc;
-using GagSpeak.Services.Mediator;
-using GagspeakAPI.Data.IPC;
-using static PInvoke.User32;
-
 namespace GagSpeak.Achievements;
 
 public abstract class Achievement
 {
-    public INotificationManager Notify { get; }
+    /// <summary>
+    /// The unique Identifier for the achievement.
+    /// </summary>
+    public uint AchievementId { get; init; }
 
     /// <summary>
     /// The Title of the Achievement Name.
@@ -40,23 +35,28 @@ public abstract class Achievement
     /// </summary>
     public string SuffixText { get; init; }
 
-
     /// <summary>
     /// If the achievement has been completed.
     /// </summary>
     public bool IsCompleted { get; set; } = false;
 
+    /// <summary>
+    /// If it's a secret achievement or not.
+    /// </summary>
     public bool IsSecretAchievement { get; init; }
 
-    protected Achievement(INotificationManager notify, string title, string desc, int goal, string prefix, string suffix, bool isSecret = false)
+    private readonly Action<uint, string> ActionOnCompleted;
+
+    protected Achievement(uint id, string title, string desc, int goal, string prefix, string suffix, Action<uint, string> onCompleted, bool isSecret = false)
     {
-        Notify = notify;
         IsCompleted = false;
+        AchievementId = id;
         Title = title;
         Description = desc;
         MilestoneGoal = goal;
         PrefixText = prefix;
         SuffixText = suffix;
+        ActionOnCompleted = onCompleted;
         IsSecretAchievement = isSecret;
     }
 
@@ -80,18 +80,8 @@ public abstract class Achievement
     /// </summary>
     protected void MarkCompleted()
     {
-        StaticLogger.Logger.LogInformation("Achievement Completed: " + Title);
         IsCompleted = true;
-
-        Notify.AddNotification(new Notification()
-        {
-            Title = "Achievement Completed!",
-            Content = "Completed Achievement: "+Title,
-            Type = NotificationType.Info,
-            Icon = INotificationIcon.From(FontAwesomeIcon.Award),
-            Minimized = false,
-            InitialDuration = TimeSpan.FromSeconds(5)
-        });
+        ActionOnCompleted?.Invoke(AchievementId, Title);
     }
 
     /// <summary>

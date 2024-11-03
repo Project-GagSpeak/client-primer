@@ -1,4 +1,5 @@
 using Dalamud.Plugin.Services;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
@@ -19,8 +20,8 @@ public class TimedProgressAchievement : Achievement
     /// </summary>
     public TimeSpan TimeToComplete { get; private set; }
 
-    public TimedProgressAchievement(INotificationManager notify, string title, string desc, int goal, TimeSpan timeLimit, 
-        string prefix = "", string suffix = "", bool isSecret = false) : base(notify, title, desc, goal, prefix, suffix, isSecret)
+    public TimedProgressAchievement(uint id, string title, string desc, int goal, TimeSpan timeLimit, Action<uint, string> onCompleted,
+        string prefix = "", string suffix = "", bool isSecret = false) : base(id, title, desc, goal, prefix, suffix, onCompleted, isSecret)
     {
         TimeToComplete = timeLimit;
     }
@@ -34,7 +35,7 @@ public class TimedProgressAchievement : Achievement
     /// </summary>
     public void IncrementProgress(int amount = 1)
     {
-        if (IsCompleted) 
+        if (IsCompleted || !MainHub.IsConnected) 
             return;
 
         StaticLogger.Logger.LogDebug($"Checking Timer for {Title} to update our time restricted progress.", LoggerType.Achievements);
@@ -58,7 +59,8 @@ public class TimedProgressAchievement : Achievement
     /// </summary>
     public override void CheckCompletion()
     {
-        if (IsCompleted) return;
+        if (IsCompleted || !MainHub.IsConnected)
+            return;
 
         if (Progress >= MilestoneGoal)
         {

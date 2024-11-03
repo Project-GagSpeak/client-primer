@@ -36,16 +36,20 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         _pairManager = pairManager;
 
         Mediator.Subscribe<PlayerCharAppearanceChanged>(this, (msg) => PushAppearanceDataToAPI(msg));
-
         Mediator.Subscribe<PlayerCharWardrobeChanged>(this, (msg) => PushWardrobeDataToAPI(msg));
-
         Mediator.Subscribe<PlayerCharAliasChanged>(this, (msg) => PushAliasListDataToAPI(msg));
-
         Mediator.Subscribe<PlayerCharToyboxChanged>(this, (msg) => PushToyboxDataToAPI(msg));
-
         Mediator.Subscribe<PlayerCharStorageUpdated>(this, _ => PushLightStorageToAPI());
 
         Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastIpcData = msg.CharaIPCData);
+
+        Mediator.Subscribe<DalamudLogoutMessage>(this, (_) =>
+        {
+            GlobalPerms = null;
+            AppearanceData = null;
+            LastIpcData = null;
+            CustomizeProfiles = new();
+        });
     }
 
     public UserGlobalPermissions? GlobalPerms { get; set; } = null;

@@ -19,6 +19,13 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 0)
+            .RegisterMain("Achievements have been restructured for customization support being added soon.")
+            .RegisterMain("Account Management / Alt Transfer now properly transfers all data.")
+            .RegisterFeature("Light & Full KinkPlate variants now display peoples current achievement counts and titles.")
+            .RegisterFeature("Achievement count now updates with actual achievement count.")
+            .RegisterBugfix("Fixed issues where settings, gags, restraints, and other things were applied when swapping from a character with a gagspeak account, to one without.");
+            
         VersionEntry(0, 9, 8, 6)
             .RegisterMain("Polished up the actions menu.")
             .RegisterFeature("At the top of the actions menu, an error message will now display when a change fails to apply if possible.")

@@ -65,6 +65,7 @@ public class AchievementSaveData
                 {
                     Component = componentKind,
                     Type = achievement.GetAchievementType(),
+                    AchievementId = achievement.AchievementId,
                     Title = achievement.Title,
                     IsCompleted = achievement.IsCompleted,
                     Progress = GetProgress(achievement) ?? 0,
@@ -122,6 +123,18 @@ public class AchievementSaveData
             return timeRequired.StartPoint;
         return null;
     }
+
+    public Achievement? GetAchievementById(uint id)
+    {
+        foreach (var component in Achievements.Values)
+        {
+            if (component.IdToAchievementMap.TryGetValue(id, out var achievement))
+            {
+                return achievement;
+            }
+        }
+        return null;
+    }
 }
 
 public class LightSaveDataDto
@@ -153,6 +166,11 @@ public struct LightAchievement
     /// The kind of achievement it is. (Useful for type casting)
     /// </summary>
     public AchievementType Type { get; set; }
+
+    /// <summary>
+    /// the Unique Identifier for the achievement.
+    /// </summary>
+    public uint AchievementId { get; set; }
 
     /// <summary>
     /// The name of the Achievement (Relevant to know which to replace) ((Also reflects the KEY in the component dictionary))

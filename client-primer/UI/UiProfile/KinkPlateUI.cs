@@ -29,7 +29,6 @@ namespace GagSpeak.UI.Profile;
 /// </summary>
 public partial class KinkPlateUI : WindowMediatorSubscriberBase
 {
-    private readonly AchievementManager _achievements;
     private readonly PairManager _pairManager;
     private readonly KinkPlateService _profileService;
     private readonly CosmeticService _cosmetics;
@@ -38,12 +37,10 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
     private bool ThemePushed = false;
     public KinkPlateUI(ILogger<KinkPlateUI> logger, GagspeakMediator mediator,
-        AchievementManager achievements, PairManager pairManager, 
-        KinkPlateService profileService, CosmeticService cosmetics, 
-        TextureService textureService, UiSharedService uiShared, Pair pair)
-        : base(logger, mediator, pair.UserData.AliasOrUID + "'s KinkPlate##GagspeakKinkPlateUI" + pair.UserData.AliasOrUID)
+        PairManager pairManager, KinkPlateService profileService, 
+        CosmeticService cosmetics, TextureService textureService, UiSharedService uiShared, 
+        Pair pair) : base(logger, mediator, pair.UserData.AliasOrUID + "'s KinkPlate##GagspeakKinkPlateUI" + pair.UserData.AliasOrUID)
     {
-        _achievements = achievements;
         _pairManager = pairManager;
         _profileService = profileService;
         _cosmetics = cosmetics;
@@ -113,11 +110,10 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
         DrawDescription(drawList, profile);
 
-
         // Now let's draw out the chosen achievement Name..
         using (_uiShared.GagspeakTitleFont.Push())
         {
-            var titleName = _achievements.GetTitleById(profile.KinkPlateInfo.ChosenTitleId);
+            var titleName = AchievementManager.GetTitleById((uint)profile.KinkPlateInfo.ChosenTitleId);
             var titleHeightGap = TitleLineStartPos.Y - (RectMin.Y + 4f);
             var chosenTitleSize = ImGui.CalcTextSize(titleName);
             // calculate the Y height it should be drawn on by taking the gap height and dividing it by 2 and subtracting the text height.
@@ -129,7 +125,6 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         }
         // move over to the top area to draw out the achievement title line wrap.
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.AchievementLineSplit], TitleLineStartPos, TitleLineSize);
-
 
         DrawGagInfo(drawList, profile.KinkPlateInfo);
 

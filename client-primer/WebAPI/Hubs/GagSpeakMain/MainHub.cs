@@ -38,8 +38,6 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
         Mediator.Subscribe<MainHubReconnectedMessage>(this, (msg) => _ = HubInstanceOnReconnected());
         Mediator.Subscribe<MainHubReconnectingMessage>(this, (msg) => HubInstanceOnReconnecting(msg.Exception));
 
-        Mediator.Subscribe<AchievementDataUpdateMessage>(this, (data) => _ = UserUpdateAchievementData(new(new(UID), data.base64Data)));
-
         // if we are already logged in, then run the login function
         if (_frameworkUtils.IsLoggedIn)
             OnLogin();

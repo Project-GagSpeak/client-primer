@@ -14,6 +14,9 @@ public class AchievementComponent
     // Abstract Achievements Dictionary, stores all other types of achievements within it.
     public Dictionary<string, Achievement> Achievements { get; } = new Dictionary<string, Achievement>();
 
+    // Additional dictionary to support ID-based lookups, if needed
+    public Dictionary<uint, Achievement> IdToAchievementMap => Achievements.Values.ToDictionary(a => a.AchievementId, a => a);
+
     public void LoadFromLightAchievements(List<LightAchievement> lightAchievements)
     {
         foreach (var lightAchievement in lightAchievements)

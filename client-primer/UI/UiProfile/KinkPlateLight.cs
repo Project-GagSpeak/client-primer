@@ -13,6 +13,7 @@ using System.Numerics;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using GagSpeak.Achievements;
 
 namespace GagSpeak.UI.Profile;
 
@@ -76,10 +77,11 @@ public class KinkPlateLight
         // Now let's draw out the chosen achievement Name..
         using (_uiShared.GagspeakLabelFont.Push())
         {
-            var chosenTitleSize = ImGui.CalcTextSize("Sample Title Chosen");
+            var titleName = AchievementManager.GetTitleById((uint)profile.KinkPlateInfo.ChosenTitleId);
+            var chosenTitleSize = ImGui.CalcTextSize(titleName);
             ImGui.SetCursorScreenPos(new Vector2(TitleLineStartPos.X + TitleLineSize.X / 2 - chosenTitleSize.X / 2, TitleLineStartPos.Y - chosenTitleSize.Y));
             // display it, it should be green if connected and red when not.
-            ImGui.TextColored(ImGuiColors.ParsedGold, "Sample Title Chosen");
+            ImGui.TextColored(ImGuiColors.ParsedGold, titleName);
         }
         // move over to the top area to draw out the achievement title line wrap.
         KinkPlateUI.AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.AchievementLineSplit], TitleLineStartPos, TitleLineSize);
@@ -238,7 +240,7 @@ public class KinkPlateLight
         // to the right of this, draw the players total earned achievements scoring.
         statsPos += new Vector2(24, 0);
         ImGui.SetCursorScreenPos(statsPos);
-        UiSharedService.ColorText("100/141", ImGuiColors.ParsedGold);
+        UiSharedService.ColorText(info.CompletedAchievementsTotal+"/141", ImGuiColors.ParsedGold);
         UiSharedService.AttachToolTip("The total achievements " + displayName + " has earned.");
     }
 }

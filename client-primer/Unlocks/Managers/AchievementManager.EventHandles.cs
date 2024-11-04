@@ -726,15 +726,17 @@ public partial class AchievementManager
         switch (emoteId)
         {
             case 22:
-                (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WhatAView.Title] as ConditionalAchievement)?.CheckCompletion();
+                if(emoteCallerObj.ObjectIndex is 0)
+                    (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WhatAView.Title] as ConditionalAchievement)?.CheckCompletion();
                 break;
 
             case 231:
-                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.QuietNowDear.Title] as ConditionalAchievement)?.CheckCompletion();
+                if (emoteCallerObj.ObjectIndex is 0)
+                    (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.QuietNowDear.Title] as ConditionalAchievement)?.CheckCompletion();
                 break;
 
             case 111:
-                if (emoteCallerObj.ObjectIndex is not 0) // 0 is the clientPlayer object index.
+                if (emoteCallerObj.ObjectIndex is not 0 && targetObject.ObjectIndex is 0) // Was originally If(emoteCallerObj.ObjectIndex is not 0)
                     (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.ICantBelieveYouveDoneThis.Title] as ConditionalAchievement)?.CheckCompletion();
                 break;
         }

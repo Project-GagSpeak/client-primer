@@ -43,7 +43,9 @@ public class AlarmHandler : MediatorSubscriberBase
         if (ClonedAlarmForEdit is null)
             return;
         // locate the restraint set that contains the matching guid.
-        var setIdx = _clientConfigs.GetSetIdxByGuid(ClonedAlarmForEdit.Identifier);
+        var setIdx = _clientConfigs.AlarmConfig.AlarmStorage.Alarms
+            .FindIndex(x => x.Identifier == ClonedAlarmForEdit.Identifier);
+
         // update that set with the new cloned set.
         _clientConfigs.UpdateAlarm(ClonedAlarmForEdit, setIdx);
         // make the cloned set null again.

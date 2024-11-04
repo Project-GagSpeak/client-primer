@@ -4,6 +4,7 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Textures;
 using GagSpeak.Toybox.Debouncer;
 using GagSpeak.Toybox.Services;
 using ImGuiNET;
@@ -20,17 +21,18 @@ namespace GagSpeak.UI.UiRemote;
 public class RemotePatternMaker : RemoteBase
 {
     // the class includes are shared however (i think), so dont worry about that.
+    private readonly CosmeticService _cosmetics;
     private readonly UiSharedService _uiShared;
     private readonly ToyboxVibeService _vibeService; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
     private readonly string _windowName;
-    public RemotePatternMaker(ILogger<RemotePatternMaker> logger,
-        GagspeakMediator mediator, UiSharedService uiShared,
-        ToyboxRemoteService remoteService, ToyboxVibeService vibeService,
-        string windowName = "Pattern Creator") 
+    public RemotePatternMaker(ILogger<RemotePatternMaker> logger, GagspeakMediator mediator,
+        CosmeticService cosmetics, UiSharedService uiShared, ToyboxRemoteService remoteService, 
+        ToyboxVibeService vibeService, string windowName = "Pattern Creator") 
         : base(logger, mediator, uiShared, remoteService, vibeService, windowName)
     {
         // grab the shared services
+        _cosmetics = cosmetics;
         _uiShared = uiShared;
         _vibeService = vibeService;
         _remoteService = remoteService;
@@ -66,7 +68,7 @@ public class RemotePatternMaker : RemoteBase
             // create a child for the center bar
             using (var canterBar = ImRaii.Child($"###CenterBarDrawPersonal", new Vector2(CurrentRegion.X, 40f), false))
             {
-                UiSharedService.ColorText("CenterBar dummy placement", ImGuiColors.ParsedGreen);
+                // Dummy bar.
             }
         }
     }
@@ -104,16 +106,12 @@ public class RemotePatternMaker : RemoteBase
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .025f);
 
             // attempt to obtain an image wrap for it
-            var spinnyArrow = _uiShared.GetImageFromDirectoryFile("arrows-spin.png");
-            if (!(spinnyArrow is { } wrap))
-            {
-                _logger.LogWarning("Failed to render image!");
-            }
-            else
+            var spinArrow = _cosmetics.GetImageFromDirectoryFile("RequiredImages\\arrowspin.png");
+            if (spinArrow is { } wrap)
             {
                 Vector4 buttonColor = IsLooping ? _remoteService.LushPinkButton : _remoteService.SideButton;
                 // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("LoopButton", new Vector2(50, 50),
+                if (_uiShared.DrawScaledCenterButtonImage("LoopButton"+ _windowName, new Vector2(50, 50),
                     buttonColor, new Vector2(40, 40), wrap))
                 {
                     IsLooping = !IsLooping;
@@ -124,16 +122,12 @@ public class RemotePatternMaker : RemoteBase
             // move it down from current position by another .2f scale
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .05f);
 
-            var circlesDot = _uiShared.GetImageFromDirectoryFile("circle-dot.png");
-            if (!(circlesDot is { } wrap2))
-            {
-                _logger.LogWarning("Failed to render image!");
-            }
-            else
+            var circlesDot = _cosmetics.GetImageFromDirectoryFile("RequiredImages\\circledot.png");
+            if (circlesDot is { } wrap2)
             {
                 Vector4 buttonColor2 = IsFloating ? _remoteService.LushPinkButton : _remoteService.SideButton;
                 // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("FloatButton", new Vector2(50, 50),
+                if (_uiShared.DrawScaledCenterButtonImage("FloatButton" + _windowName, new Vector2(50, 50),
                     buttonColor2, new Vector2(40, 40), wrap2))
                 {
                     IsFloating = !IsFloating;
@@ -146,14 +140,10 @@ public class RemotePatternMaker : RemoteBase
             // display the stop or play icon depending on if we are recording or not.
             if (!IsRecording)
             {
-                var play = _uiShared.GetImageFromDirectoryFile("play.png");
-                if (!(play is { } wrap3))
+                var play = _cosmetics.GetImageFromDirectoryFile("RequiredImages\\play.png");
+                if (play is { } wrap3)
                 {
-                    _logger.LogWarning("Failed to render image!");
-                }
-                else
-                {
-                    if (_uiShared.DrawScaledCenterButtonImage("RecordStartButton", new Vector2(50, 50),
+                    if (_uiShared.DrawScaledCenterButtonImage("RecordStartButton" + _windowName, new Vector2(50, 50),
                         buttonColor3, new Vector2(40, 40), wrap3))
                     {
                         _logger.LogTrace("Starting Recording!");
@@ -164,14 +154,10 @@ public class RemotePatternMaker : RemoteBase
             // we are recording so display stop
             else
             {
-                var stop = _uiShared.GetImageFromDirectoryFile("stop.png");
-                if (!(stop is { } wrap4))
+                var stop = _cosmetics.GetImageFromDirectoryFile("RequiredImages\\stop.png");
+                if (stop is { } wrap4)
                 {
-                    _logger.LogWarning("Failed to render image!");
-                }
-                else
-                {
-                    if (_uiShared.DrawScaledCenterButtonImage("RecordStopButton", new Vector2(50, 50),
+                    if (_uiShared.DrawScaledCenterButtonImage("RecordStopButton" + _windowName, new Vector2(50, 50),
                         buttonColor3, new Vector2(40, 40), wrap4))
                     {
                         _logger.LogTrace("Stopping Recording!");

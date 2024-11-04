@@ -349,7 +349,7 @@ public class ClientCallbackService
                     {
                         await _wardrobeHandler.DisableRestraintSet(currentlyActiveSet.RestraintId, callbackDto.User.UID, false);
                         // Log the Interaction Event
-                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.RemoveRestraint, _clientConfigs.GetSetNameByGuid(data.ActiveSetId) + " has been removed")));
+                        _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.RemoveRestraint, currentlyActiveSet.Name + " has been removed")));
                     }
                     break;
             }

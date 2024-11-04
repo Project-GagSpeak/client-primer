@@ -2,6 +2,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using FFXIVClientStructs.FFXIV.Common.Math;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Debouncer;
 using GagSpeak.Toybox.Services;
 using ImGuiNET;
@@ -13,19 +14,17 @@ namespace GagSpeak.UI.Components;
 /// <summary>
 /// Manages playing back patterns to the client user's connected devices.
 /// </summary>
-public class PatternPlayback : IDisposable
+public class PatternPlayback : DisposableMediatorSubscriberBase
 {
-    private readonly ILogger<PatternPlayback> _logger;
     private readonly ToyboxRemoteService _remoteService;
     private readonly ToyboxVibeService _vibeService;
 
     public Stopwatch PlaybackDuration;
     private UpdateTimer PlaybackUpdateTimer;
 
-    public PatternPlayback(ILogger<PatternPlayback> logger,
-        ToyboxRemoteService remoteService, ToyboxVibeService vibeService)
+    public PatternPlayback(ILogger<PatternPlayback> logger, GagspeakMediator mediator,
+        ToyboxRemoteService remoteService, ToyboxVibeService vibeService) : base(logger, mediator)
     {
-        _logger = logger;
         _remoteService = remoteService;
         _vibeService = vibeService;
 
@@ -37,8 +36,10 @@ public class PatternPlayback : IDisposable
     private List<float> volumeLevels = new List<float>();
     private PatternData? PatternToPlayback = null;
 
-    public void Dispose()
+    protected override void Dispose(bool disposing)
     {
+        base.Dispose(disposing);
+
         // dispose of the timers
         PlaybackUpdateTimer.Dispose();
         PlaybackDuration.Stop();
@@ -112,14 +113,13 @@ public class PatternPlayback : IDisposable
         }
         catch (Exception e)
         {
-            _logger.LogError($"{e} Error drawing the toybox workshop subtab");
+            Logger.LogError($"{e} Error drawing the toybox workshop subtab");
         }
     }
 
-    // When active, the circle will not fall back to the 0 coordinate on the Y axis of the plot, and remain where it is
     public void StartPlayback(PatternData patternToPlay)
     {
-        _logger.LogDebug($"Starting playback of pattern {patternToPlay.Name}", LoggerType.ToyboxPatterns);
+        Logger.LogDebug($"Starting playback of pattern {patternToPlay.Name}", LoggerType.ToyboxPatterns);
         // set the playback index to the start
         ReadBufferIdx = 0;
 
@@ -150,11 +150,11 @@ public class PatternPlayback : IDisposable
     {
         if (PatternToPlayback is null)
         {
-            _logger.LogWarning("Attempted to stop a pattern that isnt even playing. Why are you here?");
+            Logger.LogWarning("Attempted to stop a pattern not present. Likely here on plugin shutdown or reset.");
             return;
         }
 
-        _logger.LogDebug($"Stopping playback of pattern " + PatternToPlayback.Name, LoggerType.ToyboxPatterns);
+        Logger.LogDebug($"Stopping playback of pattern " + PatternToPlayback.Name, LoggerType.ToyboxPatterns);
         // clear the local variables
         ReadBufferIdx = 0;
         // reset the timers
@@ -186,7 +186,7 @@ public class PatternPlayback : IDisposable
             }
             else // otherwise, stop.
             {
-                StopPlayback();
+                Mediator.Publish(new PlaybackStateToggled(PatternToPlayback.UniqueIdentifier, NewState.Disabled));
                 return;
             }
         }

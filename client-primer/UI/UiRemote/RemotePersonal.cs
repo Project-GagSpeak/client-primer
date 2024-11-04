@@ -56,7 +56,7 @@ public class RemotePersonal : RemoteBase
             // create a child for the center bar
             using (var canterBar = ImRaii.Child($"###CenterBarDrawPersonal", new Vector2(CurrentRegion.X, 40f), false))
             {
-                UiSharedService.ColorText("CenterBar dummy placement", ImGuiColors.ParsedGreen);
+                // Dummy bar.
             }
         }
     }
@@ -94,16 +94,12 @@ public class RemotePersonal : RemoteBase
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .025f);
 
             // attempt to obtain an image wrap for it
-            var spinnyArrow = _uiShared.GetImageFromDirectoryFile("RequiredImages\\arrows-spin.png");
-            if (!(spinnyArrow is { } wrap))
-            {
-                _logger.LogWarning("Failed to render image!");
-            }
-            else
+            var spinArrow = _uiShared.GetImageFromDirectoryFile("RequiredImages\\arrowspin.png");
+            if (spinArrow is { } wrap)
             {
                 Vector4 buttonColor = IsLooping ? _remoteService.LushPinkButton : _remoteService.SideButton;
                 // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("LoopButton", new Vector2(50, 50),
+                if (_uiShared.DrawScaledCenterButtonImage("LoopButton" + _windowName, new Vector2(50, 50),
                     buttonColor, new Vector2(40, 40), wrap))
                 {
                     ProcessLoopToggle();
@@ -113,16 +109,12 @@ public class RemotePersonal : RemoteBase
             // move it down from current position by another .2f scale
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .05f);
 
-            var circlesDot = _uiShared.GetImageFromDirectoryFile("RequiredImages\\circle-dot.png");
-            if (!(circlesDot is { } wrap2))
-            {
-                _logger.LogWarning("Failed to render image!");
-            }
-            else
+            var circlesDot = _uiShared.GetImageFromDirectoryFile("RequiredImages\\circledot.png");
+            if (circlesDot is { } wrap2)
             {
                 Vector4 buttonColor2 = IsFloating ? _remoteService.LushPinkButton : _remoteService.SideButton;
                 // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("FloatButton", new Vector2(50, 50),
+                if (_uiShared.DrawScaledCenterButtonImage("FloatButton" + _windowName, new Vector2(50, 50),
                     buttonColor2, new Vector2(40, 40), wrap2))
                 {
                     ProcessFloatToggle();
@@ -132,15 +124,11 @@ public class RemotePersonal : RemoteBase
             ImGui.SetCursorPosY(CurrentRegion.Y * .775f);
 
             var power = _uiShared.GetImageFromDirectoryFile("RequiredImages\\power.png");
-            if (!(power is { } wrap3))
-            {
-                _logger.LogWarning("Failed to render image!");
-            }
-            else
+            if (power is { } wrap3)
             {
                 Vector4 buttonColor3 = RemoteOnline ? _remoteService.LushPinkButton : _remoteService.SideButton;
                 // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("PowerToggleButton", new Vector2(50, 50),
+                if (_uiShared.DrawScaledCenterButtonImage("PowerToggleButton"+_windowName, new Vector2(50, 50),
                     buttonColor3, new Vector2(40, 40), wrap3))
                 {
                     if (!RemoteOnline)

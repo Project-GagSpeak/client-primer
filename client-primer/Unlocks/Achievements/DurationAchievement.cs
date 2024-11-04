@@ -5,6 +5,12 @@ using System.Diagnostics;
 
 namespace GagSpeak.Achievements;
 
+public struct DurationTrackedItem
+{
+    public string ItemName { get; set; }
+    public DateTime StartTime { get; set; }
+}
+
 public class DurationAchievement : Achievement
 {
     private readonly TimeSpan MilestoneDuration; // Required duration to achieve

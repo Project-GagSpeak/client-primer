@@ -61,7 +61,11 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
 
     // For copying and pasting parts of the restraint set.
     public void CloneRestraintSet(RestraintSet setToClone) => _clientConfigs.CloneRestraintSet(setToClone);
-    public void AddNewRestraintSet(RestraintSet newSet) => _clientConfigs.AddNewRestraintSet(newSet);
+    public void AddNewRestraintSet(RestraintSet newSet)
+    {
+        _clientConfigs.AddNewRestraintSet(newSet);
+        UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintUpdated, newSet);
+    }
 
     public void RemoveRestraintSet(Guid idToRemove)
     {

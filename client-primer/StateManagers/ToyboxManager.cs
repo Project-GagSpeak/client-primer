@@ -31,6 +31,9 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
         _patternPlayback = patternPlayback;
         _pairManager = pairManager;
         _frameworkUtils = frameworkUtils;
+
+        // stop pattern if it stops naturally
+        Mediator.Subscribe<PlaybackStateToggled>(this, (msg) => DisablePattern(msg.PatternId));
     }
 
     public bool ToyboxEnabled => _playerData.GlobalPerms?.ToyboxEnabled ?? false;
@@ -38,6 +41,13 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
     private List<Alarm> Alarms => _clientConfigs.AlarmConfig.AlarmStorage.Alarms;
     private List<Trigger> Triggers => _clientConfigs.TriggerConfig.TriggerStorage.Triggers;
 
+    protected override void Dispose(bool disposing)
+    {
+        base.Dispose(disposing);
+        // Stop any active patterns before disposal.
+        if (_clientConfigs.AnyPatternIsPlaying)
+            DisablePattern(_clientConfigs.ActivePatternGuid());
+    }
 
     /// <summary>
     /// This logic will occur after a Restraint Set has been enabled via the WardrobeHandler.
@@ -72,6 +82,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
 
         // Initialize the playback service to begin its execution.
         var clonedDataForPlayback = pattern.DeepCloneData();
+        clonedDataForPlayback.UniqueIdentifier = pattern.UniqueIdentifier;
         CalculateSubsetPatternByteData(clonedDataForPlayback, clonedDataForPlayback.StartPoint, clonedDataForPlayback.PlaybackDuration);
         // store the recalculated byte data in the cloned pattern as the pattern to play.
         _patternPlayback.StartPlayback(clonedDataForPlayback);
@@ -161,7 +172,10 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
 
         // if there is a pattern actively playing, stop it first.
         if (_clientConfigs.AnyPatternIsPlaying)
-            _patternPlayback.StopPlayback();
+        {
+            // get the active pattern guid and stop it.
+            DisablePattern(_clientConfigs.ActivePatternGuid());
+        }
 
         // Go ahead and enable the pattern.
         pattern.IsActive = true;
@@ -172,6 +186,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
 
         // afterwards, let's enable the pattern for the alarm.
         var clonedDataForPlayback = pattern.DeepCloneData();
+        clonedDataForPlayback.UniqueIdentifier = pattern.UniqueIdentifier;
         CalculateSubsetPatternByteData(clonedDataForPlayback, alarm.PatternStartPoint, alarm.PatternDuration);
         // store the recalculated byte data in the cloned pattern as the pattern to play.
         _patternPlayback.StartPlayback(clonedDataForPlayback);

@@ -17,8 +17,6 @@ using GagSpeak.Toybox.Services;
 using GagSpeak.Utils;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
-using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Text;
 using System.Numerics;

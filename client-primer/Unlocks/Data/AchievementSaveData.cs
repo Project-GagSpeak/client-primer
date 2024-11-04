@@ -72,7 +72,7 @@ public class AchievementSaveData
                     ConditionalTaskBegun = achievement is ConditionalProgressAchievement conditionalProgressAchievement ? conditionalProgressAchievement.ConditionalTaskBegun : false,
                     StartTime = GetStartTime(achievement) ?? DateTime.MinValue,
                     RecordedDateTimes = achievement is TimedProgressAchievement timedProgressAchievement ? (timedProgressAchievement.ProgressTimestamps ?? new List<DateTime>()) : new List<DateTime>(),
-                    ActiveItems = achievement is DurationAchievement durationAchievement ? durationAchievement.ActiveItems : new Dictionary<string, DateTime>()
+                    ActiveItems = achievement is DurationAchievement durationAchievement ? durationAchievement.ActiveItems : new Dictionary<TrackedItem, DateTime>()
                 };
 
                 dto.LightAchievementData.Add(lightAchievement);
@@ -205,5 +205,5 @@ public struct LightAchievement
     /// <summary>
     /// the list of items that are being monitored (for duration achievements)
     /// </summary>
-    public Dictionary<string, DateTime> ActiveItems { get; set; }
+    public Dictionary<TrackedItem, DateTime> ActiveItems { get; set; }
 }

@@ -1,3 +1,5 @@
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.MufflerCore.Handler;
 using GagSpeak.PlayerData.Handlers;
@@ -7,9 +9,7 @@ using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Interfaces;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
-using NAudio.Wave;
 using OtterGui.Text;
-using System.DirectoryServices;
 using System.Text.RegularExpressions;
 
 namespace GagSpeak.PlayerData.Data;
@@ -22,6 +22,11 @@ public partial class GagManager : DisposableMediatorSubscriberBase
 
     public List<GagData> _activeGags;
 
+    // The items currently present in the active Gags UI Panel.
+    private static string[] GagSearchFilters = new string[3] { "", "", "" };
+    public static GagType[] ComboGags { get; private set; } = new GagType[3] { GagType.None, GagType.None, GagType.None };
+    public static Padlocks[] ComboPadlocks { get; set; } = new Padlocks[4] { Padlocks.None, Padlocks.None, Padlocks.None, Padlocks.None };
+
     public GagManager(ILogger<GagManager> logger, GagspeakMediator mediator,
         PlayerCharacterData characterManager, GagDataHandler gagDataHandler,
         Ipa_EN_FR_JP_SP_Handler IPAParser) : base(logger, mediator)
@@ -30,41 +35,35 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         _gagDataHandler = gagDataHandler;
         _IPAParser = IPAParser;
 
-        // Triggered whenever the client updated the gagType from the dropdown menus in the UI
-        Mediator.Subscribe<GagTypeChanged>(this, (msg) => OnGagTypeChanged(msg.Layer, msg.NewGagType, true));
-
-        // Triggered whenever the client updated the padlockType from the dropdown menus in the UI
-        Mediator.Subscribe<GagLockToggle>(this, (msg) => OnGagLockChanged(msg.PadlockInfo, msg.newGagLockState, true, msg.SelfApplied));
-
         // check for any locked gags on delayed framework to see if their timers expired.
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => CheckForExpiredTimers());
     }
 
     public bool AnyGagActive => _activeGags.Any(gag => gag.Name != "None");
     public bool AnyGagLocked => _characterManager.AppearanceData?.GagSlots.Any(x => x.Padlock != "None") ?? false;
+    // This is a preview of the padlock type that will be applied to the restraint set.
     public static Padlocks[] ActiveSlotPadlocks { get; set; } = new Padlocks[4] { Padlocks.None, Padlocks.None, Padlocks.None, Padlocks.None };
     public static string[] ActiveSlotPasswords { get; set; } = new string[4] { "", "", "", "" };
     public static string[] ActiveSlotTimers { get; set; } = new string[4] { "", "", "", "" };
 
     /// <summary> ONLY UPDATES THE LOGIC CONTROLLING GARBLE SPEECH, NOT APPEARNACE DATA </summary>
-    public Task UpdateActiveGags()
+    public Task UpdateGagGarblerLogic()
     {
-        Logger.LogTrace("GagTypeOne: " + _characterManager.AppearanceData.GagSlots[0].GagType
-            + " || GagTypeTwo: " + _characterManager.AppearanceData.GagSlots[1].GagType
-            + " || GagTypeThree: " + _characterManager.AppearanceData.GagSlots[2].GagType, LoggerType.GagManagement);
+        Logger.LogTrace("GagTypeOne: " + _characterManager.AppearanceData?.GagSlots[0].GagType ?? "UNK"
+            + " || GagTypeTwo: " + _characterManager.AppearanceData?.GagSlots[1].GagType ?? "UNK"
+            + " || GagTypeThree: " + _characterManager.AppearanceData?.GagSlots[2].GagType ?? "UNK", LoggerType.GagManagement);
 
         // compile the strings into a list of strings, then locate the names in the handler storage that match it.
         _activeGags = new List<string>
         {
-            _characterManager.AppearanceData.GagSlots[0].GagType,
-            _characterManager.AppearanceData.GagSlots[1].GagType,
-            _characterManager.AppearanceData.GagSlots[2].GagType,
+            _characterManager.AppearanceData?.GagSlots[0].GagType ?? GagType.None.GagName(),
+            _characterManager.AppearanceData?.GagSlots[1].GagType ?? GagType.None.GagName(),
+            _characterManager.AppearanceData?.GagSlots[2].GagType ?? GagType.None.GagName(),
         }
         .Where(gagType => _gagDataHandler._gagTypes.Any(gag => gag.Name == gagType))
         .Select(gagType => _gagDataHandler._gagTypes.First(gag => gag.Name == gagType))
         .ToList();
 
-        Mediator.Publish(new ActiveGagsUpdated());
         return Task.CompletedTask;
     }
 
@@ -95,8 +94,8 @@ public partial class GagManager : DisposableMediatorSubscriberBase
             if (publish) Mediator.Publish(new PlayerCharAppearanceChanged(IsApplying ? DataUpdateKind.AppearanceGagAppliedLayerThree : DataUpdateKind.AppearanceGagRemovedLayerThree));
         }
 
-        // Update the list of active gags
-        UpdateActiveGags();
+        UpdateGagLockComboSelections();
+        UpdateGagGarblerLogic();
     }
 
     public void OnGagLockChanged(PadlockData padlockInfo, NewState gagLockNewState, bool publish, bool SelfApplied = false)
@@ -108,15 +107,14 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         if (gagLockNewState is NewState.Unlocked)
         {
             DisableLock(layerIndex);
-            if (publish) 
+            if (publish)
                 PublishAppearanceChange(layerIndex, isUnlocked: true);
         }
         else
         {
             UpdateGagSlot(layerIndex, padlockInfo);
-            if (publish) 
+            if (publish)
                 PublishAppearanceChange(layerIndex, isUnlocked: false);
-            Mediator.Publish(new ActiveLocksUpdated());
         }
     }
 
@@ -136,31 +134,60 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         }
 
         // Update the list of active gags and notify mediator
-        UpdateActiveGags();
+        UpdateGagGarblerLogic();
         Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.Safeword));
     }
 
-    private void DisableLock(int layerIndex)
+    /// <summary>
+    /// Does not push changes to mediator, only use this when in a safeword operation.
+    /// </summary>
+    public void DisableLock(int layerIndex)
     {
         var gagSlot = _characterManager.AppearanceData!.GagSlots[layerIndex];
         gagSlot.Padlock = Padlocks.None.ToName();
         gagSlot.Password = string.Empty;
         gagSlot.Timer = DateTimeOffset.MinValue;
         gagSlot.Assigner = string.Empty;
-        // update the shown gag type in the UI to none.
+        // update the shown lock type in the UI to none.
         ActiveSlotPadlocks[layerIndex] = Padlocks.None;
-        Mediator.Publish(new ActiveLocksUpdated());
+        // update the lock combos.
+        UpdateGagLockComboSelections();
     }
 
     private void UpdateGagSlot(int layerIndex, PadlockData padlockInfo)
     {
         Logger.LogDebug("Updating Gag Slotw with Padlock Data: " + padlockInfo.PadlockType.ToName() +
-            " || "+ padlockInfo.Password + " || " + padlockInfo.Timer + " || " + padlockInfo.Assigner, LoggerType.PadlockManagement);
+            " || " + padlockInfo.Password + " || " + padlockInfo.Timer + " || " + padlockInfo.Assigner, LoggerType.PadlockManagement);
         var gagSlot = _characterManager.AppearanceData!.GagSlots[layerIndex];
         gagSlot.Padlock = padlockInfo.PadlockType.ToName();
         gagSlot.Password = padlockInfo.Password;
         gagSlot.Timer = padlockInfo.Timer;
         gagSlot.Assigner = padlockInfo.Assigner;
+        // update the lock combos.
+        UpdateGagLockComboSelections();
+    }
+
+    private void UpdateGagLockComboSelections()
+    {
+        if (_characterManager.AppearanceData == null)
+        {
+            Logger.LogWarning("AppearanceData is null, cannot update combo selections.");
+            return;
+        }
+
+        ComboGags = new GagType[3]
+        {
+            _characterManager.AppearanceData.GagSlots[0].GagType.ToGagType(),
+            _characterManager.AppearanceData.GagSlots[1].GagType.ToGagType(),
+            _characterManager.AppearanceData.GagSlots[2].GagType.ToGagType()
+        };
+        ComboPadlocks[0] = _characterManager.AppearanceData.GagSlots[0].Padlock.ToPadlock();
+        ComboPadlocks[1] = _characterManager.AppearanceData.GagSlots[1].Padlock.ToPadlock();
+        ComboPadlocks[2] = _characterManager.AppearanceData.GagSlots[2].Padlock.ToPadlock();
+        Logger.LogDebug("Dropdown Gags Now: " + string.Join(" || ", _characterManager.AppearanceData!.GagSlots.Select((g, i) => $"Gag {i}: {g.GagType}")), LoggerType.GagManagement);
+        Logger.LogDebug("Dropdown ActiveSlotPadlocks Now: " + string.Join(" || ", ActiveSlotPadlocks.Select((p, i) => $"Lock {i}: {p}")), LoggerType.PadlockManagement);
+        Logger.LogDebug("Dropdown Appearnace Padlocks Now: " + string.Join(" || ", _characterManager.AppearanceData.GagSlots.Select((p, i) => $"Lock {i}: {p}")), LoggerType.PadlockManagement);
+
     }
 
     private void PublishAppearanceChange(int layerIndex, bool isUnlocked)
@@ -198,7 +225,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
                 if (!result) Logger.LogWarning("Invalid password entered: {Password}", ActiveSlotPasswords[(int)layer]);
                 return result;
             case Padlocks.MimicPadlock:
-                if(!TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var mimicTime))
+                if (!TryParseTimeSpan(ActiveSlotTimers[(int)layer], out var mimicTime))
                 {
                     Logger.LogWarning("Invalid time entered: {Timer}", ActiveSlotTimers[(int)layer]);
                     return false;
@@ -445,4 +472,92 @@ public partial class GagManager : DisposableMediatorSubscriberBase
             }
         }
     }
+
+    // Below are special combos for the gags and padlocks:
+    public void DrawGagCombo(GagLayer layer, float width, Action<GagType> onSelected)
+    {
+        try
+        {
+            // Return default if there are no items to display in the combo box.
+            string comboLabel = "##ActiveGagsSelection" + layer.ToString();
+            string displayText = ComboGags[(int)layer].GagName();
+            
+            var comboItems = Enum.GetValues<GagType>();
+            ImGui.SetNextItemWidth(width);
+            if (ImGui.BeginCombo(comboLabel, displayText))
+            {
+                // Search filter
+                ImGui.SetNextItemWidth(width);
+                ImGui.InputTextWithHint("##filter", "Filter...", ref GagSearchFilters[(int)layer], 255);
+                var searchText = GagSearchFilters[(int)layer].ToLowerInvariant();
+
+                var filteredItems = string.IsNullOrEmpty(searchText)
+                    ? comboItems
+                    : comboItems.Where(item => item.GagName().ToLowerInvariant().Contains(searchText));
+
+                // display filtered content.
+                foreach (var item in filteredItems)
+                {
+                    bool isSelected = item.GagName() == ComboGags[(int)layer].GagName();
+                    if (ImGui.Selectable(item.GagName(), isSelected))
+                    {
+                        Logger.LogTrace("Selected {item} from {comboName}", item.GagName(), comboLabel);
+                        ComboGags[(int)layer] = item;
+                        onSelected?.Invoke(item);
+                    }
+                }
+                ImGui.EndCombo();
+            }
+            // Check if the item was right-clicked. If so, reset to default value.
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            {
+                Logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboLabel);
+                ComboGags[(int)layer] = comboItems.First();
+                onSelected?.Invoke(comboItems.First());
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in DrawComboSearchable");
+        }
+    }
+
+    public void DrawPadlockCombo(int idValue, float width, IEnumerable<Padlocks> comboItems, Action<Padlocks> onSelected)
+    {
+        try
+        {
+            // Return default if there are no items to display in the combo box.
+            string comboLabel = "##ActivePadlocksSelection" + idValue.ToString();
+            string displayText = ComboPadlocks[idValue].ToName();
+
+            ImGui.SetNextItemWidth(width);
+            if (ImGui.BeginCombo(comboLabel, displayText))
+            {
+                // display filtered content.
+                foreach (var item in comboItems)
+                {
+                    bool isSelected = item.ToName() == ComboPadlocks[idValue].ToName();
+                    if (ImGui.Selectable(item.ToName(), isSelected))
+                    {
+                        Logger.LogTrace("Selected {item} from {comboName}", item.ToName(), comboLabel);
+                        ComboPadlocks[idValue] = item;
+                        onSelected?.Invoke(item);
+                    }
+                }
+                ImGui.EndCombo();
+            }
+            // Check if the item was right-clicked. If so, reset to default value.
+            if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+            {
+                Logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboLabel);
+                ComboPadlocks[idValue] = comboItems.First();
+                onSelected?.Invoke(comboItems.First());
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error in DrawPadlocks");
+        }
+    }
+
 }

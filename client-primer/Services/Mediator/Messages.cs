@@ -72,8 +72,6 @@ public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : 
 public record MufflerLanguageChanged : MessageBase; // called whenever the client language changes to a new language.
 
 /* ------------- PLAYER DATA MODULE INTERACTIONS --------- */
-public record ActiveGagsUpdated : MessageBase;
-public record ActiveLocksUpdated : MessageBase;
 public record GagTypeChanged(GagType NewGagType, GagLayer Layer, bool SelfApplied = false) : MessageBase; // called whenever the client changes their gag type.
 public record GagLockToggle(PadlockData PadlockInfo, NewState newGagLockState, bool SelfApplied = false) : MessageBase; // called whenever the client changes their padlock.
 public record TooltipSetItemToRestraintSetMessage(EquipSlot Slot, EquipItem Item) : MessageBase;

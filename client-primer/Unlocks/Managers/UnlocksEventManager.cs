@@ -65,6 +65,16 @@ public class UnlocksEventManager
         EventDictionary[eventName] = (Action<T1, T2, T3, T4>)EventDictionary[eventName] + listener;
     }
 
+    // subscribe with 5 parameters
+    public void Subscribe<T1, T2, T3, T4, T5>(UnlocksEvent eventName, Action<T1, T2, T3, T4, T5> listener)
+    {
+        if (!EventDictionary.ContainsKey(eventName))
+        {
+            EventDictionary[eventName] = null;
+        }
+        EventDictionary[eventName] = (Action<T1, T2, T3, T4, T5>)EventDictionary[eventName] + listener;
+    }
+
     // Unsubscribe with no parameters
     public void Unsubscribe(UnlocksEvent eventName, Action listener)
     {
@@ -143,6 +153,24 @@ public class UnlocksEventManager
         if (EventDictionary.TryGetValue(eventName, out var existingDelegate))
         {
             var currentListeners = (Action<T1, T2, T3, T4>)existingDelegate;
+            currentListeners -= listener;
+            if (currentListeners == null)
+            {
+                EventDictionary.Remove(eventName);
+            }
+            else
+            {
+                EventDictionary[eventName] = currentListeners;
+            }
+        }
+    }
+
+    // Unsubscribe with five parameters
+    public void Unsubscribe<T1, T2, T3, T4, T5>(UnlocksEvent eventName, Action<T1, T2, T3, T4, T5> listener)
+    {
+        if (EventDictionary.TryGetValue(eventName, out var existingDelegate))
+        {
+            var currentListeners = (Action<T1, T2, T3, T4, T5>)existingDelegate;
             currentListeners -= listener;
             if (currentListeners == null)
             {
@@ -262,6 +290,30 @@ public class UnlocksEventManager
                 if (action is Action<T1, T2, T3, T4> eventHandler)
                 {
                     eventHandler.Invoke(param1, param2, param3, param4);
+                }
+                else
+                {
+                    AchievementLogger.LogError($"Invalid action type for event: {eventName}", LoggerType.Achievements);
+                }
+            }
+            catch (Exception ex)
+            {
+                AchievementLogger.LogError("Error in AchievementEvent: " + eventName, ex, LoggerType.Achievements);
+            }
+        }
+    }
+
+    // Trigger event with five parameters
+    public static void AchievementEvent<T1, T2, T3, T4, T5>(UnlocksEvent eventName, T1 param1, T2 param2, T3 param3, T4 param4, T5 param5)
+    {
+        if (EventDictionary.TryGetValue(eventName, out var action))
+        {
+            try
+            {
+                AchievementLogger.LogDebug("AchievementEvent Fired: " + eventName, LoggerType.Achievements);
+                if (action is Action<T1, T2, T3, T4, T5> eventHandler)
+                {
+                    eventHandler.Invoke(param1, param2, param3, param4, param5);
                 }
                 else
                 {

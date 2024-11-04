@@ -508,6 +508,29 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
     public async Task DisableAllDueToSafeword()
     {
+        // disable all gags,
+        if(_playerData.AppearanceData is not null)
+        {
+            Logger.LogInformation("Disabling all active Gags due to Safeword.", LoggerType.Safeword);
+            for (var i = 0; i < 3; i++)
+            {
+                var gagSlot = _playerData.AppearanceData.GagSlots[i];
+                // check to see if the gag is currently active.
+                if (gagSlot.GagType.ToGagType() is not GagType.None)
+                {
+                    // would be ideal to route this into the appearnace manager but whatever.
+                    _gagManager.DisableLock(i);
+
+                    // then we should remove it, but not publish it to the mediator just yet.
+                    await GagRemoved((GagLayer)i, gagSlot.GagType.ToGagType(), publishRemoval: false,
+                        isSelfApplied: gagSlot.Assigner == MainHub.UID, triggerAchievement: false);
+                }
+            }
+            Logger.LogInformation("Active gags disabled.", LoggerType.Safeword);
+            // finally, push the gag change for the safeword.
+            Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.Safeword));
+        }
+
         // if an active set exists we need to unlock and disable it.
         if (_clientConfigs.GetActiveSet() is not null)
         {
@@ -516,7 +539,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             Logger.LogInformation("Unlocking and Disabling Active Set [" + set.Name + "] due to Safeword.", LoggerType.Restraints);
 
             // unlock the set, dont push changes yet.
-            await UnlockRestraintSet(set.RestraintId, set.LockedBy, false);
+            await UnlockRestraintSet(set.RestraintId, set.LockedBy);
 
             // Disable the set, turning off any mods moodles ext and refreshing appearance.            
             await DisableRestraintSet(set.RestraintId, MainHub.UID);

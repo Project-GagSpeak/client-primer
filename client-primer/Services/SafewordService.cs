@@ -69,14 +69,6 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             TimeOfLastSafewordUsed = DateTime.Now;
             Logger.LogInformation("Safeword was used.", LoggerType.Safeword);
 
-            // disable any active gags and push these updates to the API.
-            Logger.LogInformation("Disabling any active gags.", LoggerType.Safeword);
-            _gagManager.SafewordWasUsed();
-            Logger.LogInformation("Active gags disabled.", LoggerType.Safeword);
-
-            // disable any active restraints.
-            Logger.LogInformation("Disabling all stored data and reverting character.", LoggerType.Safeword);
-
             // grab active pattern first if any.
             if (_clientConfigs.AnyPatternIsPlaying)
             {

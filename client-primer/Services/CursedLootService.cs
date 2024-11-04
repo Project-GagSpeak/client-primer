@@ -1,16 +1,14 @@
+using Dalamud.Game.ClientState.GamePad;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
-using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
@@ -31,6 +29,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     private readonly AppearanceManager _appearanceHandler;
     private readonly IChatGui _chatGui;
     private readonly IDataManager _gameData;
+    private readonly IGamepadState _gamepadState;
     private readonly IObjectTable _objects;
     private readonly ITargetManager _targets;
 
@@ -38,8 +37,8 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         ClientConfigurationManager clientConfigs, GagManager gagManager,
         PlayerCharacterData playerData, CursedLootHandler handler,
         OnFrameworkService frameworkUtils, AppearanceManager appearanceHandler,
-        IChatGui chatGui, IDataManager gameData, IObjectTable objects,
-        ITargetManager targets) : base(logger, mediator)
+        IChatGui chatGui, IDataManager gameData, IGamepadState controllerState,
+        IObjectTable objects, ITargetManager targets) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _gagManager = gagManager;
@@ -49,6 +48,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         _appearanceHandler = appearanceHandler;
         _chatGui = chatGui;
         _gameData = gameData;
+        _gamepadState = controllerState;
         _objects = objects;
         _targets = targets;
 
@@ -68,7 +68,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         // Do not run if we dont want to run it.
         if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot)
             return;
-        
+
         // do not run if not in a duty
         if (_frameworkUtils._sentBetweenAreas || !_frameworkUtils.InDungeonOrDuty)
             return;
@@ -146,7 +146,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
           || (_targets.MouseOverTarget?.GameObjectId == NearestTreasureId)
           || (_targets.Target?.GameObjectId == NearestTreasureId))
         {
-            if (KeyMonitor.RightMouseButtonDown() || KeyMonitor.Numpad0Pressed())
+            if (KeyMonitor.RightMouseButtonDown() || KeyMonitor.Numpad0Pressed() || IsButtonHeld(GamepadButtons.South))
             {
                 if (_openTreasureTask != null && !_openTreasureTask.IsCompleted)
                     return;
@@ -219,7 +219,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
 
         Guid selectedLootId = Guid.Empty;
         var randomIndex = random.Next(0, enabledPoolCount);
-        Logger.LogDebug("Selected Index: " + randomIndex + " ("+ _handler.InactiveItemsInPool[randomIndex].Name+")", LoggerType.CursedLoot);
+        Logger.LogDebug("Selected Index: " + randomIndex + " (" + _handler.InactiveItemsInPool[randomIndex].Name + ")", LoggerType.CursedLoot);
         if (_handler.InactiveItemsInPool[randomIndex].IsGag)
         {
             var availableSlot = _playerData.AppearanceData!.GagSlots.IndexOf(x => x.GagType.ToGagType() == GagType.None);
@@ -241,20 +241,20 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 var padlockData = new PadlockData()
                 {
                     Layer = (GagLayer)availableSlot,
-                    PadlockType = Padlocks.MimicPadlock, 
-                    Timer = DateTimeOffset.UtcNow.Add(lockTimeGag), 
+                    PadlockType = Padlocks.MimicPadlock,
+                    Timer = DateTimeOffset.UtcNow.Add(lockTimeGag),
                     Assigner = MainHub.UID
                 };
                 _gagManager.OnGagLockChanged(padlockData, NewState.Locked, true, true);
                 _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTimeGag));
                 Logger.LogInformation($"Cursed Loot Applied!", LoggerType.CursedLoot);
-                
-                if(!_playerData.CoreDataNull && _playerData.GlobalPerms!.LiveChatGarblerActive)
+
+                if (!_playerData.CoreDataNull && _playerData.GlobalPerms!.LiveChatGarblerActive)
                 {
-                    Mediator.Publish(new NotificationMessage("Chat Garbler", "LiveChatGarbler Is Active and you were just Gagged! "+
+                    Mediator.Publish(new NotificationMessage("Chat Garbler", "LiveChatGarbler Is Active and you were just Gagged! " +
                         "Be cautious of chatting around strangers!", NotificationType.Warning));
                 }
-                
+
                 return;
             }
             else
@@ -319,6 +319,14 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
 
         return new string(chars);
     }
+
+    /// <summary>
+    /// Checks if a controller button is currently held. Returns true for every frame it's held down.
+    /// </summary>
+    /// <param name="button">Button to check.</param>
+    /// <returns>Button is being held down.</returns>
+    public bool IsButtonHeld(GamepadButtons button) => _gamepadState.Raw(button) == 1;
+
 
     public Task StartAsync(CancellationToken cancellationToken)
     {

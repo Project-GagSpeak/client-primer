@@ -559,6 +559,8 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                             Logger.LogTrace("Parsing Timer with value[" + GagManager.ActiveSlotTimers[3] + "]");
                             _handler.LockRestraintSet(set.RestraintId, GagManager.ActiveSlotPadlocks[3], GagManager.ActiveSlotPasswords[3], 
                                 UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[3]), MainHub.UID);
+                            // reset the stored padlock.
+                            GagManager.ActiveSlotPadlocks[3] = Padlocks.None;
                         }
                     }
                     else
@@ -566,7 +568,8 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                         Logger.LogDebug($"Failed to validate password for Restraint Set {set.Name}");
                     }
                     // reset the password and timer
-                    _gagManager.ResetInputs();
+                    GagManager.ActiveSlotPasswords[3] = string.Empty;
+                    GagManager.ActiveSlotTimers[3] = string.Empty;
                 }
                 UiSharedService.AttachToolTip(GagManager.ActiveSlotPadlocks[3] == Padlocks.None ? "Select a padlock type before locking" :
                     set.Locked == false ? "Self-Lock this Restraint Set" :

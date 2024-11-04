@@ -21,6 +21,7 @@ public class Changelog
     {
         VersionEntry(0, 9, 9, 2)
             .RegisterMain("The BugFix Update")
+            .RegisterQol("Controller input should now work on cursed loot chest (i hope)")
             .RegisterBugfix("Fixed issue where alarms would not save")
             .RegisterBugfix("Fixed issue where patterns did not properly stop")
             .RegisterBugfix("Fixed issue where patterns were not properly linked to the toybox manager on natural lifecycle stops.")
@@ -28,11 +29,16 @@ public class Changelog
             .RegisterBugfix("Fixed issue where some event viewer messages did not display correctly.")
             .RegisterBugfix("Fixed issue where getting slapped while bound will also be granted when someone else is " +
             "getting slapped and you are just in range for it to get logged")
-            .RegisterBugfix("Fixed bug with Quiet Now, Dear, and What a View achievements to properly track emote users / receivers.");
+            .RegisterBugfix("Fixed bug with Quiet Now, Dear, and What a View achievements to properly track emote users / receivers.")
+            .RegisterBugfix("Fixed issue where vibes would still play upon logout.")
+            .RegisterBugfix("Fixed issue with safeword not clearing gag information properly.")
+            .RegisterBugfix("Fixed issue where using a safeword would not fire the correct triggers.")
+            .RegisterBugfix("Attempting to fix some issues with achievement timers.")
+            .RegisterBugfix("All Achievement Progress Bar Labels now have appropriate text display.");
 
         VersionEntry(0, 9, 9, 1)
             .RegisterMain("Achievement Title setting has been implemented now and should properly save.")
-            .RegisterFeature("Dropdowns for all modifiable components of the kinkplate's are not injected into the editor")
+            .RegisterFeature("Dropdowns for all modifiable components of the kink plate's are not injected into the editor")
             .RegisterQol("The Image editor is now pulled off into its own window to help reduce window clutter.")
             .RegisterQol("The overall display of the image editor has been modified for a cleaner workspace window.")
             .RegisterBugfix("Fixed issue in where profiles sometimes would not update.");

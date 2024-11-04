@@ -1,27 +1,29 @@
-using Dalamud.Plugin.Services;
 using GagSpeak.WebAPI;
-using System;
-using System.Diagnostics;
 
 namespace GagSpeak.Achievements;
 
-public struct DurationTrackedItem
+public struct TrackedItem
 {
-    public string ItemName { get; set; }
-    public DateTime StartTime { get; set; }
+    public string ItemIdentifier { get; init; }
+    public string UIDAffected { get; init; }
+    public TrackedItem(string item, string uidAffected)
+    {
+        ItemIdentifier = item;
+        UIDAffected = uidAffected;
+    }
 }
 
 public class DurationAchievement : Achievement
 {
     private readonly TimeSpan MilestoneDuration; // Required duration to achieve
-    
+
     // The Current Active Item(s) being tracked. (can be multiple because of gags.
-    public Dictionary<string, DateTime> ActiveItems { get; set; } = new Dictionary<string, DateTime>();
+    public Dictionary<TrackedItem, DateTime> ActiveItems { get; set; } = new Dictionary<TrackedItem, DateTime>();
 
     public DurationTimeUnit TimeUnit { get; init; }
 
     public DurationAchievement(uint id, string name, string desc, TimeSpan duration, Action<uint, string> onCompleted,
-        DurationTimeUnit timeUnit = DurationTimeUnit.Minutes, string prefix = "", string suffix = "", 
+        DurationTimeUnit timeUnit = DurationTimeUnit.Minutes, string prefix = "", string suffix = "",
         bool isSecret = false) : base(id, name, desc, ConvertToUnit(duration, timeUnit), prefix, suffix, onCompleted, isSecret)
     {
         MilestoneDuration = duration;
@@ -43,7 +45,7 @@ public class DurationAchievement : Achievement
     public override int CurrentProgress()
     {
         // if completed, return the milestone goal.
-        if (IsCompleted || !MainHub.IsConnected) 
+        if (IsCompleted || !MainHub.IsConnected)
             return MilestoneGoal;
 
         // otherwise, return the ActiveItem with the longest duration from the DateTime.UtcNow and return its value in total minutes.
@@ -71,7 +73,7 @@ public class DurationAchievement : Achievement
 
         // Construct the string to output for the progress.
         string outputStr = "";
-        if(elapsed == TimeSpan.Zero)
+        if (elapsed == TimeSpan.Zero)
         {
             outputStr = "0s";
         }
@@ -90,41 +92,55 @@ public class DurationAchievement : Achievement
     /// <summary>
     /// Begin tracking the time period of a duration achievement
     /// </summary>
-    public void StartTracking(string itemName)
+    public void StartTracking(TrackedItem item)
     {
-        if (IsCompleted || !MainHub.IsConnected) 
+        if (IsCompleted || !MainHub.IsConnected)
             return;
 
-        if (!ActiveItems.ContainsKey(itemName))
+        if (!ActiveItems.ContainsKey(item))
         {
-            StaticLogger.Logger.LogDebug($"Started Tracking item {itemName} for {Title}", LoggerType.Achievements);
-            ActiveItems[itemName] = DateTime.UtcNow; // Start tracking time
+            StaticLogger.Logger.LogDebug($"Started Tracking item {item.ItemIdentifier} on {item.UIDAffected} for {Title}", LoggerType.Achievements);
+            ActiveItems[item] = DateTime.UtcNow; // Start tracking time
         }
         else
         {
-            StaticLogger.Logger.LogDebug($"Item {itemName} is already being tracked for {Title}, ignoring. (Likely loading in from reconnect)", LoggerType.Achievements);
+            StaticLogger.Logger.LogDebug($"Item {item.ItemIdentifier} on {item.UIDAffected} is already being tracked for {Title}, ignoring. (Likely loading in from reconnect)", LoggerType.Achievements);
+        }
+    }
+
+    /// <summary>
+    /// Cleans up any items no longer present on the UID that are still cached.
+    /// </summary>
+    public void CleanupTracking(List<TrackedItem> items)
+    {
+        var itemsToRemove = ActiveItems.Keys.Except(items).ToList();
+        StaticLogger.Logger.LogDebug($"Cleaning up tracking items for {Title}", LoggerType.Achievements);
+        foreach (var key in itemsToRemove)
+        {
+            StaticLogger.Logger.LogDebug($"Item {key.ItemIdentifier} on {key.UIDAffected} is no longer present, removing from tracking.", LoggerType.Achievements);
+            ActiveItems.Remove(key);
         }
     }
 
     /// <summary>
     /// Stop tracking the time period of a duration achievement
     /// </summary>
-    public void StopTracking(string itemName)
+    public void StopTracking(TrackedItem item)
     {
-        if (IsCompleted || !MainHub.IsConnected) 
+        if (IsCompleted || !MainHub.IsConnected)
             return;
 
-        StaticLogger.Logger.LogDebug($"Stopped Tracking item {itemName} for {Title}", LoggerType.Achievements);
+        StaticLogger.Logger.LogDebug($"Stopped Tracking item {item.ItemIdentifier} on {item.UIDAffected} for {Title}", LoggerType.Achievements);
 
         // check completion before we stop tracking.
         CheckCompletion();
         // if not completed, remove the item from tracking.
-        if(!IsCompleted)
+        if (!IsCompleted)
         {
-            if (ActiveItems.ContainsKey(itemName))
+            if (ActiveItems.ContainsKey(item))
             {
-                StaticLogger.Logger.LogDebug($"Item {itemName} was not completed, removing from tracking.", LoggerType.Achievements);
-                ActiveItems.Remove(itemName); // Stop tracking the item
+                StaticLogger.Logger.LogDebug($"Item {item.ItemIdentifier} on {item.UIDAffected} was not completed, removing from tracking.", LoggerType.Achievements);
+                ActiveItems.Remove(item); // Stop tracking the item
             }
             else
             {
@@ -144,14 +160,10 @@ public class DurationAchievement : Achievement
         {
             // Mark the achievement as completed
             StaticLogger.Logger.LogInformation($"Achievement {Title} has been been active for the required Duration. "
-                +"Marking as finished!", LoggerType.Achievements);
+                + "Marking as finished!", LoggerType.Achievements);
             MarkCompleted();
         }
     }
 
     public override AchievementType GetAchievementType() => AchievementType.Duration;
 }
-
-
-
-

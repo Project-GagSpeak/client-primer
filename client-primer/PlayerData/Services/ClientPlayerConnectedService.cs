@@ -75,7 +75,7 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
 
         Logger.LogDebug("Setting up Update Tasks from GagSpeak Modules.", LoggerType.ClientPlayerData);
         // update the active gags
-        await _gagManager.UpdateActiveGags();
+        await _gagManager.UpdateGagGarblerLogic();
         // If any of our gags are applied, we should fire the Achievement Checks for them being applied.
         for(var i = 0; i < 3; i++)
         {

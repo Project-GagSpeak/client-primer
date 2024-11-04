@@ -12,11 +12,11 @@ public class AchievementSaveData
     public AchievementSaveData()
     {
         foreach (AchievementModuleKind type in Enum.GetValues(typeof(AchievementModuleKind)))
-            Achievements[type] = new AchievementComponent();
+            Components[type] = new AchievementComponent();
     }
 
     // Our Stored Achievements.
-    public Dictionary<AchievementModuleKind, AchievementComponent> Achievements = new();
+    public Dictionary<AchievementModuleKind, AchievementComponent> Components = new();
 
     // Our Stored Easter Egg Icons Discovery Progress.
     public Dictionary<string, bool> EasterEggIcons { get; set; } = new Dictionary<string, bool>()
@@ -54,7 +54,7 @@ public class AchievementSaveData
             VisitedWorldTour = this.VisitedWorldTour
         };
 
-        foreach (var achievementComponent in Achievements)
+        foreach (var achievementComponent in Components)
         {
             var componentKind = achievementComponent.Key;
             var component = achievementComponent.Value;
@@ -96,7 +96,7 @@ public class AchievementSaveData
 
             // Iterate through each component of the Achievements dictionary.
             // For each component, get the list of light data, and call the Components function to update the achievements.
-            foreach (var component in Achievements)
+            foreach (var component in Components)
                 if (groupedAchievements.TryGetValue(component.Key, out var lightAchievements))
                     component.Value.LoadFromLightAchievements(lightAchievements);
         }
@@ -126,12 +126,12 @@ public class AchievementSaveData
 
     public Achievement? GetAchievementById(uint id)
     {
-        foreach (var component in Achievements.Values)
+        // get the achievementInfo by the id.
+        if(Achievements.AchievementMap.TryGetValue(id, out var info))
         {
-            if (component.IdToAchievementMap.TryGetValue(id, out var achievement))
-            {
-                return achievement;
-            }
+            foreach (var component in Components.Values)
+                if (component.Achievements.TryGetValue(info.Title, out var achievement))
+                    return achievement;
         }
         return null;
     }

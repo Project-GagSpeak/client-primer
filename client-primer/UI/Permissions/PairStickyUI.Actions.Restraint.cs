@@ -89,7 +89,7 @@ public partial class PairStickyUI
             }
         }
         UiSharedService.AttachToolTip(tooltipText + ((!unlockButtonDisabled && GenericHelpers.TimerPadlocks.Contains(lastWardrobeData.Padlock))
-            ? "--SEP----COL--" + UiSharedService.TimeLeftFancy(lastWardrobeData.Timer) : ""));
+            ? "--SEP----COL--" + UiSharedService.TimeLeftFancy(lastWardrobeData.Timer) : ""), color: ImGuiColors.ParsedPink);
 
         if (Opened is InteractionType.LockRestraint)
         {

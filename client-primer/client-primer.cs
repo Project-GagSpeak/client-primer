@@ -223,7 +223,7 @@ public static class GagSpeakServiceExtensions
         // Unlocks / Achievements
         .AddSingleton((s) => new AchievementManager(s.GetRequiredService<ILogger<AchievementManager>>(), s.GetRequiredService<GagspeakMediator>(), 
             s.GetRequiredService<MainHub>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(), 
-            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<ToyboxVibeService>(), s.GetRequiredService<UnlocksEventManager>(), nm, ds))
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<CosmeticService>(), s.GetRequiredService<ToyboxVibeService>(), s.GetRequiredService<UnlocksEventManager>(), nm, ds))
         .AddSingleton<UnlocksEventManager>()
 
         // UpdateMonitoring Services
@@ -463,7 +463,8 @@ public static class GagSpeakServiceExtensions
         .AddScoped<WindowMediatorSubscriberBase, OrdersUI>()
         .AddScoped<WindowMediatorSubscriberBase, BlindfoldUI>((s) => new BlindfoldUI(s.GetRequiredService<ILogger<BlindfoldUI>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<UiSharedService>(), pi))
-        .AddScoped<WindowMediatorSubscriberBase, EditProfileUi>()
+        .AddScoped<WindowMediatorSubscriberBase, KinkPlateEditorUI>()
+        .AddScoped<WindowMediatorSubscriberBase, ProfilePictureEditor>()
         .AddScoped<WindowMediatorSubscriberBase, PopupHandler>()
         .AddScoped<IPopupHandler, VerificationPopupHandler>()
         .AddScoped<IPopupHandler, SavePatternPopupHandler>()

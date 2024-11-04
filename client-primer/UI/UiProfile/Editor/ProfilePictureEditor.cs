@@ -1,21 +1,18 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.ImGuiFileDialog;
-using Dalamud.Interface.Internal;
 using Dalamud.Interface.Textures.TextureWraps; // This is discouraged, try and look into better way to do it later.
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Plugin.Services;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
-using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Dto.User;
 using ImGuiNET;
-using Microsoft.IdentityModel.Tokens;
+using Microsoft.VisualBasic;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -23,29 +20,23 @@ using System.Numerics;
 
 namespace GagSpeak.UI.Profile;
 
-public class EditProfileUi : WindowMediatorSubscriberBase
+public class ProfilePictureEditor : WindowMediatorSubscriberBase
 {
     private readonly MainHub _apiHubMain;
     private readonly FileDialogManager _fileDialogManager;
     private readonly KinkPlateService _KinkPlateManager;
     private readonly CosmeticService _cosmetics;
     private readonly UiSharedService _uiShared;
-    private bool _adjustedForScrollBarsLocalProfile = false;
-    private bool _adjustedForScrollBarsOnlineProfile = false;
-    private bool _showFileDialogError = false;
-    private bool _wasOpen;
-
-    public EditProfileUi(ILogger<EditProfileUi> logger, GagspeakMediator mediator,
-        MainHub apiHubMain, FileDialogManager fileDialogManager, 
-        KinkPlateService KinkPlateManager, CosmeticService cosmetics,
-        UiSharedService uiSharedService) : base(logger, mediator, "Edit Avatar###GagSpeakEditProfileUI")
+    public ProfilePictureEditor(ILogger<ProfilePictureEditor> logger, GagspeakMediator mediator,
+        MainHub apiHubMain, FileDialogManager fileDialogManager, KinkPlateService KinkPlateManager,
+        CosmeticService cosmetics, UiSharedService uiSharedService)
+        : base(logger, mediator, "Edit KinkPlate Profile Picture###KinkPlateProfilePictureUI")
     {
         IsOpen = false;
-        this.SizeConstraints = new()
-        {
-            MinimumSize = new(768, 512),
-            MaximumSize = new(768, 2000)
-        };
+        Size = new(768, 600);
+        Flags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoScrollbar;
+        AllowClickthrough = false;
+        AllowPinning = false;
         _apiHubMain = apiHubMain;
         _fileDialogManager = fileDialogManager;
         _KinkPlateManager = KinkPlateManager;
@@ -55,38 +46,44 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         Mediator.Subscribe<MainHubDisconnectedMessage>(this, (_) => IsOpen = false);
     }
 
-    protected override void PreDrawInternal()
-    {
-        // include our personalized theme for this window here if we have themes enabled.
-    }
-    protected override void PostDrawInternal()
-    {
-        // include our personalized theme for this window here if we have themes enabled.
-    }
+    private bool _showFileDialogError = false;
 
-    // wrap of existing pfp.
+    // Store the original image data of our imported file.
     private byte[] _uploadedImageData;
+    private IDalamudTextureWrap? _uploadedImageToShow;
+
+    // Determine if we are using a compressed image.
     private bool _useCompressedImage = false; // Default to using compressed image
     private byte[] _compressedImageData;
     private IDalamudTextureWrap? _compressedImageToShow;
+
+    // hold a temporary image data of the cropped image area without affecting the original or compressed image.
     private byte[] _scopedData = null!;
     private byte[] _croppedImageData;
-    private IDalamudTextureWrap? _uploadedImageToShow;
     private IDalamudTextureWrap? _croppedImageToShow;
+
+    // if we should hide the width
     private bool HideWidth = false;
+
+    // the other values for movement, rotation, and scaling.
     private float _cropX = 0.5f; // Center by default
     private float _cropY = 0.5f; // Center by default
     private float _rotationAngle = 0.0f; // Rotation angle in degrees
     private float _zoomFactor = 1.0f; // Zoom factor, 1.0 means no zoom
     private float _minZoomFactor = 1.0f;
     private float _maxZoomFactor = 3.0f;
+
+    // Store file size references for both debug metrics and to show the user how optimized their images is.
     public string OriginalFileSize { get; private set; } = string.Empty;
     public string ScaledFileSize { get; private set; } = string.Empty;
     public string CroppedFileSize { get; private set; } = string.Empty;
 
+    protected override void PreDrawInternal() { }
+    protected override void PostDrawInternal() { }
     protected override void DrawInternal()
     {
         var spacing = ImGui.GetStyle().ItemSpacing.X;
+
         // grab our profile.
         var profile = _KinkPlateManager.GetKinkPlate(new UserData(MainHub.UID));
 
@@ -97,13 +94,15 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             return;
         }
 
+        // grab our profile image and draw the baseline.
         var pfpWrap = profile.GetCurrentProfileOrDefault();
-
         if (pfpWrap != null)
         {
             ImGui.Image(pfpWrap.ImGuiHandle, ImGuiHelpers.ScaledVector2(pfpWrap.Width, pfpWrap.Height));
         }
+        // scoot over to the right 256px + spacing
         ImGuiHelpers.ScaledRelativeSameLine(256, spacing);
+        // draw the rounded image.
         if (pfpWrap != null)
         {
             var currentPosition = ImGui.GetCursorPos();
@@ -113,130 +112,125 @@ public class EditProfileUi : WindowMediatorSubscriberBase
         }
         ImGuiHelpers.ScaledRelativeSameLine(256, spacing);
 
-        ImGui.TextWrapped("Base Import & Rounded Variant of ProfileImage." +
-            Environment.NewLine + "The Rounded variant is as seen in the account page and in other profile inspections." +
-            Environment.NewLine + "At the moment non-rounded serves no current purpose, but could in the future");
-        // move down to the newline and draw the buttons for adding and removing images
-        if (_uiShared.IconTextButton(FontAwesomeIcon.FileUpload, "Upload new profile picture", 256f, false))
-        {
-            _fileDialogManager.OpenFileDialog("Select new Profile picture", ".png", (success, file) =>
-            {
-                if (!success)
-                {
-                    _logger.LogWarning("Failed to open file dialog.");
-                    return;
-                }
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        _logger.LogInformation("Attempting to upload new profile picture.");
-                        var fileContent = File.ReadAllBytes(file);
-                        using (MemoryStream ms = new(fileContent))
-                        {
-                            var format = await Image.DetectFormatAsync(ms).ConfigureAwait(false);
-                            if (!format.FileExtensions.Contains("png", StringComparer.OrdinalIgnoreCase))
-                            {
-                                _showFileDialogError = true;
-                                return;
-                            }
-                            // store the original file size
-                            OriginalFileSize = $"{fileContent.Length / 1024.0:F2} KB";
-                            _uploadedImageData = ms.ToArray();
-                        }
-
-                        // Load and process the image
-                        using (var image = Image.Load<Rgba32>(fileContent))
-                        {
-                            // Calculate the scale factor to ensure the smallest dimension is 256 pixels
-                            var scale = 256f / Math.Min(image.Width, image.Height);
-                            var scaledSize = new Size((int)(image.Width * scale), (int)(image.Height * scale));
-
-                            InitializeZoomFactors(image.Width, image.Height);
-
-                            // Resize the image while maintaining the aspect ratio
-                            var resizedImage = image.Clone(ctx => ctx.Resize(new ResizeOptions
-                            {
-                                Size = scaledSize,
-                                Mode = ResizeMode.Max
-                            }));
-
-                            // Convert the processed image to byte array
-                            using (var ms = new MemoryStream())
-                            {
-                                resizedImage.SaveAsPng(ms);
-                                _scopedData = ms.ToArray();
-
-                                // Initialize cropping parameters
-                                _cropX = 0.5f;
-                                _cropY = 0.5f;
-
-                                _uploadedImageToShow = _cosmetics.GetProfilePicture(_uploadedImageData);
-                                ScaledFileSize = $"{_scopedData.Length / 1024.0:F2} KB";
-
-                                // Update the preview image
-                                UpdateCroppedImagePreview();
-                            }
-                        }
-
-                        _showFileDialogError = false;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to upload new profile picture.");
-                    }
-                });
-            });
-        }
-        UiSharedService.AttachToolTip("Select and upload a new profile picture");
-
-        ImGui.SameLine();
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Clear uploaded profile picture", 256f, false, !KeyMonitor.CtrlPressed()))
-        {
-            _uploadedImageData = null!;
-            _croppedImageData = null!;
-            _uploadedImageToShow = null;
-            _croppedImageToShow = null;
-            _useCompressedImage = false;
-            _ = _apiHubMain.UserSetKinkPlate(new UserKinkPlateDto(new UserData(MainHub.UID), profile.KinkPlateInfo, string.Empty));
-        }
-        UiSharedService.AttachToolTip("Clear your currently uploaded profile picture");
-        if (_showFileDialogError)
-            UiSharedService.ColorTextWrapped("The profile picture must be a PNG file", ImGuiColors.DalamudRed);
-
-        ImGui.Separator();
-        if (_uploadedImageData != null)
-            DrawNewProfileDisplay(profile);
-
-        _uiShared.BigText("Profile Settings");
-        var refText = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? "Description is Null" : profile.KinkPlateInfo.Description;
-        ImGui.InputTextMultiline("##pfpDescription", ref refText, 1000, ImGuiHelpers.ScaledVector2(
-            ImGui.GetContentRegionAvail().X*.65f, ImGui.GetTextLineHeightWithSpacing()*5));
-        if(ImGui.IsItemDeactivatedAfterEdit())
-            profile.KinkPlateInfo.Description = refText;
-
-        // beside this, draw a checkbox to change if its public or not.
-        ImGui.SameLine();
-        var publicRef = profile.KinkPlateInfo.PublicPlate;
+        // we need here to draw the group for content.
         using (ImRaii.Group())
         {
-            if (ImGui.Checkbox("Public Profile", ref publicRef))
-                profile.KinkPlateInfo.PublicPlate = publicRef;
+            _uiShared.GagspeakTitleText("Current Image");
+            ImGui.Separator();
+            UiSharedService.ColorText("Square Image Preview:", ImGuiColors.ParsedGold);
+            UiSharedService.TextWrapped("Meant to display the original display of the stored image data.");
+            ImGui.Spacing();
+            UiSharedService.ColorText("Rounded Image Preview:", ImGuiColors.ParsedGold);
+            UiSharedService.TextWrapped("This is what's seen in the account page, and inside of KinkPlates™");
+            ImGui.Spacing();
 
-            if(_uiShared.IconTextButton(FontAwesomeIcon.Expand, "Preview Light KinkPlate", id: MainHub.UID + "KinkPlatePreview"))
-                Mediator.Publish(new KinkPlateOpenStandaloneLightMessage(MainHub.PlayerUserData));
+            var width = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Trash, "Clear uploaded profile picture");
+            // move down to the newline and draw the buttons for adding and removing images
+            if (_uiShared.IconTextButton(FontAwesomeIcon.FileUpload, "Upload new profile picture", width))
+                HandleFileDialog();
+            UiSharedService.AttachToolTip("Select and upload a new profile picture");
+
+            // let them clean their image too if they desire.
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Clear uploaded profile picture", width, disabled: !KeyMonitor.ShiftPressed()))
+            {
+                _uploadedImageData = null!;
+                _croppedImageData = null!;
+                _uploadedImageToShow = null;
+                _croppedImageToShow = null;
+                _useCompressedImage = false;
+                _ = _apiHubMain.UserSetKinkPlate(new UserKinkPlateDto(new UserData(MainHub.UID), profile.KinkPlateInfo, string.Empty));
+            }
+            UiSharedService.AttachToolTip("Clear your currently uploaded profile picture--SEP--Must be holding SHIFT to clear.");
+
+            // show file dialog error if we had one.
+            if (_showFileDialogError)
+                UiSharedService.ColorTextWrapped("The profile picture must be a PNG file", ImGuiColors.DalamudRed);
         }
 
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Save, "Save Profile"))
-            _ = _apiHubMain.UserSetKinkPlate(new UserKinkPlateDto(new UserData(MainHub.UID), profile.KinkPlateInfo, profile.Base64ProfilePicture));
-        UiSharedService.AttachToolTip("Updated your stored profile with latest information");
+        ImGui.Spacing();
+        ImGui.Separator();
+        ImGui.Spacing();
+
+        // draw out the editor settings.
+        if (_uploadedImageData != null)
+            DrawNewProfileDisplay(profile);
+    }
+
+    private void HandleFileDialog()
+    {
+        _fileDialogManager.OpenFileDialog("Select new Profile picture", ".png", (success, file) =>
+        {
+            if (!success)
+            {
+                _logger.LogWarning("Failed to open file dialog.");
+                return;
+            }
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    _logger.LogInformation("Attempting to upload new profile picture.");
+                    var fileContent = File.ReadAllBytes(file);
+                    using (MemoryStream ms = new(fileContent))
+                    {
+                        var format = await Image.DetectFormatAsync(ms).ConfigureAwait(false);
+                        if (!format.FileExtensions.Contains("png", StringComparer.OrdinalIgnoreCase))
+                        {
+                            _showFileDialogError = true;
+                            return;
+                        }
+                        // store the original file size
+                        OriginalFileSize = $"{fileContent.Length / 1024.0:F2} KB";
+                        _uploadedImageData = ms.ToArray();
+                    }
+
+                    // Load and process the image
+                    using (var image = Image.Load<Rgba32>(fileContent))
+                    {
+                        // Calculate the scale factor to ensure the smallest dimension is 256 pixels
+                        var scale = 256f / Math.Min(image.Width, image.Height);
+                        var scaledSize = new Size((int)(image.Width * scale), (int)(image.Height * scale));
+
+                        InitializeZoomFactors(image.Width, image.Height);
+
+                        // Resize the image while maintaining the aspect ratio
+                        var resizedImage = image.Clone(ctx => ctx.Resize(new ResizeOptions
+                        {
+                            Size = scaledSize,
+                            Mode = ResizeMode.Max
+                        }));
+
+                        // Convert the processed image to byte array
+                        using (var ms = new MemoryStream())
+                        {
+                            resizedImage.SaveAsPng(ms);
+                            _scopedData = ms.ToArray();
+
+                            // Initialize cropping parameters
+                            _cropX = 0.5f;
+                            _cropY = 0.5f;
+
+                            _uploadedImageToShow = _cosmetics.GetProfilePicture(_uploadedImageData);
+                            ScaledFileSize = $"{_scopedData.Length / 1024.0:F2} KB";
+
+                            // Update the preview image
+                            UpdateCroppedImagePreview();
+                        }
+                    }
+
+                    _showFileDialogError = false;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to upload new profile picture.");
+                }
+            });
+        });
     }
 
     private void DrawNewProfileDisplay(KinkPlate profile)
     {
         var spacing = ImGui.GetStyle().ItemSpacing.X;
-        _uiShared.BigText("Setup Profile Image");
-
         if (_uploadedImageData != null)
         {
             // display the respective info on the line below.
@@ -253,61 +247,42 @@ public class EditProfileUi : WindowMediatorSubscriberBase
                     ImGui.GetWindowDrawList().AddImageRounded(_croppedImageToShow.ImGuiHandle, pos, pos + _croppedImageToShow.Size, Vector2.Zero, Vector2.One, ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)), 128f);
                     ImGui.SetCursorPos(new Vector2(currentPosition.X, currentPosition.Y + _croppedImageToShow.Height));
                 }
-           }
+            }
         }
         // draw the slider and the update buttons
         ImGuiHelpers.ScaledRelativeSameLine(256, spacing);
-        using (var sizeDispGroup = ImRaii.Group())
+        using (ImRaii.Group())
         {
+            _uiShared.GagspeakTitleText("Image Editor");
+            ImGui.Separator();
             if (_croppedImageData != null)
             {
-                if (_uiShared.IconTextButton(FontAwesomeIcon.Compress, "Compress Image", 150f))
-                {
-                    CompressImage();
-                }
-                UiSharedService.AttachToolTip("Shrinks the image to a 512x512 ratio for better performance");
-
                 var cropXref = _cropX;
                 ImGui.SetNextItemWidth(150f);
                 if (ImGui.SliderFloat("Width", ref _cropX, 0.0f, 1.0f, "%.2f"))
-                {
                     if (cropXref != _cropX)
-                    {
                         UpdateCroppedImagePreview();
-                    }
-                }
+
                 var cropYref = _cropY;
                 ImGui.SetNextItemWidth(150f);
                 if (ImGui.SliderFloat("Height", ref _cropY, 0.0f, 1.0f, "%.2f"))
-                {
                     if (cropYref != _cropY)
-                    {
                         UpdateCroppedImagePreview();
-                    }
-                }
 
                 // Add rotation slider
                 var rotationRef = _rotationAngle;
                 ImGui.SetNextItemWidth(150f);
                 if (ImGui.SliderFloat("Rotation", ref _rotationAngle, 0.0f, 360.0f, "%.2f"))
-                {
                     if (rotationRef != _rotationAngle)
-                    {
                         UpdateCroppedImagePreview();
-                    }
-                }
                 UiSharedService.AttachToolTip("DOES NOT WORK YET!");
 
                 // Add zoom slider
                 var zoomRef = _zoomFactor;
                 ImGui.SetNextItemWidth(150f);
                 if (ImGui.SliderFloat("Zoom", ref _zoomFactor, _minZoomFactor, _maxZoomFactor, "%.2f"))
-                {
                     if (zoomRef != _zoomFactor)
-                    {
                         UpdateCroppedImagePreview();
-                    }
-                }
             }
 
             ImGui.AlignTextToFramePadding();
@@ -319,48 +294,53 @@ public class EditProfileUi : WindowMediatorSubscriberBase
             ImGui.AlignTextToFramePadding();
             ImGui.TextUnformatted("Cropped Image Size: " + CroppedFileSize);
 
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Upload, "Upload Profile Pic to Server", 200f, false, _croppedImageData == null))
-            {
-                _ = Task.Run(async () =>
-                {
-                    // grab the _croppedImageData and upload it to the server.
-                    if (_croppedImageData == null) return;
+            // draw the compress & upload.
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Compress, "Compress"))
+                CompressImage();
+            UiSharedService.AttachToolTip("Shrinks the image to a 512x512 ratio for better performance");
 
-                    // update the cropped image data to the 256x256 standard it should be.
-                    using (var image = Image.Load<Rgba32>(_uploadedImageData))
-                    {
-                        // Resize the zoomed area to 512x512
-                        var resizedImage = image.Clone(ctx => ctx.Resize(new ResizeOptions
-                        {
-                            Size = new Size(256, 256),
-                            Mode = ResizeMode.Max
-                        }));
+            ImGui.SameLine();
 
-
-                        // Convert the processed image to byte array
-                        using (var ms = new MemoryStream())
-                        {
-                            resizedImage.SaveAsPng(ms);
-                            _compressedImageData = ms.ToArray();
-                            _logger.LogTrace("New Image File Size: " + _compressedImageData.Length / 1024.0 + " KB");
-                            _logger.LogDebug($"Sending Image to server with: {resizedImage.Width}x{resizedImage.Height} [Original: {image.Width}x{image.Height}]");
-                        }
-                    }
-                    try
-                    {
-                        await _apiHubMain.UserSetKinkPlate(new(MainHub.PlayerUserData, profile.KinkPlateInfo, Convert.ToBase64String(_croppedImageData!))).ConfigureAwait(false);
-                        _logger.LogInformation("Image Sent to server successfully.");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to send image to server.");
-                    }
-                });
-            }
-
-
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Upload, "Upload to Server", disabled: _croppedImageData is null))
+                _ = UploadToServer(profile);
         }
-        ImGui.Separator();
+    }
+
+    private async Task UploadToServer(KinkPlate profile)
+    {
+        // grab the _croppedImageData and upload it to the server.
+        if (_croppedImageData is null)
+            return;
+
+        // update the cropped image data to the 256x256 standard it should be.
+        using (var image = Image.Load<Rgba32>(_uploadedImageData))
+        {
+            // Resize the zoomed area to 512x512
+            var resizedImage = image.Clone(ctx => ctx.Resize(new ResizeOptions
+            {
+                Size = new Size(256, 256),
+                Mode = ResizeMode.Max
+            }));
+
+
+            // Convert the processed image to byte array
+            using (var ms = new MemoryStream())
+            {
+                resizedImage.SaveAsPng(ms);
+                _compressedImageData = ms.ToArray();
+                _logger.LogTrace("New Image File Size: " + _compressedImageData.Length / 1024.0 + " KB");
+                _logger.LogDebug($"Sending Image to server with: {resizedImage.Width}x{resizedImage.Height} [Original: {image.Width}x{image.Height}]");
+            }
+        }
+        try
+        {
+            await _apiHubMain.UserSetKinkPlate(new(MainHub.PlayerUserData, profile.KinkPlateInfo, Convert.ToBase64String(_croppedImageData!))).ConfigureAwait(false);
+            _logger.LogInformation("Image Sent to server successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send image to server.");
+        }
     }
 
     private void InitializeZoomFactors(int width, int height)

@@ -253,7 +253,7 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
     {
         // Disconnect, wait 3 seconds, then connect.
         await Disconnect(ServerState.Disconnected).ConfigureAwait(false);
-        await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+        await Task.Delay(TimeSpan.FromSeconds(5));
         await Connect().ConfigureAwait(false);
     }
 
@@ -487,7 +487,7 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
             if (requireReconnect)
             {
                 Logger.LogDebug("Disconnecting From GagSpeakHub-Main due to updated token", LoggerType.ApiCore);
-                await Disconnect(ServerState.Disconnected).ConfigureAwait(false);
+                await Reconnect().ConfigureAwait(false);
                 break;
             }
 

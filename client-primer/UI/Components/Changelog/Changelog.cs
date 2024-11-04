@@ -19,6 +19,12 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 1)
+            .RegisterMain("Achievement Title setting has been implemented now and should properly save.")
+            .RegisterFeature("Dropdowns for all modifiable components of the kinkplate's are not injected into the editor")
+            .RegisterQol("The Image editor is now pulled off into its own window to help reduce window clutter.")
+            .RegisterQol("The overall display of the image editor has been modified for a cleaner workspace window.")
+            .RegisterBugfix("Fixed issue in where profiles sometimes would not update.");
         VersionEntry(0, 9, 9, 0)
             .RegisterMain("Achievements have been restructured for customization support being added soon.")
             .RegisterMain("Account Management / Alt Transfer now properly transfers all data.")

@@ -345,8 +345,8 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         ImGui.SameLine();
 
         // now we need to display the connection link button beside it.
-        var color = UiSharedService.GetBoolColor(!_serverManager.CurrentServer!.FullPause);
-        var connectedIcon = !_serverManager.CurrentServer.FullPause ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
+        var color = UiSharedService.GetBoolColor(MainHub.IsConnected);
+        var connectedIcon = MainHub.IsConnected ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
 
         ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
         if (printShard)
@@ -364,28 +364,27 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 // then display it
                 if (_uiShared.IconButton(connectedIcon))
                 { 
-                    // Obtain the current fullPause state.
-                    var currentState = _serverManager.CurrentServer.FullPause;
                     // If its true, make sure our ServerStatus is Connected, or if its false, make sure our ServerStatus is Disconnected or offline.
-                    if (!currentState && MainHub.ServerStatus is ServerState.Connected)
+                    if (MainHub.ServerStatus is ServerState.Connected)
                     {
                         // If we are connected, we want to disconnect.
-                        _serverManager.CurrentServer.FullPause = !_serverManager.CurrentServer.FullPause;
+                        _serverManager.CurrentServer.FullPause = true;
                         _serverManager.Save();
                         _ = _apiHubMain.Disconnect(ServerState.Disconnected);
                     }
-                    else if (currentState && MainHub.ServerStatus is (ServerState.Disconnected or ServerState.Offline))
+                    else if (MainHub.ServerStatus is (ServerState.Disconnected or ServerState.Offline))
                     {
                         // If we are disconnected, we want to connect.
-                        _serverManager.CurrentServer.FullPause = !_serverManager.CurrentServer.FullPause;
+                        _serverManager.CurrentServer.FullPause = false;
                         _serverManager.Save();
                         _ = _apiHubMain.Connect();
                     }
                 }
             }
             // attach the tooltip for the connection / disconnection button)
-            UiSharedService.AttachToolTip(!_serverManager.CurrentServer.FullPause ?
-                "Disconnect from " + _serverManager.CurrentServer.ServerName : "Connect to " + _serverManager.CurrentServer.ServerName);
+            UiSharedService.AttachToolTip(MainHub.IsConnected 
+                ? "Disconnect from " + _serverManager.CurrentServer.ServerName + "--SEP--Current Status: "+MainHub.ServerStatus 
+                : "Connect to " + _serverManager.CurrentServer.ServerName + "--SEP--Current Status: "+MainHub.ServerStatus);
 
             // go back to the far left, at the same height, and draw another button.
             var addUserIcon = FontAwesomeIcon.UserPlus;

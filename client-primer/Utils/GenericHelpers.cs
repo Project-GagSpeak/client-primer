@@ -1,10 +1,5 @@
 using ImGuiNET;
-using PInvoke;
-using System.Windows.Forms;
 using Lumina.Misc;
-using FFXIVClientStructs.FFXIV.Component.GUI;
-using System.Runtime.InteropServices;
-using GagspeakAPI.Enums;
 
 namespace GagSpeak.Utils;
 
@@ -13,7 +8,7 @@ public static class GenericHelpers
 {
     public static IEnumerable<Padlocks> NoOwnerPadlockList = Enum.GetValues<Padlocks>()
         .Cast<Padlocks>()
-        .Where(p => p is not Padlocks.OwnerPadlock && p is not Padlocks.OwnerTimerPadlock 
+        .Where(p => p is not Padlocks.OwnerPadlock && p is not Padlocks.OwnerTimerPadlock
             && p is not Padlocks.DevotionalPadlock && p is not Padlocks.DevotionalTimerPadlock
             && p is not Padlocks.MimicPadlock)
         .ToArray();

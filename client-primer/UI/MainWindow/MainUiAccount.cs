@@ -106,7 +106,7 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
             ImGui.AlignTextToFramePadding();
             DrawAccountSettingChild(FontAwesomeIcon.PenSquare, "My Profile", "Open and Customize your Profile!", () =>
             {
-                Mediator.Publish(new UiToggleMessage(typeof(EditProfileUi)));
+                Mediator.Publish(new UiToggleMessage(typeof(KinkPlateEditorUI)));
             });
 
             ImGui.AlignTextToFramePadding();

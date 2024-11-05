@@ -67,12 +67,10 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
     /// <summary> Finalized Glamourer Appearance that should be visible on the player. </summary>
     private Dictionary<EquipSlot, IGlamourItem> ItemsToApply => _appearanceService.ItemsToApply;
-
-    /// <summary> Finalized MetaData to apply from highest priority item requesting it. </summary>
     private IpcCallerGlamourer.MetaData MetaToApply => _appearanceService.MetaToApply;
-
-    /// <summary> The collective expected list of Moodles that should be applied to the player. </summary>
     private HashSet<Guid> ExpectedMoodles => _appearanceService.ExpectedMoodles;
+    private (JToken? Customize, JToken? Parameters) ExpectedCustomizations => _appearanceService.ExpectedCustomizations;
+
 
     /// <summary>
     /// The Latest Client Moodles Status List since the last update.
@@ -344,7 +342,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         });
     }
 
-    public async Task RestraintSwapped(Guid newSetId, bool isSelfApplied = true)
+    public async Task RestraintSwapped(Guid newSetId, bool isSelfApplied = true, bool publish = true)
     {
         Logger.LogTrace("SET-SWAPPED Executed. Triggering DISABLE-SET, then ENABLE-SET");
 
@@ -357,9 +355,9 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         }
 
         // First, disable the current set.
-        await DisableRestraintSet(activeSet.RestraintId, disablerUID: MainHub.UID, pushToServer: false, triggerAchievement: false);
+        await DisableRestraintSet(activeSet.RestraintId, disablerUID: MainHub.UID, pushToServer: false);
         // Then, enable the new set.
-        await EnableRestraintSet(newSetId, assignerUID: MainHub.UID, pushToServer: true);
+        await EnableRestraintSet(newSetId, assignerUID: MainHub.UID, pushToServer: publish);
     }
 
     /// <summary>
@@ -421,15 +419,15 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         });
     }
 
-    public async Task GagSwapped(GagLayer layer, GagType curGag, GagType newGag, bool isSelfApplied = true)
+    public async Task GagSwapped(GagLayer layer, GagType curGag, GagType newGag, bool isSelfApplied = true, bool publish = true)
     {
         Logger.LogTrace("GAG-SWAPPED Executed. Triggering GAG-REMOVE, then GAG-APPLIED");
 
         // First, remove the current gag.
-        await GagRemoved(layer, curGag, publishRemoval: false, isSelfApplied: isSelfApplied, triggerAchievement: false);
+        await GagRemoved(layer, curGag, publishRemoval: false, isSelfApplied: isSelfApplied);
 
         // Then, apply the new gag.
-        await GagApplied(layer, newGag, isSelfApplied: isSelfApplied, triggerAchievement: true);
+        await GagApplied(layer, newGag, publishApply: publish, isSelfApplied: isSelfApplied);
     }
 
     /// <summary>
@@ -529,12 +527,11 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 // check to see if the gag is currently active.
                 if (gagSlot.GagType.ToGagType() is not GagType.None)
                 {
-                    // would be ideal to route this into the appearnace manager but whatever.
+                    // would be ideal to route this into the appearance manager but whatever.
                     _gagManager.DisableLock(i);
 
                     // then we should remove it, but not publish it to the mediator just yet.
-                    await GagRemoved((GagLayer)i, gagSlot.GagType.ToGagType(), publishRemoval: false,
-                        isSelfApplied: gagSlot.Assigner == MainHub.UID, triggerAchievement: false);
+                    await GagRemoved((GagLayer)i, gagSlot.GagType.ToGagType(), publishRemoval: false, isSelfApplied: gagSlot.Assigner == MainHub.UID);
                 }
             }
             Logger.LogInformation("Active gags disabled.", LoggerType.Safeword);
@@ -622,6 +619,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         Dictionary<EquipSlot, IGlamourItem> ItemsToApply = new Dictionary<EquipSlot, IGlamourItem>();
         IpcCallerGlamourer.MetaData MetaToApply = IpcCallerGlamourer.MetaData.None;
         HashSet<Guid> ExpectedMoodles = new HashSet<Guid>();
+        (JToken? Customize, JToken? Parameters) ExpectedCustomizations = (null, null);
 
         // store the data to apply from the active set.
         Logger.LogTrace("Wardrobe is Enabled, Collecting Data from Active Set.", LoggerType.ClientPlayerData);
@@ -649,6 +647,15 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                         ExpectedMoodles.UnionWith(statuses);
                 }
             }
+
+            // add the meta data
+            MetaToApply = (activeSetRef.ForceHeadgear && activeSetRef.ForceVisor)
+                ? IpcCallerGlamourer.MetaData.Both : (activeSetRef.ForceHeadgear)
+                    ? IpcCallerGlamourer.MetaData.Hat : (activeSetRef.ForceVisor)
+                        ? IpcCallerGlamourer.MetaData.Visor : IpcCallerGlamourer.MetaData.None;
+            // add the customizations if we desire it.
+            if(activeSetRef.ApplyCustomizations)
+                ExpectedCustomizations = (activeSetRef.CustomizeObject, activeSetRef.ParametersObject);
         }
 
         // Collect gag info if used.
@@ -679,9 +686,9 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 }
 
                 // Apply the metadata stored in this gag item. Any gags after it will overwrite previous meta set.
-                MetaToApply = (data.ForceHeadgearOnEnable && data.ForceVisorOnEnable)
-                    ? IpcCallerGlamourer.MetaData.Both : (data.ForceHeadgearOnEnable)
-                        ? IpcCallerGlamourer.MetaData.Hat : (data.ForceVisorOnEnable)
+                MetaToApply = (data.ForceHeadgear && data.ForceVisor)
+                    ? IpcCallerGlamourer.MetaData.Both : (data.ForceHeadgear)
+                        ? IpcCallerGlamourer.MetaData.Hat : (data.ForceVisor)
                             ? IpcCallerGlamourer.MetaData.Visor : IpcCallerGlamourer.MetaData.None;
             }
         }
@@ -768,6 +775,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         _appearanceService.ItemsToApply = ItemsToApply;
         _appearanceService.MetaToApply = MetaToApply;
         _appearanceService.ExpectedMoodles = ExpectedMoodles;
+        _appearanceService.ExpectedCustomizations = ExpectedCustomizations;
 
         Logger.LogDebug("Appearance Data Recalculated.", LoggerType.ClientPlayerData);
         return;

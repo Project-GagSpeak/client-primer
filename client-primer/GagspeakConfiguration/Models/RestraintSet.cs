@@ -40,10 +40,13 @@ public record RestraintSet : IMoodlesAssociable
     public string LockPassword { get; set; } = string.Empty;
     public DateTimeOffset LockedUntil { get; set; } = DateTimeOffset.MinValue;
     public string LockedBy { get; set; } = string.Empty;
-    public bool ForceHeadgearOnEnable { get; set; } = false;
-    public bool ForceVisorOnEnable { get; set; } = false;
+    public bool ForceHeadgear { get; set; } = false;
+    public bool ForceVisor { get; set; } = false;
+    public bool ApplyCustomizations { get; set; } = false;
     public Dictionary<EquipSlot, EquipDrawData> DrawData { get; set; } = [];
     public Dictionary<BonusItemFlag, BonusDrawData> BonusDrawData { get; set; } = [];
+    public JToken CustomizeObject { get; set; } = new JObject();
+    public JToken ParametersObject { get; set; } = new JObject();
 
     // any Mods to apply with this set, and their respective settings.
     public List<AssociatedMod> AssociatedMods { get; private set; } = new List<AssociatedMod>();
@@ -97,8 +100,11 @@ public record RestraintSet : IMoodlesAssociable
             LockPassword = this.LockPassword,
             LockedUntil = this.LockedUntil,
             LockedBy = this.LockedBy,
-            ForceHeadgearOnEnable = this.ForceHeadgearOnEnable,
-            ForceVisorOnEnable = this.ForceVisorOnEnable,
+            ForceHeadgear = this.ForceHeadgear,
+            ForceVisor = this.ForceVisor,
+            ApplyCustomizations = this.ApplyCustomizations,
+            CustomizeObject = this.CustomizeObject,
+            ParametersObject = this.ParametersObject,
             AssociatedMods = new List<AssociatedMod>(this.AssociatedMods.Select(mod => mod.DeepClone())),
             AssociatedMoodles = new List<Guid>(this.AssociatedMoodles),
             AssociatedMoodlePreset = this.AssociatedMoodlePreset,
@@ -164,6 +170,7 @@ public record RestraintSet : IMoodlesAssociable
         // serialize each item in it
         var setPropertiesObject = JObject.FromObject(SetTraits);
 
+        // Ensure Customize & Paramaters are correctly serialized
 
         return new JObject()
         {
@@ -177,8 +184,11 @@ public record RestraintSet : IMoodlesAssociable
             ["LockPassword"] = LockPassword,
             ["LockedUntil"] = LockedUntil.UtcDateTime.ToString("o"),
             ["LockedBy"] = LockedBy,
-            ["ForceHeadgearOnEnable"] = ForceHeadgearOnEnable,
-            ["ForceVisorOnEnable"] = ForceVisorOnEnable,
+            ["ForceHeadgear"] = ForceHeadgear,
+            ["ForceVisor"] = ForceVisor,
+            ["ApplyCustomizations"] = ApplyCustomizations,
+            ["CustomizeObject"] = CustomizeObject,
+            ["ParametersObject"] = ParametersObject,
             ["DrawData"] = drawDataEquipmentObject,
             ["BonusDrawData"] = bonusDrawDataArray,
             ["AssociatedMods"] = associatedModsArray,
@@ -204,8 +214,11 @@ public record RestraintSet : IMoodlesAssociable
         LockedUntil = new DateTimeOffset(dateTime, TimeSpan.Zero); // Zero indicates UTC
 
         LockedBy = jsonObject["LockedBy"]?.Value<string>() ?? string.Empty;
-        ForceHeadgearOnEnable = jsonObject["ForceHeadgearOnEnable"]?.Value<bool>() ?? false;
-        ForceVisorOnEnable = jsonObject["ForceVisorOnEnable"]?.Value<bool>() ?? false;
+        ForceHeadgear = jsonObject["ForceHeadgear"]?.Value<bool>() ?? false;
+        ForceVisor = jsonObject["ForceVisor"]?.Value<bool>() ?? false;
+        ApplyCustomizations = jsonObject["ApplyCustomizations"]?.Value<bool>() ?? false;
+        CustomizeObject = jsonObject["CustomizeObject"] ?? new JObject();
+        ParametersObject = jsonObject["ParametersObject"] ?? new JObject();
         try
         {
             var drawDataObject = jsonObject["DrawData"]?.Value<JObject>();

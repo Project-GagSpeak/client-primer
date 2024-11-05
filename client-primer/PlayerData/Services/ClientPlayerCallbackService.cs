@@ -199,7 +199,7 @@ public class ClientCallbackService
             if (_playerData.AppearanceData!.GagSlots[(int)callbackGagLayer].GagType.ToGagType() != GagType.None)
             {
                 _logger.LogDebug("Gag is already applied. Swapping Gag.", LoggerType.Callbacks);
-                await _appearanceManager.GagSwapped(callbackGagLayer, currentGagType, callbackGagSlot.GagType.ToGagType(), isSelfApplied: false);
+                await _appearanceManager.GagSwapped(callbackGagLayer, currentGagType, callbackGagSlot.GagType.ToGagType(), isSelfApplied: false, publish: false);
                 // Log the Interaction Event.
                 _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.SwappedGag, "Gag Swapped on "+callbackGagLayer)));
                 return;
@@ -208,7 +208,7 @@ public class ClientCallbackService
             {
                 // Apply Gag
                 _logger.LogDebug("Applying Gag to Character Appearance.", LoggerType.Callbacks);
-                await _appearanceManager.GagApplied(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), isSelfApplied: false);
+                await _appearanceManager.GagApplied(callbackGagLayer, callbackGagSlot.GagType.ToGagType(), isSelfApplied: false, publishApply: false);
                 // Log the Interaction Event.
                 _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ApplyGag, callbackGagSlot.GagType + " applied to "+callbackGagLayer)));
                 return;
@@ -233,7 +233,7 @@ public class ClientCallbackService
         }
         else if (callbackGagState is NewState.Disabled)
         {
-            await _appearanceManager.GagRemoved(callbackGagLayer, currentGagType, isSelfApplied: false);
+            await _appearanceManager.GagRemoved(callbackGagLayer, currentGagType, isSelfApplied: false, publishRemoval: false);
             // Log the Interaction Event.
             _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.RemoveGag, "Removed Gag from " + callbackGagLayer)));
             return;
@@ -303,7 +303,7 @@ public class ClientCallbackService
                         // grab the new set id
                         var newSetId = _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets[callbackSetIdx].RestraintId;
                         // reapply.
-                        await _appearanceManager.RestraintSwapped(newSetId, isSelfApplied: false);
+                        await _appearanceManager.RestraintSwapped(newSetId, isSelfApplied: false, publish: false);
                         _logger.LogDebug($"{callbackDto.User.UID} has swapped your [{activeSet.Name}] restraint set to another set!", LoggerType.Callbacks);
                         // Log the Interaction Event
                         _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.SwappedRestraint, "Swapped Set to: "+ _clientConfigs.GetSetNameByGuid(data.ActiveSetId))));
@@ -313,7 +313,7 @@ public class ClientCallbackService
                         if(callbackSet is not null)
                         {
                             _logger.LogDebug($"{callbackDto.User.UID} has forcibly applied one of your restraint sets!", LoggerType.Callbacks);
-                            await _wardrobeHandler.EnableRestraintSet(callbackSet.RestraintId, callbackDto.User.UID, false);
+                            await _wardrobeHandler.EnableRestraintSet(callbackSet.RestraintId, callbackDto.User.UID, pushToServer: false);
                             // Log the Interaction Event
                             _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.ApplyRestraint, "Applied Set: " + _clientConfigs.GetSetNameByGuid(data.ActiveSetId))));
                         }
@@ -347,7 +347,7 @@ public class ClientCallbackService
                     var currentlyActiveSet = _clientConfigs.GetActiveSet();
                     if (currentlyActiveSet is not null)
                     {
-                        await _wardrobeHandler.DisableRestraintSet(currentlyActiveSet.RestraintId, callbackDto.User.UID, false);
+                        await _wardrobeHandler.DisableRestraintSet(currentlyActiveSet.RestraintId, callbackDto.User.UID, pushToServer: false);
                         // Log the Interaction Event
                         _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.RemoveRestraint, currentlyActiveSet.Name + " has been removed")));
                     }

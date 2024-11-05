@@ -17,8 +17,8 @@ public class BlindfoldModel
         };
     }
 
-    public bool ForceHeadgearOnEnable { get; set; } = false;
-    public bool ForceVisorOnEnable { get; set; } = false;
+    public bool ForceHeadgear { get; set; } = false;
+    public bool ForceVisor { get; set; } = false;
     public List<Guid> BlindfoldMoodles { get; set; } = new List<Guid>();
     public EquipDrawData BlindfoldItem { get; set; }
 
@@ -36,8 +36,8 @@ public class BlindfoldModel
     {
         return new JObject
         {
-            ["ForceHeadgearOnEnable"] = ForceHeadgearOnEnable,
-            ["ForceVisorOnEnable"] = ForceVisorOnEnable,
+            ["ForceHeadgear"] = ForceHeadgear,
+            ["ForceVisor"] = ForceVisor,
             ["BlindfoldMoodles"] = new JArray(BlindfoldMoodles),
             ["BlindfoldItem"] = BlindfoldItem.Serialize()
         };
@@ -45,8 +45,8 @@ public class BlindfoldModel
 
     public void Deserialize(JObject jsonObject)
     {
-        ForceHeadgearOnEnable = jsonObject["ForceHeadgearOnEnable"]?.Value<bool>() ?? false;
-        ForceVisorOnEnable = jsonObject["ForceVisorOnEnable"]?.Value<bool>() ?? false;
+        ForceHeadgear = jsonObject["ForceHeadgear"]?.Value<bool>() ?? false;
+        ForceVisor = jsonObject["ForceVisor"]?.Value<bool>() ?? false;
         if (jsonObject["BlindfoldMoodles"] is JArray associatedMoodlesArray)
         {
             BlindfoldMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();

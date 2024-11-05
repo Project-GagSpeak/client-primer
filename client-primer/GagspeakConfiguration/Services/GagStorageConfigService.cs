@@ -64,8 +64,8 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
                 var v2Gag = new JObject
                 {
                     ["IsEnabled"] = v1Gag["IsEnabled"],
-                    ["ForceHeadgearOnEnable"] = false,
-                    ["ForceVisorOnEnable"] = false,
+                    ["ForceHeadgear"] = false,
+                    ["ForceVisor"] = false,
                     ["GagMoodles"] = new JArray(),
                     ["Slot"] = v1Gag["Slot"],
                     ["CustomItemId"] = gameItem["Id"]?.ToString(),

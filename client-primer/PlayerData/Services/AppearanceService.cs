@@ -50,14 +50,14 @@ public class AppearanceService : DisposableMediatorSubscriberBase
         });
     }
 
-    /// <summary>
-    /// The Finalized Glamourer Appearance that should be visible on the player.
-    /// This is to be maintained by AppearanceHandler. 
-    /// </summary>
+    /// <summary> Finalized Glamourer Appearance that should be visible on the player. </summary>
     public Dictionary<EquipSlot, IGlamourItem> ItemsToApply { get; set; } = new Dictionary<EquipSlot, IGlamourItem>();
+    /// <summary> Finalized MetaData to apply from highest priority item requesting it. </summary>
     public IpcCallerGlamourer.MetaData MetaToApply { get; set; } = IpcCallerGlamourer.MetaData.None;
+    /// <summary> The collective expected list of Moodles that should be applied to the player. </summary>
     public HashSet<Guid> ExpectedMoodles { get; set; } = new HashSet<Guid>();
-
+    /// <summary> The Customize Object that should be applied </summary>
+    public (JToken? Customize, JToken? Parameters) ExpectedCustomizations { get; set; } = (null, null);
 
     protected override void Dispose(bool disposing)
     {
@@ -240,6 +240,11 @@ public class AppearanceService : DisposableMediatorSubscriberBase
 
         // update the meta data.
         await _Interop.Glamourer.ForceSetMetaData(MetaToApply, true);
+
+        // update customizations if we should
+        if(ExpectedCustomizations.Customize is not null && ExpectedCustomizations.Parameters is not null)
+            await _Interop.Glamourer.ForceSetCustomize(ExpectedCustomizations.Customize, ExpectedCustomizations.Parameters);
+
         Logger.LogDebug("Glamour Update Completed", LoggerType.ClientPlayerData);
     }
 

@@ -55,8 +55,8 @@ public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
                 ["LockPassword"] = v2Set["LockPassword"],
                 ["LockedUntil"] = v2Set["LockedUntil"],
                 ["LockedBy"] = v2Set["LockedBy"],
-                ["ForceHeadgearOnEnable"] = false, // Assuming default values for new properties
-                ["ForceVisorOnEnable"] = false,
+                ["ForceHeadgear"] = false, // Assuming default values for new properties
+                ["ForceVisor"] = false,
                 ["DrawData"] = new JObject()
             };
 
@@ -110,8 +110,8 @@ public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
 
             var v3BlindfoldInfo = new JObject
             {
-                ["ForceHeadgearOnEnable"] = false, // Assuming default values for new properties
-                ["ForceVisorOnEnable"] = false,
+                ["ForceHeadgear"] = false, // Assuming default values for new properties
+                ["ForceVisor"] = false,
                 ["BlindfoldMoodles"] = new JArray(),
                 ["BlindfoldItem"] = v3BlindfoldItem
             };

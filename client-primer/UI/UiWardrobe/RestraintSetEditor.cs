@@ -217,20 +217,43 @@ public class RestraintSetEditor : IMediatorSubscriber
             ImGui.TableNextColumn();
             // draw the checkbox options.
             // preset some variables to grab from our config service.
-            bool forceHelmetOnEnable = refRestraintSet.ForceHeadgearOnEnable;
-            bool forceVisorOnEnable = refRestraintSet.ForceVisorOnEnable;
+            bool forceHelmet= refRestraintSet.ForceHeadgear;
+            bool forceVisor = refRestraintSet.ForceVisor;
+            bool applyCustomizations = refRestraintSet.ApplyCustomizations;
 
-            if (ImGui.Checkbox("Force-Enable Headgear", ref forceHelmetOnEnable))
+            if (ImGui.Checkbox("Headgear", ref forceHelmet))
             {
-                refRestraintSet.ForceHeadgearOnEnable = forceHelmetOnEnable;
+                refRestraintSet.ForceHeadgear = forceHelmet;
             }
             _uiShared.DrawHelpText("Will force your headgear to become visible when the set is applied. (Via Glamourer State)");
-
-            if (ImGui.Checkbox("Force-Enable Visor", ref forceVisorOnEnable))
+            ImGui.SameLine();
+            if (ImGui.Checkbox("Visor", ref forceVisor))
             {
-                refRestraintSet.ForceVisorOnEnable = forceVisorOnEnable;
+                refRestraintSet.ForceVisor = forceVisor;
             }
             _uiShared.DrawHelpText("Will force your visor to become visible when the set is applied. (Via Glamourer State)");
+            
+            if(ImGui.Checkbox("Apply Customize", ref applyCustomizations))
+            {
+                refRestraintSet.ApplyCustomizations = applyCustomizations;
+            }
+            _uiShared.DrawHelpText("Will apply any stored Customizations from import.");
+
+            ImGui.SameLine();
+
+            _uiShared.BooleanToColoredIcon(!JToken.DeepEquals(refRestraintSet.CustomizeObject, new JObject()));
+            UiSharedService.AttachToolTip(refRestraintSet.CustomizeObject != new JObject()
+                ? "Customizations are stored for this set."
+                : "No Customizations are stored for this set.");
+
+            ImGui.SameLine();
+            if (_uiShared.IconButton(FontAwesomeIcon.Ban, disabled: refRestraintSet.CustomizeObject == new JObject()))
+            {
+                refRestraintSet.CustomizeObject = new JObject();
+                refRestraintSet.ParametersObject = new JObject();
+                _logger.LogTrace("Customizations Cleared.", LoggerType.Restraints);
+            }
+            UiSharedService.AttachToolTip("Clears any stored Customizations for this set.");
         }
     }
 

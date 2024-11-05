@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 4)
+            .RegisterFeature("You can now cache Glamourer Design customizations in restraint sets if you desire.")
+            .RegisterBugfix("Fixed gag and restraint calls sending duplicate callbacks.");
         VersionEntry(0, 9, 9, 3)
             .RegisterMain("You can now properly bind Moodles to your Gags & Restraints, without flooding peoples mare or status manager spam.")
             .RegisterFeature("Attempting to remove moodles bound to your gags and restraints will now instantly reapply them before mare can process an update." +

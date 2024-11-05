@@ -16,8 +16,8 @@ public record GagDrawData : IMoodlesAssociable, IGlamourItem
     public EquipSlot Slot { get; set; } = EquipSlot.Head;
     public EquipItem GameItem { get; set; }
     public StainIds GameStain { get; set; } = StainIds.None;
-    public bool ForceHeadgearOnEnable { get; set; } = false;
-    public bool ForceVisorOnEnable { get; set; } = false;
+    public bool ForceHeadgear { get; set; } = false;
+    public bool ForceVisor { get; set; } = false;
 
     // List of Moodles to apply while Gagged.
     public List<Guid> AssociatedMoodles { get; set; } = new List<Guid>();
@@ -47,8 +47,8 @@ public record GagDrawData : IMoodlesAssociable, IGlamourItem
         return new JObject()
         {
             ["IsEnabled"] = IsEnabled,
-            ["ForceHeadgearOnEnable"] = ForceHeadgearOnEnable,
-            ["ForceVisorOnEnable"] = ForceVisorOnEnable,
+            ["ForceHeadgear"] = ForceHeadgear,
+            ["ForceVisor"] = ForceVisor,
             ["GagMoodles"] = new JArray(AssociatedMoodles),
             ["GagMoodlePresets"] = AssociatedMoodlePreset,
             ["CustomizePriority"] = CustomizePriority,
@@ -62,8 +62,8 @@ public record GagDrawData : IMoodlesAssociable, IGlamourItem
     public void Deserialize(JObject jsonObject)
     {
         IsEnabled = jsonObject["IsEnabled"]?.Value<bool>() ?? false;
-        ForceHeadgearOnEnable = jsonObject["ForceHeadgearOnEnable"]?.Value<bool>() ?? false;
-        ForceVisorOnEnable = jsonObject["ForceVisorOnEnable"]?.Value<bool>() ?? false;
+        ForceHeadgear = jsonObject["ForceHeadgear"]?.Value<bool>() ?? false;
+        ForceVisor = jsonObject["ForceVisor"]?.Value<bool>() ?? false;
 
         // Deserialize the AssociatedMoodles
         if (jsonObject["GagMoodles"] is JArray associatedMoodlesArray)

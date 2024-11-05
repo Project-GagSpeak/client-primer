@@ -312,19 +312,19 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
         _uiShared.DrawHelpText("When enabled, allows Item-AutoEquip to function with this Gag." + Environment.NewLine
             + "When disabled, this Gag Glamour will not be auto equipped, even with Item Auto-Equip on.");
 
-        var refHelmetForced = UnsavedDrawData.ForceHeadgearOnEnable;
+        var refHelmetForced = UnsavedDrawData.ForceHeadgear;
         if (ImGui.Checkbox($"Force Headgear", ref refHelmetForced))
         {
-            UnsavedDrawData.ForceHeadgearOnEnable = refHelmetForced;
-            Logger.LogTrace($"Gag {SelectedGag.GagName()} will now {(UnsavedDrawData.ForceHeadgearOnEnable ? "force headgear on" : "not force headgear on")} when enabled");
+            UnsavedDrawData.ForceHeadgear = refHelmetForced;
+            Logger.LogTrace($"Gag {SelectedGag.GagName()} will now {(UnsavedDrawData.ForceHeadgear ? "force headgear on" : "not force headgear on")} when enabled");
         }
         _uiShared.DrawHelpText("When enabled, your [Hat Visible] property in Glamourer will be set to enabled. Making headgear visible.");
 
-        var refVisorForced = UnsavedDrawData.ForceVisorOnEnable;
+        var refVisorForced = UnsavedDrawData.ForceVisor;
         if (ImGui.Checkbox($"Force Visor", ref refVisorForced))
         {
-            UnsavedDrawData.ForceVisorOnEnable = refVisorForced;
-            Logger.LogTrace($"Gag {SelectedGag.GagName()} will now {(UnsavedDrawData.ForceVisorOnEnable ? "force visor on" : "not force visor on")} when enabled");
+            UnsavedDrawData.ForceVisor = refVisorForced;
+            Logger.LogTrace($"Gag {SelectedGag.GagName()} will now {(UnsavedDrawData.ForceVisor ? "force visor on" : "not force visor on")} when enabled");
         }
         _uiShared.DrawHelpText("When enabled, your [Visor Visible] property in Glamourer will be set to enabled. Making visor visible.");
 

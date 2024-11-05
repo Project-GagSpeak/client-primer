@@ -193,6 +193,13 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         return true;
     }
 
+    public void SetRestraintCustomizationsFromState(RestraintSet setToEdit)
+    {
+        var playerState = GetState();
+        setToEdit.CustomizeObject = playerState!["Customize"] ?? new JObject();
+        setToEdit.ParametersObject = playerState!["Parameters"] ?? new JObject();
+    }
+
     private EquipDrawData? UpdateItem(JToken? item, string slotName)
     {
         if (item == null) return null;
@@ -222,12 +229,12 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
                 // grab the JObject of the character state.
                 var playerState = GetState();
 
-                if (metaData == MetaData.Both || metaData == MetaData.Hat)
+                if (metaData is MetaData.Both or MetaData.Hat)
                 {
                     playerState!["Equipment"]!["Hat"]!["Show"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Hat"]?["Show"]) ?? false); ;
                     playerState!["Equipment"]!["Hat"]!["Apply"] = true;
                 }
-                if (metaData == MetaData.Both || metaData == MetaData.Visor)
+                if (metaData is MetaData.Both or MetaData.Visor)
                 {
                     playerState!["Equipment"]!["Visor"]!["IsToggled"] = forcedState ?? !(((bool?)playerState?["Equipment"]?["Visor"]?["IsToggled"]) ?? false); ;
                     playerState!["Equipment"]!["Visor"]!["Apply"] = true;
@@ -241,6 +248,31 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         {
             Logger.LogWarning($"Error during SetMetaData: {ex}", LoggerType.IpcGlamourer);
             return false;
+        }
+    }
+
+    public async Task ForceSetCustomize(JToken customizations, JToken parameters)
+    {
+        // if the glamourerApi is not active, then return an empty string for the customization
+        if (!APIAvailable || _frameworkUtils.IsZoning) return;
+        try
+        {
+            await _frameworkUtils.RunOnFrameworkThread(() =>
+            {
+                // grab the JObject of the character state.
+                var playerState = GetState();
+
+                // set the customizations and parameters
+                playerState!["Customize"] = customizations;
+                playerState!["Parameters"] = parameters;
+
+                // apply the new state.
+                _ApplyState.Invoke(playerState!, 0);
+            }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning($"Error during ForceSetCustomize: {ex}", LoggerType.IpcGlamourer);
         }
     }
 

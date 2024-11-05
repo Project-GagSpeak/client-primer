@@ -5,21 +5,20 @@ using Microsoft.AspNetCore.SignalR.Client;
 namespace GagSpeak.WebAPI.Utils;
 public class ForeverRetryPolicy : IRetryPolicy
 {
-    private readonly GagspeakMediator _mediator;    // our gagspeak mediator
-    private bool _sentDisconnected = false;         // indicating weather a disconnection notif was sent
+    private readonly GagspeakMediator _mediator;
+    private bool _sentDisconnected = false; // indicating weather a disconnection notif was sent
 
     public ForeverRetryPolicy(GagspeakMediator mediator)
     {
         _mediator = mediator;
     }
 
-    /// <summary> Determines the delay before the next retry attempt to connect to the signalR Hub.
+    /// <summary> 
+    /// Determines the delay before the next retry attempt to connect to the signalR Hub.
     /// <para>
     /// Uses the retryContext.PreviousRetryCount to adjust the delay and decide when to notify application of disconnection.
     /// </para>
     /// </summary>
-    /// <param name="retryContext"></param>
-    /// <returns></returns>
     public TimeSpan? NextRetryDelay(RetryContext retryContext)
     {
         // random time to wait

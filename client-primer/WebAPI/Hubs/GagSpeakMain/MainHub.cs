@@ -21,15 +21,27 @@ namespace GagSpeak.WebAPI;
 /// </summary>
 public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
 {
+    private readonly HubFactory _hubFactory;
+    private readonly PairManager _pairs;
+    private readonly ServerConfigurationManager _serverConfigs;
+    private readonly GagspeakConfigService _mainConfig;
+    private readonly ClientCallbackService _clientCallbacks;
+
     // Cancellation Token Sources
     private CancellationTokenSource HubConnectionCTS;
     private CancellationTokenSource? HubHealthCTS = new();
 
     public MainHub(ILogger<MainHub> logger, GagspeakMediator mediator, HubFactory hubFactory,
         TokenProvider tokenProvider, PairManager pairs, ServerConfigurationManager serverConfigs, 
-        GagspeakConfigService mainConfig, ClientCallbackService callbackService, OnFrameworkService frameworkUtils)
-        : base(logger, mediator, hubFactory, tokenProvider, pairs, serverConfigs, mainConfig, callbackService, frameworkUtils)
+        GagspeakConfigService mainConfig, ClientCallbackService callbackService, 
+        OnFrameworkService frameworkUtils) : base(logger, mediator, tokenProvider, frameworkUtils)
     {
+        _hubFactory = hubFactory;
+        _pairs = pairs;
+        _serverConfigs = serverConfigs;
+        _mainConfig = mainConfig;
+        _clientCallbacks = callbackService;
+
         // Create our CTS for the hub connection
         HubConnectionCTS = new CancellationTokenSource();
 
@@ -536,7 +548,7 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
         // Retrieve the pairs from the server that we have added, and add them to the pair manager.
         var pairs = await UserGetPairedClients().ConfigureAwait(false);
         foreach (var userPair in pairs)
-            _pairManager.AddUserPair(userPair);
+            _pairs.AddUserPair(userPair);
 
         Logger.LogDebug("Initial Pairs Loaded: [" + string.Join(", ", pairs.Select(x => x.User.AliasOrUID)) + "]", LoggerType.ApiCore);
     }
@@ -545,7 +557,7 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
     {
         var onlinePairs = await UserGetOnlinePairs().ConfigureAwait(false);
         foreach (var entry in onlinePairs)
-            _pairManager.MarkPairOnline(entry, sendNotif: false);
+            _pairs.MarkPairOnline(entry, sendNotif: false);
 
         Logger.LogDebug("Online Pairs: [" + string.Join(", ", onlinePairs.Select(x => x.User.AliasOrUID)) + "]", LoggerType.ApiCore);
         Mediator.Publish(new OnlinePairsLoadedMessage());

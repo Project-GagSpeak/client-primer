@@ -7,30 +7,23 @@ using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
-using GagSpeak.Interop.IpcHelpers.Penumbra;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
 using GagSpeak.UpdateMonitoring.SpatialAudio.Spawner;
+using GagSpeak.Utils;
 using GagSpeak.WebAPI;
-using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Enums;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
-using OtterGui;
 using OtterGui.Text;
+using Penumbra.GameData.Enums;
 using System.Globalization;
 using System.Numerics;
-using GagSpeak.Utils;
-using Lumina.Excel.GeneratedSheets2;
-using GagSpeak.Hardcore.Movement;
-using Penumbra.GameData.Enums;
 
 namespace GagSpeak.UI;
 
@@ -231,6 +224,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
             // if this creates a race condition down the line remove the above line.
             _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
             new KeyValuePair<string, object>("ItemAutoEquip", itemAutoEquip), MainHub.PlayerUserData));
+            // perform recalculations to our cache.
+            Mediator.Publish(new AppearanceImpactingSettingChanged());
         }
         _uiShared.DrawHelpText("Allows Glamourer to bind your chosen Gag Glamour's upon becoming gagged!");
 
@@ -262,6 +257,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 // if this creates a race condition down the line remove the above line.
                 _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
                 new KeyValuePair<string, object>("RestraintSetAutoEquip", restraintSetAutoEquip), MainHub.PlayerUserData));
+                // perform recalculations to our cache.
+                Mediator.Publish(new AppearanceImpactingSettingChanged());
             }
             _uiShared.DrawHelpText("Allows Glamourer to bind restraint sets to your character.\nRestraint sets can be created in the Wardrobe Interface.");
 
@@ -277,9 +274,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 _clientConfigs.GagspeakConfig.CursedDungeonLoot = cursedDungeonLoot;
                 _clientConfigs.Save();
             }
-            _uiShared.DrawHelpText("Provide the Cursed Loot Component with a list of sets to randomly apply."+Environment.NewLine
-                +"When opening Dungeon Chests, there is a random chance to apply & lock a set."+Environment.NewLine
-                +"Mimic Timer Locks are set in your defined range, and CANNOT be unlocked.");
+            _uiShared.DrawHelpText("Provide the Cursed Loot Component with a list of sets to randomly apply." + Environment.NewLine
+                + "When opening Dungeon Chests, there is a random chance to apply & lock a set." + Environment.NewLine
+                + "Mimic Timer Locks are set in your defined range, and CANNOT be unlocked.");
 
 
             if (ImGui.Checkbox("Enable Moodles", ref moodlesEnabled))
@@ -288,6 +285,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 // if this creates a race condition down the line remove the above line.
                 _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
                 new KeyValuePair<string, object>("MoodlesEnabled", moodlesEnabled), MainHub.PlayerUserData));
+                // perform recalculations to our cache.
+                Mediator.Publish(new AppearanceImpactingSettingChanged());
 
             }
             _uiShared.DrawHelpText("If enabled, the moodles component will become functional.");
@@ -302,7 +301,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             string label = (style is RevertStyle.RevertToGame or RevertStyle.RevertToAutomation) ? "Revert" : "Reapply";
 
             bool isSelected = _clientConfigs.GagspeakConfig.RevertStyle == style;
-            if (ImGui.RadioButton(label+"##"+style.ToString(), isSelected))
+            if (ImGui.RadioButton(label + "##" + style.ToString(), isSelected))
             {
                 _clientConfigs.GagspeakConfig.RevertStyle = style;
                 _clientConfigs.Save();
@@ -483,7 +482,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             + "While this is a GLOBAL share code, only people you are in Hardcore mode with will have access to it.");
 
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-        if(ImGui.SliderInt("Global Max Vibration Time", ref maxGlobalVibrateDuration, 0, 30))
+        if (ImGui.SliderInt("Global Max Vibration Time", ref maxGlobalVibrateDuration, 0, 30))
         {
             PlayerGlobalPerms.GlobalShockVibrateDuration = TimeSpan.FromSeconds(maxGlobalVibrateDuration);
         }
@@ -511,10 +510,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
             ImGui.TextUnformatted("Global Max Shock Intensity: ");
             ImGui.SameLine();
             UiSharedService.ColorText(maxGlobalShockCollarIntensity.ToString() + "%", ImGuiColors.ParsedGold);
-            
+
             ImGui.TextUnformatted("Global Max Shock Duration: ");
             ImGui.SameLine();
-            UiSharedService.ColorText(maxGlobalShockDuration.Seconds.ToString()+"."+maxGlobalShockDuration.Milliseconds.ToString()+"s", ImGuiColors.ParsedGold);
+            UiSharedService.ColorText(maxGlobalShockDuration.Seconds.ToString() + "." + maxGlobalShockDuration.Milliseconds.ToString() + "s", ImGuiColors.ParsedGold);
         }
     }
     private DateTime _lastRefresh = DateTime.MinValue;
@@ -529,7 +528,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         ImGui.SetColumnWidth(0, width);
         // go to first column.
         _uiShared.BigText("Live Chat Garbler");
-        using(ImRaii.Group())
+        using (ImRaii.Group())
         {
             // display the channels
             var i = 0;
@@ -626,7 +625,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
         ImGui.NextColumn();
         _uiShared.BigText("Puppeteer Channels");
-        using(ImRaii.Group())
+        using (ImRaii.Group())
         {
             // display the channels
             var j = 0;
@@ -774,7 +773,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (!showProfiles) ImGui.EndDisabled();
         ImGui.Unindent();
 
-        if(ImGui.Checkbox("Show Context Menus for Visible Pairs", ref showContextMenus))
+        if (ImGui.Checkbox("Show Context Menus for Visible Pairs", ref showContextMenus))
         {
             _configService.Current.ContextMenusShow = showContextMenus;
             _configService.Save();
@@ -795,7 +794,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _configService.Current.LiveGarblerZoneChangeWarn = liveGarblerZoneChangeWarn;
             _configService.Save();
         }
-        _uiShared.DrawHelpText("Displays a notification to you if you change zones while your live garbler is still active."+
+        _uiShared.DrawHelpText("Displays a notification to you if you change zones while your live garbler is still active." +
             Environment.NewLine + "Helpful for preventing any accidental muffled statements in unwanted chats~");
 
         if (ImGui.Checkbox("Enable online notifications", ref onlineNotifs))
@@ -881,7 +880,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         // create the child window.
 
         float height = ImGui.GetFrameHeight() * 3 + ImGui.GetStyle().ItemSpacing.Y * 2 + ImGui.GetStyle().WindowPadding.Y * 2;
-        using var child = ImRaii.Child($"##AuthAccountListing"+idx+ account.CharacterPlayerContentId, new Vector2(ImGui.GetContentRegionAvail().X, height), true, ImGuiWindowFlags.ChildWindow);
+        using var child = ImRaii.Child($"##AuthAccountListing" + idx + account.CharacterPlayerContentId, new Vector2(ImGui.GetContentRegionAvail().X, height), true, ImGuiWindowFlags.ChildWindow);
         if (!child) return;
 
         using (var group = ImRaii.Group())
@@ -903,7 +902,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 _deleteAccountPopupModalShown = true;
                 ImGui.OpenPopup("Delete your account?");
             }
-            UiSharedService.AttachToolTip("Permanently remove the use of this secret key and registered account for this character."+Environment.NewLine
+            UiSharedService.AttachToolTip("Permanently remove the use of this secret key and registered account for this character." + Environment.NewLine
                 + "You CANNOT RE-USE THIS SECRET KEY. IT IS BOUND TO THIS UID." + Environment.NewLine
                 + "If you want to create a new account for this login, you must create a new key for it after removing.");
         }
@@ -918,7 +917,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             var isPrimaryIcon = _uiShared.GetIconData(FontAwesomeIcon.Fingerprint);
             var successfulConnection = _uiShared.GetIconData(FontAwesomeIcon.PlugCircleCheck);
-            float rightEnd = ImGui.GetContentRegionAvail().X - successfulConnection.X - isPrimaryIcon.X - 2*ImGui.GetStyle().ItemInnerSpacing.X;
+            float rightEnd = ImGui.GetContentRegionAvail().X - successfulConnection.X - isPrimaryIcon.X - 2 * ImGui.GetStyle().ItemInnerSpacing.X;
             ImGui.SameLine(rightEnd);
             _uiShared.BooleanToColoredIcon(account.IsPrimary, false, FontAwesomeIcon.Fingerprint, FontAwesomeIcon.Fingerprint, isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
             UiSharedService.AttachToolTip(account.IsPrimary ? "This is your Primary Gagspeak Account" : "This your secondary GagSpeak Account");
@@ -932,21 +931,21 @@ public class SettingsUi : WindowMediatorSubscriberBase
             string keyDisplayText = ShowKeyLabel ? account.SecretKey.Label : account.SecretKey.Key;
             ImGui.AlignTextToFramePadding();
             _uiShared.IconText(FontAwesomeIcon.Key);
-            if(ImGui.IsItemClicked())
+            if (ImGui.IsItemClicked())
             {
                 ShowKeyLabel = !ShowKeyLabel;
             }
             UiSharedService.AttachToolTip("Secret Key for this account. (Insert by clicking the edit pen icon)");
             // we shoul draw an inputtext field here if we can edit it, and a text field if we cant.
-            if(EditingIdx == idx)
+            if (EditingIdx == idx)
             {
                 ImUtf8.SameLineInner();
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - _uiShared.GetIconButtonSize(FontAwesomeIcon.PenSquare).X - ImGui.GetStyle().ItemSpacing.X);
                 string key = account.SecretKey.Key;
-                if (ImGui.InputTextWithHint("##SecondaryAuthKey"+account.CharacterPlayerContentId, "Paste Secret Key Here...", ref key, 64, ImGuiInputTextFlags.EnterReturnsTrue))
+                if (ImGui.InputTextWithHint("##SecondaryAuthKey" + account.CharacterPlayerContentId, "Paste Secret Key Here...", ref key, 64, ImGuiInputTextFlags.EnterReturnsTrue))
                 {
                     _logger.LogInformation("This would have updated the secret key!");
-                    if(account.SecretKey.Label.IsNullOrEmpty())
+                    if (account.SecretKey.Label.IsNullOrEmpty())
                     {
                         account.SecretKey.Label = "Alt Character Key for " + account.CharacterName + " on " + _uiShared.WorldData[(ushort)account.WorldId];
                     }
@@ -966,7 +965,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 UiSharedService.AttachToolTip("Click the friendly label to copy the actual secret key to clipboard");
             }
 
-            if(idx != int.MaxValue)
+            if (idx != int.MaxValue)
             {
                 var insertKey = _uiShared.GetIconData(FontAwesomeIcon.PenSquare);
                 float rightEnd = ImGui.GetContentRegionAvail().X - insertKey.X;
@@ -1218,7 +1217,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         UiSharedService.AttachToolTip("Use this when reporting mods being rejected from the server.");
 
-        
+
         // draw debug information for character information.
         if (ImGui.CollapsingHeader("Global Data")) { DrawGlobalInfo(); }
         if (ImGui.CollapsingHeader("Appearance Data")) { DrawAppearanceInfo(); }
@@ -1377,7 +1376,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Text("Can Toggle Alarms: " + clientPair.UserPairEditAccess.CanToggleAlarmsAllowed);
                         ImGui.Text("Can Send Alarms Allowed: " + clientPair.UserPairEditAccess.CanSendAlarmsAllowed);
                         ImGui.Text("Can Execute Patterns Allowed: " + clientPair.UserPairEditAccess.CanExecutePatternsAllowed);
-                        ImGui.Text("Can Stop Patterns Allowed: "+ clientPair.UserPairEditAccess.CanStopPatternsAllowed);
+                        ImGui.Text("Can Stop Patterns Allowed: " + clientPair.UserPairEditAccess.CanStopPatternsAllowed);
                         ImGui.Text("Can Toggle Triggers Allowed: " + clientPair.UserPairEditAccess.CanToggleTriggersAllowed);
                     }
                 }

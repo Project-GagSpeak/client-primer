@@ -2,6 +2,7 @@ using Dalamud.Plugin.Services;
 using static FFXIVClientStructs.FFXIV.Client.Game.UI.Achievement.Delegates;
 using System.ComponentModel;
 using System;
+using System.Globalization;
 
 namespace GagSpeak.Achievements;
 
@@ -72,7 +73,7 @@ public class AchievementSaveData
                     ConditionalTaskBegun = achievement is ConditionalProgressAchievement conditionalProgressAchievement ? conditionalProgressAchievement.ConditionalTaskBegun : false,
                     StartTime = GetStartTime(achievement) ?? DateTime.MinValue,
                     RecordedDateTimes = achievement is TimedProgressAchievement timedProgressAchievement ? (timedProgressAchievement.ProgressTimestamps ?? new List<DateTime>()) : new List<DateTime>(),
-                    ActiveItems = achievement is DurationAchievement durationAchievement ? durationAchievement.ActiveItems : new Dictionary<TrackedItem, DateTime>()
+                    ActiveItems = achievement is DurationAchievement durationAchievement ? durationAchievement.ActiveItems : new Dictionary<string, TrackedItem>()
                 };
 
                 dto.LightAchievementData.Add(lightAchievement);
@@ -205,5 +206,19 @@ public struct LightAchievement
     /// <summary>
     /// the list of items that are being monitored (for duration achievements)
     /// </summary>
-    public Dictionary<TrackedItem, DateTime> ActiveItems { get; set; }
+    public Dictionary<string, TrackedItem> ActiveItems { get; set; }
 }
+
+public struct TrackedItem
+{
+    public string UIDAffected { get; init; }
+    public DateTime TimeAdded { get; init; }
+
+    public TrackedItem(string uidAffected)
+    {
+        UIDAffected = uidAffected;
+        TimeAdded = DateTime.UtcNow;
+    }
+}
+
+

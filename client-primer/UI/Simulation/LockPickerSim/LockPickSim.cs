@@ -1,117 +1,104 @@
 using ImGuiNET;
-using System.Numerics;
 
 namespace GagSpeak.UI.Simulation;
-public class LockpickMinigame
+
+public class LockPickingMinigame
 {
-    public const int MaxPins = 5; // Example number of pins
-    public int[] pinOffsets = new int[MaxPins];
-    public int[] pinOffsetTargets = new int[MaxPins];
-    public bool[] pinSet = new bool[MaxPins];
-    public int currentAttempts = 0;
-    public int maxAttempts = 5; // Maximum number of attempts
+    private int lockPickCount = 0;
+    private DateTime lastPickGenerated = DateTime.Now;
+    private int[] lockPattern; // Array storing correct pattern for the lock
+    private List<int> playerAttempt; // Tracks player's current attempt sequence
+    private bool gameActive;
+    private int lockSlotCount; // Number of slots in the lock
 
-    // Variables for feedback (similar to hover effects and UI messages)
-    public string feedbackMessage = "";
-    public float arousalTick = 0;
-
-    public void StartMinigame()
+    public LockPickingMinigame()
     {
-        ResetPins();
-        currentAttempts = 0;
+        lockPickCount = 1; // Initial starting pick
+        StartNewLock();
     }
 
-    private void ResetPins()
+    private void StartNewLock()
     {
-        for (int i = 0; i < MaxPins; i++)
-        {
-            pinOffsets[i] = 0;
-            pinOffsetTargets[i] = 100; // Pin needs to reach this to be set
-            pinSet[i] = false;
-        }
+        lockSlotCount = new Random().Next(5, 9); // Choose slots between 5 and 8
+        lockPattern = GenerateLockPattern(lockSlotCount);
+        playerAttempt = new List<int>();
+        gameActive = true;
     }
 
-    public void DrawMinigame()
+    private int[] GenerateLockPattern(int slotCount)
     {
-        // This is where you'd use ImGui or Unity UI to draw each pin visually
-        // Draw background and pins
-        for (int i = 0; i < MaxPins; i++)
-        {
-            DrawPin(i);
-        }
+        Random random = new Random();
+        return Enumerable.Range(0, slotCount).OrderBy(x => random.Next()).ToArray(); // Random order of slots
+    }
 
-        // Display attempts remaining and feedback messages
-        ImGui.Text($"Attempts remaining: {maxAttempts - currentAttempts}");
-        if (!string.IsNullOrEmpty(feedbackMessage))
+    private void GenerateLockPick()
+    {
+        // Generate a lock pick every 6 hours or based on a specific condition
+        if ((DateTime.Now - lastPickGenerated).TotalHours >= 6)
         {
-            ImGui.TextColored(new System.Numerics.Vector4(1, 0, 0, 1), feedbackMessage);
+            lockPickCount++;
+            lastPickGenerated = DateTime.Now;
         }
     }
 
-    private void DrawPin(int pinIndex)
+    public void DrawLockPickingUI()
     {
-        int pinX = 100 + pinIndex * 50; // Example X position
-        int pinY = 200 - pinOffsets[pinIndex]; // Pin moves vertically
+        GenerateLockPick(); // Check if a new lock pick should be added
 
-        // Simulate pin being hovered (this would be ImGui button or Unity mouse check)
-        if (ImGui.Button($"Pin {pinIndex}", new Vector2(50, 50)))
+        ImGui.Text($"Lock Picks: {lockPickCount}");
+
+        if (!gameActive)
         {
-            TryPickPin(pinIndex);
+            ImGui.Text("Lock picked successfully or failed. Start a new lock.");
+            if (ImGui.Button("Start New Lock"))
+            {
+                StartNewLock();
+            }
+            return;
         }
 
-        // Draw the pin visually (this is pseudo-code, replace with actual drawing logic)
-        ImGui.Text($"Pin {pinIndex} Offset: {pinOffsets[pinIndex]}");
-    }
+        ImGui.Text("Pick the lock by selecting slots in the correct order!");
 
-    private void TryPickPin(int pinIndex)
-    {
-        if (pinSet[pinIndex])
-            return; // Pin already set
-
-        // Move the pin towards the target
-        pinOffsets[pinIndex] += 10; // Adjust this value for smoother movement
-
-        if (pinOffsets[pinIndex] >= pinOffsetTargets[pinIndex])
+        for (int i = 0; i < lockSlotCount; i++)
         {
-            pinSet[pinIndex] = true; // The pin is now set
-            feedbackMessage = $"Pin {pinIndex} set!";
+            ImGui.SameLine();
+            if (ImGui.Button($"Slot {i + 1}"))
+            {
+                AttemptPick(i);
+            }
         }
 
-        // Increment attempts
-        currentAttempts++;
-        if (currentAttempts >= maxAttempts)
-        {
-            feedbackMessage = "Too many attempts! Failed.";
-            EndMinigame(false);
-        }
+        ImGui.NewLine();
 
-        // Check if all pins are set
-        if (AllPinsSet())
+        if (playerAttempt.Count > 0)
         {
-            EndMinigame(true);
+            ImGui.Text("Your Current Attempt: " + string.Join(", ", playerAttempt));
         }
     }
 
-    private bool AllPinsSet()
+    private void AttemptPick(int slot)
     {
-        foreach (bool pin in pinSet)
+        if (lockPickCount <= 0)
         {
-            if (!pin)
-                return false;
+            ImGui.Text("Out of lock picks!");
+            return;
         }
-        return true;
-    }
 
-    private void EndMinigame(bool success)
-    {
-        if (success)
+        playerAttempt.Add(slot);
+
+        // Check current attempt with lock pattern
+        if (playerAttempt[playerAttempt.Count - 1] != lockPattern[playerAttempt.Count - 1])
         {
-            feedbackMessage = "Lock successfully picked!";
+            // Failed attempt, break pick and reset
+            lockPickCount--;
+            playerAttempt.Clear();
+            ImGui.Text("Lock pick broke! Incorrect slot.");
         }
-        else
+        else if (playerAttempt.Count == lockPattern.Length)
         {
-            feedbackMessage = "Lockpick failed.";
+            // Successfully completed the lock pattern
+            gameActive = false;
+            ImGui.Text("Lock successfully picked!");
         }
-        ResetPins(); // Optionally reset pins after the game ends
     }
 }

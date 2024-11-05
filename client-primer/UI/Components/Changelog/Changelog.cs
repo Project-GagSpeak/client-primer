@@ -19,6 +19,18 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 3)
+            .RegisterMain("You can now properly bind Moodles to your Gags & Restraints, without flooding peoples mare or status manager spam.")
+            .RegisterFeature("Attempting to remove moodles bound to your gags and restraints will now instantly reapply them before mare can process an update." +
+            "\n To them, your moodle will simply remain there, and not have been removed at all. To you? You can try all you like, but it will be fruitless effort~")
+            .RegisterQol("Added an enhanced information window for any duration achievements to see actively tracked items.")
+            .RegisterBugfix("Fixed issue where logging in and out caused some padlock fields to disappear.")
+            .RegisterBugfix("Fixed issue where achievements did not properly know when to stop tracking items")
+            .RegisterBugfix("Fixed issue where switching between gags caused a double update instead of a single one. " +
+            "(still needed on sets because penumbra reasons)")
+            .RegisterBugfix("Fixed issue where the password field on locked gags did not appear.")
+            .RegisterFeature("Fixed issue where moodles would not reapply when you removed an item with a moodle that another item still used the moodle of.");
+
         VersionEntry(0, 9, 9, 2)
             .RegisterMain("The BugFix Update")
             .RegisterQol("Controller input should now work on cursed loot chest (i hope)")

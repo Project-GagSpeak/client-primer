@@ -102,9 +102,9 @@ public class ProfilePictureEditor : WindowMediatorSubscriberBase
         }
         // scoot over to the right 256px + spacing
         ImGuiHelpers.ScaledRelativeSameLine(256, spacing);
-        // draw the rounded image.
         if (pfpWrap != null)
         {
+            // then the rounded image.
             var currentPosition = ImGui.GetCursorPos();
             var pos = ImGui.GetCursorScreenPos();
             ImGui.GetWindowDrawList().AddImageRounded(pfpWrap.ImGuiHandle, pos, pos + pfpWrap.Size, Vector2.Zero, Vector2.One, ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)), 128f);

@@ -195,13 +195,6 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     /// </summary>
     private async Task ApplyCursedLoot()
     {
-        // throw warning and return if our size is already capped at 6.
-        if (_handler.ActiveItems.Count >= 10)
-        {
-            Logger.LogWarning("Cannot apply Cursed Loot, as the player already has 6 active cursed items.");
-            return;
-        }
-
         // get the percent change to apply
         var percentChange = _handler.LockChance;
 
@@ -210,19 +203,20 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         int randomValue = random.Next(0, 101);
         if (randomValue > percentChange) return;
 
-        // send event that we are having cursed loot applied.
-        UnlocksEventManager.AchievementEvent(UnlocksEvent.CursedDungeonLootFound);
-
         // Obtain a randomly selected cursed item from the inactive items in the pool.
         var enabledPoolCount = _handler.InactiveItemsInPool.Count;
-        Logger.LogDebug("Randomly selecting an index between 0 and " + enabledPoolCount + " for cursed loot.", LoggerType.CursedLoot);
+        if(enabledPoolCount <= 0)
+        {
+            Logger.LogWarning("No Cursed Items are available to apply. Skipping.", LoggerType.CursedLoot);
+            return;
+        }
 
         Guid selectedLootId = Guid.Empty;
         var randomIndex = random.Next(0, enabledPoolCount);
-        Logger.LogDebug("Selected Index: " + randomIndex + " (" + _handler.InactiveItemsInPool[randomIndex].Name + ")", LoggerType.CursedLoot);
+        Logger.LogDebug("Randomly selected index ["+randomIndex+"] (between 0 and " + enabledPoolCount + ") for (" + _handler.InactiveItemsInPool[randomIndex].Name + ")", LoggerType.CursedLoot);
         if (_handler.InactiveItemsInPool[randomIndex].IsGag)
         {
-            var availableSlot = _playerData.AppearanceData!.GagSlots.IndexOf(x => x.GagType.ToGagType() == GagType.None);
+            var availableSlot = _playerData.AppearanceData!.GagSlots.IndexOf(x => x.GagType.ToGagType() is GagType.None);
             // If no slot is available, make a new list that is without any items marked as IsGag, and roll again.
             if (availableSlot is not -1)
             {
@@ -234,9 +228,9 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 // generate the length they will be locked for:
                 var lockTimeGag = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
                 // apply the gag via the gag manager at the available slot we found.
-                await _appearanceHandler.GagApplied((GagLayer)availableSlot, _handler.InactiveItemsInPool[randomIndex].GagType);
+                await _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTimeGag), (GagLayer)availableSlot);
                 // Add a small delay to avoid race conditions (idk a better way to failsafe this yet)
-                await Task.Delay(150);
+                await Task.Delay(500);
                 // lock the gag.
                 var padlockData = new PadlockData()
                 {
@@ -246,8 +240,9 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                     Assigner = MainHub.UID
                 };
                 _gagManager.OnGagLockChanged(padlockData, NewState.Locked, true, true);
-                _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTimeGag));
-                Logger.LogInformation($"Cursed Loot Applied!", LoggerType.CursedLoot);
+                Logger.LogInformation($"Cursed Loot Applied & Locked!", LoggerType.CursedLoot);
+                // send event that we are having cursed loot applied.
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.CursedDungeonLootFound);
 
                 if (!_playerData.CoreDataNull && _playerData.GlobalPerms!.LiveChatGarblerActive)
                 {
@@ -260,7 +255,14 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
             else
             {
                 Logger.LogWarning("No Gag Slots Available, Rolling Again.");
-                var inactiveSetsWithoutGags = _handler.ItemsNotInPool.Where(x => !x.IsGag).ToList();
+                var inactiveSetsWithoutGags = _handler.InactiveItemsInPool.Where(x => !x.IsGag).ToList();
+                // if there are no other items, return.
+                if (inactiveSetsWithoutGags.Count <= 0)
+                {
+                    Logger.LogWarning("No Non-Gag Items are available to apply. Skipping.", LoggerType.CursedLoot);
+                    return;
+                }
+
                 var randomIndexNoGag = random.Next(0, inactiveSetsWithoutGags.Count);
                 Logger.LogDebug("Selected Index: " + randomIndexNoGag + " (" + inactiveSetsWithoutGags[randomIndexNoGag].Name + ")", LoggerType.CursedLoot);
                 selectedLootId = inactiveSetsWithoutGags[randomIndexNoGag].LootId;
@@ -270,8 +272,10 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 // generate the length they will be locked for:
                 var lockTime = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
                 // Activate the cursed loot item.
-                _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTime));
+                await _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTime));
                 Logger.LogInformation($"Cursed Loot Applied!", LoggerType.CursedLoot);
+                // send event that we are having cursed loot applied.
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.CursedDungeonLootFound);
                 return;
             }
         }
@@ -284,8 +288,10 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
             // generate the length they will be locked for:
             var lockTime = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
             // Activate the cursed loot item.
-            _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTime));
+            await _handler.ActivateCursedItem(selectedLootId, DateTimeOffset.UtcNow.Add(lockTime));
             Logger.LogInformation($"Cursed Loot Applied!", LoggerType.CursedLoot);
+            // send event that we are having cursed loot applied.
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.CursedDungeonLootFound);
             return;
         }
     }

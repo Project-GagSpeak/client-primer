@@ -37,7 +37,6 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     private readonly IpcManager _ipcManager;
     private readonly CancellationTokenSource _cts = new();
     private Task? _cacheCreationTask;
-    private CancellationTokenSource _moodlesCts = new();
     private bool _isZoning = false;
 
     // player object cache to create. Item1 == NULL while no changes have occurred.
@@ -80,7 +79,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
                 Mediator.Publish(new CharacterIpcDataCreatedMessage(_playerIpcData, DataUpdateKind.IpcMoodlesCleared));
                 // If we are in a cutscene, we should publish a mediator event to let our appearance handler know we need to redraw.
                 // This is a safe workaround from executing things on cutscene start because glamourer takes precedence first.
-                // However, this toggle consistantly occurs after Glamourer finishes its draws.
+                // However, this toggle consistently occurs after Glamourer finishes its draws.
                 if (_frameworkUtil.InCutsceneEvent)
                     Mediator.Publish(new ClientPlayerInCutscene());
             });
@@ -95,7 +94,16 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
             Mediator.Publish(new CharacterIpcDataCreatedMessage(_playerIpcData, DataUpdateKind.IpcUpdateVisible));
         });
 
-        IpcFastUpdates.StatusManagerChangedEventFired += (addr) => StatusManagerChangeUpdate(addr);
+        Mediator.Subscribe<MoodlesStatusManagerUpdate>(this, (msg) =>
+        {
+            if (_isZoning) return;
+            // Assuming _playerObject is now a single GameObjectHandler instance
+            if (_playerObject != null && _playerObject.Address != nint.Zero)
+            {
+                Logger.LogDebug("Received new MoodlesStatusManagerUpdate", LoggerType.IpcMoodles);
+                _ = AddPlayerCacheToCreate(DataUpdateKind.IpcMoodlesStatusManagerChanged, Guid.Empty);
+            }
+        });
 
         Mediator.Subscribe<MoodlesStatusModified>(this, (msg) =>
         {
@@ -121,17 +129,6 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (msg) => ProcessCacheCreation());
     }
 
-    private void StatusManagerChangeUpdate(IntPtr address)
-    {
-        if (_isZoning) return;
-        // Assuming _playerObject is now a single GameObjectHandler instance
-        if (_playerObject != null && _playerObject.Address == address)
-        {
-            Logger.LogDebug("Updating visible pairs with latest Moodles Data. [Status Manager Changed!]", LoggerType.IpcMoodles);
-            _ = AddPlayerCacheToCreate(DataUpdateKind.IpcMoodlesStatusManagerChanged, Guid.Empty);
-        }
-    }
-
     private async Task FetchLatestMoodlesDataAsync()
     {
         _playerIpcData.MoodlesData = await _ipcManager.Moodles.GetStatusAsync(_playerObject.NameWithWorld).ConfigureAwait(false) ?? string.Empty;
@@ -148,7 +145,6 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 
         _playerObject.Dispose();
         _cts.Dispose();
-        IpcFastUpdates.StatusManagerChangedEventFired -= (addr) => StatusManagerChangeUpdate(addr);
     }
 
     private async Task AddPlayerCacheToCreate(DataUpdateKind updateKind, Guid guid = default)

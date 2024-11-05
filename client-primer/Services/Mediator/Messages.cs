@@ -70,6 +70,7 @@ public record TargetPairMessage(Pair Pair) : MessageBase; // called when publish
 public record CreateCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase;
 public record ClearCacheForObjectMessage(GameObjectHandler ObjectToCreateFor) : MessageBase; // called when we should clear a gameobject from cache creation service.
 public record MufflerLanguageChanged : MessageBase; // called whenever the client language changes to a new language.
+public record AppearanceImpactingSettingChanged : MessageBase; // called whenever an appearance impacting setting is changed.
 
 /* ------------- PLAYER DATA MODULE INTERACTIONS --------- */
 public record GagTypeChanged(GagType NewGagType, GagLayer Layer, bool SelfApplied = false) : MessageBase; // called whenever the client changes their gag type.
@@ -118,6 +119,7 @@ public record MoodlesReady : MessageBase;
 public record GlamourerReady : MessageBase;
 public record CustomizeReady : MessageBase;
 public record CustomizeDispose : MessageBase;
+public record MoodlesStatusManagerUpdate : MessageBase;
 public record MoodlesStatusModified(Guid Guid) : MessageBase; // when we change one of our moodles settings.
 public record MoodlesPresetModified(Guid Guid) : MessageBase; // when we change one of our moodles presets.
 public record MoodlesApplyStatusToPair(ApplyMoodlesByStatusDto StatusDto) : MessageBase;

@@ -288,7 +288,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<StruggleStamina>()
         .AddSingleton<StruggleItem>()
         .AddSingleton<ProgressBar>()
-        .AddSingleton<LockpickMinigame>()
+        .AddSingleton<LockPickingMinigame>()
 
 
         // UI general services

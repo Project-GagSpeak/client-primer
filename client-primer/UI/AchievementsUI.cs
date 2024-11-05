@@ -221,6 +221,10 @@ public class AchievementsUI : WindowMediatorSubscriberBase
                     }
                     // underneath this, we should draw the current progress towards the goal.
                     DrawProgressForAchievement(achievementItem);
+                    if(ImGui.IsItemHovered() && achievementItem is DurationAchievement)
+                    {
+                        UiSharedService.AttachToolTip((achievementItem as DurationAchievement)?.GetActiveItemProgressString() ?? "NO PROGRESS");
+                    }
 
                     // draw the text in the second column.
                     ImGui.TableNextColumn();

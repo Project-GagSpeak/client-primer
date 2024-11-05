@@ -282,15 +282,43 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
         }
     }
 
+
     /// <summary> Unlike the <c>GetToken()</c> method, this both gets and updates the token</summary>
     /// <param name="ct">The cancelation token for the task</param>
     /// <returns>the token to be returned.</returns>
     public async Task<string?> GetOrUpdateToken(CancellationToken ct, string tokenKey = "")
     {
+        // Define a timeout period (e.g.,  seconds)
+        var timeout = TimeSpan.FromSeconds(30);
+        var timeoutCTS = new CancellationTokenSource(timeout);
+        var linkedCTS = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCTS.Token);
+        // await for the player to be present to get the JWT token
+        try
+        {
+            while (!await _frameworkUtil.GetIsPlayerPresentAsync().ConfigureAwait(false) && !linkedCTS.Token.IsCancellationRequested)
+            {
+                _logger.LogDebug("Player not loaded in yet, waiting", LoggerType.ApiCore);
+                await Task.Delay(TimeSpan.FromSeconds(1), linkedCTS.Token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            if (timeoutCTS.Token.IsCancellationRequested)
+            {
+                _logger.LogWarning("GetOrUpdateToken: Timeout reached while waiting for player to load in", LoggerType.ApiCore);
+            }
+            else
+            {
+                _logger.LogWarning("GetOrUpdateToken: Player not loaded in yet, waiting", LoggerType.ApiCore);
+            }
+            return null;
+        }
+
         // get the JWT identifier
         JwtIdentifier? jwtIdentifier = GetIdentifier();
         // if it is null, return null
-        if (jwtIdentifier == null) return null;
+        if (jwtIdentifier == null) 
+            return null;
 
         // assume we dont need a renewal
         bool renewal = false;

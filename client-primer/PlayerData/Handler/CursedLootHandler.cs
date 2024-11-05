@@ -88,7 +88,7 @@ public class CursedLootHandler : DisposableMediatorSubscriberBase
     public void RemoveItem(Guid idToRemove)
         => _clientConfigs.RemoveCursedItem(idToRemove);
 
-    public async void ActivateCursedItem(Guid idToActivate, DateTimeOffset releaseTimeUTC, GagLayer gagLayer = GagLayer.UnderLayer)
+    public async Task ActivateCursedItem(Guid idToActivate, DateTimeOffset releaseTimeUTC, GagLayer gagLayer = GagLayer.UnderLayer)
     {
         // activate it, then refresh.
         _clientConfigs.ActivateCursedItem(idToActivate, releaseTimeUTC);
@@ -97,7 +97,7 @@ public class CursedLootHandler : DisposableMediatorSubscriberBase
             await _appearanceHandler.CursedItemApplied(item, gagLayer);
     }
 
-    public async void DeactivateCursedItem(Guid idToDeactivate)
+    public async Task DeactivateCursedItem(Guid idToDeactivate)
     {
         // deactivate it, then refresh.
         _clientConfigs.DeactivateCursedItem(idToDeactivate);

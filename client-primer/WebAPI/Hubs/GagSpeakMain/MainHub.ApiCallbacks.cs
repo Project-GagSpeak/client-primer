@@ -108,7 +108,7 @@ public partial class MainHub
     public Task Client_UserAddClientPair(UserPairDto dto)
     {
         Logger.LogDebug("Client_UserAddClientPair: "+dto, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.AddUserPair(dto, addToLastAddedUser: true));
+        ExecuteSafely(() => _pairs.AddUserPair(dto, addToLastAddedUser: true));
         return Task.CompletedTask;
     }
 
@@ -118,7 +118,7 @@ public partial class MainHub
     public Task Client_UserRemoveClientPair(UserDto dto)
     {
         Logger.LogDebug("Client_UserRemoveClientPair: "+dto, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.RemoveUserPair(dto));
+        ExecuteSafely(() => _pairs.RemoveUserPair(dto));
         return Task.CompletedTask;
     }
 
@@ -177,7 +177,7 @@ public partial class MainHub
     public Task Client_UpdateUserIndividualPairStatusDto(UserIndividualPairStatusDto dto)
     {
         Logger.LogDebug("Client_UpdateUserIndividualPairStatusDto: "+dto, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.UpdateIndividualPairStatus(dto));
+        ExecuteSafely(() => _pairs.UpdateIndividualPairStatus(dto));
         return Task.CompletedTask;
     }
 
@@ -208,7 +208,7 @@ public partial class MainHub
         else
         {
             Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.", LoggerType.Callbacks);
-            ExecuteSafely(() => _pairManager.UpdatePairUpdateOwnAllUniquePermissions(dto));
+            ExecuteSafely(() => _pairs.UpdatePairUpdateOwnAllUniquePermissions(dto));
             return Task.CompletedTask;
         }
     }
@@ -240,7 +240,7 @@ public partial class MainHub
     public Task Client_UserUpdateSelfPairPerms(UserPairPermChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfPairPerms: "+dto, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.UpdateSelfPairPermission(dto));
+        ExecuteSafely(() => _pairs.UpdateSelfPairPermission(dto));
         return Task.CompletedTask;
 
     }
@@ -251,7 +251,7 @@ public partial class MainHub
     public Task Client_UserUpdateSelfPairPermAccess(UserPairAccessChangeDto dto)
     {
         Logger.LogDebug("Client_UserUpdateSelfPairPermAccess: "+dto, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.UpdateSelfPairAccessPermission(dto));
+        ExecuteSafely(() => _pairs.UpdateSelfPairAccessPermission(dto));
         return Task.CompletedTask;
     }
 
@@ -270,7 +270,7 @@ public partial class MainHub
         else
         {
             Logger.LogInformation("Callback matched to a paired user. Updating all permissions for them.", LoggerType.Callbacks);
-            ExecuteSafely(() => _pairManager.UpdateOtherPairAllPermissions(dto));
+            ExecuteSafely(() => _pairs.UpdateOtherPairAllPermissions(dto));
             return Task.CompletedTask;
         }
     }
@@ -286,7 +286,7 @@ public partial class MainHub
         else
         {
             Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.", LoggerType.Callbacks);
-            ExecuteSafely(() => _pairManager.UpdatePairUpdateOtherAllGlobalPermissions(dto));
+            ExecuteSafely(() => _pairs.UpdatePairUpdateOtherAllGlobalPermissions(dto));
             return Task.CompletedTask;
         }
     }
@@ -302,7 +302,7 @@ public partial class MainHub
         else
         {
             Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.", LoggerType.Callbacks);
-            ExecuteSafely(() => _pairManager.UpdatePairUpdateOtherAllUniquePermissions(dto));
+            ExecuteSafely(() => _pairs.UpdatePairUpdateOtherAllUniquePermissions(dto));
             return Task.CompletedTask;
         }
     }
@@ -321,7 +321,7 @@ public partial class MainHub
         else
         {
             Logger.LogInformation("Callback matched to a paired user. Updating global permissions for them.", LoggerType.Callbacks);
-            ExecuteSafely(() => _pairManager.UpdateOtherPairGlobalPermission(dto));
+            ExecuteSafely(() => _pairs.UpdateOtherPairGlobalPermission(dto));
             return Task.CompletedTask;
         }
     }
@@ -340,7 +340,7 @@ public partial class MainHub
         else
         {
             Logger.LogInformation("Callback matched to a paired user. Updating permissions for them.", LoggerType.Callbacks);
-            ExecuteSafely(() => _pairManager.UpdateOtherPairPermission(dto));
+            ExecuteSafely(() => _pairs.UpdateOtherPairPermission(dto));
             return Task.CompletedTask;
         }
     }
@@ -365,7 +365,7 @@ public partial class MainHub
         else
         {
             Logger.LogInformation("Callback matched to a paired user. Updating permissions for them.", LoggerType.Callbacks);
-            ExecuteSafely(() => _pairManager.UpdateOtherPairAccessPermission(dto));
+            ExecuteSafely(() => _pairs.UpdateOtherPairAccessPermission(dto));
             return Task.CompletedTask;
         }
     }
@@ -385,7 +385,7 @@ public partial class MainHub
         else
         {
             Logger.LogDebug("User "+ dataDto.User.UID+" has went online and updated you with their composite data!", LoggerType.Callbacks);
-            ExecuteSafely(() => _pairManager.ReceiveCharaCompositeData(dataDto, UID));
+            ExecuteSafely(() => _pairs.ReceiveCharaCompositeData(dataDto, UID));
             return Task.CompletedTask;
         }
     }
@@ -406,7 +406,7 @@ public partial class MainHub
     public Task Client_UserReceiveOtherDataIpc(OnlineUserCharaIpcDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherDataIpc: "+dataDto, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.ReceiveCharaIpcData(dataDto));
+        ExecuteSafely(() => _pairs.ReceiveCharaIpcData(dataDto));
         return Task.CompletedTask;
     }
 
@@ -428,7 +428,7 @@ public partial class MainHub
     public Task Client_UserReceiveOtherDataAppearance(OnlineUserCharaAppearanceDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherDataAppearance: {user}{updateKind}\n{data}", dataDto.User, dataDto.UpdateKind, dataDto.AppearanceData.ToGagString());
-        ExecuteSafely(() => _pairManager.ReceiveCharaAppearanceData(dataDto));
+        ExecuteSafely(() => _pairs.ReceiveCharaAppearanceData(dataDto));
         return Task.CompletedTask;
     }
 
@@ -450,7 +450,7 @@ public partial class MainHub
     public Task Client_UserReceiveOtherDataWardrobe(OnlineUserCharaWardrobeDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherDataWardrobe:"+dataDto.User, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.ReceiveCharaWardrobeData(dataDto));
+        ExecuteSafely(() => _pairs.ReceiveCharaWardrobeData(dataDto));
         return Task.CompletedTask;
     }
 
@@ -471,7 +471,7 @@ public partial class MainHub
     public Task Client_UserReceiveOtherDataAlias(OnlineUserCharaAliasDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherDataAlias:"+dataDto.User, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.ReceiveCharaAliasData(dataDto));
+        ExecuteSafely(() => _pairs.ReceiveCharaAliasData(dataDto));
         return Task.CompletedTask;
     }
 
@@ -492,7 +492,7 @@ public partial class MainHub
     public Task Client_UserReceiveOtherDataToybox(OnlineUserCharaToyboxDataDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherDataToybox:" + dataDto.User, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.ReceiveCharaToyboxData(dataDto));
+        ExecuteSafely(() => _pairs.ReceiveCharaToyboxData(dataDto));
         return Task.CompletedTask;
     }
 
@@ -512,7 +512,7 @@ public partial class MainHub
     public Task Client_UserReceiveOtherLightStorage(OnlineUserStorageUpdateDto dataDto)
     {
         Logger.LogDebug("Client_UserReceiveOtherLightStorage:" + dataDto.User, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.ReceiveCharaLightStorageData(dataDto));
+        ExecuteSafely(() => _pairs.ReceiveCharaLightStorageData(dataDto));
         return Task.CompletedTask;
     }
 
@@ -529,7 +529,7 @@ public partial class MainHub
         ExecuteSafely(() =>
         {
             // figure out who sent the command, and see if we have a unique sharecode setup for them.
-            var pairMatch = _pairManager.DirectPairs.FirstOrDefault(x => x.UserData.UID == dto.User.UID);
+            var pairMatch = _pairs.DirectPairs.FirstOrDefault(x => x.UserData.UID == dto.User.UID);
             if (pairMatch != null) 
             {
                 if (!pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty())
@@ -576,7 +576,7 @@ public partial class MainHub
     public Task Client_UserSendOffline(UserDto dto)
     {
         Logger.LogDebug("Client_UserSendOffline: "+dto, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.MarkPairOffline(dto.User));
+        ExecuteSafely(() => _pairs.MarkPairOffline(dto.User));
         return Task.CompletedTask;
     }
 
@@ -589,7 +589,7 @@ public partial class MainHub
     public Task Client_UserSendOnline(OnlineUserIdentDto dto)
     {
         Logger.LogDebug("Client_UserSendOnline: "+dto, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.MarkPairOnline(dto));
+        ExecuteSafely(() => _pairs.MarkPairOnline(dto));
         return Task.CompletedTask;
     }
 

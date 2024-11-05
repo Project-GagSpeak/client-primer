@@ -20,25 +20,13 @@ namespace GagSpeak.WebAPI;
 public abstract class GagspeakHubBase : DisposableMediatorSubscriberBase
 {
     // make any accessible classes in here protected.
-    protected readonly HubFactory _hubFactory;
     protected readonly TokenProvider _tokenProvider;
-    protected readonly PairManager _pairManager;
-    protected readonly ServerConfigurationManager _serverConfigs;
-    protected readonly GagspeakConfigService _mainConfig;
-    protected readonly ClientCallbackService _clientCallbacks;
     protected readonly OnFrameworkService _frameworkUtils;
 
-    public GagspeakHubBase(ILogger logger, GagspeakMediator mediator, HubFactory hubFactory, 
-        TokenProvider tokenProvider, PairManager pairManager, ServerConfigurationManager serverConfigs, 
-        GagspeakConfigService mainConfig, ClientCallbackService callbackService,
-        OnFrameworkService frameworkUtils) : base(logger, mediator)
+    public GagspeakHubBase(ILogger logger, GagspeakMediator mediator, 
+        TokenProvider tokenProvider, OnFrameworkService frameworkUtils) : base(logger, mediator)
     {
-        _hubFactory = hubFactory;
         _tokenProvider = tokenProvider;
-        _pairManager = pairManager;
-        _serverConfigs = serverConfigs;
-        _mainConfig = mainConfig;
-        _clientCallbacks = callbackService;        
         _frameworkUtils = frameworkUtils;
 
         // Should fire to all overrides.

@@ -223,7 +223,6 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
             var bytes = Convert.FromBase64String(Base64saveDataToLoad);
             var version = bytes[0];
             version = bytes.DecompressToString(out var decompressed);
-
             LightSaveDataDto item = JsonConvert.DeserializeObject<LightSaveDataDto>(decompressed)
                 ?? throw new Exception("Failed to deserialize achievement data from server.");
 
@@ -233,7 +232,9 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to apply achievement data from server, or data is empty.");
+            Logger.LogError("Failed to load Achievement Data from server. As a result, resetting achievements to default." +
+                "\nThe reason this occurred may be due to an update to achievement structure or serialization issues." +
+                "\n[REASON]: " + ex.Message);
         }
     }
 

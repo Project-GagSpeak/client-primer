@@ -47,7 +47,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
     public static string[] ActiveSlotTimers { get; set; } = new string[4] { "", "", "", "" };
 
     /// <summary> ONLY UPDATES THE LOGIC CONTROLLING GARBLE SPEECH, NOT APPEARNACE DATA </summary>
-    public Task UpdateGagGarblerLogic()
+    public void UpdateGagGarblerLogic()
     {
         Logger.LogTrace("GagTypeOne: " + _characterManager.AppearanceData?.GagSlots[0].GagType ?? "UNK"
             + " || GagTypeTwo: " + _characterManager.AppearanceData?.GagSlots[1].GagType ?? "UNK"
@@ -63,8 +63,6 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         .Where(gagType => _gagDataHandler._gagTypes.Any(gag => gag.Name == gagType))
         .Select(gagType => _gagDataHandler._gagTypes.First(gag => gag.Name == gagType))
         .ToList();
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -167,7 +165,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         UpdateGagLockComboSelections();
     }
 
-    private void UpdateGagLockComboSelections()
+    public void UpdateGagLockComboSelections()
     {
         if (_characterManager.AppearanceData == null)
         {
@@ -186,7 +184,7 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         ComboPadlocks[2] = _characterManager.AppearanceData.GagSlots[2].Padlock.ToPadlock();
         Logger.LogDebug("Dropdown Gags Now: " + string.Join(" || ", _characterManager.AppearanceData!.GagSlots.Select((g, i) => $"Gag {i}: {g.GagType}")), LoggerType.GagManagement);
         Logger.LogDebug("Dropdown ActiveSlotPadlocks Now: " + string.Join(" || ", ActiveSlotPadlocks.Select((p, i) => $"Lock {i}: {p}")), LoggerType.PadlockManagement);
-        Logger.LogDebug("Dropdown Appearnace Padlocks Now: " + string.Join(" || ", _characterManager.AppearanceData.GagSlots.Select((p, i) => $"Lock {i}: {p}")), LoggerType.PadlockManagement);
+        Logger.LogDebug("Dropdown Appearance Padlocks Now: " + string.Join(" || ", _characterManager.AppearanceData.GagSlots.Select((p, i) => $"Lock {i}: {p.Padlock}")), LoggerType.PadlockManagement);
 
     }
 
@@ -283,37 +281,10 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         ActiveSlotPasswords = new string[4] { "", "", "", "" };
     }
 
-    public bool PadlockVerifyUnlock<T>(T data, GagLayer layer, bool allowOwner, bool allowDevotional) where T : IPadlockable
-    {
-        switch (ActiveSlotPadlocks[(int)layer])
-        {
-            case Padlocks.None:
-            case Padlocks.MimicPadlock: // Players cannot unlock Mimic Padlocks.
-                return false;
-            case Padlocks.MetalPadlock:
-            case Padlocks.FiveMinutesPadlock:
-                return true;
-            case Padlocks.CombinationPadlock:
-                var resCombo = ValidateCombination(ActiveSlotPasswords[(int)layer]) && ActiveSlotPasswords[(int)layer] == data.Password;
-                return resCombo;
-            case Padlocks.PasswordPadlock:
-            case Padlocks.TimerPasswordPadlock:
-                var resPass = ValidatePassword(ActiveSlotPasswords[(int)layer]) && ActiveSlotPasswords[(int)layer] == data.Password;
-                return resPass;
-            case Padlocks.OwnerPadlock:
-            case Padlocks.OwnerTimerPadlock:
-                return allowOwner;
-            case Padlocks.DevotionalPadlock:
-            case Padlocks.DevotionalTimerPadlock:
-                return allowDevotional && MainHub.UID == data.Assigner;
-        }
-        return false;
-    }
-
-    public void DisplayPadlockFields(int layer, bool unlocking = false, float totalWidth = 250)
+    public void DisplayPadlockFields(Padlocks padlock, int layer, bool unlocking = false, float totalWidth = 250)
     {
         float width = totalWidth;
-        switch (ActiveSlotPadlocks[layer])
+        switch (padlock)
         {
             case Padlocks.CombinationPadlock:
                 ImGui.SetNextItemWidth(width);
@@ -346,10 +317,10 @@ public partial class GagManager : DisposableMediatorSubscriberBase
         }
     }
 
-    public bool PasswordValidated(int slot, bool currentlyLocked)
+    public bool PasswordValidated(Padlocks padlock, int slot, bool currentlyLocked)
     {
-        Logger.LogDebug($"Validating Password for Slot {slot} which has padlock type {ActiveSlotPadlocks[slot]}", LoggerType.PadlockManagement);
-        switch (ActiveSlotPadlocks[slot])
+        Logger.LogDebug($"Validating Password for GagSlot {slot} which has padlock type "+padlock.ToName(), LoggerType.PadlockManagement);
+        switch (padlock)
         {
             case Padlocks.None:
                 return false;

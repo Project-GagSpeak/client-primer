@@ -56,7 +56,7 @@ public class AppearanceService : DisposableMediatorSubscriberBase
     /// </summary>
     public Dictionary<EquipSlot, IGlamourItem> ItemsToApply { get; set; } = new Dictionary<EquipSlot, IGlamourItem>();
     public IpcCallerGlamourer.MetaData MetaToApply { get; set; } = IpcCallerGlamourer.MetaData.None;
-    public List<Guid> ExpectedMoodles { get; set; } = new List<Guid>();
+    public HashSet<Guid> ExpectedMoodles { get; set; } = new HashSet<Guid>();
 
 
     protected override void Dispose(bool disposing)
@@ -134,7 +134,7 @@ public class AppearanceService : DisposableMediatorSubscriberBase
         }
     }
 
-    public async Task RefreshAppearance(GlamourUpdateType updateKind)
+    public async Task RefreshAppearance(GlamourUpdateType updateKind, HashSet<Guid>? removeMoodles = null)
     {
         await ExecuteWithSemaphore(async () =>
         {
@@ -152,7 +152,8 @@ public class AppearanceService : DisposableMediatorSubscriberBase
             }
 
             Logger.LogDebug("Processing Appearance Refresh due to UpdateType: [" + updateKind.ToString() + "]", LoggerType.ClientPlayerData);
-            await Task.Run(() => _frameworkUtils.RunOnFrameworkThread(() => ReapplyAppearance()));
+            removeMoodles ??= new HashSet<Guid>();
+            await Task.Run(() => _frameworkUtils.RunOnFrameworkThread(() => ReapplyAppearance(removeMoodles)));
         });
     }
 
@@ -188,7 +189,7 @@ public class AppearanceService : DisposableMediatorSubscriberBase
     /// (do this if you find noticable performance encounters)
     /// </para>
     /// </summary>
-    private async Task ReapplyAppearance()
+    private async Task ReapplyAppearance(HashSet<Guid> removeMoodles)
     {
         if (_playerManager.CoreDataNull) 
             return;
@@ -205,8 +206,8 @@ public class AppearanceService : DisposableMediatorSubscriberBase
             tasks.Add(UpdateGlamour());
 
         // Queue the task to apply moodles.
-        if (ExpectedMoodles.Any() && _playerManager.GlobalPerms!.MoodlesEnabled)
-            tasks.Add(UpdateMoodles());
+        if (_playerManager.GlobalPerms!.MoodlesEnabled)
+            tasks.Add(UpdateMoodles(removeMoodles));
 
         // Run all tasks concurrently
         await Task.WhenAll(tasks);
@@ -242,18 +243,27 @@ public class AppearanceService : DisposableMediatorSubscriberBase
         Logger.LogDebug("Glamour Update Completed", LoggerType.ClientPlayerData);
     }
 
-    public async Task UpdateMoodles()
+    public async Task UpdateMoodles(HashSet<Guid> removeMoodles)
     {
         if (_playerManager.IpcDataNull || !IpcCallerMoodles.APIAvailable) return;
         // Fetch the current list of moodles on our character
-        var currentMoodles = AppearanceManager.LatestClientMoodleStatusList.Select(x => x.GUID).ToList();
-
-        // take the Expected moodles minus the current moodles to get the moodles we are missing.
+        var currentMoodles = AppearanceManager.LatestClientMoodleStatusList.Select(x => x.GUID).ToHashSet();
+        Logger.LogTrace("Current Status Manager Moodles: " + string.Join(", ", currentMoodles), LoggerType.ClientPlayerData);
+        // Locate any items in our expected moodles not in the current moodles.
         var missingMoodles = ExpectedMoodles.Except(currentMoodles).ToList();
 
-        // apply those moodles.
-        Logger.LogTrace("Missing Moodles, updating", LoggerType.ClientPlayerData);
-        await _Interop.Moodles.ApplyOwnStatusByGUID(missingMoodles);
-        Logger.LogTrace("Moodles Update Completed", LoggerType.ClientPlayerData);
+        // see if there are any moodles we should remove, by seeing if there are any moodles from the "removeMoodles" that are not present in ExpectedMoodles.
+        removeMoodles.ExceptWith(ExpectedMoodles);
+
+        // Find a way to make this not remove non-gagspeak moodles.
+        if (removeMoodles.Any())
+            await _Interop.Moodles.RemoveOwnStatusByGuid(removeMoodles.ToList());
+
+        if (missingMoodles.Any())
+            await _Interop.Moodles.ApplyOwnStatusByGUID(missingMoodles);
+
+        // log that there was no moodles change if both are empty.
+        if (!missingMoodles.Any() && !removeMoodles.Any())
+            Logger.LogTrace("No Moodles Change Detected", LoggerType.ClientPlayerData);
     }
 }

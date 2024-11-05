@@ -27,7 +27,12 @@ namespace GagSpeak.WebAPI;
 /// </summary>
 public sealed partial class ToyboxHub : GagspeakHubBase, IToyboxHubClient
 {
+    private readonly HubFactory _hubFactory;
     private readonly PrivateRoomManager _privateRooms;
+    private readonly PairManager _pairs;
+    private readonly ServerConfigurationManager _serverConfigs;
+    private readonly GagspeakConfigService _mainConfig;
+    private readonly ClientCallbackService _callbackService;
 
     // Cancellation Token Sources
     private CancellationTokenSource HubConnectionCTS;
@@ -40,9 +45,14 @@ public sealed partial class ToyboxHub : GagspeakHubBase, IToyboxHubClient
         TokenProvider tokenProvider, PairManager pairs, ServerConfigurationManager serverConfigs, 
         GagspeakConfigService mainConfig, ClientCallbackService clientCallbacks, 
         OnFrameworkService frameworkUtils, PrivateRoomManager privateRooms) 
-        : base(logger, mediator, hubFactory, tokenProvider, pairs, serverConfigs, mainConfig, clientCallbacks, frameworkUtils)
+        : base(logger, mediator, tokenProvider, frameworkUtils)
     {
+        _hubFactory = hubFactory;
         _privateRooms = privateRooms;
+        _pairs = pairs;
+        _serverConfigs = serverConfigs;
+        _mainConfig = mainConfig;
+        _callbackService = clientCallbacks;
 
         // Create our CTS for the hub connection
         HubConnectionCTS = new CancellationTokenSource();
@@ -401,11 +411,11 @@ public sealed partial class ToyboxHub : GagspeakHubBase, IToyboxHubClient
 
     protected override async Task LoadOnlinePairs()
     {
-        var uidList = _pairManager.GetOnlineUserUids();
+        var uidList = _pairs.GetOnlineUserUids();
         var onlineToyboxPairs = await ToyboxUserGetOnlinePairs(uidList).ConfigureAwait(false);
         // for each online user pair in the online user pairs list
         foreach (var entry in onlineToyboxPairs)
-            _pairManager.MarkPairToyboxOnline(entry);
+            _pairs.MarkPairToyboxOnline(entry);
         Logger.LogDebug("VibeService Online Pairs: [" + string.Join(", ", onlineToyboxPairs.Select(x => x.AliasOrUID)) + "]", LoggerType.ApiCore);
     }
 

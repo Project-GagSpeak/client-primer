@@ -56,7 +56,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             return;
 
         Vector2 bigTextSize = new Vector2(0, 0);
-        using (_uiSharedService.UidFont.Push()) { bigTextSize = ImGui.CalcTextSize("HeightDummy"); }
+        using (_uiSharedService.GagspeakLabelFont.Push()) { bigTextSize = ImGui.CalcTextSize("HeightDummy"); }
         var region = ImGui.GetContentRegionAvail();
         
         var gagSlots = _playerManager.AppearanceData?.GagSlots ?? new GagSlot[3];
@@ -84,6 +84,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
                     {
                         ImGui.SameLine();
                         DrawImage(GetGagPadlockPath(i));
+
                     }
                 }
             }
@@ -96,7 +97,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
 
     private void DrawGagSlotHeader(int slotNumber, Vector2 bigTextSize)
     {
-        _uiSharedService.BigText(Labels[slotNumber]);
+        _uiSharedService.GagspeakBigText(Labels[slotNumber]);
         if (_playerManager.CoreDataNull)
             return;
 
@@ -167,9 +168,9 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
         {
             if (_uiSharedService.IconButton(currentlyLocked ? FontAwesomeIcon.Unlock : FontAwesomeIcon.Lock, id: "lock/unlock"+idx))
             {
-                if (_gagManager.PasswordValidated(idx, currentlyLocked))
+                if (_gagManager.PasswordValidated(currentPadlockSelection, idx, currentlyLocked))
                 {
-                    var data = new PadlockData((GagLayer)idx, GagManager.ActiveSlotPadlocks[idx], GagManager.ActiveSlotPasswords[idx],
+                    var data = new PadlockData((GagLayer)idx, currentPadlockSelection, GagManager.ActiveSlotPasswords[idx],
                         UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[idx]), MainHub.UID);
                     _gagManager.OnGagLockChanged(data, currentlyLocked ? NewState.Unlocked : NewState.Locked, true, true);
                     // reset the padlock.
@@ -188,7 +189,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             UiSharedService.AttachToolTip(currentlyLocked ? "Attempt Unlocking " : "Lock " + "this gag.");
         }
         // display associated password field for padlock type.
-        _gagManager.DisplayPadlockFields(idx, currentlyLocked);
+        _gagManager.DisplayPadlockFields(currentPadlockSelection, idx, currentlyLocked);
     }
     private void DisplayTimeLeft(DateTimeOffset endTime, Padlocks padlock, string userWhoSetLock, float yPos)
     {

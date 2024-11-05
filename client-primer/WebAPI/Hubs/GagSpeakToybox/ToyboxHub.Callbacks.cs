@@ -120,14 +120,14 @@ public partial class ToyboxHub
     public Task Client_ToyboxUserSendOffline(UserDto dto)
     {
         Logger.LogDebug("Client_ToyboxUserSendOffline: "+dto, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.MarkPairToyboxOffline(dto.User));
+        ExecuteSafely(() => _pairs.MarkPairToyboxOffline(dto.User));
         return Task.CompletedTask;
     }
 
     public Task Client_ToyboxUserSendOnline(UserDto dto)
     {
         Logger.LogDebug("Client_ToyboxUserSendOnline: "+dto, LoggerType.Callbacks);
-        ExecuteSafely(() => _pairManager.MarkPairToyboxOnline(dto.User));
+        ExecuteSafely(() => _pairs.MarkPairToyboxOnline(dto.User));
         return Task.CompletedTask;
     }
 

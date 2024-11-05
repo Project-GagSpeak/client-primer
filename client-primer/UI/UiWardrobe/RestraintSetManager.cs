@@ -575,7 +575,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                     set.Locked == false ? "Self-Lock this Restraint Set" :
                     set.LockedBy != MainHub.UID ? "Only" + set.LockedBy + "can unlock your set." : "Unlock this set.");
                 // display associated password field for padlock type.
-                _gagManager.DisplayPadlockFields(3, set.Locked, width);
+                _gagManager.DisplayPadlockFields(padlockType, 3, set.Locked, width);
             }
             ImGui.Separator();
         }

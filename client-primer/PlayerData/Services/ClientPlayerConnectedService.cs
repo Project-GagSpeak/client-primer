@@ -70,12 +70,13 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         _playerData.AppearanceData = MainHub.ConnectionDto.CharaAppearanceData;
         Logger.LogDebug("Data Set", LoggerType.ClientPlayerData);
 
-        // See why this is nessisary later.
+        // See why this is necessary later.
         //await _playerData.GetGlobalPiShockPerms();
 
         Logger.LogDebug("Setting up Update Tasks from GagSpeak Modules.", LoggerType.ClientPlayerData);
         // update the active gags
-        await _gagManager.UpdateGagGarblerLogic();
+        _gagManager.UpdateGagLockComboSelections();
+        _gagManager.UpdateGagGarblerLogic();
         // If any of our gags are applied, we should fire the Achievement Checks for them being applied.
         for(var i = 0; i < 3; i++)
         {
@@ -146,7 +147,7 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         }
 
         // Run a refresh on appearance data.
-        await _appearanceHandler.RecalcAndReload(true, true);
+        await _appearanceHandler.RecalcAndReload(true);
     }
 
     private async void CheckHardcore()

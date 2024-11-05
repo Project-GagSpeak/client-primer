@@ -10,6 +10,7 @@ using GagSpeak.UI.Components;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Extensions;
@@ -49,11 +50,17 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         _appearanceService = appearanceService;
         _frameworkUtils = frameworkUtils;
 
-        Mediator.Subscribe<ClientPlayerInCutscene>(this, (mag) => _ = _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll));
+        Mediator.Subscribe<ClientPlayerInCutscene>(this, (msg) => _ = _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll));
         Mediator.Subscribe<CutsceneEndMessage>(this, (msg) => _ = _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll));
+        Mediator.Subscribe<AppearanceImpactingSettingChanged>(this, (msg) => _ = RecalcAndReload(true));
 
-        IpcFastUpdates.StatusManagerChangedEventFired += (addr) => RefreshMoodles(addr).ConfigureAwait(false);
+        Mediator.Subscribe<CharacterIpcDataCreatedMessage>(this, (msg) => LastIpcData = msg.CharaIPCData);
+
+
+        IpcFastUpdates.StatusManagerChangedEventFired += (addr) => MoodlesUpdated(addr).ConfigureAwait(false);
     }
+
+    private CharaIPCData LastIpcData = null!;
 
     private List<RestraintSet> RestraintSets => _clientConfigs.WardrobeConfig.WardrobeStorage.RestraintSets;
     private List<CursedItem> CursedItems => _clientConfigs.CursedLootConfig.CursedLootStorage.CursedItems;
@@ -65,7 +72,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     private IpcCallerGlamourer.MetaData MetaToApply => _appearanceService.MetaToApply;
 
     /// <summary> The collective expected list of Moodles that should be applied to the player. </summary>
-    private List<Guid> ExpectedMoodles => _appearanceService.ExpectedMoodles;
+    private HashSet<Guid> ExpectedMoodles => _appearanceService.ExpectedMoodles;
 
     /// <summary>
     /// The Latest Client Moodles Status List since the last update.
@@ -81,7 +88,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        IpcFastUpdates.StatusManagerChangedEventFired -= (addr) => RefreshMoodles(addr).ConfigureAwait(false);
+        IpcFastUpdates.StatusManagerChangedEventFired -= (addr) => MoodlesUpdated(addr).ConfigureAwait(false);
         RedrawTokenSource?.Cancel();
         RedrawTokenSource?.Dispose();
         _applierSlimCTS?.Cancel();
@@ -112,16 +119,17 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
     private async Task UpdateLatestMoodleData()
     {
-        LatestClientMoodleStatusList = await _ipcManager.Moodles.GetStatusInfoAsync() ?? new();
+        LatestClientMoodleStatusList = await _ipcManager.Moodles.GetStatusInfoAsync();
     }
 
-    public async Task RecalcAndReload(bool refreshing, bool manualMoodles = false)
+    public async Task RecalcAndReload(bool refreshing, HashSet<Guid>? removeMoodles = null)
     {
         // perform a recalculation to appearance data. 
-        // (Doing this prior to redraw wait benifits us as we can use part of that time to recalculate)
-        await RecalculateAppearance(fetchMoodlesManually: manualMoodles);
+        var updateType = refreshing ? GlamourUpdateType.RefreshAll : GlamourUpdateType.ReapplyAll;
+
+        await RecalculateAppearance();
         await WaitForRedrawCompletion();
-        await _appearanceService.RefreshAppearance(refreshing ? GlamourUpdateType.RefreshAll : GlamourUpdateType.ReapplyAll);
+        await _appearanceService.RefreshAppearance(updateType, removeMoodles);
     }
 
 
@@ -193,9 +201,9 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
             // Lower the priority of, and if desired, disable, the mods bound to the active set.
             await PenumbraModsToggle(NewState.Disabled, setRef.AssociatedMods);
-            // We dont put this inside the recalculation because we need to know what we
-            // are removing, since players have non-gagspeak moodles.
-            await RemoveMoodles(setRef);
+
+            // This simply removes it from the list of expected, not the actual moodles call. This occurs in the service.
+            var moodlesToRemove = RemoveMoodles(setRef);
 
             // Disable the Hardcore Properties by invoking the ipc call.
             if (setRef.HasPropertiesForUser(setRef.EnabledBy))
@@ -221,7 +229,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             // Update our active Set monitor.
 
             Logger.LogInformation("DISABLE SET [" + setRef.Name + "] END", LoggerType.Restraints);
-            await RecalcAndReload(true, true);
+            await RecalcAndReload(true, moodlesToRemove);
 
             if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintDisabled));
         });
@@ -399,9 +407,9 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
             // Once it's been set to inactive, we should also remove our moodles.
             var gagSettings = _clientConfigs.GetDrawData(gagType);
-            await RemoveMoodles(gagSettings);
+            var moodlesToRemove = RemoveMoodles(gagSettings);
 
-            await RecalcAndReload(true, true);
+            await RecalcAndReload(true, moodlesToRemove);
 
             // Remove the CustomizePlus Profile if applicable
             if (gagSettings.CustomizeGuid != Guid.Empty)
@@ -464,18 +472,19 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 await PenumbraModsToggle(NewState.Disabled, new List<AssociatedMod>() { cursedItem.AssociatedMod });
 
                 // The attached Moodle will need to be removed as well. (need to handle seperately since it stores moodles differently)
+                var moodlesToRemove = new HashSet<Guid>();
                 if (!_playerData.IpcDataNull && cursedItem.MoodleIdentifier != Guid.Empty)
                 {
                     if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus)
-                        await _ipcManager.Moodles.RemoveOwnStatusByGuid(new List<Guid>() { cursedItem.MoodleIdentifier });
+                        moodlesToRemove.UnionWith(new HashSet<Guid>() { cursedItem.MoodleIdentifier });
                     else if (cursedItem.MoodleType is IpcToggleType.MoodlesPreset)
                     {
                         var statuses = _playerData.LastIpcData!.MoodlesPresets
                             .FirstOrDefault(p => p.Item1 == cursedItem.MoodleIdentifier).Item2;
-                        await _ipcManager.Moodles.RemoveOwnStatusByGuid(statuses);
+                        moodlesToRemove.UnionWith(statuses);
                     }
                 }
-                await RecalcAndReload(true, true);
+                await RecalcAndReload(true, moodlesToRemove);
             }
 
             if (publish)
@@ -483,27 +492,29 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         });
     }
 
-    private async Task RemoveMoodles(IMoodlesAssociable data)
+    private HashSet<Guid> RemoveMoodles(IMoodlesAssociable data)
     {
         Logger.LogTrace("Removing Moodles");
         if (_playerData.IpcDataNull)
-            return;
+            return new HashSet<Guid>();
 
         // if our preset is not null, store the list of guids respective of them.
-        var statuses = new List<Guid>();
+        var statuses = new HashSet<Guid>();
         if (data.AssociatedMoodlePreset != Guid.Empty)
         {
             statuses = _playerData.LastIpcData!.MoodlesPresets
-                .FirstOrDefault(p => p.Item1 == data.AssociatedMoodlePreset).Item2;
+                .FirstOrDefault(p => p.Item1 == data.AssociatedMoodlePreset).Item2.ToHashSet();
         }
         // concat this list with the associated moodles.
-        statuses.AddRange(data.AssociatedMoodles);
+        statuses.UnionWith(data.AssociatedMoodles);
 
         // log the moodles we are removing.
-        Logger.LogTrace("Removing Moodles: " + string.Join(", ", statuses), LoggerType.ClientPlayerData);
+        Logger.LogTrace("Removing Moodles from Expected: " + string.Join(", ", statuses), LoggerType.ClientPlayerData);
 
         // remove the moodles.
-        await _ipcManager.Moodles.RemoveOwnStatusByGuid(statuses);
+        ExpectedMoodles.ExceptWith(statuses);
+        // return the list of moodles we removed.
+        return statuses;
     }
 
     public async Task DisableAllDueToSafeword()
@@ -597,7 +608,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     /// Syncronizes the data to be updated with most recent information.
     /// </summary>
     /// <param name="fetchMoodlesManually"> If true, will fetch moodles manually via IPC call for true latest data. </param>
-    public async Task RecalculateAppearance(bool fetchMoodlesManually = false)
+    public async Task RecalculateAppearance()
     {
         // Return if the core data is null.
         if (_playerData.CoreDataNull)
@@ -610,7 +621,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         // Temp Storage for Data Collection during reapply
         Dictionary<EquipSlot, IGlamourItem> ItemsToApply = new Dictionary<EquipSlot, IGlamourItem>();
         IpcCallerGlamourer.MetaData MetaToApply = IpcCallerGlamourer.MetaData.None;
-        List<Guid> ExpectedMoodles = new List<Guid>();
+        HashSet<Guid> ExpectedMoodles = new HashSet<Guid>();
 
         // store the data to apply from the active set.
         Logger.LogTrace("Wardrobe is Enabled, Collecting Data from Active Set.", LoggerType.ClientPlayerData);
@@ -630,16 +641,14 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             if (!_playerData.IpcDataNull)
             {
                 if (activeSetRef.AssociatedMoodles.Count > 0)
-                    ExpectedMoodles.AddRange(activeSetRef.AssociatedMoodles);
+                    ExpectedMoodles.UnionWith(activeSetRef.AssociatedMoodles);
                 if (activeSetRef.AssociatedMoodlePreset != Guid.Empty)
                 {
                     var statuses = _playerData.LastIpcData!.MoodlesPresets.FirstOrDefault(p => p.Item1 == activeSetRef.AssociatedMoodlePreset).Item2;
                     if (statuses is not null)
-                        ExpectedMoodles.AddRange(statuses);
+                        ExpectedMoodles.UnionWith(statuses);
                 }
             }
-
-            // Apply meta changes if any were on.
         }
 
         // Collect gag info if used.
@@ -659,12 +668,13 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 if (!_playerData.IpcDataNull)
                 {
                     if (data.AssociatedMoodles.Count > 0)
-                        ExpectedMoodles.AddRange(data.AssociatedMoodles);
+                        ExpectedMoodles.UnionWith(data.AssociatedMoodles);
+
                     if (data.AssociatedMoodlePreset != Guid.Empty)
                     {
                         var statuses = _playerData.LastIpcData!.MoodlesPresets.FirstOrDefault(p => p.Item1 == data.AssociatedMoodlePreset).Item2;
                         if (statuses is not null)
-                            ExpectedMoodles.AddRange(statuses);
+                            ExpectedMoodles.UnionWith(statuses);
                     }
                 }
 
@@ -709,19 +719,30 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             else
             {
                 Logger.LogDebug($"Storing Cursed Item [" + cursedItem.Name + "] to Slot: " + cursedItem.AppliedItem.Slot, LoggerType.ClientPlayerData);
-                appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
+                if(cursedItem.IsGag)
+                {
+                    // store the item set in the gag storage
+                    var drawData = _clientConfigs.GetDrawData(cursedItem.GagType);
+                    ItemsToApply[drawData.Slot] = drawData;
+                }
+                else
+                {
+                    // Store the equip item.
+                    appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
+                }
             }
 
             // add in the moodle if it exists.
             if (!_playerData.IpcDataNull)
             {
                 if (cursedItem.MoodleType is IpcToggleType.MoodlesStatus && cursedItem.MoodleIdentifier != Guid.Empty)
-                    ExpectedMoodles.Add(cursedItem.MoodleIdentifier);
+                    ExpectedMoodles.UnionWith(new List<Guid>() { cursedItem.MoodleIdentifier });
+
                 else if (cursedItem.MoodleType is IpcToggleType.MoodlesPreset && cursedItem.MoodleIdentifier != Guid.Empty)
-                    ExpectedMoodles.AddRange(
-                        _playerData.LastIpcData!.MoodlesPresets
-                        .Where(p => p.Item1 == cursedItem.MoodleIdentifier)
-                        .SelectMany(p => p.Item2));
+                    ExpectedMoodles
+                        .UnionWith(_playerData.LastIpcData!.MoodlesPresets
+                            .Where(p => p.Item1 == cursedItem.MoodleIdentifier)
+                            .SelectMany(p => p.Item2));
             }
         }
 
@@ -752,17 +773,44 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         return;
     }
 
-    private async Task RecalculateMoodles()
-    {
-
-    }
-
-    private async Task RefreshMoodles(IntPtr address)
+    private async Task MoodlesUpdated(IntPtr address)
     {
         if (address != _frameworkUtils.ClientPlayerAddress)
             return;
 
-        // Recalculate the moodles list.
+        List<MoodlesStatusInfo> latest = new List<MoodlesStatusInfo>();
+        Logger.LogWarning("Moodles Updated Event Fired.", LoggerType.ClientPlayerData);
+        await _frameworkUtils.RunOnFrameworkTickDelayed(async () =>
+        {
+            Logger.LogDebug("Grabbing Latest Status", LoggerType.IpcGlamourer);
+            latest = await _ipcManager.Moodles.GetStatusInfoAsync().ConfigureAwait(false);
+        }, 2);
+
+        HashSet<Guid> latestGuids = new HashSet<Guid>(latest.Select(x => x.GUID));
+        Logger.LogTrace("Latest Moodles  : " + string.Join(", ", latestGuids), LoggerType.ClientPlayerData);
+        Logger.LogTrace("Expected Moodles: " + string.Join(", ", ExpectedMoodles), LoggerType.ClientPlayerData);
+        // if any Guid in ExpectedMoodles are not present in latestGuids, request it to be reapplied, instead of pushing status manager update.
+        var moodlesToReapply = ExpectedMoodles.Except(latestGuids).ToList();
+        Logger.LogTrace("Missing Moodles from Required: " + string.Join(", ", moodlesToReapply), LoggerType.ClientPlayerData);
+        if (moodlesToReapply.Any())
+        {
+            Logger.LogWarning("You do not currently have all active moodles that should be active from your restraints. Reapplying.", LoggerType.ClientPlayerData);
+            // obtain the moodles that we need to reapply to the player from the expected moodles.            
+            await _ipcManager.Moodles.ApplyOwnStatusByGUID(moodlesToReapply);
+            return;
+        }
+        else
+        {
+            if(LastIpcData is not null)
+            {
+                var list = LastIpcData.MoodlesDataStatuses.Select(x => x.GUID);
+                // determine if the two lists are the same or not.
+                if(list.SequenceEqual(latestGuids))
+                    return;
+            }
+            Logger.LogWarning("Pushing IPC update to CacheCreation for processing");
+            Mediator.Publish(new MoodlesStatusManagerUpdate());
+        }
     }
 
     /// <summary>

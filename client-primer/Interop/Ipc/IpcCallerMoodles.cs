@@ -104,7 +104,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         => IpcFastUpdates.InvokeStatusManagerChanged(character.Address);
 
     /// <summary> This method is called when the moodles change </summary>
-    private void OnStatusModified(Guid guid) 
+    private void OnStatusModified(Guid guid)
         => _gagspeakMediator.Publish(new MoodlesStatusModified(guid));
 
     /// <summary> This method is called when the moodles change </summary>
@@ -201,9 +201,9 @@ public sealed class IpcCallerMoodles : IIpcCaller
     }
 
     /// <summary> This method gets the status information of our client player </summary>
-    public async Task<List<MoodlesStatusInfo>?> GetStatusInfoAsync()
+    public async Task<List<MoodlesStatusInfo>> GetStatusInfoAsync()
     {
-        if (!APIAvailable) return null;
+        if (!APIAvailable) return new List<MoodlesStatusInfo>();
         try
         {
             return await _frameworkUtil.RunOnFrameworkThread(() => _getStatusManagerInfo.InvokeFunc()).ConfigureAwait(false);
@@ -211,7 +211,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         catch (Exception e)
         {
             _logger.LogWarning("Could not Get Moodles Status: " + e, LoggerType.IpcMoodles);
-            return null;
+            return new List<MoodlesStatusInfo>();
         }
     }
 
@@ -261,7 +261,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         }
     }
 
-    public async Task ApplyOwnStatusByGUID(List<Guid> guid)
+    public async Task ApplyOwnStatusByGUID(List<Guid> guidsToAdd)
     {
         if (!APIAvailable) return;
 
@@ -274,9 +274,10 @@ public sealed class IpcCallerMoodles : IIpcCaller
 
         // run the tasks in async with each other
         var tasks = new List<Task>();
-        foreach (var g in guid) tasks.Add(ApplyOwnStatusByGUID(g, playerNameWithWorld));
+        foreach (var g in guidsToAdd) tasks.Add(ApplyOwnStatusByGUID(g, playerNameWithWorld));
 
         await Task.WhenAll(tasks);
+        _logger.LogTrace("Applied Moodles: " + string.Join(", ", guidsToAdd), LoggerType.IpcMoodles);
         return;
     }
 
@@ -287,7 +288,6 @@ public sealed class IpcCallerMoodles : IIpcCaller
         try
         {
             await _frameworkUtil.RunOnFrameworkThread(() => _applyStatusByGuid.InvokeAction(guid, playerNameWithWorld)).ConfigureAwait(false);
-            _logger.LogDebug("Applied Moodles Status by guid {guid} to {playerNameWithWorld}", guid, playerNameWithWorld);
         }
         catch (Exception e)
         {
@@ -348,6 +348,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
                 else
                 {
                     _removeStatusByGuids.InvokeAction(guidsToRemove, playerNameWithWorld);
+                    _logger.LogTrace("Removing Moodles: " + string.Join(", ", guidsToRemove), LoggerType.ClientPlayerData);
                 }
             }).ConfigureAwait(false);
         }

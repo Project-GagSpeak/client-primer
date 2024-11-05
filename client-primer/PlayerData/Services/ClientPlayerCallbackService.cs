@@ -129,9 +129,9 @@ public class ClientCallbackService
             _logger.LogError("Received Update by player is no longer visible.");
             return;
         }
-        if(matchedPair.UserPairUniquePairPerms.AllowRemovingMoodles)
+        if(!matchedPair.UserPairOwnUniquePairPerms.AllowRemovingMoodles)
         {
-            _logger.LogError("Player does not have permission to clear their own moodles.");
+            _logger.LogError("Kinkster "+dto.User.UID+" tried to clear your moodles but you haven't given them the right!");
             return;
         }
         await _ipcManager.Moodles.ClearStatusAsync().ConfigureAwait(false);

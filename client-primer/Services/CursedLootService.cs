@@ -259,7 +259,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 // if there are no other items, return.
                 if (inactiveSetsWithoutGags.Count <= 0)
                 {
-                    Logger.LogWarning("No Non-Gag Items are available to apply. Skipping.", LoggerType.CursedLoot);
+                    Logger.LogWarning("No Non-Gag Items are available to apply. Skipping.");
                     return;
                 }
 

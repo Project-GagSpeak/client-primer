@@ -191,16 +191,19 @@ public partial class PairStickyUI
                 _moodlesService.DrawMoodleStatusComboButton("##PermissionActionsRemoveMoodle" + PairUID, "Remove",
                 ImGui.GetContentRegionAvail().X,
                 lastIpcData.MoodlesDataStatuses, selectedItem == Guid.Empty,
-                (onSelected) => { _logger.LogDebug("Selected Moodle to remove: " + onSelected, LoggerType.Permissions); },
+                (onSelected) => { _logger.LogDebug("Selected Moodle to remove: " + onSelected); },
                 (onButtonPress) =>
                 {
-                    if (onButtonPress is null) return;
+                    if (onButtonPress is null)
+                        return;
                     // ensure its a valid status
-                    if (!lastIpcData.MoodlesDataStatuses.Any(x => x.GUID == onButtonPress)) return;
-                    ;
-                    var statusInfo = new List<MoodlesStatusInfo> { lastIpcData.MoodlesStatuses.First(x => x.GUID == onButtonPress) };
-                    if (!_moodlesService.ValidatePermissionForApplication(pairUniquePerms, statusInfo)) return;
+                    if (!lastIpcData.MoodlesDataStatuses.Any(x => x.GUID == onButtonPress))
+                        return;
+                    var statusInfo = new List<MoodlesStatusInfo> { lastIpcData.MoodlesDataStatuses.First(x => x.GUID == onButtonPress) };
+                    if (!_moodlesService.ValidatePermissionForApplication(pairUniquePerms, statusInfo))
+                        return;
 
+                    _logger.LogInformation("Removing Moodle: " + onButtonPress + " from " + PairNickOrAliasOrUID);
                     _ = _apiHubMain.UserRemoveMoodles(new(UserPairForPerms.UserData, new List<Guid> { onButtonPress.Value }));
                     Opened = InteractionType.None;
                 });
@@ -224,6 +227,7 @@ public partial class PairStickyUI
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
                 if (ImGui.Button("Clear All Active Moodles##ClearStatus" + PairUID))
                 {
+                    _logger.LogInformation("Clearing all Moodles from " + PairNickOrAliasOrUID);
                     _ = _apiHubMain.UserClearMoodles(new(UserPairForPerms.UserData));
                     Opened = InteractionType.None;
                 }

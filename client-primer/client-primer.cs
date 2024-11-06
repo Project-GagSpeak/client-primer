@@ -174,7 +174,7 @@ public static class GagSpeakServiceExtensions
         // Chat Services
         .AddSingleton((s) => new ChatBoxMessage(s.GetRequiredService<ILogger<ChatBoxMessage>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PuppeteerHandler>(),
-            s.GetRequiredService<ChatSender>(), s.GetRequiredService<TriggerController>(), cg, cs, dm))
+            s.GetRequiredService<ChatSender>(), s.GetRequiredService<DeathRollService>(), s.GetRequiredService<TriggerService>(), cg, cs, dm))
         .AddSingleton((s) => new ChatSender(ss))
         .AddSingleton((s) => new ChatInputDetour(s.GetRequiredService<ILogger<ChatInputDetour>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(), 
             s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<GagManager>(), s.GetRequiredService<EmoteMonitor>(), ss, gip))
@@ -215,15 +215,17 @@ public static class GagSpeakServiceExtensions
         // Toybox Services
         .AddSingleton<ConnectedDevice>()
         .AddSingleton<ToyboxFactory>()
-        .AddSingleton<DeviceController>()
+        .AddSingleton<DeviceService>()
         .AddSingleton<PatternPlayback>()
         .AddSingleton<AlarmHandler>()
         .AddSingleton<TriggerHandler>()
+        .AddSingleton((s) => new DeathRollService(s.GetRequiredService<ILogger<DeathRollService>>(), s.GetRequiredService<PlayerCharacterData>(),
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<TriggerService>(), s.GetRequiredService<OnFrameworkService>(), cg))
 
         // Unlocks / Achievements
         .AddSingleton((s) => new AchievementManager(s.GetRequiredService<ILogger<AchievementManager>>(), s.GetRequiredService<GagspeakMediator>(), 
             s.GetRequiredService<MainHub>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(), 
-            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<CosmeticService>(), s.GetRequiredService<ToyboxVibeService>(), s.GetRequiredService<UnlocksEventManager>(), nm, ds))
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<CosmeticService>(), s.GetRequiredService<VibratorService>(), s.GetRequiredService<UnlocksEventManager>(), nm, ds))
         .AddSingleton<UnlocksEventManager>()
 
         // UpdateMonitoring Services
@@ -250,9 +252,9 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakConfigService>(), ss, gip))
         .AddSingleton((s) => new OnEmote(s.GetRequiredService<ILogger<OnEmote>>(), s.GetRequiredService<OnFrameworkService>(), ss, gip))
         .AddSingleton((s) => new EmoteMonitor(s.GetRequiredService<ILogger<EmoteMonitor>>(), s.GetRequiredService<OnFrameworkService>(), cs, dm))
-        .AddSingleton((s) => new TriggerController(s.GetRequiredService<ILogger<TriggerController>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PlayerCharacterData>(), 
-            s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<AppearanceManager>(),
-            s.GetRequiredService<UnlocksEventManager>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<ToyboxVibeService>(), s.GetRequiredService<IpcCallerMoodles>(), cg, cs, dm))
+        .AddSingleton((s) => new TriggerService(s.GetRequiredService<ILogger<TriggerService>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PlayerCharacterData>(),
+            s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<AppearanceManager>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<IpcCallerMoodles>(),
+            s.GetRequiredService<UnlocksEventManager>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<VibratorService>(), cs, dm))
 
         .AddSingleton((s) => new DtrBarService(s.GetRequiredService<ILogger<DtrBarService>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(), 
             s.GetRequiredService<EventAggregator>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<OnFrameworkService>(), cs, dm, dtr))
@@ -350,10 +352,12 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<GagManager>(), s.GetRequiredService<PlayerCharacterData>(),
             s.GetRequiredService<CursedLootHandler>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<AppearanceManager>(), cg, dm, gps, ot, tm))
         .AddSingleton<SafewordService>()
-        .AddSingleton<ToyboxVibeService>()
+        .AddSingleton<VibratorService>()
         .AddSingleton<ToyboxRemoteService>()
         .AddSingleton((s) => new TriggerService(s.GetRequiredService<ILogger<TriggerService>>(), s.GetRequiredService<GagspeakMediator>(),
-            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ToyboxVibeService>(), cs, dm))
+            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<AppearanceManager>(),
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<IpcCallerMoodles>(), s.GetRequiredService<UnlocksEventManager>(),
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<VibratorService>(), cs, dm))
         .AddSingleton<AppearanceService>()
         .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()
@@ -476,7 +480,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<WindowSystem>(), s.GetServices<WindowMediatorSubscriberBase>(), s.GetRequiredService<UiFactory>(), s.GetRequiredService<MainTabMenu>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<FileDialogManager>(), s.GetRequiredService<PenumbraChangedItemTooltip>()))
         .AddScoped((s) => new CommandManager(s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<GagspeakConfigService>(),
-            s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<ChatBoxMessage>(), s.GetRequiredService<TriggerController>(), cg, cs, cm))
+            s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<ChatBoxMessage>(), s.GetRequiredService<DeathRollService>(), cg, cs, cm))
         .AddScoped((s) => new NotificationService(s.GetRequiredService<ILogger<NotificationService>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterData>(), cg, nm))
         .AddScoped((s) => new UiSharedService(s.GetRequiredService<ILogger<UiSharedService>>(), s.GetRequiredService<GagspeakMediator>(),

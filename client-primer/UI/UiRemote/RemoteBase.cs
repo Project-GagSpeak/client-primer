@@ -24,12 +24,12 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
 {
     // the class includes are shared however (i think), so dont worry about that.
     private readonly UiSharedService _uiShared;
-    private readonly ToyboxVibeService _vibeService;
+    private readonly VibratorService _vibeService;
     private readonly ToyboxRemoteService _remoteService;
 
     public RemoteBase(ILogger logger,
         GagspeakMediator mediator, UiSharedService uiShared,
-        ToyboxRemoteService remoteService, ToyboxVibeService vibeService,
+        ToyboxRemoteService remoteService, VibratorService vibeService,
         string windowName): base(logger, mediator, windowName + " Remote")
     {
         // grab the shared services

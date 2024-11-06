@@ -23,12 +23,12 @@ public class RemotePatternMaker : RemoteBase
     // the class includes are shared however (i think), so dont worry about that.
     private readonly CosmeticService _cosmetics;
     private readonly UiSharedService _uiShared;
-    private readonly ToyboxVibeService _vibeService; // these SHOULD all be shared. but if not put into Service.
+    private readonly VibratorService _vibeService; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
     private readonly string _windowName;
     public RemotePatternMaker(ILogger<RemotePatternMaker> logger, GagspeakMediator mediator,
         CosmeticService cosmetics, UiSharedService uiShared, ToyboxRemoteService remoteService, 
-        ToyboxVibeService vibeService, string windowName = "Pattern Creator") 
+        VibratorService vibeService, string windowName = "Pattern Creator") 
         : base(logger, mediator, uiShared, remoteService, vibeService, windowName)
     {
         // grab the shared services

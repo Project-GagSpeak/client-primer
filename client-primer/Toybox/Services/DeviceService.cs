@@ -10,7 +10,7 @@ namespace GagSpeak.Toybox.Controllers;
 /// <summary>
 /// handles the connected devices and the socket connection to the Intiface server.
 /// </summary>
-public class DeviceController : DisposableMediatorSubscriberBase
+public class DeviceService : DisposableMediatorSubscriberBase
 {
     private ButtplugClient ButtPlugClient;
     public ButtplugWebsocketConnector WebsocketConnector;
@@ -25,7 +25,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
 
     // maybe store triggers here in the future, or in the trigger handler, but not now.
 
-    public DeviceController(ILogger<DeviceController> logger, GagspeakMediator mediator,
+    public DeviceService(ILogger<DeviceService> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfiguration, ToyboxFactory deviceFactory)
         : base(logger, mediator)
     {

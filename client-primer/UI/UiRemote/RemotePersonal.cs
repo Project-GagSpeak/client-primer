@@ -22,13 +22,13 @@ public class RemotePersonal : RemoteBase
 {
     // the class includes are shared however (i think), so dont worry about that.
     private readonly UiSharedService _uiShared;
-    private readonly ToyboxVibeService _vibeService; // these SHOULD all be shared. but if not put into Service.
+    private readonly VibratorService _vibeService; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
     private readonly string _windowName;
 
     public RemotePersonal(ILogger<RemotePersonal> logger,
         GagspeakMediator mediator, UiSharedService uiShared,
-        ToyboxRemoteService remoteService, ToyboxVibeService vibeService,
+        ToyboxRemoteService remoteService, VibratorService vibeService,
         string windowName = "Personal") : base(logger, mediator, uiShared, remoteService, vibeService, windowName)
     {
         // grab the shared services

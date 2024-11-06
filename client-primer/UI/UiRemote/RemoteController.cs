@@ -29,14 +29,14 @@ public class RemoteController : RemoteBase
     private readonly PlayerCharacterData _playerManager;
     private readonly GagManager _gagManager;
     private readonly UiSharedService _uiShared;
-    private readonly ToyboxVibeService _vibeService; // these SHOULD all be shared. but if not put into Service.
+    private readonly VibratorService _vibeService; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
     private readonly ToyboxHub _apiHubToybox;
     private bool _isExpanded = false;
 
     public RemoteController(ILogger<RemoteController> logger, GagspeakMediator mediator, 
         PlayerCharacterData playerManager, GagManager gagManager, UiSharedService uiShared,
-        ToyboxVibeService vibeService, ToyboxRemoteService remoteService, ToyboxHub apiHubToybox, 
+        VibratorService vibeService, ToyboxRemoteService remoteService, ToyboxHub apiHubToybox, 
         PrivateRoom privateRoom) : base(logger, mediator, uiShared, remoteService, vibeService, privateRoom.RoomName)
     {
         // grab the shared services

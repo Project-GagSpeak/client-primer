@@ -11,6 +11,7 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Controllers;
+using GagSpeak.Toybox.Services;
 using GagSpeak.Utils;
 using Lumina.Excel.GeneratedSheets;
 using Lumina.Excel.GeneratedSheets2;
@@ -31,7 +32,8 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
     private readonly PlayerCharacterData _playerInfo;
     private readonly PuppeteerHandler _puppeteerHandler;
     private readonly ChatSender _chatSender;
-    private readonly TriggerController _triggerController;
+    private readonly DeathRollService _deathRolls;
+    private readonly TriggerService _triggers;
     private readonly IChatGui _chat;
     private readonly IClientState _clientState;
     private readonly IDataManager _dataManager;
@@ -42,14 +44,16 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
     /// <summary> This is the constructor for the OnChatMsgManager class. </summary>
     public ChatBoxMessage(ILogger<ChatBoxMessage> logger, GagspeakMediator mediator,
         GagspeakConfigService mainConfig, PlayerCharacterData playerInfo,
-        PuppeteerHandler puppeteerHandler, ChatSender chatSender, TriggerController triggerController, 
-        IChatGui clientChat, IClientState clientState, IDataManager dataManager) : base(logger, mediator)
+        PuppeteerHandler puppeteerHandler, ChatSender chatSender, 
+        DeathRollService deathRolls, TriggerService triggers, IChatGui clientChat, 
+        IClientState clientState, IDataManager dataManager) : base(logger, mediator)
     {
         _mainConfig = mainConfig;
         _playerInfo = playerInfo;
         _chatSender = chatSender;
         _puppeteerHandler = puppeteerHandler;
-        _triggerController = triggerController;
+        _deathRolls = deathRolls;
+        _triggers = triggers;
         _chat = clientChat;
         _clientState = clientState;
         _dataManager = dataManager;
@@ -142,14 +146,14 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
                 if (playerPayload != null)
                 {
                     // check for social triggers
-                    _triggerController.CheckActiveSocialTriggers(type, playerPayload.PlayerName + "@" + playerPayload.World.Name, sender, message);
+                    _deathRolls.ProcessMessage(type, playerPayload.PlayerName + "@" + playerPayload.World.Name, message);
                 }
             }
             else
             {
                 // Should check under our name if this isn't valid as someone elses player payload.
                 Logger.LogDebug("Message was from self.", LoggerType.ToyboxTriggers);
-                _triggerController.CheckActiveSocialTriggers(type, _clientState.LocalPlayer.GetNameWithWorld(), sender, message);
+                _deathRolls.ProcessMessage(type, _clientState.LocalPlayer.GetNameWithWorld(), message);
             }
         }
 
@@ -186,9 +190,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
 
         // route to scan for any active triggers. (block outgoing tells because otherwise they always come up as from the recipient).
         if (type != XivChatType.TellOutgoing)
-        {
-            _triggerController.CheckActiveChatTriggers(type, senderName + "@" + senderWorld, message.TextValue);
-        }
+            _triggers.CheckActiveChatTriggers(type, senderName + "@" + senderWorld, message.TextValue);
 
         if (senderName + "@" + senderWorld == _clientState.LocalPlayer.GetNameWithWorld()) return;
 
@@ -212,7 +214,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
             // see if valid pair trigger-phrase was used
             if (_puppeteerHandler.IsValidPuppeteerTriggerWord(triggerPhrases, message))
             {
-                //Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!");
+                Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!");
                 // get the new message to send
                 SeString msgToSend = _puppeteerHandler.NewMessageFromPuppeteerTrigger(
                     triggerPhrases, matchedPair.UserData.UID, matchedPair.UserPairOwnUniquePairPerms, message, type);

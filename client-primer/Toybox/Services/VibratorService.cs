@@ -10,15 +10,15 @@ using GagspeakAPI.Enums;
 
 namespace GagSpeak.Toybox.Services;
 // handles the management of the connected devices or simulated vibrator.
-public class ToyboxVibeService : DisposableMediatorSubscriberBase
+public class VibratorService : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly DeviceController _deviceHandler; // handles the actual connected devices.
+    private readonly DeviceService _deviceHandler; // handles the actual connected devices.
     private readonly VibeSimAudio _vibeSimAudio; // handles the simulated vibrator
 
-    public ToyboxVibeService(ILogger<ToyboxVibeService> logger,
+    public VibratorService(ILogger<VibratorService> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        DeviceController deviceHandler, VibeSimAudio vibeSimAudio) : base(logger, mediator)
+        DeviceService deviceHandler, VibeSimAudio vibeSimAudio) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _deviceHandler = deviceHandler;
@@ -63,7 +63,7 @@ public class ToyboxVibeService : DisposableMediatorSubscriberBase
 
 
     // Grab device handler via toyboxvibeService.
-    public DeviceController DeviceHandler => _deviceHandler;
+    public DeviceService DeviceHandler => _deviceHandler;
     public VibeSimAudio VibeSimAudio => _vibeSimAudio;
 
     protected override void Dispose(bool disposing)

@@ -28,7 +28,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly CosmeticService _cosmetics;
-    private readonly ToyboxVibeService _vibeService;
+    private readonly VibratorService _vibeService;
     private readonly UnlocksEventManager _eventManager;
     private readonly INotificationManager _notify;
     private readonly IDutyState _dutyState;
@@ -43,7 +43,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     private bool _reconnectedAfterException => DateTime.UtcNow - _lastDisconnectTime < TimeSpan.FromMinutes(5);
     public AchievementManager(ILogger<AchievementManager> logger, GagspeakMediator mediator, MainHub mainHub,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData, PairManager pairManager,
-        OnFrameworkService frameworkUtils, CosmeticService cosmetics, ToyboxVibeService vibeService, 
+        OnFrameworkService frameworkUtils, CosmeticService cosmetics, VibratorService vibeService, 
         UnlocksEventManager eventManager, INotificationManager notifs, IDutyState dutyState) : base(logger, mediator)
     {
         _mainHub = mainHub;

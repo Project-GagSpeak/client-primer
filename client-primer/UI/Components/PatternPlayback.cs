@@ -17,13 +17,13 @@ namespace GagSpeak.UI.Components;
 public class PatternPlayback : DisposableMediatorSubscriberBase
 {
     private readonly ToyboxRemoteService _remoteService;
-    private readonly ToyboxVibeService _vibeService;
+    private readonly VibratorService _vibeService;
 
     public Stopwatch PlaybackDuration;
     private UpdateTimer PlaybackUpdateTimer;
 
     public PatternPlayback(ILogger<PatternPlayback> logger, GagspeakMediator mediator,
-        ToyboxRemoteService remoteService, ToyboxVibeService vibeService) : base(logger, mediator)
+        ToyboxRemoteService remoteService, VibratorService vibeService) : base(logger, mediator)
     {
         _remoteService = remoteService;
         _vibeService = vibeService;

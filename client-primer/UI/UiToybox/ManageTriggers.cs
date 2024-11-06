@@ -2,7 +2,6 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Utility;
 using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
@@ -16,7 +15,6 @@ using GagSpeak.Toybox.Controllers;
 using GagSpeak.Toybox.Services;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
-using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
 using OtterGui.Classes;
@@ -34,7 +32,7 @@ public class ToyboxTriggerManager
     private readonly PairManager _pairManager;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerManager;
-    private readonly DeviceController _deviceController;
+    private readonly DeviceService _deviceController;
     private readonly TriggerHandler _handler;
     private readonly PatternHandler _patternHandler;
     private readonly TriggerService _triggerService;
@@ -43,7 +41,7 @@ public class ToyboxTriggerManager
     public ToyboxTriggerManager(ILogger<ToyboxTriggerManager> logger,
         GagspeakMediator mediator, UiSharedService uiSharedService,
         PairManager pairManager, ClientConfigurationManager clientConfigs,
-        PlayerCharacterData playerManager, DeviceController deviceController,
+        PlayerCharacterData playerManager, DeviceService deviceController,
         TriggerHandler handler, PatternHandler patternHandler,
         TriggerService triggerService, MoodlesService moodlesService)
     {
@@ -693,7 +691,7 @@ public class ToyboxTriggerManager
         var init = _clientConfigs.StoredRestraintSets.FirstOrDefault(x => x.RestraintId == restraintTrigger.RestraintSetId)?.ToLightData() ?? new LightRestraintData();
 
         var setList = _clientConfigs.StoredRestraintSets.Select(x => x.ToLightData()).ToList();
-        _uiShared.DrawCombo("EditRestraintSetCombo" + restraintTrigger.TriggerIdentifier, 200f, setList, (setItem) => setItem.Name, 
+        _uiShared.DrawCombo("EditRestraintSetCombo" + restraintTrigger.TriggerIdentifier, 200f, setList, (setItem) => setItem.Name,
             (i) => restraintTrigger.RestraintSetId = i?.Identifier ?? Guid.Empty, init, false, ImGuiComboFlags.None, "No Set Selected...");
 
         UiSharedService.ColorText("Restraint State that fires Trigger", ImGuiColors.ParsedGold);
@@ -734,9 +732,9 @@ public class ToyboxTriggerManager
         _uiShared.DrawHelpText("The kind of action to perform when the trigger is activated.");
 
         ImGui.Text("Current Action Kind: " + trigger.TriggerActionKind.ToString());
-        var allowedKinds = trigger is RestraintTrigger 
-            ? Enum.GetValues<TriggerActionKind>().Where(x => x != TriggerActionKind.Restraint).ToArray() 
-            : trigger is GagTrigger 
+        var allowedKinds = trigger is RestraintTrigger
+            ? Enum.GetValues<TriggerActionKind>().Where(x => x != TriggerActionKind.Restraint).ToArray()
+            : trigger is GagTrigger
                 ? Enum.GetValues<TriggerActionKind>().Where(x => x != TriggerActionKind.Gag).ToArray()
                 : Enum.GetValues<TriggerActionKind>();
         _uiShared.DrawCombo("##TriggerActionTypeCombo" + trigger.TriggerIdentifier, 175f, allowedKinds,
@@ -868,7 +866,7 @@ public class ToyboxTriggerManager
         _uiShared.DrawCombo("ApplyRestraintSetActionCombo" + trigger.TriggerIdentifier, 200f, lightRestraintItems,
             toName: (lightRestraint) => lightRestraint.Name, (i) =>
             {
-                if(i is null)
+                if (i is null)
                 {
                     _logger.LogWarning("Selected Restraint was null!");
                     return;
@@ -926,8 +924,8 @@ public class ToyboxTriggerManager
 
         UiSharedService.ColorText("Moodle Preset to Apply", ImGuiColors.ParsedGold);
         ImGui.SetNextItemWidth(200f);
-        _moodlesService.DrawMoodlesPresetCombo("##MoodlePresetTriggerAction" + trigger.TriggerIdentifier, ImGui.GetContentRegionAvail().X, 
-            _playerManager.LastIpcData.MoodlesPresets, 
+        _moodlesService.DrawMoodlesPresetCombo("##MoodlePresetTriggerAction" + trigger.TriggerIdentifier, ImGui.GetContentRegionAvail().X,
+            _playerManager.LastIpcData.MoodlesPresets,
             _playerManager.LastIpcData.MoodlesStatuses,
             (i) => trigger.MoodlesIdentifier = i ?? Guid.Empty);
         _uiShared.DrawHelpText("This Moodle Preset will be applied when the trigger is fired.");

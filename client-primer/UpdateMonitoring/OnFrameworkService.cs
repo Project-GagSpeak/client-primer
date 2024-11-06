@@ -42,6 +42,7 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
     private readonly List<string> _notUpdatedCharas = [];
     public ActionRoles PlayerJobRole => (ActionRoles)(_clientState.LocalPlayer?.ClassJob?.GameData?.Role ?? 0);
     public IntPtr ClientPlayerAddress; // player address
+    public string ClientPlayerNameAndWorld => _clientState.LocalPlayer?.GetNameWithWorld() ?? string.Empty;
     public static bool GlamourChangeEventsDisabled = false; // 1st variable responsible for handling glamour change events
     public Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
     public ulong TargetObjectId => _targetManager.Target?.GameObjectId ?? ulong.MaxValue;

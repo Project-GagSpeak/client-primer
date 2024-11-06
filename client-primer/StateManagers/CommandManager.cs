@@ -24,21 +24,21 @@ public sealed class CommandManager : IDisposable
     private readonly GagspeakConfigService _mainConfig;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly ChatBoxMessage _chatMessages;
-    private readonly TriggerController _triggerController;
+    private readonly DeathRollService _deathRolls;
     private readonly IChatGui _chat;
     private readonly IClientState _clientState;
     private readonly ICommandManager _commands;
 
     public CommandManager(GagspeakMediator mediator,
         GagspeakConfigService mainConfig, ServerConfigurationManager serverConfigs,
-        ChatBoxMessage chatMessages, TriggerController triggerController, 
+        ChatBoxMessage chatMessages, DeathRollService deathRolls, 
         IChatGui chat, IClientState clientState, ICommandManager commandManager)
     {
         _mediator = mediator;
         _mainConfig = mainConfig;
         _serverConfigs = serverConfigs;
         _chatMessages = chatMessages;
-        _triggerController = triggerController;
+        _deathRolls = deathRolls;
         _chat = chat;
         _clientState = clientState;
         _commands = commandManager;
@@ -147,12 +147,14 @@ public sealed class CommandManager : IDisposable
 
         if (string.Equals(splitArgs[0], "r", StringComparison.OrdinalIgnoreCase))
         {
-            if (_clientState.LocalPlayer == null) return;
+            if (_clientState.LocalPlayer is null) 
+                return;
+
             // get the last interacted with DeathRoll session.
-            var lastSession = _triggerController.GetLastInteractedSession(_clientState.LocalPlayer.GetNameWithWorld());
-            if (lastSession != null)
+            var lastRollCap = _deathRolls.GetLastRollCap();
+            if (lastRollCap is not null)
             {
-                _chatMessages.SendRealMessage($"/random {lastSession.CurrentRollCap}");
+                _chatMessages.SendRealMessage($"/random "+ lastRollCap);
                 return;
             }
             _chat.Print(new SeStringBuilder().AddItalics("No DeathRolls active to reply to.").BuiltString);

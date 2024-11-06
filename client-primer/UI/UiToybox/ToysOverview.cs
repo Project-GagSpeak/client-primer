@@ -25,12 +25,12 @@ public class ToyboxOverview
     private readonly PlayerCharacterData _playerManager;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly ServerConfigurationManager _serverConfigs;
-    private readonly ToyboxVibeService _vibeService;
+    private readonly VibratorService _vibeService;
 
     public ToyboxOverview(ILogger<ToyboxOverview> logger, GagspeakMediator mediator, 
         UiSharedService uiSharedService, PlayerCharacterData playerData, 
         ClientConfigurationManager clientConfigs,
-        ServerConfigurationManager serverConfigs, ToyboxVibeService vibeService)
+        ServerConfigurationManager serverConfigs, VibratorService vibeService)
     {
         _logger = logger;
         _mediator = mediator;
@@ -212,7 +212,7 @@ public class ToyboxOverview
         var windowPadding = ImGui.GetStyle().WindowPadding;
         // push the style var to supress the Y window padding.
         var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
-        var buttplugServerAddr = DeviceController.IntifaceClientName;
+        var buttplugServerAddr = DeviceService.IntifaceClientName;
         var addrSize = ImGui.CalcTextSize(buttplugServerAddr);
 
         string intifaceConnectionStr = $"Intiface Central Connection";

@@ -122,7 +122,7 @@ public static class UtilsExtensions
     }
 
     public static string GetNameWithWorld(this IPlayerCharacter pc)
-        => pc == null ? null : (pc.Name.ToString() + "@" + pc.HomeWorld.GameData.Name);
+        => pc is not null ? (pc.Name.ToString() + "@" + (pc.HomeWorld.GameData?.Name ?? "UNK-WORLD")) : "UNK-CHAR";
 
 
     public static string StripColorTags(this string input)

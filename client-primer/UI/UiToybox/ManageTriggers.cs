@@ -15,6 +15,8 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Controllers;
 using GagSpeak.Toybox.Services;
 using GagSpeak.Utils;
+using GagspeakAPI.Data;
+using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
 using OtterGui.Classes;
@@ -234,16 +236,14 @@ public class ToyboxTriggerManager
             UiSharedService.AttachToolTip("Save changes to Pattern & Return to Pattern List");
 
             // right beside it to the right, we need to draw the delete button
-            using (var disableDelete = ImRaii.Disabled(!KeyMonitor.CtrlPressed()))
+            ImGui.SameLine();
+            ImGui.SetCursorPosY(currentYpos);
+            if (_uiShared.IconButton(FontAwesomeIcon.Trash, disabled: !KeyMonitor.ShiftPressed()))
             {
-                ImGui.SameLine();
-                ImGui.SetCursorPosY(currentYpos);
-                if (_uiShared.IconButton(FontAwesomeIcon.Trash))
-                {
-                    // reset the createdPattern to a new pattern, and set editing pattern to true
-                    _handler.RemoveTrigger(_handler.ClonedTriggerForEdit!);
-                }
+                // reset the createdPattern to a new pattern, and set editing pattern to true
+                _handler.RemoveTrigger(_handler.ClonedTriggerForEdit!);
             }
+            UiSharedService.AttachToolTip("Delete Trigger--SEP--Must be holding SHIFT");
         }
     }
 
@@ -579,7 +579,6 @@ public class ToyboxTriggerManager
         switch (spellActionTrigger.ActionKind)
         {
             case LimitedActionEffectType.Miss:
-            case LimitedActionEffectType.Interrupt:
             case LimitedActionEffectType.Attract1:
             case LimitedActionEffectType.Knockback:
                 DrawDirection(spellActionTrigger);
@@ -597,7 +596,13 @@ public class ToyboxTriggerManager
     private void DrawDirection(SpellActionTrigger spellActionTrigger)
     {
         UiSharedService.ColorText("Direction", ImGuiColors.ParsedGold);
-        _uiShared.DrawHelpText("Determines how the trigger is fired.");
+        _uiShared.DrawHelpText("Determines how the trigger is fired. --SEP--" +
+            "From Self ⇒ ActionType was performed BY YOU (Target can be anything)--SEP--" +
+            "Self to Others ⇒ ActionType was performed by you, and the target was NOT you--SEP--" +
+            "From Others ⇒ ActionType was performed by someone besides you. (Target can be anything)--SEP--" +
+            "Others to You ⇒ ActionType was performed by someone else, and YOU were the target.--SEP--" +
+            "Any ⇒ Skips over the Direction Filter. Source and Target can be anyone.");
+
         // create a dropdown storing the enum values of TriggerDirection
         _uiShared.DrawCombo("##DirectionSelector", 150f, Enum.GetValues<TriggerDirection>(),
         (direction) => direction.DirectionToString(), (i) => spellActionTrigger.Direction = i, spellActionTrigger.Direction);
@@ -682,14 +687,19 @@ public class ToyboxTriggerManager
     private void DrawRestraintTriggerEditor(RestraintTrigger restraintTrigger)
     {
         UiSharedService.ColorText("Restraint Set to Monitor", ImGuiColors.ParsedGold);
-        ImGui.SetNextItemWidth(200f);
-        _uiShared.DrawCombo("EditRestraintSetCombo" + restraintTrigger.TriggerIdentifier, 200f, _clientConfigs.StoredRestraintSets.Select(x => x.Name).ToList(),
-            (name) => name, (i) => restraintTrigger.RestraintSetName = i!, restraintTrigger.RestraintSetName, false, ImGuiComboFlags.None, "No Set Selected...");
         _uiShared.DrawHelpText("The Restraint Set to listen to for this trigger.");
+
+        ImGui.SetNextItemWidth(200f);
+        var init = _clientConfigs.StoredRestraintSets.FirstOrDefault(x => x.RestraintId == restraintTrigger.RestraintSetId)?.ToLightData() ?? new LightRestraintData();
+
+        var setList = _clientConfigs.StoredRestraintSets.Select(x => x.ToLightData()).ToList();
+        _uiShared.DrawCombo("EditRestraintSetCombo" + restraintTrigger.TriggerIdentifier, 200f, setList, (setItem) => setItem.Name, 
+            (i) => restraintTrigger.RestraintSetId = i?.Identifier ?? Guid.Empty, init, false, ImGuiComboFlags.None, "No Set Selected...");
 
         UiSharedService.ColorText("Restraint State that fires Trigger", ImGuiColors.ParsedGold);
         ImGui.SetNextItemWidth(200f);
-        _uiShared.DrawCombo("RestraintStateToMonitor" + restraintTrigger.TriggerIdentifier, 200f, Enum.GetValues<NewState>(), (state) => state.ToString(),
+        var allowedStates = new List<NewState>() { NewState.Enabled, NewState.Locked };
+        _uiShared.DrawCombo("RestraintStateToMonitor" + restraintTrigger.TriggerIdentifier, 200f, allowedStates, (state) => state.ToString(),
             (i) => restraintTrigger.RestraintState = i, restraintTrigger.RestraintState, false, ImGuiComboFlags.None, "No State Selected");
     }
 
@@ -723,7 +733,13 @@ public class ToyboxTriggerManager
         UiSharedService.ColorText("Trigger Action Kind", ImGuiColors.ParsedGold);
         _uiShared.DrawHelpText("The kind of action to perform when the trigger is activated.");
 
-        _uiShared.DrawCombo("##TriggerActionTypeCombo" + trigger.TriggerIdentifier, 175f, Enum.GetValues<TriggerActionKind>(),
+        ImGui.Text("Current Action Kind: " + trigger.TriggerActionKind.ToString());
+        var allowedKinds = trigger is RestraintTrigger 
+            ? Enum.GetValues<TriggerActionKind>().Where(x => x != TriggerActionKind.Restraint).ToArray() 
+            : trigger is GagTrigger 
+                ? Enum.GetValues<TriggerActionKind>().Where(x => x != TriggerActionKind.Gag).ToArray()
+                : Enum.GetValues<TriggerActionKind>();
+        _uiShared.DrawCombo("##TriggerActionTypeCombo" + trigger.TriggerIdentifier, 175f, allowedKinds,
         (triggerActionKind) => triggerActionKind.ToName(), (i) => trigger.TriggerActionKind = i,
         trigger.TriggerActionKind, false);
         ImGui.Separator();
@@ -848,25 +864,31 @@ public class ToyboxTriggerManager
     {
         UiSharedService.ColorText("Apply Restraint Set", ImGuiColors.ParsedGold);
         ImGui.SetNextItemWidth(200f);
-        var selected = !trigger.RestraintNameAction.IsNullOrEmpty() ? trigger.RestraintNameAction : null;
-        _uiShared.DrawCombo("ApplyRestraintSetActionCombo" + trigger.TriggerIdentifier, 200f, _clientConfigs.StoredRestraintSets.Select(x => x.Name).ToList(),
-            (name) => name, (i) => trigger.RestraintNameAction = i, selected, false, ImGuiComboFlags.None, "No Set Selected...");
+        List<LightRestraintData> lightRestraintItems = _clientConfigs.StoredRestraintSets.Select(x => x.ToLightData()).ToList();
+        _uiShared.DrawCombo("ApplyRestraintSetActionCombo" + trigger.TriggerIdentifier, 200f, lightRestraintItems,
+            toName: (lightRestraint) => lightRestraint.Name, (i) =>
+            {
+                if(i is null)
+                {
+                    _logger.LogWarning("Selected Restraint was null!");
+                    return;
+                }
+                trigger.RestraintTriggerAction = i;
+            }, lightRestraintItems.FirstOrDefault() ?? new LightRestraintData(), false, ImGuiComboFlags.None, "No Set Selected...");
         _uiShared.DrawHelpText("Apply restraint set to your character when the trigger is fired.");
     }
 
     private void DrawGagActionSettings(Trigger trigger)
     {
-        UiSharedService.ColorText("Apply to Layer", ImGuiColors.ParsedGold);
-        ImGui.SetNextItemWidth(200f);
-        _uiShared.DrawCombo("ApplyGagLayerActionCombo" + trigger.TriggerIdentifier, 200f, Enum.GetValues<GagLayer>(), (state) => state.ToString(),
-            (i) => trigger.GagLayerAction = i, trigger.GagLayerAction, false, ImGuiComboFlags.None, "No Layer Selected");
-        _uiShared.DrawHelpText("Apply Gag to the selected layer when the trigger is fired.");
-
         UiSharedService.ColorText("Apply Gag Type", ImGuiColors.ParsedGold);
         var gagTypes = Enum.GetValues<GagType>().Where(gag => gag != GagType.None).ToArray();
         ImGui.SetNextItemWidth(200f);
         _uiShared.DrawComboSearchable("GagActionGagType" + trigger.TriggerIdentifier, 250, ref GagSearchString, gagTypes,
-            (gag) => gag.GagName(), false, (i) => trigger.GagTypeAction = i, trigger.GagTypeAction, "No Gag Type Selected");
+            (gag) => gag.GagName(), false, (i) =>
+            {
+                _logger.LogTrace($"Selected Gag Type for Trigger: {i}");
+                trigger.GagTypeAction = i;
+            }, trigger.GagTypeAction, "No Gag Type Selected");
         _uiShared.DrawHelpText("Apply this Gag to your character when the trigger is fired.");
     }
 
@@ -883,8 +905,14 @@ public class ToyboxTriggerManager
 
         UiSharedService.ColorText("Moodle Status to Apply", ImGuiColors.ParsedGold);
         ImGui.SetNextItemWidth(200f);
-        _moodlesService.DrawMoodleStatusCombo("##MoodleStatusTriggerAction", ImGui.GetContentRegionAvail().X,
-            _playerManager.LastIpcData.MoodlesStatuses, (i) => trigger.TriggerIdentifier = i ?? Guid.Empty);
+
+        _moodlesService.DrawMoodleStatusCombo("##MoodleStatusTriggerAction" + trigger.TriggerIdentifier, ImGui.GetContentRegionAvail().X,
+        statusList: _playerManager.LastIpcData.MoodlesStatuses,
+        onSelected: (i) =>
+        {
+            _logger.LogTrace($"Selected Moodle Status for Trigger: {i}");
+            trigger.MoodlesIdentifier = i ?? Guid.Empty;
+        }, initialSelectedItem: trigger.MoodlesIdentifier);
         _uiShared.DrawHelpText("This Moodle will be applied when the trigger is fired.");
     }
 
@@ -898,8 +926,9 @@ public class ToyboxTriggerManager
 
         UiSharedService.ColorText("Moodle Preset to Apply", ImGuiColors.ParsedGold);
         ImGui.SetNextItemWidth(200f);
-        _moodlesService.DrawMoodlesPresetCombo("##MoodlePresetTriggerAction" + trigger.TriggerIdentifier,
-            ImGui.GetContentRegionAvail().X, _playerManager.LastIpcData.MoodlesPresets, _playerManager.LastIpcData.MoodlesStatuses,
+        _moodlesService.DrawMoodlesPresetCombo("##MoodlePresetTriggerAction" + trigger.TriggerIdentifier, ImGui.GetContentRegionAvail().X, 
+            _playerManager.LastIpcData.MoodlesPresets, 
+            _playerManager.LastIpcData.MoodlesStatuses,
             (i) => trigger.MoodlesIdentifier = i ?? Guid.Empty);
         _uiShared.DrawHelpText("This Moodle Preset will be applied when the trigger is fired.");
     }

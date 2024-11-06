@@ -162,19 +162,19 @@ public class AppearanceService : DisposableMediatorSubscriberBase
         switch (_clientConfigs.GagspeakConfig.RevertStyle)
         {
             case RevertStyle.RevertToGame:
-                await _Interop.Glamourer.GlamourerRevertToGame();
+                await _Interop.Glamourer.GlamourerRevertToGame(false);
                 break;
 
             case RevertStyle.RevertEquipToGame:
-                await _Interop.Glamourer.GlamourerRevertToGameEquipOnly();
+                await _Interop.Glamourer.GlamourerRevertToGame(true);
                 break;
 
             case RevertStyle.RevertToAutomation:
-                await _Interop.Glamourer.GlamourerRevertToAutomation();
+                await _Interop.Glamourer.GlamourerRevertToAutomation(false);
                 break;
 
             case RevertStyle.RevertEquipToAutomation:
-                await _Interop.Glamourer.GlamourerRevertToAutomationEquipOnly();
+                await _Interop.Glamourer.GlamourerRevertToAutomation(true);
                 break;
         }
     }

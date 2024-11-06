@@ -334,7 +334,7 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
         var PreviousPos = CirclePosition[1]; // store the Y position
 
         // now draw the actual damn thing
-        if (ImPlot.BeginPlot("##Box", new Vector2(width + ImGui.GetTextLineHeight(), height), ImPlotFlags.NoBoxSelect | ImPlotFlags.NoLegend | ImPlotFlags.NoFrame))
+        if (ImPlot.BeginPlot("##Box", new Vector2(width + ImGui.GetTextLineHeight(), height), ImPlotFlags.NoBoxSelect | ImPlotFlags.NoLegend | ImPlotFlags.NoMenus | ImPlotFlags.NoFrame))
         {
             // setup Axis's
             ImPlot.SetupAxes("X Label", "Y Label",

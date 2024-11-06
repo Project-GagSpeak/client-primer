@@ -239,7 +239,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                     Timer = DateTimeOffset.UtcNow.Add(lockTimeGag),
                     Assigner = MainHub.UID
                 };
-                _gagManager.OnGagLockChanged(padlockData, NewState.Locked, true, true);
+                _gagManager.PublishLockApplied((GagLayer)availableSlot, Padlocks.MimicPadlock, "", DateTimeOffset.UtcNow.Add(lockTimeGag), MainHub.UID);
                 Logger.LogInformation($"Cursed Loot Applied & Locked!", LoggerType.CursedLoot);
                 // send event that we are having cursed loot applied.
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.CursedDungeonLootFound);

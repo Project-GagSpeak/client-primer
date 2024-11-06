@@ -204,7 +204,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         };
     }
 
-    private CharaAppearanceData CompileAppearanceToAPI()
+    public CharaAppearanceData CompileAppearanceToAPI()
     {
         if (AppearanceData == null)
         {
@@ -281,8 +281,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
 
     public void PushAppearanceDataToAPI(PlayerCharAppearanceChanged msg)
     {
-        var dataToPush = CompileAppearanceToAPI();
-        Mediator.Publish(new CharacterAppearanceDataCreatedMessage(dataToPush, msg.UpdateKind));
+        Mediator.Publish(new CharacterAppearanceDataCreatedMessage(msg.newGagData, msg.UpdateKind));
     }
 
     public void PushWardrobeDataToAPI(PlayerCharWardrobeChanged msg)

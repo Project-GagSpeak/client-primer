@@ -105,7 +105,7 @@ public record ExecuteHealthPercentTriggerMessage(HealthPercentTrigger Trigger) :
 
 
 /* ------------------ PLAYERDATA CLIENTSIDE PERMISSION HANDLING ------------------- */
-public record PlayerCharAppearanceChanged(DataUpdateKind UpdateKind) : MessageBase;
+public record PlayerCharAppearanceChanged(CharaAppearanceData newGagData, DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharAliasChanged(string UpdatedPairUID, DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;

@@ -18,6 +18,8 @@ namespace GagSpeak.Utils;
 
 public static class UtilsExtensions
 {
+    public static bool IsTimerLock(this Padlocks padlock) => 
+        padlock is Padlocks.FiveMinutesPadlock or Padlocks.TimerPasswordPadlock or Padlocks.OwnerTimerPadlock or Padlocks.DevotionalTimerPadlock or Padlocks.MimicPadlock;
     public static string ComboEmoteName(this Lumina.Excel.GeneratedSheets.Emote emote)
     {
         return emote.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") + "(" + emote.RowId + ")";

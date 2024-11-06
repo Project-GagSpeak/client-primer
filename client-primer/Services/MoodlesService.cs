@@ -48,7 +48,7 @@ public class MoodlesService
 
     // Helper function to handle the combo box logic
     private void DrawCombo(string comboLabel, float width, List<(Guid, List<Guid>)> MoodlesPresets, 
-        List<MoodlesStatusInfo> RelatedStatuses, Action<Guid?>? onSelected = null)
+        List<MoodlesStatusInfo> RelatedStatuses, Action<Guid?>? onSelected = null, Guid initialSelectedItem = default)
     {
         if (!MoodlesPresets.Any())
         {
@@ -58,11 +58,20 @@ public class MoodlesService
             return;
         }
 
-        // Get the currently selected item or default to the first preset
-        if (!SelectedMoodleComboGuids.TryGetValue(comboLabel, out var selectedItem) || selectedItem == Guid.Empty)
+        if (!SelectedMoodleComboGuids.TryGetValue(comboLabel, out var selectedItem) && selectedItem == Guid.Empty)
         {
-            selectedItem = MoodlesPresets.First().Item1;
-            SelectedMoodleComboGuids[comboLabel] = selectedItem;
+            if (!EqualityComparer<Guid>.Default.Equals(initialSelectedItem, default))
+            {
+                selectedItem = initialSelectedItem;
+                SelectedMoodleComboGuids[comboLabel] = selectedItem;
+                if (!EqualityComparer<Guid>.Default.Equals(initialSelectedItem, default))
+                    onSelected?.Invoke(initialSelectedItem);
+            }
+            else
+            {
+                selectedItem = MoodlesPresets.First().Item1;
+                SelectedMoodleComboGuids[comboLabel] = selectedItem;
+            }
         }
 
         // Ensure the selected item still exists in the list, otherwise reset it
@@ -110,9 +119,9 @@ public class MoodlesService
     }
 
     public void DrawMoodlesPresetCombo(string comboLabel, float width, List<(Guid, List<Guid>)> MoodlesPresets,
-        List<MoodlesStatusInfo> RelatedMoodlesStatuses, Action<Guid?>? onSelected = null)
+        List<MoodlesStatusInfo> RelatedMoodlesStatuses, Action<Guid?>? onSelected = null, Guid initialSelectedItem = default)
     {
-        DrawCombo(comboLabel, width, MoodlesPresets, RelatedMoodlesStatuses, onSelected);
+        DrawCombo(comboLabel, width, MoodlesPresets, RelatedMoodlesStatuses, onSelected, initialSelectedItem);
     }
 
     public void DrawMoodlesPresetComboButton(string comboLabel, string buttonLabel, float width,
@@ -138,9 +147,9 @@ public class MoodlesService
 
     #region MoodlesStatusCombo
     public void DrawMoodleStatusCombo(string comboLabel, float width, List<MoodlesStatusInfo> statusList, 
-        Action<Guid?>? onSelected = null, float sizeScaler = 1f)
+        Action<Guid?>? onSelected = null, float sizeScaler = 1f, Guid initialSelectedItem = default)
     {
-        DrawStatusComboBox(statusList, comboLabel, width, onSelected, sizeScaler);
+        DrawStatusComboBox(statusList, comboLabel, width, onSelected, sizeScaler, initialSelectedItem);
     }
 
 
@@ -172,7 +181,7 @@ public class MoodlesService
 
 
     private void DrawStatusComboBox(List<MoodlesStatusInfo> statuses, string comboLabel, float width, 
-        Action<Guid?>? onSelected = null, float sizeScaler = 1f)
+        Action<Guid?>? onSelected = null, float sizeScaler = 1f, Guid initialSelectedItem = default)
     {
         var height = ImGui.GetTextLineHeightWithSpacing() * 10 - ImGui.GetFrameHeight() - ImGui.GetStyle().WindowPadding.Y;
 
@@ -185,11 +194,20 @@ public class MoodlesService
             return;
         }
 
-        // Get the currently selected item or default to the first preset
-        if (!SelectedMoodleComboGuids.TryGetValue(comboLabel, out var selectedItem))
+        if (!SelectedMoodleComboGuids.TryGetValue(comboLabel, out var selectedItem) && selectedItem == Guid.Empty)
         {
-            selectedItem = Guid.Empty;
-            SelectedMoodleComboGuids[comboLabel] = selectedItem;
+            if (!EqualityComparer<Guid>.Default.Equals(initialSelectedItem, default))
+            {
+                selectedItem = initialSelectedItem;
+                SelectedMoodleComboGuids[comboLabel] = selectedItem;
+                if (!EqualityComparer<Guid>.Default.Equals(initialSelectedItem, default))
+                    onSelected?.Invoke(initialSelectedItem);
+            }
+            else
+            {
+                selectedItem = statuses.First().GUID;
+                SelectedMoodleComboGuids[comboLabel] = selectedItem!;
+            }
         }
 
         // Ensure the selected item still exists in the list, otherwise reset it

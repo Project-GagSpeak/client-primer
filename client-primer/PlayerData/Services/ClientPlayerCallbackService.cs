@@ -15,9 +15,10 @@ using GagspeakAPI.Dto.IPC;
 using GagspeakAPI.Dto.Permissions;
 using GagspeakAPI.Dto.User;
 using GagspeakAPI.Extensions;
-using Glamourer.Api.IpcSubscribers.Legacy;
+using GagSpeak.Utils;
 using Microsoft.Extensions.FileSystemGlobbing.Internal;
 using static Lumina.Data.Parsing.Layer.LayerCommon;
+using static FFXIVClientStructs.FFXIV.Client.UI.Misc.AozNoteModule;
 
 namespace GagSpeak.PlayerData.Services;
 
@@ -147,7 +148,8 @@ public class ClientCallbackService
 
         NewState callbackGagState = callbackDto.UpdateKind.ToNewState();
         GagLayer callbackGagLayer = callbackDto.UpdateKind.ToSlot();
-        var currentGagType = _playerData.AppearanceData!.GagSlots[(int)callbackGagLayer].GagType.ToGagType();
+        var currentGagSlot = _playerData.AppearanceData!.GagSlots[(int)callbackGagLayer];
+        var callbackGagSlot = callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer];
 
         if (callbackWasFromSelf)
         {
@@ -155,7 +157,11 @@ public class ClientCallbackService
                 _logger.LogDebug("SelfApplied GAG APPLY Verified by Server Callback.", LoggerType.Callbacks);
 
             if(callbackGagState is NewState.Locked)
+            {
                 _logger.LogDebug("SelfApplied GAG LOCK Verified by Server Callback.", LoggerType.Callbacks);
+                // update the lock information after our callback.
+                _gagManager.LockGag(callbackGagLayer, callbackGagSlot.Padlock.ToPadlock(), callbackGagSlot.Password, callbackGagSlot.Timer, callbackDto.User.UID);
+            }
 
             if (callbackGagState is NewState.Unlocked)
             {
@@ -164,15 +170,15 @@ public class ClientCallbackService
                 if (callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer].GagType.ToGagType() is not GagType.None)
                 {
                     // This means the gag is still applied, so we should see if we want to auto remove it.
-                    _logger.LogDebug("Gag is still applied. Checking if we should remove it.", LoggerType.Callbacks);
-                    if (_clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration)
-                        await _appearanceManager.GagRemoved(callbackGagLayer, currentGagType, isSelfApplied: true);
-                }
-                else
-                {
-                    _logger.LogTrace("Gag is already removed. No need to remove again. Update ClientSide Only", LoggerType.Callbacks);
-                    // The GagType is none, meaning this was removed via a mimic, so only update client side removal
-                    await _appearanceManager.GagRemoved(callbackGagLayer, currentGagType, publishRemoval: false, isSelfApplied: true);
+                    _logger.LogDebug("Gag is still applied. Checking if we should remove it. Padlock: ["+ currentGagSlot.Padlock +"]", LoggerType.Callbacks);
+                    bool shouldAutoRemove = false;
+                    if (_clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration && currentGagSlot.Padlock.ToPadlock().IsTimerLock())
+                        shouldAutoRemove = true;
+                    // unlock the padlock.
+                    _gagManager.UnlockGag(callbackGagLayer);
+                    // if we should auto remove, then remove it.
+                    if (shouldAutoRemove)
+                        await _appearanceManager.GagRemoved(callbackGagLayer, currentGagSlot.GagType.ToGagType(), isSelfApplied: true);
                 }
             }
 
@@ -182,7 +188,6 @@ public class ClientCallbackService
             return;
         }
 
-        var callbackGagSlot = callbackDto.AppearanceData.GagSlots[(int)callbackGagLayer];
         var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
         if(matchedPair == null)
         {
@@ -190,7 +195,8 @@ public class ClientCallbackService
             return;
         }
 
-        _logger.LogDebug("Callback State: "+callbackGagState + " | Callback Layer: "+callbackGagLayer + " | Callback GagType: "+callbackGagSlot.GagType + " | Current GagType: "+currentGagType, LoggerType.Callbacks);
+        _logger.LogDebug("Callback State: "+callbackGagState + " | Callback Layer: "+callbackGagLayer + " | Callback GagType: "+callbackGagSlot.GagType 
+            + " | Current GagType: "+ currentGagSlot.GagType.ToGagType(), LoggerType.Callbacks);
 
         // let's start handling the cases. For starters, if the NewState is apply..
         if (callbackGagState is NewState.Enabled)
@@ -199,7 +205,7 @@ public class ClientCallbackService
             if (_playerData.AppearanceData!.GagSlots[(int)callbackGagLayer].GagType.ToGagType() != GagType.None)
             {
                 _logger.LogDebug("Gag is already applied. Swapping Gag.", LoggerType.Callbacks);
-                await _appearanceManager.GagSwapped(callbackGagLayer, currentGagType, callbackGagSlot.GagType.ToGagType(), isSelfApplied: false, publish: false);
+                await _appearanceManager.GagSwapped(callbackGagLayer, currentGagSlot.GagType.ToGagType(), callbackGagSlot.GagType.ToGagType(), isSelfApplied: false, publish: false);
                 // Log the Interaction Event.
                 _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.SwappedGag, "Gag Swapped on "+callbackGagLayer)));
                 return;
@@ -217,23 +223,21 @@ public class ClientCallbackService
         else if (callbackGagState is NewState.Locked)
         {
             _logger.LogTrace("A Padlock has been applied that will expire in : " + (callbackGagSlot.Timer - DateTime.UtcNow).TotalSeconds, LoggerType.Callbacks);
-            var padlockData = new PadlockData(callbackGagLayer, callbackGagSlot.Padlock.ToPadlock(), callbackGagSlot.Password, callbackGagSlot.Timer, callbackDto.User.UID);
-            _gagManager.OnGagLockChanged(padlockData, callbackGagState, false);
+            _gagManager.LockGag(callbackGagLayer, callbackGagSlot.Padlock.ToPadlock(), callbackGagSlot.Password, callbackGagSlot.Timer, callbackDto.User.UID);
             // Log the Interaction Event.
             _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.LockGag, callbackGagSlot.GagType + " locked on " +callbackGagLayer)));
             return;
         }
         else if (callbackGagState is NewState.Unlocked)
         {
-            var padlockData = new PadlockData(callbackGagLayer, callbackGagSlot.Padlock.ToPadlock(), callbackGagSlot.Password, callbackGagSlot.Timer, callbackDto.User.UID);
-            _gagManager.OnGagLockChanged(padlockData, callbackGagState, false);
+            _gagManager.UnlockGag(callbackGagLayer);
             // Log the Interaction Event.
             _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.UnlockGag, callbackGagSlot.GagType + " unlocked on "+callbackGagLayer)));
             return;
         }
         else if (callbackGagState is NewState.Disabled)
         {
-            await _appearanceManager.GagRemoved(callbackGagLayer, currentGagType, isSelfApplied: false, publishRemoval: false);
+            await _appearanceManager.GagRemoved(callbackGagLayer, currentGagSlot.GagType.ToGagType(), isSelfApplied: false, publishRemoval: false);
             // Log the Interaction Event.
             _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.RemoveGag, "Removed Gag from " + callbackGagLayer)));
             return;
@@ -256,20 +260,16 @@ public class ClientCallbackService
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintUnlocked)
             {
                 _logger.LogDebug("SelfApplied RESTRAINT UNLOCK Verified by Server Callback.", LoggerType.Callbacks);
-
-                if (_playerData.CoreDataNull || !_playerData.GlobalPerms!.RestraintSetAutoEquip)
-                    return;
-
                 // fire trigger if valid
-                if(callbackSet != null)
+                Guid activeSetId = _clientConfigs.GetActiveSet()?.RestraintId ?? Guid.Empty;
+                if (!activeSetId.IsEmptyGuid())
                 {
-                    Padlocks unlock = callbackSet.LockType.ToPadlock();
-                    // auto remove the restraint set after unlocking if we have just finished unlocking it.
-                    if (!_clientConfigs.GagspeakConfig.DisableSetUponUnlock)
-                        return;
-
-                    await _wardrobeHandler.DisableRestraintSet(callbackSet.RestraintId, MainHub.UID, true);
+                    if (GagManager.ActiveSlotPadlocks[3].IsTimerLock() && _clientConfigs.GagspeakConfig.DisableSetUponUnlock)
+                    {
+                        await _wardrobeHandler.DisableRestraintSet(activeSetId, MainHub.UID, true);
+                    }
                 }
+                _gagManager.UpdateRestraintLockSelections(false);
             }
 
             if (callbackDto.UpdateKind is DataUpdateKind.WardrobeRestraintDisabled)
@@ -336,6 +336,7 @@ public class ClientCallbackService
                         _logger.LogDebug($"{callbackDto.User.UID} has unlocked your active restraint set!", LoggerType.Callbacks);
                         Padlocks previousPadlock = callbackSet.LockType.ToPadlock();
                         await _appearanceManager.UnlockRestraintSet(callbackSet.RestraintId, callbackDto.User.UID, false);
+                        _gagManager.UpdateRestraintLockSelections(false);
                         // Log the Interaction Event
                         _mediator.Publish(new EventMessage(new(matchedPair.GetNickAliasOrUid(), matchedPair.UserData.UID, InteractionType.UnlockRestraint, _clientConfigs.GetSetNameByGuid(data.ActiveSetId) + " is now unlocked")));
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, callbackSet, previousPadlock, false, callbackDto.User.UID);

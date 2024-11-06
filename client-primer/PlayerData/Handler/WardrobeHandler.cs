@@ -104,9 +104,10 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
     }
 
     public void LockRestraintSet(Guid id, Padlocks padlock, string pwd, DateTimeOffset endLockTimeUTC, string assignerUID)
-        => _appearanceHandler.LockRestraintSet(id, padlock, pwd, endLockTimeUTC, assignerUID);
+        => _appearanceHandler.LockRestraintSet(id, padlock, pwd, endLockTimeUTC, assignerUID).ConfigureAwait(false);
 
-    public void UnlockRestraintSet(Guid id, string lockRemoverUID) => _appearanceHandler.UnlockRestraintSet(id, lockRemoverUID);
+    public void UnlockRestraintSet(Guid id, string lockRemoverUID) 
+        => _appearanceHandler.UnlockRestraintSet(id, lockRemoverUID).ConfigureAwait(false);
 
     public int GetActiveSetIndex() => _clientConfigs.GetActiveSetIdx();
     public int GetRestraintSetIndexByName(string setName) => _clientConfigs.GetRestraintSetIdxByName(setName);
@@ -121,19 +122,11 @@ public class WardrobeHandler : DisposableMediatorSubscriberBase
         // we have an active set, but dont check if it is not locked. We should keep it on if it is simply active.
         if (!ActiveSet.Locked) return;
 
-        // otherwise, set is both active and locked, so check for unlock
-        try
+        // check if the locked time minus the current time in UTC is less than timespan.Zero ... if it is, we should push an unlock set update.
+        if (GenericHelpers.TimerPadlocks.Contains(ActiveSet.LockType) && ActiveSet.LockedUntil - DateTimeOffset.UtcNow <= TimeSpan.Zero)
         {
-            // check if the locked time minus the current time in UTC is less than timespan.Zero ... if it is, we should push an unlock set update.
-            if (GenericHelpers.TimerPadlocks.Contains(ActiveSet.LockType) && ActiveSet.LockedUntil - DateTimeOffset.UtcNow <= TimeSpan.Zero)
-            {
-                UnlockRestraintSet(ActiveSet.RestraintId, ActiveSet.LockedBy);
-                Logger.LogInformation("Active Set ["+ActiveSet.Name+"] has expired its lock, unlocking and removing restraint set.", LoggerType.Restraints);
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to check locked set for expiration.");
+            _appearanceHandler.UnlockRestraintSet(ActiveSet.RestraintId, ActiveSet.LockedBy, fromTimer: true).ConfigureAwait(false);
+            Logger.LogInformation("Active Set ["+ActiveSet.Name+"] has expired its lock, unlocking and removing restraint set.", LoggerType.Restraints);
         }
     }
 }

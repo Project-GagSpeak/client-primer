@@ -115,7 +115,7 @@ public class CursedLootHandler : DisposableMediatorSubscriberBase
         foreach (var item in ActiveItems)
         {
             if (item.ReleaseTime - DateTimeOffset.UtcNow <= TimeSpan.Zero)
-                DeactivateCursedItem(item.LootId);
+                DeactivateCursedItem(item.LootId).ConfigureAwait(false);
         }
     }
 }

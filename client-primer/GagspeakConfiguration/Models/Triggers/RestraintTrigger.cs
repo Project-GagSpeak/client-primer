@@ -12,7 +12,7 @@ public record RestraintTrigger : Trigger
     public override TriggerKind Type => TriggerKind.RestraintSet;
 
     // the kind of restraint set that will invoke this trigger's execution
-    public string RestraintSetName { get; set; } = string.Empty;
+    public Guid RestraintSetId { get; set; } = Guid.Empty;
 
     // the new state of it that will trigger the execution
     public NewState RestraintState { get; set; } = NewState.Enabled;
@@ -31,11 +31,10 @@ public record RestraintTrigger : Trigger
             TriggerActionKind = TriggerActionKind,
             TriggerAction = TriggerAction,
             ShockTriggerAction = ShockTriggerAction,
-            RestraintNameAction = RestraintNameAction,
-            GagLayerAction = GagLayerAction,
+            RestraintTriggerAction = RestraintTriggerAction,
             GagTypeAction = GagTypeAction,
             MoodlesIdentifier = MoodlesIdentifier,
-            RestraintSetName = RestraintSetName,
+            RestraintSetId = RestraintSetId,
             RestraintState = RestraintState
         };
     }

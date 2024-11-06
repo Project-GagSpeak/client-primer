@@ -1,6 +1,7 @@
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using GagSpeak.ChatMessages;
@@ -19,21 +20,22 @@ using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Extensions;
+using System.Reflection.Metadata;
+using System;
 using System.Text.RegularExpressions;
 using GameAction = Lumina.Excel.GeneratedSheets.Action;
-
+using OtterGui;
 namespace GagSpeak.Toybox.Controllers;
 
 // Trigger Controller helps manage the currently active triggers and listens in on the received action effects
-public class TriggerController : DisposableMediatorSubscriberBase
+public sealed class TriggerController : DisposableMediatorSubscriberBase
 {
     private readonly PlayerCharacterData _playerManager;
     private readonly ToyboxFactory _playerMonitorFactory;
-    private readonly WardrobeHandler _wardrobeHandler;
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly GagManager _gagManager;
     private readonly PairManager _pairManager;
     private readonly AppearanceManager _appearanceHandler;
+    private readonly UnlocksEventManager _eventManager;
     private readonly OnFrameworkService _frameworkService;
     private readonly ToyboxVibeService _vibeService;
     private readonly IpcCallerMoodles _moodlesIpc;
@@ -43,20 +45,18 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
     public TriggerController(ILogger<TriggerController> logger, GagspeakMediator mediator,
         PlayerCharacterData playerManager, ToyboxFactory playerMonitorFactory,
-        WardrobeHandler wardrobeHandler,
-        ClientConfigurationManager clientConfigs, GagManager gagManager,
-        PairManager pairManager, AppearanceManager appearanceHandler, 
-        OnFrameworkService frameworkService, ToyboxVibeService vibeService,
-        IpcCallerMoodles moodlesIpc, IChatGui chatGui, IClientState clientState,
+        ClientConfigurationManager clientConfigs, PairManager pairManager,
+        AppearanceManager appearanceHandler, UnlocksEventManager eventManager,
+        OnFrameworkService frameworkService, ToyboxVibeService vibeService, 
+        IpcCallerMoodles moodlesIpc, IChatGui chatGui, IClientState clientState, 
         IDataManager gameData) : base(logger, mediator)
     {
         _playerManager = playerManager;
         _playerMonitorFactory = playerMonitorFactory;
-        _wardrobeHandler = wardrobeHandler;
         _clientConfigs = clientConfigs;
-        _gagManager = gagManager;
         _pairManager = pairManager;
         _appearanceHandler = appearanceHandler;
+        _eventManager = eventManager;
         _frameworkService = frameworkService;
         _vibeService = vibeService;
         _moodlesIpc = moodlesIpc;
@@ -66,17 +66,10 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
         ActionEffectMonitor.ActionEffectEntryEvent += OnActionEffectEvent;
 
-        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) => CheckActiveRestraintTriggers(msg));
-
-        Mediator.Subscribe<GagTypeChanged>(this, (msg) =>
-        {
-
-            NewState newState = msg.NewGagType == GagType.None ? NewState.Disabled : NewState.Enabled;
-            CheckGagStateTriggers(msg.NewGagType, newState);
-        });
+        _eventManager.Subscribe<RestraintSet, bool, string>(UnlocksEvent.RestraintApplicationChanged, OnRestraintApply); // Apply on US
+        _eventManager.Subscribe<RestraintSet, Padlocks, bool, string>(UnlocksEvent.RestraintLockChange, OnRestraintLock); // Lock on US
 
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => UpdateTriggerMonitors());
-
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => UpdateTrackedPlayerHealth());
     }
 
@@ -100,6 +93,8 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
     protected override void Dispose(bool disposing)
     {
+        _eventManager.Unsubscribe<RestraintSet, bool, string>(UnlocksEvent.RestraintApplicationChanged, OnRestraintApply);
+        _eventManager.Unsubscribe<RestraintSet, Padlocks, bool, string>(UnlocksEvent.RestraintLockChange, OnRestraintLock);
         ActionEffectMonitor.ActionEffectEntryEvent -= OnActionEffectEvent;
         base.Dispose(disposing);
     }
@@ -126,31 +121,38 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
         foreach (var trigger in matchingTriggers)
         {
-            ExecuteTriggerAction(trigger);
+            ExecuteTriggerAction(trigger, null);
         }
     }
 
     private void CheckSpellActionTriggers(ActionEffectEntry actionEffect)
     {
+        Logger.LogDebug("SourceID: " + actionEffect.SourceID + " TargetID: " + actionEffect.TargetID + " ActionID: " + actionEffect.ActionID + " Type: " + actionEffect.Type + " Damage: " + actionEffect.Damage, LoggerType.ToyboxTriggers);
+
         var relevantTriggers = _clientConfigs.ActiveSpellActionTriggers
             .Where(trigger =>
                 (trigger.ActionID == uint.MaxValue || trigger.ActionID == actionEffect.ActionID) &&
                 trigger.ActionKind == actionEffect.Type)
             .ToList();
 
+        if (!relevantTriggers.Any())
+            Logger.LogDebug("No relevant triggers found for this spell/action", LoggerType.ToyboxTriggers);
+
         foreach (var trigger in relevantTriggers)
         {
             try
             {
+                Logger.LogDebug("Checking Trigger: " + trigger.Name, LoggerType.ToyboxTriggers);
                 // Determine if the direction matches
-                var isSourcePlayer = _clientState.LocalPlayer!.ObjectIndex == actionEffect.SourceID;
-                var isTargetPlayer = _clientState.LocalPlayer!.ObjectIndex == actionEffect.TargetID;
+                var isSourcePlayer = _clientState.LocalPlayer!.GameObjectId == actionEffect.SourceID;
+                var isTargetPlayer = _clientState.LocalPlayer!.GameObjectId == actionEffect.TargetID;
 
+                Logger.LogDebug("Trigger Direction we are checking was: " + trigger.Direction, LoggerType.ToyboxTriggers);
                 bool directionMatches = trigger.Direction switch
                 {
-                    TriggerDirection.Self => isSourcePlayer && !isTargetPlayer,
-                    TriggerDirection.SelfToOther => isSourcePlayer && isTargetPlayer,
-                    TriggerDirection.Other => !isSourcePlayer && isTargetPlayer,
+                    TriggerDirection.Self => isSourcePlayer,
+                    TriggerDirection.SelfToOther => isSourcePlayer && !isTargetPlayer,
+                    TriggerDirection.Other => !isSourcePlayer,
                     TriggerDirection.OtherToSelf => !isSourcePlayer && isTargetPlayer,
                     TriggerDirection.Any => true,
                     _ => false,
@@ -162,6 +164,8 @@ public class TriggerController : DisposableMediatorSubscriberBase
                     return; // Use return instead of continue in lambda expressions
                 }
 
+                Logger.LogTrace("Direction Matches, checking damage type", LoggerType.ToyboxTriggers);
+
                 // Check damage thresholds for relevant action kinds
                 bool isDamageRelated = trigger.ActionKind is
                     LimitedActionEffectType.Heal or
@@ -169,9 +173,10 @@ public class TriggerController : DisposableMediatorSubscriberBase
                     LimitedActionEffectType.BlockedDamage or
                     LimitedActionEffectType.ParriedDamage;
 
-                if (isDamageRelated && (actionEffect.Damage < trigger.ThresholdMinValue || actionEffect.Damage > trigger.ThresholdMaxValue))
+                if (isDamageRelated && (actionEffect.Damage < trigger.ThresholdMinValue || actionEffect.Damage > (trigger.ThresholdMaxValue == -1 ? int.MaxValue : trigger.ThresholdMaxValue)))
                 {
-                    Logger.LogDebug($"{actionEffect.Type} Threshold not met", LoggerType.ToyboxTriggers);
+                    Logger.LogDebug($"Was ActionKind [" + actionEffect.Type + "], however, its damage (" + actionEffect.Damage + ") was not between (" + trigger.ThresholdMinValue +
+                        ") and (" + trigger.ThresholdMaxValue + ")", LoggerType.ToyboxTriggers);
                     return; // Use return instead of continue in lambda expressions
                 }
 
@@ -186,20 +191,22 @@ public class TriggerController : DisposableMediatorSubscriberBase
         };
     }
 
-    private void CheckActiveRestraintTriggers(RestraintSetToggledMessage msg)
+    private void OnRestraintApply(RestraintSet set, bool isEnabling, string enactor)
     {
-        // if the state is unlock or remove, we should return.
-        if (msg.State == NewState.Unlocked || msg.State == NewState.Disabled)
-            return;
+        if(isEnabling) CheckActiveRestraintTriggers(set.RestraintId, NewState.Enabled);
+    }
 
-        // if there is a currently active set already that is locked, disregard.
-        if (_clientConfigs.GetActiveSet() != null && _clientConfigs.GetActiveSet().Locked)
-            return;
+    private void OnRestraintLock(RestraintSet set, Padlocks padlock, bool isLocking, string enactorUID)
+    {
+        if(isLocking) CheckActiveRestraintTriggers(set.RestraintId, NewState.Locked);
+    }
 
-        var set = _clientConfigs.GetRestraintSet(msg.SetIdx);
+
+    public void CheckActiveRestraintTriggers(Guid setId, NewState state)
+    {
         // make this only allow apply and lock, especially on the setup.
         var matchingTriggers = _clientConfigs.ActiveRestraintTriggers
-            .Where(trigger => trigger.RestraintSetName == set.Name && trigger.RestraintState == msg.State)
+            .Where(trigger => trigger.RestraintSetId == setId && trigger.RestraintState == state)
             .ToList();
 
         // if the triggers is not empty, perform logic, but return if there isnt any.
@@ -214,7 +221,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         // execute this trigger action.
         if (highestPriorityTrigger != null)
         {
-            ExecuteTriggerAction(highestPriorityTrigger);
+            ExecuteTriggerAction(highestPriorityTrigger, TriggerActionKind.Restraint);
         }
     }
 
@@ -237,7 +244,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         // execute this trigger action.
         if (highestPriorityTrigger != null)
         {
-            ExecuteTriggerAction(highestPriorityTrigger);
+            ExecuteTriggerAction(highestPriorityTrigger, TriggerActionKind.Gag);
         }
     }
 
@@ -256,7 +263,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         if (InitializerMsg)
         {
             ActiveDeathDeathRollSessions.RemoveAll(x => x.Initializer == nameWithWorld);
-            Logger.LogDebug("[DeathRoll] New DeathRoll session created by "+nameWithWorld, LoggerType.ToyboxTriggers);
+            Logger.LogDebug("[DeathRoll] New DeathRoll session created by " + nameWithWorld, LoggerType.ToyboxTriggers);
             ActiveDeathDeathRollSessions.Add(new DeathRollSession(nameWithWorld, RollCap));
         }
         // if its not an Initializer message, but we are responding to someone else's Roll Session, find the session and roll.
@@ -268,7 +275,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
             {
                 if (matchedSession.TryNextRoll(nameWithWorld, RollValue, RollCap))
                 {
-                    Logger.LogDebug("[DeathRoll] Rolled in active Session with "+RollValue+" (out of "+RollCap+")", LoggerType.ToyboxTriggers);
+                    Logger.LogDebug("[DeathRoll] Rolled in active Session with " + RollValue + " (out of " + RollCap + ")", LoggerType.ToyboxTriggers);
                 }
                 else
                 {
@@ -310,7 +317,7 @@ public class TriggerController : DisposableMediatorSubscriberBase
         }
 
         // if there are any completed deathrolls, fire achievement.
-        if(completedDeathRolls.Any() && _clientConfigs.ActiveSocialTriggers.Any(x=>x.Enabled))
+        if (completedDeathRolls.Any() && _clientConfigs.ActiveSocialTriggers.Any(x => x.Enabled))
             UnlocksEventManager.AchievementEvent(UnlocksEvent.DeathRollCompleted);
 
         // Remove all completed deathrolls.
@@ -340,9 +347,15 @@ public class TriggerController : DisposableMediatorSubscriberBase
         }
     }
 
-    private async void ExecuteTriggerAction(Trigger trigger)
+    private async void ExecuteTriggerAction(Trigger trigger, TriggerActionKind? triggerTypeThatFired = null)
     {
-        Logger.LogInformation("Your Trigger With Name "+trigger.Name+" and priority "+trigger.Priority+" triggering action "
+        if(triggerTypeThatFired is not null && trigger.TriggerActionKind == triggerTypeThatFired)
+        {
+            Logger.LogError("Why the hell are you trying to create a loophole? No. Just no.");
+            return;
+        }
+
+        Logger.LogInformation("Your Trigger With Name " + trigger.Name + " and priority " + trigger.Priority + " triggering action "
             + trigger.TriggerActionKind.ToName(), LoggerType.ToyboxTriggers);
 
         switch (trigger.TriggerActionKind)
@@ -365,30 +378,48 @@ public class TriggerController : DisposableMediatorSubscriberBase
 
             case TriggerActionKind.Restraint:
                 // if a set is active and already locked, do not execute, and log error.
-                if (_clientConfigs.GetActiveSet() != null && _clientConfigs.GetActiveSet().Locked)
+                var activeSet = _clientConfigs.GetActiveSet();
+                if (activeSet is not null && activeSet.Locked)
                 {
                     Logger.LogError("Cannot apply a restraint set while another is active and locked.");
                     return;
                 }
-                Logger.LogInformation("Applying Restraint Set "+trigger.RestraintNameAction+" with state "+NewState.Enabled, LoggerType.ToyboxTriggers);
-                var idx = _clientConfigs.GetRestraintSetIdxByName(trigger.RestraintNameAction);
-                var set = _clientConfigs.GetRestraintSet(idx);
-                await _wardrobeHandler.EnableRestraintSet(set.RestraintId, MainHub.UID, true);
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
+                if (activeSet is not null)
+                {
+                    // dont do anything if the set is already applied.
+                    if (activeSet.RestraintId == trigger.RestraintTriggerAction.Identifier)
+                        return;
+                    // otherwise, swap the sets.
+                    Logger.LogInformation("Applying Restraint Set " + trigger.RestraintTriggerAction.Name + " with state " + NewState.Enabled, LoggerType.ToyboxTriggers);
+                    await _appearanceHandler.RestraintSwapped(trigger.RestraintTriggerAction.Identifier);
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
+                }
+                else
+                {
+                    Logger.LogInformation("Applying Restraint Set " + trigger.RestraintTriggerAction.Name + " with state " + NewState.Enabled, LoggerType.ToyboxTriggers);
+                    await _appearanceHandler.EnableRestraintSet(trigger.RestraintTriggerAction.Identifier, MainHub.UID, true);
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
+                }
                 break;
 
             case TriggerActionKind.Gag:
                 if (_playerManager.AppearanceData == null) return;
                 // if a gag on the layer we want to apply to is already equipped and locked, do not execute, and log error.
-                if (_playerManager.AppearanceData.GagSlots[(int)trigger.GagLayerAction].GagType != GagType.None.GagName()
-                 && _playerManager.AppearanceData.GagSlots[(int)trigger.GagLayerAction].Padlock != Padlocks.None.ToName())
+                if (_playerManager.AppearanceData.GagSlots.Any(x => x.GagType.ToGagType() == trigger.GagTypeAction))
                 {
-                    Logger.LogError("Cannot apply a gag while another is active and locked.");
+                    Logger.LogInformation("Cannot apply a gag while another of the same type is already equipped.", LoggerType.ToyboxTriggers);
                     return;
                 }
-                // otherwise, we can change the gag type on that layer.
-                Logger.LogInformation("Applying Gag Type "+trigger.GagTypeAction+" to layer "+trigger.GagLayerAction);
-                await _appearanceHandler.GagApplied(trigger.GagLayerAction, trigger.GagTypeAction, isSelfApplied: true);
+                // find the first available slot to put it on
+                var availableSlot = _playerManager.AppearanceData!.GagSlots.IndexOf(x => x.GagType.ToGagType() is GagType.None);
+                // If no slot is available, return.
+                if (availableSlot is -1)
+                {
+                    Logger.LogInformation("No Gag Slots are left to apply a gag to!", LoggerType.ToyboxTriggers);
+                    return;
+                }
+                Logger.LogInformation("Applying Gag Type " + trigger.GagTypeAction + " to layer " + (GagLayer)availableSlot);
+                await _appearanceHandler.GagApplied((GagLayer)availableSlot, trigger.GagTypeAction, isSelfApplied: true);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                 break;
 
@@ -399,14 +430,25 @@ public class TriggerController : DisposableMediatorSubscriberBase
                     return;
                 }
                 // see if the moodle status guid exists in our list of stored statuses.
-                if (_playerManager.LastIpcData != null && _playerManager.LastIpcData.MoodlesStatuses.Any(x => x.GUID == trigger.MoodlesIdentifier))
+                if (_playerManager.LastIpcData is null)
                 {
-                    // we have a valid moodle to set, so go ahead and try to apply it!
-                    Logger.LogInformation("Applying moodle status with GUID "+trigger.MoodlesIdentifier, LoggerType.ToyboxTriggers);
-                    await _moodlesIpc.ApplyOwnStatusByGUID(new List<Guid>() { trigger.MoodlesIdentifier });
-                    UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
+                    Logger.LogInformation("LastIpcData is null, cannot execute moodle trigger.", LoggerType.ToyboxTriggers);
                     return;
                 }
+                if(!_playerManager.LastIpcData.MoodlesStatuses.Any(x => x.GUID == trigger.MoodlesIdentifier))
+                {
+                    Logger.LogInformation("We do not have any moodles that are the same as our moodle identifier for this trigger!.", LoggerType.ToyboxTriggers);
+                    return;
+                }
+                if(_playerManager.LastIpcData.MoodlesDataStatuses.Any(x => x.GUID == trigger.MoodlesIdentifier))
+                {
+                    Logger.LogInformation("This Moodle is already present on us, ignoring!", LoggerType.ToyboxTriggers);
+                    return;
+                }
+                // we have a valid moodle to set, so go ahead and try to apply it!
+                Logger.LogInformation("Applying moodle status with GUID " + trigger.MoodlesIdentifier, LoggerType.ToyboxTriggers);
+                await _moodlesIpc.ApplyOwnStatusByGUID(new List<Guid>() { trigger.MoodlesIdentifier });
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                 break;
 
             case TriggerActionKind.MoodlePreset:
@@ -419,12 +461,12 @@ public class TriggerController : DisposableMediatorSubscriberBase
                 if (_playerManager.LastIpcData != null && _playerManager.LastIpcData.MoodlesPresets.Any(x => x.Item1 == trigger.MoodlesIdentifier))
                 {
                     // we have a valid Moodle to set, so go ahead and try to apply it!
-                    Logger.LogInformation("Applying Moodle preset with GUID "+trigger.MoodlesIdentifier, LoggerType.ToyboxTriggers);
+                    Logger.LogInformation("Applying Moodle preset with GUID " + trigger.MoodlesIdentifier, LoggerType.ToyboxTriggers);
                     await _moodlesIpc.ApplyOwnPresetByGUID(trigger.MoodlesIdentifier);
                     UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
                     return;
                 }
-                Logger.LogDebug("Moodle preset with GUID "+trigger.MoodlesIdentifier+" not found in the list of presets.", LoggerType.ToyboxTriggers);
+                Logger.LogDebug("Moodle preset with GUID " + trigger.MoodlesIdentifier + " not found in the list of presets.", LoggerType.ToyboxTriggers);
                 break;
         }
     }

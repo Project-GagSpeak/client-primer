@@ -1329,7 +1329,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             // update the duration
             duration = new TimeSpan(0, hours, minutes, seconds, milliseconds);
 
-            Logger.LogDebug($"Duration changed to {duration.ToString("hh\\:mm\\:ss\\:fff")}");
+            //Logger.LogDebug($"Duration changed to {duration.ToString("hh\\:mm\\:ss\\:fff")}");
         }
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5f);
         var offset2 = (CurrentValBigSize - ImGui.CalcTextSize(prevValue).X) / 2;

@@ -46,8 +46,6 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
 
     private string GetGagTypePath(int index) => $"GagImages\\{_playerManager.AppearanceData!.GagSlots[index].GagType}.png" ?? $"ItemMouth\\None.png";
     private string GetGagPadlockPath(int index) => $"PadlockImages\\{_playerManager.AppearanceData!.GagSlots[index].Padlock.ToPadlock()}.png" ?? $"Padlocks\\None.png";
-    private bool IsTimerLock(Padlocks padlock) => padlock is 
-        Padlocks.FiveMinutesPadlock or Padlocks.TimerPasswordPadlock or Padlocks.OwnerTimerPadlock or Padlocks.DevotionalTimerPadlock or Padlocks.MimicPadlock;
 
     // Draw the active gags tab
     public void DrawActiveGagsPanel()
@@ -101,7 +99,7 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
         if (_playerManager.CoreDataNull)
             return;
 
-        if (IsTimerLock(_playerManager.AppearanceData!.GagSlots[slotNumber].Padlock.ToPadlock()))
+        if (_playerManager.AppearanceData!.GagSlots[slotNumber].Padlock.ToPadlock().IsTimerLock())
         {
             ImGui.SameLine();
             DisplayTimeLeft(
@@ -170,11 +168,15 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
             {
                 if (_gagManager.PasswordValidated(currentPadlockSelection, idx, currentlyLocked))
                 {
-                    var data = new PadlockData((GagLayer)idx, currentPadlockSelection, GagManager.ActiveSlotPasswords[idx],
-                        UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[idx]), MainHub.UID);
-                    _gagManager.OnGagLockChanged(data, currentlyLocked ? NewState.Unlocked : NewState.Locked, true, true);
-                    // reset the padlock.
-                    GagManager.ActiveSlotPadlocks[idx] = Padlocks.None;
+                    if(currentlyLocked)
+                    {
+                        _gagManager.PublishLockRemoved((GagLayer)idx);
+                    }
+                    else
+                    {
+                        _gagManager.PublishLockApplied((GagLayer)idx, currentPadlockSelection, GagManager.ActiveSlotPasswords[idx],
+                            UiSharedService.GetEndTimeUTC(GagManager.ActiveSlotTimers[idx]), MainHub.UID);
+                    }
                 }
                 else
                 {

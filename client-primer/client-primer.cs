@@ -250,11 +250,9 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakConfigService>(), ss, gip))
         .AddSingleton((s) => new OnEmote(s.GetRequiredService<ILogger<OnEmote>>(), s.GetRequiredService<OnFrameworkService>(), ss, gip))
         .AddSingleton((s) => new EmoteMonitor(s.GetRequiredService<ILogger<EmoteMonitor>>(), s.GetRequiredService<OnFrameworkService>(), cs, dm))
-        .AddSingleton((s) => new TriggerController(s.GetRequiredService<ILogger<TriggerController>>(), s.GetRequiredService<GagspeakMediator>(),
-            s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<WardrobeHandler>(), 
-            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<GagManager>(), s.GetRequiredService<PairManager>(), 
-            s.GetRequiredService<AppearanceManager>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<ToyboxVibeService>(), 
-            s.GetRequiredService<IpcCallerMoodles>(), cg, cs, dm))
+        .AddSingleton((s) => new TriggerController(s.GetRequiredService<ILogger<TriggerController>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PlayerCharacterData>(), 
+            s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<AppearanceManager>(),
+            s.GetRequiredService<UnlocksEventManager>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<ToyboxVibeService>(), s.GetRequiredService<IpcCallerMoodles>(), cg, cs, dm))
 
         .AddSingleton((s) => new DtrBarService(s.GetRequiredService<ILogger<DtrBarService>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(), 
             s.GetRequiredService<EventAggregator>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<OnFrameworkService>(), cs, dm, dtr))

@@ -28,8 +28,7 @@ public record SocialTrigger : Trigger
             TriggerActionKind = TriggerActionKind,
             TriggerAction = TriggerAction,
             ShockTriggerAction = ShockTriggerAction,
-            RestraintNameAction = RestraintNameAction,
-            GagLayerAction = GagLayerAction,
+            RestraintTriggerAction = RestraintTriggerAction,
             GagTypeAction = GagTypeAction,
             MoodlesIdentifier = MoodlesIdentifier,
             SocialType = SocialType

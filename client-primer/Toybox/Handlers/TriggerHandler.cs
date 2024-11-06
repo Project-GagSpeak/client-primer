@@ -34,6 +34,8 @@ public class TriggerHandler
             return;
         // locate the restraint set that contains the matching guid.
         var triggerIdx = Triggers.FindIndex(x => x.TriggerIdentifier == ClonedTriggerForEdit.TriggerIdentifier);
+        if (triggerIdx == -1)
+            return;
         // update that set with the new cloned set.
         _clientConfigs.UpdateTrigger(ClonedTriggerForEdit, triggerIdx);
         // make the cloned set null again.

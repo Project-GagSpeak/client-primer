@@ -37,12 +37,10 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     /* ---------- Glamourer API IPC Subscribers --------- */
     private readonly ApiVersion _ApiVersion; // the API version of glamourer
     private readonly GetState _glamourerGetState;
-    private readonly ApplyState _ApplyState; // apply a state to the character using JObject
-    private readonly GetDesignList _GetDesignList; // get lists of designs from player's Glamourer.
-    private readonly ApplyDesignName _ApplyCustomizationsFromDesignName; // apply customization data from a design.
-    private readonly SetItem _SetItem; // for setting an item to the character
-    private readonly RevertState _RevertCharacter; // for reverting the character
-    private readonly RevertToAutomation _RevertToAutomation; // for reverting the character to automation
+    private readonly ApplyState _ApplyState;
+    private readonly SetItem _SetItem;
+    private readonly RevertState _RevertCharacter;
+    private readonly RevertToAutomation _RevertToAutomation;
 
     public IpcCallerGlamourer(ILogger<IpcCallerGlamourer> logger,
         IDalamudPluginInterface pluginInterface, IClientState clientState,
@@ -59,8 +57,6 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         _ApiVersion = new ApiVersion(_pi);
         _glamourerGetState = new GetState(_pi);
         _ApplyState = new ApplyState(_pi);
-        _GetDesignList = new GetDesignList(_pi);
-        _ApplyCustomizationsFromDesignName = new ApplyDesignName(_pi);
         _SetItem = new SetItem(_pi);
         _RevertCharacter = new RevertState(_pi);
         _RevertToAutomation = new RevertToAutomation(_pi);
@@ -125,10 +121,10 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             // revert the character. (for disabling the plugin)
             switch (_gagspeakConfig.Current.RevertStyle)
             {
-                case RevertStyle.RevertToGame: GlamourerRevertToGame().ConfigureAwait(false); break;
-                case RevertStyle.RevertEquipToGame: GlamourerRevertToGameEquipOnly().ConfigureAwait(false); break;
-                case RevertStyle.RevertToAutomation: GlamourerRevertToAutomation().ConfigureAwait(false); break;
-                case RevertStyle.RevertEquipToAutomation: GlamourerRevertToAutomationEquipOnly().ConfigureAwait(false); break;
+                case RevertStyle.RevertToGame: GlamourerRevertToGame(false).ConfigureAwait(false); break;
+                case RevertStyle.RevertEquipToGame: GlamourerRevertToGame(true).ConfigureAwait(false); break;
+                case RevertStyle.RevertToAutomation: GlamourerRevertToAutomation(false).ConfigureAwait(false); break;
+                case RevertStyle.RevertEquipToAutomation: GlamourerRevertToAutomation(true).ConfigureAwait(false); break;
             }
         }));
     }
@@ -276,48 +272,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
     }
 
-    public async Task GlamourerRevertToAutomationEquipOnly()
-    {
-        if (!APIAvailable || _frameworkUtils.IsZoning) return;
-
-        try
-        {
-            await _frameworkUtils.RunOnFrameworkThread(() =>
-            {
-                Logger.LogTrace("Calling on IPC: RevertToAutomationEquipOnly", LoggerType.IpcGlamourer);
-                JObject? playerState = GetState();
-
-                // revert player after obtaining state.
-                GlamourerRevertToAutomation().ConfigureAwait(false);
-
-                // if the state we grabbed is null, return.
-                if (playerState == null)
-                {
-                    Logger.LogWarning("Failed to get player state. Reverting to Automation with full Appearance.", LoggerType.IpcGlamourer);
-                    return;
-                }
-
-                // otherwise, get the new state POST-REVERT.
-                JObject? newState = GetState();
-                if (newState != null)
-                {
-                    newState["Customize"] = playerState["Customize"];
-                    newState["Parameters"] = playerState["Parameters"];
-                    newState["Materials"] = playerState["Materials"];
-                    // apply the modified "Re-Applied" state.
-                    _ApplyState.Invoke(newState, 0);
-                }
-            }).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning($"Error during GlamourerRevertToAutomationEquipOnly: {ex}", LoggerType.IpcGlamourer);
-        }
-    }
-
-
-    // Seriously though i hate that this doesnt have a reapply to automation function. Its a pain in the ass.
-    public async Task GlamourerRevertToAutomation()
+    public async Task GlamourerRevertToAutomation(bool reapply)
     {
         if (!APIAvailable || _frameworkUtils.IsZoning) return;
 
@@ -326,15 +281,16 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             await _frameworkUtils.RunOnFrameworkThread(() =>
             {
                 Logger.LogTrace("Calling on IPC: GlamourerRevertToAutomation", LoggerType.IpcGlamourer);
-
-                var result = _RevertToAutomation.Invoke(0, 0);
+                var result = _RevertToAutomation.Invoke(0);
 
                 if (result != GlamourerApiEc.Success)
                 {
                     Logger.LogWarning($"Revert to automation failed, reverting to game instead", LoggerType.IpcGlamourer);
-                    _RevertCharacter.Invoke(0, 0);
+                    _RevertCharacter.Invoke(0);
                 }
-            }).ConfigureAwait(false);
+            });
+
+            Logger.LogTrace("Finished RevertToAutomation", LoggerType.IpcGlamourer);
         }
         catch (Exception ex)
         {
@@ -342,44 +298,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
     }
 
-    public async Task GlamourerRevertToGameEquipOnly()
-    {
-        if (!APIAvailable || _frameworkUtils.IsZoning) return;
-
-        try
-        {
-            await _frameworkUtils.RunOnFrameworkThread(() =>
-            {
-                Logger.LogTrace("Calling on IPC: GlamourerRevertToGameEquipOnly", LoggerType.IpcGlamourer);
-                JObject? playerState = GetState();
-
-                GlamourerRevertToGame().ConfigureAwait(false);
-
-                if (playerState == null)
-                {
-                    Logger.LogWarning("Failed to get player state. Reverting full Appearance.", LoggerType.IpcGlamourer);
-                    return;
-                }
-
-                // otherwise, get the new state POST-REVERT.
-                JObject? newState = GetState();
-                if (newState != null)
-                {
-                    newState["Customize"] = playerState["Customize"];
-                    newState["Parameters"] = playerState["Parameters"];
-                    newState["Materials"] = playerState["Materials"];
-                    // apply the modified "Re-Applied" state.
-                    _ApplyState.Invoke(newState, 0);
-                }
-            }).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning($"Error during GlamourerRevertToGame: {ex}", LoggerType.IpcGlamourer);
-        }
-    }
-
-    public async Task GlamourerRevertToGame()
+    public async Task GlamourerRevertToGame(bool reapply)
     {
         if (!APIAvailable || _frameworkUtils.IsZoning) return;
 
@@ -388,7 +307,8 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
             await _frameworkUtils.RunOnFrameworkThread(() =>
             {
                 Logger.LogTrace("Calling on IPC: GlamourerRevertToGame", LoggerType.IpcGlamourer);
-                _RevertCharacter.Invoke(0, 0);
+                var flagsToUse = reapply ? ApplyFlag.Equipment : ApplyFlag.Equipment | ApplyFlag.Customization;
+                _RevertCharacter.Invoke(0, flags: flagsToUse);
             }).ConfigureAwait(false);
         }
         catch (Exception ex)

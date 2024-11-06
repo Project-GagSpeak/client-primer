@@ -19,6 +19,22 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 5)
+            .RegisterMain("More Plugin Cleanup!")
+            .RegisterBugfix("Fixed issue where chat triggers didn't work correctly.")
+            .RegisterBugfix("Fixed issue where the trigger editor was displaying incorrect information.")
+            .RegisterBugfix("Moodles dropdowns no longer display default values but rather the stored selections.")
+            .RegisterBugfix("Restraint Trigger actions now functional.")
+            .RegisterBugfix("Gag Trigger Actions now functional.")
+            .RegisterBugfix("Fixed issue where almost everything in the Spell/Action trigger was borked and making bad calculations.")
+            .RegisterBugfix("Fixed issue where updated Intiface Central applications were no longer recognized.")
+            .RegisterBugfix("Fixed issue where some achievements were broken.")
+            .RegisterBugfix("Restricted Restraint & Gag Trigger Actions and Detections to only Apply & Lock to avoid feedback looping.")
+            .RegisterBugfix("Restricted Restraint triggers from calling other restraint triggers. (Same with gags) for the same reason as above.")
+            .RegisterBugfix("Fixed issues where gag triggers were not properly recognized.")
+            .RegisterBugfix("Fixed issues where restraint triggers were not correctly detected.")
+            .RegisterBugfix("Fixed ")
+            .RegisterBugfix("Fixed issues where gags removed upon padlocks without timers being removed.");
         VersionEntry(0, 9, 9, 4)
             .RegisterFeature("You can now cache Glamourer Design customizations in restraint sets if you desire.")
             .RegisterBugfix("Fixed gag and restraint calls sending duplicate callbacks.");

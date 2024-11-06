@@ -29,8 +29,7 @@ public abstract record Trigger
     public TriggerActionKind TriggerActionKind { get; set; } = TriggerActionKind.SexToy;
     public List<DeviceTriggerAction> TriggerAction { get; set; } = new List<DeviceTriggerAction>();
     public ShockTriggerAction ShockTriggerAction { get; set; } = new ShockTriggerAction();
-    public string RestraintNameAction { get; set; } = string.Empty;
-    public GagLayer GagLayerAction { get; set; } = GagLayer.UnderLayer;
+    public LightRestraintData RestraintTriggerAction { get; set; } = new LightRestraintData();
     public GagType GagTypeAction { get; set; } = GagType.None;
     public Guid MoodlesIdentifier { get; set; } = Guid.Empty; // can be a status or preset, depending on TriggerActionKind
 

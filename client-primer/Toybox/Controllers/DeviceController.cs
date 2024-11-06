@@ -178,7 +178,7 @@ public class DeviceController : DisposableMediatorSubscriberBase
         }
         catch (ButtplugClientConnectorException socketEx)
         {
-            Logger.LogError($"Error Connecting to Websocket. Is your Intiface Opened? | {socketEx.Message}");
+            Logger.LogError($"Error Connecting to Websocket. Is your Intiface Opened? | {socketEx}");
             DisconnectFromIntifaceAsync();
             return;
         }

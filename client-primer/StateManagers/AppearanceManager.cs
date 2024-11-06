@@ -6,13 +6,13 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Toybox.Controllers;
 using GagSpeak.UI.Components;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.IPC;
-using GagspeakAPI.Data.Struct;
 using GagspeakAPI.Extensions;
 using Penumbra.Api.Enums;
 using Penumbra.GameData.Enums;
@@ -39,8 +39,9 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
     public AppearanceManager(ILogger<AppearanceManager> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
-        GagManager gagManager, PairManager pairManager, IpcManager ipcManager,
-        AppearanceService appearanceService, OnFrameworkService frameworkUtils) : base(logger, mediator)
+        GagManager gagManager, PairManager pairManager, 
+        IpcManager ipcManager, AppearanceService appearanceService, OnFrameworkService frameworkUtils) 
+        : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerData = playerData;
@@ -181,6 +182,9 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             await RecalcAndReload(false);
 
             if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintApplied));
+
+            // Finally, we should let our trigger controller know that we just enabled a restraint set.
+            //_triggerController.CheckActiveRestraintTriggers(restraintID, NewState.Enabled);
         });
     }
 
@@ -230,6 +234,9 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             await RecalcAndReload(true, moodlesToRemove);
 
             if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintDisabled));
+
+            // Finally, we should let our trigger controller know that we just enabled a restraint set.
+            //_triggerController.CheckActiveRestraintTriggers(restraintID, NewState.Disabled);
         });
     }
 
@@ -265,6 +272,9 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             setRef.LockedUntil = endTime;
             setRef.LockedBy = assigner;
             _clientConfigs.SaveWardrobe();
+            // Set this so that when we go to unlock we can ref for auto removal.
+            _gagManager.UpdateRestraintLockSelections(false);
+
 
             Logger.LogDebug("Set: " + setRef.Name + " Locked by: " + assigner + " with a Padlock of Type: " + padlock.ToName()
                 + " with: " + (endTime - DateTimeOffset.UtcNow) + " by: " + assigner, LoggerType.Restraints);
@@ -280,10 +290,13 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, setRef, padlock, true, assigner);
 
             Logger.LogInformation("LOCKING SET END", LoggerType.Restraints);
+
+            // Finally, we should let our trigger controller know that we just enabled a restraint set.
+            //_triggerController.CheckActiveRestraintTriggers(id, NewState.Locked);
         });
     }
 
-    public async Task UnlockRestraintSet(Guid id, string lockRemover, bool pushToServer = true, bool triggerAchievement = true)
+    public async Task UnlockRestraintSet(Guid id, string lockRemover, bool pushToServer = true, bool triggerAchievement = true, bool fromTimer = false)
     {
         await ExecuteWithApplierSlim(async () =>
         {
@@ -320,6 +333,13 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             setRef.LockedBy = string.Empty;
             _clientConfigs.SaveWardrobe();
 
+            // reset this ONLY if wasTimer was false, otherwise keep it as is so we have a valid reference after unlock callback.
+            if (!fromTimer)
+            {
+                Logger.LogTrace("Not Setting GagManager.ActiveSlotPadlocks to None, as this was not from a timer.", LoggerType.Restraints);
+                GagManager.ActiveSlotPadlocks[3] = Padlocks.None;
+            }
+
             Logger.LogDebug("Set: " + setRef.Name + " Unlocked by: " + lockRemover, LoggerType.Restraints);
 
             // After this, we should fire that a change occured.
@@ -339,6 +359,8 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, setRef, previousLock.ToPadlock(), false, lockRemover);
 
             Logger.LogInformation("UNLOCKING SET END", LoggerType.Restraints);
+            // Finally, we should let our trigger controller know that we just enabled a restraint set.
+            //_triggerController.CheckActiveRestraintTriggers(id, NewState.Unlocked);
         });
     }
 
@@ -372,8 +394,8 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     private async Task GagApplyInternal(GagLayer layer, GagType gagType, bool isSelfApplied = true, bool publishApply = true, bool triggerAchievement = true)
     {
         Logger.LogDebug("GAG-APPLIED triggered on slot [" + layer.ToString() + "] with a [" + gagType.GagName() + "]", LoggerType.GagManagement);
-        // We first must change the gag to its new type within the gag manager to update the appearance.
-        _gagManager.OnGagTypeChanged(layer, gagType, publishApply);
+
+        _gagManager.ApplyGag(layer, gagType);
 
         // If the Gag is not Enabled, or our auto equip is disabled, dont do anything else and return.
         if (!_clientConfigs.IsGagEnabled(gagType) || !_playerData.GlobalPerms!.ItemAutoEquip)
@@ -385,6 +407,10 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         var drawData = _clientConfigs.GetDrawData(gagType);
         if (drawData.CustomizeGuid != Guid.Empty)
             _ipcManager.CustomizePlus.EnableProfile(drawData.CustomizeGuid);
+
+        // if publishing, publish it.
+        if (publishApply)
+            _gagManager.PublishGagApplied(layer);
 
         // Send Achievement Event
         if (triggerAchievement)
@@ -400,8 +426,12 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         await ExecuteWithApplierSlim(async () =>
         {
             Logger.LogDebug("GAG-REMOVE triggered on slot [" + layer.ToString() + "] with a [" + gagType.GagName() + "]", LoggerType.GagManagement);
-            // We first must change the gag to its new type within the gag manager to update the appearance.
-            _gagManager.OnGagTypeChanged(layer, GagType.None, publishRemoval);
+
+            // if we aren't even making a change dont push anything.
+            if (_playerData.AppearanceData?.GagSlots[(int)layer].GagType.ToGagType() is GagType.None)
+                return;
+
+            bool changeOccured = _gagManager.RemoveGag(layer);
 
             // Once it's been set to inactive, we should also remove our moodles.
             var gagSettings = _clientConfigs.GetDrawData(gagType);
@@ -412,6 +442,9 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             // Remove the CustomizePlus Profile if applicable
             if (gagSettings.CustomizeGuid != Guid.Empty)
                 _ipcManager.CustomizePlus.DisableProfile(gagSettings.CustomizeGuid);
+
+            if (publishRemoval && changeOccured)
+                _gagManager.PublishGagRemoved(layer);
 
             // Send Achievement Event
             if (triggerAchievement)
@@ -518,7 +551,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     public async Task DisableAllDueToSafeword()
     {
         // disable all gags,
-        if(_playerData.AppearanceData is not null)
+        if (_playerData.AppearanceData is not null)
         {
             Logger.LogInformation("Disabling all active Gags due to Safeword.", LoggerType.Safeword);
             for (var i = 0; i < 3; i++)
@@ -527,16 +560,14 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 // check to see if the gag is currently active.
                 if (gagSlot.GagType.ToGagType() is not GagType.None)
                 {
-                    // would be ideal to route this into the appearance manager but whatever.
-                    _gagManager.DisableLock(i);
-
+                    _gagManager.UnlockGag((GagLayer)i); // (doesn't fire any achievements so should be fine)
                     // then we should remove it, but not publish it to the mediator just yet.
                     await GagRemoved((GagLayer)i, gagSlot.GagType.ToGagType(), publishRemoval: false, isSelfApplied: gagSlot.Assigner == MainHub.UID);
                 }
             }
             Logger.LogInformation("Active gags disabled.", LoggerType.Safeword);
             // finally, push the gag change for the safeword.
-            Mediator.Publish(new PlayerCharAppearanceChanged(DataUpdateKind.Safeword));
+            Mediator.Publish(new PlayerCharAppearanceChanged(new CharaAppearanceData(), DataUpdateKind.Safeword));
         }
 
         // if an active set exists we need to unlock and disable it.
@@ -654,7 +685,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                     ? IpcCallerGlamourer.MetaData.Hat : (activeSetRef.ForceVisor)
                         ? IpcCallerGlamourer.MetaData.Visor : IpcCallerGlamourer.MetaData.None;
             // add the customizations if we desire it.
-            if(activeSetRef.ApplyCustomizations)
+            if (activeSetRef.ApplyCustomizations)
                 ExpectedCustomizations = (activeSetRef.CustomizeObject, activeSetRef.ParametersObject);
         }
 
@@ -726,7 +757,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             else
             {
                 Logger.LogDebug($"Storing Cursed Item [" + cursedItem.Name + "] to Slot: " + cursedItem.AppliedItem.Slot, LoggerType.ClientPlayerData);
-                if(cursedItem.IsGag)
+                if (cursedItem.IsGag)
                 {
                     // store the item set in the gag storage
                     var drawData = _clientConfigs.GetDrawData(cursedItem.GagType);
@@ -809,11 +840,11 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         }
         else
         {
-            if(LastIpcData is not null)
+            if (LastIpcData is not null)
             {
                 var list = LastIpcData.MoodlesDataStatuses.Select(x => x.GUID);
                 // determine if the two lists are the same or not.
-                if(list.SequenceEqual(latestGuids))
+                if (list.SequenceEqual(latestGuids))
                     return;
             }
             Logger.LogWarning("Pushing IPC update to CacheCreation for processing");

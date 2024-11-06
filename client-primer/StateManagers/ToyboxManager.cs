@@ -192,7 +192,7 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
         _patternPlayback.StartPlayback(clonedDataForPlayback);
     }
 
-    public void EnableTrigger(Guid id, string enactorUID, bool fireToServer = true, bool fireAchievement = true)
+    public void EnableTrigger(Guid id, string enactorUID, bool fireToServer = true)
     {
         // make sure that the trigger actually exists too.
         var trigger = Triggers.FirstOrDefault(x => x.TriggerIdentifier == id);
@@ -209,10 +209,6 @@ public sealed class ToyboxManager : DisposableMediatorSubscriberBase
         // If we are pushing to the server, do so now.
         if (fireToServer)
             Mediator.Publish(new PlayerCharToyboxChanged(DataUpdateKind.ToyboxTriggerToggled));
-
-        // If we are triggering an achievement, do so now.
-        if (fireAchievement)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.TriggerFired);
     }
 
     public void DisableTrigger(Guid id, bool fireToServer = true, bool fireAchievement = true)

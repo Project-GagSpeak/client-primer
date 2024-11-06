@@ -145,7 +145,8 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
                 }
             }
         }
-
+        _gagManager.UpdateGagLockComboSelections();
+        _gagManager.UpdateRestraintLockSelections(false);
         // Run a refresh on appearance data.
         await _appearanceHandler.RecalcAndReload(true);
     }

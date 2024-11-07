@@ -103,7 +103,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
             return;
 
         // Handle PVP Kills for achievement.
-        if (type is (XivChatType)4922)
+/*        if (type is (XivChatType)4922)
         {
             Logger.LogTrace("["+type+"] {"+message+"Message}", LoggerType.Puppeteer);
             // only process if in pvp.
@@ -128,13 +128,13 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
                     }
                 }
             }
-        }
+        }*/
 
         // log all types of payloads included in the message.
-        if (_clientState.IsPvP)
+        if (_clientState.IsPvP && type is (XivChatType)2874)
         {
-            Logger.LogDebug("---------------------");
-            Logger.LogDebug("Chat Type: " + (int)type);
+            Logger.LogInformation("---------------------");
+            Logger.LogInformation("ChatType[" + type + "] {" + message + "Message}");
             foreach (var payloadType in message.Payloads)
             {
                 string text = payloadType.Type.ToString();

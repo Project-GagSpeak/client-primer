@@ -120,7 +120,7 @@ public partial class AchievementManager
         if (floor is null) return;
 
         var deepDungeonType = _frameworkUtils.GetDeepDungeonType();
-        if (deepDungeonType == null) return;
+        if (deepDungeonType is null) return;
 
         if (_frameworkUtils.PartyListSize is 1)
             (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinksRunDeeper.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();

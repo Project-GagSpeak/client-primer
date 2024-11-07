@@ -419,6 +419,8 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         // if we are forced to stay, we should block any interactions with objects.
         Logger.LogTrace("Interacted with GameObject that had ObjectKind: " + obj->ObjectKind);
         Logger.LogTrace("Game Object has the GameObjectId:" + obj->GetGameObjectId().ObjectId);
+        Logger.LogTrace("Game Object SubKind:" + obj->SubKind);
+        Logger.LogTrace("Game Object has the Event ContentID:" + obj->EventId.ContentId.ToString());
         Logger.LogTrace("Game Object has name label at: " + obj->NameString);
 
         return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);

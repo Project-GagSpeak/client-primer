@@ -105,25 +105,25 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         // Handle PVP Kills for achievement.
         if (type is (XivChatType)4922)
         {
-            Logger.LogTrace("["+type+"] {"+message+"Message}", LoggerType.Achievements);
+            Logger.LogTrace("["+type+"] {"+message+"Message}", LoggerType.Puppeteer);
             // only process if in pvp.
             if (_clientState.IsPvP)
             {
-                Logger.LogInformation("We were in PvP. Checking for PvP kill.", LoggerType.Achievements);
+                Logger.LogInformation("We were in PvP. Checking for PvP kill.", LoggerType.Puppeteer);
                 // get the player payloads.
                 Payload[] playerPayloads = message.Payloads.Where(x => x.Type == PayloadType.Player).ToArray();
-                Logger.LogTrace("["+type+"] {"+message+"Message}", LoggerType.Achievements);
+                Logger.LogTrace("["+type+"] {"+message+"Message}", LoggerType.Puppeteer);
                 if (playerPayloads.Length == 2)
                 {
-                    Logger.LogTrace("2 Player Payloads Found", LoggerType.Achievements);
+                    Logger.LogTrace("2 Player Payloads Found", LoggerType.Puppeteer);
                     PlayerPayload player1 = (PlayerPayload)playerPayloads[0];
                     PlayerPayload player2 = (PlayerPayload)playerPayloads[1];
-                    Logger.LogTrace("Player 1: " + player1.PlayerName + "@" + player1.World.Name, LoggerType.Achievements);
-                    Logger.LogTrace("Player 2: " + player2.PlayerName + "@" + player2.World.Name, LoggerType.Achievements);
+                    Logger.LogTrace("Player 1: " + player1.PlayerName + "@" + player1.World.Name, LoggerType.Puppeteer);
+                    Logger.LogTrace("Player 2: " + player2.PlayerName + "@" + player2.World.Name, LoggerType.Puppeteer);
 
                     if(_clientState.LocalPlayer.GetNameWithWorld() == player1.PlayerName + "@" + player1.World.Name)
                     {
-                        Logger.LogInformation("We were the killer. We just killed " + player2.PlayerName + "@" + player2.World.Name, LoggerType.Achievements);
+                        Logger.LogInformation("We were the killer. We just killed " + player2.PlayerName + "@" + player2.World.Name, LoggerType.Puppeteer);
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.PvpPlayerSlain);
                     }
                 }

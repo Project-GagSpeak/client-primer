@@ -17,4 +17,18 @@ public class AliasStorage
 
     [JsonIgnore]
     public string NameWithWorld => CharacterName+"@"+CharacterWorld;
+
+    [JsonIgnore]
+    public bool IsValid => !string.IsNullOrEmpty(CharacterName) && !string.IsNullOrEmpty(CharacterWorld);
+
+
+    public AliasStorage DeepCloneStorage()
+    {
+        return new AliasStorage()
+        {
+            CharacterName = CharacterName,
+            CharacterWorld = CharacterWorld,
+            AliasList = AliasList,
+        };
+    }
 }

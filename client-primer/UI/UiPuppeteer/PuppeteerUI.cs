@@ -184,19 +184,19 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
         }
     }
 
-    private bool AliasDataListExists
-        => _puppeteerHandler.SelectedPair is not null
-        && _puppeteerHandler.SelectedPair.LastReceivedAliasData is not null
-        && _puppeteerHandler.SelectedPair.LastReceivedAliasData.AliasList.Any();
+    private bool AliasDataListExists => _puppeteerHandler.SelectedPair?.LastReceivedAliasData?.AliasList.Any() ?? false;
+    private DateTime LastSaveTime = DateTime.MinValue;
 
     private void DrawPuppeteerHeader(Vector2 DefaultCellPadding)
     {
-        if (_puppeteerHandler.SelectedPair == null) return;
+        if (_puppeteerHandler.SelectedPair is null || _puppeteerHandler.ClonedAliasStorageForEdit is null) 
+            return;
 
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
         Vector2 textSize;
         using (_uiShared.UidFont.Push()) { textSize = ImGui.CalcTextSize("View Info"); }
+        var saveSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Save).X;
         var triggerButtonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Microphone, "Triggers");
         var clientAliasListSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.EllipsisV, "Your List");
         var pairAliasListSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.EllipsisV, "Pair's List");
@@ -214,32 +214,57 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             }
 
 
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - triggerButtonSize - clientAliasListSize - pairAliasListSize - ImGui.GetStyle().ItemSpacing.X * 3);
+            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() 
+                - saveSize - triggerButtonSize - clientAliasListSize - pairAliasListSize - ImGui.GetStyle().ItemSpacing.X * 3);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             var currentYpos = ImGui.GetCursorPosY();
             // draw revert button at the same location but right below that button
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Microphone, "Triggers", null, false, _currentTab == PuppeteerTab.TriggerPhrases))
+            if (_uiShared.IconButton(FontAwesomeIcon.Save, disabled: DateTime.Now - LastSaveTime < TimeSpan.FromSeconds(3)))
             {
-                _currentTab = PuppeteerTab.TriggerPhrases;
+                if(!_puppeteerHandler.IsModified)
+                    return;
+
+                _puppeteerHandler.UpdatedEditedStorage();
+                // save and update our changes.
+                if (UnsavedTriggerPhrase is not null)
+                {
+                    _logger.LogTrace($"Updated own pair permission: TriggerPhrase to {UnsavedTriggerPhrase}");
+                    _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("TriggerPhrase", UnsavedTriggerPhrase)));
+                    UnsavedTriggerPhrase = null;
+                }
+                if (UnsavedNewStartChar is not null)
+                {
+                    _logger.LogTrace($"Updated own pair permission: StartChar to {UnsavedNewStartChar}");
+                    _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("StartChar", UnsavedNewStartChar[0])));
+                    UnsavedNewStartChar = null;
+                }
+                if (UnsavedNewEndChar is not null)
+                {
+                    _logger.LogTrace($"Updated own pair permission: EndChar to {UnsavedNewEndChar}");
+                    _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("EndChar", UnsavedNewEndChar[0])));
+                    UnsavedNewEndChar = null;
+                }
+                LastSaveTime = DateTime.Now;
             }
+            UiSharedService.AttachToolTip("Press this to push your new changes to the server and save your current ones here!");
+
+            ImGui.SameLine();
+            ImGui.SetCursorPosY(currentYpos);
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Microphone, "Triggers", null, false, _currentTab == PuppeteerTab.TriggerPhrases))
+                _currentTab = PuppeteerTab.TriggerPhrases;
             UiSharedService.AttachToolTip("View your set trigger phrase, your pairs, and use case examples!");
 
             // draw revert button at the same location but right below that button
             ImGui.SameLine();
             ImGui.SetCursorPosY(currentYpos);
-            if (_uiShared.IconTextButton(FontAwesomeIcon.EllipsisV, "Your List", null, false, _currentTab == PuppeteerTab.ClientAliasList
-                || (_puppeteerHandler.StorageBeingEdited.CharacterName.IsNullOrEmpty() || _puppeteerHandler.StorageBeingEdited.CharacterWorld.IsNullOrEmpty())))
-            {
+            if (_uiShared.IconTextButton(FontAwesomeIcon.EllipsisV, "Your List", disabled: _currentTab is PuppeteerTab.ClientAliasList || !_puppeteerHandler.ClonedAliasStorageForEdit.IsValid))
                 _currentTab = PuppeteerTab.ClientAliasList;
-            }
             UiSharedService.AttachToolTip("Configure your Alias List.");
 
             ImGui.SameLine();
             ImGui.SetCursorPosY(currentYpos);
-            if (_uiShared.IconTextButton(FontAwesomeIcon.EllipsisV, "Pair's List", null, false, _currentTab == PuppeteerTab.PairAliasList))
-            {
+            if (_uiShared.IconTextButton(FontAwesomeIcon.EllipsisV, "Pair's List", disabled: _currentTab == PuppeteerTab.PairAliasList))
                 _currentTab = PuppeteerTab.PairAliasList;
-            }
             UiSharedService.AttachToolTip("View this Pair's Alias List.");
         }
     }
@@ -296,8 +321,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             return;
 
         bool isClient = triggerInfo.UID == "Client";
-        bool displayInRed = isClient && (_puppeteerHandler.StorageBeingEdited.CharacterName.IsNullOrEmpty() || _puppeteerHandler.StorageBeingEdited.CharacterWorld.IsNullOrEmpty());
-        var buttonIcon = isEditingTriggerOptions ? FontAwesomeIcon.Save : FontAwesomeIcon.Edit;
+        bool displayInRed = isClient && !_puppeteerHandler.ClonedAliasStorageForEdit!.IsValid;
         var iconSize = isEditingTriggerOptions ? _uiShared.GetIconButtonSize(FontAwesomeIcon.Save) : _uiShared.GetIconButtonSize(FontAwesomeIcon.Edit);
         string displayName = triggerInfo.NickOrAlias.IsNullOrEmpty() ? triggerInfo.UID : triggerInfo.NickOrAlias;
 
@@ -349,7 +373,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                     bool allowSitRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowSitRequests;
                     using (var color = ImRaii.PushColor(ImGuiCol.Text, allowSitRequests ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey))
                     {
-                        if (_uiShared.IconButton(FontAwesomeIcon.Chair, null, null, false, true))
+                        if (_uiShared.IconButton(FontAwesomeIcon.Chair, inPopup: true))
                         {
                             _logger.LogTrace($"Updated own pair permission: AllowSitCommands to {!allowSitRequests}");
                             _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData,
@@ -370,7 +394,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                         }
                     }
                     UiSharedService.AttachToolTip($"Allows {_puppeteerHandler.SelectedPair.UserData.AliasOrUID} to make you perform emotes " +
-                        "and expressions (cpose included)");
+                        "and expressions (cycle Pose included)");
 
                     ImUtf8.SameLineInner();
                     bool allowAllRequests = _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowAllRequests;
@@ -388,43 +412,20 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                     ImUtf8.SameLineInner();
                     using (var color = ImRaii.PushColor(ImGuiCol.Text, isEditingTriggerOptions ? ImGuiColors.ParsedPink : ImGuiColors.DalamudGrey))
                     {
-                        if (_uiShared.IconButton(buttonIcon, null, null, false, true))
-                        {
-                            if (isEditingTriggerOptions)
-                            {
-                                // save and update our changes.
-                                if (UnsavedTriggerPhrase is not null)
-                                {
-                                    _logger.LogTrace($"Updated own pair permission: TriggerPhrase to {UnsavedTriggerPhrase}");
-                                    _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("TriggerPhrase", UnsavedTriggerPhrase)));
-                                    UnsavedTriggerPhrase = null;
-                                }
-                                if (UnsavedNewStartChar is not null)
-                                {
-                                    _logger.LogTrace($"Updated own pair permission: StartChar to {UnsavedNewStartChar}");
-                                    _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("StartChar", UnsavedNewStartChar[0])));
-                                    UnsavedNewStartChar = null;
-                                }
-                                if (UnsavedNewEndChar is not null)
-                                {
-                                    _logger.LogTrace($"Updated own pair permission: EndChar to {UnsavedNewEndChar}");
-                                    _ = _apiHubMain.UserUpdateOwnPairPerm(new(_puppeteerHandler.SelectedPair.UserData, new KeyValuePair<string, object>("EndChar", UnsavedNewEndChar[0])));
-                                    UnsavedNewEndChar = null;
-                                }
-                            }
+                        if (_uiShared.IconButton(FontAwesomeIcon.Edit, inPopup: true))
                             isEditingTriggerOptions = !isEditingTriggerOptions;
-                        }
                     }
                     UiSharedService.AttachToolTip(isEditingTriggerOptions ? "Stop Editing your TriggerPhrase Info." : "Modify Your TriggerPhrase Info");
                 }
 
-                using (ImRaii.PushFont(UiBuilder.MonoFont)) ImGui.TextUnformatted($"{_puppeteerHandler.StorageBeingEdited.CharacterName} @ {_puppeteerHandler.StorageBeingEdited.CharacterWorld}");
+                using (ImRaii.PushFont(UiBuilder.MonoFont)) ImGui.TextUnformatted(_puppeteerHandler.ClonedAliasStorageForEdit?.NameWithWorld ?? "");
                 ImGui.Spacing();
                 ImGui.Separator();
             }
 
             // Handle the case where data is matched.
-            string[] triggers = triggerInfo.TriggerPhrase.Split('|');
+            var TriggerPhrase = isClient ? (UnsavedTriggerPhrase ?? triggerInfo.TriggerPhrase) : triggerInfo.TriggerPhrase;
+            string[] triggers = TriggerPhrase.Split('|');
 
             StringBuilder label = new StringBuilder();
             if (isClient) label.Append("Your ");
@@ -434,18 +435,18 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             ImGui.AlignTextToFramePadding();
             UiSharedService.ColorText(label.ToString(), ImGuiColors.ParsedPink);
             ImGui.Spacing();
-
             if (isEditingTriggerOptions && isClient)
             {
-                var TriggerPhrase = UnsavedTriggerPhrase ?? triggerInfo.TriggerPhrase;
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                if (ImGui.InputTextWithHint($"##{displayName}-Trigger", "Leave Blank for none...", ref TriggerPhrase, 64, ImGuiInputTextFlags.EnterReturnsTrue))
+                if (ImGui.InputTextWithHint($"##{displayName}-Trigger", "Leave Blank for none...", ref TriggerPhrase, 64))
                     UnsavedTriggerPhrase = TriggerPhrase;
+                if (ImGui.IsItemDeactivatedAfterEdit())
+                    _puppeteerHandler.MarkAsModified();
                 UiSharedService.AttachToolTip("You can create multiple trigger phrases by placing a | between phrases.");
             }
             else
             {
-                if (!triggers.Any() || triggers[0] == string.Empty)
+                if (!triggers.Any() || triggers[0].IsNullOrEmpty())
                 {
                     using (ImRaii.PushFont(UiBuilder.MonoFont)) ImGui.TextUnformatted("No Trigger Phrase Set.");
                 }
@@ -468,21 +469,23 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                 ImGui.AlignTextToFramePadding();
                 UiSharedService.ColorText("Custom Brackets:", ImGuiColors.ParsedPink);
                 ImGui.SameLine();
+                var startChar = isClient ? (UnsavedNewStartChar ?? triggerInfo.StartChar.ToString()) : triggerInfo.StartChar.ToString();
+                var endChar = isClient ? (UnsavedNewEndChar ?? triggerInfo.EndChar.ToString()) : triggerInfo.EndChar.ToString();
                 if (isEditingTriggerOptions && isClient)
                 {
                     ImGui.SetNextItemWidth(20 * ImGuiHelpers.GlobalScale);
-                    var startChar = UnsavedNewStartChar ?? triggerInfo.StartChar.ToString();
-                    if (ImGui.InputText($"##{displayName}sStarChar", ref startChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
+                    if (ImGui.InputText($"##{displayName}sStarChar", ref startChar, 1))
                         UnsavedNewStartChar = startChar;
                     if (ImGui.IsItemDeactivatedAfterEdit())
                     {
-                        if (string.IsNullOrEmpty(startChar) || startChar == " ")
-                            UnsavedNewStartChar = "(";
+                        if (string.IsNullOrWhiteSpace(endChar))
+                            UnsavedNewEndChar = "(";
+                        _puppeteerHandler.MarkAsModified();
                     }
                 }
                 else
                 {
-                    using (ImRaii.PushFont(UiBuilder.MonoFont)) ImGui.TextUnformatted(triggerInfo.StartChar.ToString());
+                    using (ImRaii.PushFont(UiBuilder.MonoFont)) ImGui.TextUnformatted(startChar.ToString());
                 }
                 UiSharedService.AttachToolTip($"Custom Start Character that replaces the left enclosing bracket." +
                     Environment.NewLine + "Replaces the [ ( ] in: [ TriggerPhrase (commandToExecute) ]");
@@ -493,25 +496,25 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                 if (isEditingTriggerOptions && isClient)
                 {
                     ImGui.SetNextItemWidth(20 * ImGuiHelpers.GlobalScale);
-                    var endChar = UnsavedNewEndChar ?? triggerInfo.EndChar.ToString();
-                    if (ImGui.InputText($"##{displayName}sEndChar", ref endChar, 1, ImGuiInputTextFlags.EnterReturnsTrue))
+                    if (ImGui.InputText($"##{displayName}sEndChar", ref endChar, 1))
                         UnsavedNewEndChar = endChar;
                     if (ImGui.IsItemDeactivatedAfterEdit())
                     {
-                        if (string.IsNullOrEmpty(endChar) || endChar == " ")
+                        if (string.IsNullOrWhiteSpace(endChar))
                             UnsavedNewEndChar = ")";
+                        _puppeteerHandler.MarkAsModified();
                     }
                 }
                 else
                 {
-                    using (ImRaii.PushFont(UiBuilder.MonoFont)) ImGui.TextUnformatted(triggerInfo.EndChar.ToString());
+                    using (ImRaii.PushFont(UiBuilder.MonoFont)) ImGui.TextUnformatted(endChar.ToString());
                 }
                 UiSharedService.AttachToolTip($"Custom End Character that replaces the right enclosing bracket." +
                     Environment.NewLine + "Replaces the [ ) ] in Ex: [ TriggerPhrase (commandToExecute) ]");
             }
 
             // if no trigger phrase set, return.
-            if (triggerInfo.TriggerPhrase.IsNullOrEmpty()) return;
+            if (TriggerPhrase.IsNullOrEmpty()) return;
 
             ImGui.Spacing();
             ImGui.Separator();
@@ -520,7 +523,8 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
             {
                 string charaName = !isClient
                     ? $"<YourNameWorld> "
-                    : $"<{_puppeteerHandler.StorageBeingEdited.CharacterName.Split(' ').First()}{_puppeteerHandler.StorageBeingEdited.CharacterWorld}> ";
+                    : $"<{_puppeteerHandler.ClonedAliasStorageForEdit?.CharacterName.Split(' ').First()}" +
+                      $"{_puppeteerHandler.ClonedAliasStorageForEdit?.CharacterWorld}> ";
                 UiSharedService.ColorText("Example Usage:", ImGuiColors.ParsedPink);
                 ImGui.TextWrapped(charaName + triggers[0] + " " +
                     _puppeteerHandler.SelectedPair?.UserPairOwnUniquePairPerms.StartChar +

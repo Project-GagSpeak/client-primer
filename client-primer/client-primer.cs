@@ -250,7 +250,7 @@ public static class GagSpeakServiceExtensions
 
         .AddSingleton((s) => new ActionEffectMonitor(s.GetRequiredService<ILogger<ActionEffectMonitor>>(),
             s.GetRequiredService<GagspeakConfigService>(), ss, gip))
-        .AddSingleton((s) => new OnEmote(s.GetRequiredService<ILogger<OnEmote>>(), s.GetRequiredService<OnFrameworkService>(), ss, gip))
+        .AddSingleton((s) => new OnEmote(s.GetRequiredService<ILogger<OnEmote>>(), s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<OnFrameworkService>(), ss, gip))
         .AddSingleton((s) => new EmoteMonitor(s.GetRequiredService<ILogger<EmoteMonitor>>(), s.GetRequiredService<OnFrameworkService>(), cs, dm))
         .AddSingleton((s) => new TriggerService(s.GetRequiredService<ILogger<TriggerService>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<PlayerCharacterData>(),
             s.GetRequiredService<ToyboxFactory>(), s.GetRequiredService<AppearanceManager>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<IpcCallerMoodles>(),

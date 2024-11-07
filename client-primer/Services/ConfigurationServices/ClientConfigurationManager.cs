@@ -530,15 +530,6 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         Mediator.Publish(new PlayerCharAliasChanged(userUid, DataUpdateKind.PuppeteerAliasListUpdated));
     }
 
-    // Called upon whenever we modify the properties of an alias list for a userUID.
-    // TODO: Restucture this later to only send updates upon a list save to make less calls.
-    internal void AliasDataModified(string userUid)
-    {
-        _aliasConfig.Save();
-        Mediator.Publish(new PlayerCharAliasChanged(userUid, DataUpdateKind.PuppeteerAliasListUpdated));
-    }
-
-
     #endregion Alias Config Methods
     /* --------------------- Toybox Pattern Configs --------------------- */
     #region Pattern Config Methods

@@ -1,12 +1,10 @@
 using Dalamud.Plugin.Services;
-using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using GagSpeak.UpdateMonitoring.Chat;
+using GagSpeak.UpdateMonitoring.Triggers;
 using GagspeakAPI.Extensions;
 using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
-using Lumina.Text;
 using System.Collections.ObjectModel;
 using ClientStructFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
@@ -20,7 +18,7 @@ public class EmoteMonitor
     private readonly IDataManager _gameData;
 
     private static unsafe AgentEmote* EmoteAgentRef = (AgentEmote*)ClientStructFramework.Instance()->GetUIModule()->GetAgentModule()->GetAgentByInternalId(AgentId.Emote);
-    public unsafe EmoteMonitor(ILogger<EmoteMonitor> logger, OnFrameworkService frameworkUtils, 
+    public unsafe EmoteMonitor(ILogger<EmoteMonitor> logger, OnFrameworkService frameworkUtils,
         IClientState clientState, IDataManager dataManager)
     {
         _logger = logger;
@@ -29,41 +27,33 @@ public class EmoteMonitor
         _gameData = dataManager;
         EmoteDataAll = _gameData.GetExcelSheet<Emote>()!;
         EmoteDataLoops = EmoteDataAll.Where(x => x.RowId is (50 or 52) || x.EmoteMode.Value?.ConditionMode is 3).ToDictionary(x => x.RowId, x => x).AsReadOnly();
-        // .Where(x => x.RowId is (50 or 52) || x.EmoteMode.Value?.ConditionMode is 3).ToDictionary(x => x.RowId, x => x).AsReadOnly();
-        // initialize the commands list.
-        foreach (var emoteCommand in EmoteDataAll.Where(x=> x.EmoteCategory?.Value?.RowId is not 3))
-        {
-            // if the row id is (42 or 24), add it to a temporary list.
-            var cmd = emoteCommand.TextCommand.Value?.Command;
-            if (cmd != null && cmd != "") EmoteCommands.Add(cmd);
-            cmd = emoteCommand.TextCommand.Value?.ShortCommand;
-            if (cmd != null && cmd != "") EmoteCommands.Add(cmd);
-            cmd = emoteCommand.TextCommand.Value?.Alias;
-            if (cmd != null && cmd != "") EmoteCommands.Add(cmd);
-            cmd = emoteCommand.TextCommand.Value?.ShortAlias;
-            if (cmd != null && cmd != "") EmoteCommands.Add(cmd);
-        }
-        // sort the EmoteCommands alphabetically.
-        EmoteCommands = EmoteCommands.OrderBy(x => x).ToHashSet();
 
-        // Obtain all the yes no commands.
-        var yesNoCommands = new HashSet<string>();
-        foreach (var emoteCommand in EmoteDataAll.Where(x => x.RowId is (42 or 24) && x.EmoteCategory?.Value?.RowId is not 3))
+        // Generate Emote List.
+        EmoteCommandsWithId = EmoteDataAll
+        .Where(x => x.EmoteCategory?.Value?.RowId is not 3)
+        .SelectMany(emoteCommand => new[]
         {
-            // if the row id is (42 or 24), add it to a temporary list.
-            var cmd = emoteCommand.TextCommand.Value?.Command;
-            if (cmd != null && cmd != "") yesNoCommands.Add(cmd);
-            cmd = emoteCommand.TextCommand.Value?.ShortCommand;
-            if (cmd != null && cmd != "") yesNoCommands.Add(cmd);
-            cmd = emoteCommand.TextCommand.Value?.Alias;
-            if (cmd != null && cmd != "") yesNoCommands.Add(cmd);
-            cmd = emoteCommand.TextCommand.Value?.ShortAlias;
-            if (cmd != null && cmd != "") yesNoCommands.Add(cmd);
-        }
-        // Make the EmoteCommandsYesNoAccepted the EmoteCommands.Except the yesNoCommands.
-        EmoteCommandsYesNoAccepted = EmoteCommands.Except(yesNoCommands).ToHashSet();
+            (Command: emoteCommand.TextCommand.Value?.Command.RawString?.TrimStart('/'), RowId: emoteCommand.RowId),
+            (Command: emoteCommand.TextCommand.Value?.ShortCommand.RawString?.TrimStart('/'), RowId: emoteCommand.RowId),
+            (Command: emoteCommand.TextCommand.Value?.Alias.RawString?.TrimStart('/'), RowId: emoteCommand.RowId),
+            (Command: emoteCommand.TextCommand.Value?.ShortAlias.RawString?.TrimStart('/'), RowId: emoteCommand.RowId)
+        })
+        .Where(cmd => !string.IsNullOrWhiteSpace(cmd.Command))
+        .GroupBy(cmd => cmd.Command)
+        .OrderBy(x => x.Key)
+        .Select(group => group.First())
+        .ToDictionary(cmd => cmd.Command!, cmd => cmd.RowId);
+
+        // Filter for yes/no commands based on RowId (42 or 24).
+        var yesNoCommands = EmoteCommandsWithId.Where(kvp => kvp.Value is 42 or 24).Select(kvp => kvp.Key).ToHashSet();
+
+        // Create the final set by excluding yesNoCommands from EmoteCommandsWithId keys.
+        EmoteCommandsYesNoAccepted = EmoteCommandsWithId.Keys.Except(yesNoCommands).ToHashSet();
+
         // log all recorded emotes.
-        //_logger.LogDebug("Emote Commands: " + string.Join(", ", EmoteCommands));
+        _logger.LogDebug("Emote Commands: " + string.Join(", ", EmoteCommands));
+
+        _logger.LogDebug("CposeInfo => " + EmoteDataAll.FirstOrDefault(x => x.RowId is 90)?.Name.RawString);
     }
 
     public static readonly ushort[] StandIdleList = new ushort[] { 0, 91, 92, 107, 108, 218, 219 };
@@ -71,7 +61,8 @@ public class EmoteMonitor
     public static readonly ushort[] GroundSitIdList = new ushort[] { 52, 97, 98, 117 };
     public static ExcelSheet<Emote> EmoteDataAll = null!;
     public static ReadOnlyDictionary<uint, Emote> EmoteDataLoops = null!;
-    public static HashSet<string> EmoteCommands = [];
+    public static Dictionary<string, uint> EmoteCommandsWithId = null!;
+    public static HashSet<string> EmoteCommands => EmoteCommandsWithId.Keys.ToHashSet();
     public static HashSet<string> EmoteCommandsYesNoAccepted = [];
 
     // create a IEnumerable array that only consists of the emote data from keys of 50 and 52.
@@ -93,7 +84,15 @@ public class EmoteMonitor
     // Perform the Emote if we can execute it.
     public static unsafe void ExecuteEmote(ushort emoteId)
     {
-        if (!CanUseEmote(emoteId)) return;
+        if (!CanUseEmote(emoteId))
+        {
+            StaticLogger.Logger.LogWarning("Can't perform this emote!");
+            return;
+        }
+        // set the next allowance.
+        StaticLogger.Logger.LogWarning("Setting Next Emote Allowance to true!");
+        OnEmote.AllowExecution = (true, emoteId);
+        // Execute.
         EmoteAgentRef->ExecuteEmote(emoteId);
     }
 
@@ -239,14 +238,37 @@ public class EmoteMonitor
 
                     _logger.LogTrace("Cycle Pose State was [" + current + "], expected [" + expectedCyclePose + "]. Sending /cpose.", LoggerType.HardcoreMovement);
                     ExecuteEmote(90);
-                    // give some delay before re-execution.
-                    await Task.Delay(500);
+                    await WaitForCondition(() => EmoteMonitor.CanUseEmote(90), 5);
                 }
             }
         }
         finally
         {
             EnforceCyclePoseTask = null;
+        }
+    }
+
+    /// <summary>
+    /// Await for emote execution to be allowed again
+    /// </summary>
+    /// <param name="condition"></param>
+    /// <param name="timeoutSeconds"></param>
+    /// <returns></returns>
+    public async Task WaitForCondition(Func<bool> condition, int timeoutSeconds = 5)
+    {
+        // Create a cancellation token source with the specified timeout
+        using var timeout = new CancellationTokenSource(timeoutSeconds * 1000);
+        try
+        {
+            while (!condition() && !timeout.Token.IsCancellationRequested)
+            {
+                StaticLogger.Logger.LogTrace("(Excessive) Waiting for condition to be true.");
+                await Task.Delay(100, timeout.Token);
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            StaticLogger.Logger.LogDebug("WaitForCondition was canceled due to timeout.");
         }
     }
 }

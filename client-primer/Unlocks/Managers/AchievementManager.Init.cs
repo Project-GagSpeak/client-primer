@@ -218,7 +218,7 @@ public partial class AchievementManager
 
         puppeteerComponent.AddProgress(Achievements.KissMyHeels, 50, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Ordered", suffix: "Grovels");
 
-        puppeteerComponent.AddProgress(Achievements.Ashamed, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Forced a Pair to Sulk", suffix: "Times");
+        puppeteerComponent.AddProgress(Achievements.Ashamed, 5, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Be forced to Sulk", suffix: "Times");
 
         puppeteerComponent.AddProgress(Achievements.ShowingOff, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Ordered", suffix: "Dances");
 

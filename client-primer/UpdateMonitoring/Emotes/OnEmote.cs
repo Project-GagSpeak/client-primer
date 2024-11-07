@@ -2,6 +2,9 @@ using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.UI.Agent;
+using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Utils;
 
 // References for Knowledge
@@ -11,31 +14,41 @@ namespace GagSpeak.UpdateMonitoring.Triggers;
 public class OnEmote : IDisposable
 {
     private readonly ILogger<OnEmote> _logger;
+    private readonly HardcoreHandler _hardcoreHandler;
     private readonly OnFrameworkService _frameworkUtils;
     private static class Signatures
     {
+        // Will process rendered uses an emote. Can be us or anyone else. This is called after the emote has been executed.
         public const string OnEmoteDetour = "40 53 56 41 54 41 57 48 83 EC ?? 48 8B 02";
+        // Processed only when the client requests to perform an emote. Performing an early return of this will result in it not being processed.
+        public const string OnExecuteEmote = "E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 8B 8A ?? ?? ?? ?? 8B C1 C1 E8 08";
     }
 
+    internal Hook<AgentEmote.Delegates.ExecuteEmote> OnExecuteEmoteHook;
     public delegate void OnEmoteFuncDelegate(ulong unk, ulong emoteCallerAddr, ushort emoteId, ulong targetId, ulong unk2);
     internal static Hook<OnEmoteFuncDelegate> ProcessEmoteHook = null!;
-    public OnEmote(ILogger<OnEmote> logger, OnFrameworkService frameworkUtils,
-        ISigScanner sigScanner, IGameInteropProvider interopProvider)
+    public OnEmote(ILogger<OnEmote> logger, HardcoreHandler hardcoreHandler,
+        OnFrameworkService frameworkUtils, ISigScanner sigScanner, IGameInteropProvider interopProvider)
     {
         _logger = logger;
+        _hardcoreHandler = hardcoreHandler;
         _frameworkUtils = frameworkUtils;
         interopProvider.InitializeFromAttributes(this);
 
         ProcessEmoteHook = interopProvider.HookFromSignature<OnEmoteFuncDelegate>(Signatures.OnEmoteDetour, OnEmoteDetour);
+        unsafe
+        {
+            OnExecuteEmoteHook = interopProvider.HookFromAddress<AgentEmote.Delegates.ExecuteEmote>((nint)AgentEmote.MemberFunctionPointers.ExecuteEmote, OnExecuteEmote);
+        }
         EnableHook();
         _logger.LogInformation("Started EmoteDetour", LoggerType.ChatDetours);
     }
 
     public void EnableHook()
     {
-        if (ProcessEmoteHook.IsEnabled) return;
         _logger.LogInformation("Enabling EmoteDetour", LoggerType.ChatDetours);
         ProcessEmoteHook.Enable();
+        OnExecuteEmoteHook.Enable();
     }
 
     public void DisableHook()
@@ -43,6 +56,7 @@ public class OnEmote : IDisposable
         if (!ProcessEmoteHook.IsEnabled) return;
         _logger.LogInformation("Disabling EmoteDetour", LoggerType.ChatDetours);
         ProcessEmoteHook.Disable();
+        OnExecuteEmoteHook.Disable();
     }
 
     public void Dispose()
@@ -50,8 +64,9 @@ public class OnEmote : IDisposable
         _logger.LogInformation("Stopping EmoteDetour", LoggerType.ChatDetours);
         try
         {
-            if (ProcessEmoteHook.IsEnabled) DisableHook();
-            ProcessEmoteHook.Dispose();
+            DisableHook();
+            ProcessEmoteHook?.Dispose();
+            OnExecuteEmoteHook?.Dispose();
         }
         catch (Exception e)
         {
@@ -60,6 +75,9 @@ public class OnEmote : IDisposable
         _logger.LogInformation("Stopped EmoteDetour", LoggerType.ChatDetours);
     }
 
+    /// <summary>
+    /// Processes an executed emote from any rendered player in game. Provides the source and target along with the emote ID.
+    /// </summary>
     async void OnEmoteDetour(ulong unk, ulong emoteCallerAddr, ushort emoteId, ulong targetId, ulong unk2)
     {
         try
@@ -81,5 +99,56 @@ public class OnEmote : IDisposable
             _logger.LogError(e, "Error in EmoteDetour");
         }
         ProcessEmoteHook.Original(unk, emoteCallerAddr, emoteId, targetId, unk2);
+    }
+
+
+    public static (bool NextEmoteAllowed, ushort EmoteId) AllowExecution { get; set; } = (false, 0);
+
+    /// <summary>
+    /// Detours a emote request from our client player. If we decide to, we can perform an early return from this.
+    /// </summary>
+    unsafe void OnExecuteEmote(AgentEmote* thisPtr, ushort emoteId, EmoteController.PlayEmoteOption* playEmoteOption, bool addToHistory, bool liveUpdateHistory)
+    {
+        try
+        {
+            _logger.LogTrace("OnExecuteEmote >> Emote [" + EmoteMonitor.GetEmoteName(emoteId) + "](ID:"+emoteId+") requested to be Executed", LoggerType.ChatDetours);
+            // Block all emotes if forced to follow
+            if(_hardcoreHandler.IsForcedToFollow)
+                return;
+
+            // If we are forced to emote, then we should prevent execution unless NextEmoteAllowed is true.
+            if (_hardcoreHandler.IsForcedToEmote)
+            {
+                // if our current emote state is any sitting pose and we are attempting to perform yes or no, allow it.
+                if (_hardcoreHandler.ForcedEmoteState.EmoteID is 50 or 52 && emoteId is 42 or 24)
+                {
+                    _logger.LogInformation("Allowing Emote Execution for Emote ID: " + emoteId);
+                }
+                else
+                {
+                    // If we are not allowed to execute the emote, then return early.
+                    if (AllowExecution.NextEmoteAllowed is false)
+                    {
+                        _logger.LogWarning("Emote Execution is not allowed!");
+                        return;
+                    }
+                    // If we were allowed to execute an emote but a player tried to squeeze in another emote that wasnt the expected, return.
+                    if (AllowExecution.EmoteId != emoteId)
+                    {
+                        _logger.LogDebug("Sorry sugar, but you ain't cheesing this system that easily." + emoteId);
+                        return;
+                    }
+                    // The Emote is the same as the expected, so allow it.
+                    _logger.LogInformation("Allowing Emote Execution for Emote ID: " + emoteId);
+                }
+            }
+            AllowExecution = (false, 0);
+            _logger.LogTrace("Emote Execution Allowance now disabled!");
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Error in OnExecuteEmoteDetour");
+        }
+        OnExecuteEmoteHook.Original(thisPtr, emoteId, playEmoteOption, addToHistory, liveUpdateHistory);
     }
 }

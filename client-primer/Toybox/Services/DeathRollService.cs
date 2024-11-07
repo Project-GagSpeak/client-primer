@@ -43,9 +43,6 @@ public sealed class DeathRollService
         return session?.CurrentRollCap ?? null;
     }
 
-
-
-
     public void ProcessMessage(XivChatType type, string nameWithWorld, SeString message)
     {
         if (_frameworkService.ClientPlayerAddress != nint.Zero || !message.Payloads.Exists(p => p.Type == PayloadType.Icon))

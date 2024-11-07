@@ -1,4 +1,5 @@
 using Dalamud.Game.ClientState.Objects;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Hardcore.Movement;
 using GagSpeak.PlayerData.Data;
@@ -13,6 +14,8 @@ using GagspeakAPI.Data;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Extensions;
 using System.Numerics;
+using System.Reflection.Metadata;
+using static GagspeakAPI.Extensions.GlobalPermExtensions;
 
 namespace GagSpeak.PlayerData.Handlers;
 /// <summary> Responsible for handling hardcore communication from stored data & ui to core logic. </summary>
@@ -26,7 +29,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
     private readonly MoveController _moveController; // for movement logic
     private readonly ChatSender _chatSender; // for sending chat commands
     private readonly EmoteMonitor _emoteMonitor; // for handling the blindfold logic
-    private readonly ITargetManager _targetManager; // for targetting pair on follows.
+    private readonly ITargetManager _targetManager; // for targeting pair on follows.
 
     public unsafe GameCameraManager* cameraManager = GameCameraManager.Instance(); // for the camera manager object
     public HardcoreHandler(ILogger<HardcoreHandler> logger, GagspeakMediator mediator,
@@ -165,12 +168,62 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
         }
     }
 
-    public void UpdateForcedEmoteState(NewState newState)
+    // You can probably break this really fast if you just move while it executes, maybe wait for movement lock?
+    public async void UpdateForcedEmoteState(NewState newState)
     {
         if (newState is NewState.Enabled)
         {
             Logger.LogDebug("Enabled forced Emote State for pair.", LoggerType.HardcoreMovement);
-            // The update handler will take care of this.
+            // Lock Movement:
+            _moveController.EnableMovementLock();
+
+            // Step 1: Get Players current emoteId
+            ushort currentEmote = _emoteMonitor.CurrentEmoteId(); // our current emote ID.
+
+            // if our expected emote is 50, and we are not in any sitting pose, force the sit pose.
+            if (ForcedEmoteState.EmoteID is 50 or 52 && !EmoteMonitor.IsSittingAny(currentEmote))
+            {
+                Logger.LogDebug("Forcing Emote: /SIT [or /GROUNDSIT]. (Current emote was: " + currentEmote + ").");
+                EmoteMonitor.ExecuteEmote(ForcedEmoteState.EmoteID);
+
+                // Wait until we are allowed to use another emote again, after which point, our cycle pose will have registered.
+                await _emoteMonitor.WaitForCondition(() => EmoteMonitor.CanUseEmote(ForcedEmoteState.EmoteID), 5);
+
+                // get our cycle pose.
+                byte currentCyclePose = _emoteMonitor.CurrentCyclePose();
+
+                // if its not the expected cycle pose, we need to cycle the emote into the correct state.
+                if (currentCyclePose != ForcedEmoteState.CyclePoseByte)
+                {
+                    Logger.LogDebug("Your CyclePose State ["+ currentCyclePose + "] does not match the requested cycle pose state. ["+ ForcedEmoteState.CyclePoseByte + "]");
+                    // After this, we need to handle our current cycle pose state,
+                    if (!EmoteMonitor.IsCyclePoseTaskRunning)
+                        _emoteMonitor.ForceCyclePose(ForcedEmoteState.CyclePoseByte);
+                }
+                Logger.LogDebug("Locking Player in Current State until released.");
+            }
+            else
+            {
+                // It is a standard emote, so we can just check for a comparison and switch to it. if necessary.
+                if (ForcedEmoteState.EmoteID is not 50 or 52)
+                {
+                    // if we are currently sitting in any manner, stand up first.
+                    if (EmoteMonitor.IsSittingAny(currentEmote))
+                    {
+                        Logger.LogDebug("Forcing Emote: /STAND. (Current emote was: " + currentEmote + ").");
+                        EmoteMonitor.ExecuteEmote(51);
+                    }
+
+                    // Wait until we are allowed to use another emote again, after which point, our cycle pose will have registered.
+                    await _emoteMonitor.WaitForCondition(() => EmoteMonitor.CanUseEmote(ForcedEmoteState.EmoteID), 5);
+
+                    // Execute the desired emote.
+                    Logger.LogDebug("Forcing Emote: " + ForcedEmoteState.EmoteID + "(Current emote was: " + currentEmote + ")");
+                    EmoteMonitor.ExecuteEmote(ForcedEmoteState.EmoteID);
+
+                    Logger.LogDebug("Locking Player in Current State until released.");
+                }
+            }
         }
 
         if (newState is NewState.Disabled)

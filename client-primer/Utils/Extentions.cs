@@ -154,4 +154,22 @@ public static class UtilsExtensions
         CenteredLineWidths[id] = ImGui.GetCursorPosX() - oldCur;
         ImGui.Dummy(Vector2.Zero);
     }
+
+    /// <summary> encapsulates the puppeteer command within '(' and ')' </summary>
+    public static SeString GetSubstringWithinParentheses(this SeString str, char startBracket = '(', char EndBracket = ')')
+    {
+        int startIndex = str.TextValue.IndexOf(startBracket);
+        int endIndex = str.TextValue.IndexOf(EndBracket);
+
+        // If both brackets are found and the end bracket is after the start bracket
+        if (startIndex >= 0 && endIndex >= 0 && endIndex > startIndex)
+            return str.TextValue.Substring(startIndex + 1, endIndex - startIndex - 1).Trim();
+
+        return str;
+    }
+
+    /// <summary> Converts square brackets to angle brackets </summary>
+    public static SeString ConvertSquareToAngleBrackets(this SeString str) 
+        => str.TextValue.Replace("[", "<").Replace("]", ">");
+
 }

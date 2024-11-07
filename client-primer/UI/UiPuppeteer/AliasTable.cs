@@ -16,13 +16,13 @@ namespace GagSpeak.UI.UiPuppeteer;
 
 public class AliasTable : DisposableMediatorSubscriberBase
 {
-    private readonly UiSharedService _uiSharedService;
+    private readonly UiSharedService _uiShared;
     private readonly PuppeteerHandler _handler;
 
     public AliasTable(ILogger<AliasTable> logger, GagspeakMediator mediator,
         UiSharedService uiSharedService, PuppeteerHandler handler) : base(logger, mediator)
     {
-        _uiSharedService = uiSharedService;
+        _uiShared = uiSharedService;
         _handler = handler;
     }
 
@@ -33,18 +33,20 @@ public class AliasTable : DisposableMediatorSubscriberBase
     {
         // draw table.
         using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, paddingHeight));
-        using var table = ImRaii.Table("UniqueAliasListCreator", 3, ImGuiTableFlags.RowBg);
+        using var table = ImRaii.Table("UniqueAliasListCreator", 2, ImGuiTableFlags.RowBg);
         if (!table) { return; }
         // draw the header row
-        ImGui.TableSetupColumn("##Delete", ImGuiTableColumnFlags.WidthFixed, ImGui.GetFrameHeight() + (ImGuiHelpers.GlobalScale) * 10);
+        ImGui.TableSetupColumn("##Edit", ImGuiTableColumnFlags.WidthFixed, ImGui.GetFrameHeight() + (ImGuiHelpers.GlobalScale) * 10);
         ImGui.TableSetupColumn("Alias Input / Output", ImGuiTableColumnFlags.WidthStretch);
-        ImGui.TableSetupColumn("Edit", ImGuiTableColumnFlags.WidthFixed, (_uiSharedService.GetIconButtonSize(FontAwesomeIcon.Pen).X));
         ImGui.TableHeadersRow();
 
-        // create a new aliastrigger list temporarily
+        // create a new alias trigger list temporarily
         try
         { 
-            var aliasTriggerListShallowCopy = _handler.StorageBeingEdited.AliasList.ToList();
+            var aliasTriggerListShallowCopy = _handler.ClonedAliasStorageForEdit?.AliasList.ToList();
+            if(aliasTriggerListShallowCopy is null)
+                return;
+
             foreach (var (aliasTrigger, idx) in aliasTriggerListShallowCopy.Select((value, index) => (value, index)))
             {
                 using var id = ImRaii.PushId(idx);
@@ -59,12 +61,16 @@ public class AliasTable : DisposableMediatorSubscriberBase
     {
         bool canEdit = EditableAliasIndex == idx;
         ImGui.TableNextColumn();
-        if (ImGuiUtil.DrawDisabledButton(FontAwesomeIcon.Trash.ToIconString(), new Vector2(ImGui.GetFrameHeight()),
-        "Delete alias from list.\nHold SHIFT in order to delete.", !KeyMonitor.ShiftPressed(), true))
-        {
+        if (_uiShared.IconButton(FontAwesomeIcon.Trash, disabled: !KeyMonitor.ShiftPressed()))
             _handler.RemoveAlias(aliasTrigger);
-        }
-        ImGui.Text($"ID: {idx + 1}");
+        if(ImGui.IsItemDeactivatedAfterEdit()) _handler.MarkAsModified();
+        UiSharedService.AttachToolTip("Delete alias from list.--SEP--Hold SHIFT in order to delete.");
+
+        var enabledRef = aliasTrigger.Enabled;
+        if (ImGui.Checkbox($"##Enable{idx}{aliasTrigger.InputCommand}", ref enabledRef))
+            _handler.ClonedAliasStorageForEdit!.AliasList[idx].Enabled = enabledRef;
+        if (ImGui.IsItemDeactivatedAfterEdit()) _handler.MarkAsModified();
+        UiSharedService.AttachToolTip("Enable / Disable the Alias.");
         // try to draw the rest, but if it was removed, it cant, so we should skip over and consume the error
         try
         {
@@ -73,51 +79,24 @@ public class AliasTable : DisposableMediatorSubscriberBase
             {
                 string aliasInput = aliasTrigger.InputCommand;
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-
-                using (ImRaii.Disabled(!canEdit))
-                { 
-                    if (ImGui.InputTextWithHint($"##aliasText{idx}", "Input phrase goes here...", ref aliasInput, 64, ImGuiInputTextFlags.EnterReturnsTrue))
-                    {
-                        // Assuming a method to update an alias directly by index exists
-                        _handler.UpdateAliasInput(idx, aliasInput);
-                    }
-                }
+                if (ImGui.InputTextWithHint($"##aliasText{idx}", "Input phrase goes here...", ref aliasInput, 64))
+                    _handler.ClonedAliasStorageForEdit!.AliasList[idx].InputCommand = aliasInput;
+                if (ImGui.IsItemDeactivatedAfterEdit()) _handler.MarkAsModified();
                 UiSharedService.AttachToolTip($"The string of words that {userID} would have to say to make you execute the output command");
 
                 // next line draw output
                 ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2*ImGuiHelpers.GlobalScale);
-                _uiSharedService.IconButton(FontAwesomeIcon.LongArrowAltRight, null, null, true, false);
+                _uiShared.IconButton(FontAwesomeIcon.LongArrowAltRight, disabled: true);
                 UiSharedService.AttachToolTip($"The command that will be executed when the input phrase is said by {userID}");
+                ImUtf8.SameLineInner();
                 ImUtf8.SameLineInner();
                 string aliasOutput = aliasTrigger.OutputCommand;
                 ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
-                using (ImRaii.Disabled(!canEdit))
-                {
-                    if (ImGui.InputTextWithHint($"##command{idx}", "Output command goes here...", ref aliasOutput, 200, ImGuiInputTextFlags.EnterReturnsTrue))
-                    {
-                        // Assuming a method to update an alias directly by index exists
-                        _handler.UpdateAliasOutput(idx, aliasOutput);
-                    }
-                }
-                UiSharedService.AttachToolTip($"The command that will be executed when the input phrase is said by {userID}");
+                if (ImGui.InputTextWithHint($"##command{idx}", "Output command goes here...", ref aliasOutput, 200))
+                    _handler.ClonedAliasStorageForEdit!.AliasList[idx].OutputCommand = aliasOutput;
+                if (ImGui.IsItemDeactivatedAfterEdit()) _handler.MarkAsModified();
+                UiSharedService.AttachToolTip($"Replaces the statement above in the puppeteers message with this.--SEP--DO NOT INCLUDE A '/' HERE.");
             }
-            ImGui.TableNextColumn();
-            // draw edit button.
-            if (_uiSharedService.IconButton((EditableAliasIndex == idx) ? FontAwesomeIcon.Save : FontAwesomeIcon.Pen))
-            {
-                EditableAliasIndex = (EditableAliasIndex == idx) ? -1 : idx;
-            }
-            UiSharedService.AttachToolTip("Edit the alias configuration.");
-            // draw the enable button.
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 2 * ImGuiHelpers.GlobalScale);
-            var enabledRef = aliasTrigger.Enabled;
-            if (ImGui.Checkbox($"##Enable{idx}{aliasTrigger.InputCommand}", ref enabledRef))
-            { 
-                _handler.UpdateAliasEnabled(idx, enabledRef);
-            }
-            UiSharedService.AttachToolTip("Enable / Disable the Alias.");
-
-            ImGui.TableNextRow();
         }
         catch(Exception ex) { Logger.LogError(ex.StackTrace); }
     }
@@ -125,7 +104,7 @@ public class AliasTable : DisposableMediatorSubscriberBase
     private void DrawNewModRow(string userID)
     {
         ImGui.TableNextColumn();
-        if (_uiSharedService.IconButton(FontAwesomeIcon.Plus))
+        if (_uiShared.IconButton(FontAwesomeIcon.Plus))
         {
             _handler.AddAlias(NewTrigger);
             NewTrigger = new AliasTrigger();
@@ -136,18 +115,14 @@ public class AliasTable : DisposableMediatorSubscriberBase
         string newAliasText = NewTrigger.InputCommand;
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
         if (ImGui.InputTextWithHint("##newAliasText", "Alias Input...", ref newAliasText, 50))
-        {
             NewTrigger.InputCommand = newAliasText; // Update the new alias entry input
-        }
         UiSharedService.AttachToolTip("The string of words that the player would have to say to make you execute the output field.");
 
         ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X);
         string newAliasCommand = NewTrigger.OutputCommand;
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGuiHelpers.GlobalScale);
         if (ImGui.InputTextWithHint("##newAliasCommand", "Output Command...", ref newAliasCommand, 200))
-        {
             NewTrigger.OutputCommand = newAliasCommand; // Update the new alias entry output
-        }
         UiSharedService.AttachToolTip("The command that will be executed when the input phrase is said by the player.");
     }
 }

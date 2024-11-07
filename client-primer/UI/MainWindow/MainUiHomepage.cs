@@ -117,5 +117,16 @@ public class MainUiHomepage : DisposableMediatorSubscriberBase
         {
             Mediator.Publish(new UiToggleMessage(typeof(AchievementsUI)));
         }
+
+
+        // tester for emote execution.
+        ImGui.InputInt("Execute Emote ID", ref testID, 1, 2);
+        if (ImGui.Button("Execute Emote"))
+        {
+            EmoteMonitor.ExecuteEmote((ushort)testID);
+        }
+
     }
+
+    private int testID = 0;
 }

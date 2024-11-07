@@ -13,8 +13,11 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Controllers;
 using GagSpeak.Toybox.Services;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using Lumina.Excel.GeneratedSheets;
 using Lumina.Excel.GeneratedSheets2;
+using System.Linq;
+using static GagSpeak.PlayerData.Handlers.PuppeteerHandler;
 using Territory = FFXIVClientStructs.FFXIV.Client.Game.UI.TerritoryInfo;
 
 namespace GagSpeak.UpdateMonitoring.Chat;
@@ -95,22 +98,28 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
 
     private void Chat_OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString message, ref bool isHandled)
     {
-        // Don't process messages if we ain't visible.
-        if (_clientState.LocalPlayer == null) return;
+        // Don't process messages if we are not visible or connected.
+        if (_clientState.LocalPlayer is null || MainHub.IsConnected is false)
+            return;
 
         // Handle PVP Kills for achievement.
         if (type is (XivChatType)4922)
         {
+            Logger.LogTrace("["+type+"] {"+message+"Message}", LoggerType.Achievements);
             // only process if in pvp.
             if (_clientState.IsPvP)
             {
+                Logger.LogInformation("We were in PvP. Checking for PvP kill.", LoggerType.Achievements);
                 // get the player payloads.
                 Payload[] playerPayloads = message.Payloads.Where(x => x.Type == PayloadType.Player).ToArray();
                 Logger.LogTrace("["+type+"] {"+message+"Message}", LoggerType.Achievements);
                 if (playerPayloads.Length == 2)
                 {
+                    Logger.LogTrace("2 Player Payloads Found", LoggerType.Achievements);
                     PlayerPayload player1 = (PlayerPayload)playerPayloads[0];
                     PlayerPayload player2 = (PlayerPayload)playerPayloads[1];
+                    Logger.LogTrace("Player 1: " + player1.PlayerName + "@" + player1.World.Name, LoggerType.Achievements);
+                    Logger.LogTrace("Player 2: " + player2.PlayerName + "@" + player2.World.Name, LoggerType.Achievements);
 
                     if(_clientState.LocalPlayer.GetNameWithWorld() == player1.PlayerName + "@" + player1.World.Name)
                     {
@@ -172,75 +181,93 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
             senderWorld = senderPlayerPayload.World.Name;
         }
 
+        // After this point we only check triggers, so if its not a valid trigger then dont worry about it.
+        var channel = ChatChannel.GetChatChannelFromXivChatType(type);
+        if (channel is null) return;
+
         // if we are the sender, return after checking if what we sent matches any of our pairs triggers.
         if (senderName + "@" + senderWorld == _clientState.LocalPlayer.GetNameWithWorld())
         {
             // check if the message we sent contains any of our pairs triggers.
             _puppeteerHandler.OnClientMessageContainsPairTrigger(message.TextValue);
-            
             // if our message is longer than 5 words, fire our on-chat-message achievement.
             if (_playerInfo.IsPlayerGagged && (_playerInfo.GlobalPerms?.LiveChatGarblerActive ?? false) && message.TextValue.Split(' ').Length > 5)
             {
-                var channel = ChatChannel.GetChatChannelFromXivChatType(type);
-                if (channel != null && _mainConfig.Current.ChannelsGagSpeak.Contains(channel.Value))
+                if (_mainConfig.Current.ChannelsGagSpeak.Contains(channel.Value))
                     UnlocksEventManager.AchievementEvent(UnlocksEvent.ChatMessageSent, type);
             }
             return;
         }
 
         // route to scan for any active triggers. (block outgoing tells because otherwise they always come up as from the recipient).
-        if (type != XivChatType.TellOutgoing)
-            _triggers.CheckActiveChatTriggers(type, senderName + "@" + senderWorld, message.TextValue);
+        if (type != XivChatType.TellOutgoing) _triggers.CheckActiveChatTriggers(type, senderName + "@" + senderWorld, message.TextValue);
 
-        if (senderName + "@" + senderWorld == _clientState.LocalPlayer.GetNameWithWorld()) return;
+        // return if the message type is not in our valid chat channels for puppeteer.
+        if (_playerInfo.CoreDataNull || !_mainConfig.Current.ChannelsPuppeteer.Contains(channel.Value))
+        {
+            Logger.LogDebug("Message was not in a valid channel for puppeteer.", LoggerType.Puppeteer);
+            return;
+        }
+        
 
         // check for global puppeteer triggers
-        if (_puppeteerHandler.IsValidGlobalTriggerWord(message, type))
+        var globalTriggers = _playerInfo.GlobalPerms?.GlobalTriggerPhrase.Split('|').ToList() ?? new List<string>();
+        if (_puppeteerHandler.IsValidTriggerWord(globalTriggers, message, out string matchedTrigger))
         {
+            // convert everything to PuppeteerPerms
+            var permsGlobal = new PuppeteerPerms(
+                _playerInfo.GlobalPerms!.GlobalAllowSitRequests,
+                _playerInfo.GlobalPerms.GlobalAllowMotionRequests,
+                _playerInfo.GlobalPerms.GlobalAllowAllRequests);
             // the message did contain the trigger word, to obtain the message to send.
-            SeString msgToSend = _puppeteerHandler.NewMessageFromGlobalTrigger(message, type);
-            if (msgToSend.TextValue.IsNullOrEmpty()) return;
+            SeString msgToSend = _puppeteerHandler.GetMessageFromTrigger(matchedTrigger, permsGlobal, message, type);
+            
+            if (msgToSend.TextValue.IsNullOrEmpty()) 
+                return;
 
-            // enqueue the message and log sucess
-            Logger.LogInformation(senderName + " used your global trigger phase to make you exeucte a message!", LoggerType.Puppeteer);
+            // enqueue the message and log success
+            Logger.LogInformation(senderName + " used your global trigger phase to make you execute a message!", LoggerType.Puppeteer);
             EnqueueMessage("/" + msgToSend.TextValue);
         }
 
         // check for puppeteer pair triggers
-        if (SenderIsInPuppeteerListeners(senderName, senderWorld, out Pair? matchedPair) && matchedPair != null)
+        if (SenderIsInPuppeteerListeners(senderName, senderWorld, out Pair pair))
         {
-            // obtain the trigger phrases for this sender
-            var triggerPhrases = matchedPair.UserPairOwnUniquePairPerms.TriggerPhrase.Split('|').ToList();
-            // see if valid pair trigger-phrase was used
-            if (_puppeteerHandler.IsValidPuppeteerTriggerWord(triggerPhrases, message))
+            var pairTriggers = pair.UserPairOwnUniquePairPerms.TriggerPhrase.Split('|').ToList();
+            if (_puppeteerHandler.IsValidTriggerWord(pairTriggers, message, out string matchedPairTrigger))
             {
                 Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!");
-                // get the new message to send
-                SeString msgToSend = _puppeteerHandler.NewMessageFromPuppeteerTrigger(
-                    triggerPhrases, matchedPair.UserData.UID, matchedPair.UserPairOwnUniquePairPerms, message, type);
+                var permsPair = new PuppeteerPerms(pair.UserPairOwnUniquePairPerms.AllowSitRequests,
+                    pair.UserPairOwnUniquePairPerms.AllowMotionRequests, pair.UserPairOwnUniquePairPerms.AllowAllRequests,
+                    pair.UserPairOwnUniquePairPerms.StartChar, pair.UserPairOwnUniquePairPerms.EndChar);
 
-                if (!msgToSend.TextValue.IsNullOrEmpty())
-                {
-                    // enqueue the message and log sucess
-                    Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!", LoggerType.Puppeteer);
-                    EnqueueMessage("/" + msgToSend.TextValue);
-                }
+                SeString msgToSend = _puppeteerHandler.GetMessageFromTrigger(matchedPairTrigger, permsPair, message, type, pair.UserData.UID);
+                
+                if (msgToSend.TextValue.IsNullOrEmpty())
+                    return;
+
+                Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!", LoggerType.Puppeteer);
+                EnqueueMessage("/" + msgToSend.TextValue);
             }
         }
     }
 
-    private bool SenderIsInPuppeteerListeners(string name, string world, out Pair? matchedPair)
+    private bool SenderIsInPuppeteerListeners(string name, string world, out Pair matchedPair)
     {
-        matchedPair = null;
+        matchedPair = null!;
         string nameWithWorld = name + "@" + world;
         // make sure we are listening for this player.
-        if (!PlayersToListenFor.Contains(nameWithWorld)) return false;
+        if (!PlayersToListenFor.Contains(nameWithWorld)) 
+            return false;
+
         // make sure they exist in our alias list config
         var uidOfSender = _puppeteerHandler.GetUIDMatchingSender(name, world);
-        if (uidOfSender.IsNullOrEmpty()) return false;
+        if (uidOfSender.IsNullOrEmpty()) 
+            return false;
 
         var pairOfUid = _puppeteerHandler.GetPairOfUid(uidOfSender!);
-        if (pairOfUid == null) return false;
+        if (pairOfUid is null) 
+            return false;
 
         // successful match
         matchedPair = pairOfUid;

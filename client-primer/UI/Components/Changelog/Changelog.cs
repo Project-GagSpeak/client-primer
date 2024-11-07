@@ -19,6 +19,25 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 6)
+            .RegisterMain("Hardcore Mode ForcedEmoteState can now fully block out emote execution from any and all sources.")
+            .RegisterMain("Reworked the DeathRoll System to have its own module and logic center, for more clear code.")
+            .RegisterMain("The entire Puppeteer backend was restructured for more accurate, and more optimal processing.")
+            .RegisterMain("DeathRoll Sessions have now had a logic overhaul for more support in handling a diverse range of situations to cover all possibilities.")
+            .RegisterFeature("DeathRolls now also process rolls using regex so all languages can be supported.")
+            .RegisterFeature("Global Triggers can now also have multiple phrases split with a '|' delimiter.")
+            .RegisterQol("Swiftly go from your forced emote to your forced cycle pose with almost 0 transition delay.")
+            .RegisterQol("Your entire puppeteer window, trigger phrases, characters, alias list, can be modified however " +
+            "much you like, and update only when you hit the save button now.")
+            .RegisterQol("You no longer need to hit enter for changes to take effect in the Puppeteer tab.")
+            .RegisterQol("DeathRoll sessions will now automatically dispose of any other sessions you either started or joined when joining another session.")
+            .RegisterBugfix("Fixed issue where DeathRoll triggers improperly fired.")
+            .RegisterBugfix("fixed issue where Puppeteer triggers were not functioning as they should.")
+            .RegisterBugfix("fixed issue where puppeteer alias triggers were not functioning as they should.")
+            .RegisterBugfix("fixed bug where Puppeteer MotionAllowance permissions only allowed executing emotes that had " +
+            "the same database table name as the actual emote command. Now it processes ALL emote commands.")
+            .RegisterBugfix("Fixed 7 different bugs with achievements not displaying or executing properly.");
+
         VersionEntry(0, 9, 9, 5)
             .RegisterMain("More Plugin Cleanup!")
             .RegisterBugfix("Fixed issue where chat triggers didn't work correctly.")

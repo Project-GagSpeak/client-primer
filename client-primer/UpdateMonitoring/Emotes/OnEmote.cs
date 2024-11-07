@@ -20,11 +20,11 @@ public class OnEmote : IDisposable
     {
         // Will process rendered uses an emote. Can be us or anyone else. This is called after the emote has been executed.
         public const string OnEmoteDetour = "40 53 56 41 54 41 57 48 83 EC ?? 48 8B 02";
-        // Processed only when the client requests to perform an emote. Performing an early return of this will result in it not being processed.
-        public const string OnExecuteEmote = "E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 8B 8A ?? ?? ?? ?? 8B C1 C1 E8 08";
     }
 
+    // Processed only when the client requests to perform an emote. Performing an early return of this will result in it not being processed.
     internal Hook<AgentEmote.Delegates.ExecuteEmote> OnExecuteEmoteHook;
+
     public delegate void OnEmoteFuncDelegate(ulong unk, ulong emoteCallerAddr, ushort emoteId, ulong targetId, ulong unk2);
     internal static Hook<OnEmoteFuncDelegate> ProcessEmoteHook = null!;
     public OnEmote(ILogger<OnEmote> logger, HardcoreHandler hardcoreHandler,

@@ -18,6 +18,31 @@ public class GagSetupTabMenu : TabMenuBase
 
         return "Unknown"; // Fallback for tabs that don't match the expected type.
     }
+
+    protected override bool IsTabDisabled(Enum tab)
+    {
+        if (tab is GagSetupTabs.Tabs gagTab)
+            return gagTab is GagSetupTabs.Tabs.LockPicker;
+
+        return false; // By default, no tabs are disabled
+    }
+
+    protected override string GetTabTooltip(Enum tab)
+    {
+        if (tab is GagSetupTabs.Tabs gagTab)
+        {
+            // Example: Provide tooltips for each tab
+            return gagTab switch
+            {
+                GagSetupTabs.Tabs.ActiveGags => "Overview of current active gags, and lock info, if any.",
+                GagSetupTabs.Tabs.LockPicker => "A WIP Concept that is questionable on if it will ever be added.--SEP--WIP During Open Beta.",
+                GagSetupTabs.Tabs.GagStorage => "Manage how your Gags are applied in various ways.",
+                _ => string.Empty,
+            };
+        }
+
+        return string.Empty; // By default, no tooltip is provided
+    }
 }
 
 public static class GagSetupTabs

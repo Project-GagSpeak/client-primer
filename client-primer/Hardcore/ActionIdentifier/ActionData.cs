@@ -63,7 +63,7 @@ public enum JobType : uint
 }
 
 // class for identifying which action is being used and the properties associated with it.
-public class ActionData
+public class GagspeakActionData
 {
     public static void GetJobActionProperties(JobType job, out Dictionary<uint, AcReqProps[]> bannedActions ) {
         // return the correct dictionary from our core data.

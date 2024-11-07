@@ -1,6 +1,8 @@
 using Dalamud.Hooking;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.Interop;
 using GagSpeak.GagspeakConfiguration.Models;
@@ -10,13 +12,11 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.UI;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using System.Collections.Immutable;
-using System.Windows.Forms;
 using ClientStructFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
 namespace GagSpeak.UpdateMonitoring;
@@ -32,10 +32,13 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
     // attempt to get the rapture hotbar module so we can modify the display of hotbar items
     public unsafe RaptureHotbarModule* raptureHotbarModule = ClientStructFramework.Instance()->GetUIModule()->GetRaptureHotbarModule();
 
-    // hook creation for the action manager
     // if sigs fuck up, reference https://github.com/PunishXIV/Orbwalker/blob/f850e04eb9371aa5d7f881e3024d7f5d0953820a/Orbwalker/Memory.cs#L15
     internal unsafe delegate bool UseActionDelegate(ActionManager* am, ActionType type, uint acId, long target, uint a5, uint a6, uint a7, void* a8);
     internal Hook<UseActionDelegate> UseActionHook;
+
+    // SHOULD fire whenever we interact with any object thing.
+    internal Hook<TargetSystem.Delegates.InteractWithObject> ItemInteractedHook;
+
 
     public Dictionary<uint, AcReqProps[]> CurrentJobBannedActions = new Dictionary<uint, AcReqProps[]>(); // stores the current job actions
     public Dictionary<int, Tuple<float, DateTime>> CooldownList = new Dictionary<int, Tuple<float, DateTime>>(); // stores the recast timers for each action
@@ -54,7 +57,9 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
 
         // set up a hook to fire every time the address signature is detected in our game.
         UseActionHook = interop.HookFromAddress<UseActionDelegate>((nint)ActionManager.MemberFunctionPointers.UseAction, UseActionDetour);
+        ItemInteractedHook = interop.HookFromAddress<TargetSystem.Delegates.InteractWithObject>((nint)TargetSystem.MemberFunctionPointers.InteractWithObject, ItemInteractedDetour);
         UseActionHook.Enable();
+        ItemInteractedHook.Enable();
 
         // initialize
         UpdateJobList();
@@ -62,7 +67,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         var activeSet = _clientConfigs.GetActiveSet();
         if (activeSet is not null && activeSet.EnabledBy != MainHub.UID)
         {
-            if(activeSet.PropertiesEnabledForUser(activeSet.EnabledBy))
+            if (activeSet.PropertiesEnabledForUser(activeSet.EnabledBy))
             {
                 Logger.LogDebug("Hardcore RestraintSet is now active", LoggerType.HardcoreActions);
                 // apply stimulation modifier, if any (TODO)
@@ -88,20 +93,18 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
 
     protected override void Dispose(bool disposing)
     {
-        // set lock to visable again
+        // set lock to visible again
         HotbarLocker.SetHotbarLockState(NewState.Unlocked);
         // restore saved slots
         RestoreSavedSlots();
         // dispose of the hook
-        if (UseActionHook != null)
-        {
-            if (UseActionHook.IsEnabled)
-            {
-                UseActionHook.Disable();
-            }
-            UseActionHook.Dispose();
-            UseActionHook = null!;
-        }
+        UseActionHook?.Disable();
+        UseActionHook?.Dispose();
+        UseActionHook = null!;
+
+        ItemInteractedHook?.Disable();
+        ItemInteractedHook?.Dispose();
+        ItemInteractedHook = null!;
 
         IpcFastUpdates.GlamourEventFired -= JobChanged;
         IpcFastUpdates.HardcoreTraitsEventFired -= ToggleHardcoreTraits;
@@ -231,7 +234,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.ClassJob != null)
         {
             Logger.LogDebug("Updating job list to : " + (JobType)_frameworkUtils.PlayerClassJobId, LoggerType.HardcoreActions);
-            ActionData.GetJobActionProperties((JobType)_frameworkUtils.PlayerClassJobId, out var bannedJobActions);
+            GagspeakActionData.GetJobActionProperties((JobType)_frameworkUtils.PlayerClassJobId, out var bannedJobActions);
             CurrentJobBannedActions = bannedJobActions; // updated our job list
             // only do this if we are logged in
             if (_clientState.IsLoggedIn
@@ -307,7 +310,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
 
     #region Framework Updates
     private DateTime LastKeybindSafewordUsed = DateTime.MinValue;
-    
+
     private unsafe void FrameworkUpdate()
     {
         // make sure we only do checks when we are properly logged in and have a character loaded
@@ -315,7 +318,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
             return;
 
         // Setup a hotkey for safeword keybinding to trigger a hardcore safeword message.
-        if(DateTime.UtcNow - LastKeybindSafewordUsed > TimeSpan.FromSeconds(10))
+        if (DateTime.UtcNow - LastKeybindSafewordUsed > TimeSpan.FromSeconds(10))
         {
             // Check for hardcore Safeword Keybind
             if (KeyMonitor.CtrlPressed() && KeyMonitor.AltPressed() && KeyMonitor.BackPressed())
@@ -328,7 +331,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         }
 
         // Block out Chat Input if we should be.
-        if(_hardcoreHandler.IsBlockingChatInput)
+        if (_hardcoreHandler.IsBlockingChatInput)
             ChatLogAddonHelper.DiscardCursorNodeWhenFocused();
 
 
@@ -410,4 +413,15 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         // invoke the action used event
         return ret;
     }
+
+    private unsafe ulong ItemInteractedDetour(TargetSystem* thisPtr, GameObject* obj, bool checkLineOfSight)
+    {
+        // if we are forced to stay, we should block any interactions with objects.
+        Logger.LogTrace("Interacted with GameObject that had ObjectKind: " + obj->ObjectKind);
+        Logger.LogTrace("Game Object has the GameObjectId:" + obj->GetGameObjectId().ObjectId);
+        Logger.LogTrace("Game Object has name label at: " + obj->NameString);
+
+        return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
+    }
+
 }

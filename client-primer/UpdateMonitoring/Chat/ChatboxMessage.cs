@@ -146,6 +146,11 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
                 }
                 Logger.LogInformation("Payload Type: " + text);
             }
+            // log current player state.
+            Logger.LogInformation("IsDead? " + _clientState.LocalPlayer.IsDead);
+            Logger.LogInformation("HP? " + _clientState.LocalPlayer.CurrentHp);
+            Logger.LogInformation("Status Flags? " + _clientState.LocalPlayer.StatusFlags);
+            Logger.LogInformation("Status Flags (tostring)" + _clientState.LocalPlayer.StatusFlags.ToString());
         }
 
 

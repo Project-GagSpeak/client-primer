@@ -4,6 +4,7 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration;
+using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
@@ -26,7 +27,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private readonly MainHub _apiHubMain;
     private readonly GagspeakConfigService _configService;
     private readonly PairManager _pairManager;
-    private readonly ServerConfigurationManager _serverManager;
+    private readonly ServerConfigurationManager _serverConfigs;
     private readonly MainTabMenu _tabMenu;
     private readonly MainUiHomepage _homepage;
     private readonly MainUiWhitelist _whitelist;
@@ -38,22 +39,28 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private float _windowContentWidth;
     private bool _addingNewUser = false;
     public string _pairToAdd = string.Empty; // the pair to add
+
+    // Attributes related to the drawing of the whitelist / contacts / pair list
+    private Pair? _lastAddedUser;
+    private string _lastAddedUserComment = string.Empty;
+    // If we should draw sticky perms for the currently selected user pair.
+    private bool _shouldDrawStickyPerms = false;
+    private bool _showModalForUserAddition;
+
     // for theme management
     public bool ThemePushed = false;
 
     public MainWindowUI(ILogger<MainWindowUI> logger, GagspeakMediator mediator,
-        UiSharedService uiShared, MainHub apiHubMain,
-        GagspeakConfigService configService, PairManager pairManager,
-        ServerConfigurationManager serverManager, MainUiHomepage homepage,
-        MainUiWhitelist whitelist, MainUiPatternHub patternHub,
-        MainUiChat globalChat, MainUiAccount account, MainTabMenu tabMenu,
-        DrawEntityFactory drawEntityFactory, IDalamudPluginInterface pi)
-        : base(logger, mediator, "###GagSpeakMainUI")
+        UiSharedService uiShared, MainHub apiHubMain, GagspeakConfigService configService, 
+        PairManager pairManager, ServerConfigurationManager serverConfigs, MainUiHomepage homepage,
+        MainUiWhitelist whitelist, MainUiPatternHub patternHub, MainUiChat globalChat, 
+        MainUiAccount account, MainTabMenu tabMenu, DrawEntityFactory drawEntityFactory, 
+        IDalamudPluginInterface pi) : base(logger, mediator, "###GagSpeakMainUI")
     {
         _apiHubMain = apiHubMain;
         _configService = configService;
         _pairManager = pairManager;
-        _serverManager = serverManager;
+        _serverConfigs = serverConfigs;
         _homepage = homepage;
         _whitelist = whitelist;
         _patternHub = patternHub;
@@ -248,6 +255,51 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             _uiShared.LastMainUIWindowPosition = pos;
             Mediator.Publish(new CompactUiChange(size, pos));
         }
+
+        HandlePairAdded();
+    }
+
+    private void HandlePairAdded()
+    {
+        // if we have configured to let the UI display a popup to set a nickname for the added UID upon adding them, then do so.
+        if (_configService.Current.OpenPopupOnAdd && _pairManager.LastAddedUser != null)
+        {
+            // set the last added user to the last added user from the pair manager
+            _lastAddedUser = _pairManager.LastAddedUser;
+            // set the pair managers one to null, so this menu wont spam itself
+            _pairManager.LastAddedUser = null;
+            // prompt the user to set the nickname via the popup
+            ImGui.OpenPopup("Set a Nickname for New User");
+            // set if we should show the modal for added user to true,
+            _showModalForUserAddition = true;
+            // and clear the last added user comment 
+            _lastAddedUserComment = string.Empty;
+        }
+
+        // the modal for setting a nickname for a newly added user, using the popup window flags in the shared service.
+        if (ImGui.BeginPopupModal("Set a Nickname for New User", ref _showModalForUserAddition, UiSharedService.PopupWindowFlags))
+        {
+            // if the last added user is null, then we should not show the modal
+            if (_lastAddedUser is null) _showModalForUserAddition = false;
+            // but if they are still present, meaning we have not yet given them a nickname, then display the modal
+            else
+            {
+                // inform the user the pair has been successfully added
+                UiSharedService.TextWrapped($"You have successfully added {_lastAddedUser.UserData.AliasOrUID}. Set a local note for the user in the field below:");
+                // display the input text field where they can input the nickname
+                ImGui.InputTextWithHint("##nicknameforuser", $"Nickname for {_lastAddedUser.UserData.AliasOrUID}", ref _lastAddedUserComment, 100);
+                if (_uiShared.IconTextButton(FontAwesomeIcon.Save, "Save Nickname"))
+                {
+                    // once we hit the save nickname button, we should update the nickname we have set for the UID
+                    _serverConfigs.SetNicknameForUid(_lastAddedUser.UserData.UID, _lastAddedUserComment);
+                    _lastAddedUser = null;
+                    _lastAddedUserComment = string.Empty;
+                    _showModalForUserAddition = false;
+                }
+            }
+            UiSharedService.SetScaledWindowSize(275);
+            ImGui.EndPopup();
+        }
     }
 
     public void DrawAddPair(float availableXWidth, float spacingX)
@@ -368,23 +420,23 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                     if (MainHub.ServerStatus is ServerState.Connected)
                     {
                         // If we are connected, we want to disconnect.
-                        _serverManager.CurrentServer.FullPause = true;
-                        _serverManager.Save();
+                        _serverConfigs.CurrentServer.FullPause = true;
+                        _serverConfigs.Save();
                         _ = _apiHubMain.Disconnect(ServerState.Disconnected);
                     }
                     else if (MainHub.ServerStatus is (ServerState.Disconnected or ServerState.Offline))
                     {
                         // If we are disconnected, we want to connect.
-                        _serverManager.CurrentServer.FullPause = false;
-                        _serverManager.Save();
+                        _serverConfigs.CurrentServer.FullPause = false;
+                        _serverConfigs.Save();
                         _ = _apiHubMain.Connect();
                     }
                 }
             }
             // attach the tooltip for the connection / disconnection button)
             UiSharedService.AttachToolTip(MainHub.IsConnected 
-                ? "Disconnect from " + _serverManager.CurrentServer.ServerName + "--SEP--Current Status: "+MainHub.ServerStatus 
-                : "Connect to " + _serverManager.CurrentServer.ServerName + "--SEP--Current Status: "+MainHub.ServerStatus);
+                ? "Disconnect from " + _serverConfigs.CurrentServer.ServerName + "--SEP--Current Status: "+MainHub.ServerStatus 
+                : "Connect to " + _serverConfigs.CurrentServer.ServerName + "--SEP--Current Status: "+MainHub.ServerStatus);
 
             // go back to the far left, at the same height, and draw another button.
             var addUserIcon = FontAwesomeIcon.UserPlus;
@@ -405,7 +457,10 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         }
     }
 
-    /// <summary> Retrieves the various server error messages based on the current server state.</summary>
+
+    /// <summary> 
+    /// Retrieves the various server error messages based on the current server state.
+    /// </summary>
     /// <returns> The error message of the server.</returns>
     private string GetServerError()
     {

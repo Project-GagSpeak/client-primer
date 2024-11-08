@@ -579,9 +579,8 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                     GagManager.ActiveSlotPasswords[3] = string.Empty;
                     GagManager.ActiveSlotTimers[3] = string.Empty;
                 }
-                UiSharedService.AttachToolTip(padlockType == Padlocks.None ? "Select a padlock type before locking" :
-                    set.Locked == false ? "Self-Lock this Restraint Set" :
-                    set.LockedBy != MainHub.UID ? "Only" + set.LockedBy + "can unlock your set." : "Unlock this set.");
+                UiSharedService.AttachToolTip(padlockType is Padlocks.None ? "Select a padlock type before locking" :
+                    set.Locked is false ? "Self-Lock this Restraint Set" : "Attempt to unlock this padlock.");
                 // display associated password field for padlock type.
                 _gagManager.DisplayPadlockFields(padlockType, 3, set.Locked, width);
             }

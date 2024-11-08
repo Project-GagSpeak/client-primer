@@ -210,6 +210,8 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                     // Grab distance to object.
                     var distance = GetTargetDistance(node);
                     // If its a estate entrance, and we are within 3.5f, interact with it.
+
+
                     if (node.Name.TextValue is "Entrance" or "Apartment Building Entrance" && distance < 3.5f)
                     {
                         _targetManager.Target = node;

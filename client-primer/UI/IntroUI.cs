@@ -16,171 +16,78 @@ namespace GagSpeak.UI;
 /// <summary> The introduction UI that will be shown the first time that the user starts the plugin. </summary>
 public class IntroUi : WindowMediatorSubscriberBase
 {
-    private readonly GagspeakConfigService _configService;                  // the configuration service for the gagspeak plugin
-    private readonly Dictionary<string, string> _languages;                 // The various languages
-    private readonly ServerConfigurationManager _serverConfigurationManager;// the configuration manager for the server
-    private readonly OnFrameworkService _frameworkUtils;                    // for functions running on the games framework thread
-    private readonly UiSharedService _uiShared;                             // the shared UI service.
-    private readonly MainHub _apiHubMain;                                   // the main hub for the API
-    private int _currentLanguage;                                           // the current lgnauge of the client.
-    private bool _readFirstPage;                                            // if they have read the validation string
-    private string _secretKey = string.Empty;                               // the secret key to register with
-    private string _aquiredUID = string.Empty;                              // the UID that was aquired
-    private string _timeoutLabel = string.Empty;                            // the timeout label for the page
-    private Task? _timeoutTask;                                             // the timeout task
-    private string[]? _tosParagraphs;                                       // the various paragraphs for the ToS
+    private readonly MainHub _apiHubMain;
+    private readonly GagspeakConfigService _configService;
+    private readonly ServerConfigurationManager _serverConfigs;
+    private readonly OnFrameworkService _frameworkUtils;
+    private readonly UiSharedService _uiShared;
+    private bool _readFirstPage;
+    private string _aquiredUID = string.Empty;
+    private string _secretKey = string.Empty;
 
-    public IntroUi(ILogger<IntroUi> logger, UiSharedService uiShared, GagspeakConfigService configService,
-        ServerConfigurationManager serverConfigurationManager, GagspeakMediator gagspeakMediator,
-        OnFrameworkService frameworkUtils, MainHub mainHub) : base(logger, gagspeakMediator, "Gagspeak Setup")
+    public IntroUi(ILogger<IntroUi> logger, GagspeakMediator mediator, MainHub mainHub,
+        GagspeakConfigService configService, ServerConfigurationManager serverConfigs, 
+        OnFrameworkService frameworkUtils, UiSharedService uiShared) 
+        : base(logger, mediator, "Welcome to GagSpeak! ♥")
     {
-        _languages = new(StringComparer.Ordinal) { { "English", "en" }, { "Deutsch", "de" }, { "Français", "fr" } };
-        _uiShared = uiShared;
-        _configService = configService;
-        _serverConfigurationManager = serverConfigurationManager;
-        _frameworkUtils = frameworkUtils;
         _apiHubMain = mainHub;
+        _configService = configService;
+        _serverConfigs = serverConfigs;
+        _frameworkUtils = frameworkUtils;
+        _uiShared = uiShared;
         
-        IsOpen = false;                 // do not start with the window open
-        
-        ShowCloseButton = false;        // do not show the close button
-        RespectCloseHotkey = false;     // do not respect the close hotkey (in otherwords, require the user to read this)
+        IsOpen = false;
+        ShowCloseButton = false;
+        RespectCloseHotkey = false;
         AllowPinning = false;
         AllowClickthrough = false;
 
-        SizeConstraints = new WindowSizeConstraints()           // set the size of the window
+        SizeConstraints = new WindowSizeConstraints()
         {
             MinimumSize = new Vector2(600, 500),
             MaximumSize = new Vector2(600, 2000),
         };
 
-        // get the localization for the ToS
-        GetToSLocalization();
-
-        // subscribe to event which requests to switch to the main UI, and set IsOpen to false when it does
         Mediator.Subscribe<SwitchToMainUiMessage>(this, (_) => IsOpen = false);
-
-        // subscribe to event which requests to switch to the intro UI, and set IsOpen to true when it does
         Mediator.Subscribe<SwitchToIntroUiMessage>(this, (_) => IsOpen = true);
     }
 
     protected override void PreDrawInternal() { }
     protected override void PostDrawInternal() { }
 
-    /// <summary> The interal draw method for the intro UI. </summary>
     protected override void DrawInternal()
     {
         // if the user has not accepted the agreement and they have not read the first page,
         // Then show the first page (everything in this if statement)
         if (!_configService.Current.AcknowledgementUnderstood && !_readFirstPage)
         {
-            _uiShared.BigText("Welcome to CK's GagSpeak Plugin!");
+            _uiShared.GagspeakBigText("Welcome to CK's GagSpeak Plugin!");
             ImGui.Separator();
-            _uiShared.BigText("THIS PLUGIN IS IN BETA.\nIF YOU PROCEED FROM HERE,\nINFORM CORDY YOU ARE JOINING BETA." +
-                Environment.NewLine + "OTHERWISE, YOU WILL BE REMOVED\n(WITHOUT WARNING)");
-            ImGui.Separator();
-            UiSharedService.ColorTextWrapped(Strings.ToS.CautionaryWarningPage1, ImGuiColors.DalamudRed);
-            ImGui.NewLine();
-            UiSharedService.TextWrapped(Strings.ToS.GagSpeakIntroduction);
-            ImGui.NewLine();
-            UiSharedService.TextWrapped(Strings.ToS.GagSpeakIntroduction2);
-            ImGui.NewLine();
-            UiSharedService.TextWrapped(Strings.ToS.GagSpeakIntroduction3);
-            ImGui.NewLine();
-            UiSharedService.ColorTextWrapped(Strings.ToS.PluginIpcNotice, ImGuiColors.DalamudYellow);
+            UiSharedService.ColorTextWrapped("We are currently nearing the end of closed beta, and as such during " +
+                "our final testing period, new account creation has been closed off.", ImGuiColors.ParsedPink);
 
             // seperator before the next button is available
             ImGui.Separator();
             // add a button to switch to the account setup page
-            if (ImGui.Button("Setup Account##toAgreement"))
-            {
-                // mark that they read the first page
-                _readFirstPage = true;
-                // start a timer that runs for 30 seconds, then makes the account creation possible.
-                _timeoutTask = Task.Run(async () =>
-                {
-                    // for 30 seconds, update the timeout label to show the time remaining
-                    for (int i = 5; i > 0; i--)
-                    {
-                        _timeoutLabel = $"{Strings.ToS.ButtonWillBeAvailableIn} {i}s";
-                        await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
-                    }
-                });
-            }
+/*            if (ImGui.Button("Setup Account##toAgreement"))
+                _readFirstPage = true;*/
         }
         // if they have read the first page but not yet created an account, we will need to present the account setup page for them.
         else if (!_configService.Current.AcknowledgementUnderstood && _readFirstPage)
         {
-            // fetch a text size var for the language label
-            Vector2 textSize;
-            // push the following text in the using statement to display as text with the size of the UidFont
-            using (_uiShared.UidFont.Push())
+            // display the button to agree to the acknowledgement.
+            if (ImGui.Button("I Understand.##toSetup"))
             {
-                // calc the text size of the language label
-                textSize = ImGui.CalcTextSize(Strings.ToS.LanguageLabel);
-                // display the "Acknowledgement of Account Creation & Server Usage"
-                ImGui.TextUnformatted(Strings.ToS.AgreementLabel);
-            }
-            // on the same line, display the language label
-            ImGui.SameLine();
-            var languageSize = ImGui.CalcTextSize(Strings.ToS.LanguageLabel);
-            ImGui.SetCursorPosX(ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X - languageSize.X - 80);
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + textSize.Y / 2 - languageSize.Y / 2);
-            ImGui.TextUnformatted(Strings.ToS.LanguageLabel);
-            // and on the same line once again, display the language combo box
-            ImGui.SameLine();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + textSize.Y / 2 - (languageSize.Y + ImGui.GetStyle().FramePadding.Y) / 2);
-            ImGui.SetNextItemWidth(80);
-            if (ImGui.Combo("", ref _currentLanguage, _languages.Keys.ToArray(), _languages.Count))
-            {
-                GetToSLocalization(_currentLanguage);
-            }
-
-            // separator for the Acknowledgement Display
-            ImGui.Separator();
-            ImGui.SetWindowFontScale(1.5f);
-            // display the "READ THIS" text
-            string readThis = Strings.ToS.ReadLabel;
-            textSize = ImGui.CalcTextSize(readThis);
-            ImGui.SetCursorPosX(ImGui.GetWindowSize().X / 2 - textSize.X / 2);
-            UiSharedService.ColorText(readThis, ImGuiColors.DalamudRed); // "READ THIS" text
-            ImGui.SetWindowFontScale(1.0f);
-            ImGui.Separator(); // separator to list the acknowledgements
-            ImGui.NewLine();
-            UiSharedService.TextWrapped(Strings.ToS.AccountCreationIntro);
-            ImGui.NewLine();
-            UiSharedService.TextWrapped(Strings.ToS.AccountCreationDetails);
-            ImGui.NewLine();
-            UiSharedService.TextWrapped(Strings.ToS.PostAccountClaimInfo);
-            ImGui.NewLine();
-            UiSharedService.TextWrapped(Strings.ToS.ServerUsageTransparency);
-
-            ImGui.Separator(); // separator for the buttons.
-
-            // if the timeout task is completed, display the create account label
-            if (_timeoutTask?.IsCompleted ?? true)
-            {
-                // display the button to agree to the acknowledgement.
-                if (ImGui.Button(Strings.ToS.AcknowledgeButton + "##toSetup"))
-                {
-                    _configService.Current.AcknowledgementUnderstood = true;
-                    _configService.Save();
-                }
-            }
-            else
-            {
-                // otherwise, show the number of seconds left until it displays
-                UiSharedService.TextWrapped(_timeoutLabel);
+                _configService.Current.AcknowledgementUnderstood = true;
+                _configService.Save();
             }
         }
         // if the user has read the acknowledgements and the server is not alive, display the account creation window.
         else if (!MainHub.IsServerAlive || !_configService.Current.AccountCreated)
         {
             // title for this page of the intro UI
-            using (_uiShared.UidFont.Push()) { ImGui.TextUnformatted("Account Registration / Creation"); }
-
+            _uiShared.GagspeakBigText("Account Registration / Creation");
             ImGui.Separator();
-
 
             UiSharedService.TextWrapped("Because this is a fresh install, you may generate one primary account key below. Once the key " +
                 "has been generated, you may hit 'Login' to log into your account.");
@@ -228,7 +135,7 @@ public class IntroUi : WindowMediatorSubscriberBase
                 // display the create account button.
                 if (ImGui.Button(buttonText))
                 {
-                    _serverConfigurationManager.GenerateAuthForCurrentCharacter(true);
+                    _serverConfigs.GenerateAuthForCurrentCharacter(true);
                     // grab our local content id
                     var contentId = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
 
@@ -240,7 +147,7 @@ public class IntroUi : WindowMediatorSubscriberBase
                     };
 
                     // set the secret key for the character
-                    _serverConfigurationManager.SetSecretKeyForCharacter(contentId, newKey);
+                    _serverConfigs.SetSecretKeyForCharacter(contentId, newKey);
 
                     // run the create connections and set our account created to true
                     _ = Task.Run(() => _apiHubMain.Connect());
@@ -264,15 +171,6 @@ public class IntroUi : WindowMediatorSubscriberBase
             Mediator.Publish(new SwitchToMainUiMessage());
             // toggle this intro UI window off.
             IsOpen = false;
-        }
-    }
-
-    /// <summary> Helper function to fetch all the ToS paragraphs and load the localization for the ToS. </summary>
-    private void GetToSLocalization(int changeLanguageTo = -1)
-    {
-        if (changeLanguageTo != -1)
-        {
-            _uiShared.LoadLocalization(_languages.ElementAt(changeLanguageTo).Value);
         }
     }
 }

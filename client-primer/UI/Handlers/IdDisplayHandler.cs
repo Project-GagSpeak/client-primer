@@ -11,7 +11,7 @@ namespace GagSpeak.UI.Handlers;
 
 public class IdDisplayHandler
 {
-    private readonly GagspeakConfigService _gagspeakConfigService;
+    private readonly GagspeakConfigService _mainConfig;
     private readonly GagspeakMediator _mediator;
     private readonly ServerConfigurationManager _serverManager;
     private readonly Dictionary<string, bool> _showIdForEntry = new(StringComparer.Ordinal);
@@ -25,7 +25,7 @@ public class IdDisplayHandler
     {
         _mediator = mediator;
         _serverManager = serverManager;
-        _gagspeakConfigService = gagspeakConfigService;
+        _mainConfig = gagspeakConfigService;
     }
 
     public bool DrawPairText(string id, Pair pair, float textPosX, Func<float> editBoxWidth, bool canTogglePairTextDisplay, bool displayNameTT)
@@ -51,12 +51,12 @@ public class IdDisplayHandler
 
                     if (!string.Equals(_lastMouseOverUid, id))
                     {
-                        _popupTime = DateTime.UtcNow.AddSeconds(_gagspeakConfigService.Current.ProfileDelay);
+                        _popupTime = DateTime.UtcNow.AddSeconds(_mainConfig.Current.ProfileDelay);
                     }
 
                     _lastMouseOverUid = id;
 
-                    if (_popupTime < DateTime.UtcNow && !_popupShown)
+                    if (_popupTime < DateTime.UtcNow && !_popupShown && _mainConfig.Current.ShowProfiles)
                     {
                         _popupShown = true;
                         _mediator.Publish(new ProfilePopoutToggle(pair.UserData));
@@ -162,7 +162,7 @@ public class IdDisplayHandler
         {
             playerText = pair.PlayerName;
             textIsUid = false;
-            if (_gagspeakConfigService.Current.PreferNicknamesOverNamesForVisible)
+            if (_mainConfig.Current.PreferNicknamesOverNames)
             {
                 var note = pair.GetNickname();
                 if (note != null)

@@ -141,9 +141,8 @@ public class OnEmote : IDisposable
                     // The Emote is the same as the expected, so allow it.
                     _logger.LogInformation("Allowing Emote Execution for Emote ID: " + emoteId);
                 }
+                AllowExecution = (false, 0);
             }
-            AllowExecution = (false, 0);
-            _logger.LogTrace("Emote Execution Allowance now disabled!");
         }
         catch (Exception e)
         {

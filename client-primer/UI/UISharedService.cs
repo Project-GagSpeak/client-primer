@@ -19,10 +19,12 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using ImGuiNET;
+using OtterGui;
 using OtterGui.Text;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
+using static FFXIVClientStructs.FFXIV.Client.UI.Misc.GroupPoseModule;
 
 
 namespace GagSpeak.UI;
@@ -43,7 +45,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public const string ColorToggleSeparator = "--COL--";
     private const string _nicknameEnd = "##GAGSPEAK_USER_NICKNAME_END##";
     private const string _nicknameStart = "##GAGSPEAK_USER_NICKNAME_START##";
-    private readonly Dalamud.Localization _localization;                        // language localization for our plugin
 
     private readonly MainHub _apiHubMain;                              // our api controller for the server connectivity
     private readonly ClientConfigurationManager _clientConfigs;    // the client-end related config service 
@@ -62,23 +63,19 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private bool _moodlesExists = false;                                // if moodles currently exists on the client
 
     public UiSharedService(ILogger<UiSharedService> logger, GagspeakMediator mediator,
-        Dalamud.Localization localization, MainHub apiHubMain,
-        ClientConfigurationManager clientConfigurationManager,
-        ServerConfigurationManager serverConfigurationManager,
-        OnFrameworkService frameworkUtil, IpcManager ipcManager,
-        IDalamudPluginInterface pluginInterface, ITextureProvider textureProvider)
+        MainHub apiHubMain, ClientConfigurationManager clientConfigs,
+        ServerConfigurationManager serverConfigs, OnFrameworkService frameworkUtil, 
+        IpcManager ipcManager, IDalamudPluginInterface pi, ITextureProvider textureProvider)
         : base(logger, mediator)
     {
-        _localization = localization;
         _apiHubMain = apiHubMain;
-        _clientConfigs = clientConfigurationManager;
-        _serverConfigs = serverConfigurationManager;
+        _clientConfigs = clientConfigs;
+        _serverConfigs = serverConfigs;
         _frameworkUtil = frameworkUtil;
         _ipcManager = ipcManager;
-        _pi = pluginInterface;
+        _pi = pi;
         _textureProvider = textureProvider;
 
-        _localization.SetupWithLangCode("en");
         _selectedComboItems = new(StringComparer.Ordinal);
 
         // A subscription from our mediator to see on each delayed framework if the IPC's are available from the IPC manager
@@ -1351,12 +1348,12 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         // push the big boi font for the UID
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - width / 2);
     }
-
     public void DrawHelpText(string helpText, bool inner = false)
     {
         if (inner) { ImUtf8.SameLineInner(); }
         else { ImGui.SameLine(); }
-        IconText(FontAwesomeIcon.QuestionCircle, ImGui.GetColorU32(ImGuiCol.TextDisabled));
+        var hovering = ImGui.IsMouseHoveringRect(ImGui.GetCursorScreenPos(), ImGui.GetCursorScreenPos() + new Vector2(ImGui.GetTextLineHeight()));
+        IconText(FontAwesomeIcon.QuestionCircle, hovering ? ImGui.GetColorU32(ImGuiColors.TankBlue) : ImGui.GetColorU32(ImGuiCol.TextDisabled));
         AttachToolTip(helpText);
     }
 
@@ -1421,12 +1418,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public void IconText(FontAwesomeIcon icon, Vector4? color = null)
     {
         IconText(icon, color == null ? ImGui.GetColorU32(ImGuiCol.Text) : ImGui.GetColorU32(color.Value));
-    }
-
-    public void LoadLocalization(string languageCode)
-    {
-        _localization.SetupWithLangCode(languageCode);
-        Strings.ToS = new Strings.ToSStrings();
     }
 
     // for grabbing key states (we did something similar with the hardcore module)

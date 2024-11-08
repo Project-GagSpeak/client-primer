@@ -10,7 +10,7 @@ public class TimeRequiredConditionalAchievement : Achievement
     public Func<bool> RequiredCondition;
     public DurationTimeUnit TimeUnit { get; init; }
     private CancellationTokenSource _cancellationTokenSource;
-    private bool _taskStarted = false;
+    public bool TaskStarted = false;
 
     public TimeRequiredConditionalAchievement(uint id, string name, string desc, TimeSpan dur, Func<bool> cond, 
         Action<uint, string> onCompleted, DurationTimeUnit unit, string prefix = "", string suffix = "", bool isSecret = false) 
@@ -95,14 +95,14 @@ public class TimeRequiredConditionalAchievement : Achievement
     // Method to Start the Task/Timer
     public void StartTask()
     {
-        if (IsCompleted || _taskStarted || !MainHub.IsConnected)
+        if (IsCompleted || TaskStarted || !MainHub.IsConnected)
             return;
 
         if (RequiredCondition())
         {
             StaticLogger.Logger.LogDebug($"Condition for {Title} met. Starting the timer.", LoggerType.Achievements);
             StartPoint = DateTime.UtcNow;
-            _taskStarted = true;
+            TaskStarted = true;
             StartTimer();
         }
     }
@@ -114,7 +114,7 @@ public class TimeRequiredConditionalAchievement : Achievement
             return;
 
         StaticLogger.Logger.LogDebug($"Interrupting task for {Title}.", LoggerType.Achievements);
-        _taskStarted = false;
+        TaskStarted = false;
         ResetTask();
     }
 
@@ -124,7 +124,7 @@ public class TimeRequiredConditionalAchievement : Achievement
         StaticLogger.Logger.LogDebug($"Time and condition met for {Title}. Marking as completed.", LoggerType.Achievements);
         MarkCompleted();
         _cancellationTokenSource?.Cancel();
-        _taskStarted = false;
+        TaskStarted = false;
     }
 
     // Starts the timer task

@@ -2,8 +2,11 @@ using Dalamud.Game.ClientState.GamePad;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Hooking;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
@@ -26,155 +29,113 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     private readonly PlayerCharacterData _playerData;
     private readonly CursedLootHandler _handler;
     private readonly OnFrameworkService _frameworkUtils;
-    private readonly AppearanceManager _appearanceHandler;
-    private readonly IChatGui _chatGui;
-    private readonly IDataManager _gameData;
-    private readonly IGamepadState _gamepadState;
-    private readonly IObjectTable _objects;
-    private readonly ITargetManager _targets;
+    private readonly NotificationService _chatNotifier;
+
+    // SHOULD fire whenever we interact with any object thing.
+    internal Hook<TargetSystem.Delegates.InteractWithObject> ItemInteractedHook;
 
     public CursedLootService(ILogger<CursedLootService> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, GagManager gagManager,
         PlayerCharacterData playerData, CursedLootHandler handler,
-        OnFrameworkService frameworkUtils, AppearanceManager appearanceHandler,
-        IChatGui chatGui, IDataManager gameData, IGamepadState controllerState,
-        IObjectTable objects, ITargetManager targets) : base(logger, mediator)
+        OnFrameworkService frameworkUtils, NotificationService chatGui, 
+        IGameInteropProvider interop) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _gagManager = gagManager;
         _playerData = playerData;
         _handler = handler;
         _frameworkUtils = frameworkUtils;
-        _appearanceHandler = appearanceHandler;
-        _chatGui = chatGui;
-        _gameData = gameData;
-        _gamepadState = controllerState;
-        _objects = objects;
-        _targets = targets;
+        _chatNotifier = chatGui;
 
-        Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, _ => GetNearbyTreasure());
-        Mediator.Subscribe<FrameworkUpdateMessage>(this, _ => CheckDungeonTreasureOpen());
+        unsafe
+        {
+            ItemInteractedHook = interop.HookFromAddress<TargetSystem.Delegates.InteractWithObject>((nint)TargetSystem.MemberFunctionPointers.InteractWithObject, ItemInteractedDetour);
+            ItemInteractedHook.Enable();
+        }
     }
 
     private Task? _openTreasureTask;
 
     // Store the last interacted chestId so we dont keep spam opening the same chest.
-    private static ulong NearestTreasureId = ulong.MaxValue;
-    private static ulong LastOpenedChestId = 0;
-    private static DateTime LastInteraction = DateTime.MinValue;
-    private bool AttemptedOpen = false;
-    private unsafe void GetNearbyTreasure()
+    private static ulong LastOpenedTreasureId = 0;
+
+    protected override void Dispose(bool disposing)
     {
-        // Do not run if we dont want to run it.
-        if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot)
-            return;
+        base.Dispose(disposing);
 
-        // do not run if not in a duty
-        if (_frameworkUtils._sentBetweenAreas || !_frameworkUtils.InDungeonOrDuty)
-            return;
-
-        // Do not run if no active items are set.
-        if (!_handler.InactiveItemsInPool.Any())
-            return;
-
-        // do not run if time since last interaction is less than 5 seconds.
-        if (DateTime.Now - LastInteraction < TimeSpan.FromSeconds(5))
-            return;
-
-        // do not run if the player is null.
-        var player = _frameworkUtils.ClientState.LocalPlayer;
-        if (player == null)
-            return;
-
-        // we are in a dungeon, so check if there is a nearby coffer.
-        var treasureNearby = _objects.Where(o => o.IsTargetable && o.ObjectKind == ObjectKind.Treasure)
-            .FirstOrDefault(o =>
-            {
-                // skip if the object is null
-                if (o == null) return false;
-
-                // skip if object is not in open-range to us.
-                var dis = Vector3.Distance(player.Position, o.Position) - player.HitboxRadius - o.HitboxRadius;
-                if (dis > 12f) return false;
-
-                // If the treasure chest has already been opened, do not process a cursed loot function.
-                foreach (var item in Loot.Instance()->Items)
-                    if (item.ChestObjectId == o.GameObjectId)
-                        return false;
-
-                // Otherwise, we are in range, it's unopened, its a treasure chest, and its targetable.
-                return true;
-            });
-        if (treasureNearby == null) return;
-        if (NearestTreasureId == treasureNearby.GameObjectId) return;
-        if (LastOpenedChestId == treasureNearby.GameObjectId) return;
-
-        Logger.LogInformation("Found New Treasure Nearby!", LoggerType.CursedLoot);
-        NearestTreasureId = treasureNearby.GameObjectId;
+        ItemInteractedHook?.Disable();
+        ItemInteractedHook?.Dispose();
+        ItemInteractedHook = null!;
     }
 
-    // Detect for Cursed Dungeon Loot Interactions.
-    private unsafe void CheckDungeonTreasureOpen()
+    private unsafe ulong ItemInteractedDetour(TargetSystem* thisPtr, GameObject* obj, bool checkLineOfSight)
     {
-        // Do not run if we dont want to run it.
-        if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot)
-            return;
+        Logger.LogTrace("Object ID: " + obj->GetGameObjectId().ObjectId);
+        Logger.LogTrace("Object Kind: " + obj->ObjectKind);
+        Logger.LogTrace("Object SubKind: " + obj->SubKind);
+        Logger.LogTrace("Object Name: " + obj->NameString.ToString());
+        Logger.LogTrace("Object EventHandler ID: " + obj->EventHandler->Info.EventId.Id);
+        Logger.LogTrace("Object EventHandler Entry ID: " + obj->EventHandler->Info.EventId.EntryId);
+        Logger.LogTrace("Object EventHandler Content Id: " + obj->EventHandler->Info.EventId.ContentId);
 
-        // do not run if not in a duty
-        if (_frameworkUtils._sentBetweenAreas || !_frameworkUtils.InDungeonOrDuty)
-            return;
+        // dont bother if cursed dungeon loot isnt enabled, or if there are no inactive items in the pool.
+        if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot || _frameworkUtils._sentBetweenAreas || !_handler.InactiveItemsInPool.Any())
+            return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
 
-        // Do not run if no active items are set.
-        if (!_handler.InactiveItemsInPool.Any())
-            return;
-
-        // do not run if time since last interaction is less than 10 seconds.
-        if (DateTime.Now - LastInteraction < TimeSpan.FromSeconds(10))
-            return;
-
-        // do not run if the player is null.
-        var player = _frameworkUtils.ClientState.LocalPlayer;
-        if (player == null)
-            return;
-
-        // If the nearest treasure is not set, return.
-        if (NearestTreasureId is ulong.MaxValue)
-            return;
-
-        // If the client players current target is the treasure and they have just right clicked, fire the cursed loot function.
-        if ((_targets.SoftTarget?.GameObjectId == NearestTreasureId)
-          || (_targets.MouseOverTarget?.GameObjectId == NearestTreasureId)
-          || (_targets.Target?.GameObjectId == NearestTreasureId))
+        // if we are forced to stay, we should block any interactions with objects.
+        if (obj->ObjectKind is not FFXIVClientStructs.FFXIV.Client.Game.Object.ObjectKind.Treasure)
         {
-            if (KeyMonitor.RightMouseButtonDown() || KeyMonitor.Numpad0Pressed() || IsButtonHeld(GamepadButtons.South))
-            {
-                if (_openTreasureTask != null && !_openTreasureTask.IsCompleted)
-                    return;
+            Logger.LogTrace("Interacted with GameObject that was not a Treasure Chest.", LoggerType.CursedLoot);
+            return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
+        }
 
-                Logger.LogTrace("Attempting to open coffer, checking loot instance on next framework tick", LoggerType.CursedLoot);
-                _openTreasureTask = CheckLootTables(NearestTreasureId);
-                return;
+        // if we the item interacted with is the same as the last opened chest, return.
+        if (obj->GetGameObjectId().ObjectId == LastOpenedTreasureId)
+        {
+            Logger.LogTrace("Interacted with GameObject that was the last opened chest.", LoggerType.CursedLoot);
+            return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
+        }
+
+        // Dont process if our current treasure task is running
+        if (_openTreasureTask != null && !_openTreasureTask.IsCompleted)
+            return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
+
+        // Make sure we are opening it. If we were not the first, it will exist in here.
+        if(_frameworkUtils.PartyListSize is not 1)
+        {
+            foreach (var item in Loot.Instance()->Items)
+            {
+                // Perform an early return if not valie.
+                if (item.ChestObjectId == obj->GetGameObjectId().ObjectId)
+                {
+                    Logger.LogTrace("This treasure was already opened!", LoggerType.CursedLoot);
+                    return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
+                }
             }
         }
+
+        // This is a valid new chest, so open it.
+        Logger.LogTrace("Attempting to open coffer, checking loot instance on next second", LoggerType.CursedLoot);
+        _openTreasureTask = CheckLootTables(obj->GetGameObjectId().ObjectId);
+        // return original to complete interaction.
+        return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
     }
 
-    private async Task CheckLootTables(ulong objectId)
+    private async Task CheckLootTables(ulong objectInteractedWith)
     {
         try
         {
-            Logger.LogInformation("Checking tables in the next 500ms!", LoggerType.CursedLoot);
             await Task.Delay(1000);
             Logger.LogInformation("Checking tables!", LoggerType.CursedLoot);
             await _frameworkUtils.RunOnFrameworkThread(() =>
             {
                 unsafe
                 {
-                    if (Loot.Instance()->Items.ToArray().Any(x => x.ChestObjectId == objectId) && objectId != LastOpenedChestId)
+                    bool valid = _frameworkUtils.PartyListSize is 1 ? true : Loot.Instance()->Items.ToArray().Any(x => x.ChestObjectId == objectInteractedWith);
+                    if (valid && objectInteractedWith != LastOpenedTreasureId)
                     {
                         Logger.LogTrace("One of the loot items is the nearest treasure and we just previously attempted to open one.", LoggerType.CursedLoot);
-                        LastOpenedChestId = NearestTreasureId;
-                        NearestTreasureId = ulong.MaxValue;
-                        LastInteraction = DateTime.Now;
+                        LastOpenedTreasureId = objectInteractedWith;
                         ApplyCursedLoot().ConfigureAwait(false);
                     }
                     else
@@ -223,8 +184,8 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 Logger.LogDebug("A Gag Slot is available to apply and lock. Doing so now!", LoggerType.CursedLoot);
                 selectedLootId = _handler.InactiveItemsInPool[randomIndex].LootId;
                 // Notify the client of their impending fate~
-                _chatGui.PrintError(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
-                    "forth, silencing your mouth with a Gag now strapped on tight!").BuiltString);
+                _chatNotifier.PrintCustomErrorChat(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
+                    "forth, silencing your mouth with a Gag now strapped on tight!"));
                 // generate the length they will be locked for:
                 var lockTimeGag = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
                 // apply the gag via the gag manager at the available slot we found.
@@ -267,8 +228,8 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 Logger.LogDebug("Selected Index: " + randomIndexNoGag + " (" + inactiveSetsWithoutGags[randomIndexNoGag].Name + ")", LoggerType.CursedLoot);
                 selectedLootId = inactiveSetsWithoutGags[randomIndexNoGag].LootId;
                 // Notify the client of their impending fate~
-                _chatGui.PrintError(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
-                    "forth, binding you tightly in an inescapable snare of restraints!").BuiltString);
+                _chatNotifier.PrintCustomErrorChat(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
+                    "forth, binding you tightly in an inescapable snare of restraints!"));
                 // generate the length they will be locked for:
                 var lockTime = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
                 // Activate the cursed loot item.
@@ -283,8 +244,8 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         {
             selectedLootId = _handler.InactiveItemsInPool[randomIndex].LootId;
             // Notify the client of their impending fate~
-            _chatGui.PrintError(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
-                "forth, binding you tightly in an inescapable snare of restraints!").BuiltString);
+            _chatNotifier.PrintCustomErrorChat(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
+                "forth, binding you tightly in an inescapable snare of restraints!"));
             // generate the length they will be locked for:
             var lockTime = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
             // Activate the cursed loot item.
@@ -325,14 +286,6 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
 
         return new string(chars);
     }
-
-    /// <summary>
-    /// Checks if a controller button is currently held. Returns true for every frame it's held down.
-    /// </summary>
-    /// <param name="button">Button to check.</param>
-    /// <returns>Button is being held down.</returns>
-    public bool IsButtonHeld(GamepadButtons button) => _gamepadState.Raw(button) == 1;
-
 
     public Task StartAsync(CancellationToken cancellationToken)
     {

@@ -1,3 +1,4 @@
+using Dalamud;
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Interface.ImGuiFileDialog;
@@ -113,7 +114,6 @@ public sealed class GagSpeak : IDalamudPlugin
     /// <summary> Gets the folder content location to know where the config files are saved. </summary>
     private string GetPluginContentRoot(IDalamudPluginInterface pi) => pi.ConfigDirectory.FullName;
 
-
     /// <summary> Gets the log configuration for the plugin. </summary>
     private void GetPluginLogConfiguration(ILoggingBuilder lb, IPluginLog pluginLog)
     {
@@ -164,6 +164,7 @@ public static class GagSpeakServiceExtensions
         // Events Services
         .AddSingleton((s) => new EventAggregator(pi.ConfigDirectory.FullName, s.GetRequiredService<ILogger<EventAggregator>>(), s.GetRequiredService<GagspeakMediator>()))
         .AddSingleton<IpcFastUpdates>()
+        .AddSingleton((s) => new GagSpeakLoc(s.GetRequiredService<ILogger<GagSpeakLoc>>(), s.GetRequiredService<Dalamud.Localization>(), pi))
 
         // MufflerCore
         .AddSingleton((s) => new GagDataHandler(s.GetRequiredService<ILogger<GagDataHandler>>(),
@@ -350,7 +351,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<AchievementsService>()
         .AddSingleton((s) => new CursedLootService(s.GetRequiredService<ILogger<CursedLootService>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<GagManager>(), s.GetRequiredService<PlayerCharacterData>(),
-            s.GetRequiredService<CursedLootHandler>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<AppearanceManager>(), cg, dm, gps, ot, tm))
+            s.GetRequiredService<CursedLootHandler>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<NotificationService>(), gip))
         .AddSingleton<SafewordService>()
         .AddSingleton<VibratorService>()
         .AddSingleton<ToyboxRemoteService>()
@@ -484,14 +485,13 @@ public static class GagSpeakServiceExtensions
         .AddScoped((s) => new NotificationService(s.GetRequiredService<ILogger<NotificationService>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterData>(), cg, nm))
         .AddScoped((s) => new UiSharedService(s.GetRequiredService<ILogger<UiSharedService>>(), s.GetRequiredService<GagspeakMediator>(),
-            s.GetRequiredService<Dalamud.Localization>(), s.GetRequiredService<MainHub>(), s.GetRequiredService<ClientConfigurationManager>(),
-            s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<IpcManager>(), pi, tp));
-
-
+            s.GetRequiredService<MainHub>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ServerConfigurationManager>(), 
+            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<IpcManager>(), pi, tp));
     #endregion ScopedServices
     #region HostedServices
     public static IServiceCollection AddGagSpeakHosted(this IServiceCollection services)
     => services
+        .AddHostedService(p => p.GetRequiredService<GagSpeakLoc>())
         .AddHostedService(p => p.GetRequiredService<StaticLoggerInit>())
         .AddHostedService(p => p.GetRequiredService<GagspeakMediator>())
         .AddHostedService(p => p.GetRequiredService<OnFrameworkService>())

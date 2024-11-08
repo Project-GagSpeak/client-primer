@@ -3,6 +3,7 @@ using Dalamud.Game.Text;
 using Dalamud.Interface;
 using Dalamud.Interface.ImGuiNotification;
 using Dalamud.Plugin.Services;
+using FFXIVClientStructs.FFXIV.Common.Lua;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
@@ -16,6 +17,7 @@ using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Dto.User;
+using Penumbra.GameData.Enums;
 
 // if present in diadem /(https://github.com/Infiziert90/DiademCalculator/blob/d74a22c58840a864cda12131fe2646dfc45209df/DiademCalculator/Windows/Main/MainWindow.cs#L12)
 
@@ -101,7 +103,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     public int CompletedAchievementsCount => SaveData.Components.Values.Sum(component => component.Achievements.Count(x => x.Value.IsCompleted));
     public List<Achievement> AllAchievements => SaveData.Components.Values.SelectMany(component => component.Achievements.Values.Cast<Achievement>()).ToList();
     public AchievementComponent GetComponent(AchievementModuleKind type) => SaveData.Components[type];
-    public static string GetTitleById(uint id) => SaveData.GetAchievementById(id)?.Title ?? "No Title Set";
+    public static string GetTitleById(uint id) => SaveData.GetAchievementById(id).Item1?.Title ?? "No Title Set";
 
     /// <summary>
     /// Fired whenever we complete an achievement.
@@ -209,7 +211,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         LightSaveDataDto saveDataDto = SaveData.ToLightSaveDataDto();
 
         // condense it into the json and compress it.
-        string json = JsonConvert.SerializeObject(saveDataDto);
+        string json = SaveDataSerialize(saveDataDto);
         var compressed = json.Compress(6);
         string base64Data = Convert.ToBase64String(compressed);
         return base64Data;
@@ -223,8 +225,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
             var bytes = Convert.FromBase64String(Base64saveDataToLoad);
             var version = bytes[0];
             version = bytes.DecompressToString(out var decompressed);
-            LightSaveDataDto item = JsonConvert.DeserializeObject<LightSaveDataDto>(decompressed)
-                ?? throw new Exception("Failed to deserialize achievement data from server.");
+            LightSaveDataDto item = SaveDataDeserialize(decompressed) ?? throw new Exception("Failed to deserialize.");
 
             // Update the local achievement data
             SaveData.LoadFromLightSaveDataDto(item);
@@ -275,6 +276,128 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
         // recalculate our unlocks.
         _cosmetics.RecalculateUnlockedItems();
+    }
+
+    private static string SaveDataSerialize(LightSaveDataDto lightSaveDataDto)
+    {
+        // Ensure to set the version and include all necessary properties.
+        JObject saveDataJsonObject = new JObject
+        {
+            ["Version"] = lightSaveDataDto.Version,
+            ["LightAchievementData"] = JArray.FromObject(lightSaveDataDto.LightAchievementData),
+            ["EasterEggIcons"] = JObject.FromObject(lightSaveDataDto.EasterEggIcons),
+            ["VisitedWorldTour"] = JObject.FromObject(lightSaveDataDto.VisitedWorldTour)
+        };
+
+        // Convert JObject to formatted JSON string
+        return saveDataJsonObject.ToString(Formatting.Indented);
+    }
+
+    private static LightSaveDataDto SaveDataDeserialize(string jsonString)
+    {
+        // Parse the JSON string into a JObject
+        JObject saveDataJsonObject = JObject.Parse(jsonString);
+
+        // Extract and validate the version
+        int version = saveDataJsonObject["Version"]?.Value<int>() ?? 2;
+
+        // Apply migrations based on the version number
+        if (version < 2)
+        {
+            // Example migration: Update structure for version 1 to version 2
+            MigrateVersion1ToVersion2(saveDataJsonObject);
+        }
+
+        // Extract and validate LightAchievementData
+        JArray lightAchievementDataArray = saveDataJsonObject["LightAchievementData"] as JArray ?? new JArray();
+        List<LightAchievement> lightAchievementDataList = new List<LightAchievement>();
+
+        foreach (JObject achievement in lightAchievementDataArray)
+        {
+            uint achievementId = achievement["AchievementId"]?.Value<uint>() ?? 0;
+            string title = achievement["Title"]?.Value<string>() ?? "Unknown";
+
+            // Check and correct achievement data against AchievementMap
+            if (Achievements.AchievementMap.TryGetValue(achievementId, out AchievementInfo correctInfo))
+            {
+                // If loaded title doesn't match the map, override it with the correct one
+                if (title != correctInfo.Title)
+                {
+                    StaticLogger.Logger.LogDebug("Correcting Achievement Title from: [" + title + "] to [" + correctInfo.Title + "]");
+                    title = correctInfo.Title;
+                }
+            }
+            else
+            {
+                // If the Id becomes invalid, then set the Title to UNK,this means the data from this achievement will not be loaded, and replaced with fresh data.
+                StaticLogger.Logger.LogWarning("Failed to load achievement: [" + achievementId + "] resetting to default values and continuing.");
+                achievementId = 0;
+                title = "Unknown";
+            }
+
+            // If the achievementId is invalid, create a new LightAchievement with default values
+            var lightAchievement = new LightAchievement();
+
+            // get the achievement based on the ID.
+            var achievementData = SaveData.GetAchievementById(achievementId);
+            if(achievementData.Item1 is null)
+            {
+                StaticLogger.Logger.LogDebug("Failed to load Achievement from: [" + correctInfo.Id + "] " + correctInfo.Title);
+            }
+            else
+            {
+                lightAchievement = new LightAchievement
+                {
+                    Component = achievementData.Item2,
+                    Type = achievementData.Item1.GetAchievementType(),
+                    AchievementId = achievementId,
+                    Title = title,
+                    IsCompleted = achievement["IsCompleted"]?.Value<bool>() ?? false,
+                    Progress = achievement["Progress"]?.Value<int>() ?? 0,
+                    ConditionalTaskBegun = achievement["ConditionalTaskBegun"]?.Value<bool>() ?? false,
+                    StartTime = achievement["StartTime"]?.Value<DateTime>() ?? DateTime.MinValue,
+                    RecordedDateTimes = achievement["RecordedDateTimes"]?.ToObject<List<DateTime>>() ?? new List<DateTime>(),
+                    ActiveItems = achievement["ActiveItems"]?.ToObject<Dictionary<string, TrackedItem>>() ?? new Dictionary<string, TrackedItem>()
+                };
+            }
+
+            lightAchievementDataList.Add(lightAchievement);
+        }
+
+        // Extract and validate EasterEggIcons
+        JObject easterEggIconsObject = saveDataJsonObject["EasterEggIcons"] as JObject ?? new JObject();
+        Dictionary<string, bool> easterEggIcons = easterEggIconsObject.ToObject<Dictionary<string, bool>>() ?? new Dictionary<string, bool>();
+
+        // Extract and validate VisitedWorldTour
+        JObject visitedWorldTourObject = saveDataJsonObject["VisitedWorldTour"] as JObject ?? new JObject();
+        Dictionary<ushort, bool> visitedWorldTour = visitedWorldTourObject.ToObject<Dictionary<ushort, bool>>() ?? new Dictionary<ushort, bool>();
+
+        // Create and return the LightSaveDataDto object
+        LightSaveDataDto lightSaveDataDto = new LightSaveDataDto
+        {
+            Version = version,
+            LightAchievementData = lightAchievementDataList,
+            EasterEggIcons = easterEggIcons,
+            VisitedWorldTour = visitedWorldTour
+        };
+
+        return lightSaveDataDto;
+    }
+
+    private static void MigrateVersion1ToVersion2(JObject saveDataJsonObject)
+    {
+        // Example migration logic for version 1 to version 2
+        // Add or modify fields as necessary to match the version 2 structure
+        // This is just an example and should be customized based on actual migration needs
+
+        // Example: Add a new field that exists in version 2 but not in version 1
+/*        if (saveDataJsonObject["NewField"] == null)
+        {
+            saveDataJsonObject["NewField"] = "DefaultValue";
+        }*/
+
+        // Example: Modify existing fields to match the new structure
+        // ...
     }
 
     private void SubscribeToEvents()

@@ -36,10 +36,6 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
     internal unsafe delegate bool UseActionDelegate(ActionManager* am, ActionType type, uint acId, long target, uint a5, uint a6, uint a7, void* a8);
     internal Hook<UseActionDelegate> UseActionHook;
 
-    // SHOULD fire whenever we interact with any object thing.
-    internal Hook<TargetSystem.Delegates.InteractWithObject> ItemInteractedHook;
-
-
     public Dictionary<uint, AcReqProps[]> CurrentJobBannedActions = new Dictionary<uint, AcReqProps[]>(); // stores the current job actions
     public Dictionary<int, Tuple<float, DateTime>> CooldownList = new Dictionary<int, Tuple<float, DateTime>>(); // stores the recast timers for each action
 
@@ -57,9 +53,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
 
         // set up a hook to fire every time the address signature is detected in our game.
         UseActionHook = interop.HookFromAddress<UseActionDelegate>((nint)ActionManager.MemberFunctionPointers.UseAction, UseActionDetour);
-        ItemInteractedHook = interop.HookFromAddress<TargetSystem.Delegates.InteractWithObject>((nint)TargetSystem.MemberFunctionPointers.InteractWithObject, ItemInteractedDetour);
         UseActionHook.Enable();
-        ItemInteractedHook.Enable();
 
         // initialize
         UpdateJobList();
@@ -81,8 +75,6 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         }
 
         Mediator.Subscribe<SafewordHardcoreUsedMessage>(this, _ => SafewordUsed());
-
-        // subscribe to events.
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
 
         IpcFastUpdates.GlamourEventFired += JobChanged;
@@ -101,10 +93,6 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         UseActionHook?.Disable();
         UseActionHook?.Dispose();
         UseActionHook = null!;
-
-        ItemInteractedHook?.Disable();
-        ItemInteractedHook?.Dispose();
-        ItemInteractedHook = null!;
 
         IpcFastUpdates.GlamourEventFired -= JobChanged;
         IpcFastUpdates.HardcoreTraitsEventFired -= ToggleHardcoreTraits;
@@ -412,18 +400,6 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         var ret = UseActionHook.Original(am, type, acId, target, a5, a6, a7, a8);
         // invoke the action used event
         return ret;
-    }
-
-    private unsafe ulong ItemInteractedDetour(TargetSystem* thisPtr, GameObject* obj, bool checkLineOfSight)
-    {
-        // if we are forced to stay, we should block any interactions with objects.
-        Logger.LogTrace("Interacted with GameObject that had ObjectKind: " + obj->ObjectKind);
-        Logger.LogTrace("Game Object has the GameObjectId:" + obj->GetGameObjectId().ObjectId);
-        Logger.LogTrace("Game Object SubKind:" + obj->SubKind);
-        Logger.LogTrace("Game Object has the Event ContentID:" + obj->EventId.ContentId.ToString());
-        Logger.LogTrace("Game Object has name label at: " + obj->NameString);
-
-        return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
     }
 
 }

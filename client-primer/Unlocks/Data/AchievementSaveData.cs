@@ -125,21 +125,26 @@ public class AchievementSaveData
         return null;
     }
 
-    public Achievement? GetAchievementById(uint id)
+    public (Achievement?, AchievementModuleKind) GetAchievementById(uint id)
     {
         // get the achievementInfo by the id.
         if(Achievements.AchievementMap.TryGetValue(id, out var info))
         {
-            foreach (var component in Components.Values)
-                if (component.Achievements.TryGetValue(info.Title, out var achievement))
-                    return achievement;
+            foreach (var component in Components)
+                if (component.Value.Achievements.TryGetValue(info.Title, out var achievement))
+                    return (achievement, component.Key);
         }
-        return null;
+        return (null, AchievementModuleKind.Generic);
     }
 }
 
 public class LightSaveDataDto
 {
+    /// <summary>
+    /// The Version of the Save Data.
+    /// </summary>
+    public int Version { get; set; } = 2;
+
     /// <summary>
     /// a lightweight version that is easily compressible for IPC Transfer.
     /// </summary>

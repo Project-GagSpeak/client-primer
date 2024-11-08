@@ -75,7 +75,7 @@ public partial class AchievementManager
 
         // if present in diadem (for diamdem achievement)
         if (territory is 939)
-            (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+            (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.StartTask();
         else
             (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
@@ -96,6 +96,8 @@ public partial class AchievementManager
             if (SaveData.VisitedWorldTour[territory] is true)
             {
                 Logger.LogTrace("World Tour Progress already completed for: " + territory, LoggerType.Achievements);
+                Logger.LogTrace("Current Progress for all items is: " + string.Join(", ", SaveData.VisitedWorldTour.Select(x => x.Key + " : " + x.Value)), LoggerType.Achievements);
+
                 return;
             }
             else // Begin the progress for this city's world tour. 
@@ -104,10 +106,6 @@ public partial class AchievementManager
                 (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.WorldTour.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
                 worldTourStartedTime = DateTime.UtcNow;
             }
-        }
-        else
-        {
-            Logger.LogTrace("World Tour Progress already completed for: " + territory, LoggerType.Achievements);
         }
     }
 
@@ -124,6 +122,9 @@ public partial class AchievementManager
 
         if (_frameworkUtils.PartyListSize is 1)
             (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinksRunDeeper.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+        // start this under any condition.
+        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinkRunsDeep.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+
 
         switch (deepDungeonType)
         {
@@ -131,7 +132,6 @@ public partial class AchievementManager
                 if ((floor > 40 && floor <= 50) || (floor > 90 && floor <= 100))
                 {
                     (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.BondagePalace.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinkRunsDeep.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
                     if (floor is 50 || floor is 100)
                     {
                         (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.BondagePalace.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
@@ -144,7 +144,6 @@ public partial class AchievementManager
                 if (floor > 20 && floor <= 30)
                 {
                     (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.HornyOnHigh.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinkRunsDeep.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
                     if (floor is 30)
                     {
                         (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinkRunsDeep.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
@@ -156,7 +155,6 @@ public partial class AchievementManager
                 if (floor > 20 && floor <= 30)
                 {
                     (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.EurekaWhorethos.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinkRunsDeep.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
                     if (floor is 30)
                     {
                         (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.EurekaWhorethos.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
@@ -539,6 +537,10 @@ public partial class AchievementManager
                 if (patternGuid != Guid.Empty)
                 {
                     (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceQueen.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+
+                    // motivation for restoration:
+                    if ((SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)!.TaskStarted is false)
+                        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.StartTask();
                 }
                 if (wasAlarm && patternGuid != Guid.Empty)
                     (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.HornyMornings.Title] as ProgressAchievement)?.IncrementProgress();
@@ -546,6 +548,11 @@ public partial class AchievementManager
             case PatternInteractionKind.Stopped:
                 if (patternGuid != Guid.Empty)
                     (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceQueen.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+
+                // motivation for restoration:
+                if ((SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.TaskStarted ?? false)
+                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+
                 break;
         }
     }

@@ -102,57 +102,17 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         if (_clientState.LocalPlayer is null || MainHub.IsConnected is false)
             return;
 
-        // Handle PVP Kills for achievement.
-/*        if (type is (XivChatType)4922)
-        {
-            Logger.LogTrace("["+type+"] {"+message+"Message}", LoggerType.Puppeteer);
-            // only process if in pvp.
-            if (_clientState.IsPvP)
-            {
-                Logger.LogInformation("We were in PvP. Checking for PvP kill.", LoggerType.Puppeteer);
-                // get the player payloads.
-                Payload[] playerPayloads = message.Payloads.Where(x => x.Type == PayloadType.Player).ToArray();
-                Logger.LogTrace("["+type+"] {"+message+"Message}", LoggerType.Puppeteer);
-                if (playerPayloads.Length == 2)
-                {
-                    Logger.LogTrace("2 Player Payloads Found", LoggerType.Puppeteer);
-                    PlayerPayload player1 = (PlayerPayload)playerPayloads[0];
-                    PlayerPayload player2 = (PlayerPayload)playerPayloads[1];
-                    Logger.LogTrace("Player 1: " + player1.PlayerName + "@" + player1.World.Name, LoggerType.Puppeteer);
-                    Logger.LogTrace("Player 2: " + player2.PlayerName + "@" + player2.World.Name, LoggerType.Puppeteer);
-
-                    if(_clientState.LocalPlayer.GetNameWithWorld() == player1.PlayerName + "@" + player1.World.Name)
-                    {
-                        Logger.LogInformation("We were the killer. We just killed " + player2.PlayerName + "@" + player2.World.Name, LoggerType.Puppeteer);
-                        UnlocksEventManager.AchievementEvent(UnlocksEvent.PvpPlayerSlain);
-                    }
-                }
-            }
-        }*/
-
-        // log all types of payloads included in the message.
+        // If we have just recieved a message detailing if we just killed someone or if someone just killed us.
         if (_clientState.IsPvP && type is (XivChatType)2874)
         {
-            Logger.LogInformation("---------------------");
-            Logger.LogInformation("ChatType[" + type + "] {" + message + "Message}");
-            foreach (var payloadType in message.Payloads)
+            // and if we are not dead, then it's our kill.
+            if (!_clientState.LocalPlayer.IsDead)
             {
-                string text = payloadType.Type.ToString();
-                if (payloadType.Type is PayloadType.RawText) text = text + "(" + payloadType.ToString() + ")";
-                if (payloadType.Type is PayloadType.MapLink) text = text + "(" + payloadType.ToString() + ")";
-                if (payloadType is PlayerPayload playerPayload)
-                {
-                    Logger.LogInformation("Player Payload: " + playerPayload.PlayerName + "@" + playerPayload.World.Name);
-                }
-                Logger.LogInformation("Payload Type: " + text);
-            }
-            // log current player state.
-            Logger.LogInformation("IsDead? " + _clientState.LocalPlayer.IsDead);
-            Logger.LogInformation("HP? " + _clientState.LocalPlayer.CurrentHp);
-            Logger.LogInformation("Status Flags? " + _clientState.LocalPlayer.StatusFlags);
-            Logger.LogInformation("Status Flags (tostring)" + _clientState.LocalPlayer.StatusFlags.ToString());
-        }
+                Logger.LogInformation("We just killed someone in PvP!", LoggerType.Achievements);
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.PvpPlayerSlain);
 
+            }
+        }
 
         // Handle the special case where we are checking a DeathRoll
         if (type == (XivChatType)2122 || type == (XivChatType)8266 || type == (XivChatType)4170)

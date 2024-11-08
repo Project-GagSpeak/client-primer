@@ -159,7 +159,7 @@ public static class Achievements
 
     public static readonly AchievementInfo WalkOfShame = new AchievementInfo(97, "Walk of Shame", "Be bound, blindfolded, and leashed in a major city.");
 
-    public static readonly AchievementInfo BlindLeadingTheBlind = new AchievementInfo(98, "Blind Leading the Blind", "Be blindfolded while having someone follow you blindfolded.");
+    public static readonly AchievementInfo BlindLeadingTheBlind = new AchievementInfo(98, "Blind leading the Blind", "Be blindfolded while having someone follow you blindfolded.");
 
     public static readonly AchievementInfo WhatAView = new AchievementInfo(99, "What A View", "Use the /lookout emote while wearing a blindfold.");
 

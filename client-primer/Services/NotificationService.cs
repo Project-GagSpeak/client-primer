@@ -56,6 +56,16 @@ public class NotificationService : DisposableMediatorSubscriberBase
         _chat.Print(se.BuiltString);
     }
 
+    public void PrintCustomChat(SeStringBuilder builtMessage)
+    {
+       _chat.Print(builtMessage.BuiltString);
+    }
+
+    public void PrintCustomErrorChat(SeStringBuilder builtMessage)
+    {
+        _chat.PrintError(builtMessage.BuiltString);
+    }
+
     private void ShowChat(NotificationMessage msg)
     {
         switch (msg.Type)

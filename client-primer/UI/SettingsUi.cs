@@ -7,6 +7,7 @@ using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Interop.Ipc;
+using GagSpeak.Localization;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
@@ -45,7 +46,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private bool _deleteAccountPopupModalShown = false;
     private bool _deleteFilesPopupModalShown = false;
     private string _exportDescription = string.Empty;
-    private string _lastTab = string.Empty;
     private bool? _notesSuccessfullyApplied = null;
     private bool _overwriteExistingLabels = false;
     private bool _readClearCache = false;
@@ -74,6 +74,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _frameworkUtil = frameworkUtil;
         _hardcoreSettingsUI = hardcoreSettingsUI;
         _uiShared = uiShared;
+
+        Flags = ImGuiWindowFlags.NoScrollbar;
         AllowClickthrough = false;
         AllowPinning = false;
 
@@ -166,8 +168,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     private void DrawGlobalSettings()
     {
-        _lastTab = "Global";
-
         bool liveChatGarblerActive = PlayerGlobalPerms.LiveChatGarblerActive;
         bool liveChatGarblerLocked = PlayerGlobalPerms.LiveChatGarblerLocked;
         bool removeGagOnLockExpiration = _clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration;
@@ -205,7 +205,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         TimeSpan maxGlobalShockDuration = PlayerGlobalPerms.GetTimespanFromDuration();
         int maxGlobalVibrateDuration = (int)PlayerGlobalPerms.GlobalShockVibrateDuration.TotalSeconds;
 
-        _uiShared.BigText("Gags");
+        _uiShared.GagspeakBigText("Gags");
         using (ImRaii.Disabled(liveChatGarblerLocked))
         {
             if (ImGui.Checkbox("Enable Live Chat Garbler", ref liveChatGarblerActive))
@@ -237,7 +237,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared.DrawHelpText("When a Gag is locked by a Timer, the Gag will be removed once the timer expires.");
 
         ImGui.Separator();
-        _uiShared.BigText("Wardrobe");
+        _uiShared.GagspeakBigText("Wardrobe");
 
         if (ImGui.Checkbox("Enable Wardrobe", ref wardrobeEnabled))
         {
@@ -313,7 +313,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
 
         ImGui.Separator();
-        _uiShared.BigText("Puppeteer");
+        _uiShared.GagspeakBigText("Puppeteer");
 
         if (ImGui.Checkbox("Enable Puppeteer", ref puppeteerEnabled))
         {
@@ -374,7 +374,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
 
         ImGui.Separator();
-        _uiShared.BigText("Toybox");
+        _uiShared.GagspeakBigText("Toybox");
 
         if (ImGui.Checkbox("Enable Toybox", ref toyboxEnabled))
         {
@@ -427,9 +427,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
         _uiShared.DrawHelpText("If enabled, you will emit vibrator audio while your sex toys are active to other paired players around you.");
 
         ImGui.Spacing();
-
-
-
 
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputText("PiShock API Key", ref piShockApiKey, 100, ImGuiInputTextFlags.EnterReturnsTrue))
@@ -518,16 +515,13 @@ public class SettingsUi : WindowMediatorSubscriberBase
     }
     private DateTime _lastRefresh = DateTime.MinValue;
 
-    private void DrawPreferences()
+    private void DrawChannelPreferences()
     {
-        _lastTab = "Preferences";
-
-        // change the column count to 2.
         float width = ImGui.GetContentRegionAvail().X / 2;
         ImGui.Columns(2, "PreferencesColumns", true);
         ImGui.SetColumnWidth(0, width);
         // go to first column.
-        _uiShared.BigText("Live Chat Garbler");
+        _uiShared.GagspeakBigText("Live Chat Garbler");
         using (ImRaii.Group())
         {
             // display the channels
@@ -560,71 +554,36 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
             ImGui.NewLine();
             ImGui.AlignTextToFramePadding();
-            ImGui.Text("Language & Dialect:");
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Every selected channel from here becomes a channel that your direct chat garbler works in.");
-            }
+            ImGui.Text(GSLoc.Settings.Preferences.LangDialectLabel);
             ImGui.SameLine();
-            // Create the language dropdown
-            ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 65);
-            string prevLang = _configService.Current.Language; // to only execute code to update data once it is changed
-            if (ImGui.BeginCombo("##Language", _configService.Current.Language, ImGuiComboFlags.NoArrowButton))
+            _uiShared.DrawCombo("##Language", 65, LanguagesDialects.Keys.ToArray(), (item) => item, (i) =>
             {
-                foreach (var language in LanguagesDialects.Keys.ToArray())
-                {
-                    bool isSelected = (_configService.Current.Language == language);
-                    if (ImGui.Selectable(language, isSelected))
-                    {
-                        _configService.Current.Language = language;
-                        _configService.Save();
-                    }
-                    if (isSelected)
-                        ImGui.SetItemDefaultFocus();
-                }
-                ImGui.EndCombo();
-            }
-            if (ImGui.IsItemHovered())
-                ImGui.SetTooltip("Select the language you want to use for GagSpeak.");
-            //update if changed 
-            if (prevLang != _configService.Current.Language)
-            { // set the language to the newly selected language once it is changed
+                if (i is null || i == _configService.Current.Language) return;
+                _configService.Current.Language = i;
                 _currentDialects = LanguagesDialects[_configService.Current.Language]; // update the dialects for the new language
                 _activeDialect = _currentDialects[0]; // set the active dialect to the first dialect of the new language
                 SetConfigDialectFromDialect(_activeDialect);
-                _configService.Save();
-            }
+            }, _configService.Current.Language, flags: ImGuiComboFlags.NoArrowButton);
+            UiSharedService.AttachToolTip(GSLoc.Settings.Preferences.LangTT);
+
             ImGui.SameLine();
-            // Create the dialect dropdown
-            ImGui.SetNextItemWidth(ImGuiHelpers.GlobalScale * 55);
-            string[] dialects = LanguagesDialects[_configService.Current.Language];
-            string prevDialect = _activeDialect; // to only execute code to update data once it is changed
-            if (ImGui.BeginCombo("##Dialect", _activeDialect, ImGuiComboFlags.NoArrowButton))
+            _uiShared.DrawCombo("##Dialect", 55, LanguagesDialects[_configService.Current.Language], (item) => item, (i) =>
             {
-                foreach (var dialect in dialects)
-                {
-                    bool isSelected = (_activeDialect == dialect);
-                    if (ImGui.Selectable(dialect, isSelected))
-                        _activeDialect = dialect;
-                    if (isSelected)
-                        ImGui.SetItemDefaultFocus();
-                }
-                ImGui.EndCombo();
-            }
-            if (ImGui.IsItemHovered())
-            {
-                ImGui.SetTooltip("Select the Dialect you want to use for GagSpeak.");
-            }
-            //update if changed
-            if (prevDialect != _activeDialect)
-            { // set the dialect to the newly selected dialect once it is changed
+                if (i is null || i == _activeDialect) return;
+                _activeDialect = i;
                 SetConfigDialectFromDialect(_activeDialect);
-                _configService.Save();
-            }
+            }, _activeDialect, flags: ImGuiComboFlags.NoArrowButton);
+            UiSharedService.AttachToolTip(GSLoc.Settings.Preferences.DialectTT);
         }
+    }
+
+
+    private void DrawPreferences()
+    {
+        DrawChannelPreferences();
 
         ImGui.NextColumn();
-        _uiShared.BigText("Puppeteer Channels");
+        _uiShared.GagspeakBigText(GSLoc.Settings.Preferences.HeaderPuppet);
         using (ImRaii.Group())
         {
             // display the channels
@@ -656,169 +615,161 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 j++;
             }
         }
-
-        // reset to 1 column.
         ImGui.Columns(1);
 
         // the nicknames section
         ImGui.Separator();
-        _uiShared.BigText("Nicknames");
-
-        // see if the user wants to allow a popup to create nicknames upon adding a paired user
-        var openPopupOnAddition = _configService.Current.OpenPopupOnAdd;
-        if (ImGui.Checkbox("Open Nickname Popup when adding a GagSpeak user", ref openPopupOnAddition))
+        _uiShared.GagspeakBigText(GSLoc.Settings.Preferences.HeaderNicks);
+        var openPopupOnAdd = _configService.Current.OpenPopupOnAdd;
+        if (ImGui.Checkbox(GSLoc.Settings.Preferences.NickPopupLabel, ref openPopupOnAdd))
         {
-            _configService.Current.OpenPopupOnAdd = openPopupOnAddition;
+            _configService.Current.OpenPopupOnAdd = openPopupOnAdd;
             _configService.Save();
         }
-        _uiShared.DrawHelpText("When enabled, a popup will automatically display\nafter adding another user," +
-            "allowing you to enter a nickname for them.");
+        _uiShared.DrawHelpText(GSLoc.Settings.Preferences.NickPopupTT);
 
-        // form a separator for the UI
+
         ImGui.Separator();
-        _uiShared.BigText("UI Preferences");
-        // preset some variables to grab from our config service.
-        var enableDtrEntry = _configService.Current.EnableDtrEntry;
-        var showUidInDtrTooltip = _configService.Current.ShowUidInDtrTooltip;
-        var preferNoteInDtrTooltip = _configService.Current.PreferNicknameInDtrTooltip;
+        _uiShared.GagspeakBigText(GSLoc.Settings.Preferences.HeaderUiPrefs);
 
-        var preferNicknamesInsteadOfName = _configService.Current.PreferNicknamesOverNamesForVisible;
+        var enableDtrEntry = _configService.Current.EnableDtrEntry;
+        var dtrPrivacyRadar = _configService.Current.ShowPrivacyRadar;
+        var dtrActionNotifs = _configService.Current.ShowActionNotifs;
+        var dtrVibeStatus = _configService.Current.ShowVibeStatus;
+
+        var preferNicknamesInsteadOfName = _configService.Current.PreferNicknamesOverNames;
         var showVisibleSeparate = _configService.Current.ShowVisibleUsersSeparately;
         var showOfflineSeparate = _configService.Current.ShowOfflineUsersSeparately;
 
-        var showProfiles = _configService.Current.ProfilesShow;
+        var showProfiles = _configService.Current.ShowProfiles;
         var profileDelay = _configService.Current.ProfileDelay;
-        var profileOnRight = _configService.Current.ProfilePopoutRight;
-        var showContextMenus = _configService.Current.ContextMenusShow;
+        var showContextMenus = _configService.Current.ShowContextMenus;
 
-        if (ImGui.Checkbox("Display status and visible pair count in Server Info Bar", ref enableDtrEntry))
+        if (ImGui.Checkbox(GSLoc.Settings.Preferences.EnableDtrLabel, ref enableDtrEntry))
         {
             _configService.Current.EnableDtrEntry = enableDtrEntry;
             _configService.Save();
         }
-        _uiShared.DrawHelpText("Adds a GagSpeak connection status & visible pair count in the Server Info Bar.");
+        _uiShared.DrawHelpText(GSLoc.Settings.Preferences.EnableDtrTT);
 
-        // If the Enable DTR entry is checked, we can make these options selectable, but if it isn't, disable them
         using (ImRaii.Disabled(!enableDtrEntry))
         {
-            // set the tooltip options for these entries
-            using var indent = ImRaii.PushIndent();
-            if (ImGui.Checkbox("Show visible character's UID in tooltip", ref showUidInDtrTooltip))
+            ImGui.Indent();
+            if (ImGui.Checkbox(GSLoc.Settings.Preferences.PrivacyRadarLabel, ref dtrPrivacyRadar))
             {
-                _configService.Current.ShowUidInDtrTooltip = showUidInDtrTooltip;
+                _configService.Current.ShowPrivacyRadar = dtrPrivacyRadar;
                 _configService.Save();
             }
+            _uiShared.DrawHelpText(GSLoc.Settings.Preferences.PrivacyRadarTT);
 
-            if (ImGui.Checkbox("Prefer set nicknames over the player's name in tooltip", ref preferNoteInDtrTooltip))
+            if (ImGui.Checkbox(GSLoc.Settings.Preferences.ActionsNotifLabel, ref dtrActionNotifs))
             {
-                _configService.Current.PreferNicknameInDtrTooltip = preferNoteInDtrTooltip;
+                _configService.Current.ShowActionNotifs = dtrActionNotifs;
                 _configService.Save();
             }
+            _uiShared.DrawHelpText(GSLoc.Settings.Preferences.ActionsNotifTT);
+
+            if (ImGui.Checkbox(GSLoc.Settings.Preferences.VibeStatusLabel, ref dtrVibeStatus))
+            {
+                _configService.Current.ShowVibeStatus = dtrVibeStatus;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText(GSLoc.Settings.Preferences.VibeStatusTT);
+            ImGui.Unindent();
         }
 
-        // determines if they allow categorizing visible users in a separate dropdown.
-        if (ImGui.Checkbox("Show separate Visible group", ref showVisibleSeparate))
+        if (ImGui.Checkbox(GSLoc.Settings.Preferences.ShowVisibleSeparateLabel, ref showVisibleSeparate))
         {
             _configService.Current.ShowVisibleUsersSeparately = showVisibleSeparate;
             _configService.Save();
             Mediator.Publish(new RefreshUiMessage());
         }
-        _uiShared.DrawHelpText("Creates an additional dropdown for all paired users in your render range.");
+        _uiShared.DrawHelpText(GSLoc.Settings.Preferences.ShowVisibleSeparateTT);
 
-        // determines if they allow categorizing offline users in a separate dropdown.
-        if (ImGui.Checkbox("Show separate Offline group", ref showOfflineSeparate))
+        if (ImGui.Checkbox(GSLoc.Settings.Preferences.ShowOfflineSeparateLabel, ref showOfflineSeparate))
         {
             _configService.Current.ShowOfflineUsersSeparately = showOfflineSeparate;
             _configService.Save();
             Mediator.Publish(new RefreshUiMessage());
         }
-        _uiShared.DrawHelpText("Creates an additional dropdown for all paired users that are currently offline.");
+        _uiShared.DrawHelpText(GSLoc.Settings.Preferences.ShowOfflineSeparateTT);
 
-        // if you prefer viewing the Nickname you set for a player over the 
-        if (ImGui.Checkbox("Prefer notes over player names for visible players", ref preferNicknamesInsteadOfName))
+        if (ImGui.Checkbox(GSLoc.Settings.Preferences.PreferNicknamesLabel, ref preferNicknamesInsteadOfName))
         {
-            _configService.Current.PreferNicknamesOverNamesForVisible = preferNicknamesInsteadOfName;
+            _configService.Current.PreferNicknamesOverNames = preferNicknamesInsteadOfName;
             _configService.Save();
             Mediator.Publish(new RefreshUiMessage());
         }
-        _uiShared.DrawHelpText("If you set a note for a player it will be shown instead of the player name");
+        _uiShared.DrawHelpText(GSLoc.Settings.Preferences.PreferNicknamesTT);
 
-        // if we want to automatically open GagSpeak profiles on Hover.
-        if (ImGui.Checkbox("Show GagSpeak Profiles on Hover", ref showProfiles))
+        if (ImGui.Checkbox(GSLoc.Settings.Preferences.ShowProfilesLabel, ref showProfiles))
         {
             Mediator.Publish(new ClearProfileDataMessage());
-            _configService.Current.ProfilesShow = showProfiles;
+            _configService.Current.ShowProfiles = showProfiles;
             _configService.Save();
         }
-        _uiShared.DrawHelpText("This will show the configured user profile after a set delay");
+        _uiShared.DrawHelpText(GSLoc.Settings.Preferences.ShowProfilesTT);
 
-        ImGui.Indent(); // see if we want to pop the profiles out to the right of the menu
-        if (!showProfiles) ImGui.BeginDisabled();
-        if (ImGui.Checkbox("Popout profiles on the right", ref profileOnRight))
+        using (ImRaii.Disabled(!showProfiles))
         {
-            _configService.Current.ProfilePopoutRight = profileOnRight;
-            _configService.Save();
-            Mediator.Publish(new CompactUiChange(Vector2.Zero, Vector2.Zero));
+            ImGui.Indent();
+            ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
+            if (ImGui.SliderFloat(GSLoc.Settings.Preferences.ProfileDelayLabel, ref profileDelay, 0.3f, 5))
+            {
+                _configService.Current.ProfileDelay = profileDelay;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText(GSLoc.Settings.Preferences.ProfileDelayTT);
+            ImGui.Unindent();
         }
-        _uiShared.DrawHelpText("Will show profiles on the right side of the main UI");
 
-        // how long we should need to hover over it in order for the profile to display?
-        ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderFloat("Hover Delay", ref profileDelay, 0.3f, 5))
+        if (ImGui.Checkbox(GSLoc.Settings.Preferences.ContextMenusLabel, ref showContextMenus))
         {
-            _configService.Current.ProfileDelay = profileDelay;
+            _configService.Current.ShowContextMenus = showContextMenus;
             _configService.Save();
         }
-        _uiShared.DrawHelpText("Delay until the profile should be displayed");
-        if (!showProfiles) ImGui.EndDisabled();
-        ImGui.Unindent();
-
-        if (ImGui.Checkbox("Show Context Menus for Visible Pairs", ref showContextMenus))
-        {
-            _configService.Current.ContextMenusShow = showContextMenus;
-            _configService.Save();
-        }
-        _uiShared.DrawHelpText("If enabled, you will be able to right-click on visible pairs to access a context menu.");
+        _uiShared.DrawHelpText(GSLoc.Settings.Preferences.ContextMenusTT);
 
         /* --------------- Separator for moving onto the Notifications Section ----------- */
         ImGui.Separator();
-        var onlineNotifs = _configService.Current.ShowOnlineNotifications;
-        var onlineNotifsPairsOnly = _configService.Current.ShowOnlineNotificationsOnlyForIndividualPairs;
-        var onlineNotifsNamedOnly = _configService.Current.ShowOnlineNotificationsOnlyForNamedPairs;
+        _uiShared.GagspeakBigText(GSLoc.Settings.Preferences.HeaderNotifications);
+
         var liveGarblerZoneChangeWarn = _configService.Current.LiveGarblerZoneChangeWarn;
+        var serverConnectionNotifs = _configService.Current.NotifyForServerConnections;
+        var onlineNotifs = _configService.Current.NotifyForOnlinePairs;
+        var onlineNotifsNickLimited = _configService.Current.NotifyLimitToNickedPairs;
 
-        _uiShared.BigText("Notifications");
-
-        if (ImGui.Checkbox("Warn User if Live Chat Garbler is still active on Zone Change", ref liveGarblerZoneChangeWarn))
+        if (ImGui.Checkbox(GSLoc.Settings.Preferences.ZoneChangeWarnLabel, ref liveGarblerZoneChangeWarn))
         {
             _configService.Current.LiveGarblerZoneChangeWarn = liveGarblerZoneChangeWarn;
             _configService.Save();
         }
-        _uiShared.DrawHelpText("Displays a notification to you if you change zones while your live garbler is still active." +
-            Environment.NewLine + "Helpful for preventing any accidental muffled statements in unwanted chats~");
+        _uiShared.DrawHelpText(GSLoc.Settings.Preferences.ZoneChangeWarnTT);
 
-        if (ImGui.Checkbox("Enable online notifications", ref onlineNotifs))
+        if (ImGui.Checkbox(GSLoc.Settings.Preferences.ConnectedNotifLabel, ref serverConnectionNotifs))
         {
-            _configService.Current.ShowOnlineNotifications = onlineNotifs;
+            _configService.Current.NotifyForServerConnections = serverConnectionNotifs;
             _configService.Save();
         }
-        _uiShared.DrawHelpText("Enabling this will show a small notification (type: Info) in the bottom right corner when pairs go online.");
+        _uiShared.DrawHelpText(GSLoc.Settings.Preferences.ConnectedNotifTT);
 
-        // if you want to toggle it for only direct pairs, or only for named direct pairs.
-        using var disabled = ImRaii.Disabled(!onlineNotifs);
-        if (ImGui.Checkbox("Notify only for individual pairs", ref onlineNotifsPairsOnly))
+        if (ImGui.Checkbox(GSLoc.Settings.Preferences.OnlineNotifLabel, ref onlineNotifs))
         {
-            _configService.Current.ShowOnlineNotificationsOnlyForIndividualPairs = onlineNotifsPairsOnly;
+            _configService.Current.NotifyForOnlinePairs = onlineNotifs;
+            if (!onlineNotifs) _configService.Current.NotifyLimitToNickedPairs = false;
             _configService.Save();
         }
-        _uiShared.DrawHelpText("Enabling this will only show online notifications (type: Info) for individual pairs.");
+        _uiShared.DrawHelpText(GSLoc.Settings.Preferences.OnlineNotifTT);
 
-        if (ImGui.Checkbox("Notify only for named pairs", ref onlineNotifsNamedOnly))
+        using (ImRaii.Disabled(!onlineNotifs))
         {
-            _configService.Current.ShowOnlineNotificationsOnlyForNamedPairs = onlineNotifsNamedOnly;
-            _configService.Save();
+            if (ImGui.Checkbox(GSLoc.Settings.Preferences.LimitForNicksLabel, ref onlineNotifsNickLimited))
+            {
+                _configService.Current.NotifyLimitToNickedPairs = onlineNotifsNickLimited;
+                _configService.Save();
+            }
+            _uiShared.DrawHelpText(GSLoc.Settings.Preferences.LimitForNicksTT);
         }
-        _uiShared.DrawHelpText("Enabling this will only show online notifications (type: Info) for pairs where you have set an individual note.");
     }
 
     /// <summary>
@@ -826,28 +777,19 @@ public class SettingsUi : WindowMediatorSubscriberBase
     /// </summary>
     private void DrawAccountManagement()
     {
-        _lastTab = "Account Management";
-
-        // display title for account management
-        _uiShared.BigText("Primary GagSpeak Account");
-
-        // obtain our local content id
+        _uiShared.GagspeakBigText(GSLoc.Settings.Accounts.PrimaryLabel);
         var localContentId = _uiShared.PlayerLocalContentID;
 
         // obtain the primary account auth.
         var primaryAuth = _serverConfigs.CurrentServer.Authentications.FirstOrDefault(c => c.IsPrimary);
-        if (primaryAuth == null)
-        {
+        if (primaryAuth is null) {
             UiSharedService.ColorText("No primary account setup to display", ImGuiColors.DPSRed);
             return;
         }
-        else
-        {
-            DrawAccount(int.MaxValue, primaryAuth, primaryAuth.CharacterPlayerContentId == localContentId);
-        }
+        DrawAccount(int.MaxValue, primaryAuth, primaryAuth.CharacterPlayerContentId == localContentId);
 
         // display title for account management
-        _uiShared.BigText("Secondary Accounts:");
+        _uiShared.GagspeakBigText(GSLoc.Settings.Accounts.SecondaryLabel);
         // now we need to display the rest of the secondary authentications of the primary account. In other words all other authentications.
         if (_serverConfigs.HasAnySecretKeys())
         {
@@ -855,14 +797,10 @@ public class SettingsUi : WindowMediatorSubscriberBase
             var secondaryAuths = _serverConfigs.CurrentServer.Authentications.Where(c => !c.IsPrimary).ToList();
 
             for (int i = 0; i < secondaryAuths.Count; i++)
-            {
                 DrawAccount(i, secondaryAuths[i], secondaryAuths[i].CharacterPlayerContentId == localContentId);
-            }
+            return;
         }
-        else
-        {
-            UiSharedService.ColorText("No secondary accounts setup to display", ImGuiColors.DPSRed);
-        }
+        UiSharedService.ColorText(GSLoc.Settings.Accounts.NoSecondaries, ImGuiColors.DPSRed);
     }
 
     public bool ShowKeyLabel = true;
@@ -889,22 +827,27 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _uiShared.IconText(FontAwesomeIcon.UserCircle);
             ImUtf8.SameLineInner();
             UiSharedService.ColorText(account.CharacterName, isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink);
-            UiSharedService.AttachToolTip("This Character's Name");
+            UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.CharaNameLabel);
 
             // head over to the end to make the delete button.
             var isPrimaryIcon = _uiShared.GetIconData(FontAwesomeIcon.Fingerprint);
 
-            ImGui.SameLine(ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Trash, "Delete Account"));
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account", null, true, // yes there must be a lot to determine if you can delete.
-            (!(KeyMonitor.CtrlPressed() && KeyMonitor.ShiftPressed()) || !(MainHub.IsServerAlive && MainHub.IsConnected && isOnlineUser)),
-            "##Trash-" + account.CharacterPlayerContentId.ToString()))
+            var allowDelete = (!(KeyMonitor.CtrlPressed() && KeyMonitor.ShiftPressed()) || !(MainHub.IsServerAlive && MainHub.IsConnected && isOnlineUser));
+            ImGui.SameLine(ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Trash, GSLoc.Settings.Accounts.DeleteButtonLabel));
+
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account##DeleteAccount"+ account.CharacterPlayerContentId, isInPopup: true, disabled: !allowDelete))
             {
                 _deleteAccountPopupModalShown = true;
                 ImGui.OpenPopup("Delete your account?");
             }
-            UiSharedService.AttachToolTip("Permanently remove the use of this secret key and registered account for this character." + Environment.NewLine
-                + "You CANNOT RE-USE THIS SECRET KEY. IT IS BOUND TO THIS UID." + Environment.NewLine
-                + "If you want to create a new account for this login, you must create a new key for it after removing.");
+            if (isPrimary)
+            {
+                UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.DeleteButtonTT + GSLoc.Settings.Accounts.DeleteButtonPrimaryTT, color: ImGuiColors.DalamudRed);
+            }
+            else
+            {
+                UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.DeleteButtonTT);
+            }
         }
         // next line:
         using (var group2 = ImRaii.Group())
@@ -913,16 +856,17 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _uiShared.IconText(FontAwesomeIcon.Globe);
             ImUtf8.SameLineInner();
             UiSharedService.ColorText(_uiShared.WorldData[(ushort)account.WorldId], isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink);
-            UiSharedService.AttachToolTip("The Homeworld of this Character's Account");
+            UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.CharaWorldLabel);
 
             var isPrimaryIcon = _uiShared.GetIconData(FontAwesomeIcon.Fingerprint);
             var successfulConnection = _uiShared.GetIconData(FontAwesomeIcon.PlugCircleCheck);
             float rightEnd = ImGui.GetContentRegionAvail().X - successfulConnection.X - isPrimaryIcon.X - 2 * ImGui.GetStyle().ItemInnerSpacing.X;
             ImGui.SameLine(rightEnd);
+
             _uiShared.BooleanToColoredIcon(account.IsPrimary, false, FontAwesomeIcon.Fingerprint, FontAwesomeIcon.Fingerprint, isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
-            UiSharedService.AttachToolTip(account.IsPrimary ? "This is your Primary Gagspeak Account" : "This your secondary GagSpeak Account");
+            UiSharedService.AttachToolTip(account.IsPrimary ? GSLoc.Settings.Accounts.FingerprintPrimary : GSLoc.Settings.Accounts.FingerprintSecondary);
             _uiShared.BooleanToColoredIcon(account.SecretKey.HasHadSuccessfulConnection, true, FontAwesomeIcon.PlugCircleCheck, FontAwesomeIcon.PlugCircleXmark, ImGuiColors.ParsedGreen, ImGuiColors.DalamudGrey3);
-            UiSharedService.AttachToolTip(account.SecretKey.HasHadSuccessfulConnection ? "Has Connected to servers with secret key successfully" : "Has not yet had a successful connection with this Key.");
+            UiSharedService.AttachToolTip(account.SecretKey.HasHadSuccessfulConnection ? GSLoc.Settings.Accounts.SuccessfulConnection : GSLoc.Settings.Accounts.NoSuccessfulConnection);
         }
 
         // next line:
@@ -935,7 +879,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 ShowKeyLabel = !ShowKeyLabel;
             }
-            UiSharedService.AttachToolTip("Secret Key for this account. (Insert by clicking the edit pen icon)");
+            UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.CharaKeyLabel);
             // we shoul draw an inputtext field here if we can edit it, and a text field if we cant.
             if (EditingIdx == idx)
             {
@@ -944,11 +888,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 string key = account.SecretKey.Key;
                 if (ImGui.InputTextWithHint("##SecondaryAuthKey" + account.CharacterPlayerContentId, "Paste Secret Key Here...", ref key, 64, ImGuiInputTextFlags.EnterReturnsTrue))
                 {
-                    _logger.LogInformation("This would have updated the secret key!");
                     if (account.SecretKey.Label.IsNullOrEmpty())
-                    {
                         account.SecretKey.Label = "Alt Character Key for " + account.CharacterName + " on " + _uiShared.WorldData[(ushort)account.WorldId];
-                    }
+                    // set the key and save the changes.
                     account.SecretKey.Key = key;
                     EditingIdx = -1;
                     _serverConfigs.Save();
@@ -958,11 +900,8 @@ public class SettingsUi : WindowMediatorSubscriberBase
             {
                 ImUtf8.SameLineInner();
                 UiSharedService.ColorText(keyDisplayText, isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink);
-                if (ImGui.IsItemClicked())
-                {
-                    ImGui.SetClipboardText(account.SecretKey.Key);
-                }
-                UiSharedService.AttachToolTip("Click the friendly label to copy the actual secret key to clipboard");
+                if (ImGui.IsItemClicked()) ImGui.SetClipboardText(account.SecretKey.Key);
+                UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.CopyKeyToClipboard);
             }
 
             if (idx != int.MaxValue)
@@ -973,39 +912,44 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 Vector4 col = account.SecretKey.HasHadSuccessfulConnection ? ImGuiColors.DalamudRed : ImGuiColors.DalamudGrey3;
                 _uiShared.BooleanToColoredIcon(EditingIdx == idx, false, FontAwesomeIcon.PenSquare, FontAwesomeIcon.PenSquare, ImGuiColors.ParsedPink, col);
                 if (ImGui.IsItemClicked() && !account.SecretKey.HasHadSuccessfulConnection)
-                {
                     EditingIdx = EditingIdx == idx ? -1 : idx;
-                }
-                UiSharedService.AttachToolTip(account.SecretKey.HasHadSuccessfulConnection
-                    ? "You cannot change a key that has been verified. This is your character's Key now."
-                    : "Click to insert a provided secretKey");
+                UiSharedService.AttachToolTip(account.SecretKey.HasHadSuccessfulConnection ? GSLoc.Settings.Accounts.EditKeyNotAllowed : GSLoc.Settings.Accounts.EditKeyAllowed);
             }
         }
 
         if (ImGui.BeginPopupModal("Delete your account?", ref _deleteAccountPopupModalShown, UiSharedService.PopupWindowFlags))
         {
-            UiSharedService.TextWrapped("Be Deleting your primary GagSpeak account, all secondary users below will also be deleted.");
-            UiSharedService.TextWrapped("Your UID will be removed from all pairing lists.");
-            ImGui.TextUnformatted("Are you sure you want to continue?");
+            if(isPrimary)
+            {
+                UiSharedService.ColorTextWrapped(GSLoc.Settings.Accounts.RemoveAccountPrimaryWarning, ImGuiColors.DalamudRed);
+                ImGui.Spacing();
+            }
+            // display normal warning
+            UiSharedService.TextWrapped(GSLoc.Settings.Accounts.RemoveAccountWarning);
+            ImGui.TextUnformatted(GSLoc.Settings.Accounts.RemoveAccountConfirm);
             ImGui.Separator();
             ImGui.Spacing();
 
             var buttonSize = (ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X -
                               ImGui.GetStyle().ItemSpacing.X) / 2;
 
-            if (ImGui.Button("Delete account", new Vector2(buttonSize, 0)))
+            if (ImGui.Button(GSLoc.Settings.Accounts.DeleteButtonLabel, new Vector2(buttonSize, 0)))
             {
                 _ = Task.Run(_apiHubMain.UserDelete);
                 _deleteAccountPopupModalShown = false;
-                Mediator.Publish(new SwitchToIntroUiMessage());
+                // if this was our primrary account, we should switch to the intro UI.
+                if(isPrimary)
+                {
+                    // we should remove all other authentications from our server storage authentications and reconnect.
+                    _serverConfigs.CurrentServer.Authentications.Clear();
+                    Mediator.Publish(new SwitchToIntroUiMessage());
+                }
             }
 
             ImGui.SameLine();
 
             if (ImGui.Button("Cancel##cancelDelete", new Vector2(buttonSize, 0)))
-            {
                 _deleteAccountPopupModalShown = false;
-            }
 
             UiSharedService.SetScaledWindowSize(325);
             ImGui.EndPopup();
@@ -1118,8 +1062,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
     }
     private void DrawDebug()
     {
-        _lastTab = "Debug";
-        // display Debug Configuration in fat text
         _uiShared.BigText("Debug Configuration");
 
         // display the combo box for setting the log level we wish to have for our plugin
@@ -1189,9 +1131,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     private void DrawPlayerCharacterDebug()
     {
-        _lastTab = "Player Debug";
-        // display Debug Configuration in fat text
-        _uiShared.BigText("Player Character Debug Info:");
+        _uiShared.GagspeakBigText("Player Character Debug Info:");
         if (LastCreatedCharacterData != null && ImGui.TreeNode("Last created character data"))
         {
             var json = JsonConvert.SerializeObject(LastCreatedCharacterData, Formatting.Indented);
@@ -1228,9 +1168,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
     private void DrawPairsDebug()
     {
-        _lastTab = "Pairs Debug";
-        // display Debug Configuration in fat text
-        _uiShared.BigText("Pairs Debug Info:");
+        _uiShared.GagspeakBigText("Pairs Debug Info:");
 
         // Display additional info about the Pair Manager
         int totalPairs = _pairManager.DirectPairs.Count;

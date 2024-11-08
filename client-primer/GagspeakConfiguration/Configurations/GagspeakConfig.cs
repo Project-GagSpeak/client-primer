@@ -21,29 +21,32 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool ButtonUsed { get; set; } = false;
     public bool AccountCreated { get; set; } = false;
 
+    // Nicks
+    public bool OpenPopupOnAdd { get; set; } = true;
+
     // DTR bar preferences
     public bool EnableDtrEntry { get; set; } = false;
-    public bool ShowUidInDtrTooltip { get; set; } = true;
-    public bool PreferNicknameInDtrTooltip { get; set; } = false;
+    public bool ShowPrivacyRadar { get; set; } = true;
+    public bool ShowActionNotifs { get; set; } = true;
+    public bool ShowVibeStatus { get; set; } = true;
 
     // pair listing preferences
-    public bool PreferNicknamesOverNamesForVisible { get; set; } = false;
+    public bool PreferNicknamesOverNames { get; set; } = false;
     public bool ShowVisibleUsersSeparately { get; set; } = true;
     public bool ShowOfflineUsersSeparately { get; set; } = true;
 
-    // preferences
-    public bool OpenPopupOnAdd { get; set; } = true;
+    public bool ShowProfiles { get; set; } = true;
     public float ProfileDelay { get; set; } = 1.5f;
-    public bool ProfilePopoutRight { get; set; } = false;
-    public bool ProfilesShow { get; set; } = true;
-    public bool ContextMenusShow { get; set; } = true;
+    public bool ShowContextMenus { get; set; } = true;
     public List<ChatChannel.Channels> ChannelsGagSpeak { get; set; } = [];
     public List<ChatChannel.Channels> ChannelsPuppeteer { get; set; } = [];
 
     // logging (debug)
-    public bool ShowOnlineNotifications { get; set; } = false;
-    public bool ShowOnlineNotificationsOnlyForIndividualPairs { get; set; } = false;
-    public bool ShowOnlineNotificationsOnlyForNamedPairs { get; set; } = false;
+    public bool LiveGarblerZoneChangeWarn { get; set; } = true;
+    public bool NotifyForServerConnections { get; set; } = true;
+    public bool NotifyForOnlinePairs { get; set; } = true;
+    public bool NotifyLimitToNickedPairs { get; set; } = false;
+
     public LogLevel LogLevel { get; set; } = LogLevel.Trace;
     public HashSet<LoggerType> LoggerFilters { get; set; } = new HashSet<LoggerType>();
     public NotificationLocation InfoNotification { get; set; } = NotificationLocation.Both;
@@ -55,7 +58,6 @@ public class GagspeakConfig : IGagspeakConfiguration
     public string Language { get; set; } = "English"; // MuffleCore
     public string LanguageDialect { get; set; } = "IPA_US"; // MuffleCore
     public bool CursedDungeonLoot { get; set; } = false; // CursedDungeonLoot
-    public bool LiveGarblerZoneChangeWarn { get; set; } = true; // LiveChatGarbler Warnings
     public bool RemoveGagUponLockExpiration { get; set; } = false; // Auto-Remove Gags
     public RevertStyle RevertStyle { get; set; } = RevertStyle.RevertToAutomation; // How to revert Character when reset
     public bool DisableSetUponUnlock { get; set; } = false; // Auto-Remove Restraint Sets

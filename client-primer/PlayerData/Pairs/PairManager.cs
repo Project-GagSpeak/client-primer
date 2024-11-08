@@ -56,10 +56,10 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // make sure its a player context menu
         Logger.LogInformation("Opening Pair Context Menu of type "+args.MenuType, LoggerType.ContextDtr);
 
-        if (args.MenuType == ContextMenuType.Inventory) return;
+        if (args.MenuType is ContextMenuType.Inventory) return;
         
         // don't open if we don't want to show context menus
-        if (!_mainConfig.Current.ContextMenusShow) return;
+        if (!_mainConfig.Current.ShowContextMenus) return;
 
         // otherwise, locate the pair and add the context menu args to the visible pairs.
         foreach (var pair in _allClientPairs.Where((p => p.Value.IsVisible)))
@@ -277,9 +277,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         }
 
         // if send notification is on, then we should send the online notification to the client.
-        if (sendNotif && _mainConfig.Current.ShowOnlineNotifications
-            && (_mainConfig.Current.ShowOnlineNotificationsOnlyForNamedPairs && !string.IsNullOrEmpty(pair.GetNickname())
-            || !_mainConfig.Current.ShowOnlineNotificationsOnlyForNamedPairs))
+        if (sendNotif && _mainConfig.Current.NotifyForOnlinePairs && (_mainConfig.Current.NotifyLimitToNickedPairs && !string.IsNullOrEmpty(pair.GetNickname())))
         {
             // get the nickname from the pair, if it is not null, set the nickname to the pair's nickname.
             string? nickname = pair.GetNickname();

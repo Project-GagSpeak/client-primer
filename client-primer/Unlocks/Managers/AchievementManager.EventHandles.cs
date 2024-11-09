@@ -868,14 +868,14 @@ public partial class AchievementManager
 
     private void OnPvpKill()
     {
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EscapedPatient.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.BoundToKill.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TheShackledSlayer.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.DangerousConvict.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.OfUnyieldingForce.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.StimulationOverdrive.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.BoundYetUnbroken.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ChainsCantHoldMe.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.EscapedPatient.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.BoundToKill.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.TheShackledSlayer.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.DangerousConvict.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.OfUnyieldingForce.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.StimulationOverdrive.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.BoundYetUnbroken.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.ChainsCantHoldMe.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
     }
 
 

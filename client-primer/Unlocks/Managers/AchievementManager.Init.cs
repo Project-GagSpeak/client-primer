@@ -268,15 +268,6 @@ public partial class AchievementManager
 
         toyboxComponent.AddProgress(Achievements.HornyMornings, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Alarms Went Off");
 
-        toyboxComponent.AddConditionalProgress(Achievements.EscapedPatient, 10, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
-        toyboxComponent.AddConditionalProgress(Achievements.BoundToKill, 25, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
-        toyboxComponent.AddConditionalProgress(Achievements.TheShackledSlayer, 50, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
-        toyboxComponent.AddConditionalProgress(Achievements.DangerousConvict, 100, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
-        toyboxComponent.AddConditionalProgress(Achievements.OfUnyieldingForce, 200, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
-        toyboxComponent.AddConditionalProgress(Achievements.StimulationOverdrive, 300, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
-        toyboxComponent.AddConditionalProgress(Achievements.BoundYetUnbroken, 400, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
-        toyboxComponent.AddConditionalProgress(Achievements.ChainsCantHoldMe, 500, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
-
         SaveData.Components[AchievementModuleKind.Toybox] = toyboxComponent;
         #endregion TOYBOX MODULE
 
@@ -377,6 +368,15 @@ public partial class AchievementManager
         genericComponent.AddConditional(Achievements.EscapingIsNotEasy, () => _clientConfigs.GetActiveSetIdx() != -1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Escape Attempts Made");
 
         genericComponent.AddConditional(Achievements.ICantBelieveYouveDoneThis, () => _clientConfigs.GetActiveSetIdx() != -1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Slaps Received");
+
+        genericComponent.AddConditionalProgress(Achievements.EscapedPatient, 10, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        genericComponent.AddConditionalProgress(Achievements.BoundToKill, 25, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        genericComponent.AddConditionalProgress(Achievements.TheShackledSlayer, 50, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        genericComponent.AddConditionalProgress(Achievements.DangerousConvict, 100, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        genericComponent.AddConditionalProgress(Achievements.OfUnyieldingForce, 200, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        genericComponent.AddConditionalProgress(Achievements.StimulationOverdrive, 300, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        genericComponent.AddConditionalProgress(Achievements.BoundYetUnbroken, 400, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        genericComponent.AddConditionalProgress(Achievements.ChainsCantHoldMe, 500, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
 
         SaveData.Components[AchievementModuleKind.Generic] = genericComponent;
         #endregion GENERIC MODULE

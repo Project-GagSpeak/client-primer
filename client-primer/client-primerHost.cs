@@ -156,7 +156,6 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<AppearanceService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<OnlinePairManager>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<VisiblePairManager>();
-            _runtimeServiceScope.ServiceProvider.GetRequiredService<NotificationService>();
 
             // boot up our chat services. (this don't work as hosted services because they are unsafe)
             _runtimeServiceScope.ServiceProvider.GetRequiredService<ChatBoxMessage>();

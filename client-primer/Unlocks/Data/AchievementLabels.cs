@@ -21,10 +21,10 @@ public static class Achievements
     // Orders
     public static readonly AchievementInfo JustAVolunteer = new AchievementInfo(1, "Just a Volunteer", "Finish 1 Order");
     public static readonly AchievementInfo AsYouCommand = new AchievementInfo(2, "As You Command", "Finish 10 Orders");
-    public static readonly AchievementInfo AnythingForMyOwner = new AchievementInfo(3, "Anything For My Owner", "Finish 100 Orders");
-    public static readonly AchievementInfo GoodDrone = new AchievementInfo(4, "Good Drone", "Finish 1000 Orders");
+    public static readonly AchievementInfo AnythingForMyOwner = new AchievementInfo(3, "Perfect Programming", "Finish 100 Orders");
+    public static readonly AchievementInfo GoodDrone = new AchievementInfo(4, "The Perfect Drone", "Finish 1000 Orders");
     public static readonly AchievementInfo BadSlut = new AchievementInfo(5, "Bad Slut", "Fail 1 Order");
-    public static readonly AchievementInfo NeedsTraining = new AchievementInfo(6, "Needs Training", "Fail 10 Orders");
+    public static readonly AchievementInfo NeedsTraining = new AchievementInfo(6, "In Need of Training", "Fail 10 Orders");
     public static readonly AchievementInfo UsefulInOtherWays = new AchievementInfo(7, "Useful In Other Ways", "Fail 100 Orders");
     public static readonly AchievementInfo NewSlaveOwner = new AchievementInfo(8, "New Slave Owner", "Create 1 Order");
     public static readonly AchievementInfo TaskManager = new AchievementInfo(9, "Task Manager", "Create 10 Orders");
@@ -32,21 +32,38 @@ public static class Achievements
     public static readonly AchievementInfo QueenOfDrones = new AchievementInfo(11, "Queen of Drones", "Create 1000 Orders");
 
     // Gags
-    public static readonly AchievementInfo SelfApplied = new AchievementInfo(12, "Does It Fit?", "Apply a Gag to Yourself");
-    public static readonly AchievementInfo ApplyToPair = new AchievementInfo(13, "Silence, Slut", "Apply a Gag to another GagSpeak Pair");
-    public static readonly AchievementInfo LookingForTheRightFit = new AchievementInfo(14, "Looking For The Right Fit", "Apply Gags to other GagSpeak Pairs, or have a Gag applied to you 10 times."); // 10 times
-    public static readonly AchievementInfo OralFixation = new AchievementInfo(15, "Oral Fixation", "Apply Gags to other GagSpeak Pairs, or have a Gag applied to you 100 times."); // 100 times
-    public static readonly AchievementInfo AKinkForDrool = new AchievementInfo(16, "A Kink for Drool", "Apply Gags to other GagSpeak Pairs, or have a Gag applied to you 1000 times."); // 1000 times.
+    public static readonly AchievementInfo SelfApplied = new AchievementInfo(12, "The Right Fit", "Apply a Gag to Yourself");
+
+    public static readonly AchievementInfo SilenceSlut = new AchievementInfo(13, "A Perfect Fit", "Apply a Gag to another Kinkster");
+    public static readonly AchievementInfo WatchYourTongue = new AchievementInfo(14, "Watch Your Tongue", "Apply gags to other kinksters 10 times.");
+    public static readonly AchievementInfo TongueTamer = new AchievementInfo(15, "Tongue Tamer", "Apply gags to other kinksters 100 times.");
+    public static readonly AchievementInfo KinkyLibrarian = new AchievementInfo(142, "Kinky Librarian", "Apply gags to other kinksters 500 times.");
+    public static readonly AchievementInfo OrchestratorOfSilence = new AchievementInfo(16, "Orchestrator Of Silence", "Apply gags to other kinksters 1000 times.");
+
+    public static readonly AchievementInfo SilencedSlut = new AchievementInfo(143, "Silenced Slut", "Get gagged by another Kinkster");
+    public static readonly AchievementInfo InDeepSilence = new AchievementInfo(144, "In Deep Silence", "Get gagged by another Kinkster 10 times.");
+    public static readonly AchievementInfo SilentObsessions = new AchievementInfo(145, "Silent Obsessions", "Get gagged by another Kinkster 100 times.");
+    public static readonly AchievementInfo GoldenSilence = new AchievementInfo(146, "Of Golden Silence", "Get gagged by another Kinkster 500 times.");
+    public static readonly AchievementInfo AKinkForDrool = new AchievementInfo(147, "A Kink for Drool", "Get gagged by another Kinkster 1000 times.");
+    public static readonly AchievementInfo ThePerfectGagSlut = new AchievementInfo(148, "The Perfect GagSlut", "Get gagged by another Kinkster 5000 times.");
+
     public static readonly AchievementInfo ShushtainableResource = new AchievementInfo(17, "Sustainable Resource", "Have all three Gag Slots occupied at once.");
-    public static readonly AchievementInfo SpeakUpSlut = new AchievementInfo(18, "Speak Up, Slut", "Say anything longer than 5 words with LiveChatGarbler on in /say (Please be smart about this)"); // /say
-    public static readonly AchievementInfo CantHearYou = new AchievementInfo(19, "I Can't Hear You", "Say anything longer than 5 words with LiveChatGarbler on in /yell (Please be smart about this)"); // /yell
-    public static readonly AchievementInfo OneMoreForTheCrowd = new AchievementInfo(20, "Once More For The Crowd", "Say anything longer than 5 words with LiveChatGarbler on in /shout (Please be smart about this)"); // /shout
+
+    public static readonly AchievementInfo OfVoicelessPleas = new AchievementInfo(18, "Of Voiceless Pleas", "Say anything longer than 5 words with LiveChatGarbler on in /say (Please be smart about this)"); // /say
+    public static readonly AchievementInfo DefianceInSilence = new AchievementInfo(149, "Defiance In Silence", "Say anything longer than 5 words with LiveChatGarbler on in /say (Please be smart about this)"); // /say
+    public static readonly AchievementInfo MuffledResilience = new AchievementInfo(150, "Muffled Resilience", "Say anything longer than 5 words with LiveChatGarbler on in /say (Please be smart about this)"); // /say
+    public static readonly AchievementInfo TrainedInSubSpeech = new AchievementInfo(151, "Trained In Sub Speech", "Say anything longer than 5 words with LiveChatGarbler on in /say (Please be smart about this)"); // /say
+
+    public static readonly AchievementInfo PublicSpeaker = new AchievementInfo(19, "Public Speaker", "Say anything longer than 5 words with LiveChatGarbler on in /yell (Please be smart about this)"); // /yell
+    public static readonly AchievementInfo FromCriesOfHumility = new AchievementInfo(20, "From Cries of Humility", "Say anything longer than 5 words with LiveChatGarbler on in /shout (Please be smart about this)"); // /shout
+    
     public static readonly AchievementInfo SpeechSilverSilenceGolden = new AchievementInfo(21, "Speech is Silver, Silence is Golden", "Wear a gag continuously for 1 week");
     public static readonly AchievementInfo TheKinkyLegend = new AchievementInfo(22, "The Kinky Legend", "Wear a gag continuously for 2 weeks");
     public static readonly AchievementInfo SilentButDeadly = new AchievementInfo(23, "Silent but Deadly", "Complete 10 roulettes with a gag equipped");
     public static readonly AchievementInfo ATrueGagSlut = new AchievementInfo(24, "A True Gag Slut", "Be gagged by 10 different people in less than 1 hour");
     public static readonly AchievementInfo GagReflex = new AchievementInfo(25, "Gag Reflex", "Be blown away in a gold saucer GATE with any gag equipped.");
     public static readonly AchievementInfo QuietNowDear = new AchievementInfo(26, "Quiet Now, Dear", "Use /shush while targeting a gagged player");
+    public static readonly AchievementInfo SilenceOfShame = new AchievementInfo(152, "The Silence of Shame", "Be /shush'ed while gagged");
     public static readonly AchievementInfo YourFavoriteNurse = new AchievementInfo(27, "Your Favorite Nurse", "Apply a restraint set or Gag to a GagSpeak pair while you have a Mask Gag Equipped 20 times");
     public static readonly AchievementInfo SayMmmph = new AchievementInfo(28, "Say Mmmph!", "Take a screenshot in /gpose while gagged");
 
@@ -54,7 +71,7 @@ public static class Achievements
     public static readonly AchievementInfo FirstTiemers = new AchievementInfo(29, "First Tiemers", "Have a Restraint Set applied for the first time (or apply one to someone else)");
     public static readonly AchievementInfo Cuffed19 = new AchievementInfo(30, "Cuffed-19", "Get your hands restrained 19 times.");
     public static readonly AchievementInfo TheRescuer = new AchievementInfo(31, "The Rescuer", "Unlock 100 Restraints from someone other than yourself.");
-    public static readonly AchievementInfo SelfBondageEnthusiast = new AchievementInfo(32, "DIY DiD", "Apply a restraint to yourself 100 times.");
+    public static readonly AchievementInfo SelfBondageEnthusiast = new AchievementInfo(32, "Self-Bondage Enthusiast", "Apply a restraint to yourself 100 times.");
     public static readonly AchievementInfo DiDEnthusiast = new AchievementInfo(33, "Making a Damsel out of You.", "Apply a restraint set to someone else 100 times.");
     public static readonly AchievementInfo CrowdPleaser = new AchievementInfo(34, "Crowd Pleaser", "Be restrained with 15 or more people around you.");
     public static readonly AchievementInfo Humiliation = new AchievementInfo(35, "Lesson in Humiliation", "Be restrained with 5 or more GagSpeak Pairs nearby.");
@@ -67,16 +84,18 @@ public static class Achievements
     public static readonly AchievementInfo RiggersFirstSession = new AchievementInfo(40, "Riggers First Session", "Lock someone in a Restraint Set for 30 minutes");
     public static readonly AchievementInfo MyLittlePlaything = new AchievementInfo(41, "My Little Plaything", "Lock someone in a Restraint Set for 1 hour");
     public static readonly AchievementInfo SuitsYouBitch = new AchievementInfo(42, "Suits you, Bitch!", "Lock someone in a Restraint Set for 6 hours");
-    public static readonly AchievementInfo TiesThatBind = new AchievementInfo(43, "Ties That Bind", "Lock someone in a Restraint Set for 1 day");
-    public static readonly AchievementInfo SlaveTraining = new AchievementInfo(44, "Slave Training", "Lock someone in a Restraint Set for 1 week");
+    public static readonly AchievementInfo TiesThatBind = new AchievementInfo(43, "The Ties That Bind", "Lock someone in a Restraint Set for 1 day");
+    public static readonly AchievementInfo SlaveTrainer = new AchievementInfo(44, "Slave Trainer", "Lock someone in a Restraint Set for 1 week");
     public static readonly AchievementInfo CeremonyOfEternalBondage = new AchievementInfo(45, "Ceremony Of Eternal Bondage", "Lock someone in a Restraint Set for 1 month");
 
-    public static readonly AchievementInfo FirstTimeBondage = new AchievementInfo(46, "First-Time Bondage", "Endure being locked in a Restraint Set for 30 minutes");
+    public static readonly AchievementInfo FirstTimeBondage = new AchievementInfo(46, "First Time Bondage", "Endure being locked in a Restraint Set for 30 minutes");
     public static readonly AchievementInfo AmateurBondage = new AchievementInfo(47, "Amateur Bondage", "Endure being locked in a Restraint Set for 1 hour");
-    public static readonly AchievementInfo ComfortRestraint = new AchievementInfo(48, "Comforting Restraints", "Endure being locked in a Restraint Set for 6 hours");
-    public static readonly AchievementInfo DayInTheLifeOfABondageSlave = new AchievementInfo(49, "A Day in the Bondage", "Endure being locked in a Restraint Set for 1 day");
-    public static readonly AchievementInfo AWeekInBondage = new AchievementInfo(50, "Week-Long Bondage Training", "Endure being locked in a Restraint Set for 1 week");
-    public static readonly AchievementInfo AMonthInBondage = new AchievementInfo(51, "A True Bondage Slave", "Endure being locked in a Restraint Set for 1 month");
+    public static readonly AchievementInfo ComfortRestraint = new AchievementInfo(48, "In Comforting Restraints", "Endure being locked in a Restraint Set for 6 hours");
+    public static readonly AchievementInfo YourBondageMaid = new AchievementInfo(49, "Bondage Maid", "Endure being locked in a Restraint Set for 1 day");
+    public static readonly AchievementInfo YourRubberMaid = new AchievementInfo(153, "Rubber Maid", "Endure being locked in a Restraint Set for 4 days");
+    public static readonly AchievementInfo TrainedBondageSlave = new AchievementInfo(50, "Trained Bondage Slave", "Endure being locked in a Restraint Set for 1 week");
+    public static readonly AchievementInfo YourRubberSlut = new AchievementInfo(154, "Your Rubber Slut", "Endure being locked in a Restraint Set for 2 weeks");
+    public static readonly AchievementInfo ATrueBondageSlave = new AchievementInfo(51, "A True Bondage Slave", "Endure being locked in a Restraint Set for 1 month");
 
     public static readonly AchievementInfo KinkyExplorer = new AchievementInfo(52, "Kinky Explorer", "Run a Dungeon with Cursed Bondage Loot enabled.");
     public static readonly AchievementInfo TemptingFatesTreasure = new AchievementInfo(53, "Tempting Fate's Treasure", "Be Caught in Cursed Bondage Loot for the first time.");
@@ -249,14 +268,14 @@ public static class Achievements
         { 10, MaidMaster },
         { 11, QueenOfDrones },
         { 12, SelfApplied },
-        { 13, ApplyToPair },
-        { 14, LookingForTheRightFit },
-        { 15, OralFixation },
-        { 16, AKinkForDrool },
+        { 13, SilenceSlut },
+        { 14, WatchYourTongue },
+        { 15, TongueTamer },
+        { 16, OrchestratorOfSilence },
         { 17, ShushtainableResource },
-        { 18, SpeakUpSlut },
-        { 19, CantHearYou },
-        { 20, OneMoreForTheCrowd },
+        { 18, OfVoicelessPleas },
+        { 19, PublicSpeaker },
+        { 20, FromCriesOfHumility },
         { 21, SpeechSilverSilenceGolden },
         { 22, TheKinkyLegend },
         { 23, SilentButDeadly },
@@ -280,14 +299,14 @@ public static class Achievements
         { 41, MyLittlePlaything },
         { 42, SuitsYouBitch },
         { 43, TiesThatBind },
-        { 44, SlaveTraining },
+        { 44, SlaveTrainer },
         { 45, CeremonyOfEternalBondage },
         { 46, FirstTimeBondage },
         { 47, AmateurBondage },
         { 48, ComfortRestraint },
-        { 49, DayInTheLifeOfABondageSlave },
-        { 50, AWeekInBondage },
-        { 51, AMonthInBondage },
+        { 49, YourBondageMaid },
+        { 50, TrainedBondageSlave },
+        { 51, ATrueBondageSlave },
         { 52, KinkyExplorer },
         { 53, TemptingFatesTreasure },
         { 54, BadEndSeeker },
@@ -377,6 +396,19 @@ public static class Achievements
         { 138, KinkyMentor },
         { 139, Overkill },
         { 140, WildRide },
-        { 141, SlavePresentation }
+        { 141, SlavePresentation },
+        { 142, KinkyLibrarian },
+        { 143, SilencedSlut },
+        { 144, InDeepSilence },
+        { 145, SilentObsessions },
+        { 146, GoldenSilence },
+        { 147, AKinkForDrool },
+        { 148, ThePerfectGagSlut },
+        { 149, DefianceInSilence },
+        { 150, MuffledResilience },
+        { 151, TrainedInSubSpeech },
+        { 152, SilenceOfShame },
+        { 153, YourRubberMaid },
+        { 154, YourRubberSlut }
     };
 }

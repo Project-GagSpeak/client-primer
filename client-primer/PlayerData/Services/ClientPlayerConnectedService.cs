@@ -147,6 +147,11 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         }
         _gagManager.UpdateGagLockComboSelections();
         _gagManager.UpdateRestraintLockSelections(false);
+        // send our updated data.
+        var activeGags = _playerData.AppearanceData.GagSlots.Select(x => x.GagType).ToList();
+        var activeSetId = _clientConfigs.GetActiveSet()?.RestraintId ?? Guid.Empty;
+        Mediator.Publish(new PlayerLatestActiveItems(MainHub.PlayerUserData, activeGags, activeSetId));
+
         // Run a refresh on appearance data.
         await _appearanceHandler.RecalcAndReload(true);
     }

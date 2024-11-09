@@ -15,6 +15,7 @@ using GagspeakAPI.Dto.User;
 using GagspeakAPI.Dto.UserPair;
 using Dalamud.Game.Gui.ContextMenu;
 using GagspeakAPI.Enums;
+using GagspeakAPI.Extensions;
 
 namespace GagSpeak.PlayerData.Pairs;
 
@@ -324,6 +325,10 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
         // do an initial slot update.
         _allClientPairs[dto.User].UpdateCachedLockedSlots();
+
+        // publish a mediator message that is listened to by the achievement manager for duration cleanup.
+        var activeGags = dto.CompositeData.AppearanceData.GagSlots.Select(x => x.GagType).ToList();
+        Mediator.Publish(new PlayerLatestActiveItems(pair.UserData, activeGags, dto.CompositeData.WardrobeData.ActiveSetId));
     }
 
     /// <summary> Method similar to compositeData, but this will only update the IPC data of the user pair. </summary>

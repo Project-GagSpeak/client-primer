@@ -110,6 +110,7 @@ public record PlayerCharWardrobeChanged(DataUpdateKind UpdateKind) : MessageBase
 public record PlayerCharAliasChanged(string UpdatedPairUID, DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharToyboxChanged(DataUpdateKind UpdateKind) : MessageBase;
 public record PlayerCharStorageUpdated : MessageBase;
+public record PlayerLatestActiveItems(UserData User, List<string> ActiveGags, Guid ActiveRestraint) : MessageBase;
 
 
 /* ------------------ IPC HANDLER RECORDS------------------ */

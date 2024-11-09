@@ -452,6 +452,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Subscribe<int>(UnlocksEvent.PlayersInProximity, (count) => (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.CrowdPleaser.Title] as ConditionalThresholdAchievement)?.UpdateThreshold(count));
         _eventManager.Subscribe(UnlocksEvent.CutsceneInturrupted, () => (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.WarriorOfLewd.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt());
 
+        Mediator.Subscribe<PlayerLatestActiveItems>(this, (msg) => OnCharaOnlineCleanupForLatest(msg.User, msg.ActiveGags, msg.ActiveRestraint));
         Mediator.Subscribe<PairHandlerVisibleMessage>(this, _ => OnPairVisible());
         Mediator.Subscribe<CommendationsIncreasedMessage>(this, (msg) => OnCommendationsGiven(msg.amount));
         Mediator.Subscribe<PlaybackStateToggled>(this, (msg) => (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.Experimentalist.Title] as ConditionalAchievement)?.CheckCompletion());
@@ -526,6 +527,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Unsubscribe<int>(UnlocksEvent.PlayersInProximity, (count) => (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.CrowdPleaser.Title] as ConditionalThresholdAchievement)?.UpdateThreshold(count));
         _eventManager.Unsubscribe(UnlocksEvent.CutsceneInturrupted, () => (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.WarriorOfLewd.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt());
 
+        Mediator.Unsubscribe<PlayerLatestActiveItems>(this);
         Mediator.Unsubscribe<PairHandlerVisibleMessage>(this);
         Mediator.Unsubscribe<CommendationsIncreasedMessage>(this);
         Mediator.Unsubscribe<PlaybackStateToggled>(this);

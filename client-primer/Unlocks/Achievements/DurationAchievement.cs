@@ -72,7 +72,6 @@ public class DurationAchievement : Achievement
             if (elapsed.Hours > 0) outputStr += elapsed.Hours + "h ";
             if (elapsed.Minutes > 0) outputStr += elapsed.Minutes + "m ";
             if (elapsed.Seconds >= 0) outputStr += elapsed.Seconds + "s ";
-            outputStr += "elapsed";
         }
         // Add the Ratio
         return PrefixText + " " + outputStr + " / " + MilestoneGoal + " " + SuffixText;
@@ -81,7 +80,8 @@ public class DurationAchievement : Achievement
     public string GetActiveItemProgressString()
     {
         // join together every item in the dictionary with the time elapsed on each item, displaying the UID its on, and the item identifier, and the time elapsed.
-        return string.Join(", ", ActiveItems.Select(x => "Item: " + x.Key + ", Applied on: " + x.Value.UIDAffected +" @ "+ (DateTime.UtcNow - x.Value.TimeAdded)));
+        return string.Join("\n", ActiveItems.Select(x => "Item: " + x.Key + ", Applied on: " + x.Value.UIDAffected + " @ " + 
+            (DateTime.UtcNow - x.Value.TimeAdded).ToString(@"hh\:mm\:ss")));
     }
 
     /// <summary>
@@ -108,6 +108,8 @@ public class DurationAchievement : Achievement
     /// </summary>
     public void CleanupTracking(string uidToScan, List<string> itemsStillActive)
     {
+        // if we havent 
+
         var itemsToRemove = ActiveItems.Keys.Except(itemsStillActive).ToList();
         StaticLogger.Logger.LogDebug($"Cleaning up tracking items for {Title}", LoggerType.Achievements);
         foreach (var key in itemsToRemove)

@@ -831,7 +831,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             var allowDelete = (!(KeyMonitor.CtrlPressed() && KeyMonitor.ShiftPressed()) || !(MainHub.IsServerAlive && MainHub.IsConnected && isOnlineUser));
             ImGui.SameLine(ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Trash, GSLoc.Settings.Accounts.DeleteButtonLabel));
 
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account##DeleteAccount"+ account.CharacterPlayerContentId, isInPopup: true, disabled: !allowDelete))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account", isInPopup: true, disabled: !allowDelete, id: "DeleteAccount"+ account.CharacterPlayerContentId))
             {
                 _deleteAccountPopupModalShown = true;
                 ImGui.OpenPopup("Delete your account?");

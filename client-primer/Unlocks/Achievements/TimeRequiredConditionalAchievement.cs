@@ -69,7 +69,6 @@ public class TimeRequiredConditionalAchievement : Achievement
             if (elapsed.Hours > 0) outputStr += elapsed.Hours + "h ";
             if (elapsed.Minutes > 0) outputStr += elapsed.Minutes + "m ";
             if (elapsed.Seconds >= 0) outputStr += elapsed.Seconds + "s ";
-            outputStr += " Elapsed";
         }
         // Add the Ratio
         return PrefixText + " " + outputStr + " / " + MilestoneGoal + " " + TimeUnit + " " + SuffixText;

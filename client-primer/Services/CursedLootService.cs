@@ -70,54 +70,63 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
 
     private unsafe ulong ItemInteractedDetour(TargetSystem* thisPtr, GameObject* obj, bool checkLineOfSight)
     {
-        Logger.LogTrace("Object ID: " + obj->GetGameObjectId().ObjectId);
-        Logger.LogTrace("Object Kind: " + obj->ObjectKind);
-        Logger.LogTrace("Object SubKind: " + obj->SubKind);
-        Logger.LogTrace("Object Name: " + obj->NameString.ToString());
-        Logger.LogTrace("Object EventHandler ID: " + obj->EventHandler->Info.EventId.Id);
-        Logger.LogTrace("Object EventHandler Entry ID: " + obj->EventHandler->Info.EventId.EntryId);
-        Logger.LogTrace("Object EventHandler Content Id: " + obj->EventHandler->Info.EventId.ContentId);
-
-        // dont bother if cursed dungeon loot isnt enabled, or if there are no inactive items in the pool.
-        if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot || _frameworkUtils._sentBetweenAreas || !_handler.InactiveItemsInPool.Any())
-            return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
-
-        // if we are forced to stay, we should block any interactions with objects.
-        if (obj->ObjectKind is not FFXIVClientStructs.FFXIV.Client.Game.Object.ObjectKind.Treasure)
+        try
         {
-            Logger.LogTrace("Interacted with GameObject that was not a Treasure Chest.", LoggerType.CursedLoot);
-            return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
-        }
-
-        // if we the item interacted with is the same as the last opened chest, return.
-        if (obj->GetGameObjectId().ObjectId == LastOpenedTreasureId)
-        {
-            Logger.LogTrace("Interacted with GameObject that was the last opened chest.", LoggerType.CursedLoot);
-            return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
-        }
-
-        // Dont process if our current treasure task is running
-        if (_openTreasureTask != null && !_openTreasureTask.IsCompleted)
-            return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
-
-        // Make sure we are opening it. If we were not the first, it will exist in here.
-        if(_frameworkUtils.PartyListSize is not 1)
-        {
-            foreach (var item in Loot.Instance()->Items)
+            Logger.LogTrace("Object ID: " + obj->GetGameObjectId().ObjectId);
+            Logger.LogTrace("Object Kind: " + obj->ObjectKind);
+            Logger.LogTrace("Object SubKind: " + obj->SubKind);
+            Logger.LogTrace("Object Name: " + obj->NameString.ToString());
+            if(obj->EventHandler is not null)
             {
-                // Perform an early return if not valie.
-                if (item.ChestObjectId == obj->GetGameObjectId().ObjectId)
+                Logger.LogTrace("Object EventHandler ID: " + obj->EventHandler->Info.EventId.Id);
+                Logger.LogTrace("Object EventHandler Entry ID: " + obj->EventHandler->Info.EventId.EntryId);
+                Logger.LogTrace("Object EventHandler Content Id: " + obj->EventHandler->Info.EventId.ContentId);
+            }
+
+            // dont bother if cursed dungeon loot isnt enabled, or if there are no inactive items in the pool.
+            if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot || _frameworkUtils._sentBetweenAreas || !_handler.InactiveItemsInPool.Any())
+                return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
+
+            // if we are forced to stay, we should block any interactions with objects.
+            if (obj->ObjectKind is not FFXIVClientStructs.FFXIV.Client.Game.Object.ObjectKind.Treasure)
+            {
+                Logger.LogTrace("Interacted with GameObject that was not a Treasure Chest.", LoggerType.CursedLoot);
+                return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
+            }
+
+            // if we the item interacted with is the same as the last opened chest, return.
+            if (obj->GetGameObjectId().ObjectId == LastOpenedTreasureId)
+            {
+                Logger.LogTrace("Interacted with GameObject that was the last opened chest.", LoggerType.CursedLoot);
+                return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
+            }
+
+            // Dont process if our current treasure task is running
+            if (_openTreasureTask != null && !_openTreasureTask.IsCompleted)
+                return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
+
+            // Make sure we are opening it. If we were not the first, it will exist in here.
+            if (_frameworkUtils.PartyListSize is not 1)
+            {
+                foreach (var item in Loot.Instance()->Items)
                 {
-                    Logger.LogTrace("This treasure was already opened!", LoggerType.CursedLoot);
-                    return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
+                    // Perform an early return if not valie.
+                    if (item.ChestObjectId == obj->GetGameObjectId().ObjectId)
+                    {
+                        Logger.LogTrace("This treasure was already opened!", LoggerType.CursedLoot);
+                        return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
+                    }
                 }
             }
-        }
 
-        // This is a valid new chest, so open it.
-        Logger.LogTrace("Attempting to open coffer, checking loot instance on next second", LoggerType.CursedLoot);
-        _openTreasureTask = CheckLootTables(obj->GetGameObjectId().ObjectId);
-        // return original to complete interaction.
+            // This is a valid new chest, so open it.
+            Logger.LogTrace("Attempting to open coffer, checking loot instance on next second", LoggerType.CursedLoot);
+            _openTreasureTask = CheckLootTables(obj->GetGameObjectId().ObjectId);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError(e, "Failed to log object information.");
+        }
         return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
     }
 

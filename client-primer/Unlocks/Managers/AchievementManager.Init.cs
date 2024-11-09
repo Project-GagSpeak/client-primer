@@ -38,16 +38,27 @@ public partial class AchievementManager
         var gagComponent = new AchievementComponent();
         gagComponent.AddProgress(Achievements.SelfApplied, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Gags Self-Applied");
 
-        gagComponent.AddProgress(Achievements.ApplyToPair, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Gags Applied");
-        gagComponent.AddProgress(Achievements.LookingForTheRightFit, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Gags Applied");
-        gagComponent.AddProgress(Achievements.OralFixation, 100, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Gags Applied");
-        gagComponent.AddProgress(Achievements.AKinkForDrool, 1000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Gags Applied");
+        gagComponent.AddProgress(Achievements.SilenceSlut, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Gags to Kinksters", "Applied");
+        gagComponent.AddProgress(Achievements.WatchYourTongue, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Gags to Kinksters", "Applied");
+        gagComponent.AddProgress(Achievements.TongueTamer, 100, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Gags to Kinksters", "Applied");
+        gagComponent.AddProgress(Achievements.KinkyLibrarian, 500, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Gags to Kinksters", "Applied");
+        gagComponent.AddProgress(Achievements.OrchestratorOfSilence, 1000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Gags to Kinksters", "Applied");
+
+        gagComponent.AddProgress(Achievements.SilencedSlut, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "times by Kinksters", "Gagged");
+        gagComponent.AddProgress(Achievements.InDeepSilence, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "times by Kinksters", "Gagged");
+        gagComponent.AddProgress(Achievements.SilentObsessions, 100, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "times by Kinksters", "Gagged");
+        gagComponent.AddProgress(Achievements.GoldenSilence, 500, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "times by Kinksters", "Gagged");
+        gagComponent.AddProgress(Achievements.AKinkForDrool, 1000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "times by Kinksters", "Gagged");
+        gagComponent.AddProgress(Achievements.ThePerfectGagSlut, 5000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "times by Kinksters", "Gagged");
 
         gagComponent.AddThreshold(Achievements.ShushtainableResource, 3, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Gags Active at Once");
 
-        gagComponent.AddProgress(Achievements.SpeakUpSlut, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Garbled Messages Sent");
-        gagComponent.AddProgress(Achievements.CantHearYou, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Garbled Messages Sent");
-        gagComponent.AddProgress(Achievements.OneMoreForTheCrowd, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Garbled Messages Sent");
+        gagComponent.AddProgress(Achievements.OfVoicelessPleas, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Garbled Messages Sent");
+        gagComponent.AddProgress(Achievements.DefianceInSilence, 500, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Garbled Messages Sent");
+        gagComponent.AddProgress(Achievements.MuffledResilience, 1000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Garbled Messages Sent");
+        gagComponent.AddProgress(Achievements.TrainedInSubSpeech, 2500, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Garbled Messages Sent");
+        gagComponent.AddProgress(Achievements.PublicSpeaker, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Garbled Messages Sent");
+        gagComponent.AddProgress(Achievements.FromCriesOfHumility, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Garbled Messages Sent");
 
         gagComponent.AddDuration(Achievements.SpeechSilverSilenceGolden, TimeSpan.FromDays(7), DurationTimeUnit.Hours, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Hours Gagged", "Spent");
         gagComponent.AddDuration(Achievements.TheKinkyLegend, TimeSpan.FromDays(14), DurationTimeUnit.Hours, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Hours Gagged", "Spent");
@@ -72,6 +83,8 @@ public partial class AchievementManager
             }
             return targetIsGagged;
         }, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Pairs Hushed");
+
+        gagComponent.AddConditional(Achievements.SilenceOfShame, () => _playerData.IsPlayerGagged, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Kinksters", "Hushed by");
 
         gagComponent.AddConditionalProgress(Achievements.YourFavoriteNurse, 20,
             () => _playerData.AppearanceData?.GagSlots.Any(x => x.GagType.ToGagType() == GagType.MedicalMask) ?? false, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Patients Serviced", reqBeginAndFinish: false);
@@ -105,15 +118,17 @@ public partial class AchievementManager
         wardrobeComponent.AddDuration(Achievements.MyLittlePlaything, TimeSpan.FromHours(1), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Minutes");
         wardrobeComponent.AddDuration(Achievements.SuitsYouBitch, TimeSpan.FromHours(6), DurationTimeUnit.Hours, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Hours");
         wardrobeComponent.AddDuration(Achievements.TiesThatBind, TimeSpan.FromDays(1), DurationTimeUnit.Hours, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Hours");
-        wardrobeComponent.AddDuration(Achievements.SlaveTraining, TimeSpan.FromDays(7), DurationTimeUnit.Days, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Days");
+        wardrobeComponent.AddDuration(Achievements.SlaveTrainer, TimeSpan.FromDays(7), DurationTimeUnit.Days, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Days");
         wardrobeComponent.AddDuration(Achievements.CeremonyOfEternalBondage, TimeSpan.FromDays(30), DurationTimeUnit.Days, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Days");
 
         wardrobeComponent.AddDuration(Achievements.FirstTimeBondage, TimeSpan.FromMinutes(30), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Minutes locked up", "Spent");
         wardrobeComponent.AddDuration(Achievements.AmateurBondage, TimeSpan.FromHours(1), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Minutes locked up", "Spent");
         wardrobeComponent.AddDuration(Achievements.ComfortRestraint, TimeSpan.FromHours(6), DurationTimeUnit.Hours, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Hours locked up", "Spent");
-        wardrobeComponent.AddDuration(Achievements.DayInTheLifeOfABondageSlave, TimeSpan.FromDays(1), DurationTimeUnit.Hours, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Hours locked up", "Spent");
-        wardrobeComponent.AddDuration(Achievements.AWeekInBondage, TimeSpan.FromDays(7), DurationTimeUnit.Days, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Days locked up", "Spent");
-        wardrobeComponent.AddDuration(Achievements.AMonthInBondage, TimeSpan.FromDays(30), DurationTimeUnit.Days, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Days locked up", "Spent");
+        wardrobeComponent.AddDuration(Achievements.YourBondageMaid, TimeSpan.FromDays(1), DurationTimeUnit.Hours, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Hours locked up", "Spent");
+        wardrobeComponent.AddDuration(Achievements.YourRubberMaid, TimeSpan.FromDays(4), DurationTimeUnit.Hours, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Hours locked up", "Spent");
+        wardrobeComponent.AddDuration(Achievements.TrainedBondageSlave, TimeSpan.FromDays(7), DurationTimeUnit.Days, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Days locked up", "Spent");
+        wardrobeComponent.AddDuration(Achievements.YourRubberSlut, TimeSpan.FromDays(4), DurationTimeUnit.Days, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Days locked up", "Spent");
+        wardrobeComponent.AddDuration(Achievements.ATrueBondageSlave, TimeSpan.FromDays(30), DurationTimeUnit.Days, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Days locked up", "Spent");
 
         wardrobeComponent.AddConditional(Achievements.KinkyExplorer, () => _clientConfigs.GagspeakConfig.CursedDungeonLoot, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Cursed Runs Started");
         wardrobeComponent.AddProgress(Achievements.TemptingFatesTreasure, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Cursed Loot Discovered");

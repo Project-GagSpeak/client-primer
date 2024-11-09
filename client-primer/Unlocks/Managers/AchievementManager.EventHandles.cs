@@ -1,9 +1,11 @@
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text;
 using GagSpeak.GagspeakConfiguration.Models;
+using GagSpeak.Localization;
 using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
+using GagspeakAPI.Data;
 using GagspeakAPI.Enums;
 using GagspeakAPI.Extensions;
 using Penumbra.GameData.Enums;
@@ -175,7 +177,7 @@ public partial class AchievementManager
         (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.KinkyExplorer.Title] as ConditionalAchievement)?.CheckCompletion();
 
         (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentButDeadly.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.UCanTieThis.Title] as ConditionalProgressAchievement)?.BeginConditionalTask(10); // 10s delay.
+        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.UCanTieThis.Title] as ConditionalProgressAchievement)?.BeginConditionalTask(25); // 10s delay.
 
         if (_frameworkUtils.PlayerJobRole is ActionRoles.Healer)
             (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.HealSlut.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
@@ -275,9 +277,12 @@ public partial class AchievementManager
             // the gag was applied to us by someone else.
             else
             {
-                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.LookingForTheRightFit.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OralFixation.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilencedSlut.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.InDeepSilence.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentObsessions.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.GoldenSilence.Title] as ProgressAchievement)?.IncrementProgress();
                 (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.AKinkForDrool.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.ThePerfectGagSlut.Title] as ProgressAchievement)?.IncrementProgress();
 
                 (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.ATrueGagSlut.Title] as TimedProgressAchievement)?.IncrementProgress();
             }
@@ -302,6 +307,43 @@ public partial class AchievementManager
         // Halt our Silent But Deadly Progress if gag is removed mid-dungeon
         if ((SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentButDeadly.Title] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
             (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentButDeadly.Title] as ConditionalProgressAchievement)?.CheckTaskProgress();
+    }
+
+    private void OnCharaOnlineCleanupForLatest(UserData user, List<string> activeGags, Guid activeRestraint)
+    {
+        Logger.LogDebug("Player Character " + user.AliasOrUID + " went online and has new active data. Cleaning up expired information!", LoggerType.Achievements);
+        // Do stuff if its a gag type.
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SpeechSilverSilenceGolden.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.TheKinkyLegend.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+
+        // Do stuff if its a restraint
+        if (user.UID == MainHub.UID)
+        {
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.FirstTimeBondage.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AmateurBondage.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ComfortRestraint.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourBondageMaid.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberMaid.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrainedBondageSlave.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberSlut.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ATrueBondageSlave.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+        }
+        else
+        {
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.RiggersFirstSession.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyLittlePlaything.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SuitsYouBitch.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TiesThatBind.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SlaveTrainer.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.CeremonyOfEternalBondage.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+        }
+
+        // Do stuff if it is a pattern.
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceQueen.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+
+        // if these are started, inturrupt them so that they do not complete.
+        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ForcedFollow.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ForcedWalkies.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
 
     }
 
@@ -309,12 +351,11 @@ public partial class AchievementManager
     {
         if (gag is not GagType.None)
         {
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.ApplyToPair.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.LookingForTheRightFit.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OralFixation.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.AKinkForDrool.Title] as ProgressAchievement)?.IncrementProgress();
-
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.ApplyToPair.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilenceSlut.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.WatchYourTongue.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.TongueTamer.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.KinkyLibrarian.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OrchestratorOfSilence.Title] as ProgressAchievement)?.IncrementProgress();
 
             (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.YourFavoriteNurse.Title] as ConditionalProgressAchievement)?.CheckTaskProgress();
         }
@@ -426,14 +467,16 @@ public partial class AchievementManager
             if (padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock)
             {
                 // make sure that someone is locking us up in a set.
-                if (enactorUID != MainHub.UID)
+                if (true /*enactorUID != MainHub.UID*/)
                 {
                     (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.FirstTimeBondage.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
                     (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AmateurBondage.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
                     (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ComfortRestraint.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.DayInTheLifeOfABondageSlave.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AWeekInBondage.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AMonthInBondage.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourBondageMaid.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberMaid.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrainedBondageSlave.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberSlut.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ATrueBondageSlave.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
                 }
             }
         }
@@ -445,9 +488,11 @@ public partial class AchievementManager
                 (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.FirstTimeBondage.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
                 (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AmateurBondage.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
                 (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ComfortRestraint.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.DayInTheLifeOfABondageSlave.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AWeekInBondage.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AMonthInBondage.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourBondageMaid.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberMaid.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrainedBondageSlave.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberSlut.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ATrueBondageSlave.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
             }
         }
     }
@@ -488,7 +533,7 @@ public partial class AchievementManager
                     (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyLittlePlaything.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
                     (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SuitsYouBitch.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
                     (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TiesThatBind.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SlaveTraining.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
+                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SlaveTrainer.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
                     (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.CeremonyOfEternalBondage.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
                 }
             }
@@ -502,7 +547,7 @@ public partial class AchievementManager
                 (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyLittlePlaything.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
                 (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SuitsYouBitch.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
                 (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TiesThatBind.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SlaveTraining.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
+                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SlaveTrainer.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
                 (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.CeremonyOfEternalBondage.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
             }
 
@@ -720,15 +765,19 @@ public partial class AchievementManager
 
         if (channel is XivChatType.Say)
         {
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SpeakUpSlut.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OfVoicelessPleas.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.DefianceInSilence.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.MuffledResilience.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.TrainedInSubSpeech.Title] as ProgressAchievement)?.IncrementProgress();
+
         }
         else if (channel is XivChatType.Yell)
         {
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.CantHearYou.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.PublicSpeaker.Title] as ProgressAchievement)?.IncrementProgress();
         }
         else if (channel is XivChatType.Shout)
         {
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OneMoreForTheCrowd.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.FromCriesOfHumility.Title] as ProgressAchievement)?.IncrementProgress();
         }
     }
 

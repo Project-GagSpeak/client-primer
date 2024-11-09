@@ -72,7 +72,7 @@ public class TimeLimitConditionalAchievement : Achievement
             if (remaining.Hours > 0) outputStr += remaining.Hours + "h ";
             if (remaining.Minutes > 0) outputStr += remaining.Minutes + "m ";
             if (remaining.Seconds >= 0) outputStr += remaining.Seconds + "s ";
-            outputStr += " Remaining To Complete Condition";
+            outputStr += " Remaining";
         }
         return outputStr;
     }

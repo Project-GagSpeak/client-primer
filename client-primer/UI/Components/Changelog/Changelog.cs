@@ -20,8 +20,16 @@ public class Changelog
     private void AddVersionData()
     {
         VersionEntry(0, 9, 9, 7)
-            .RegisterMain("The Localization Update:")
+            .RegisterMain("The Localization Overhaul: All major components of the plugin now can support localization.")
+            .RegisterMain("GagSpeak Report System is now fully integrated. You are able to report other pairs KinkPlates if they violate our " +
+            "team's policy, or are missused to harass others. (Directly or indirectly)")
             .RegisterFeature("Added Localization Base for Global Settings, Preferences, Account Management, and ForcedStay filters.")
+            .RegisterFeature("All Achievement Titles have been adjusted to their finalized polished form.")
+            .RegisterQol("The Duration Trackers have now been set to detect if a set is no longer active upon reconnection to the server, " +
+            "to avoid things tracking after they shouldnt be.")
+            .RegisterQol("Font Space used in some headers under settings has been refined.")
+            .RegisterQol("The Question mark Text now highlights while over it.")
+            .RegisterQol("KinkPlates now have a Mini Flag icon for reporting so you can access them via light KinkPlates as well!")
             .RegisterBugfix("Fixed a bug where profile images from non-paired user's kinkplates did not properly update.")
             .RegisterFeature("Fixed the Chat Box visibility hardcore toggle so it works again.");
         VersionEntry(0, 9, 9, 6)

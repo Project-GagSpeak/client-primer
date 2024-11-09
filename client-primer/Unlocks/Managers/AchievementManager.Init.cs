@@ -224,7 +224,7 @@ public partial class AchievementManager
         #region PUPPETEER MODULE
         var puppeteerComponent = new AchievementComponent();
         // (can work both ways)
-        puppeteerComponent.AddProgress(Achievements.WhoIsAGoodPet, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Recieved", suffix: "Sit Orders");
+        puppeteerComponent.AddProgress(Achievements.AnObedientPet, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Recieved", suffix: "Sit Orders");
 
         puppeteerComponent.AddProgress(Achievements.ControlMyBody, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Granted", suffix: "Pairs Access");
         puppeteerComponent.AddProgress(Achievements.CompleteDevotion, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Granted", suffix: "Pairs Access");
@@ -235,7 +235,7 @@ public partial class AchievementManager
 
         puppeteerComponent.AddProgress(Achievements.Ashamed, 5, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Be forced to Sulk", suffix: "Times");
 
-        puppeteerComponent.AddProgress(Achievements.ShowingOff, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Ordered", suffix: "Dances");
+        puppeteerComponent.AddProgress(Achievements.AMaestroOfMyProperty, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Ordered", suffix: "Dances");
 
         SaveData.Components[AchievementModuleKind.Puppeteer] = puppeteerComponent;
         #endregion PUPPETEER MODULE
@@ -243,7 +243,7 @@ public partial class AchievementManager
         // Module Finished
         #region TOYBOX MODULE
         var toyboxComponent = new AchievementComponent();
-        toyboxComponent.AddProgress(Achievements.FunForAll, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Published", suffix: "Patterns");
+        toyboxComponent.AddProgress(Achievements.MyPleasantriesForAll, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Published", suffix: "Patterns");
 
         toyboxComponent.AddProgress(Achievements.DeviousComposer, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Published", suffix: "Patterns");
 
@@ -253,7 +253,7 @@ public partial class AchievementManager
 
         toyboxComponent.AddDuration(Achievements.EnduranceQueen, TimeSpan.FromHours(1), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Continuous Minutes", "Vibrated for");
 
-        toyboxComponent.AddConditional(Achievements.MyFavoriteToys, () =>
+        toyboxComponent.AddConditional(Achievements.CollectorOfSinfulTreasures, () =>
         { return (_playerData.GlobalPerms?.HasValidShareCode() ?? false) || _vibeService.DeviceHandler.AnyDeviceConnected; }, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Devices Connected");
 
         toyboxComponent.AddRequiredTimeConditional(Achievements.MotivationForRestoration, TimeSpan.FromMinutes(30),
@@ -263,13 +263,19 @@ public partial class AchievementManager
             () => _clientConfigs.ActiveSocialTriggers.Count() > 0, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "DeathRolls Gambled");
 
         toyboxComponent.AddProgress(Achievements.SubtleReminders, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Triggers Fired");
-        toyboxComponent.AddProgress(Achievements.FingerOnTheTrigger, 100, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Triggers Fired");
+        toyboxComponent.AddProgress(Achievements.LostInTheMoment, 100, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Triggers Fired");
         toyboxComponent.AddProgress(Achievements.TriggerHappy, 1000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Triggers Fired");
 
         toyboxComponent.AddProgress(Achievements.HornyMornings, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Alarms Went Off");
 
-        toyboxComponent.AddConditionalProgress(Achievements.NothingCanStopMe, 500,
-            () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain While Bound", reqBeginAndFinish: false);
+        toyboxComponent.AddConditionalProgress(Achievements.EscapedPatient, 10, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        toyboxComponent.AddConditionalProgress(Achievements.BoundToKill, 25, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        toyboxComponent.AddConditionalProgress(Achievements.TheShackledSlayer, 50, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        toyboxComponent.AddConditionalProgress(Achievements.DangerousConvict, 100, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        toyboxComponent.AddConditionalProgress(Achievements.OfUnyieldingForce, 200, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        toyboxComponent.AddConditionalProgress(Achievements.StimulationOverdrive, 300, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        toyboxComponent.AddConditionalProgress(Achievements.BoundYetUnbroken, 400, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
+        toyboxComponent.AddConditionalProgress(Achievements.ChainsCantHoldMe, 500, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players while bound", "Slayed", false);
 
         SaveData.Components[AchievementModuleKind.Toybox] = toyboxComponent;
         #endregion TOYBOX MODULE
@@ -315,23 +321,23 @@ public partial class AchievementManager
 
         hardcoreComponent.AddRequiredTimeConditional(Achievements.WhoNeedsToSee, TimeSpan.FromHours(3), () => (_playerData.GlobalPerms?.IsBlindfolded() ?? false), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false));
 
-        hardcoreComponent.AddRequiredTimeConditional(Achievements.PetTraining, TimeSpan.FromMinutes(30), () => (_playerData.GlobalPerms?.IsStaying() ?? false), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false));
-        hardcoreComponent.AddRequiredTimeConditional(Achievements.NotGoingAnywhere, TimeSpan.FromHours(1), () => (_playerData.GlobalPerms?.IsStaying() ?? false), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false));
-        hardcoreComponent.AddRequiredTimeConditional(Achievements.HouseTrained, TimeSpan.FromDays(1), () => (_playerData.GlobalPerms?.IsStaying() ?? false), DurationTimeUnit.Hours, (id, name) => WasCompleted(id, name).ConfigureAwait(false));
+        hardcoreComponent.AddRequiredTimeConditional(Achievements.OfDomesticDiscipline, TimeSpan.FromMinutes(30), () => (_playerData.GlobalPerms?.IsStaying() ?? false), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false));
+        hardcoreComponent.AddRequiredTimeConditional(Achievements.HomeboundSubmission, TimeSpan.FromHours(1), () => (_playerData.GlobalPerms?.IsStaying() ?? false), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false));
+        hardcoreComponent.AddRequiredTimeConditional(Achievements.PerfectHousePet, TimeSpan.FromDays(1), () => (_playerData.GlobalPerms?.IsStaying() ?? false), DurationTimeUnit.Hours, (id, name) => WasCompleted(id, name).ConfigureAwait(false));
 
         // Shock-related achievements - Give out shocks
         hardcoreComponent.AddProgress(Achievements.IndulgingSparks, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Sent");
-        hardcoreComponent.AddProgress(Achievements.CantGetEnough, 100, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Sent");
-        hardcoreComponent.AddProgress(Achievements.VerThunder, 1000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Sent");
+        hardcoreComponent.AddProgress(Achievements.ShockingTemptations, 100, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Sent");
+        hardcoreComponent.AddProgress(Achievements.TheCrazeOfShockies, 1000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Sent");
         hardcoreComponent.AddProgress(Achievements.WickedThunder, 10000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Sent");
         hardcoreComponent.AddProgress(Achievements.ElectropeHasNoLimits, 25000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Sent");
 
         // Shock-related achievements - Get shocked
-        hardcoreComponent.AddProgress(Achievements.ShockAndAwe, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Received");
+        hardcoreComponent.AddProgress(Achievements.ElectrifyingPleasure, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Received");
         hardcoreComponent.AddProgress(Achievements.ShockingExperience, 100, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Received");
-        hardcoreComponent.AddProgress(Achievements.ShockolateTasting, 1000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Received");
+        hardcoreComponent.AddProgress(Achievements.WiredForObedience, 1000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Received");
         hardcoreComponent.AddProgress(Achievements.ShockAddiction, 10000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Received");
-        hardcoreComponent.AddProgress(Achievements.WarriorOfElectrope, 25000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Received");
+        hardcoreComponent.AddProgress(Achievements.SlaveToTheShock, 25000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Received");
         hardcoreComponent.AddProgress(Achievements.ShockSlut, 50000, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Shocks Received");
 
         // Tamed Brat - Shock collar beep or vibrate 10 times without a follow-up shock (Look into this later)
@@ -355,11 +361,11 @@ public partial class AchievementManager
         var genericComponent = new AchievementComponent();
         genericComponent.AddProgress(Achievements.TutorialComplete, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Tutorial Completed");
 
-        genericComponent.AddConditional(Achievements.AddedFirstPair, () => _pairManager.DirectPairs.Count > 0, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Pair Added");
+        genericComponent.AddConditional(Achievements.KinkyNovice, () => _pairManager.DirectPairs.Count > 0, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Pair Added");
 
         genericComponent.AddProgress(Achievements.TheCollector, 20, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Pairs Added");
 
-        genericComponent.AddProgress(Achievements.AppliedFirstPreset, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Presets Applied");
+        genericComponent.AddProgress(Achievements.BoundaryRespecter, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Presets Applied");
 
         genericComponent.AddProgress(Achievements.HelloKinkyWorld, 1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Global Messages Sent");
 
@@ -377,7 +383,7 @@ public partial class AchievementManager
 
         #region SECRETS MODULE
         var secretsComponent = new AchievementComponent();
-        secretsComponent.AddProgress(Achievements.TooltipLogos, 5, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Found", suffix: "Easter Eggs", isSecret: true);
+        secretsComponent.AddProgress(Achievements.HiddenInPlainSight, 5, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Found", suffix: "Easter Eggs", isSecret: true);
 
         secretsComponent.AddConditional(Achievements.Experimentalist, () =>
         {
@@ -394,15 +400,15 @@ public partial class AchievementManager
         secretsComponent.AddConditional(Achievements.GaggedPleasure, () => _vibeService.ConnectedToyActive && _playerData.IsPlayerGagged, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Pleasure Requirements Met", isSecret: true);
         secretsComponent.AddThreshold(Achievements.BondageClub, 8, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Club Members Gathered", isSecret: true);
         secretsComponent.AddConditional(Achievements.BadEndHostage, () => _clientConfigs.GetActiveSetIdx() != -1 && (_frameworkUtils.ClientState.LocalPlayer?.IsDead ?? false), (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Encountered", suffix: "Bad Ends", isSecret: true);
-        secretsComponent.AddConditionalProgress(Achievements.WorldTour, 11, () => _clientConfigs.GetActiveSetIdx() != -1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Taken", suffix: "Tours in Bondage", isSecret: true);
-        secretsComponent.AddConditionalProgress(Achievements.SilentProtagonist, 1, () => _playerData.IsPlayerGagged && _playerData.GlobalPerms!.LiveChatGarblerActive, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "MissTypes Made", isSecret: true);
+        secretsComponent.AddConditionalProgress(Achievements.TourDeBound, 11, () => _clientConfigs.GetActiveSetIdx() != -1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Taken", suffix: "Tours in Bondage", isSecret: true);
+        secretsComponent.AddConditionalProgress(Achievements.MuffledProtagonist, 1, () => _playerData.IsPlayerGagged && _playerData.GlobalPerms!.LiveChatGarblerActive, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "MissTypes Made", isSecret: true);
         // The above is currently non functional as i dont have the data to know which chat message type contains these request tasks.
 
         secretsComponent.AddConditional(Achievements.BoundgeeJumping, () => _clientConfigs.GetActiveSetIdx() != -1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Attempted", suffix: "Dangerous Acts", isSecret: true);
         secretsComponent.AddConditionalProgress(Achievements.KinkyTeacher, 10, () => _clientConfigs.GetActiveSetIdx() != -1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Thanks Received", reqBeginAndFinish: false, isSecret: true);
         secretsComponent.AddConditionalProgress(Achievements.KinkyProfessor, 50, () => _clientConfigs.GetActiveSetIdx() != -1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Thanks Received", reqBeginAndFinish: false, isSecret: true);
         secretsComponent.AddConditionalProgress(Achievements.KinkyMentor, 100, () => _clientConfigs.GetActiveSetIdx() != -1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Thanks Received", reqBeginAndFinish: false, isSecret: true);
-        secretsComponent.AddThreshold(Achievements.Overkill, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Restriction Conditions Satisfied", isSecret: true); 
+        secretsComponent.AddThreshold(Achievements.ExtremeBondageEnjoyer, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Restriction Conditions Satisfied", isSecret: true); 
         secretsComponent.AddConditional(Achievements.WildRide, () =>
         {
             var isRacing = _frameworkUtils.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.ChocoboRacing];

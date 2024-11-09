@@ -123,81 +123,89 @@ public static class Achievements
     public static readonly AchievementInfo Bondodge = new AchievementInfo(68, "Bondodge", "Within 2 seconds of having a restraint set applied to you, remove it from yourself.");
 
     // Puppeteer
-    public static readonly AchievementInfo WhoIsAGoodPet = new AchievementInfo(69, "Who's a good pet~?", "Be ordered to sit by another pair through Puppeteer.");
+    public static readonly AchievementInfo AnObedientPet = new AchievementInfo(69, "An Obedient Pet", "Be ordered to sit by another pair through Puppeteer.");
 
     public static readonly AchievementInfo ControlMyBody = new AchievementInfo(70, "Control My Body", "Enable Allow Motions for another pair.");
 
-    public static readonly AchievementInfo CompleteDevotion = new AchievementInfo(71, "Complete Devotion", "Enable All Commands for another pair.");
+    public static readonly AchievementInfo CompleteDevotion = new AchievementInfo(71, "Of Complete Devotion", "Enable All Commands for another pair.");
 
-    public static readonly AchievementInfo MasterOfPuppets = new AchievementInfo(72, "Master of Puppets", "Puppeteer someone 10 times in an hour.");
+    public static readonly AchievementInfo MasterOfPuppets = new AchievementInfo(72, "The Master of Puppets", "Puppeteer someone 10 times in an hour.");
 
     public static readonly AchievementInfo KissMyHeels = new AchievementInfo(73, "Kiss my Heels", "Order someone to /grovel 50 times using Puppeteer.");
 
     public static readonly AchievementInfo Ashamed = new AchievementInfo(74, "Ashamed", "Be forced to /sulk through Puppeteer.");
 
-    public static readonly AchievementInfo ShowingOff = new AchievementInfo(75, "Showing Off", "Order someone to execute any emote with 'dance' in it 10 times.");
+    public static readonly AchievementInfo AMaestroOfMyProperty = new AchievementInfo(75, "A Maestro of my Property", "Order someone to execute any emote with 'dance' in it 10 times.");
 
     // Toybox
-    public static readonly AchievementInfo FunForAll = new AchievementInfo(76, "Fun for all", "Create and publish a pattern for the first time.");
+    public static readonly AchievementInfo MyPleasantriesForAll = new AchievementInfo(76, "My Pleasantries for All", "Create and publish a pattern for the first time.");
 
     public static readonly AchievementInfo DeviousComposer = new AchievementInfo(77, "Devious Composer", "Publish 10 patterns you have made.");
 
-    public static readonly AchievementInfo CravingPleasure = new AchievementInfo(78, "Craving Pleasure", "Download 30 Patterns from the Pattern Hub.");
+    public static readonly AchievementInfo CravingPleasure = new AchievementInfo(78, "Of Craving Pleasure", "Download 30 Patterns from the Pattern Hub.");
 
     public static readonly AchievementInfo PatternLover = new AchievementInfo(79, "Pattern Lover", "Like 30 Patterns from the Pattern Hub.");
 
-    public static readonly AchievementInfo EnduranceQueen = new AchievementInfo(80, "Endurance King/Queen", "Play a pattern for an hour (59m) without pause.");
+    public static readonly AchievementInfo EnduranceKing = new AchievementInfo(80, "Endurance King", "Play a pattern for an hour (59m) without pause.");
+    public static readonly AchievementInfo EnduranceQueen = new AchievementInfo(155, "Endurance Queen", "Play a pattern for an hour (59m) without pause.");
 
-    public static readonly AchievementInfo MyFavoriteToys = new AchievementInfo(81, "My Favorite Toys", "Connect a real device (Intiface / PiShock Device) to GagSpeak.");
+    public static readonly AchievementInfo CollectorOfSinfulTreasures = new AchievementInfo(81, "Collector of Sinful Treasures", "Connect a real device (Intiface / PiShock Device) to GagSpeak.");
 
     public static readonly AchievementInfo MotivationForRestoration = new AchievementInfo(82, "Motivation for Restoration", "Play a pattern for over 30 minutes in Diadem.");
 
     public static readonly AchievementInfo KinkyGambler = new AchievementInfo(83, "Kinky Gambler", "Complete a DeathRoll (win or loss) while having a DeathRoll trigger on.");
 
     public static readonly AchievementInfo SubtleReminders = new AchievementInfo(84, "Subtle Reminders", "Have 10 Triggers go off.");
-    public static readonly AchievementInfo FingerOnTheTrigger = new AchievementInfo(85, "Finger on the Trigger", "Have 100 Triggers go off.");
+    public static readonly AchievementInfo LostInTheMoment = new AchievementInfo(85, "Lost in the Moment", "Have 100 Triggers go off.");
     public static readonly AchievementInfo TriggerHappy = new AchievementInfo(86, "Trigger Happy", "Have 1000 Triggers go off.");
 
     public static readonly AchievementInfo HornyMornings = new AchievementInfo(87, "Horny Mornings", "Have an alarm go off.");
 
-    public static readonly AchievementInfo NothingCanStopMe = new AchievementInfo(88, "Nothing can stop me", "Kill 500 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo EscapedPatient = new AchievementInfo(156, "Escaped Patient", "Kill 10 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo BoundToKill = new AchievementInfo(157, "Bound to Kill", "Kill 25 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo TheShackledSlayer = new AchievementInfo(158, "The Shackled Slayer", "Kill 50 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo DangerousConvict = new AchievementInfo(159, "Dangerous Convict", "Kill 100 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo OfUnyieldingForce = new AchievementInfo(160, "Of Unyielding Force", "Kill 200 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo StimulationOverdrive = new AchievementInfo(161, "Stimulation Overdrive", "Kill 300 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo BoundYetUnbroken = new AchievementInfo(162, "Bound yet Unbroken", "Kill 400 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo ChainsCantHoldMe = new AchievementInfo(88, "Chains Can't Hold Me", "Kill 500 enemies in PvP Frontlines while restrained or vibed.");
 
     // Hardcore
-    public static readonly AchievementInfo AllTheCollarsOfTheRainbow = new AchievementInfo(89, "All the Collars of the Rainbow", "Force 20 pairs to follow you.");
+    public static readonly AchievementInfo AllTheCollarsOfTheRainbow = new AchievementInfo(89, "All Collars of the Rainbow", "Force 20 pairs to follow you.");
 
     public static readonly AchievementInfo UCanTieThis = new AchievementInfo(90, "U Can't Tie This", "Be forced to follow someone, throughout a duty.");
 
-    public static readonly AchievementInfo ForcedFollow = new AchievementInfo(91, "Follow Along Now", "Force someone to follow you for 1 minute.");
-    public static readonly AchievementInfo ForcedWalkies = new AchievementInfo(92, "It's the Leash of Your Worries", "Force someone to follow you for 5 minutes.");
+    public static readonly AchievementInfo ForcedFollow = new AchievementInfo(91, "Come Follow Along Now", "Force someone to follow you for 1 minute.");
+    public static readonly AchievementInfo ForcedWalkies = new AchievementInfo(92, "The Leash of Your Worries", "Force someone to follow you for 5 minutes.");
 
     public static readonly AchievementInfo TimeForWalkies = new AchievementInfo(93, "Time for Walkies", "Be forced to follow someone for 1 minute.");
-    public static readonly AchievementInfo GettingStepsIn = new AchievementInfo(94, "Getting Your Steps In", "Be forced to follow someone for 5 minutes.");
+    public static readonly AchievementInfo GettingStepsIn = new AchievementInfo(94, "Getting My Steps In", "Be forced to follow someone for 5 minutes.");
     public static readonly AchievementInfo WalkiesLover = new AchievementInfo(95, "Walkies Lover", "Be forced to follow someone for 10 minutes.");
 
     public static readonly AchievementInfo LivingFurniture = new AchievementInfo(96, "Living Art", "Be forced to sit for 1 hour or more.");
 
     public static readonly AchievementInfo WalkOfShame = new AchievementInfo(97, "Walk of Shame", "Be bound, blindfolded, and leashed in a major city.");
 
-    public static readonly AchievementInfo BlindLeadingTheBlind = new AchievementInfo(98, "Blind leading the Blind", "Be blindfolded while having someone follow you blindfolded.");
+    public static readonly AchievementInfo BlindLeadingTheBlind = new AchievementInfo(98, "When Blind lead the Blind", "Be blindfolded while having someone follow you blindfolded.");
 
-    public static readonly AchievementInfo WhatAView = new AchievementInfo(99, "What A View", "Use the /lookout emote while wearing a blindfold.");
+    public static readonly AchievementInfo WhatAView = new AchievementInfo(99, "Wow, What A View!", "Use the /lookout emote while wearing a blindfold.");
 
     public static readonly AchievementInfo WhoNeedsToSee = new AchievementInfo(100, "Who Needs to See?", "Be blindfolded in hardcore mode for 3 hours.");
-    public static readonly AchievementInfo PetTraining = new AchievementInfo(101, "House Pet Training", "Be forced to stay in someone's house for 30 minutes.");
-    public static readonly AchievementInfo NotGoingAnywhere = new AchievementInfo(102, "Not Going Anywhere", "Be forced to stay in someone's house for 1 hour.");
-    public static readonly AchievementInfo HouseTrained = new AchievementInfo(103, "House Trained", "Be forced to stay in someone's house for 1 day.");
+    public static readonly AchievementInfo OfDomesticDiscipline = new AchievementInfo(101, "Of Domestic Discipline", "Be forced to stay in someone's house for 30 minutes.");
+    public static readonly AchievementInfo HomeboundSubmission = new AchievementInfo(102, "Homebound Submission", "Be forced to stay in someone's house for 1 hour.");
+    public static readonly AchievementInfo PerfectHousePet = new AchievementInfo(103, "Perfect House Pet", "Be forced to stay in someone's house for 1 day.");
 
-    public static readonly AchievementInfo IndulgingSparks = new AchievementInfo(104, "Indulging Sparks", "Give out 10 shocks.");
-    public static readonly AchievementInfo CantGetEnough = new AchievementInfo(105, "Can't Get Enough", "Give out 100 shocks.");
-    public static readonly AchievementInfo VerThunder = new AchievementInfo(106, "Ver-Thunder", "Give out 1000 shocks.");
-    public static readonly AchievementInfo WickedThunder = new AchievementInfo(107, "Wicked Thunder", "Give out 10,000 shocks.");
+    public static readonly AchievementInfo IndulgingSparks = new AchievementInfo(104, "From Indulging Sparks", "Give out 10 shocks.");
+    public static readonly AchievementInfo ShockingTemptations = new AchievementInfo(105, "Shocking Temptations", "Give out 100 shocks.");
+    public static readonly AchievementInfo TheCrazeOfShockies = new AchievementInfo(106, "The Shockies Craze", "Give out 1000 shocks.");
+    public static readonly AchievementInfo WickedThunder = new AchievementInfo(107, "Of Wicked Thunder", "Give out 10,000 shocks.");
     public static readonly AchievementInfo ElectropeHasNoLimits = new AchievementInfo(108, "Electrope Has No Limits", "Give out 25,000 shocks.");
 
-    public static readonly AchievementInfo ShockAndAwe = new AchievementInfo(109, "Shock and Awe", "Get shocked 10 times.");
+    public static readonly AchievementInfo ElectrifyingPleasure = new AchievementInfo(109, "Electrifying Pleasure", "Get shocked 10 times.");
     public static readonly AchievementInfo ShockingExperience = new AchievementInfo(110, "Shocking Experience", "Get shocked 100 times.");
-    public static readonly AchievementInfo ShockolateTasting = new AchievementInfo(111, "Shockolate Tasting", "Get shocked 1000 times.");
+    public static readonly AchievementInfo WiredForObedience = new AchievementInfo(111, "Wired for Obedience", "Get shocked 1000 times.");
     public static readonly AchievementInfo ShockAddiction = new AchievementInfo(112, "Shock Addiction", "Get shocked 10,000 times.");
-    public static readonly AchievementInfo WarriorOfElectrope = new AchievementInfo(113, "Warrior of Electrope", "Get shocked 25,000 times.");
+    public static readonly AchievementInfo SlaveToTheShock = new AchievementInfo(113, "A Slave to the Shock", "Get shocked 25,000 times.");
     public static readonly AchievementInfo ShockSlut = new AchievementInfo(114, "Shock Slut", "Get shocked 50,000 times.");
 
     // Remotes
@@ -206,27 +214,27 @@ public static class Achievements
     public static readonly AchievementInfo VibingWithFriends = new AchievementInfo(117, "Vibing With Friends", "Host a Vibe Server Vibe Room.");
 
     // Generic
-    public static readonly AchievementInfo TutorialComplete = new AchievementInfo(118, "Tutorial Complete", "Welcome To GagSpeak!");
+    public static readonly AchievementInfo TutorialComplete = new AchievementInfo(118, "Kinky Beginnings", "Complete the Introduction and Register a successful account!");
 
-    public static readonly AchievementInfo AddedFirstPair = new AchievementInfo(119, "Added First Pair", "Add your first pair.");
+    public static readonly AchievementInfo KinkyNovice = new AchievementInfo(119, "Kinky Novice", "Add your first Kinkster in GagSpeak!");
     public static readonly AchievementInfo TheCollector = new AchievementInfo(120, "The Collector", "Add 20 Pairs.");
 
-    public static readonly AchievementInfo AppliedFirstPreset = new AchievementInfo(121, "Applied First Preset", "Apply a preset for a pair, defining the boundaries of your contact.");
+    public static readonly AchievementInfo BoundaryRespecter = new AchievementInfo(121, "Boundary Respecter", "Apply a preset for a pair, defining the boundaries of your contact.");
     
-    public static readonly AchievementInfo HelloKinkyWorld = new AchievementInfo(122, "Hello Kinky World", "Use the gagspeak global chat for the first time.");
+    public static readonly AchievementInfo HelloKinkyWorld = new AchievementInfo(122, "Hello Kinky World!", "Use the gagspeak global chat for the first time.");
     
     public static readonly AchievementInfo KnowsMyLimits = new AchievementInfo(123, "Knows My Limits", "Use your Safeword for the first time.");
     
     public static readonly AchievementInfo WarriorOfLewd = new AchievementInfo(124, "Warrior Of Lewd", "View a FULL Cutscene while Bound and Gagged.");
     
-    public static readonly AchievementInfo EscapingIsNotEasy = new AchievementInfo(125, "Escaping Is Not Easy", "Change your equipment/change job while locked in a restraint set.");
+    public static readonly AchievementInfo EscapingIsNotEasy = new AchievementInfo(125, "Escaping Isn't So Easy..", "Change your equipment/change job while locked in a restraint set.");
     
     public static readonly AchievementInfo ICantBelieveYouveDoneThis = new AchievementInfo(126, "I Can't Believe You've Done This", "Get /slapped while bound.");
 
     // Secrets
-    public static readonly AchievementInfo TooltipLogos = new AchievementInfo(127, "Hidden in Plain Sight", "???");
+    public static readonly AchievementInfo HiddenInPlainSight = new AchievementInfo(127, "Hidden in Plain Sight", "???");
 
-    public static readonly AchievementInfo Experimentalist = new AchievementInfo(128, "Experimentalist", "???");
+    public static readonly AchievementInfo Experimentalist = new AchievementInfo(128, "The Experimentalist", "???");
 
     public static readonly AchievementInfo HelplessDamsel = new AchievementInfo(129, "Completely Helpless", "???");
 
@@ -234,11 +242,11 @@ public static class Achievements
 
     public static readonly AchievementInfo BondageClub = new AchievementInfo(131, "Bondage Club", "???");
 
-    public static readonly AchievementInfo BadEndHostage = new AchievementInfo(132, "Bad End Hostage", "???");
+    public static readonly AchievementInfo BadEndHostage = new AchievementInfo(132, "A Bad End Hostage", "???");
 
-    public static readonly AchievementInfo WorldTour = new AchievementInfo(133, "World Tour", "???");
+    public static readonly AchievementInfo TourDeBound = new AchievementInfo(133, "Tour De Bound", "???");
 
-    public static readonly AchievementInfo SilentProtagonist = new AchievementInfo(134, "The Silent Protagonist", "???");
+    public static readonly AchievementInfo MuffledProtagonist = new AchievementInfo(134, "The Muffled Protagonist", "???");
 
     public static readonly AchievementInfo BoundgeeJumping = new AchievementInfo(135, "Boundgee Jumping", "???");
 
@@ -246,11 +254,11 @@ public static class Achievements
     public static readonly AchievementInfo KinkyProfessor = new AchievementInfo(137, "Kinky Professor", "???");
     public static readonly AchievementInfo KinkyMentor = new AchievementInfo(138, "Kinky Mentor", "???");
 
-    public static readonly AchievementInfo Overkill = new AchievementInfo(139, "Overkill", "???");
+    public static readonly AchievementInfo ExtremeBondageEnjoyer = new AchievementInfo(139, "Extreme Bondage Enjoyer", "???");
 
-    public static readonly AchievementInfo WildRide = new AchievementInfo(140, "Wild Ride", "???");
+    public static readonly AchievementInfo WildRide = new AchievementInfo(140, "Of Wild Rides", "???");
 
-    public static readonly AchievementInfo SlavePresentation = new AchievementInfo(141, "Slave Presentation", "???");
+    public static readonly AchievementInfo SlavePresentation = new AchievementInfo(141, "A Presentable Slave", "???");
 
 
     // Full mapping to quickly go from Uint to AchievementInfo
@@ -324,26 +332,26 @@ public static class Achievements
         { 66, AuctionedOff },
         { 67, SoldSlave },
         { 68, Bondodge },
-        { 69, WhoIsAGoodPet },
+        { 69, AnObedientPet },
         { 70, ControlMyBody },
         { 71, CompleteDevotion },
         { 72, MasterOfPuppets },
         { 73, KissMyHeels },
         { 74, Ashamed },
-        { 75, ShowingOff },
-        { 76, FunForAll },
+        { 75, AMaestroOfMyProperty },
+        { 76, MyPleasantriesForAll },
         { 77, DeviousComposer },
         { 78, CravingPleasure },
         { 79, PatternLover },
-        { 80, EnduranceQueen },
-        { 81, MyFavoriteToys },
+        { 80, EnduranceKing },
+        { 81, CollectorOfSinfulTreasures },
         { 82, MotivationForRestoration },
         { 83, KinkyGambler },
         { 84, SubtleReminders },
-        { 85, FingerOnTheTrigger },
+        { 85, LostInTheMoment },
         { 86, TriggerHappy },
         { 87, HornyMornings },
-        { 88, NothingCanStopMe },
+        { 88, ChainsCantHoldMe },
         { 89, AllTheCollarsOfTheRainbow },
         { 90, UCanTieThis },
         { 91, ForcedFollow },
@@ -356,45 +364,45 @@ public static class Achievements
         { 98, BlindLeadingTheBlind },
         { 99, WhatAView },
         { 100, WhoNeedsToSee },
-        { 101, PetTraining },
-        { 102, NotGoingAnywhere },
-        { 103, HouseTrained },
+        { 101, OfDomesticDiscipline },
+        { 102, HomeboundSubmission },
+        { 103, PerfectHousePet },
         { 104, IndulgingSparks },
-        { 105, CantGetEnough },
-        { 106, VerThunder },
+        { 105, ShockingTemptations },
+        { 106, TheCrazeOfShockies },
         { 107, WickedThunder },
         { 108, ElectropeHasNoLimits },
-        { 109, ShockAndAwe },
+        { 109, ElectrifyingPleasure },
         { 110, ShockingExperience },
-        { 111, ShockolateTasting },
+        { 111, WiredForObedience },
         { 112, ShockAddiction },
-        { 113, WarriorOfElectrope },
+        { 113, SlaveToTheShock },
         { 114, ShockSlut },
         { 115, JustVibing },
         { 116, DontKillMyVibe },
         { 117, VibingWithFriends },
         { 118, TutorialComplete },
-        { 119, AddedFirstPair },
+        { 119, KinkyNovice },
         { 120, TheCollector },
-        { 121, AppliedFirstPreset },
+        { 121, BoundaryRespecter },
         { 122, HelloKinkyWorld },
         { 123, KnowsMyLimits },
         { 124, WarriorOfLewd },
         { 125, EscapingIsNotEasy },
         { 126, ICantBelieveYouveDoneThis },
-        { 127, TooltipLogos },
+        { 127, HiddenInPlainSight },
         { 128, Experimentalist },
         { 129, HelplessDamsel },
         { 130, GaggedPleasure },
         { 131, BondageClub },
         { 132, BadEndHostage },
-        { 133, WorldTour },
-        { 134, SilentProtagonist },
+        { 133, TourDeBound },
+        { 134, MuffledProtagonist },
         { 135, BoundgeeJumping },
         { 136, KinkyTeacher },
         { 137, KinkyProfessor },
         { 138, KinkyMentor },
-        { 139, Overkill },
+        { 139, ExtremeBondageEnjoyer },
         { 140, WildRide },
         { 141, SlavePresentation },
         { 142, KinkyLibrarian },
@@ -409,6 +417,14 @@ public static class Achievements
         { 151, TrainedInSubSpeech },
         { 152, SilenceOfShame },
         { 153, YourRubberMaid },
-        { 154, YourRubberSlut }
+        { 154, YourRubberSlut },
+        { 155, EnduranceQueen },
+        { 156, EscapedPatient },
+        { 157, BoundToKill },
+        { 158, TheShackledSlayer },
+        { 159, DangerousConvict },
+        { 160, OfUnyieldingForce },
+        { 161, StimulationOverdrive },
+        { 162, BoundYetUnbroken }
     };
 }

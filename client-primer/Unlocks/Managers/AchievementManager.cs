@@ -437,14 +437,14 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Subscribe(UnlocksEvent.VibeRoomCreated, () => (SaveData.Components[AchievementModuleKind.Remotes].Achievements[Achievements.VibingWithFriends.Title] as ProgressAchievement)?.IncrementProgress());
         _eventManager.Subscribe<NewState>(UnlocksEvent.VibratorsToggled, OnVibratorToggled);
 
-        _eventManager.Subscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.NothingCanStopMe.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1));
+        _eventManager.Subscribe(UnlocksEvent.PvpPlayerSlain, OnPvpKill);
         _eventManager.Subscribe(UnlocksEvent.ClientSlain, () => (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.BadEndHostage.Title] as ConditionalAchievement)?.CheckCompletion());
         _eventManager.Subscribe(UnlocksEvent.ClientOneHp, () => (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.BoundgeeJumping.Title] as ConditionalAchievement)?.CheckCompletion());
         _eventManager.Subscribe<XivChatType>(UnlocksEvent.ChatMessageSent, OnChatMessage);
         _eventManager.Subscribe<IGameObject, ushort, IGameObject>(UnlocksEvent.EmoteExecuted, OnEmoteExecuted);
         _eventManager.Subscribe(UnlocksEvent.TutorialCompleted, () => (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.TutorialComplete.Title] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Subscribe(UnlocksEvent.PairAdded, OnPairAdded);
-        _eventManager.Subscribe(UnlocksEvent.PresetApplied, () => (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.AppliedFirstPreset.Title] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Subscribe(UnlocksEvent.PresetApplied, () => (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.BoundaryRespecter.Title] as ProgressAchievement)?.IncrementProgress());
         _eventManager.Subscribe(UnlocksEvent.GlobalSent, () => (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.HelloKinkyWorld.Title] as ProgressAchievement)?.IncrementProgress());
         _eventManager.Subscribe(UnlocksEvent.CursedDungeonLootFound, OnCursedLootFound);
         _eventManager.Subscribe<string>(UnlocksEvent.EasterEggFound, OnIconClicked);
@@ -513,13 +513,13 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _eventManager.Unsubscribe(UnlocksEvent.VibeRoomCreated, () => (SaveData.Components[AchievementModuleKind.Remotes].Achievements[Achievements.VibingWithFriends.Title] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe<NewState>(UnlocksEvent.VibratorsToggled, OnVibratorToggled);
 
-        _eventManager.Unsubscribe(UnlocksEvent.PvpPlayerSlain, () => (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.NothingCanStopMe.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1));
+        _eventManager.Unsubscribe(UnlocksEvent.PvpPlayerSlain, OnPvpKill);
         _eventManager.Unsubscribe(UnlocksEvent.ClientSlain, () => (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.BadEndHostage.Title] as ConditionalAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe<XivChatType>(UnlocksEvent.ChatMessageSent, OnChatMessage);
         _eventManager.Unsubscribe<IGameObject, ushort, IGameObject>(UnlocksEvent.EmoteExecuted, OnEmoteExecuted);
         _eventManager.Unsubscribe(UnlocksEvent.TutorialCompleted, () => (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.TutorialComplete.Title] as ProgressAchievement)?.CheckCompletion());
         _eventManager.Unsubscribe(UnlocksEvent.PairAdded, OnPairAdded);
-        _eventManager.Unsubscribe(UnlocksEvent.PresetApplied, () => (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.AppliedFirstPreset.Title] as ProgressAchievement)?.IncrementProgress());
+        _eventManager.Unsubscribe(UnlocksEvent.PresetApplied, () => (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.BoundaryRespecter.Title] as ProgressAchievement)?.IncrementProgress());
         _eventManager.Unsubscribe(UnlocksEvent.GlobalSent, () => (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.HelloKinkyWorld.Title] as ProgressAchievement)?.IncrementProgress());
         _eventManager.Unsubscribe(UnlocksEvent.CursedDungeonLootFound, OnCursedLootFound);
         _eventManager.Unsubscribe<string>(UnlocksEvent.EasterEggFound, OnIconClicked);

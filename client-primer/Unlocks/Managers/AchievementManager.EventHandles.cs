@@ -37,7 +37,7 @@ public partial class AchievementManager
             else
                 SaveData.EasterEggIcons[windowLabel] = true;
             // update progress.
-            (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.TooltipLogos.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.HiddenInPlainSight.Title] as ProgressAchievement)?.IncrementProgress();
         }
     }
 
@@ -56,11 +56,11 @@ public partial class AchievementManager
                     // Mark the conditonal as finished in the achievement, and mark as completed.
                     if (_clientConfigs.GetActiveSetIdx() != -1)
                     {
-                        (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.WorldTour.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                        (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.TourDeBound.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
                         SaveData.VisitedWorldTour[prevZone] = true;
                     }
                     else
-                        (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.WorldTour.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+                        (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.TourDeBound.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
                     // reset the datetime to .MinValue
                     worldTourStartedTime = DateTime.MinValue;
                 }
@@ -105,7 +105,7 @@ public partial class AchievementManager
             else // Begin the progress for this city's world tour. 
             {
                 Logger.LogTrace("Starting World Tour Progress for: " + territory, LoggerType.Achievements);
-                (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.WorldTour.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+                (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.TourDeBound.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
                 worldTourStartedTime = DateTime.UtcNow;
             }
         }
@@ -393,7 +393,7 @@ public partial class AchievementManager
                 else // Begin the progress for this city's world tour. 
                 {
                     Logger.LogTrace("Starting World Tour Progress for: " + territory, LoggerType.Achievements);
-                    (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.WorldTour.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+                    (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.TourDeBound.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
                     worldTourStartedTime = DateTime.UtcNow;
                 }
             }
@@ -413,7 +413,7 @@ public partial class AchievementManager
                 (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.Bondodge.Title] as TimeLimitConditionalAchievement)?.CheckCompletion();
 
                 // track overkill
-                (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.Overkill.Title] as ThresholdAchievement)?.UpdateThreshold(set.EquippedSlotsTotal);
+                (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.ExtremeBondageEnjoyer.Title] as ThresholdAchievement)?.UpdateThreshold(set.EquippedSlotsTotal);
 
                 // Track Bondage Bunny
                 (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.BondageBunny.Title] as TimedProgressAchievement)?.IncrementProgress();
@@ -444,7 +444,7 @@ public partial class AchievementManager
             (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfDexterity.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
             (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfTheBlind.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
 
-            (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.Overkill.Title] as ThresholdAchievement)?.UpdateThreshold(0);
+            (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.ExtremeBondageEnjoyer.Title] as ThresholdAchievement)?.UpdateThreshold(0);
 
             // Validate the world tour achievement.
             var territory = _frameworkUtils.ClientState.TerritoryType;
@@ -452,7 +452,7 @@ public partial class AchievementManager
             if (SaveData.VisitedWorldTour.ContainsKey(territory) && SaveData.VisitedWorldTour[territory] is false)
             {
                 // Fail the conditional task.
-                (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.WorldTour.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+                (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.TourDeBound.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
                 worldTourStartedTime = DateTime.MinValue;
             }
         }
@@ -569,7 +569,7 @@ public partial class AchievementManager
         switch (actionType)
         {
             case PatternInteractionKind.Published:
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.FunForAll.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MyPleasantriesForAll.Title] as ProgressAchievement)?.IncrementProgress();
                 (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.DeviousComposer.Title] as ProgressAchievement)?.IncrementProgress();
                 break;
             case PatternInteractionKind.Downloaded:
@@ -604,13 +604,13 @@ public partial class AchievementManager
 
     private void OnDeviceConnected()
     {
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MyFavoriteToys.Title] as ConditionalAchievement)?.CheckCompletion();
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.CollectorOfSinfulTreasures.Title] as ConditionalAchievement)?.CheckCompletion();
     }
 
     private void OnTriggerFired()
     {
         (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.SubtleReminders.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.FingerOnTheTrigger.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.LostInTheMoment.Title] as ProgressAchievement)?.IncrementProgress();
         (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TriggerHappy.Title] as ProgressAchievement)?.IncrementProgress();
     }
 
@@ -701,20 +701,20 @@ public partial class AchievementManager
                     // and we have been ordered to start being forced to stay:
                     if (state is NewState.Enabled)
                     {
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.PetTraining.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.NotGoingAnywhere.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.HouseTrained.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.OfDomesticDiscipline.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.HomeboundSubmission.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.PerfectHousePet.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                     }
                     else // our forced to stay has ended
                     {
-                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.PetTraining.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
-                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.PetTraining.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.OfDomesticDiscipline.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.OfDomesticDiscipline.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
-                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.NotGoingAnywhere.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
-                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.NotGoingAnywhere.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.HomeboundSubmission.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.HomeboundSubmission.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
-                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.HouseTrained.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
-                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.HouseTrained.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.PerfectHousePet.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.PerfectHousePet.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                     }
                 }
                 break;
@@ -743,19 +743,20 @@ public partial class AchievementManager
     private void OnShockSent()
     {
         (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.IndulgingSparks.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.CantGetEnough.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.VerThunder.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ShockingTemptations.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.TheCrazeOfShockies.Title] as ProgressAchievement)?.IncrementProgress();
         (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WickedThunder.Title] as ProgressAchievement)?.IncrementProgress();
         (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ElectropeHasNoLimits.Title] as ProgressAchievement)?.IncrementProgress();
     }
 
     private void OnShockReceived()
     {
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ShockAndAwe.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ElectrifyingPleasure.Title] as ProgressAchievement)?.IncrementProgress();
         (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ShockingExperience.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ShockolateTasting.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WiredForObedience.Title] as ProgressAchievement)?.IncrementProgress();
         (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ShockAddiction.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WarriorOfElectrope.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.SlaveToTheShock.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ShockSlut.Title] as ProgressAchievement)?.IncrementProgress();
     }
 
 
@@ -811,7 +812,7 @@ public partial class AchievementManager
                 break;
 
             case PuppeteerMsgType.DanceOrder:
-                (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.ShowingOff.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.AMaestroOfMyProperty.Title] as ProgressAchievement)?.IncrementProgress();
                 break;
         }
         // Increase regardless.
@@ -828,14 +829,14 @@ public partial class AchievementManager
 
             case 50:
             case 52:
-                (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.WhoIsAGoodPet.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.AnObedientPet.Title] as ProgressAchievement)?.IncrementProgress();
                 break;
         }
     }
 
     private void OnPairAdded()
     {
-        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.AddedFirstPair.Title] as ConditionalAchievement)?.CheckCompletion();
+        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.KinkyNovice.Title] as ConditionalAchievement)?.CheckCompletion();
         (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.TheCollector.Title] as ProgressAchievement)?.IncrementProgress();
     }
 
@@ -864,6 +865,19 @@ public partial class AchievementManager
 
         }
     }
+
+    private void OnPvpKill()
+    {
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EscapedPatient.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.BoundToKill.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TheShackledSlayer.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.DangerousConvict.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.OfUnyieldingForce.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.StimulationOverdrive.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.BoundYetUnbroken.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ChainsCantHoldMe.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+    }
+
 
     // We need to check for knockback effects in gold sacuer.
     private void OnActionEffectEvent(List<ActionEffectEntry> actionEffects)

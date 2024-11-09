@@ -83,7 +83,7 @@ public partial class PairStickyUI
         if (_uiShared.IconTextButton(toggleChatboxIcon, toggleChatboxText, WindowMenuWidth, true, disableChatVisibilityToggle, "##ForcedChatboxVisibilityHardcoreAction"))
         {
             string newStr = PairGlobals.IsChatHidden() ? string.Empty : MainHub.UID + (pairAllowsDevotionalToggles ? Globals.DevotedString : string.Empty);
-            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatboxesHidden", newStr), MainHub.PlayerUserData));
+            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData, new KeyValuePair<string, object>("ChatBoxesHidden", newStr), MainHub.PlayerUserData));
         }
 
         var toggleChatInputIcon = PairGlobals.IsChatInputHidden() ? FontAwesomeIcon.StopCircle : FontAwesomeIcon.CommentSlash;

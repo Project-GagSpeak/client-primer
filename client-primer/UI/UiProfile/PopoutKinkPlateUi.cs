@@ -98,6 +98,6 @@ public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
         var drawList = ImGui.GetWindowDrawList();
         _lightUI.RectMin = drawList.GetClipRectMin();
         _lightUI.RectMax = drawList.GetClipRectMax();
-        _lightUI.DrawKinkPlateLight(drawList, KinkPlate, DisplayName, _userDataToDisplay, true);
+        _lightUI.DrawKinkPlateLight(drawList, KinkPlate, DisplayName, _userDataToDisplay, true, false);
     }
 }

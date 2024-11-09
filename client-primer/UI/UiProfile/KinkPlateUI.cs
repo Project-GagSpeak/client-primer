@@ -1,32 +1,21 @@
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility;
 using Dalamud.Utility;
-using FFXIVClientStructs.FFXIV.Client.LayoutEngine.Layer;
 using GagSpeak.Achievements;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
-using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.IPC;
-using GagspeakAPI.Dto.User;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
 using Microsoft.IdentityModel.Tokens;
-using NAudio.Gui;
 using Penumbra.GameData.Enums;
-using System;
 using System.Globalization;
 using System.Numerics;
-using static FFXIVClientStructs.FFXIV.Client.Game.UI.MapMarkerData.Delegates;
 
 namespace GagSpeak.UI.Profile;
-
-/// <summary>
-/// The UI Design for the KinkPlates.
-/// </summary>
 public partial class KinkPlateUI : WindowMediatorSubscriberBase
 {
     private readonly PairManager _pairManager;
@@ -37,8 +26,8 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
     private bool ThemePushed = false;
     public KinkPlateUI(ILogger<KinkPlateUI> logger, GagspeakMediator mediator,
-        PairManager pairManager, KinkPlateService profileService, 
-        CosmeticService cosmetics, TextureService textureService, UiSharedService uiShared, 
+        PairManager pairManager, KinkPlateService profileService,
+        CosmeticService cosmetics, TextureService textureService, UiSharedService uiShared,
         Pair pair) : base(logger, mediator, pair.UserData.AliasOrUID + "'s KinkPlate##GagspeakKinkPlateUI" + pair.UserData.AliasOrUID)
     {
         _pairManager = pairManager;
@@ -145,7 +134,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
         // Draw the close button.
         CloseButton(drawList);
-        AddRelativeTooltip(CloseButtonPos, CloseButtonSize, "Close "+ DisplayName +"'s KinkPlate™");
+        AddRelativeTooltip(CloseButtonPos, CloseButtonSize, "Close " + DisplayName + "'s KinkPlate™");
     }
 
     private void DrawProfilePic(ImDrawListPtr drawList, KinkPlate profile)
@@ -195,11 +184,11 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
     {
         int iconWidthPlusSpacing = 38;
         var iconOverviewPos = IconOverviewListPos;
-        
+
         // draw out the icon row. For each item, we will first determine the color, and its tooltip text.
         var vibeColor = Pair.UserPairGlobalPerms.ToyIsActive ? Gold : ImGuiColors.DalamudGrey3;
-        var vibeTT = Pair.UserPairGlobalPerms.ToyIsActive 
-            ? DisplayName + " has a Sex Toy connected and active." 
+        var vibeTT = Pair.UserPairGlobalPerms.ToyIsActive
+            ? DisplayName + " has a Sex Toy connected and active."
             : DisplayName + " does not have any Sex Toys connected and active.";
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Vibrator], iconOverviewPos, Vector2.One * 34, vibeColor, true, vibeTT);
         iconOverviewPos.X += iconWidthPlusSpacing;
@@ -293,7 +282,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
                 var gagImage = _cosmetics.GetImageFromDirectoryFile("GagImages\\" + Pair.LastReceivedAppearanceData.GagSlots[0].GagType + ".png" ?? $"ItemMouth\\None.png");
                 AddImageRounded(drawList, gagImage, GagSlotOnePos, GagSlotSize, 10f);
             }
-            if(Pair.LastReceivedAppearanceData.GagSlots[1].GagType.ToGagType() is not GagType.None)
+            if (Pair.LastReceivedAppearanceData.GagSlots[1].GagType.ToGagType() is not GagType.None)
             {
                 var gagImage = _cosmetics.GetImageFromDirectoryFile("GagImages\\" + Pair.LastReceivedAppearanceData.GagSlots[1].GagType + ".png" ?? $"ItemMouth\\None.png");
                 AddImageRounded(drawList, gagImage, GagSlotTwoPos, GagSlotSize, 10f);
@@ -384,8 +373,8 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         // to the right of this, draw the players total earned achievements scoring.
         statsPos += new Vector2(24, 0);
         ImGui.SetCursorScreenPos(statsPos);
-        UiSharedService.ColorText(info.CompletedAchievementsTotal +"/141", ImGuiColors.ParsedGold);
-        UiSharedService.AttachToolTip("The total achievements "+ DisplayName + " has earned.");
+        UiSharedService.ColorText(info.CompletedAchievementsTotal + "/141", ImGuiColors.ParsedGold);
+        UiSharedService.AttachToolTip("The total achievements " + DisplayName + " has earned.");
     }
 
     private void DrawBlockedSlots(ImDrawListPtr drawList, KinkPlateContent info)
@@ -515,13 +504,13 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         // draw the icon list underneath that displays the hardcore traits and shit
         var hardcoreTraitsPos = HardcoreTraitsRowPos;
         var activeSetLight = Pair.LastReceivedLightStorage?.Restraints.FirstOrDefault(x => x.Identifier == Pair.LastReceivedWardrobeData?.ActiveSetId) ?? null;
-        if(Pair.LastReceivedWardrobeData is not null && activeSetLight is not null && activeSetLight.HardcoreTraits.TryGetValue(Pair.LastReceivedWardrobeData.ActiveSetEnabledBy, out var traits))
+        if (Pair.LastReceivedWardrobeData is not null && activeSetLight is not null && activeSetLight.HardcoreTraits.TryGetValue(Pair.LastReceivedWardrobeData.ActiveSetEnabledBy, out var traits))
         {
             if (traits.ArmsRestrained || traits.ArmsRestrained)
                 AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.RestrainedArmsLegs], hardcoreTraitsPos, HardcoreTraitIconSize, Gold, true, "Hardcore Trait: Arms/Legs Restrained--SEP--Restricts Actions that require the use of arms/legs, whichever option is enabled.");
             else
                 AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.RestrainedArmsLegs], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Arms/Legs Restrained");
-            
+
             hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
             if (traits.Gagged)
                 AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Gagged], hardcoreTraitsPos, HardcoreTraitIconSize, Gold, true, "Hardcore Trait: Gagged--SEP--Restricts Actions that have your character shout/speak");
@@ -541,7 +530,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
                 AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Weighty], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Weighty");
 
             hardcoreTraitsPos.X += HardcoreTraitIconSize.X + HardcoreTraitSpacing.X;
-            if(traits.StimulationLevel is not StimulationLevel.None)
+            if (traits.StimulationLevel is not StimulationLevel.None)
                 AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Stimulated], hardcoreTraitsPos, HardcoreTraitIconSize, Gold, true, "Hardcore Trait: Stimulated--SEP--Distracted with stimulation, you care for combat less, increasing GCD Cooldown time in proportion to arousal level.");
             else
                 AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Stimulated], hardcoreTraitsPos, HardcoreTraitIconSize, ImGuiColors.DalamudGrey3, true, "Hardcore Trait: Stimulated");

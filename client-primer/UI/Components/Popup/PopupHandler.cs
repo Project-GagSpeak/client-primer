@@ -16,17 +16,18 @@ public class PopupHandler : WindowMediatorSubscriberBase
     private readonly HashSet<IPopupHandler> _handlers;
     private readonly UiSharedService _uiSharedService;
     private IPopupHandler? _currentHandler = null;
+    private bool ThemePushed = false;
 
     public PopupHandler(ILogger<PopupHandler> logger, GagspeakMediator mediator, IEnumerable<IPopupHandler> popupHandlers,
         UiSharedService uiSharedService) : base(logger, mediator, "GagspeakPopupHandler")
     {
+        // Adjust to restore some functionality?
         Flags = ImGuiWindowFlags.NoBringToFrontOnFocus
           | ImGuiWindowFlags.NoDecoration
           | ImGuiWindowFlags.NoInputs
           | ImGuiWindowFlags.NoSavedSettings
           | ImGuiWindowFlags.NoBackground
           | ImGuiWindowFlags.NoMove
-          | ImGuiWindowFlags.NoNav
           | ImGuiWindowFlags.NoTitleBar;
         IsOpen = true;
 
@@ -72,13 +73,22 @@ public class PopupHandler : WindowMediatorSubscriberBase
 
     protected override void PreDrawInternal()
     {
-        // include our personalized theme for this window here if we have themes enabled.
+        if (!ThemePushed)
+        {
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new Vector2(0, 0));
+            ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 35f);
+
+            ThemePushed = true;
+        }
     }
     protected override void PostDrawInternal()
     {
-        // include our personalized theme for this window here if we have themes enabled.
+        if (ThemePushed)
+        {
+            ImGui.PopStyleVar(2);
+            ThemePushed = false;
+        }
     }
-
     protected override void DrawInternal()
     {
         // If there is no handler, do nothing
@@ -104,7 +114,7 @@ public class PopupHandler : WindowMediatorSubscriberBase
         // draw the popups content
         _currentHandler.DrawContent();
         // if the handler of this content should show a close button (not sure what this is for yet)
-        if (_currentHandler.ShowClose)
+        if (_currentHandler.ShowClosed)
         {
             ImGui.Separator();
             if (_uiSharedService.IconTextButton(FontAwesomeIcon.Times, "Close", ImGui.GetContentRegionAvail().X))

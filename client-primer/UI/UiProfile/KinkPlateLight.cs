@@ -14,6 +14,11 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using GagSpeak.Achievements;
+using Dalamud.Interface;
+using GagSpeak.Services.Mediator;
+using GagSpeak.Utils;
+using Dalamud.Interface.Utility.Raii;
+using System.Threading;
 
 namespace GagSpeak.UI.Profile;
 
@@ -23,6 +28,7 @@ namespace GagSpeak.UI.Profile;
 public class KinkPlateLight
 {
     private readonly ILogger<KinkPlateLight> _logger;
+    private readonly GagspeakMediator _mediator;
     private readonly PairManager _pairManager;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly KinkPlateService _profileService;
@@ -31,12 +37,13 @@ public class KinkPlateLight
     private readonly UiSharedService _uiShared;
 
     private bool ThemePushed = false;
-    public KinkPlateLight(ILogger<KinkPlateLight> logger,
+    public KinkPlateLight(ILogger<KinkPlateLight> logger, GagspeakMediator mediator,
         PairManager pairManager, ServerConfigurationManager serverConfigs,
         KinkPlateService profileService, CosmeticService cosmetics,
         TextureService textureService, UiSharedService uiShared)
     {
         _logger = logger;
+        _mediator = mediator;
         _pairManager = pairManager;
         _serverConfigs = serverConfigs;
         _profileService = profileService;
@@ -50,22 +57,24 @@ public class KinkPlateLight
     private Vector2 PlateSize => RectMax - RectMin;
     public Vector2 CloseButtonPos => RectMin + Vector2.One * 20f;
     public Vector2 CloseButtonSize => Vector2.One * 24f;
+    public Vector2 ReportButtonPos => RectMin + new Vector2(17, 210);
     private Vector2 ProfilePictureBorderPos => RectMin + Vector2.One * (PlateSize.X - ProfilePictureBorderSize.X) / 2;
     private Vector2 ProfilePictureBorderSize => Vector2.One * 226f;
     private Vector2 ProfilePicturePos => RectMin + Vector2.One * (6 + (PlateSize.X - ProfilePictureBorderSize.X) / 2);
-    private Vector2 ProfilePictureSize => Vector2.One * 214f;
-    private Vector2 SupporterIconBorderPos => RectMin + new Vector2(182, 16);
+    public Vector2 ProfilePictureSize => Vector2.One * 214f;
+    private Vector2 SupporterIconBorderPos => RectMin + new Vector2(188, 16);
     private Vector2 SupporterIconBorderSize => Vector2.One * 52f;
-    private Vector2 SupporterIconPos => RectMin + new Vector2(184, 18);
+    private Vector2 SupporterIconPos => RectMin + new Vector2(190, 18);
     private Vector2 SupporterIconSize => Vector2.One * 48f;
     private Vector2 DescriptionBorderPos => RectMin + new Vector2(12, 350);
     private Vector2 DescriptionBorderSize => new Vector2(232, 150);
     private Vector2 TitleLineStartPos => RectMin + new Vector2(12, 317);
     private Vector2 TitleLineSize => new Vector2(232, 5);
-    private Vector2 StatsPos => RectMin + new Vector2(40, 326);
+    private Vector2 StatsPos => RectMin + new Vector2(0, 326);
+    private Vector2 StatIconSize => Vector2.One * 20f;
     private static Vector4 Gold = new Vector4(1f, 0.851f, 0.299f, 1f);
 
-    public void DrawKinkPlateLight(ImDrawListPtr drawList, KinkPlate profile, string displayName, UserData userData, bool isPair)
+    public bool DrawKinkPlateLight(ImDrawListPtr drawList, KinkPlate profile, string displayName, UserData userData, bool isPair, bool hoveringReport)
     {
 
         DrawPlate(drawList, profile.KinkPlateInfo, displayName);
@@ -86,8 +95,8 @@ public class KinkPlateLight
         // move over to the top area to draw out the achievement title line wrap.
         KinkPlateUI.AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.AchievementLineSplit], TitleLineStartPos, TitleLineSize);
 
-        DrawStats(drawList, profile.KinkPlateInfo, displayName, userData);
-
+        var ret = DrawStats(drawList, profile.KinkPlateInfo, displayName, userData, hoveringReport);
+        return ret;
     }
 
     private void DrawPlate(ImDrawListPtr drawList, KinkPlateContent info, string displayName)
@@ -128,7 +137,7 @@ public class KinkPlateLight
         var supporterInfo = _cosmetics.GetSupporterInfo(userData);
         if (supporterInfo.SupporterWrap is { } wrap)
         {
-            KinkPlateUI.AddImageRounded(drawList, wrap, SupporterIconPos, SupporterIconSize, SupporterIconSize.Y / 2, true, displayName + "Is Supporting CK!");
+            KinkPlateUI.AddImageRounded(drawList, wrap, SupporterIconPos, SupporterIconSize, SupporterIconSize.Y / 2, true, displayName + " Is Supporting CK!");
         }
         // Draw out the border for the icon.
         drawList.AddCircle(SupporterIconBorderPos + SupporterIconBorderSize / 2, SupporterIconBorderSize.X / 2,
@@ -220,27 +229,57 @@ public class KinkPlateLight
         UiSharedService.ColorTextWrapped(newDescText.TrimEnd(), color);
     }
 
-    private void DrawStats(ImDrawListPtr drawList, KinkPlateContent info, string displayName, UserData userData)
+    private bool DrawStats(ImDrawListPtr drawList, KinkPlateContent info, string displayName, UserData userData, bool hoveringReport)
     {
         // jump down to where we should draw out the stats, and draw out the achievement icon.
+        var spacing = ImGui.GetStyle().ItemSpacing.X;
         var statsPos = StatsPos;
-        KinkPlateUI.AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Clock], statsPos, Vector2.One * 20, ImGuiColors.ParsedGold, true, "First Joined on this Date");
-        // set the cursor screen pos to the right of the clock, and draw out the joined date.
-        statsPos += new Vector2(24, 0);
-
-        ImGui.SetCursorScreenPos(statsPos);
         var formattedDate = userData.createdOn ?? DateTime.MinValue;
         string createdDate = formattedDate != DateTime.MinValue ? formattedDate.ToString("d", CultureInfo.CurrentCulture) : "MM-DD-YYYY";
+        float dateWidth = ImGui.CalcTextSize(createdDate).X;
+        float achievementWidth = ImGui.CalcTextSize(info.CompletedAchievementsTotal + "/141").X;
+        float totalWidth = dateWidth + achievementWidth + StatIconSize.X * 3 + spacing * 3;
 
-        UiSharedService.ColorText(createdDate, ImGuiColors.ParsedGold);
-        var textWidth = ImGui.CalcTextSize($"MM-DD-YYYY").X;
-        statsPos += new Vector2(textWidth + 4, 0);
-        // to the right of this, draw out the achievement icon.
-        KinkPlateUI.AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Achievement], statsPos, Vector2.One * 20, ImGuiColors.ParsedGold);
-        // to the right of this, draw the players total earned achievements scoring.
-        statsPos += new Vector2(24, 0);
+        statsPos.X += (PlateSize.X - totalWidth) / 2;
+        KinkPlateUI.AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Clock], statsPos, StatIconSize, ImGuiColors.ParsedGold);
+
+        // set the cursor screen pos to the right of the clock, and draw out the joined date.
+        statsPos.X += StatIconSize.X + 2f;
         ImGui.SetCursorScreenPos(statsPos);
-        UiSharedService.ColorText(info.CompletedAchievementsTotal+"/141", ImGuiColors.ParsedGold);
+        UiSharedService.ColorText(createdDate, ImGuiColors.ParsedGold);
+        UiSharedService.AttachToolTip("The date " + displayName + " first joined GagSpeak.");
+
+        statsPos.X += dateWidth + spacing;
+        KinkPlateUI.AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Achievement], statsPos, StatIconSize, ImGuiColors.ParsedGold);
+
+        statsPos.X += StatIconSize.X + 2f;
+        ImGui.SetCursorScreenPos(statsPos);
+        UiSharedService.ColorText(info.CompletedAchievementsTotal + "/141", ImGuiColors.ParsedGold);
         UiSharedService.AttachToolTip("The total achievements " + displayName + " has earned.");
+
+        statsPos.X += achievementWidth + spacing;
+        statsPos.Y += 2f;
+        ImGui.SetCursorScreenPos(statsPos);
+        var color = hoveringReport && (KeyMonitor.CtrlPressed() && KeyMonitor.ShiftPressed())
+            ? ImGui.GetColorU32(ImGuiColors.DalamudRed) 
+            : hoveringReport ? ImGui.GetColorU32(ImGuiColors.DalamudGrey)
+                             : ImGui.GetColorU32(ImGuiColors.DalamudGrey3);
+        using (_uiShared.IconFont.Push())
+        {
+            drawList.AddText(statsPos, color, FontAwesomeIcon.Flag.ToIconString());
+        }
+        ImGui.SetWindowFontScale(1.0f);
+        ImGui.SetCursorScreenPos(statsPos);
+        using (ImRaii.Disabled(!KeyMonitor.CtrlPressed() || !KeyMonitor.ShiftPressed()))
+        {
+            if (ImGui.InvisibleButton($"ReportKinkPlate##ReportKinkPlate" + userData.UID, CloseButtonSize))
+                _mediator.Publish(new ReportKinkPlateMessage(userData));
+
+        }
+        UiSharedService.AttachToolTip("Report " + displayName + "'s KinkPlate™" +
+            "--SEP--Press CTRL+SHIFT to report.\n" +
+            "(Opens Report Submission Window)");
+
+        return ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled);
     }
 }

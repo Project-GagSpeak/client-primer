@@ -6,7 +6,8 @@ namespace GagSpeak.UI.Components.Popup;
 public interface IPopupHandler
 {
     Vector2 PopupSize { get; }
-    bool ShowClose { get; }
+    bool ShowClosed { get; }
+    bool CloseHovered { get; set; }
 
     void DrawContent();
 }

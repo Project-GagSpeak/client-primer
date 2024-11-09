@@ -156,7 +156,7 @@ public record KinkPlateOpenStandaloneLightMessage(UserData UserData) : MessageBa
 
 public record ProfilePopoutToggle(UserData? PairUserData) : MessageBase; // toggles the profile popout window for a paired client.
 public record ClearProfileDataMessage(UserData? UserData = null) : MessageBase; // a message indicating the need to clear profile data.
-public record ReportKinkPlateMessage(Pair PairToReport) : MessageBase; // for reporting a GagSpeak profile.
+public record ReportKinkPlateMessage(UserData KinksterToReport) : MessageBase; // for reporting a GagSpeak profile.
 public record VerificationPopupMessage(VerificationDto VerificationCode) : MessageBase; // indicating that we have received a verification code popup.
 public record PatternSavePromptMessage(List<byte> StoredData, TimeSpan Duration) : MessageBase; // prompts the popup and passes in savedata
 public record BlindfoldUiTypeChange(BlindfoldType NewType) : MessageBase; // for changing blindfold type.

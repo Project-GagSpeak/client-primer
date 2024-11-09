@@ -1361,14 +1361,14 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     {
         var check = FontAwesomeIcon.Check;
         var cross = FontAwesomeIcon.SquareXmark;
-        ImGui.TextUnformatted("Optional Plugins:");
+        ImGui.TextUnformatted(GSLoc.Settings.OptionalPlugins);
 
         ImGui.SameLine();
         ImGui.TextUnformatted("Penumbra");
         ImGui.SameLine();
         IconText(_penumbraExists ? check : cross, GetBoolColor(_penumbraExists));
         ImGui.SameLine();
-        AttachToolTip($"Penumbra is " + (_penumbraExists ? "available and up to date." : "unavailable or not up to date."));
+        AttachToolTip(_penumbraExists ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
         ImGui.Spacing();
 
         ImGui.SameLine();
@@ -1376,7 +1376,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.SameLine();
         IconText(_glamourerExists ? check : cross, GetBoolColor(_glamourerExists));
         ImGui.SameLine();
-        AttachToolTip($"Glamourer is " + (_glamourerExists ? "available and up to date." : "unavailable or not up to date."));
+        AttachToolTip(_glamourerExists ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
         ImGui.Spacing();
 
         ImGui.SameLine();
@@ -1384,7 +1384,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.SameLine();
         IconText(_customizePlusExists ? check : cross, GetBoolColor(_customizePlusExists));
         ImGui.SameLine();
-        AttachToolTip($"Customize+ is " + (_customizePlusExists ? "available and up to date." : "unavailable or not up to date."));
+        AttachToolTip(_customizePlusExists ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
         ImGui.Spacing();
 
         ImGui.SameLine();
@@ -1392,7 +1392,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.SameLine();
         IconText(_moodlesExists ? check : cross, GetBoolColor(_moodlesExists));
         ImGui.SameLine();
-        AttachToolTip($"Moodles is " + (_moodlesExists ? "available and up to date." : "unavailable or not up to date."));
+        AttachToolTip(_moodlesExists ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
         ImGui.Spacing();
 
         return true;

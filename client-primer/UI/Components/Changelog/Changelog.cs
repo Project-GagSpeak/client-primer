@@ -19,6 +19,11 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 7)
+            .RegisterMain("The Localization Update:")
+            .RegisterFeature("Added Localization Base for Global Settings, Preferences, Account Management, and ForcedStay filters.")
+            .RegisterBugfix("Fixed a bug where profile images from non-paired user's kinkplates did not properly update.")
+            .RegisterFeature("Fixed the Chat Box visibility hardcore toggle so it works again.");
         VersionEntry(0, 9, 9, 6)
             .RegisterMain("Hardcore Mode ForcedEmoteState can now fully block out emote execution from any and all sources.")
             .RegisterMain("Reworked the DeathRoll System to have its own module and logic center, for more clear code.")

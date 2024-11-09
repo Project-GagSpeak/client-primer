@@ -141,31 +141,18 @@ public class SettingsUi : WindowMediatorSubscriberBase
             default: _configService.Current.LanguageDialect = "IPA_US"; _configService.Save(); break;
         }
     }
-    // Everything above here is temporary until I figure out something better.
-
-
-
 
     protected override void PreDrawInternal() { }
     protected override void PostDrawInternal() { }
 
-    /// <summary>
-    /// The internal draw method for the settings UI window.
-    /// <para> Will draw display the optional plugins section, then display settings content </para>
-    /// </summary>
+
     protected override void DrawInternal()
     {
         _ = _uiShared.DrawOtherPluginState();
-
         DrawSettingsContent();
     }
 
-    /// <summary> Helper function to tell the settings menu to no longer edit the tracker position on close. </summary>
-    public override void OnClose()
-    {
-        base.OnClose();
-    }
-
+    private DateTime _lastRefresh = DateTime.MinValue;
     private void DrawGlobalSettings()
     {
         bool liveChatGarblerActive = PlayerGlobalPerms.LiveChatGarblerActive;
@@ -205,20 +192,20 @@ public class SettingsUi : WindowMediatorSubscriberBase
         TimeSpan maxGlobalShockDuration = PlayerGlobalPerms.GetTimespanFromDuration();
         int maxGlobalVibrateDuration = (int)PlayerGlobalPerms.GlobalShockVibrateDuration.TotalSeconds;
 
-        _uiShared.GagspeakBigText("Gags");
+        _uiShared.GagspeakBigText(GSLoc.Settings.MainOptions.HeaderGags);
         using (ImRaii.Disabled(liveChatGarblerLocked))
         {
-            if (ImGui.Checkbox("Enable Live Chat Garbler", ref liveChatGarblerActive))
+            if (ImGui.Checkbox(GSLoc.Settings.MainOptions.LiveChatGarbler, ref liveChatGarblerActive))
             {
                 // Perform a mediator call that we have updated a permission.
                 _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
                     new KeyValuePair<string, object>("LiveChatGarblerActive", liveChatGarblerActive), MainHub.PlayerUserData));
 
             }
-            _uiShared.DrawHelpText("If enabled, the Live Chat Garbler will garble your chat messages in-game. (This is done server-side, others will see it too)");
+            _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.LiveChatGarblerTT);
         }
 
-        if (ImGui.Checkbox("Allow Gag Glamour's", ref itemAutoEquip))
+        if (ImGui.Checkbox(GSLoc.Settings.MainOptions.GagGlamours, ref itemAutoEquip))
         {
             PlayerGlobalPerms.ItemAutoEquip = itemAutoEquip;
             // if this creates a race condition down the line remove the above line.
@@ -227,31 +214,42 @@ public class SettingsUi : WindowMediatorSubscriberBase
             // perform recalculations to our cache.
             Mediator.Publish(new AppearanceImpactingSettingChanged());
         }
-        _uiShared.DrawHelpText("Allows Glamourer to bind your chosen Gag Glamour's upon becoming gagged!");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.GagGlamoursTT);
 
-        if (ImGui.Checkbox("Remove Gag on Timer Padlock expiration.", ref removeGagOnLockExpiration))
+        if (ImGui.Checkbox(GSLoc.Settings.MainOptions.GagPadlockTimer, ref removeGagOnLockExpiration))
         {
             _clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration = removeGagOnLockExpiration;
             _clientConfigs.Save();
         }
-        _uiShared.DrawHelpText("When a Gag is locked by a Timer, the Gag will be removed once the timer expires.");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.GagPadlockTimerTT);
 
         ImGui.Separator();
-        _uiShared.GagspeakBigText("Wardrobe");
+        _uiShared.GagspeakBigText(GSLoc.Settings.MainOptions.HeaderWardrobe);
 
-        if (ImGui.Checkbox("Enable Wardrobe", ref wardrobeEnabled))
+        if (ImGui.Checkbox(GSLoc.Settings.MainOptions.WardrobeActive, ref wardrobeEnabled))
         {
             PlayerGlobalPerms.WardrobeEnabled = wardrobeEnabled;
-            // if this creates a race condition down the line remove the above line.
             _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
-            new KeyValuePair<string, object>("WardrobeEnabled", wardrobeEnabled), MainHub.PlayerUserData));
-
+                new KeyValuePair<string, object>("WardrobeEnabled", wardrobeEnabled), MainHub.PlayerUserData));
+            
+            // if this creates a race condition down the line remove the above line.
+            if (wardrobeEnabled is false)
+            {
+                // turn off all respective children as well and push the update.
+                PlayerGlobalPerms.RestraintSetAutoEquip = false;
+                _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+                new KeyValuePair<string, object>("RestraintSetAutoEquip", false), MainHub.PlayerUserData));
+                // disable other options respective to it.
+                _clientConfigs.GagspeakConfig.DisableSetUponUnlock = false;
+                _clientConfigs.GagspeakConfig.CursedDungeonLoot = false;
+                _clientConfigs.Save();
+            }
         }
-        _uiShared.DrawHelpText("If enabled, the all glamourer / penumbra / visual display information will become functional.");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.WardrobeActiveTT);
 
         using (ImRaii.Disabled(!wardrobeEnabled))
         {
-            if (ImGui.Checkbox("Allow Restraint Sets to be Auto-Equipped", ref restraintSetAutoEquip))
+            if (ImGui.Checkbox(GSLoc.Settings.MainOptions.RestraintSetGlamour, ref restraintSetAutoEquip))
             {
                 PlayerGlobalPerms.RestraintSetAutoEquip = restraintSetAutoEquip;
                 // if this creates a race condition down the line remove the above line.
@@ -260,41 +258,39 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 // perform recalculations to our cache.
                 Mediator.Publish(new AppearanceImpactingSettingChanged());
             }
-            _uiShared.DrawHelpText("Allows Glamourer to bind restraint sets to your character.\nRestraint sets can be created in the Wardrobe Interface.");
+            _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.RestraintSetGlamourTT);
 
-            if (ImGui.Checkbox("Disable Restraint's When Locks Expire", ref restraintSetDisableWhenUnlocked))
+            if (ImGui.Checkbox(GSLoc.Settings.MainOptions.RestraintPadlockTimer, ref restraintSetDisableWhenUnlocked))
             {
                 _clientConfigs.GagspeakConfig.DisableSetUponUnlock = restraintSetDisableWhenUnlocked;
                 _clientConfigs.Save();
             }
-            _uiShared.DrawHelpText("Let's the Active Restraint Set that is locked be automatically disabled when it's lock expires.");
+            _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.RestraintPadlockTimerTT);
 
-            if (ImGui.Checkbox("Enable Cursed Dungeon Loot", ref cursedDungeonLoot))
+            if (ImGui.Checkbox(GSLoc.Settings.MainOptions.CursedLootActive, ref cursedDungeonLoot))
             {
                 _clientConfigs.GagspeakConfig.CursedDungeonLoot = cursedDungeonLoot;
                 _clientConfigs.Save();
             }
-            _uiShared.DrawHelpText("Provide the Cursed Loot Component with a list of sets to randomly apply." + Environment.NewLine
-                + "When opening Dungeon Chests, there is a random chance to apply & lock a set." + Environment.NewLine
-                + "Mimic Timer Locks are set in your defined range, and CANNOT be unlocked.");
-
-
-            if (ImGui.Checkbox("Enable Moodles", ref moodlesEnabled))
-            {
-                PlayerGlobalPerms.MoodlesEnabled = moodlesEnabled;
-                // if this creates a race condition down the line remove the above line.
-                _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
-                new KeyValuePair<string, object>("MoodlesEnabled", moodlesEnabled), MainHub.PlayerUserData));
-                // perform recalculations to our cache.
-                Mediator.Publish(new AppearanceImpactingSettingChanged());
-
-            }
-            _uiShared.DrawHelpText("If enabled, the moodles component will become functional.");
+            _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.CursedLootActiveTT);
         }
+
+
+        if (ImGui.Checkbox(GSLoc.Settings.MainOptions.MoodlesActive, ref moodlesEnabled))
+        {
+            PlayerGlobalPerms.MoodlesEnabled = moodlesEnabled;
+            // if this creates a race condition down the line remove the above line.
+            _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
+            new KeyValuePair<string, object>("MoodlesEnabled", moodlesEnabled), MainHub.PlayerUserData));
+            // perform recalculations to our cache.
+            Mediator.Publish(new AppearanceImpactingSettingChanged());
+
+        }
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.MoodlesActiveTT);
 
         // draw out revert style selection
         ImGui.Spacing();
-        ImGui.TextUnformatted("On Safeword/Restraint Disable:");
+        ImGui.TextUnformatted(GSLoc.Settings.MainOptions.RevertSelectionLabel);
         // Draw radio buttons for each RevertStyle enum value
         foreach (RevertStyle style in Enum.GetValues(typeof(RevertStyle)))
         {
@@ -313,9 +309,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
 
         ImGui.Separator();
-        _uiShared.GagspeakBigText("Puppeteer");
+        _uiShared.GagspeakBigText(GSLoc.Settings.MainOptions.HeaderPuppet);
 
-        if (ImGui.Checkbox("Enable Puppeteer", ref puppeteerEnabled))
+        if (ImGui.Checkbox(GSLoc.Settings.MainOptions.PuppeteerActive, ref puppeteerEnabled))
         {
             PlayerGlobalPerms.PuppeteerEnabled = puppeteerEnabled;
             // if this creates a race condition down the line remove the above line.
@@ -323,14 +319,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
             new KeyValuePair<string, object>("PuppeteerEnabled", puppeteerEnabled), MainHub.PlayerUserData));
 
         }
-        _uiShared.DrawHelpText("If enabled, the Puppeteer component will become functional.");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.PuppeteerActiveTT);
 
         using (ImRaii.Disabled(!puppeteerEnabled))
         {
             using var indent = ImRaii.PushIndent();
 
             ImGui.SetNextItemWidth(200 * ImGuiHelpers.GlobalScale);
-            if (ImGui.InputText("Global Trigger Phrase", ref globalTriggerPhrase, 100, ImGuiInputTextFlags.EnterReturnsTrue))
+            if (ImGui.InputText(GSLoc.Settings.MainOptions.GlobalTriggerPhrase, ref globalTriggerPhrase, 100, ImGuiInputTextFlags.EnterReturnsTrue))
             {
                 PlayerGlobalPerms.GlobalTriggerPhrase = globalTriggerPhrase;
                 // if this creates a race condition down the line remove the above line.
@@ -338,10 +334,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 new KeyValuePair<string, object>("GlobalTriggerPhrase", globalTriggerPhrase), MainHub.PlayerUserData));
 
             }
-            _uiShared.DrawHelpText("The global trigger phrase that will be used to trigger puppeteer commands.\n" +
-                "LEAVE THIS FIELD BLANK TO HAVE NO GLOBAL TRIGGER PHRASE");
+            _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.GlobalTriggerPhraseTT);
 
-            if (ImGui.Checkbox("Globally Allow Sit Requests", ref globalAllowSitRequests))
+            if (ImGui.Checkbox(GSLoc.Settings.MainOptions.GlobalAllowSit, ref globalAllowSitRequests))
             {
                 PlayerGlobalPerms.GlobalAllowSitRequests = globalAllowSitRequests;
                 // if this creates a race condition down the line remove the above line.
@@ -349,9 +344,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 new KeyValuePair<string, object>("GlobalAllowSitRequests", globalAllowSitRequests), MainHub.PlayerUserData));
 
             }
-            _uiShared.DrawHelpText("If enabled, the user will allow sit requests to be sent to them.");
+            _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.GlobalAllowSitTT);
 
-            if (ImGui.Checkbox("Globally Allow Motion Requests", ref globalAllowMotionRequests))
+            if (ImGui.Checkbox(GSLoc.Settings.MainOptions.GlobalAllowMotion, ref globalAllowMotionRequests))
             {
                 PlayerGlobalPerms.GlobalAllowMotionRequests = globalAllowMotionRequests;
                 // if this creates a race condition down the line remove the above line.
@@ -359,9 +354,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 new KeyValuePair<string, object>("GlobalAllowMotionRequests", globalAllowMotionRequests), MainHub.PlayerUserData));
 
             }
-            _uiShared.DrawHelpText("If enabled, the user will allow motion requests to be sent to them.");
+            _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.GlobalAllowMotionTT);
 
-            if (ImGui.Checkbox("Globally Allow All Requests", ref globalAllowAllRequests))
+            if (ImGui.Checkbox(GSLoc.Settings.MainOptions.GlobalAllowAll, ref globalAllowAllRequests))
             {
                 PlayerGlobalPerms.GlobalAllowAllRequests = globalAllowAllRequests;
                 // if this creates a race condition down the line remove the above line.
@@ -369,14 +364,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 new KeyValuePair<string, object>("GlobalAllowAllRequests", globalAllowAllRequests), MainHub.PlayerUserData));
 
             }
-            _uiShared.DrawHelpText("If enabled, the user will allow all requests to be sent to them.");
+            _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.GlobalAllowAllTT);
         }
 
 
         ImGui.Separator();
-        _uiShared.GagspeakBigText("Toybox");
+        _uiShared.GagspeakBigText(GSLoc.Settings.MainOptions.HeaderToybox);
 
-        if (ImGui.Checkbox("Enable Toybox", ref toyboxEnabled))
+        if (ImGui.Checkbox(GSLoc.Settings.MainOptions.ToyboxActive, ref toyboxEnabled))
         {
             PlayerGlobalPerms.ToyboxEnabled = toyboxEnabled;
             // if this creates a race condition down the line remove the above line.
@@ -384,15 +379,15 @@ public class SettingsUi : WindowMediatorSubscriberBase
             new KeyValuePair<string, object>("ToyboxEnabled", toyboxEnabled), MainHub.PlayerUserData));
 
         }
-        _uiShared.DrawHelpText("If enabled, the toybox component will become functional.");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.ToyboxActiveTT);
 
 
-        if (ImGui.Checkbox("Automatically Connect to Intiface Central", ref intifaceAutoConnect))
+        if (ImGui.Checkbox(GSLoc.Settings.MainOptions.IntifaceAutoConnect, ref intifaceAutoConnect))
         {
             _clientConfigs.GagspeakConfig.IntifaceAutoConnect = intifaceAutoConnect;
             _clientConfigs.Save();
         }
-        _uiShared.DrawHelpText("Automatically connects to intiface central, or at least attempts to. Upon plugin startup.");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.IntifaceAutoConnectTT);
 
         ImGui.SetNextItemWidth(200f);
         if (ImGui.InputTextWithHint($"Server Address##ConnectionWSaddr", "Leave blank for default...", ref intifaceConnectionAddr, 100, ImGuiInputTextFlags.EnterReturnsTrue))
@@ -407,24 +402,26 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 _clientConfigs.Save();
             }
         }
-        _uiShared.DrawHelpText($"Change the Intiface Server Address to a custom one if you desire!." +
-            Environment.NewLine + "Leave blank to use the default address.");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.IntifaceAddressTT);
 
-        if (ImGui.Checkbox("Automatically Connect to Vibe Server", ref vibeServerAutoConnect))
+        using (ImRaii.Disabled(true))
         {
-            _clientConfigs.GagspeakConfig.VibeServerAutoConnect = vibeServerAutoConnect;
-            _clientConfigs.Save();
+            if (ImGui.Checkbox(GSLoc.Settings.MainOptions.VibeServerAutoConnect, ref vibeServerAutoConnect))
+            {
+                _clientConfigs.GagspeakConfig.VibeServerAutoConnect = vibeServerAutoConnect;
+                _clientConfigs.Save();
+            }
         }
-        _uiShared.DrawHelpText("Connects to the Vibe Server automatically upon successful Main Server Connection.");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.VibeServerAutoConnectTT);
 
-        if (ImGui.Checkbox("Use Spatial Vibrator Audio", ref spatialVibratorAudio))
+        if (ImGui.Checkbox(GSLoc.Settings.MainOptions.SpatialAudioActive, ref spatialVibratorAudio))
         {
             PlayerGlobalPerms.SpatialVibratorAudio = spatialVibratorAudio;
             // if this creates a race condition down the line remove the above line.
             _ = _apiHubMain.UserUpdateOwnGlobalPerm(new UserGlobalPermChangeDto(MainHub.PlayerUserData,
             new KeyValuePair<string, object>("SpatialVibratorAudio", spatialVibratorAudio), MainHub.PlayerUserData));
         }
-        _uiShared.DrawHelpText("If enabled, you will emit vibrator audio while your sex toys are active to other paired players around you.");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.SpatialAudioActiveTT);
 
         ImGui.Spacing();
 
@@ -434,7 +431,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _clientConfigs.GagspeakConfig.PiShockApiKey = piShockApiKey;
             _clientConfigs.Save();
         }
-        _uiShared.DrawHelpText("Required PiShock API Key to exist for any PiShock related interactions to work.");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.PiShockKeyTT);
 
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
         if (ImGui.InputText("PiShock Username", ref piShockUsername, 100, ImGuiInputTextFlags.EnterReturnsTrue))
@@ -442,7 +439,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _clientConfigs.GagspeakConfig.PiShockUsername = piShockUsername;
             _clientConfigs.Save();
         }
-        _uiShared.DrawHelpText("Required PiShock Username to exist for any PiShock related interactions to work.");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.PiShockUsernameTT);
 
 
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Sync, "Refresh") - ImGui.GetStyle().ItemInnerSpacing.X);
@@ -472,14 +469,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 _ = _apiHubMain.UserPushAllGlobalPerms(new(MainHub.PlayerUserData, _playerCharacterManager.GlobalPerms));
             });
         }
-        UiSharedService.AttachToolTip("Forces Global PiShock Share Code to grab latest data from the API and push it to other online pairs.");
+        UiSharedService.AttachToolTip(GSLoc.Settings.MainOptions.PiShockShareCodeRefreshTT);
+        
         ImUtf8.SameLineInner();
-        ImGui.TextUnformatted("PiShock Global Share Code");
-        _uiShared.DrawHelpText("Global PiShock Share Code used for your connected ShockCollar." + Environment.NewLine + "NOTE:" + Environment.NewLine
-            + "While this is a GLOBAL share code, only people you are in Hardcore mode with will have access to it.");
+        ImGui.TextUnformatted(GSLoc.Settings.MainOptions.PiShockShareCode);
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.PiShockShareCodeTT);
 
         ImGui.SetNextItemWidth(250 * ImGuiHelpers.GlobalScale);
-        if (ImGui.SliderInt("Global Max Vibration Time", ref maxGlobalVibrateDuration, 0, 30))
+        if (ImGui.SliderInt(GSLoc.Settings.MainOptions.PiShockVibeTime, ref maxGlobalVibrateDuration, 0, 30))
         {
             PlayerGlobalPerms.GlobalShockVibrateDuration = TimeSpan.FromSeconds(maxGlobalVibrateDuration);
         }
@@ -490,30 +487,29 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _ = _apiHubMain.UserUpdateOwnGlobalPerm(new(MainHub.PlayerUserData,
             new KeyValuePair<string, object>("GlobalShockVibrateDuration", ticks), MainHub.PlayerUserData));
         }
-        _uiShared.DrawHelpText("The maximum time in seconds that your shock collar can vibrate for.");
+        _uiShared.DrawHelpText(GSLoc.Settings.MainOptions.PiShockVibeTimeTT);
 
         // make this section readonly
-        UiSharedService.ColorText("Global Shock Collar Permissions (Parsed From Share Code)", ImGuiColors.ParsedGold);
+        UiSharedService.ColorText(GSLoc.Settings.MainOptions.PiShockPermsLabel, ImGuiColors.ParsedGold);
         using (ImRaii.Disabled(true))
         {
             using (ImRaii.Group())
             {
-                ImGui.Checkbox("Shocks Allowed", ref allowGlobalShockShockCollar);
+                ImGui.Checkbox(GSLoc.Settings.MainOptions.PiShockAllowShocks, ref allowGlobalShockShockCollar);
                 ImGui.SameLine();
-                ImGui.Checkbox("Vibrations Allowed", ref allowGlobalVibrateShockCollar);
+                ImGui.Checkbox(GSLoc.Settings.MainOptions.PiShockAllowVibes, ref allowGlobalVibrateShockCollar);
                 ImGui.SameLine();
-                ImGui.Checkbox("Beeps Allowed", ref allowGlobalBeepShockCollar);
+                ImGui.Checkbox(GSLoc.Settings.MainOptions.PiShockAllowBeeps, ref allowGlobalBeepShockCollar);
             }
-            ImGui.TextUnformatted("Global Max Shock Intensity: ");
+            ImGui.TextUnformatted(GSLoc.Settings.MainOptions.PiShockMaxShockIntensity);
             ImGui.SameLine();
             UiSharedService.ColorText(maxGlobalShockCollarIntensity.ToString() + "%", ImGuiColors.ParsedGold);
 
-            ImGui.TextUnformatted("Global Max Shock Duration: ");
+            ImGui.TextUnformatted(GSLoc.Settings.MainOptions.PiShockMaxShockDuration);
             ImGui.SameLine();
             UiSharedService.ColorText(maxGlobalShockDuration.Seconds.ToString() + "." + maxGlobalShockDuration.Milliseconds.ToString() + "s", ImGuiColors.ParsedGold);
         }
     }
-    private DateTime _lastRefresh = DateTime.MinValue;
 
     private void DrawChannelPreferences()
     {
@@ -576,8 +572,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
             UiSharedService.AttachToolTip(GSLoc.Settings.Preferences.DialectTT);
         }
     }
-
-
     private void DrawPreferences()
     {
         DrawChannelPreferences();
@@ -648,6 +642,12 @@ public class SettingsUi : WindowMediatorSubscriberBase
         if (ImGui.Checkbox(GSLoc.Settings.Preferences.EnableDtrLabel, ref enableDtrEntry))
         {
             _configService.Current.EnableDtrEntry = enableDtrEntry;
+            if(enableDtrEntry is false)
+            {
+                _configService.Current.ShowPrivacyRadar = false;
+                _configService.Current.ShowActionNotifs = false;
+                _configService.Current.ShowVibeStatus = false;
+            }
             _configService.Save();
         }
         _uiShared.DrawHelpText(GSLoc.Settings.Preferences.EnableDtrTT);
@@ -771,10 +771,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
             _uiShared.DrawHelpText(GSLoc.Settings.Preferences.LimitForNicksTT);
         }
     }
-
-    /// <summary>
-    /// Helper for drawing out the account management tab.
-    /// </summary>
     private void DrawAccountManagement()
     {
         _uiShared.GagspeakBigText(GSLoc.Settings.Accounts.PrimaryLabel);
@@ -1471,26 +1467,9 @@ public class SettingsUi : WindowMediatorSubscriberBase
     /// </summary>
     private void DrawSettingsContent()
     {
-        // check the current server state. If it is connected.
-        if (MainHub.IsConnected)
-        {
-            // display the Server name, that it is available, and the number of users online.
-            ImGui.TextUnformatted("Server is " + _serverConfigs.CurrentServer!.ServerName + ":");
-            ImGui.SameLine();
-            ImGui.TextColored(ImGuiColors.ParsedGreen, "Available");
-            ImGui.SameLine();
-            ImGui.TextUnformatted("(");
-            ImGui.SameLine();
-            ImGui.TextColored(ImGuiColors.ParsedGreen, MainHub.MainOnlineUsers.ToString(CultureInfo.InvariantCulture));
-            ImGui.SameLine();
-            ImGui.TextUnformatted("Users Online");
-            ImGui.SameLine();
-            ImGui.TextUnformatted(")");
-        }
-
         // align the next text the frame padding of the button in the same line.
         ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted("Claim your Account with the CK Discord Bot:");
+        ImGui.TextUnformatted(GSLoc.Settings.AccountClaimText);
         ImGui.SameLine();
         if (ImGui.Button("CK Discord"))
         {
@@ -1502,23 +1481,23 @@ public class SettingsUi : WindowMediatorSubscriberBase
             // draw out the tab bar for us.
             if (ImGui.BeginTabBar("mainTabBar"))
             {
-                if (ImGui.BeginTabItem("Global"))
+                if (ImGui.BeginTabItem(GSLoc.Settings.TabsGlobal))
                 {
                     DrawGlobalSettings();
                     ImGui.EndTabItem();
                 }
-                if (ImGui.BeginTabItem("Hardcore"))
+                if (ImGui.BeginTabItem(GSLoc.Settings.TabsHardcore))
                 {
                     _hardcoreSettingsUI.DrawHardcoreSettings();
                     ImGui.EndTabItem();
                 }
-                if (ImGui.BeginTabItem("Preferences"))
+                if (ImGui.BeginTabItem(GSLoc.Settings.TabsPreferences))
                 {
                     DrawPreferences();
                     ImGui.EndTabItem();
                 }
 
-                if (ImGui.BeginTabItem("Account Management"))
+                if (ImGui.BeginTabItem(GSLoc.Settings.TabsAccounts))
                 {
                     DrawAccountManagement();
                     ImGui.EndTabItem();

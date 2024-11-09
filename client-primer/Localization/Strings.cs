@@ -1,4 +1,5 @@
 using CheapLoc;
+using Dalamud.Interface;
 using GagSpeak.WebAPI;
 using Lumina.Data.Parsing;
 using System.Reflection;
@@ -72,6 +73,7 @@ namespace GagSpeak.Localization
         public Whitelist Whitelist { get; set; } = new();
         public Discover Discover { get; set; } = new();
         public Account Account { get; set; } = new();
+        public Warnings Warnings { get; set; } = new();
     }
 
     public class Tabs
@@ -103,11 +105,26 @@ namespace GagSpeak.Localization
     {
         public readonly string Title = Loc.Localize("Account_Title", "ACTUAL LABEL HERE");
     }
+
+    public class Warnings
+    {
+        public readonly string Title = Loc.Localize("Warnings_Title", "ACTUAL LABEL HERE");
+    }
     #endregion CoreUi
 
     #region Settings
     public class  Settings
     {
+        public readonly string OptionalPlugins = Loc.Localize("Settings_OptionalPlugins", "Optional Plugins:");
+        public readonly string PluginValid = Loc.Localize("Settings_PluginValid", "This Plugin is enabled and up to date!");
+        public readonly string PluginInvalid = Loc.Localize("Settings_PluginInvalid", "This Plugin is not up to date, or GagSpeak has outdated API.");
+        public readonly string AccountClaimText = Loc.Localize("Settings_AccountClaimText", "Claim your Account with the CK Discord Bot:");
+
+        public readonly string TabsGlobal = Loc.Localize("Settings_TabsGlobal", "Global");
+        public readonly string TabsHardcore = Loc.Localize("Settings_TabsHardcore", "Hardcore");
+        public readonly string TabsPreferences = Loc.Localize("Settings_TabsPreferences", "Preferences");
+        public readonly string TabsAccounts = Loc.Localize("Settings_TabsAccounts", "Account Management");
+
         public MainOptions MainOptions { get; set; } = new();
         public Hardcore Hardcore { get; set; } = new();
         public ForcedStay ForcedStay { get; set; } = new();
@@ -117,12 +134,115 @@ namespace GagSpeak.Localization
 
     public class MainOptions
     {
-        public readonly string Title = Loc.Localize("MainOptions_Title", "ACTUAL LABEL HERE");
+        public readonly string HeaderGags = Loc.Localize("MainOptions_HeaderGags", "Gags");
+        public readonly string HeaderWardrobe = Loc.Localize("MainOptions_HeaderWardrobe", "Wardrobe");
+        public readonly string HeaderPuppet = Loc.Localize("MainOptions_HeaderPuppet", "Puppeteer");
+        public readonly string HeaderToybox = Loc.Localize("MainOptions_HeaderToybox", "Toybox");
+
+        public readonly string LiveChatGarbler = Loc.Localize("MainOptions_LiveChatGarbler", "Live Chat Garbler");
+        public readonly string LiveChatGarblerTT = Loc.Localize("MainOptions_LiveChatGarblerTT", "Generates GagSpeak translated message when you talk in chat while gagged." +
+                "--SEP--(This is done server-side, others will see it too)");
+
+        public readonly string GagGlamours = Loc.Localize("MainOptions_GagGlamours", "Gag Glamours");
+        public readonly string GagGlamoursTT = Loc.Localize("MainOptions_GagGlamoursTT", "Allows Glamourer to apply your Gag Glamour Items once gagged!");
+
+        public readonly string GagPadlockTimer = Loc.Localize("MainOptions_GagPadlockTimer", "Expired Timers remove their Gag");
+        public readonly string GagPadlockTimerTT = Loc.Localize("MainOptions_GagPadlockTimerTT", "If a gag is locked with a timer, upon the timers expiration, the Gag will be removed.");
+
+        public readonly string WardrobeActive = Loc.Localize("MainOptions_WardrobeActive", "Wardrobe Features");
+        public readonly string WardrobeActiveTT = Loc.Localize("MainOptions_WardrobeActiveTT", "If enabled, all appearance altaring effects will become functional.");
+
+        public readonly string RestraintSetGlamour = Loc.Localize("MainOptions_RestraintSetGlamour", "Restraint Glamours");
+        public readonly string RestraintSetGlamourTT = Loc.Localize("MainOptions_RestraintSetGlamourTT", "Allows Glamourer to bind restraint sets to your character." +
+            "--SEP--Restraint sets can be created in the Wardrobe Interface.");
+
+        public readonly string RestraintPadlockTimer = Loc.Localize("MainOptions_RestraintPadlockTimer", "Expired Timers Remove their Restraint");
+        public readonly string RestraintPadlockTimerTT = Loc.Localize("MainOptions_RestraintPadlockTimerTT", "If a restraint is locked with a timer, upon the timers expiration, the Restraint will be removed.");
+
+        public readonly string CursedLootActive = Loc.Localize("MainOptions_CursedLootActive", "Cursed Dungeon Loot");
+        public readonly string CursedLootActiveTT = Loc.Localize("MainOptions_CursedLootActiveTT", "Provide the Cursed Loot Component with a list of sets to randomly apply." +
+            "--SEP--When opening Dungeon Chests, there is a random chance to apply & lock a set." +
+            "--SEP--Mimic Timer Locks are set in your defined range, and CANNOT be unlocked.");
+
+        public readonly string MoodlesActive = Loc.Localize("MainOptions_MoodlesActive", "Allow Moodles");
+        public readonly string MoodlesActiveTT = Loc.Localize("MainOptions_MoodlesActiveTT", "If enabled, all moodle effects will become functional.");
+
+        public readonly string RevertSelectionLabel = Loc.Localize("MainOptions_RevertSelectionLabel", "On Safeword/Restraint Removal/Gag Removal:");
+
+        public readonly string PuppeteerActive = Loc.Localize("MainOptions_PuppeteerActive", "Puppeteer Features");
+        public readonly string PuppeteerActiveTT = Loc.Localize("MainOptions_PuppeteerActiveTT", "If enabled, all puppeteer features will become functional.");
+
+        public readonly string GlobalTriggerPhrase = Loc.Localize("MainOptions_GlobalTriggerPhrase", "Global Trigger Phrase");
+        public readonly string GlobalTriggerPhraseTT = Loc.Localize("MainOptions_GlobalTriggerPhraseTT", "Sets a global trigger phrase that will trigger your puppeteer." +
+            "--SEP--This trigger phrase will work when said by ANYONE.");
+
+        public readonly string GlobalAllowSit = Loc.Localize("MainOptions_GlobalAllowSit", "Globally Allow Sit Requests");
+        public readonly string GlobalAllowSitTT = Loc.Localize("MainOptions_GlobalAllowSitTT", "Allows anyone to request a sit from you." +
+            "--SEP--Limits the actions that ANYONE can make you do to just /sit, /groundsit, and /cpose (/changepose)");
+
+
+        public readonly string GlobalAllowMotion = Loc.Localize("MainOptions_GlobalAllowMotion", "Globally Allow Motion Requests");
+        public readonly string GlobalAllowMotionTT = Loc.Localize("MainOptions_GlobalAllowKneelTT", "Globally Allow Motion Requests" +
+            "--SEP--Motion Requests mean any action that executes an emote or expression can be triggered by Puppeteer." +
+            "--SEP--Limits the actions that ANYONE can make you do to only emotes and expressions.");
+
+        public readonly string GlobalAllowAll = Loc.Localize("MainOptions_GlobalAllowAll", "Globally Allow All Requests");
+        public readonly string GlobalAllowAllTT = Loc.Localize("MainOptions_GlobalAllowAllTT", "Allows anyone to request any action from you." +
+            "--SEP--This includes all emotes, expressions, and any other action that can be triggered by the game." +
+            "--SEP--USE WITH CAUTION: This is the most dangerous thing to grant (literally), as anyone can make you /logout, if desired.");
+
+        public readonly string ToyboxActive = Loc.Localize("MainOptions_ToyboxActive", "Toybox Features");
+        public readonly string ToyboxActiveTT = Loc.Localize("MainOptions_ToyboxActiveTT", "If enabled, all toybox features will become functional.");
+
+        public readonly string IntifaceAutoConnect = Loc.Localize("MainOptions_IntifaceAutoConnect", "Auto-Connect to Intiface");
+        public readonly string IntifaceAutoConnectTT = Loc.Localize("MainOptions_IntifaceAutoConnectTT", "Automatically connect to the Intiface Desktop App when GagSpeak is started.");
+
+        public readonly string IntifaceAddressTT = Loc.Localize("MainOptions_IntifaceAddressTT", "Change the Intiface Server Address to a custom one if you desire!." +
+            "--SEP--Leave blank to use the default address.");
+
+        public readonly string VibeServerAutoConnect = Loc.Localize("MainOptions_VibeServerAutoConnect", "Auto-Connect to Vibe Server");
+        public readonly string VibeServerAutoConnectTT = Loc.Localize("MainOptions_VibeServerAutoConnectTT", "Connect to GagSpeak VibeServers once connected to MainHub");
+
+        public readonly string SpatialAudioActive = Loc.Localize("MainOptions_SpatialAudioActive", "Spatial Audio Features");
+        public readonly string SpatialAudioActiveTT = Loc.Localize("MainOptions_SpatialAudioActiveTT", "Emits vibrator audio while your sex toys are active to other paired players around you." +
+            "--SEP--Similarily, you will be able to hear other peoples vibrator audio emitting from their characters when they are vibed.");
+
+        public readonly string PiShockKeyTT = Loc.Localize("MainOptions_PiShockKeyTT", "Required PiShock API Key to exist for any PiShock related interactions to work.");
+        public readonly string PiShockUsernameTT = Loc.Localize("MainOptions_PiShockUsernameTT", "Username for the PiShock API Key.");
+        public readonly string PiShockShareCodeRefreshTT = Loc.Localize("MainOptions_PiShockShareCodeRefreshTT", "Forces Global PiShock Share Code to grab latest data from the API and push it to other online pairs.");
+        public readonly string PiShockShareCode = Loc.Localize("MainOptions_PiShockShareCode", "PiShock Global Share Code");
+        public readonly string PiShockShareCodeTT = Loc.Localize("MainOptions_PiShockShareCodeTT", "Global PiShock Share Code used for your connected ShockCollar." +
+            "--SEP--NOTE: Only people you are in Hardcore mode with will have access to it.");
+
+        public readonly string PiShockVibeTime = Loc.Localize("MainOptions_PiShockVibeTime", "Global Max Vibration Time");
+        public readonly string PiShockVibeTimeTT = Loc.Localize("MainOptions_PiShockVibeTimeTT", "The maximum time in seconds that your shock collar can vibrate for.");
+        public readonly string PiShockPermsLabel = Loc.Localize("MainOptions_PiShockPermsLabel", "Global Shock Collar Permissions (Parsed From Share Code)");
+        public readonly string PiShockAllowShocks = Loc.Localize("MainOptions_PiShockAllowShocks", "Allow Shocks");
+        public readonly string PiShockAllowVibes = Loc.Localize("MainOptions_PiShockAllowVibes", "Allow Vibrations");
+        public readonly string PiShockAllowBeeps = Loc.Localize("MainOptions_PiShockAllowBeeps", "Allow Beeps");
+        public readonly string PiShockMaxShockIntensity = Loc.Localize("MainOptions_PiShockMaxShockIntensity", "Global Max Shock Intensity: ");
+        public readonly string PiShockMaxShockDuration = Loc.Localize("MainOptions_PiShockMaxShockDuration", "Global Max Shock Duration: ");
     }
 
     public class Hardcore
     {
-        public readonly string Title = Loc.Localize("Hardcore_Title", "ACTUAL LABEL HERE");
+        public readonly string TabBlindfold = Loc.Localize("Hardcore_TabBlindfold", "Blindfold Item");
+        public readonly string TabForcedStayFilters = Loc.Localize("Hardcore_TabForcedStayFilters", "Forced Stay Filters");
+        
+        public readonly string BlindfoldSlot = Loc.Localize("Hardcore_BlindfoldSlot", "Slot");
+        public readonly string BlindfoldItem = Loc.Localize("Hardcore_BlindfoldItem", "Item");
+        public readonly string BlindfoldDye = Loc.Localize("Hardcore_BlindfoldDye", "Dyes");
+        public readonly string BlindfoldFirstPerson = Loc.Localize("Hardcore_BlindfoldFirstPerson", "Force First-Person");
+        public readonly string BlindfoldFirstPersonTT = Loc.Localize("Hardcore_BlindfoldFirstPersonTT", "Force the First-Person view while blindfolded.");
+        
+        public readonly string BlindfoldTypeHeader = Loc.Localize("Hardcore_BlindfoldTypeHeader", "Blindfold Type");
+        public readonly string LaceStyle = Loc.Localize("Hardcore_LaceStyle", "Lace Style");
+
+        public readonly string AddNodeLastSeenTT = Loc.Localize("Hardcore_AddNodeLastSeenTT", "Add last interacted node to list." +
+            "--SEP--Note: Auto-selecting yes is not an allowed option");
+        public readonly string AddNodeNewTT = Loc.Localize("Hardcore_AddNodeNew", "Add a new TextNode to the ForcedStay Prompt List.");
+        public readonly string AddNodeNewChamberTT = Loc.Localize("Hardcore_AddNodeNewChamber", "Add a new ChamberNode to the ForcedStay Prompt List.");
+        public readonly string ChamberAutoMoveTT = Loc.Localize("Hardcore_ChamberAutoMoveTT", "Automatically move to the Chambers after entering an estate while this is enabled.");
     }
 
     public class ForcedStay

@@ -99,7 +99,7 @@ public partial class PairStickyUI
             if (_uiShared.IconTextButton(FontAwesomeIcon.ExclamationTriangle, "Report "+ PairNickOrAliasOrUID +"'s KinkPlate", WindowMenuWidth, true))
             {
                 ImGui.CloseCurrentPopup();
-                Mediator.Publish(new ReportKinkPlateMessage(UserPairForPerms));
+                Mediator.Publish(new ReportKinkPlateMessage(UserPairForPerms.UserData));
             }
             UiSharedService.AttachToolTip("Snapshot "+ PairNickOrAliasOrUID+"'s KinkPlate and send it as a reported profile.");
         }

@@ -31,8 +31,8 @@ public class SavePatternPopupHandler : IPopupHandler
 
     private Vector2 _size = new(PopupWidth, 400);
     public Vector2 PopupSize => _size;
-
-    public bool ShowClose => false;
+    public bool ShowClosed => false;
+    public bool CloseHovered { get; set; } = false;
 
     public void DrawContent()
     {

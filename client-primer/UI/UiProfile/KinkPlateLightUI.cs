@@ -1,8 +1,6 @@
 using Dalamud.Interface.Colors;
-using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
-using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
 using ImGuiNET;
@@ -40,6 +38,7 @@ public class KinkPlateLightUI : WindowMediatorSubscriberBase
 
     public UserData UserDataToDisplay { get; init; }
     private bool HoveringCloseButton = false;
+    private bool HoveringReportButton = false;
 
     protected override void PreDrawInternal()
     {
@@ -76,7 +75,7 @@ public class KinkPlateLightUI : WindowMediatorSubscriberBase
 
         string DisplayName = _showFullUID
             ? UserDataToDisplay.AliasOrUID
-            : "Anon.Kinkster-" + UserDataToDisplay.UID.Substring(UserDataToDisplay.UID.Length - 3);
+            : "Kinkster-" + UserDataToDisplay.UID.Substring(UserDataToDisplay.UID.Length - 3);
 
         var drawList = ImGui.GetWindowDrawList();
         // clip based on the region of our draw space.
@@ -84,7 +83,7 @@ public class KinkPlateLightUI : WindowMediatorSubscriberBase
         _lightUI.RectMax = drawList.GetClipRectMax();
 
         // draw the plate.
-        _lightUI.DrawKinkPlateLight(drawList, KinkPlate, DisplayName, UserDataToDisplay, _showFullUID);
+        HoveringReportButton = _lightUI.DrawKinkPlateLight(drawList, KinkPlate, DisplayName, UserDataToDisplay, _showFullUID, HoveringReportButton);
 
         // Draw the close button.
         CloseButton(drawList, DisplayName);
@@ -110,6 +109,10 @@ public class KinkPlateLightUI : WindowMediatorSubscriberBase
 
     public override void OnClose()
     {
+        // remove profile on close if not in our direct pairs.
+        if (_showFullUID is false)
+            Mediator.Publish(new ClearProfileDataMessage(UserDataToDisplay));
+        // destroy the window.        
         Mediator.Publish(new RemoveWindowMessage(this));
     }
 }

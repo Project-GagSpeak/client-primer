@@ -6,6 +6,7 @@ using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.ForcedStay;
+using GagSpeak.Localization;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
@@ -34,6 +35,7 @@ public class SettingsHardcore
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly GameItemStainHandler _itemStainHandler;
     private readonly WardrobeHandler _wardrobeHandler;
+    private readonly HardcoreHandler _hardcoreHandler;
     private readonly UiSharedService _uiShared;
 
     private const float ComboWidth = 200;
@@ -44,12 +46,13 @@ public class SettingsHardcore
 
     public SettingsHardcore(ILogger<SettingsHardcore> logger, 
         ClientConfigurationManager clientConfigs, GameItemStainHandler itemStainHandler, 
-        WardrobeHandler wardrobeHandler, UiSharedService uiShared)
+        WardrobeHandler wardrobeHandler, HardcoreHandler hardcoreHandler, UiSharedService uiShared)
     {
         _logger = logger;
         _clientConfigs = clientConfigs;
         _itemStainHandler = itemStainHandler;
         _wardrobeHandler = wardrobeHandler;
+        _hardcoreHandler = hardcoreHandler;
         _uiShared = uiShared;
         // create a new gameItemCombo for each equipment piece type, then store them into the array.
         GameItemCombo = _itemStainHandler.ObtainItemCombos();
@@ -112,7 +115,7 @@ public class SettingsHardcore
                 // display the wardrobe slot for this gag
                 var refValue = Array.IndexOf(EquipSlotExtensions.EqdpSlots.ToArray(), BlindfoldDrawData.Slot);
                 ImGui.SetNextItemWidth(ComboLength);
-                if (ImGui.Combo(" Slot##WardrobeEquipSlot", ref refValue,
+                if (ImGui.Combo(' ' + GSLoc.Settings.Hardcore.BlindfoldSlot + "##WardrobeEquipSlot", ref refValue,
                     EquipSlotExtensions.EqdpSlots.Select(slot => slot.ToName()).ToArray(), EquipSlotExtensions.EqdpSlots.Count))
                 {
                     // Update the selected slot when the combo box selection changes
@@ -134,17 +137,17 @@ public class SettingsHardcore
             ImGui.SameLine();
             ImGui.SetNextItemWidth(ComboLength);
             var forceLockFirstPerson = _clientConfigs.GagspeakConfig.ForceLockFirstPerson;
-            if (ImGui.Checkbox("Force First-Person", ref forceLockFirstPerson))
+            if (ImGui.Checkbox(GSLoc.Settings.Hardcore.BlindfoldFirstPerson, ref forceLockFirstPerson))
             {
                 _clientConfigs.GagspeakConfig.ForceLockFirstPerson = forceLockFirstPerson;
                 _clientConfigs.Save();
             }
-            _uiShared.DrawHelpText("Force the First-Person view while blindfolded.");
+            _uiShared.DrawHelpText(GSLoc.Settings.Hardcore.BlindfoldFirstPersonTT);
 
             ImGui.Separator();
-            _uiShared.BigText("Blindfold Type");
+            _uiShared.GagspeakBigText(GSLoc.Settings.Hardcore.BlindfoldTypeHeader);
             var selectedBlindfoldType = _clientConfigs.GagspeakConfig.BlindfoldStyle;
-            _uiShared.DrawCombo("Lace Style", 150f, Enum.GetValues<BlindfoldType>(), (type) => type.ToString(),
+            _uiShared.DrawCombo(GSLoc.Settings.Hardcore.LaceStyle, 150f, Enum.GetValues<BlindfoldType>(), (type) => type.ToString(),
                 (i) => { _clientConfigs.GagspeakConfig.BlindfoldStyle = i; _clientConfigs.Save(); }, selectedBlindfoldType);
 
             string filePath = _clientConfigs.GagspeakConfig.BlindfoldStyle switch
@@ -163,35 +166,36 @@ public class SettingsHardcore
     private void DisplayTextButtons()
     {
         // replace disabled with ForcedStay == true
-        if (_uiShared.IconTextButton(FontAwesomeIcon.SearchPlus, "Last Seen TextNode", disabled: false))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.SearchPlus, "Last Seen TextNode", disabled: _hardcoreHandler.IsForcedToStay))
         {
             _clientConfigs.AddLastSeenNode();
         }
-        UiSharedService.AttachToolTip("Add last seen as new entry interface as last entry" + Environment.NewLine
-            + "(Must have active to record latest dialog option.)" + Environment.NewLine
-            + "(Auto-selecting yes is not an allowed option)");
+        UiSharedService.AttachToolTip(GSLoc.Settings.Hardcore.AddNodeLastSeenTT);
 
         ImGui.SameLine();
-        if (_uiShared.IconTextButton(FontAwesomeIcon.PlusCircle, "New TextNode", disabled: false))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.PlusCircle, "New TextNode", disabled: _hardcoreHandler.IsForcedToStay))
         {
             _clientConfigs.CreateTextNode();
         }
-        UiSharedService.AttachToolTip("Add a new TextNode to the ForcedStay Prompt List.");
+        UiSharedService.AttachToolTip(GSLoc.Settings.Hardcore.AddNodeNewTT);
 
         ImGui.SameLine();
-        if (_uiShared.IconTextButton(FontAwesomeIcon.PlusCircle, "New ChamberNode", disabled: false))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.PlusCircle, "New ChamberNode", disabled: _hardcoreHandler.IsForcedToStay))
         {
             _clientConfigs.CreateChamberNode();
         }
-        UiSharedService.AttachToolTip("Add a new ChamberNode to the ForcedStay Prompt List.");
+        UiSharedService.AttachToolTip(GSLoc.Settings.Hardcore.AddNodeNewChamberTT);
         ImGui.SameLine();
-        var icon = _clientConfigs.GagspeakConfig.MoveToChambersInEstates ? FontAwesomeIcon.Check: FontAwesomeIcon.Ban;
-        var text = _clientConfigs.GagspeakConfig.MoveToChambersInEstates ? "Will AutoMove to Chambers" : "Won't AutoMove to Chambers";
-        if (_uiShared.IconTextButton(icon, text, disabled: false))
+        using (ImRaii.Disabled(_hardcoreHandler.IsForcedToStay))
         {
-            _clientConfigs.GagspeakConfig.MoveToChambersInEstates = !_clientConfigs.GagspeakConfig.MoveToChambersInEstates;
+            bool enterChambersRef = _clientConfigs.GagspeakConfig.MoveToChambersInEstates;
+            if (ImGui.Checkbox("Auto-Move to Chambers", ref enterChambersRef))
+            {
+                _clientConfigs.GagspeakConfig.MoveToChambersInEstates = enterChambersRef;
+                _clientConfigs.Save();
+            }
         }
-        UiSharedService.AttachToolTip("Automatically move to the Chambers while inside of an estate during forced stay while this is enabled.");
+        UiSharedService.AttachToolTip(GSLoc.Settings.Hardcore.ChamberAutoMoveTT);
         
         ImGui.Separator();
     }
@@ -415,7 +419,7 @@ public class SettingsHardcore
             _logger.LogTrace($"{combo.Label} Toggled");
         }
         // draw the combo
-        var change = combo.Draw(blindfold.GameItem.Name, blindfold.GameItem.ItemId, width, ComboWidth, " Item");
+        var change = combo.Draw(blindfold.GameItem.Name, blindfold.GameItem.ItemId, width, ComboWidth, ' ' + GSLoc.Settings.Hardcore.BlindfoldItem);
 
         // conditionals to detect for changes in the combo's
         if (change && !blindfold.GameItem.Equals(combo.CurrentSelection))
@@ -481,7 +485,7 @@ public class SettingsHardcore
 
         }
         ImGui.SameLine();
-        ImGui.Text(" Dyes");
+        ImGui.Text(' ' + GSLoc.Settings.Hardcore.BlindfoldDye);
         return dyeChanged;
     }
 }

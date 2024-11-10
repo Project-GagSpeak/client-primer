@@ -110,15 +110,15 @@ public class KinkPlateEditorUI : WindowMediatorSubscriberBase
                 "to others through private rooms and global chat!" +
                 "--SEP--Non-Paired Kinksters still won't be able to see your UID if viewing your KinkPlate");
 
-            List<(uint, string)> items = AchievementManager.CompletedAchievements;
+            List<(int, string)> items = AchievementManager.CompletedAchievements.Select(x => (x.AchievementId, x.Title)).ToList();
             items.Insert(0, (0, "None"));
 
             ImGui.SameLine(0, 15f);
 
             _uiShared.DrawCombo("Displayed Title##ProfileSelectTitle", 200f, items,
                 (achievement) => achievement.Item2,
-                (i) => profile.KinkPlateInfo.ChosenTitleId = (int)i.Item1,
-                initialSelectedItem: ((uint)profile.KinkPlateInfo.ChosenTitleId, AchievementManager.GetTitleById((uint)profile.KinkPlateInfo.ChosenTitleId)));
+                (i) => profile.KinkPlateInfo.ChosenTitleId = i.Item1,
+                initialSelectedItem: (profile.KinkPlateInfo.ChosenTitleId, AchievementManager.GetTitleById(profile.KinkPlateInfo.ChosenTitleId)));
             UiSharedService.AttachToolTip("Select a title to display on your KinkPlate!--SEP--You will only be able to select Titles from achievements you have completed!");
 
             ImGui.SameLine(0, 15f);

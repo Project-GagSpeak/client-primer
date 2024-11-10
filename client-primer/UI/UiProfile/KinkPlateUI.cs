@@ -98,7 +98,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         // Now let's draw out the chosen achievement Name..
         using (_uiShared.GagspeakTitleFont.Push())
         {
-            var titleName = AchievementManager.GetTitleById((uint)profile.KinkPlateInfo.ChosenTitleId);
+            var titleName = AchievementManager.GetTitleById(profile.KinkPlateInfo.ChosenTitleId);
             var titleHeightGap = TitleLineStartPos.Y - (RectMin.Y + 4f);
             var chosenTitleSize = ImGui.CalcTextSize(titleName);
             // calculate the Y height it should be drawn on by taking the gap height and dividing it by 2 and subtracting the text height.

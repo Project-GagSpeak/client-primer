@@ -4,7 +4,7 @@ using System;
 
 namespace GagSpeak.Achievements;
 
-public class ConditionalThresholdAchievement : Achievement
+public class ConditionalThresholdAchievement : AchievementBase
 {
 
     /// <summary>
@@ -17,8 +17,9 @@ public class ConditionalThresholdAchievement : Achievement
     /// </summary>
     private int LastRecordedThreshold { get; set; }
 
-    public ConditionalThresholdAchievement(uint id, string title, string desc, int goal, Func<bool> condition, Action<uint, string> onCompleted,
-        string prefix = "", string suffix = "", bool isSecret = false) : base(id, title, desc, goal, prefix, suffix, onCompleted, isSecret)
+    public ConditionalThresholdAchievement(AchievementModuleKind module, AchievementInfo infoBase, int goal, Func<bool> condition, 
+        Action<int, string> onCompleted, string prefix = "", string suffix = "", bool isSecret = false) 
+        : base(module, infoBase, goal, prefix, suffix, onCompleted, isSecret)
     {
         Condition = condition;
         LastRecordedThreshold = 0;

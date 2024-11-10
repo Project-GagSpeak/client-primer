@@ -228,7 +228,7 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
     public override async Task Disconnect(ServerState disconnectionReason)
     {
         // If our current state was Connected, be sure to fire, or at least attempt to fire, a final achievement save prior to disconnection.
-        if (ServerStatus is ServerState.Connected)
+        if (ServerStatus is ServerState.Connected && AchievementManager.HadFailedAchievementDataLoad is false)
         {
             Logger.LogInformation("Sending Final Achievement SaveData Update before Hub Instance Disposal.", LoggerType.Achievements);
             await UserUpdateAchievementData(new(new(UID), AchievementManager.GetSaveDataDtoString()));

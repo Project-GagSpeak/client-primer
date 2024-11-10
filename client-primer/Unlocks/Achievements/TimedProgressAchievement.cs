@@ -3,7 +3,7 @@ using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
-public class TimedProgressAchievement : Achievement
+public class TimedProgressAchievement : AchievementBase
 {
     /// <summary>
     /// The Current Progress made towards the achievement.
@@ -20,8 +20,9 @@ public class TimedProgressAchievement : Achievement
     /// </summary>
     public TimeSpan TimeToComplete { get; private set; }
 
-    public TimedProgressAchievement(uint id, string title, string desc, int goal, TimeSpan timeLimit, Action<uint, string> onCompleted,
-        string prefix = "", string suffix = "", bool isSecret = false) : base(id, title, desc, goal, prefix, suffix, onCompleted, isSecret)
+    public TimedProgressAchievement(AchievementModuleKind module, AchievementInfo infoBase, int goal, TimeSpan timeLimit, 
+        Action<int, string> onCompleted, string prefix = "", string suffix = "", bool isSecret = false) 
+        : base(module, infoBase, goal, prefix, suffix, onCompleted, isSecret)
     {
         TimeToComplete = timeLimit;
     }

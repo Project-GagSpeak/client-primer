@@ -1,18 +1,45 @@
+using GagspeakAPI.Data.IPC;
 using System.Windows.Forms;
 
 namespace GagSpeak.Achievements;
 
+public struct UnlockReward
+{
+    /// <summary> The Component Associated with the unlock. </summary>
+    public ProfileComponent Component { get; set; } = ProfileComponent.Plate;
+
+    /// <summary> If the Unlock is a Background, Border, or Overlay. </summary>
+    public StyleKind Type { get; set; } = StyleKind.Background;
+
+    /// <summary> The Value within that defined enum that is unlocked by this. </summary>
+    public int Value { get; set; } = 0;
+
+    public UnlockReward(ProfileComponent component, StyleKind type, int value)
+    {
+        Component = component;
+        Type = type;
+        Value = value;
+    }
+}
+
 public struct AchievementInfo
 {
-    public uint Id { get; init; }
+    /// <summary> Unique Achievement ID </summary>
+    public int Id { get; init; }
+    /// <summary> Achievement Title </summary>
     public string Title { get; init; }
+    /// <summary> Achievement Description </summary>
     public string Description { get; init; }
 
-    public AchievementInfo(uint id, string title, string description)
+    /// <summary> The Reward for unlocking this achievement. </summary>
+    public UnlockReward UnlockReward { get; init; }
+
+    public AchievementInfo(int id, string title, string description, UnlockReward reward = new UnlockReward())
     {
         Id = id;
         Title = title;
         Description = description;
+        UnlockReward = reward;
     }
 }
 
@@ -312,7 +339,7 @@ public static class Achievements
 
 
     // Full mapping to quickly go from Uint to AchievementInfo
-    public static readonly Dictionary<uint, AchievementInfo> AchievementMap = new Dictionary<uint, AchievementInfo>
+    public static readonly Dictionary<int, AchievementInfo> AchievementMap = new Dictionary<int, AchievementInfo>
     {
         { 1, JustAVolunteer },
         { 2, AsYouCommand },

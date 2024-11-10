@@ -10,41 +10,136 @@ namespace GagSpeak.Achievements;
 
 public class AchievementSaveData
 {
+    // easter egg progress.
+    public Dictionary<string, bool> EasterEggIcons { get; set; } = new Dictionary<string, bool>() { { "Orders", false }, { "Gags", false }, { "Wardrobe", false }, { "Puppeteer", false }, { "Toybox", false } };
+    // World Tour Progress. MAPPING: (129 = Limsa Lominsa, 132 = Gridania, 130 = Ul'dah, 418 = Ishgard, 628 = Kugane, 819 = The Crystarium, 820 = Eulmore, 962 = Old Sharlayan, 963 = Raz-At-Han, 1185 = Tuliyollal, 1186 = Solution 9)
+    public Dictionary<ushort, bool> VisitedWorldTour { get; set; } = new Dictionary<ushort, bool>() { { 129, false }, { 132, false }, { 130, false }, { 418, false }, { 628, false }, { 819, false }, { 820, false }, { 962, false }, { 963, false }, { 1185, false }, { 1186, false } };
+    public Dictionary<int, AchievementBase> Achievements { get; private set; }
     public AchievementSaveData()
     {
-        foreach (AchievementModuleKind type in Enum.GetValues(typeof(AchievementModuleKind)))
-            Components[type] = new AchievementComponent();
+        Achievements = new Dictionary<int, AchievementBase>();
     }
 
-    // Our Stored Achievements.
-    public Dictionary<AchievementModuleKind, AchievementComponent> Components = new();
-
-    // Our Stored Easter Egg Icons Discovery Progress.
-    public Dictionary<string, bool> EasterEggIcons { get; set; } = new Dictionary<string, bool>()
+    public void LoadFromLightAchievements(List<LightAchievement> lightAchievements)
     {
-        {"Orders", false },
-        {"Gags", false },
-        {"Wardrobe", false },
-        {"Puppeteer", false },
-        {"Toybox", false }
-    };
+        foreach (var lightAchievement in lightAchievements)
+        {
+            if (lightAchievement.Type is AchievementType.Progress && Achievements[lightAchievement.AchievementId] is ProgressAchievement progressAchievement)
+            {
+                progressAchievement.IsCompleted = lightAchievement.IsCompleted;
+                progressAchievement.Progress = lightAchievement.Progress;
+                continue; // skip to next achievement
+            }
 
-    public Dictionary<ushort, bool> VisitedWorldTour { get; set; } = new Dictionary<ushort, bool>()
+            if (lightAchievement.Type is AchievementType.Conditional && Achievements[lightAchievement.AchievementId] is ConditionalAchievement conditionalAchievement)
+            {
+                conditionalAchievement.IsCompleted = lightAchievement.IsCompleted;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.Threshold && Achievements[lightAchievement.AchievementId] is ThresholdAchievement thresholdAchievement)
+            {
+                thresholdAchievement.IsCompleted = lightAchievement.IsCompleted;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.Duration && Achievements[lightAchievement.AchievementId] is DurationAchievement durationAchievement)
+            {
+                durationAchievement.IsCompleted = lightAchievement.IsCompleted;
+                durationAchievement.ActiveItems = lightAchievement.ActiveItems;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.ConditionalThreshold && Achievements[lightAchievement.AchievementId] is ConditionalThresholdAchievement conditionalThresholdAchievement)
+            {
+                conditionalThresholdAchievement.IsCompleted = lightAchievement.IsCompleted;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.ConditionalProgress && Achievements[lightAchievement.AchievementId] is ConditionalProgressAchievement conditionalProgressAchievement)
+            {
+                conditionalProgressAchievement.IsCompleted = lightAchievement.IsCompleted;
+                conditionalProgressAchievement.Progress = lightAchievement.Progress;
+                conditionalProgressAchievement.ConditionalTaskBegun = lightAchievement.ConditionalTaskBegun;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.TimedProgress && Achievements[lightAchievement.AchievementId] is TimedProgressAchievement timedProgressAchievement)
+            {
+                timedProgressAchievement.IsCompleted = lightAchievement.IsCompleted;
+                timedProgressAchievement.ProgressTimestamps = lightAchievement.RecordedDateTimes;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.TimeLimitConditional && Achievements[lightAchievement.AchievementId] is TimeLimitConditionalAchievement timeLimited)
+            {
+                timeLimited.IsCompleted = lightAchievement.IsCompleted;
+                timeLimited.StartPoint = lightAchievement.StartTime;
+                continue; // skip to next achievement
+            }
+
+            if (lightAchievement.Type is AchievementType.RequiredTimeConditional && Achievements[lightAchievement.AchievementId] is TimeRequiredConditionalAchievement timeRequired)
+            {
+                timeRequired.IsCompleted = lightAchievement.IsCompleted;
+                timeRequired.StartPoint = lightAchievement.StartTime;
+                continue; // skip to next achievement
+            }
+        }
+    }
+
+    public void AddProgress(AchievementModuleKind module, AchievementInfo info, int goal, Action<int, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
     {
-        {129, false }, // Limsa Lominsa
-        {132, false }, // Gridania
-        {130, false }, // Ul'dah
-        {418, false }, // Ishgard
-        {628, false }, // Kugane
-        {819, false }, // The Crystarium
-        {820, false }, // Eulmore
-        {962, false }, // Old Sharlayan
-        {963, false}, // Raz-At-Han
-        {1185, false }, // Tuliyollal
-        {1186, false }, // Solution 9
-    };
+        var achievement = new ProgressAchievement(module, info, goal, onCompleted, prefix, suffix, isSecret);
+        Achievements.Add(info.Id, achievement);
+    }
 
+    public void AddConditional(AchievementModuleKind module, AchievementInfo info, Func<bool> cond, Action<int, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
+    {
+        var achievement = new ConditionalAchievement(module, info, cond, onCompleted, prefix, suffix, isSecret);
+        Achievements.Add(info.Id, achievement);
+    }
 
+    public void AddThreshold(AchievementModuleKind module, AchievementInfo info, int goal, Action<int, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
+    {
+        var achievement = new ThresholdAchievement(module, info, goal, onCompleted, prefix, suffix, isSecret);
+        Achievements.Add(info.Id, achievement);
+    }
+
+    public void AddDuration(AchievementModuleKind module, AchievementInfo info, TimeSpan duration, DurationTimeUnit timeUnit, Action<int, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
+    {
+        var achievement = new DurationAchievement(module, info, duration, onCompleted, timeUnit, prefix, suffix, isSecret);
+        Achievements.Add(info.Id, achievement);
+    }
+
+    public void AddRequiredTimeConditional(AchievementModuleKind module, AchievementInfo info, TimeSpan duration, Func<bool> cond, DurationTimeUnit timeUnit, Action<int, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
+    {
+        var achievement = new TimeRequiredConditionalAchievement(module, info, duration, cond, onCompleted, timeUnit, prefix, suffix, isSecret);
+        Achievements.Add(info.Id, achievement);
+    }
+
+    public void AddTimeLimitedConditional(AchievementModuleKind module, AchievementInfo info, TimeSpan dur, Func<bool> cond, DurationTimeUnit timeUnit, Action<int, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
+    {
+        var achievement = new TimeLimitConditionalAchievement(module, info, dur, cond, onCompleted, timeUnit, prefix, suffix, isSecret);
+        Achievements.Add(info.Id, achievement);
+    }
+
+    public void AddConditionalProgress(AchievementModuleKind module, AchievementInfo info, int goal, Func<bool> cond, Action<int, string> onCompleted, string suffix = "", string prefix = "", bool reqBeginAndFinish = true, bool isSecret = false)
+    {
+        var achievement = new ConditionalProgressAchievement(module, info, goal, cond, onCompleted, reqBeginAndFinish, prefix, suffix, isSecret);
+        Achievements.Add(info.Id, achievement);
+    }
+
+    public void AddConditionalThreshold(AchievementModuleKind module, AchievementInfo info, int goal, Func<bool> cond, Action<int, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
+    {
+        var achievement = new ConditionalThresholdAchievement(module, info, goal, cond, onCompleted, prefix, suffix, isSecret);
+        Achievements.Add(info.Id, achievement);
+    }
+
+    public void AddTimedProgress(AchievementModuleKind module, AchievementInfo info, int goal, TimeSpan timeLimit, Action<int, string> onCompleted, string suffix = "", string prefix = "", bool isSecret = false)
+    {
+        var achievement = new TimedProgressAchievement(module, info, goal, timeLimit, onCompleted, prefix, suffix, isSecret);
+        Achievements.Add(info.Id, achievement);
+    }
 
     public LightSaveDataDto ToLightSaveDataDto()
     {
@@ -55,29 +150,21 @@ public class AchievementSaveData
             VisitedWorldTour = this.VisitedWorldTour
         };
 
-        foreach (var achievementComponent in Components)
+        foreach (var achievementItem in Achievements.Values)
         {
-            var componentKind = achievementComponent.Key;
-            var component = achievementComponent.Value;
-
-            foreach (var achievement in component.Achievements.Values)
+            var lightAchievement = new LightAchievement
             {
-                var lightAchievement = new LightAchievement
-                {
-                    Component = componentKind,
-                    Type = achievement.GetAchievementType(),
-                    AchievementId = achievement.AchievementId,
-                    Title = achievement.Title,
-                    IsCompleted = achievement.IsCompleted,
-                    Progress = GetProgress(achievement) ?? 0,
-                    ConditionalTaskBegun = achievement is ConditionalProgressAchievement conditionalProgressAchievement ? conditionalProgressAchievement.ConditionalTaskBegun : false,
-                    StartTime = GetStartTime(achievement) ?? DateTime.MinValue,
-                    RecordedDateTimes = achievement is TimedProgressAchievement timedProgressAchievement ? (timedProgressAchievement.ProgressTimestamps ?? new List<DateTime>()) : new List<DateTime>(),
-                    ActiveItems = achievement is DurationAchievement durationAchievement ? durationAchievement.ActiveItems : new Dictionary<string, TrackedItem>()
-                };
+                Type = achievementItem.GetAchievementType(),
+                AchievementId = achievementItem.AchievementId,
+                IsCompleted = achievementItem.IsCompleted,
+                Progress = GetProgress(achievementItem) ?? 0,
+                ConditionalTaskBegun = achievementItem is ConditionalProgressAchievement conditionalProgressAchievement ? conditionalProgressAchievement.ConditionalTaskBegun : false,
+                StartTime = GetStartTime(achievementItem) ?? DateTime.MinValue,
+                RecordedDateTimes = achievementItem is TimedProgressAchievement timedProgressAchievement ? (timedProgressAchievement.ProgressTimestamps ?? new List<DateTime>()) : new List<DateTime>(),
+                ActiveItems = achievementItem is DurationAchievement durationAchievement ? durationAchievement.ActiveItems : new Dictionary<string, TrackedItem>()
+            };
 
-                dto.LightAchievementData.Add(lightAchievement);
-            }
+            dto.LightAchievementData.Add(lightAchievement);
         }
         return dto;
     }
@@ -89,17 +176,7 @@ public class AchievementSaveData
             // Update Easter Egg Icons
             EasterEggIcons = new Dictionary<string, bool>(dto.EasterEggIcons);
             VisitedWorldTour = new Dictionary<ushort, bool>(dto.VisitedWorldTour);
-
-            // Group LightAchievements by AchievementModuleKind
-            var groupedAchievements = dto.LightAchievementData
-                .GroupBy(a => a.Component)
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            // Iterate through each component of the Achievements dictionary.
-            // For each component, get the list of light data, and call the Components function to update the achievements.
-            foreach (var component in Components)
-                if (groupedAchievements.TryGetValue(component.Key, out var lightAchievements))
-                    component.Value.LoadFromLightAchievements(lightAchievements);
+            LoadFromLightAchievements(dto.LightAchievementData);
         }
         catch (Exception e)
         {
@@ -107,7 +184,7 @@ public class AchievementSaveData
         }
     }
 
-    private int? GetProgress(Achievement achievement)
+    private int? GetProgress(AchievementBase achievement)
     {
         if (achievement is ConditionalProgressAchievement conditionalProgressAchievement)
             return conditionalProgressAchievement.Progress;
@@ -116,7 +193,7 @@ public class AchievementSaveData
         return null;
     }
 
-    private DateTime? GetStartTime(Achievement achievement)
+    private DateTime? GetStartTime(AchievementBase achievement)
     {
         if (achievement is TimeLimitConditionalAchievement timeLimited)
             return timeLimited.StartPoint;
@@ -124,106 +201,4 @@ public class AchievementSaveData
             return timeRequired.StartPoint;
         return null;
     }
-
-    public (Achievement?, AchievementModuleKind) GetAchievementById(uint id)
-    {
-        // get the achievementInfo by the id.
-        if(Achievements.AchievementMap.TryGetValue(id, out var info))
-        {
-            foreach (var component in Components)
-                if (component.Value.Achievements.TryGetValue(info.Title, out var achievement))
-                    return (achievement, component.Key);
-        }
-        return (null, AchievementModuleKind.Generic);
-    }
 }
-
-public class LightSaveDataDto
-{
-    /// <summary>
-    /// The Version of the Save Data.
-    /// </summary>
-    public int Version { get; set; } = 2;
-
-    /// <summary>
-    /// a lightweight version that is easily compressible for IPC Transfer.
-    /// </summary>
-    public List<LightAchievement> LightAchievementData { get; set; }
-
-    /// <summary>
-    /// easter egg icons
-    /// </summary>
-    public Dictionary<string, bool> EasterEggIcons { get; set; }
-
-    /// <summary>
-    /// World Tour Visited Locations
-    /// </summary>
-    public Dictionary<ushort, bool> VisitedWorldTour { get; set; }
-}
-
-public struct LightAchievement
-{
-    /// <summary>
-    /// The component the achievement belongs to.
-    /// </summary>
-    public AchievementModuleKind Component { get; set; }
-
-    /// <summary>
-    /// The kind of achievement it is. (Useful for type casting)
-    /// </summary>
-    public AchievementType Type { get; set; }
-
-    /// <summary>
-    /// the Unique Identifier for the achievement.
-    /// </summary>
-    public uint AchievementId { get; set; }
-
-    /// <summary>
-    /// The name of the Achievement (Relevant to know which to replace) ((Also reflects the KEY in the component dictionary))
-    /// </summary>
-    public string Title { get; set; }
-
-    /// <summary>
-    /// Gets if the achievement was completed or not.
-    /// </summary>
-    public bool IsCompleted { get; set; }
-
-    /// <summary>
-    /// latest progress (for ProgressAchievements & ConditionalProgressAchievements & TimedProgress)
-    /// </summary>
-    public int Progress { get; set; }
-
-    /// <summary>
-    /// Gets if the conditionalTaskBegin is true (for ConditionalProgressAchievements)
-    /// </summary>
-    public bool ConditionalTaskBegun { get; set; }
-
-    /// <summary>
-    /// Gets StartTime (for TimedProgressAchievements & TimeRequired/TimeLimited)
-    /// </summary>
-    public DateTime StartTime { get; set; }
-
-    /// <summary>
-    /// Stores recorded times things in TimedProgressAchievements handle.
-    /// </summary>
-    public List<DateTime> RecordedDateTimes { get; set; }
-
-    /// <summary>
-    /// the list of items that are being monitored (for duration achievements)
-    /// </summary>
-    public Dictionary<string, TrackedItem> ActiveItems { get; set; }
-}
-
-public struct TrackedItem
-{
-    public string UIDAffected { get; init; }
-    public DateTime TimeAdded { get; init; }
-
-    public TrackedItem(string uidAffected)
-    {
-        UIDAffected = uidAffected;
-        TimeAdded = DateTime.UtcNow;
-    }
-}
-
-

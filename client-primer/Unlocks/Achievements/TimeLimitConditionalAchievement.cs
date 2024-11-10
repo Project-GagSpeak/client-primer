@@ -3,7 +3,7 @@ using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
-public class TimeLimitConditionalAchievement : Achievement
+public class TimeLimitConditionalAchievement : AchievementBase
 {
     private readonly TimeSpan MilestoneDuration;
     public DateTime StartPoint { get; set; } = DateTime.MinValue;
@@ -13,9 +13,9 @@ public class TimeLimitConditionalAchievement : Achievement
     private bool _taskStarted = false;
 
 
-    public TimeLimitConditionalAchievement(uint id, string name, string desc, TimeSpan duration, Func<bool> condition, 
-        Action<uint, string> onCompleted, DurationTimeUnit unit, string prefix = "", string suffix = "", bool isSecret = false) 
-        : base(id, name, desc, ConvertToUnit(duration, unit), prefix, suffix, onCompleted, isSecret)
+    public TimeLimitConditionalAchievement(AchievementModuleKind module, AchievementInfo infoBase, TimeSpan duration, Func<bool> condition, 
+        Action<int, string> onCompleted, DurationTimeUnit unit, string prefix = "", string suffix = "", bool isSecret = false) 
+        : base(module, infoBase, ConvertToUnit(duration, unit), prefix, suffix, onCompleted, isSecret)
     {
         MilestoneDuration = duration;
         RequiredCondition = condition;

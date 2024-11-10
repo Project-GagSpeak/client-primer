@@ -1,9 +1,10 @@
+using GagSpeak.Achievements;
 using GagspeakAPI.Data.IPC;
 
 namespace GagSpeak.Services.Textures;
 
 public static class CosmeticLabels
-{
+{ 
     public static readonly Dictionary<CorePluginTexture, string> NecessaryImages = new()
     {
         { CorePluginTexture.Logo256, "RequiredImages\\icon256.png" },
@@ -95,10 +96,10 @@ public static class CosmeticLabels
 
     #region Mapping Dictionaries
     // Plate
-    public static readonly Dictionary<uint, ProfileStyleBG> PlateBackgroundMap = new()
+    public static readonly Dictionary<int, ProfileStyleBG> PlateBackgroundMap = new()
     {
         { 0, ProfileStyleBG.Default },
-        { 301, ProfileStyleBG.Ropes },
+        { Achievements.Achievements.BondagePalace.Id, ProfileStyleBG.Ropes },
         { 302, ProfileStyleBG.Chains },
         { 303, ProfileStyleBG.LatexBlack },
         { 304, ProfileStyleBG.Slime },
@@ -116,7 +117,7 @@ public static class CosmeticLabels
         { 3016, ProfileStyleBG.Demonic },
     };
 
-    public static readonly Dictionary<uint, ProfileStyleBorder> PlateBorderMap = new()
+    public static readonly Dictionary<int, ProfileStyleBorder> PlateBorderMap = new()
     {
         { 0, ProfileStyleBorder.Default },
         { 301, ProfileStyleBorder.Ropes },
@@ -134,7 +135,7 @@ public static class CosmeticLabels
     };
 
     // Profile Picture
-    public static readonly Dictionary<uint, ProfileStyleBorder> ProfilePictureBorderMap = new()
+    public static readonly Dictionary<int, ProfileStyleBorder> ProfilePictureBorderMap = new()
     {
         { 0, ProfileStyleBorder.Default },
         { 301, ProfileStyleBorder.Ropes },
@@ -151,7 +152,7 @@ public static class CosmeticLabels
         { 3012, ProfileStyleBorder.School },
     };
 
-    public static readonly Dictionary<uint, ProfileStyleOverlay> ProfilePictureOverlayMap = new()
+    public static readonly Dictionary<int, ProfileStyleOverlay> ProfilePictureOverlayMap = new()
     {
         { 0, ProfileStyleOverlay.Default },
         { 301, ProfileStyleOverlay.Ropes },
@@ -167,7 +168,7 @@ public static class CosmeticLabels
     };
 
     // DescriptionMap
-    public static readonly Dictionary<uint, ProfileStyleBG> DescriptionBackgroundMap = new()
+    public static readonly Dictionary<int, ProfileStyleBG> DescriptionBackgroundMap = new()
     {
         { 0, ProfileStyleBG.Default },
         { 301, ProfileStyleBG.Ropes },
@@ -188,7 +189,7 @@ public static class CosmeticLabels
         { 3016, ProfileStyleBG.Demonic },
     };
 
-    public static readonly Dictionary<uint, ProfileStyleBorder> DescriptionBorderMap = new()
+    public static readonly Dictionary<int, ProfileStyleBorder> DescriptionBorderMap = new()
     {
         { 0, ProfileStyleBorder.Default },
         { 301, ProfileStyleBorder.Ropes },
@@ -205,7 +206,7 @@ public static class CosmeticLabels
         { 3012, ProfileStyleBorder.School },
     };
 
-    public static readonly Dictionary<uint, ProfileStyleOverlay> DescriptionOverlayMap = new()
+    public static readonly Dictionary<int, ProfileStyleOverlay> DescriptionOverlayMap = new()
     {
         { 0, ProfileStyleOverlay.Default },
         { 301, ProfileStyleOverlay.Ropes },
@@ -221,7 +222,7 @@ public static class CosmeticLabels
     };
 
     // GagSlot
-    public static readonly Dictionary<uint, ProfileStyleBG> GagSlotBackgroundMap = new()
+    public static readonly Dictionary<int, ProfileStyleBG> GagSlotBackgroundMap = new()
     {
         { 0, ProfileStyleBG.Default},
         { 301, ProfileStyleBG.Ropes },
@@ -242,7 +243,7 @@ public static class CosmeticLabels
         { 3016, ProfileStyleBG.Demonic },
     };
 
-    public static readonly Dictionary<uint, ProfileStyleBorder> GagSlotBorderMap = new()
+    public static readonly Dictionary<int, ProfileStyleBorder> GagSlotBorderMap = new()
     {
         { 0, ProfileStyleBorder.Default },
         { 301, ProfileStyleBorder.Ropes },
@@ -259,7 +260,7 @@ public static class CosmeticLabels
         { 3012, ProfileStyleBorder.School },
     };
 
-    public static readonly Dictionary<uint, ProfileStyleOverlay> GagSlotOverlayMap = new()
+    public static readonly Dictionary<int, ProfileStyleOverlay> GagSlotOverlayMap = new()
     {
         { 0, ProfileStyleOverlay.Default },
         { 301, ProfileStyleOverlay.Ropes },
@@ -275,7 +276,7 @@ public static class CosmeticLabels
     };
 
     // Padlock
-    public static readonly Dictionary<uint, ProfileStyleBG> PadlockBackgroundMap = new()
+    public static readonly Dictionary<int, ProfileStyleBG> PadlockBackgroundMap = new()
     {
         { 0, ProfileStyleBG.Default},
         { 301, ProfileStyleBG.Ropes },
@@ -296,7 +297,7 @@ public static class CosmeticLabels
         { 3016, ProfileStyleBG.Demonic },
     };
 
-    public static readonly Dictionary<uint, ProfileStyleBorder> PadlockBorderMap = new()
+    public static readonly Dictionary<int, ProfileStyleBorder> PadlockBorderMap = new()
     {
         { 0, ProfileStyleBorder.Default },
         { 301, ProfileStyleBorder.Ropes },
@@ -313,7 +314,7 @@ public static class CosmeticLabels
         { 3012, ProfileStyleBorder.School },
     };
 
-    public static readonly Dictionary<uint, ProfileStyleOverlay> PadlockOverlayMap = new()
+    public static readonly Dictionary<int, ProfileStyleOverlay> PadlockOverlayMap = new()
     {
         { 0, ProfileStyleOverlay.Default },
         { 301, ProfileStyleOverlay.Ropes },
@@ -329,7 +330,7 @@ public static class CosmeticLabels
     };
 
     // BlockedSlots
-    public static readonly Dictionary<uint, ProfileStyleBG> BlockedSlotsBackgroundMap = new()
+    public static readonly Dictionary<int, ProfileStyleBG> BlockedSlotsBackgroundMap = new()
     {
         { 0, ProfileStyleBG.Default},
         { 301, ProfileStyleBG.Ropes },
@@ -350,7 +351,7 @@ public static class CosmeticLabels
         { 3016, ProfileStyleBG.Demonic },
     };
 
-    public static readonly Dictionary<uint, ProfileStyleBorder> BlockedSlotsBorderMap = new()
+    public static readonly Dictionary<int, ProfileStyleBorder> BlockedSlotsBorderMap = new()
     {
         { 0, ProfileStyleBorder.Default },
         { 301, ProfileStyleBorder.Ropes },
@@ -367,7 +368,7 @@ public static class CosmeticLabels
         { 3012, ProfileStyleBorder.School },
     };
 
-    public static readonly Dictionary<uint, ProfileStyleOverlay> BlockedSlotsOverlayMap = new()
+    public static readonly Dictionary<int, ProfileStyleOverlay> BlockedSlotsOverlayMap = new()
     {
         { 0, ProfileStyleOverlay.Default },
         { 301, ProfileStyleOverlay.Ropes },
@@ -383,7 +384,7 @@ public static class CosmeticLabels
     };
 
     // BlockedSlot
-    public static readonly Dictionary<uint, ProfileStyleBorder> BlockedSlotBorderMap = new()
+    public static readonly Dictionary<int, ProfileStyleBorder> BlockedSlotBorderMap = new()
     {
         { 0, ProfileStyleBorder.Default },
         { 301, ProfileStyleBorder.Ropes },
@@ -400,7 +401,7 @@ public static class CosmeticLabels
         { 3012, ProfileStyleBorder.School },
     };
 
-    public static readonly Dictionary<uint, ProfileStyleOverlay> BlockedSlotOverlayMap = new()
+    public static readonly Dictionary<int, ProfileStyleOverlay> BlockedSlotOverlayMap = new()
     {
         { 0, ProfileStyleOverlay.Default },
         { 301, ProfileStyleOverlay.Ropes },

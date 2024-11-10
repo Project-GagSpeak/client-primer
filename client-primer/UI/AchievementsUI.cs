@@ -129,7 +129,7 @@ public class AchievementsUI : WindowMediatorSubscriberBase
     private void CenteredHeader()
     {
 
-        var text = "GagSpeak Achievements (" + _achievementManager.CompletedAchievementsCount + "/" + _achievementManager.TotalAchievements + ")";
+        var text = "GagSpeak Achievements (" + _achievementManager.Completed + "/" + _achievementManager.Total + ")";
         using (_uiShared.UidFont.Push())
         {
             var uidTextSize = ImGui.CalcTextSize(text);
@@ -149,12 +149,12 @@ public class AchievementsUI : WindowMediatorSubscriberBase
     {
         // We likely want to avoid pushing the style theme here if we are swapping the colors based on the state of an achievement.
         // If that is not the case. move them here.
-        var unlocks = _achievementManager.GetComponent(type);
-        if (unlocks.Total is 0)
+        var unlocks = AchievementManager.GetAchievementForModule(type);
+        if (!unlocks.Any())
             return;
 
         // filter down the unlocks to searchable results.
-        var filteredUnlocks = unlocks.All
+        var filteredUnlocks = unlocks
             .Where(goal => goal.Title.Contains(AchievementSearchString, StringComparison.OrdinalIgnoreCase))
             .ToList();
 
@@ -189,7 +189,7 @@ public class AchievementsUI : WindowMediatorSubscriberBase
 
     private static Vector2 AchievementIconSize = new(96, 96);
 
-    private void DrawAchievementProgressBox(Achievement achievementItem)
+    private void DrawAchievementProgressBox(AchievementBase achievementItem)
     {
         // set up the style theme for the box.
         //using var windowPadding = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, new Vector2(ImGui.GetStyle().WindowPadding.X, 3f));
@@ -290,7 +290,7 @@ public class AchievementsUI : WindowMediatorSubscriberBase
 
     private const int Transparency = 100;
     private const int ProgressBarBorder = 1;
-    private void DrawProgressForAchievement(Achievement achievement)
+    private void DrawProgressForAchievement(AchievementBase achievement)
     {
         var region = ImGui.GetContentRegionAvail(); // content region
         var padding = ImGui.GetStyle().FramePadding; // padding

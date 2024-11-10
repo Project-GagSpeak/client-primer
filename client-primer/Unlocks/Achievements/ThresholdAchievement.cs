@@ -4,15 +4,15 @@ using System;
 
 namespace GagSpeak.Achievements;
 
-public class ThresholdAchievement : Achievement
+public class ThresholdAchievement : AchievementBase
 {
     /// <summary>
     /// The condition that determines what our threshold is.
     /// </summary>
     private int LastRecordedThreshold { get; set; }
 
-    public ThresholdAchievement(uint id, string title, string desc, int goal, Action<uint, string> onCompleted, string prefix = "", 
-        string suffix = "", bool isSecret = false) : base(id,title, desc, goal, prefix, suffix, onCompleted, isSecret)
+    public ThresholdAchievement(AchievementModuleKind module, AchievementInfo infoBase, int goal, Action<int, string> onCompleted, string prefix = "", 
+        string suffix = "", bool isSecret = false) : base(module, infoBase, goal, prefix, suffix, onCompleted, isSecret)
     {
         LastRecordedThreshold = 0;
     }

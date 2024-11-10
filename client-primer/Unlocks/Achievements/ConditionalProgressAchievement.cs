@@ -3,7 +3,7 @@ using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
-public class ConditionalProgressAchievement : Achievement
+public class ConditionalProgressAchievement : AchievementBase
 {
     /// <summary>
     /// The Current Progress made towards the achievement.
@@ -30,9 +30,9 @@ public class ConditionalProgressAchievement : Achievement
     /// </summary>
     public bool ConditionalTaskFinished { get; set; }
 
-    public ConditionalProgressAchievement(uint id, string title, string desc, int goal, Func<bool> cond, Action<uint, string> onCompleted,
-        bool reqBeginAndFinish = true, string prefix = "", string suffix = "", bool isSecret = false) 
-        : base(id, title, desc, goal, prefix, suffix, onCompleted, isSecret)
+    public ConditionalProgressAchievement(AchievementModuleKind module, AchievementInfo infoBase, int goal, Func<bool> cond, 
+        Action<int, string> onCompleted, bool reqBeginAndFinish = true, string prefix = "", string suffix = "", bool isSecret = false) 
+        : base(module, infoBase, goal, prefix, suffix, onCompleted, isSecret)
     {
         RequiredCondition = cond;
         Progress = 0;

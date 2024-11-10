@@ -3,15 +3,16 @@ using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
-public class ConditionalAchievement : Achievement
+public class ConditionalAchievement : AchievementBase
 {
     /// <summary>
     /// The condition that must be met to complete the achievement
     /// </summary>
     private Func<bool> Condition;
 
-    public ConditionalAchievement(uint id, string title, string desc, Func<bool> cond, Action<uint, string> onCompleted, string prefix = "", 
-        string suffix = "", bool isSecret = false) : base(id, title, desc, 1, prefix, suffix, onCompleted, isSecret)
+    public ConditionalAchievement(AchievementModuleKind module, AchievementInfo infoBase, Func<bool> cond, 
+        Action<int, string> onCompleted, string prefix = "", string suffix = "", bool isSecret = false) 
+        : base(module, infoBase, 1, prefix, suffix, onCompleted, isSecret)
     {
         Condition = cond;
     }

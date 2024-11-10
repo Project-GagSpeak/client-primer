@@ -3,15 +3,15 @@ using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
-public class ProgressAchievement : Achievement
+public class ProgressAchievement : AchievementBase
 {
     /// <summary>
     /// The Current Progress made towards the achievement.
     /// </summary>
     public int Progress { get; set; }
 
-    public ProgressAchievement(uint id, string title, string desc, int goal, Action<uint, string> onCompleted, string prefix = "", 
-        string suffix = "", bool isSecret = false) : base(id, title, desc, goal, prefix, suffix, onCompleted, isSecret)
+    public ProgressAchievement(AchievementModuleKind module, AchievementInfo infoBase, int goal, Action<int, string> onCompleted, string prefix = "", 
+        string suffix = "", bool isSecret = false) : base(module, infoBase, goal, prefix, suffix, onCompleted, isSecret)
     {
         Progress = 0;
     }

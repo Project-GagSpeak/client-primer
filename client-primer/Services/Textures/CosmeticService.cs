@@ -222,7 +222,7 @@ public class CosmeticService : IHostedService, IDisposable
 
     public void RecalculateUnlockedItems()
     {
-        var completedAchievementIds = AchievementManager.CompletedAchievementIds.ToHashSet();
+        var completedAchievementIds = AchievementManager.CompletedAchievements.Select(x => x.AchievementId).ToHashSet();
         completedAchievementIds.Add(0); // Add the default achievement to the list.
 
         UnlockedPlateBackgrounds = CosmeticLabels.PlateBackgroundMap

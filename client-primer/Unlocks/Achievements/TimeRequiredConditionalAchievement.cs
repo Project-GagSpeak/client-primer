@@ -3,7 +3,7 @@ using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
-public class TimeRequiredConditionalAchievement : Achievement
+public class TimeRequiredConditionalAchievement : AchievementBase
 {
     private readonly TimeSpan MilestoneDuration;
     public DateTime StartPoint { get; set; } = DateTime.MinValue;
@@ -12,9 +12,9 @@ public class TimeRequiredConditionalAchievement : Achievement
     private CancellationTokenSource _cancellationTokenSource;
     public bool TaskStarted = false;
 
-    public TimeRequiredConditionalAchievement(uint id, string name, string desc, TimeSpan dur, Func<bool> cond, 
-        Action<uint, string> onCompleted, DurationTimeUnit unit, string prefix = "", string suffix = "", bool isSecret = false) 
-        : base(id, name, desc, ConvertToUnit(dur, unit), prefix, suffix, onCompleted, isSecret)
+    public TimeRequiredConditionalAchievement(AchievementModuleKind module, AchievementInfo infoBase, TimeSpan dur, Func<bool> cond, 
+        Action<int, string> onCompleted, DurationTimeUnit unit, string prefix = "", string suffix = "", bool isSecret = false) 
+        : base(module, infoBase, ConvertToUnit(dur, unit), prefix, suffix, onCompleted, isSecret)
     {
         MilestoneDuration = dur;
         RequiredCondition = cond;

@@ -87,7 +87,7 @@ public class KinkPlateLight
         // Now let's draw out the chosen achievement Name..
         using (_uiShared.GagspeakLabelFont.Push())
         {
-            var titleName = AchievementManager.GetTitleById((uint)profile.KinkPlateInfo.ChosenTitleId);
+            var titleName = AchievementManager.GetTitleById(profile.KinkPlateInfo.ChosenTitleId);
             var chosenTitleSize = ImGui.CalcTextSize(titleName);
             ImGui.SetCursorScreenPos(new Vector2(TitleLineStartPos.X + TitleLineSize.X / 2 - chosenTitleSize.X / 2, TitleLineStartPos.Y - chosenTitleSize.Y));
             // display it, it should be green if connected and red when not.

@@ -2,7 +2,7 @@ using GagSpeak.WebAPI;
 
 namespace GagSpeak.Achievements;
 
-public class DurationAchievement : Achievement
+public class DurationAchievement : AchievementBase
 {
     private readonly TimeSpan MilestoneDuration; // Required duration to achieve
 
@@ -11,9 +11,9 @@ public class DurationAchievement : Achievement
 
     public DurationTimeUnit TimeUnit { get; init; }
 
-    public DurationAchievement(uint id, string name, string desc, TimeSpan duration, Action<uint, string> onCompleted,
-        DurationTimeUnit timeUnit = DurationTimeUnit.Minutes, string prefix = "", string suffix = "",
-        bool isSecret = false) : base(id, name, desc, ConvertToUnit(duration, timeUnit), prefix, suffix, onCompleted, isSecret)
+    public DurationAchievement(AchievementModuleKind module, AchievementInfo infoBase, TimeSpan duration, Action<int, string> onCompleted,
+        DurationTimeUnit timeUnit = DurationTimeUnit.Minutes, string prefix = "", string suffix = "", bool isSecret = false) 
+        : base(module, infoBase, ConvertToUnit(duration, timeUnit), prefix, suffix, onCompleted, isSecret)
     {
         MilestoneDuration = duration;
         TimeUnit = timeUnit;

@@ -15,17 +15,17 @@ public partial class AchievementManager
 {
     private void OnCommendationsGiven(int amount)
     {
-        (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.KinkyTeacher.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(amount);
-        (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.KinkyProfessor.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(amount);
-        (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.KinkyMentor.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(amount);
+        (SaveData.Achievements[Achievements.KinkyTeacher.Id] as ConditionalProgressAchievement)?.CheckTaskProgress(amount);
+        (SaveData.Achievements[Achievements.KinkyProfessor.Id] as ConditionalProgressAchievement)?.CheckTaskProgress(amount);
+        (SaveData.Achievements[Achievements.KinkyMentor.Id] as ConditionalProgressAchievement)?.CheckTaskProgress(amount);
     }
 
     private void OnPairVisible()
     {
         // We need to obtain the total visible user count, then update the respective achievements.
         var visiblePairs = _pairManager.GetVisibleUserCount();
-        (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.BondageClub.Title] as ThresholdAchievement)?.UpdateThreshold(visiblePairs);
-        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.Humiliation.Title] as ConditionalThresholdAchievement)?.UpdateThreshold(visiblePairs);
+        (SaveData.Achievements[Achievements.BondageClub.Id] as ThresholdAchievement)?.UpdateThreshold(visiblePairs);
+        (SaveData.Achievements[Achievements.Humiliation.Id] as ConditionalThresholdAchievement)?.UpdateThreshold(visiblePairs);
     }
 
     private void OnIconClicked(string windowLabel)
@@ -37,7 +37,7 @@ public partial class AchievementManager
             else
                 SaveData.EasterEggIcons[windowLabel] = true;
             // update progress.
-            (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.HiddenInPlainSight.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.HiddenInPlainSight.Id] as ProgressAchievement)?.IncrementProgress();
         }
     }
 
@@ -56,11 +56,11 @@ public partial class AchievementManager
                     // Mark the conditonal as finished in the achievement, and mark as completed.
                     if (_clientConfigs.GetActiveSetIdx() != -1)
                     {
-                        (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.TourDeBound.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                        (SaveData.Achievements[Achievements.TourDeBound.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
                         SaveData.VisitedWorldTour[prevZone] = true;
                     }
                     else
-                        (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.TourDeBound.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+                        (SaveData.Achievements[Achievements.TourDeBound.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
                     // reset the datetime to .MinValue
                     worldTourStartedTime = DateTime.MinValue;
                 }
@@ -71,25 +71,25 @@ public partial class AchievementManager
     private void CheckOnZoneSwitchEnd()
     {
         if(_frameworkUtils.IsInMainCity)
-            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WalkOfShame.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+            (SaveData.Achievements[Achievements.WalkOfShame.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
         ushort territory = _frameworkUtils.ClientState.TerritoryType;
 
         // if present in diadem (for diamdem achievement)
         if (territory is 939)
-            (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.StartTask();
+            (SaveData.Achievements[Achievements.MotivationForRestoration.Id] as TimeRequiredConditionalAchievement)?.StartTask();
         else
-            (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+            (SaveData.Achievements[Achievements.MotivationForRestoration.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
         // If we left before completing the duty, check that here.
-        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.UCanTieThis.Title] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.UCanTieThis.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+        if ((SaveData.Achievements[Achievements.UCanTieThis.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[Achievements.UCanTieThis.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
 
-        if ((SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentButDeadly.Title] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentButDeadly.Title] as ConditionalProgressAchievement)?.CheckTaskProgress();
+        if ((SaveData.Achievements[Achievements.SilentButDeadly.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[Achievements.SilentButDeadly.Id] as ConditionalProgressAchievement)?.CheckTaskProgress();
 
-        if ((SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.HealSlut.Title] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.HealSlut.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+        if ((SaveData.Achievements[Achievements.HealSlut.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[Achievements.HealSlut.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
 
         // Check to see if we qualify for starting any world tour conditions.
         if (SaveData.VisitedWorldTour.ContainsKey(territory) && SaveData.VisitedWorldTour[territory] is false)
@@ -105,7 +105,7 @@ public partial class AchievementManager
             else // Begin the progress for this city's world tour. 
             {
                 Logger.LogTrace("Starting World Tour Progress for: " + territory, LoggerType.Achievements);
-                (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.TourDeBound.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+                (SaveData.Achievements[Achievements.TourDeBound.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
                 worldTourStartedTime = DateTime.UtcNow;
             }
         }
@@ -123,9 +123,9 @@ public partial class AchievementManager
         if (deepDungeonType is null) return;
 
         if (_frameworkUtils.PartyListSize is 1)
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinksRunDeeper.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+            (SaveData.Achievements[Achievements.MyKinksRunDeeper.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
         // start this under any condition.
-        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinkRunsDeep.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+        (SaveData.Achievements[Achievements.MyKinkRunsDeep.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
 
 
         switch (deepDungeonType)
@@ -133,35 +133,35 @@ public partial class AchievementManager
             case DeepDungeonType.PalaceOfTheDead:
                 if ((floor > 40 && floor <= 50) || (floor > 90 && floor <= 100))
                 {
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.BondagePalace.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+                    (SaveData.Achievements[Achievements.BondagePalace.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
                     if (floor is 50 || floor is 100)
                     {
-                        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.BondagePalace.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
-                        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinkRunsDeep.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
-                        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinksRunDeeper.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                        (SaveData.Achievements[Achievements.BondagePalace.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                        (SaveData.Achievements[Achievements.MyKinkRunsDeep.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                        (SaveData.Achievements[Achievements.MyKinksRunDeeper.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
                     }
                 }
                 break;
             case DeepDungeonType.HeavenOnHigh:
                 if (floor > 20 && floor <= 30)
                 {
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.HornyOnHigh.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+                    (SaveData.Achievements[Achievements.HornyOnHigh.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
                     if (floor is 30)
                     {
-                        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinkRunsDeep.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
-                        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinksRunDeeper.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                        (SaveData.Achievements[Achievements.MyKinkRunsDeep.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                        (SaveData.Achievements[Achievements.MyKinksRunDeeper.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
                     }
                 }
                 break;
             case DeepDungeonType.EurekaOrthos:
                 if (floor > 20 && floor <= 30)
                 {
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.EurekaWhorethos.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+                    (SaveData.Achievements[Achievements.EurekaWhorethos.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
                     if (floor is 30)
                     {
-                        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.EurekaWhorethos.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
-                        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinkRunsDeep.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
-                        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyKinksRunDeeper.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                        (SaveData.Achievements[Achievements.EurekaWhorethos.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                        (SaveData.Achievements[Achievements.MyKinkRunsDeep.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                        (SaveData.Achievements[Achievements.MyKinksRunDeeper.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
                     }
                 }
                 break;
@@ -174,20 +174,20 @@ public partial class AchievementManager
         if (_frameworkUtils.InPvP)// || _frameworkUtils.PartyListSize < 4)
             return;
 
-        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.KinkyExplorer.Title] as ConditionalAchievement)?.CheckCompletion();
+        (SaveData.Achievements[Achievements.KinkyExplorer.Id] as ConditionalAchievement)?.CheckCompletion();
 
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentButDeadly.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.UCanTieThis.Title] as ConditionalProgressAchievement)?.BeginConditionalTask(25); // 10s delay.
+        (SaveData.Achievements[Achievements.SilentButDeadly.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
+        (SaveData.Achievements[Achievements.UCanTieThis.Id] as ConditionalProgressAchievement)?.BeginConditionalTask(25); // 10s delay.
 
         if (_frameworkUtils.PlayerJobRole is ActionRoles.Healer)
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.HealSlut.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+            (SaveData.Achievements[Achievements.HealSlut.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
 
         // If the party size is 8, let's check for the trials.
         if(_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
         {
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfFocus.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfDexterity.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfTheBlind.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+            (SaveData.Achievements[Achievements.TrialOfFocus.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
+            (SaveData.Achievements[Achievements.TrialOfDexterity.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
+            (SaveData.Achievements[Achievements.TrialOfTheBlind.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
         }
     }
 
@@ -196,38 +196,38 @@ public partial class AchievementManager
         if (_frameworkUtils.InPvP)// || _frameworkUtils.PartyListSize < 4)
             return;
         Logger.LogInformation("Duty Ended", LoggerType.Achievements);
-        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.UCanTieThis.Title] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.UCanTieThis.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+        if ((SaveData.Achievements[Achievements.UCanTieThis.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[Achievements.UCanTieThis.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
 
-        if ((SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentButDeadly.Title] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentButDeadly.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+        if ((SaveData.Achievements[Achievements.SilentButDeadly.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[Achievements.SilentButDeadly.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
 
-        if ((SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.HealSlut.Title] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.HealSlut.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+        if ((SaveData.Achievements[Achievements.HealSlut.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[Achievements.HealSlut.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
 
         // Trial has ended, check for completion.
-        if ((SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfFocus.Title] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+        if ((SaveData.Achievements[Achievements.TrialOfFocus.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
         {
             if (_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfFocus.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                (SaveData.Achievements[Achievements.TrialOfFocus.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
             else // if we are not in a full party, we should reset the task.
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfFocus.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+                (SaveData.Achievements[Achievements.TrialOfFocus.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
         }
         
-        if ((SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfDexterity.Title] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+        if ((SaveData.Achievements[Achievements.TrialOfDexterity.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
         {
             if(_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfDexterity.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                (SaveData.Achievements[Achievements.TrialOfDexterity.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
             else // if we are not in a full party, we should reset the task.
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfDexterity.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+                (SaveData.Achievements[Achievements.TrialOfDexterity.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
         }
         
-        if ((SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfTheBlind.Title] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+        if ((SaveData.Achievements[Achievements.TrialOfTheBlind.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
         {
             if (_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfTheBlind.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                (SaveData.Achievements[Achievements.TrialOfTheBlind.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
             else // if we are not in a full party, we should reset the task.
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfTheBlind.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+                (SaveData.Achievements[Achievements.TrialOfTheBlind.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
         }
     }
 
@@ -236,21 +236,21 @@ public partial class AchievementManager
         switch (orderKind)
         {
             case OrderInteractionKind.Completed:
-                (SaveData.Components[AchievementModuleKind.Orders].Achievements[Achievements.JustAVolunteer.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Orders].Achievements[Achievements.AsYouCommand.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Orders].Achievements[Achievements.AnythingForMyOwner.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Orders].Achievements[Achievements.GoodDrone.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.JustAVolunteer.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.AsYouCommand.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.AnythingForMyOwner.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.GoodDrone.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
             case OrderInteractionKind.Fail:
-                (SaveData.Components[AchievementModuleKind.Orders].Achievements[Achievements.BadSlut.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Orders].Achievements[Achievements.NeedsTraining.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Orders].Achievements[Achievements.UsefulInOtherWays.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.BadSlut.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.NeedsTraining.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.UsefulInOtherWays.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
             case OrderInteractionKind.Create:
-                (SaveData.Components[AchievementModuleKind.Orders].Achievements[Achievements.NewSlaveOwner.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Orders].Achievements[Achievements.TaskManager.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Orders].Achievements[Achievements.MaidMaster.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Orders].Achievements[Achievements.QueenOfDrones.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.NewSlaveOwner.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.TaskManager.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.MaidMaster.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.QueenOfDrones.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
         }
     }
@@ -272,112 +272,112 @@ public partial class AchievementManager
             // the gag was applied to us by ourselves.
             if (isSelfApplied)
             {
-                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SelfApplied.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.SelfApplied.Id] as ProgressAchievement)?.IncrementProgress();
             }
             // the gag was applied to us by someone else.
             else
             {
-                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilencedSlut.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.InDeepSilence.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentObsessions.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.GoldenSilence.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.AKinkForDrool.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.ThePerfectGagSlut.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.SilencedSlut.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.InDeepSilence.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.SilentObsessions.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.GoldenSilence.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.AKinkForDrool.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.ThePerfectGagSlut.Id] as ProgressAchievement)?.IncrementProgress();
 
-                (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.ATrueGagSlut.Title] as TimedProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.ATrueGagSlut.Id] as TimedProgressAchievement)?.IncrementProgress();
             }
 
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.WhispersToWhimpers.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OfMuffledMoans.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentStruggler.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.QuietedCaptive.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.MessyDrooler.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.DroolingDiva.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.EmbraceOfSilence.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SubjugationToSilence.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SpeechSilverSilenceGolden.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.TheKinkyLegend.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Achievements[Achievements.WhispersToWhimpers.Id] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Achievements[Achievements.OfMuffledMoans.Id] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Achievements[Achievements.SilentStruggler.Id] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Achievements[Achievements.QuietedCaptive.Id] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Achievements[Achievements.MessyDrooler.Id] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Achievements[Achievements.DroolingDiva.Id] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Achievements[Achievements.EmbraceOfSilence.Id] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Achievements[Achievements.SubjugationToSilence.Id] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Achievements[Achievements.SpeechSilverSilenceGolden.Id] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Achievements[Achievements.TheKinkyLegend.Id] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
 
-            (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.Experimentalist.Title] as ConditionalAchievement)?.CheckCompletion();
-            (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.GaggedPleasure.Title] as ConditionalAchievement)?.CheckCompletion();
+            (SaveData.Achievements[Achievements.Experimentalist.Id] as ConditionalAchievement)?.CheckCompletion();
+            (SaveData.Achievements[Achievements.GaggedPleasure.Id] as ConditionalAchievement)?.CheckCompletion();
         }
         // Check regardless of it being an initial server connection or not.
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.ShushtainableResource.Title] as ThresholdAchievement)?.UpdateThreshold(_playerData.TotalGagsEquipped);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.ShushtainableResource.Title] as ConditionalAchievement)?.CheckCompletion();
+        (SaveData.Achievements[Achievements.ShushtainableResource.Id] as ThresholdAchievement)?.UpdateThreshold(_playerData.TotalGagsEquipped);
+        (SaveData.Achievements[Achievements.ShushtainableResource.Id] as ConditionalAchievement)?.CheckCompletion();
     }
 
     private void OnGagRemoval(GagLayer layer, GagType gagType, bool isSelfApplied)
     {
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.ShushtainableResource.Title] as ThresholdAchievement)?.UpdateThreshold(_playerData.TotalGagsEquipped);
+        (SaveData.Achievements[Achievements.ShushtainableResource.Id] as ThresholdAchievement)?.UpdateThreshold(_playerData.TotalGagsEquipped);
 
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.WhispersToWhimpers.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OfMuffledMoans.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentStruggler.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.QuietedCaptive.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.MessyDrooler.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.DroolingDiva.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.EmbraceOfSilence.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SubjugationToSilence.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SpeechSilverSilenceGolden.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.TheKinkyLegend.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Achievements[Achievements.WhispersToWhimpers.Id] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Achievements[Achievements.OfMuffledMoans.Id] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Achievements[Achievements.SilentStruggler.Id] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Achievements[Achievements.QuietedCaptive.Id] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Achievements[Achievements.MessyDrooler.Id] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Achievements[Achievements.DroolingDiva.Id] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Achievements[Achievements.EmbraceOfSilence.Id] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Achievements[Achievements.SubjugationToSilence.Id] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Achievements[Achievements.SpeechSilverSilenceGolden.Id] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Achievements[Achievements.TheKinkyLegend.Id] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
 
         // Halt our Silent But Deadly Progress if gag is removed mid-dungeon
-        if ((SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentButDeadly.Title] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentButDeadly.Title] as ConditionalProgressAchievement)?.CheckTaskProgress();
+        if ((SaveData.Achievements[Achievements.SilentButDeadly.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
+            (SaveData.Achievements[Achievements.SilentButDeadly.Id] as ConditionalProgressAchievement)?.CheckTaskProgress();
     }
 
     private void OnCharaOnlineCleanupForLatest(UserData user, List<string> activeGags, Guid activeRestraint)
     {
         Logger.LogDebug("Player Character " + user.AliasOrUID + " went online and has new active data. Cleaning up expired information!", LoggerType.Achievements);
         // Do stuff if its a gag type.
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.WhispersToWhimpers.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OfMuffledMoans.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentStruggler.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.QuietedCaptive.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.MessyDrooler.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.DroolingDiva.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.EmbraceOfSilence.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SubjugationToSilence.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SpeechSilverSilenceGolden.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
-        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.TheKinkyLegend.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Achievements[Achievements.WhispersToWhimpers.Id] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Achievements[Achievements.OfMuffledMoans.Id] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Achievements[Achievements.SilentStruggler.Id] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Achievements[Achievements.QuietedCaptive.Id] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Achievements[Achievements.MessyDrooler.Id] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Achievements[Achievements.DroolingDiva.Id] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Achievements[Achievements.EmbraceOfSilence.Id] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Achievements[Achievements.SubjugationToSilence.Id] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Achievements[Achievements.SpeechSilverSilenceGolden.Id] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Achievements[Achievements.TheKinkyLegend.Id] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
 
         // Do stuff if its a restraint
         if (user.UID == MainHub.UID)
         {
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.FirstTimeBondage.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AmateurBondage.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ComfortRestraint.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourBondageMaid.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberMaid.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrainedBondageSlave.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberSlut.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ATrueBondageSlave.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.FirstTimeBondage.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.AmateurBondage.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.ComfortRestraint.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.YourBondageMaid.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.YourRubberMaid.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.TrainedBondageSlave.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.YourRubberSlut.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.ATrueBondageSlave.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
         }
         else
         {
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.RiggersFirstSession.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyLittlePlaything.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SuitsYouBitch.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TiesThatBind.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SlaveTrainer.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.CeremonyOfEternalBondage.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.RiggersFirstSession.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.MyLittlePlaything.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.SuitsYouBitch.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.TiesThatBind.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.SlaveTrainer.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
+            (SaveData.Achievements[Achievements.CeremonyOfEternalBondage.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { activeRestraint.ToString() });
         }
 
         // Do stuff if it is a pattern.
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ALittleTease.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ShortButSweet.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TemptingRythms.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MyBuildingDesire.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithWavesOfSensation.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithHeightenedSensations.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MusicalMoaner.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.StimulatingExperiences.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceKing.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceQueen.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.ALittleTease.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.ShortButSweet.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.TemptingRythms.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.MyBuildingDesire.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.WithWavesOfSensation.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.WithHeightenedSensations.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.MusicalMoaner.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.StimulatingExperiences.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.EnduranceKing.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.EnduranceQueen.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
 
         // if these are started, inturrupt them so that they do not complete.
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ForcedFollow.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ForcedWalkies.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.ForcedFollow.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Achievements[Achievements.ForcedWalkies.Id] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
 
     }
 
@@ -385,13 +385,13 @@ public partial class AchievementManager
     {
         if (gag is not GagType.None)
         {
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilenceSlut.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.WatchYourTongue.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.TongueTamer.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.KinkyLibrarian.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OrchestratorOfSilence.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.SilenceSlut.Id] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.WatchYourTongue.Id] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.TongueTamer.Id] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.KinkyLibrarian.Id] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.OrchestratorOfSilence.Id] as ProgressAchievement)?.IncrementProgress();
 
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.YourFavoriteNurse.Title] as ConditionalProgressAchievement)?.CheckTaskProgress();
+            (SaveData.Achievements[Achievements.YourFavoriteNurse.Id] as ConditionalProgressAchievement)?.CheckTaskProgress();
         }
     }
 
@@ -400,16 +400,16 @@ public partial class AchievementManager
         // check for dyes
         if (set.DrawData.Any(x => x.Value.GameStain.Stain1 != 0 || x.Value.GameStain.Stain2 != 0))
         {
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ToDyeFor.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.DyeAnotherDay.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.DyeHard.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.ToDyeFor.Id] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.DyeAnotherDay.Id] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.DyeHard.Id] as ProgressAchievement)?.IncrementProgress();
         }
     }
 
     private void OnRestraintApplied(RestraintSet set, bool isEnabling, string enactorUID)
     {
         // Check this regardless.
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WalkOfShame.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+        (SaveData.Achievements[Achievements.WalkOfShame.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
         // Set is being enabled.
         if (isEnabling)
@@ -427,35 +427,35 @@ public partial class AchievementManager
                 else // Begin the progress for this city's world tour. 
                 {
                     Logger.LogTrace("Starting World Tour Progress for: " + territory, LoggerType.Achievements);
-                    (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.TourDeBound.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+                    (SaveData.Achievements[Achievements.TourDeBound.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
                     worldTourStartedTime = DateTime.UtcNow;
                 }
             }
 
-            (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.Experimentalist.Title] as ConditionalAchievement)?.CheckCompletion();
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.FirstTiemers.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.Experimentalist.Id] as ConditionalAchievement)?.CheckCompletion();
+            (SaveData.Achievements[Achievements.FirstTiemers.Id] as ProgressAchievement)?.IncrementProgress();
 
             // if we are the applier
             if (enactorUID == MainHub.UID)
             {
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SelfBondageEnthusiast.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.SelfBondageEnthusiast.Id] as ProgressAchievement)?.IncrementProgress();
             }
             else // someone else is enabling our set
             {
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AuctionedOff.Title] as ConditionalProgressAchievement)?.BeginConditionalTask();
+                (SaveData.Achievements[Achievements.AuctionedOff.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
                 // starts the timer.
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.Bondodge.Title] as TimeLimitConditionalAchievement)?.CheckCompletion();
+                (SaveData.Achievements[Achievements.Bondodge.Id] as TimeLimitConditionalAchievement)?.CheckCompletion();
 
                 // track overkill
-                (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.ExtremeBondageEnjoyer.Title] as ThresholdAchievement)?.UpdateThreshold(set.EquippedSlotsTotal);
+                (SaveData.Achievements[Achievements.ExtremeBondageEnjoyer.Id] as ThresholdAchievement)?.UpdateThreshold(set.EquippedSlotsTotal);
 
                 // Track Bondage Bunny
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.BondageBunny.Title] as TimedProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.BondageBunny.Id] as TimedProgressAchievement)?.IncrementProgress();
 
                 // see if valid for "cuffed-19"
                 if (set.DrawData.TryGetValue(EquipSlot.Hands, out var handData) && handData.GameItem.Id != ItemIdVars.NothingItem(EquipSlot.Hands).Id)
                 {
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.Cuffed19.Title] as ProgressAchievement)?.IncrementProgress();
+                    (SaveData.Achievements[Achievements.Cuffed19.Id] as ProgressAchievement)?.IncrementProgress();
                 }
             }
         }
@@ -467,18 +467,18 @@ public partial class AchievementManager
                 if (set.LockedBy != enactorUID)
                 {
                     // the assigner and remover were different, so you are being auctioned off.
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AuctionedOff.Title] as ConditionalProgressAchievement)?.FinishConditionalTask();
+                    (SaveData.Achievements[Achievements.AuctionedOff.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
                 }
 
                 // must be removed within limit or wont award.
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.Bondodge.Title] as TimeLimitConditionalAchievement)?.CheckCompletion();
+                (SaveData.Achievements[Achievements.Bondodge.Id] as TimeLimitConditionalAchievement)?.CheckCompletion();
             }
             // If a set is being disabled at all, we should reset our conditionals.
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfFocus.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfDexterity.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrialOfTheBlind.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+            (SaveData.Achievements[Achievements.TrialOfFocus.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+            (SaveData.Achievements[Achievements.TrialOfDexterity.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+            (SaveData.Achievements[Achievements.TrialOfTheBlind.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
 
-            (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.ExtremeBondageEnjoyer.Title] as ThresholdAchievement)?.UpdateThreshold(0);
+            (SaveData.Achievements[Achievements.ExtremeBondageEnjoyer.Id] as ThresholdAchievement)?.UpdateThreshold(0);
 
             // Validate the world tour achievement.
             var territory = _frameworkUtils.ClientState.TerritoryType;
@@ -486,7 +486,7 @@ public partial class AchievementManager
             if (SaveData.VisitedWorldTour.ContainsKey(territory) && SaveData.VisitedWorldTour[territory] is false)
             {
                 // Fail the conditional task.
-                (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.TourDeBound.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+                (SaveData.Achievements[Achievements.TourDeBound.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
                 worldTourStartedTime = DateTime.MinValue;
             }
         }
@@ -503,14 +503,14 @@ public partial class AchievementManager
                 // make sure that someone is locking us up in a set.
                 if (true /*enactorUID != MainHub.UID*/)
                 {
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.FirstTimeBondage.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AmateurBondage.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ComfortRestraint.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourBondageMaid.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberMaid.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrainedBondageSlave.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberSlut.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ATrueBondageSlave.Title] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.FirstTimeBondage.Id] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.AmateurBondage.Id] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.ComfortRestraint.Id] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.YourBondageMaid.Id] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.YourRubberMaid.Id] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.TrainedBondageSlave.Id] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.YourRubberSlut.Id] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.ATrueBondageSlave.Id] as DurationAchievement)?.StartTracking(set.RestraintId.ToString(), MainHub.UID);
                 }
             }
         }
@@ -519,14 +519,14 @@ public partial class AchievementManager
             // if the set is being unlocked, stop progress regardless.
             if (padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock)
             {
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.FirstTimeBondage.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.AmateurBondage.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ComfortRestraint.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourBondageMaid.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberMaid.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TrainedBondageSlave.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.YourRubberSlut.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.ATrueBondageSlave.Title] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.FirstTimeBondage.Id] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.AmateurBondage.Id] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.ComfortRestraint.Id] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.YourBondageMaid.Id] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.YourRubberMaid.Id] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.TrainedBondageSlave.Id] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.YourRubberSlut.Id] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.ATrueBondageSlave.Id] as DurationAchievement)?.StopTracking(set.RestraintId.ToString(), MainHub.UID);
             }
         }
     }
@@ -540,9 +540,9 @@ public partial class AchievementManager
         // if we enabled a set on someone else
         if (isEnabling && enactorUID == MainHub.UID)
         {
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.FirstTiemers.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.DiDEnthusiast.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.YourFavoriteNurse.Title] as ConditionalProgressAchievement)?.CheckTaskProgress();
+            (SaveData.Achievements[Achievements.FirstTiemers.Id] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.DiDEnthusiast.Id] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.YourFavoriteNurse.Id] as ConditionalProgressAchievement)?.CheckTaskProgress();
         }
     }
 
@@ -553,7 +553,7 @@ public partial class AchievementManager
 
 
         // Change the achievement type of the achievement below, its currently busted.
-        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SoldSlave.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.SoldSlave.Id] as ProgressAchievement)?.IncrementProgress();
 
         // if the pair's set is being locked and it is a timed lock.
         if (isLocking)
@@ -563,12 +563,12 @@ public partial class AchievementManager
                 // make sure we are the locker before continuing
                 if(enactorUID == MainHub.UID)
                 {
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.RiggersFirstSession.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyLittlePlaything.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SuitsYouBitch.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TiesThatBind.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SlaveTrainer.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
-                    (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.CeremonyOfEternalBondage.Title] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
+                    (SaveData.Achievements[Achievements.RiggersFirstSession.Id] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
+                    (SaveData.Achievements[Achievements.MyLittlePlaything.Id] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
+                    (SaveData.Achievements[Achievements.SuitsYouBitch.Id] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
+                    (SaveData.Achievements[Achievements.TiesThatBind.Id] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
+                    (SaveData.Achievements[Achievements.SlaveTrainer.Id] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
+                    (SaveData.Achievements[Achievements.CeremonyOfEternalBondage.Id] as DurationAchievement)?.StartTracking(restraintId.ToString(), affectedPairUID);
                 }
             }
         }
@@ -577,25 +577,25 @@ public partial class AchievementManager
             // if the padlock is a timed padlock that we have unlocked, we should stop tracking it from these achievements.
             if (padlock is not Padlocks.None or Padlocks.FiveMinutesPadlock)
             {
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.RiggersFirstSession.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.MyLittlePlaything.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SuitsYouBitch.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TiesThatBind.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.SlaveTrainer.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
-                (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.CeremonyOfEternalBondage.Title] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
+                (SaveData.Achievements[Achievements.RiggersFirstSession.Id] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
+                (SaveData.Achievements[Achievements.MyLittlePlaything.Id] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
+                (SaveData.Achievements[Achievements.SuitsYouBitch.Id] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
+                (SaveData.Achievements[Achievements.TiesThatBind.Id] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
+                (SaveData.Achievements[Achievements.SlaveTrainer.Id] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
+                (SaveData.Achievements[Achievements.CeremonyOfEternalBondage.Id] as DurationAchievement)?.StopTracking(restraintId.ToString(), affectedPairUID);
             }
 
             // if we are unlocking in general, increment the rescuer
-            (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TheRescuer.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.TheRescuer.Id] as ProgressAchievement)?.IncrementProgress();
         }
     }
 
     private void OnPuppetAccessGiven(bool wasAllPerms)
     {
         if (wasAllPerms) // All Perms access given to another pair.
-            (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.CompleteDevotion.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.CompleteDevotion.Id] as ProgressAchievement)?.IncrementProgress();
         else // Emote perms given to another pair.
-            (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.ControlMyBody.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.ControlMyBody.Id] as ProgressAchievement)?.IncrementProgress();
     }
 
     private void OnPatternAction(PatternInteractionKind actionType, Guid patternGuid, bool wasAlarm)
@@ -603,57 +603,57 @@ public partial class AchievementManager
         switch (actionType)
         {
             case PatternInteractionKind.Published:
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MyPleasantriesForAll.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.DeviousComposer.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.MyPleasantriesForAll.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.DeviousComposer.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
             case PatternInteractionKind.Downloaded:
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TasteOfTemptation.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.SeekerOfSensations.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.CravingPleasure.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.TasteOfTemptation.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.SeekerOfSensations.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.CravingPleasure.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
             case PatternInteractionKind.Liked:
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.GoodVibes.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.DelightfulPleasures.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.PatternLover.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.SensualConnoisseur.Title] as ProgressAchievement)?.IncrementProgress();
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.PassionateAdmirer.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.GoodVibes.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.DelightfulPleasures.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.PatternLover.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.SensualConnoisseur.Id] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.PassionateAdmirer.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
             case PatternInteractionKind.Started:
                 if (patternGuid != Guid.Empty)
                 {
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ALittleTease.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ShortButSweet.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TemptingRythms.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MyBuildingDesire.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithWavesOfSensation.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithHeightenedSensations.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MusicalMoaner.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.StimulatingExperiences.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceKing.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceQueen.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.ALittleTease.Id] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.ShortButSweet.Id] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.TemptingRythms.Id] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.MyBuildingDesire.Id] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.WithWavesOfSensation.Id] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.WithHeightenedSensations.Id] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.MusicalMoaner.Id] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.StimulatingExperiences.Id] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.EnduranceKing.Id] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.EnduranceQueen.Id] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
 
                     // motivation for restoration:
-                    if ((SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)!.TaskStarted is false)
-                        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.StartTask();
+                    if ((SaveData.Achievements[Achievements.MotivationForRestoration.Id] as TimeRequiredConditionalAchievement)!.TaskStarted is false)
+                        (SaveData.Achievements[Achievements.MotivationForRestoration.Id] as TimeRequiredConditionalAchievement)?.StartTask();
                 }
                 if (wasAlarm && patternGuid != Guid.Empty)
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.HornyMornings.Title] as ProgressAchievement)?.IncrementProgress();
+                    (SaveData.Achievements[Achievements.HornyMornings.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
             case PatternInteractionKind.Stopped:
                 if (patternGuid != Guid.Empty)
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ALittleTease.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ShortButSweet.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TemptingRythms.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MyBuildingDesire.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithWavesOfSensation.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithHeightenedSensations.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MusicalMoaner.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.StimulatingExperiences.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceKing.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
-                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceQueen.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Achievements[Achievements.ALittleTease.Id] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.ShortButSweet.Id] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.TemptingRythms.Id] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.MyBuildingDesire.Id] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.WithWavesOfSensation.Id] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.WithHeightenedSensations.Id] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.MusicalMoaner.Id] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.StimulatingExperiences.Id] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.EnduranceKing.Id] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Achievements[Achievements.EnduranceQueen.Id] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
                 // motivation for restoration:
-                if ((SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.TaskStarted ?? false)
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                if ((SaveData.Achievements[Achievements.MotivationForRestoration.Id] as TimeRequiredConditionalAchievement)?.TaskStarted ?? false)
+                    (SaveData.Achievements[Achievements.MotivationForRestoration.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
                 break;
         }
@@ -661,14 +661,14 @@ public partial class AchievementManager
 
     private void OnDeviceConnected()
     {
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.CollectorOfSinfulTreasures.Title] as ConditionalAchievement)?.CheckCompletion();
+        (SaveData.Achievements[Achievements.CollectorOfSinfulTreasures.Id] as ConditionalAchievement)?.CheckCompletion();
     }
 
     private void OnTriggerFired()
     {
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.SubtleReminders.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.LostInTheMoment.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TriggerHappy.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.SubtleReminders.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.LostInTheMoment.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.TriggerHappy.Id] as ProgressAchievement)?.IncrementProgress();
     }
 
     /// <summary>
@@ -692,17 +692,17 @@ public partial class AchievementManager
                     if (state is NewState.Enabled)
                     {
                         Logger.LogInformation("Forced Follow New State is Enabled");
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.AllTheCollarsOfTheRainbow.Title] as ProgressAchievement)?.IncrementProgress();
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ForcedFollow.Title] as DurationAchievement)?.StartTracking(affectedPairUID, affectedPairUID);
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ForcedWalkies.Title] as DurationAchievement)?.StartTracking(affectedPairUID, affectedPairUID);
+                        (SaveData.Achievements[Achievements.AllTheCollarsOfTheRainbow.Id] as ProgressAchievement)?.IncrementProgress();
+                        (SaveData.Achievements[Achievements.ForcedFollow.Id] as DurationAchievement)?.StartTracking(affectedPairUID, affectedPairUID);
+                        (SaveData.Achievements[Achievements.ForcedWalkies.Id] as DurationAchievement)?.StartTracking(affectedPairUID, affectedPairUID);
                     }
                 }
                 // if the affected pair is not our clients UID and the action is disabling, stop tracking for anything we started. (can ignore the enactor)
                 if (affectedPairUID != MainHub.UID && state is NewState.Disabled)
                 {
                     Logger.LogInformation("We were not the affected pair and the new state is disabled");
-                    (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ForcedFollow.Title] as DurationAchievement)?.StopTracking(affectedPairUID, affectedPairUID);
-                    (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ForcedWalkies.Title] as DurationAchievement)?.StopTracking(affectedPairUID, affectedPairUID);
+                    (SaveData.Achievements[Achievements.ForcedFollow.Id] as DurationAchievement)?.StopTracking(affectedPairUID, affectedPairUID);
+                    (SaveData.Achievements[Achievements.ForcedWalkies.Id] as DurationAchievement)?.StopTracking(affectedPairUID, affectedPairUID);
                 }
 
                 // if the affected pair was us:
@@ -710,30 +710,30 @@ public partial class AchievementManager
                 {
                     Logger.LogInformation("We were the affected pair");
                     // Check in each state
-                    (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WalkOfShame.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                    (SaveData.Achievements[Achievements.WalkOfShame.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
                     // if the new state is enabled, we should begin tracking the time required completion.
                     if (state is NewState.Enabled)
                     {
                         Logger.LogInformation("Forced Follow New State is Enabled");
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.TimeForWalkies.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.GettingStepsIn.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WalkiesLover.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Achievements[Achievements.TimeForWalkies.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Achievements[Achievements.GettingStepsIn.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Achievements[Achievements.WalkiesLover.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                     }
                     else // and if our state switches to disabled, we should halt the progression.
                     {
                         Logger.LogInformation("Forced Follow New State is Disabled");
 
-                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.TimeForWalkies.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
-                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.TimeForWalkies.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        if ((SaveData.Achievements[Achievements.TimeForWalkies.Id] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[Achievements.TimeForWalkies.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
-                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.GettingStepsIn.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
-                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.GettingStepsIn.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        if ((SaveData.Achievements[Achievements.GettingStepsIn.Id] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[Achievements.GettingStepsIn.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
-                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WalkiesLover.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
-                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WalkiesLover.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        if ((SaveData.Achievements[Achievements.WalkiesLover.Id] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[Achievements.WalkiesLover.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.UCanTieThis.Title] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
+                        (SaveData.Achievements[Achievements.UCanTieThis.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
 
                     }
                 }
@@ -744,11 +744,11 @@ public partial class AchievementManager
                 if (affectedPairUID == MainHub.UID)
                 {
                     if (state is NewState.Enabled)
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.LivingFurniture.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Achievements[Achievements.LivingFurniture.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
                     if (state is NewState.Disabled)
-                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.LivingFurniture.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
-                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.LivingFurniture.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        if ((SaveData.Achievements[Achievements.LivingFurniture.Id] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[Achievements.LivingFurniture.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                 }
                 break;
             case HardcoreAction.ForcedStay:
@@ -758,20 +758,20 @@ public partial class AchievementManager
                     // and we have been ordered to start being forced to stay:
                     if (state is NewState.Enabled)
                     {
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.OfDomesticDiscipline.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.HomeboundSubmission.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.PerfectHousePet.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Achievements[Achievements.OfDomesticDiscipline.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Achievements[Achievements.HomeboundSubmission.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Achievements[Achievements.PerfectHousePet.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                     }
                     else // our forced to stay has ended
                     {
-                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.OfDomesticDiscipline.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
-                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.OfDomesticDiscipline.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        if ((SaveData.Achievements[Achievements.OfDomesticDiscipline.Id] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[Achievements.OfDomesticDiscipline.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
-                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.HomeboundSubmission.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
-                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.HomeboundSubmission.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        if ((SaveData.Achievements[Achievements.HomeboundSubmission.Id] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[Achievements.HomeboundSubmission.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
-                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.PerfectHousePet.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
-                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.PerfectHousePet.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        if ((SaveData.Achievements[Achievements.PerfectHousePet.Id] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[Achievements.PerfectHousePet.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                     }
                 }
                 break;
@@ -780,18 +780,18 @@ public partial class AchievementManager
                 if (affectedPairUID == MainHub.UID)
                 {
                     // Check in each state
-                    (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WalkOfShame.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                    (SaveData.Achievements[Achievements.WalkOfShame.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
                     // if we have had our blindfold set to enabled by another pair, perform the following:
                     if (state is NewState.Enabled)
                     {
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.BlindLeadingTheBlind.Title] as ConditionalAchievement)?.CheckCompletion();
-                        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WhoNeedsToSee.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Achievements[Achievements.BlindLeadingTheBlind.Id] as ConditionalAchievement)?.CheckCompletion();
+                        (SaveData.Achievements[Achievements.WhoNeedsToSee.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                     }
                     // if another pair is removing our blindfold, perform the following:
                     if (state is NewState.Disabled)
-                        if ((SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WhoNeedsToSee.Title] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
-                            (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WhoNeedsToSee.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
+                        if ((SaveData.Achievements[Achievements.WhoNeedsToSee.Id] as TimeRequiredConditionalAchievement)?.StartPoint != DateTime.MinValue)
+                            (SaveData.Achievements[Achievements.WhoNeedsToSee.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
                 }
                 break;
         }
@@ -799,43 +799,43 @@ public partial class AchievementManager
 
     private void OnShockSent()
     {
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.IndulgingSparks.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ShockingTemptations.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.TheCrazeOfShockies.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WickedThunder.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ElectropeHasNoLimits.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.IndulgingSparks.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.ShockingTemptations.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.TheCrazeOfShockies.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.WickedThunder.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.ElectropeHasNoLimits.Id] as ProgressAchievement)?.IncrementProgress();
     }
 
     private void OnShockReceived()
     {
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ElectrifyingPleasure.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ShockingExperience.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WiredForObedience.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ShockAddiction.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.SlaveToTheShock.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.ShockSlut.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.ElectrifyingPleasure.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.ShockingExperience.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.WiredForObedience.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.ShockAddiction.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.SlaveToTheShock.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.ShockSlut.Id] as ProgressAchievement)?.IncrementProgress();
     }
 
 
     private void OnChatMessage(XivChatType channel)
     {
-        (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.HelplessDamsel.Title] as ConditionalAchievement)?.CheckCompletion();
+        (SaveData.Achievements[Achievements.HelplessDamsel.Id] as ConditionalAchievement)?.CheckCompletion();
 
         if (channel is XivChatType.Say)
         {
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OfVoicelessPleas.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.DefianceInSilence.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.MuffledResilience.Title] as ProgressAchievement)?.IncrementProgress();
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.TrainedInSubSpeech.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.OfVoicelessPleas.Id] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.DefianceInSilence.Id] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.MuffledResilience.Id] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.TrainedInSubSpeech.Id] as ProgressAchievement)?.IncrementProgress();
 
         }
         else if (channel is XivChatType.Yell)
         {
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.PublicSpeaker.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.PublicSpeaker.Id] as ProgressAchievement)?.IncrementProgress();
         }
         else if (channel is XivChatType.Shout)
         {
-            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.FromCriesOfHumility.Title] as ProgressAchievement)?.IncrementProgress();
+            (SaveData.Achievements[Achievements.FromCriesOfHumility.Id] as ProgressAchievement)?.IncrementProgress();
         }
     }
 
@@ -845,17 +845,17 @@ public partial class AchievementManager
         {
             case 22:
                 if(emoteCallerObj.ObjectIndex is 0)
-                    (SaveData.Components[AchievementModuleKind.Hardcore].Achievements[Achievements.WhatAView.Title] as ConditionalAchievement)?.CheckCompletion();
+                    (SaveData.Achievements[Achievements.WhatAView.Id] as ConditionalAchievement)?.CheckCompletion();
                 break;
 
             case 231:
                 if (emoteCallerObj.ObjectIndex is 0)
-                    (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.QuietNowDear.Title] as ConditionalAchievement)?.CheckCompletion();
+                    (SaveData.Achievements[Achievements.QuietNowDear.Id] as ConditionalAchievement)?.CheckCompletion();
                 break;
 
             case 111:
                 if (emoteCallerObj.ObjectIndex is not 0 && targetObject.ObjectIndex is 0) // Was originally If(emoteCallerObj.ObjectIndex is not 0)
-                    (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.ICantBelieveYouveDoneThis.Title] as ConditionalAchievement)?.CheckCompletion();
+                    (SaveData.Achievements[Achievements.ICantBelieveYouveDoneThis.Id] as ConditionalAchievement)?.CheckCompletion();
                 break;
         }
     }
@@ -865,42 +865,42 @@ public partial class AchievementManager
         switch(orderType)
         {
             case PuppeteerMsgType.GrovelOrder:
-                (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.KissMyHeels.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.KissMyHeels.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
 
             case PuppeteerMsgType.DanceOrder:
-                (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.AMaestroOfMyProperty.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.AMaestroOfMyProperty.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
         }
         // Increase regardless.
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.MasterOfPuppets.Title] as TimedProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.MasterOfPuppets.Id] as TimedProgressAchievement)?.IncrementProgress();
         // inc the orders given counters.
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.OrchestratorsApprentice.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.NoStringsAttached.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.PuppetMaster.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.MasterOfManipulation.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.TheGrandConductor.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.MaestroOfStrings.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.OfGrandiousSymphony.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.SovereignMaestro.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.OrchestratorOfMinds.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.OrchestratorsApprentice.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.NoStringsAttached.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.PuppetMaster.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.MasterOfManipulation.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.TheGrandConductor.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.MaestroOfStrings.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.OfGrandiousSymphony.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.SovereignMaestro.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.OrchestratorOfMinds.Id] as ProgressAchievement)?.IncrementProgress();
     }
 
     private void OnPuppeteerReceivedOrder()
     {
         // inc the orders recieved counters.
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.WillingPuppet.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.AtYourCommand.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.YourMarionette.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.TheInstrument.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.AMannequinsMadness.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.DevotedDoll.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.EnthralledDoll.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.ObedientDoll.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.ServiceDoll.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.MastersPlaything.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.MistressesPlaything.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.ThePerfectDoll.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.WillingPuppet.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.AtYourCommand.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.YourMarionette.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.TheInstrument.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.AMannequinsMadness.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.DevotedDoll.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.EnthralledDoll.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.ObedientDoll.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.ServiceDoll.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.MastersPlaything.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.MistressesPlaything.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.ThePerfectDoll.Id] as ProgressAchievement)?.IncrementProgress();
     }
 
     private void OnPuppeteerReceivedEmoteOrder(ushort emoteId)
@@ -908,43 +908,43 @@ public partial class AchievementManager
         switch(emoteId)
         {
             case 38: // Sulk
-                (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.Ashamed.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.Ashamed.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
             case 50: // Sit/Groundsit
             case 52:
-                (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.AnObedientPet.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.AnObedientPet.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
             case 223: //Sweep
-                (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.HouseServant.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Achievements[Achievements.HouseServant.Id] as ProgressAchievement)?.IncrementProgress();
                 break;
         }
     }
 
     private void OnPairAdded()
     {
-        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.KinkyNovice.Title] as ConditionalAchievement)?.CheckCompletion();
-        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.TheCollector.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.KinkyNovice.Id] as ConditionalAchievement)?.CheckCompletion();
+        (SaveData.Achievements[Achievements.TheCollector.Id] as ProgressAchievement)?.IncrementProgress();
     }
 
     private void OnCursedLootFound()
     {
-        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.TemptingFatesTreasure.Title] as ProgressAchievement)?.IncrementProgress();
-        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.BadEndSeeker.Title] as ConditionalProgressAchievement)?.CheckTaskProgress();
-        (SaveData.Components[AchievementModuleKind.Wardrobe].Achievements[Achievements.EverCursed.Title] as ConditionalProgressAchievement)?.CheckTaskProgress();
+        (SaveData.Achievements[Achievements.TemptingFatesTreasure.Id] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Achievements[Achievements.BadEndSeeker.Id] as ConditionalProgressAchievement)?.CheckTaskProgress();
+        (SaveData.Achievements[Achievements.EverCursed.Id] as ConditionalProgressAchievement)?.CheckTaskProgress();
     }
 
     private void OnJobChange(GlamourUpdateType changeType)
     {
         if(changeType is GlamourUpdateType.JobChange)
-            (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.EscapingIsNotEasy.Title] as ConditionalAchievement)?.CheckCompletion();
+            (SaveData.Achievements[Achievements.EscapingIsNotEasy.Id] as ConditionalAchievement)?.CheckCompletion();
     }
 
     private void OnVibratorToggled(NewState newState)
     {
         if (newState is NewState.Enabled)
         {
-            (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.GaggedPleasure.Title] as ConditionalAchievement)?.CheckCompletion();
-            (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.Experimentalist.Title] as ConditionalAchievement)?.CheckCompletion();
+            (SaveData.Achievements[Achievements.GaggedPleasure.Id] as ConditionalAchievement)?.CheckCompletion();
+            (SaveData.Achievements[Achievements.Experimentalist.Id] as ConditionalAchievement)?.CheckCompletion();
         }
         else
         {
@@ -954,14 +954,14 @@ public partial class AchievementManager
 
     private void OnPvpKill()
     {
-        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.EscapedPatient.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.BoundToKill.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.TheShackledSlayer.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.DangerousConvict.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.OfUnyieldingForce.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.StimulationOverdrive.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.BoundYetUnbroken.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
-        (SaveData.Components[AchievementModuleKind.Generic].Achievements[Achievements.ChainsCantHoldMe.Title] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Achievements[Achievements.EscapedPatient.Id] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Achievements[Achievements.BoundToKill.Id] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Achievements[Achievements.TheShackledSlayer.Id] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Achievements[Achievements.DangerousConvict.Id] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Achievements[Achievements.OfUnyieldingForce.Id] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Achievements[Achievements.StimulationOverdrive.Id] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Achievements[Achievements.BoundYetUnbroken.Id] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
+        (SaveData.Achievements[Achievements.ChainsCantHoldMe.Id] as ConditionalProgressAchievement)?.CheckTaskProgress(1);
     }
 
 
@@ -978,7 +978,7 @@ public partial class AchievementManager
             return;
 
         // Check if the GagReflex achievement is already completed
-        var gagReflexAchievement = SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.GagReflex.Title] as ProgressAchievement;
+        var gagReflexAchievement = SaveData.Achievements[Achievements.GagReflex.Id] as ProgressAchievement;
         if (gagReflexAchievement is null || gagReflexAchievement.IsCompleted)
         {
             Logger.LogTrace("GagReflex achievement is already completed or is null");

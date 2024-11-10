@@ -482,6 +482,9 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
 
     /* --------------------- Puppeteer Alias Configs --------------------- */
     #region Alias Config Methods
+
+    public Dictionary<string, CharaAliasData> GetCompiledAliasData() => AliasConfig.FromAliasStorage();
+
     public string? GetUidMatchingSender(string name, string world)
         => AliasConfig.AliasStorage.FirstOrDefault(x => x.Value.CharacterName == name && x.Value.CharacterWorld == world).Key;
 

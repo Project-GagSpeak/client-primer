@@ -317,6 +317,8 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
     }
 
+    public static DateTime LastBlockedItemTime = DateTime.MinValue;
+
     /// <summary> Fired upon by the IPC event subscriber when the glamourer changes. </summary>
     /// <param name="address"> The address of the character that changed. </param>
     /// <param name="changeType"> The type of change that occurred. </param>"
@@ -326,9 +328,9 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         if (address != _frameworkUtils.ClientPlayerAddress) return;
 
         // block if we are not desiring to listen to changes yet.
-        if (OnFrameworkService.GlamourChangeEventsDisabled)
+        if (OnFrameworkService.GlamourChangeEventsDisabled) 
         {
-            //Logger.LogTrace($"GlamourEvent Blocked: {changeType}", LoggerType.IpcGlamourer);
+            Logger.LogTrace($"GlamourEvent Blocked Change Events Still disabled!: {changeType}", LoggerType.IpcGlamourer);
             return;
         }
 
@@ -349,7 +351,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
         }
 
         // See if the change type is a type we are looking for
-        if (changeType is StateChangeType.Equip or StateChangeType.Stains)
+        if (changeType is StateChangeType.Equip or StateChangeType.Stains or StateChangeType.Other)
         {
             Logger.LogTrace($"StateChangeType is {changeType}", LoggerType.IpcGlamourer);
             IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.RefreshAll);

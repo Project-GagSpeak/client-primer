@@ -77,6 +77,7 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
     }
 
     public static bool IsConnected => ServerStatus is ServerState.Connected;
+    public static bool IsOnUnregistered => ServerStatus is ServerState.NoSecretKey;
     public static bool IsServerAlive => ServerStatus is ServerState.Connected or ServerState.Unauthorized or ServerState.Disconnected;
     public bool ClientHasConnectionPaused => _serverConfigs.CurrentServer?.FullPause ?? false;
 

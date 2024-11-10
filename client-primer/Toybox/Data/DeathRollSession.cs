@@ -23,21 +23,29 @@ public class DeathRollSession
     public bool TryProcessRoll(string playerName, int rollValue)
     {
         if (IsComplete || DateTime.UtcNow - LastRollTime > TimeSpan.FromMinutes(5))
+        {
+            StaticLogger.Logger.LogDebug("[DeathRoll] Session is complete or expired.");
             return false;
+        }
 
         // Validate roll and assign opponent if necessary
-        if (Opponent == null && playerName != Initializer)
+        if (Opponent.IsNullOrEmpty() && playerName != Initializer)
         {
+            StaticLogger.Logger.LogDebug("[DeathRoll] Opponent was empty, assign it.");
             Opponent = playerName; // Opponent was empty, assign it
         }
         else if (Opponent != playerName && Initializer != playerName)
         {
+            StaticLogger.Logger.LogDebug("[DeathRoll] Invalid roll by a non-participant.");
             return false; // Invalid roll by a non-participant
         }
 
         // Enforce turn order (Return false if not the players turn)
         if (string.Equals(LastRoller, playerName, StringComparison.OrdinalIgnoreCase))
+        {
+            StaticLogger.Logger.LogDebug("[DeathRoll] Invalid roll by the same player twice.");
             return false;
+        }
 
         // Check if roll matches cap and is in sequence
         if (rollValue < CurrentRollCap)

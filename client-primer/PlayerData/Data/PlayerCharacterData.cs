@@ -189,7 +189,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         CharaAppearanceData appearanceData = CompileAppearanceToAPI();
         CharaWardrobeData wardrobeData = CompileWardrobeToAPI();
 
-        Dictionary<string, CharaAliasData> aliasData = new();
+        Dictionary<string, CharaAliasData> aliasData = _clientConfigs.GetCompiledAliasData();
         CharaToyboxData toyboxData = _clientConfigs.CompileToyboxToAPI();
 
         CharaStorageData lightStorageData = _clientConfigs.CompileLightStorageToAPI();

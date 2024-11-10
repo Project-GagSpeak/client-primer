@@ -365,7 +365,7 @@ public class HardcoreHandler : DisposableMediatorSubscriberBase
             StimulationLevel.Light => "Light Stimulation Multiplier applied from set with factor of 1.125x!",
             StimulationLevel.Mild => "Mild Stimulation Multiplier applied from set with factor of 1.25x!",
             StimulationLevel.Heavy => "Heavy Stimulation Multiplier applied from set with factor of 1.5x!",
-            _ => "No Stimulation Multiplier applied from set, defaulting to 1.0x!"
+            _ => "No Stimulation Multiplier applied from set"
         }, LoggerType.HardcoreActions);
     }
 }

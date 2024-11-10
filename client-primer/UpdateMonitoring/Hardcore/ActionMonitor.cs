@@ -55,40 +55,45 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         UseActionHook = interop.HookFromAddress<UseActionDelegate>((nint)ActionManager.MemberFunctionPointers.UseAction, UseActionDetour);
         UseActionHook.Enable();
 
-        // initialize
-        UpdateJobList();
-        // if we currently have an active restraint set...
-        var activeSet = _clientConfigs.GetActiveSet();
-        if (activeSet is not null && activeSet.EnabledBy != MainHub.UID)
-        {
-            if (activeSet.PropertiesEnabledForUser(activeSet.EnabledBy))
-            {
-                Logger.LogDebug("Hardcore RestraintSet is now active", LoggerType.HardcoreActions);
-                // apply stimulation modifier, if any (TODO)
-                _hardcoreHandler.ApplyMultiplier();
-                if (activeSet.SetTraits[activeSet.EnabledBy].StimulationLevel is not StimulationLevel.None)
-                    UpdateJobList();
-
-                // activate hotbar lock, if we have any properties enabled (we always will since this subscriber is only called if there is)
-                HotbarLocker.SetHotbarLockState(NewState.Locked);
-            }
-        }
-
         Mediator.Subscribe<SafewordHardcoreUsedMessage>(this, _ => SafewordUsed());
+        Mediator.Subscribe<DalamudLoginMessage>(this, _ => UpdateJobList());
+        Mediator.Subscribe<DalamudLogoutMessage>(this, _ => DisableManipulatedActionData());
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
-
         IpcFastUpdates.GlamourEventFired += JobChanged;
         IpcFastUpdates.HardcoreTraitsEventFired += ToggleHardcoreTraits;
+
+        // if we are already logged in, then run the login function
+        if (_frameworkUtils.IsLoggedIn)
+            UpdateJobList();
     }
 
     public static bool MonitorHardcoreRestraintSetTraits = false;
 
+    private void DisableManipulatedActionData()
+    {
+        Logger.LogInformation("Disabling Manipulated Action Data", LoggerType.HardcoreActions);
+        _hardcoreHandler.StimulationMultiplier = 1.0f;
+        RestoreSavedSlots();
+        HotbarLocker.SetHotbarLockState(NewState.Unlocked);
+        // Halt monitoring of properties
+        MonitorHardcoreRestraintSetTraits = false;
+    }
+
+    private void EnableManipulatedActionData(RestraintSet set, string enabler)
+    {
+        _hardcoreHandler.ApplyMultiplier();
+        // recalculate the cooldowns for the current job if using stimulation
+        if (set.SetTraits[enabler].StimulationLevel is not StimulationLevel.None)
+            UpdateJobList();
+
+        HotbarLocker.SetHotbarLockState(NewState.Locked);
+        // Begin monitoring hardcore restraint properties.
+        MonitorHardcoreRestraintSetTraits = true;
+    }
+
     protected override void Dispose(bool disposing)
     {
-        // set lock to visible again
-        HotbarLocker.SetHotbarLockState(NewState.Unlocked);
-        // restore saved slots
-        RestoreSavedSlots();
+        DisableManipulatedActionData();
         // dispose of the hook
         UseActionHook?.Disable();
         UseActionHook?.Dispose();
@@ -117,23 +122,12 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         if (restraintSetRef.EnabledBy != MainHub.UID && newState is NewState.Enabled)
         {
             Logger.LogWarning(restraintSetRef.EnabledBy + " has enabled hardcore traits", LoggerType.HardcoreActions);
-            _hardcoreHandler.ApplyMultiplier();
-            // recalculate the cooldowns for the current job if using stimulation
-            if (restraintSetRef.SetTraits[restraintSetRef.EnabledBy].StimulationLevel is not StimulationLevel.None)
-                UpdateJobList();
-
-            HotbarLocker.SetHotbarLockState(NewState.Locked);
-            // Begin monitoring hardcore restraint properties.
-            MonitorHardcoreRestraintSetTraits = true;
+            EnableManipulatedActionData(restraintSetRef, restraintSetRef.EnabledBy);
         }
         if (restraintSetRef.EnabledBy != MainHub.UID && newState is NewState.Disabled)
         {
             Logger.LogWarning(restraintSetRef.EnabledBy + " has disabled hardcore traits", LoggerType.HardcoreActions);
-            _hardcoreHandler.StimulationMultiplier = 1.0f;
-            RestoreSavedSlots();
-            HotbarLocker.SetHotbarLockState(NewState.Unlocked);
-            // Halt monitoring of properties
-            MonitorHardcoreRestraintSetTraits = false;
+            DisableManipulatedActionData();
         }
     }
 
@@ -225,12 +219,13 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
             GagspeakActionData.GetJobActionProperties((JobType)_frameworkUtils.PlayerClassJobId, out var bannedJobActions);
             CurrentJobBannedActions = bannedJobActions; // updated our job list
             // only do this if we are logged in
-            if (_clientState.IsLoggedIn
-            && _clientState.LocalPlayer != null
-            && _clientState.LocalPlayer.Address != nint.Zero
-            && raptureHotbarModule->StandardHotbars != null)
+            if (_clientState.LocalPlayer.Address != nint.Zero && raptureHotbarModule->StandardHotbars != null)
             {
                 GenerateCooldowns();
+            }
+            else
+            {
+                Logger.LogDebug("Player is null, or hotbars are null", LoggerType.HardcoreActions);
             }
         }
         else

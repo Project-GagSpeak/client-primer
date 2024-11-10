@@ -1,5 +1,6 @@
 
 using GagspeakAPI.Data;
+using GagspeakAPI.Data.Character;
 using Newtonsoft.Json;
 
 namespace GagSpeak.GagspeakConfiguration.Models;
@@ -28,6 +29,14 @@ public class AliasStorage
         {
             CharacterName = CharacterName,
             CharacterWorld = CharacterWorld,
+            AliasList = AliasList,
+        };
+    }
+
+    public CharaAliasData ToAliasData()
+    {
+        return new CharaAliasData()
+        {
             AliasList = AliasList,
         };
     }

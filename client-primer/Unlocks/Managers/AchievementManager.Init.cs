@@ -284,8 +284,8 @@ public partial class AchievementManager
         SaveData.AddDuration(AchievementModuleKind.Toybox,Achievements.WithHeightenedSensations, TimeSpan.FromMinutes(15), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Minutes", "Vibrated for");
         SaveData.AddDuration(AchievementModuleKind.Toybox,Achievements.MusicalMoaner, TimeSpan.FromMinutes(20), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Minutes", "Vibrated for");
         SaveData.AddDuration(AchievementModuleKind.Toybox,Achievements.StimulatingExperiences, TimeSpan.FromMinutes(30), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Minutes", "Vibrated for");
-        SaveData.AddDuration(AchievementModuleKind.Toybox,Achievements.EnduranceKing, TimeSpan.FromHours(1), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Minutes", "Vibrated for");
-        SaveData.AddDuration(AchievementModuleKind.Toybox,Achievements.EnduranceQueen, TimeSpan.FromHours(1), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Minutes", "Vibrated for");
+        SaveData.AddDuration(AchievementModuleKind.Toybox,Achievements.EnduranceKing, TimeSpan.FromMinutes(59), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Minutes", "Vibrated for");
+        SaveData.AddDuration(AchievementModuleKind.Toybox,Achievements.EnduranceQueen, TimeSpan.FromMinutes(59), DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Minutes", "Vibrated for");
 
         SaveData.AddConditional(AchievementModuleKind.Toybox,Achievements.CollectorOfSinfulTreasures, () =>
         { return (_playerData.GlobalPerms?.HasValidShareCode() ?? false) || _vibeService.DeviceHandler.AnyDeviceConnected; }, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Devices Connected");

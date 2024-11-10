@@ -87,6 +87,7 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
 
         Logger.LogInformation("Syncing Data with Connection DTO", LoggerType.ClientPlayerData);
         var serverData = MainHub.ConnectionDto.CharacterActiveStateData;
+        var activeSet = _clientConfigs.GetActiveSet();
         // We should sync the active Restraint Set with the server's Active Set Name.
         if (!serverData.ActiveSetId.IsEmptyGuid())
         {
@@ -129,27 +130,39 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         else
         {
             // if the active set is empty, but we have a set that is on or locked, we should unlock and remove it.
-            var activeSetIdx = _clientConfigs.GetActiveSetIdx();
-            if (activeSetIdx != -1)
+            activeSet = _clientConfigs.GetActiveSet();
+            if (activeSet is not null)
             {
                 Logger.LogInformation("The Stored Restraint Set was Empty, yet you have one equipped. Unlocking and unequipping.", LoggerType.Restraints);
-                var activeSet = _clientConfigs.GetActiveSet();
-                if (activeSet != null)
-                {
-                    if (activeSet.LockType.ToPadlock() is not Padlocks.None)
-                        await _appearanceHandler.UnlockRestraintSet(activeSet.RestraintId, activeSet.LockedBy, false, true);
-                    // disable it.
-                    await _appearanceHandler.DisableRestraintSet(activeSet.RestraintId, activeSet.LockedBy, false, true);
-                    // update the data. (Note, setting these to false may trigger a loophole by skipping over the monitored achievements,
-                    Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.FullDataUpdate));
-                }
+                if (activeSet.LockType.ToPadlock() is not Padlocks.None)
+                    await _appearanceHandler.UnlockRestraintSet(activeSet.RestraintId, activeSet.LockedBy, false, true);
+                // disable it.
+                await _appearanceHandler.DisableRestraintSet(activeSet.RestraintId, activeSet.LockedBy, false, true);
+                // update the data. (Note, setting these to false may trigger a loophole by skipping over the monitored achievements,
+                Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.FullDataUpdate));
             }
         }
         _gagManager.UpdateGagLockComboSelections();
         _gagManager.UpdateRestraintLockSelections(false);
         // send our updated data.
         var activeGags = _playerData.AppearanceData.GagSlots.Select(x => x.GagType).ToList();
-        var activeSetId = _clientConfigs.GetActiveSet()?.RestraintId ?? Guid.Empty;
+        
+        // now that everything is updated, get the active set.
+        var activeSetFinal = _clientConfigs.GetActiveSet();
+        if(activeSetFinal is not null)
+        {
+            // Enable the Hardcore Properties by invoking the ipc call.
+            if (activeSetFinal.HasPropertiesForUser(activeSetFinal.EnabledBy))
+            {
+                Logger.LogDebug("Set Contains HardcoreProperties for " + activeSetFinal.EnabledBy, LoggerType.Restraints);
+                if (activeSetFinal.PropertiesEnabledForUser(activeSetFinal.EnabledBy))
+                {
+                    Logger.LogDebug("Hardcore properties are enabled for this set!");
+                    IpcFastUpdates.InvokeHardcoreTraits(NewState.Enabled, activeSetFinal);
+                }
+            }
+        }
+        var activeSetId = activeSetFinal?.RestraintId ?? Guid.Empty;
         Mediator.Publish(new PlayerLatestActiveItems(MainHub.PlayerUserData, activeGags, activeSetId));
 
         // Run a refresh on appearance data.

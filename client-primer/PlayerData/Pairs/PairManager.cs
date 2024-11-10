@@ -319,9 +319,15 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
 
         // first see if our clientUID exists as a key in dto.CompositeData.AliasData. If it does not, define it as an empty data.
         if (dto.CompositeData.AliasData.ContainsKey(clientUID))
+        {
+            Logger.LogTrace("Found Alias Data Stroage for " + pair.GetNickAliasOrUid());
             _allClientPairs[dto.User].ApplyAliasData(new(dto.User, dto.CompositeData.AliasData[clientUID], dto.UpdateKind));
+        }
         else
+        {
+            Logger.LogTrace("No Alias Data Storage found for " + pair.GetNickAliasOrUid());
             _allClientPairs[dto.User].ApplyAliasData(new(dto.User, new CharaAliasData(), dto.UpdateKind));
+        }
 
         // do an initial slot update.
         _allClientPairs[dto.User].UpdateCachedLockedSlots();

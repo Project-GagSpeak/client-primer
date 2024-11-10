@@ -84,7 +84,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
             }
 
             // dont bother if cursed dungeon loot isnt enabled, or if there are no inactive items in the pool.
-            if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot || _frameworkUtils._sentBetweenAreas || !_handler.InactiveItemsInPool.Any() || MainHub.IsConnected)
+            if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot || _frameworkUtils._sentBetweenAreas || !_handler.InactiveItemsInPool.Any() || MainHub.IsOnUnregistered)
                 return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
 
             // if we are forced to stay, we should block any interactions with objects.

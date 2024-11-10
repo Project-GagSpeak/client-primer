@@ -1526,11 +1526,29 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
         else
         {
-            if (ImGui.BeginTabBar("mainTabBar"))
+            if (ImGui.BeginTabBar("offlineTabBar"))
             {
-                if (ImGui.BeginTabItem("Account Management"))
+                if (ImGui.BeginTabItem(GSLoc.Settings.TabsAccounts))
                 {
                     DrawAccountManagement();
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Debug"))
+                {
+                    DrawDebug();
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Player Debug"))
+                {
+                    DrawPlayerCharacterDebug();
+                    ImGui.EndTabItem();
+                }
+
+                if (ImGui.BeginTabItem("Pairs Debug"))
+                {
+                    DrawPairsDebug();
                     ImGui.EndTabItem();
                 }
                 ImGui.EndTabBar();

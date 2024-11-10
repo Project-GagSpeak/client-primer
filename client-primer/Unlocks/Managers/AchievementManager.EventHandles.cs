@@ -70,13 +70,14 @@ public partial class AchievementManager
 
     private void CheckOnZoneSwitchEnd()
     {
+        Logger.LogTrace("Current Territory Id: " + _frameworkUtils.ClientState.TerritoryType, LoggerType.Achievements);
         if(_frameworkUtils.IsInMainCity)
             (SaveData.Achievements[Achievements.WalkOfShame.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
         ushort territory = _frameworkUtils.ClientState.TerritoryType;
 
         // if present in diadem (for diamdem achievement)
-        if (territory is 939)
+        if (territory is 939 && !_frameworkUtils.ClientState.IsPvP)
             (SaveData.Achievements[Achievements.MotivationForRestoration.Id] as TimeRequiredConditionalAchievement)?.StartTask();
         else
             (SaveData.Achievements[Achievements.MotivationForRestoration.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();

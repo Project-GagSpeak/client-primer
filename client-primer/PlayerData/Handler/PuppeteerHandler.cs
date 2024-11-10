@@ -2,18 +2,15 @@ using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Plugin.Services;
 using Dalamud.Utility;
-using GagSpeak.Utils;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagspeakAPI.Data;
-using GagspeakAPI.Data.Permissions;
-using Lumina.Excel.GeneratedSheets;
-using System.Text.RegularExpressions;
 using GagSpeak.UpdateMonitoring;
-using Lumina.Excel.GeneratedSheets2;
+using GagSpeak.Utils;
+using GagspeakAPI.Data;
+using System.Text.RegularExpressions;
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -50,7 +47,7 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
     public void StartEditingSet(AliasStorage aliasStorage)
         => ClonedAliasStorageForEdit = aliasStorage.DeepCloneStorage();
 
-    public void CancelEditingSet() 
+    public void CancelEditingSet()
         => ClonedAliasStorageForEdit = null;
 
     public void UpdatedEditedStorage()
@@ -58,7 +55,7 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         if (ClonedAliasStorageForEdit is null)
             return;
 
-        if(!IsModified)
+        if (!IsModified)
         {
             Logger.LogTrace("No changes were made to the Alias Storage.", LoggerType.Puppeteer);
             return;
@@ -113,8 +110,9 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
     public void UpdateDisplayForNewPair(Pair pair)
     {
         // for first time generations
-        if (SelectedPair == null)
+        if (SelectedPair is null)
         {
+            Logger.LogTrace($"Setting selected pair to " + pair.UserData.AliasOrUID, LoggerType.Puppeteer);
             SelectedPair = pair;
             StartEditingSet(_clientConfigs.FetchAliasStorageForPair(pair.UserData.UID));
         }
@@ -181,7 +179,7 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         remainingMessage.GetSubstringWithinParentheses(perms.StartChar, perms.EndChar);
         Logger.LogTrace("Remaining message after brackets: " + remainingMessage);
 
-        if(!SenderUid.IsNullOrEmpty())
+        if (!SenderUid.IsNullOrEmpty())
         {
             Logger.LogTrace("Checking for Aliases");
             remainingMessage = ConvertAliasCommandsIfAny(SenderUid, remainingMessage.TextValue);
@@ -224,7 +222,7 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
                 .FirstOrDefault(e => string.Equals(message.TextValue, e.Key.Replace(" ", ""), StringComparison.OrdinalIgnoreCase));
             if (!string.IsNullOrEmpty(emote.Key))
             {
-                Logger.LogTrace("Valid Emote name: " + emote.Key.Replace(" ", "").ToLower() + ", RowID: "+emote.Value, LoggerType.Puppeteer);
+                Logger.LogTrace("Valid Emote name: " + emote.Key.Replace(" ", "").ToLower() + ", RowID: " + emote.Value, LoggerType.Puppeteer);
                 Logger.LogTrace("Accepting Message as you allow Motion Commands", LoggerType.Puppeteer);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerEmoteRecieved, (ushort)emote.Value);
                 return true;
@@ -236,13 +234,13 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         {
             Logger.LogTrace("Checking if message is a sit command", LoggerType.Puppeteer);
             var sitEmote = EmoteMonitor.SitEmoteComboList.FirstOrDefault(e => message.TextValue.Contains(e.Name.RawString.Replace(" ", "").ToLower()));
-            if(sitEmote?.RowId is 50 or 52)
-            { 
+            if (sitEmote?.RowId is 50 or 52)
+            {
                 Logger.LogTrace("Message is a sit command", LoggerType.Puppeteer);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerEmoteRecieved, (ushort)sitEmote.RowId);
                 return true;
             }
-            if(EmoteMonitor.EmoteCommandsWithId.Where(e => e.Value is 90).Any(e => message.TextValue.Contains(e.Key.Replace(" ", "").ToLower())))
+            if (EmoteMonitor.EmoteCommandsWithId.Where(e => e.Value is 90).Any(e => message.TextValue.Contains(e.Key.Replace(" ", "").ToLower())))
             {
                 Logger.LogTrace("Message is a change pose command", LoggerType.Puppeteer);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerEmoteRecieved, (ushort)90);

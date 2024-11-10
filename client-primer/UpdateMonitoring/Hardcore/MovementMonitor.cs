@@ -87,6 +87,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
 
         // try and see if we can remove this????
         Mediator.Subscribe<SafewordHardcoreUsedMessage>(this, _ => SafewordUsed());
+        Mediator.Subscribe<DalamudLogoutMessage>(this, _ => DisableManipulatedTraitData());
         Mediator.Subscribe<FrameworkUpdateMessage>(this, _ => FrameworkUpdate());
 
         IpcFastUpdates.HardcoreTraitsEventFired += ToggleHardcoreTraits;
@@ -102,6 +103,12 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         IpcFastUpdates.HardcoreTraitsEventFired -= ToggleHardcoreTraits;
     }
 
+    private void DisableManipulatedTraitData()
+    {
+        HandleImmobilize = false;
+        HandleWeighty = false;
+    }
+
     public async void SafewordUsed()
     {
         // Wait 3 seconds to let everything else from the safeword process first.
@@ -109,8 +116,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         await Task.Delay(3000);
         // Fix walking state
         ResetCancelledMoveKeys();
-        HandleImmobilize = false;
-        HandleWeighty = false;
+        DisableManipulatedTraitData();
     }
 
     public void ToggleHardcoreTraits(NewState newState, RestraintSet restraintSet)
@@ -135,8 +141,6 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             {
                 Logger.LogDebug("Disabling Immobilization", LoggerType.HardcoreMovement);
                 HandleImmobilize = false;
-                // Correct movement.
-                _MoveController.DisableMouseAutoMoveHook();
             }
         }
     }

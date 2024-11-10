@@ -55,7 +55,7 @@ public class PatternHubService : DisposableMediatorSubscriberBase
     // Should be run in the drawloop to check if any tasks have completed.
     public void DisplayPendingMessages()
     {
-        if(!InitialSearchMade && MainHub.IsConnected && MainHub.ServerStatus == ServerState.Connected)
+        if(!InitialSearchMade && MainHub.IsConnected)
         { InitialSearchMade = true; SearchPatterns(SearchQuery); }
 
         DisplayTaskStatus(UploadPatternTask, "Uploading Pattern to Servers...", "Pattern uploaded to servers!", "Failed to upload pattern to servers.", ImGuiColors.DalamudGrey, ImGuiColors.HealerGreen, ImGuiColors.DalamudRed);

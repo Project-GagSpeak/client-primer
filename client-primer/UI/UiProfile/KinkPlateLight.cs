@@ -77,7 +77,6 @@ public class KinkPlateLight
 
     public bool DrawKinkPlateLight(ImDrawListPtr drawList, KinkPlate profile, string displayName, UserData userData, bool isPair, bool hoveringReport)
     {
-
         DrawPlate(drawList, profile.KinkPlateInfo, displayName);
 
         DrawProfilePic(drawList, profile, displayName, userData, isPair);

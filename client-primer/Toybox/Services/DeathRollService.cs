@@ -97,17 +97,16 @@ public sealed class DeathRollService
     private void ContinueSession(string playerName, int rollValue, int rollCap)
     {
         // Find a matching active session where the cap matches
-        var session = MonitoredSessions.Values.FirstOrDefault(s => s.CurrentRollCap == rollCap && !s.IsComplete);
+        var session = MonitoredSessions.Values
+            .FirstOrDefault(s => s.CurrentRollCap == rollCap && !s.IsComplete && s.LastRoller != playerName);
 
-        if (session is null)
-        {
+        if (session is null) {
             _logger.LogDebug("No active session found to match roll.", LoggerType.ToyboxTriggers);
             return;
         }
 
         // do not join a session we are not a part of.
-        if (!session.Opponent.IsNullOrEmpty() && (session.Opponent != playerName && session.Initializer != playerName))
-        {
+        if (!session.Opponent.IsNullOrEmpty() && (session.Opponent != playerName && session.Initializer != playerName)) {
             _logger.LogTrace($"{playerName} is not part of the session, ignoring!", LoggerType.ToyboxTriggers);
             return;
         }

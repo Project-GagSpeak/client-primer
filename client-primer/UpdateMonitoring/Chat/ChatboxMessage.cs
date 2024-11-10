@@ -117,14 +117,14 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         // Handle the special case where we are checking a DeathRoll
         if (type == (XivChatType)2122 || type == (XivChatType)8266 || type == (XivChatType)4170)
         {
-            if (message.Payloads[1] is PlayerPayload)
+            var playerPayloads = message.Payloads.OfType<PlayerPayload>().ToList();
+            if (playerPayloads.Any())
             {
-                // grab the player payload from the message
-                var playerPayload = message.Payloads[1] as PlayerPayload;
-                if (playerPayload != null)
+                var firstPayload = playerPayloads.FirstOrDefault();
+                if (firstPayload != null)
                 {
                     // check for social triggers
-                    _deathRolls.ProcessMessage(type, playerPayload.PlayerName + "@" + playerPayload.World.Name, message);
+                    _deathRolls.ProcessMessage(type, firstPayload.PlayerName + "@" + firstPayload.World.Name, message);
                 }
             }
             else

@@ -280,7 +280,7 @@ public class KinkPlateLight
 
         statsPos.X += StatIconSize.X + 2f;
         ImGui.SetCursorScreenPos(statsPos);
-        UiSharedService.ColorText(info.CompletedAchievementsTotal + "/141", ImGuiColors.ParsedGold);
+        UiSharedService.ColorText(info.CompletedAchievementsTotal + "/206", ImGuiColors.ParsedGold);
         UiSharedService.AttachToolTip("The total achievements " + displayName + " has earned.");
 
         statsPos.X += achievementWidth + spacing;

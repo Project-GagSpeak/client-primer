@@ -379,7 +379,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         // to the right of this, draw the players total earned achievements scoring.
         statsPos += new Vector2(24, 0);
         ImGui.SetCursorScreenPos(statsPos);
-        UiSharedService.ColorText(info.CompletedAchievementsTotal + "/141", ImGuiColors.ParsedGold);
+        UiSharedService.ColorText(info.CompletedAchievementsTotal + "/206", ImGuiColors.ParsedGold);
         UiSharedService.AttachToolTip("The total achievements " + DisplayName + " has earned.");
     }
 

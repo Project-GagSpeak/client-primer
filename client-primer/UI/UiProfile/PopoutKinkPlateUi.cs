@@ -87,11 +87,6 @@ public class PopoutKinkPlateUi : WindowMediatorSubscriberBase
 
         // obtain the profile for this userPair.
         var KinkPlate = _KinkPlateManager.GetKinkPlate(_userDataToDisplay);
-        if (KinkPlate.KinkPlateInfo.Flagged)
-        {
-            ImGui.TextUnformatted("This profile is flagged by moderation.");
-            return;
-        }
 
         string DisplayName = _userDataToDisplay.AliasOrUID;
 

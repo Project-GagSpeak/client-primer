@@ -19,6 +19,12 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 8)
+            .RegisterMain("Reporting functoinality polling completed!")
+            .RegisterMain("added over 50 more achievements!")
+            .RegisterFeature("Profile report functionality has now been finalized in its logic implementation.")
+            .RegisterFeature("Profiles properly restore and other Kinksters information updates once resolved.")
+            .RegisterQol("Lots of quality life backend changes to help ensure safety with the discord bot.");
         VersionEntry(0, 9, 9, 7)
             .RegisterMain("The Localization Overhaul: All major components of the plugin now can support localization.")
             .RegisterMain("GagSpeak Report System is now fully integrated. You are able to report other pairs KinkPlates if they violate our " +

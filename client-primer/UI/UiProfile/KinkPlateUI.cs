@@ -1,4 +1,5 @@
 using Dalamud.Interface.Colors;
+using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Utility;
 using GagSpeak.Achievements;
 using GagSpeak.PlayerData.Pairs;
@@ -78,11 +79,6 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
         // obtain the profile for this userPair.
         var KinkPlate = _profileService.GetKinkPlate(Pair.UserData);
-        if (KinkPlate.KinkPlateInfo.Flagged)
-        {
-            ImGui.TextUnformatted("This profile is flagged by moderation.");
-            return;
-        }
 
         // Draw KinkPlateUI Function here.
         DrawKinkPlatePair(drawList, KinkPlate);
@@ -139,10 +135,16 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
     private void DrawProfilePic(ImDrawListPtr drawList, KinkPlate profile)
     {
-
-        // Draw the profile Picture
-        var pfpWrap = profile.GetCurrentProfileOrDefault();
-        AddImageRounded(drawList, pfpWrap, ProfilePicturePos, ProfilePictureSize, ProfilePictureSize.Y / 2);
+        // We should always display the default GagSpeak Logo if the profile is either flagged or disabled.
+        if (profile.TempDisabled)
+        {
+            AddImageRounded(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Logo256bg], ProfilePicturePos, ProfilePictureSize, ProfilePictureSize.Y / 2);
+        }
+        else // But otherwise can draw normal image.
+        {
+            var pfpWrap = profile.GetCurrentProfileOrDefault();
+            AddImageRounded(drawList, pfpWrap, ProfilePicturePos, ProfilePictureSize, ProfilePictureSize.Y / 2);
+        }
 
         // draw out the border for the profile picture
         if (_cosmetics.TryGetBorder(ProfileComponent.ProfilePicture, profile.KinkPlateInfo.ProfilePictureBorder, out var pfpBorder))
@@ -243,10 +245,14 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         if (_cosmetics.TryGetOverlay(ProfileComponent.Description, profile.KinkPlateInfo.DescriptionOverlay, out var descOverlay))
             AddImageRounded(drawList, descOverlay, DescriptionBorderPos, DescriptionBorderSize, 2f);
 
-        // draw out the description text here.
+        // draw out the description text here. What displays is affected by if it is flagged or not.
         ImGui.SetCursorScreenPos(DescriptionBorderPos + Vector2.One * 10f);
-        var description = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? "No Description Was Set.." : profile.KinkPlateInfo.Description;
-        var color = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? ImGuiColors.DalamudGrey2 : ImGuiColors.DalamudWhite;
+        // shadowban them by displaying the default text if flagged or disabled.
+        var description = profile.TempDisabled ? "Profile is currently disabled."
+            : profile.KinkPlateInfo.Description.IsNullOrEmpty()
+            ? "No Description Was Set.." : profile.KinkPlateInfo.Description;
+        var color = (profile.KinkPlateInfo.Description.IsNullOrEmpty() || profile.TempDisabled) 
+            ? ImGuiColors.DalamudGrey2 : ImGuiColors.DalamudWhite;
         DrawLimitedDescription(description, color, DescriptionBorderSize - Vector2.One * 12f);
     }
 

@@ -33,7 +33,6 @@ public static class Achievements
 
     // Gags
     public static readonly AchievementInfo SelfApplied = new AchievementInfo(12, "The Right Fit", "Apply a Gag to Yourself");
-
     public static readonly AchievementInfo SilenceSlut = new AchievementInfo(13, "A Perfect Fit", "Apply a Gag to another Kinkster");
     public static readonly AchievementInfo WatchYourTongue = new AchievementInfo(14, "Watch Your Tongue", "Apply gags to other kinksters 10 times.");
     public static readonly AchievementInfo TongueTamer = new AchievementInfo(15, "Tongue Tamer", "Apply gags to other kinksters 100 times.");
@@ -49,22 +48,35 @@ public static class Achievements
 
     public static readonly AchievementInfo ShushtainableResource = new AchievementInfo(17, "Sustainable Resource", "Have all three Gag Slots occupied at once.");
 
-    public static readonly AchievementInfo OfVoicelessPleas = new AchievementInfo(18, "Of Voiceless Pleas", "Say anything longer than 5 words with LiveChatGarbler on in /say (Please be smart about this)"); // /say
-    public static readonly AchievementInfo DefianceInSilence = new AchievementInfo(149, "Defiance In Silence", "Say anything longer than 5 words with LiveChatGarbler on in /say (Please be smart about this)"); // /say
-    public static readonly AchievementInfo MuffledResilience = new AchievementInfo(150, "Muffled Resilience", "Say anything longer than 5 words with LiveChatGarbler on in /say (Please be smart about this)"); // /say
-    public static readonly AchievementInfo TrainedInSubSpeech = new AchievementInfo(151, "Trained In Sub Speech", "Say anything longer than 5 words with LiveChatGarbler on in /say (Please be smart about this)"); // /say
-
+    public static readonly AchievementInfo OfVoicelessPleas = new AchievementInfo(18, "Of Voiceless Pleas", "Send a Garbled Message to /say. (Please be smart about this)"); // /say
+    public static readonly AchievementInfo DefianceInSilence = new AchievementInfo(149, "Defiance In Silence", "Send 500 Garbled Message to /say. (Please be smart about this)"); // /say
+    public static readonly AchievementInfo MuffledResilience = new AchievementInfo(150, "Muffled Resilience", "Send 1000 Garbled Message to /say. (Please be smart about this)"); // /say
+    public static readonly AchievementInfo TrainedInSubSpeech = new AchievementInfo(151, "Trained In Sub Speech", "Send 2500 Garbled Message to /say. (Please be smart about this)"); // /say
     public static readonly AchievementInfo PublicSpeaker = new AchievementInfo(19, "Public Speaker", "Say anything longer than 5 words with LiveChatGarbler on in /yell (Please be smart about this)"); // /yell
     public static readonly AchievementInfo FromCriesOfHumility = new AchievementInfo(20, "From Cries of Humility", "Say anything longer than 5 words with LiveChatGarbler on in /shout (Please be smart about this)"); // /shout
-    
-    public static readonly AchievementInfo SpeechSilverSilenceGolden = new AchievementInfo(21, "Speech is Silver, Silence is Golden", "Wear a gag continuously for 1 week");
+
+    public static readonly AchievementInfo WhispersToWhimpers = new AchievementInfo(185, "Whispers to Whimpers", "Wear a gag for 5 Minutes");
+    public static readonly AchievementInfo OfMuffledMoans = new AchievementInfo(186, "Of Muffled Moans", "Wear a gag for 10 Minutes");
+    public static readonly AchievementInfo SilentStruggler = new AchievementInfo(187, "Silent Struggler", "Wear a gag for 30 Minutes");
+    public static readonly AchievementInfo QuietedCaptive = new AchievementInfo(188, "Quieted Captive", "Wear a gag for 1 Hour");
+    public static readonly AchievementInfo MessyDrooler = new AchievementInfo(189, "Messy Drooler", "Wear a gag for 6 Hours");
+    public static readonly AchievementInfo DroolingDiva = new AchievementInfo(190, "Drooling Diva", "Wear a gag for 12 Hours");
+    public static readonly AchievementInfo EmbraceOfSilence= new AchievementInfo(191, "The Embrace of Silence", "Wear a gag for 1 Day");
+    public static readonly AchievementInfo SubjugationToSilence = new AchievementInfo(192, "Subjugation to Silence", "Wear a gag for 4 Days");
+    public static readonly AchievementInfo SpeechSilverSilenceGolden = new AchievementInfo(21, "Speech is Silver, Silence is Golden", "Wear a gag for 1 week");
     public static readonly AchievementInfo TheKinkyLegend = new AchievementInfo(22, "The Kinky Legend", "Wear a gag continuously for 2 weeks");
+
     public static readonly AchievementInfo SilentButDeadly = new AchievementInfo(23, "Silent but Deadly", "Complete 10 roulettes with a gag equipped");
+
     public static readonly AchievementInfo ATrueGagSlut = new AchievementInfo(24, "A True Gag Slut", "Be gagged by 10 different people in less than 1 hour");
+
     public static readonly AchievementInfo GagReflex = new AchievementInfo(25, "Gag Reflex", "Be blown away in a gold saucer GATE with any gag equipped.");
+
     public static readonly AchievementInfo QuietNowDear = new AchievementInfo(26, "Quiet Now, Dear", "Use /shush while targeting a gagged player");
     public static readonly AchievementInfo SilenceOfShame = new AchievementInfo(152, "The Silence of Shame", "Be /shush'ed while gagged");
+
     public static readonly AchievementInfo YourFavoriteNurse = new AchievementInfo(27, "Your Favorite Nurse", "Apply a restraint set or Gag to a GagSpeak pair while you have a Mask Gag Equipped 20 times");
+
     public static readonly AchievementInfo SayMmmph = new AchievementInfo(28, "Say Mmmph!", "Take a screenshot in /gpose while gagged");
 
     // Wardrobe
@@ -133,19 +145,57 @@ public static class Achievements
 
     public static readonly AchievementInfo KissMyHeels = new AchievementInfo(73, "Kiss my Heels", "Order someone to /grovel 50 times using Puppeteer.");
 
-    public static readonly AchievementInfo Ashamed = new AchievementInfo(74, "Ashamed", "Be forced to /sulk through Puppeteer.");
+    public static readonly AchievementInfo HouseServant = new AchievementInfo(163, "House Servant", "Be ordered to /sweep 10 times using Puppeteer.");
+
+    public static readonly AchievementInfo Ashamed = new AchievementInfo(74, "Ashamed", "Be ordered to /sulk 5 times through Puppeteer.");
 
     public static readonly AchievementInfo AMaestroOfMyProperty = new AchievementInfo(75, "A Maestro of my Property", "Order someone to execute any emote with 'dance' in it 10 times.");
 
+    public static readonly AchievementInfo OrchestratorsApprentice = new AchievementInfo(164, "Orchestrator's Apprentice", "Puppeteer someone 10 times.");
+    public static readonly AchievementInfo NoStringsAttached = new AchievementInfo(165, "No Strings Attached", "Puppeteer someone 25 times.");
+    public static readonly AchievementInfo PuppetMaster = new AchievementInfo(166, "Puppet Master", "Puppeteer someone 50 times.");
+    public static readonly AchievementInfo MasterOfManipulation = new AchievementInfo(167, "Master of Manipulation", "Puppeteer someone 100 times.");
+    public static readonly AchievementInfo TheGrandConductor = new AchievementInfo(168, "The Grand Conductor", "Puppeteer someone 250 times.");
+    public static readonly AchievementInfo MaestroOfStrings = new AchievementInfo(169, "Maestro of Strings", "Puppeteer someone 500 times.");
+    public static readonly AchievementInfo OfGrandiousSymphony = new AchievementInfo(170, "Of Grandious Symphony", "Puppeteer someone 1000 times.");
+    public static readonly AchievementInfo SovereignMaestro = new AchievementInfo(171, "Sovereign Maestro", "Puppeteer someone 2500 times.");
+    public static readonly AchievementInfo OrchestratorOfMinds = new AchievementInfo(172, "Orchestrator of Minds", "Puppeteer someone 5000 times.");
+
+    public static readonly AchievementInfo WillingPuppet = new AchievementInfo(173, "Willing Puppet", "Be Puppeteered 10 times.");
+    public static readonly AchievementInfo AtYourCommand = new AchievementInfo(174, "At Your Command", "Be Puppeteered 25 times.");
+    public static readonly AchievementInfo YourMarionette = new AchievementInfo(175, "Your Marionette", "Be Puppeteered 50 times.");
+    public static readonly AchievementInfo TheInstrument = new AchievementInfo(176, "The Instrument", "Be Puppeteered 100 times.");
+    public static readonly AchievementInfo AMannequinsMadness = new AchievementInfo(177, "A Mannequin's Madness", "Be Puppeteered 250 times.");
+    public static readonly AchievementInfo DevotedDoll = new AchievementInfo(178, "Devoted Doll", "Be Puppeteered 500 times.");
+    public static readonly AchievementInfo EnthralledDoll = new AchievementInfo(179, "Enthralled Doll", "Be Puppeteered 1000 times.");
+    public static readonly AchievementInfo ObedientDoll = new AchievementInfo(180, "Obedient Doll", "Be Puppeteered 1750 times.");
+    public static readonly AchievementInfo ServiceDoll = new AchievementInfo(181, "Service Doll", "Be Puppeteered 2500 times.");
+    public static readonly AchievementInfo MastersPlaything = new AchievementInfo(182, "Master's Plaything", "Be Puppeteered 5000 times.");
+    public static readonly AchievementInfo MistressesPlaything = new AchievementInfo(183, "Mistress's Plaything", "Be Puppeteered 5000 times.");
+    public static readonly AchievementInfo ThePerfectDoll = new AchievementInfo(184, "The Perfect Doll", "Be Puppeteered 10000 times.");
+
     // Toybox
     public static readonly AchievementInfo MyPleasantriesForAll = new AchievementInfo(76, "My Pleasantries for All", "Create and publish a pattern for the first time.");
-
     public static readonly AchievementInfo DeviousComposer = new AchievementInfo(77, "Devious Composer", "Publish 10 patterns you have made.");
 
-    public static readonly AchievementInfo CravingPleasure = new AchievementInfo(78, "Of Craving Pleasure", "Download 30 Patterns from the Pattern Hub.");
+    public static readonly AchievementInfo TasteOfTemptation = new AchievementInfo(201, "Taste of Temptation", "Download your first Pattern from the Pattern Hub.");
+    public static readonly AchievementInfo SeekerOfSensations = new AchievementInfo(202, "Seeker of Sensations", "Download 10 Patterns from the Pattern Hub.");
+    public static readonly AchievementInfo CravingPleasure = new AchievementInfo(78, "A Craving Pleasure", "Download 30 Patterns from the Pattern Hub.");
 
-    public static readonly AchievementInfo PatternLover = new AchievementInfo(79, "Pattern Lover", "Like 30 Patterns from the Pattern Hub.");
+    public static readonly AchievementInfo GoodVibes = new AchievementInfo(79, "Good Vibes", "Like a pattern from the Pattern Hub.");
+    public static readonly AchievementInfo DelightfulPleasures = new AchievementInfo(203, "Delightful Pleasures", "Like 10 Patterns from the Pattern Hub.");
+    public static readonly AchievementInfo PatternLover = new AchievementInfo(204, "Pattern Lover", "Like 25 Patterns from the Pattern Hub.");
+    public static readonly AchievementInfo SensualConnoisseur = new AchievementInfo(205, "Sensual Connoisseur", "Like 50 Patterns from the Pattern Hub.");
+    public static readonly AchievementInfo PassionateAdmirer = new AchievementInfo(206, "Passionate Admirer", "Like 100 Patterns from the Pattern Hub.");
 
+    public static readonly AchievementInfo ALittleTease = new AchievementInfo(193, "A Little Tease", "Play a pattern for 20 seconds.");
+    public static readonly AchievementInfo ShortButSweet = new AchievementInfo(194, "Short But Sweet", "Play a pattern for 1 minutes.");
+    public static readonly AchievementInfo TemptingRythms = new AchievementInfo(195, "Tempting Rythms", "Play a pattern for 2 minutes.");
+    public static readonly AchievementInfo MyBuildingDesire = new AchievementInfo(196, "My Building Desire", "Play a pattern for 5 minutes.");
+    public static readonly AchievementInfo WithWavesOfSensation = new AchievementInfo(197, "Waves Of Sensation", "Play a pattern for 10 minutes.");
+    public static readonly AchievementInfo WithHeightenedSensations = new AchievementInfo(198, "With Heightened Sensations", "Play a pattern for 15 minutes.");
+    public static readonly AchievementInfo MusicalMoaner = new AchievementInfo(199, "Musical Moaner", "Play a pattern for 20 minutes.");
+    public static readonly AchievementInfo StimulatingExperiences = new AchievementInfo(200, "Stimulating Experiences", "Play a pattern for 30 minutes.");
     public static readonly AchievementInfo EnduranceKing = new AchievementInfo(80, "Endurance King", "Play a pattern for an hour (59m) without pause.");
     public static readonly AchievementInfo EnduranceQueen = new AchievementInfo(155, "Endurance Queen", "Play a pattern for an hour (59m) without pause.");
 
@@ -160,15 +210,6 @@ public static class Achievements
     public static readonly AchievementInfo TriggerHappy = new AchievementInfo(86, "Trigger Happy", "Have 1000 Triggers go off.");
 
     public static readonly AchievementInfo HornyMornings = new AchievementInfo(87, "Horny Mornings", "Have an alarm go off.");
-
-    public static readonly AchievementInfo EscapedPatient = new AchievementInfo(156, "Escaped Patient", "Kill 10 enemies in PvP Frontlines while restrained or vibed.");
-    public static readonly AchievementInfo BoundToKill = new AchievementInfo(157, "Bound to Kill", "Kill 25 enemies in PvP Frontlines while restrained or vibed.");
-    public static readonly AchievementInfo TheShackledSlayer = new AchievementInfo(158, "The Shackled Slayer", "Kill 50 enemies in PvP Frontlines while restrained or vibed.");
-    public static readonly AchievementInfo DangerousConvict = new AchievementInfo(159, "Dangerous Convict", "Kill 100 enemies in PvP Frontlines while restrained or vibed.");
-    public static readonly AchievementInfo OfUnyieldingForce = new AchievementInfo(160, "Of Unyielding Force", "Kill 200 enemies in PvP Frontlines while restrained or vibed.");
-    public static readonly AchievementInfo StimulationOverdrive = new AchievementInfo(161, "Stimulation Overdrive", "Kill 300 enemies in PvP Frontlines while restrained or vibed.");
-    public static readonly AchievementInfo BoundYetUnbroken = new AchievementInfo(162, "Bound yet Unbroken", "Kill 400 enemies in PvP Frontlines while restrained or vibed.");
-    public static readonly AchievementInfo ChainsCantHoldMe = new AchievementInfo(88, "Chains Can't Hold Me", "Kill 500 enemies in PvP Frontlines while restrained or vibed.");
 
     // Hardcore
     public static readonly AchievementInfo AllTheCollarsOfTheRainbow = new AchievementInfo(89, "All Collars of the Rainbow", "Force 20 pairs to follow you.");
@@ -230,6 +271,15 @@ public static class Achievements
     public static readonly AchievementInfo EscapingIsNotEasy = new AchievementInfo(125, "Escaping Isn't So Easy..", "Change your equipment/change job while locked in a restraint set.");
     
     public static readonly AchievementInfo ICantBelieveYouveDoneThis = new AchievementInfo(126, "I Can't Believe You've Done This", "Get /slapped while bound.");
+
+    public static readonly AchievementInfo EscapedPatient = new AchievementInfo(156, "Escaped Patient", "Kill 10 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo BoundToKill = new AchievementInfo(157, "Bound to Kill", "Kill 25 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo TheShackledSlayer = new AchievementInfo(158, "The Shackled Slayer", "Kill 50 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo DangerousConvict = new AchievementInfo(159, "Dangerous Convict", "Kill 100 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo OfUnyieldingForce = new AchievementInfo(160, "Of Unyielding Force", "Kill 200 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo StimulationOverdrive = new AchievementInfo(161, "Stimulation Overdrive", "Kill 300 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo BoundYetUnbroken = new AchievementInfo(162, "Bound yet Unbroken", "Kill 400 enemies in PvP Frontlines while restrained or vibed.");
+    public static readonly AchievementInfo ChainsCantHoldMe = new AchievementInfo(88, "Chains Can't Hold Me", "Kill 500 enemies in PvP Frontlines while restrained or vibed.");
 
     // Secrets
     public static readonly AchievementInfo HiddenInPlainSight = new AchievementInfo(127, "Hidden in Plain Sight", "???");
@@ -425,6 +475,50 @@ public static class Achievements
         { 159, DangerousConvict },
         { 160, OfUnyieldingForce },
         { 161, StimulationOverdrive },
-        { 162, BoundYetUnbroken }
+        { 162, BoundYetUnbroken },
+        { 163, HouseServant },
+        { 164, OrchestratorsApprentice },
+        { 165, NoStringsAttached },
+        { 166, PuppetMaster },
+        { 167, MasterOfManipulation },
+        { 168, TheGrandConductor },
+        { 169, MaestroOfStrings },
+        { 170, OfGrandiousSymphony },
+        { 171, SovereignMaestro },
+        { 172, OrchestratorOfMinds },
+        { 173, WillingPuppet },
+        { 174, AtYourCommand },
+        { 175, YourMarionette },
+        { 176, TheInstrument },
+        { 177, AMannequinsMadness },
+        { 178, DevotedDoll },
+        { 179, EnthralledDoll },
+        { 180, ObedientDoll },
+        { 181, ServiceDoll },
+        { 182, MastersPlaything },
+        { 183, MistressesPlaything },
+        { 184, ThePerfectDoll },
+        { 185, WhispersToWhimpers },
+        { 186, OfMuffledMoans },
+        { 187, SilentStruggler },
+        { 188, QuietedCaptive },
+        { 189, MessyDrooler },
+        { 190, DroolingDiva },
+        { 191, EmbraceOfSilence },
+        { 192, SubjugationToSilence },
+        { 193, ALittleTease },
+        { 194, ShortButSweet },
+        { 195, TemptingRythms },
+        { 196, MyBuildingDesire },
+        { 197, WithWavesOfSensation },
+        { 198, WithHeightenedSensations },
+        { 199, MusicalMoaner },
+        { 200, StimulatingExperiences },
+        { 201, TasteOfTemptation },
+        { 202, SeekerOfSensations },
+        { 203, DelightfulPleasures },
+        { 204, PassionateAdmirer },
+        { 205, SensualConnoisseur },
+        { 206, PassionateAdmirer },
     };
 }

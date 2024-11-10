@@ -19,6 +19,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
 using Dalamud.Interface.Utility.Raii;
 using System.Threading;
+using GagSpeak.WebAPI;
 
 namespace GagSpeak.UI.Profile;
 
@@ -81,7 +82,7 @@ public class KinkPlateLight
 
         DrawProfilePic(drawList, profile, displayName, userData, isPair);
 
-        DrawDescription(drawList, profile, isPair);
+        DrawDescription(drawList, profile, userData, isPair);
 
         // Now let's draw out the chosen achievement Name..
         using (_uiShared.GagspeakLabelFont.Push())
@@ -112,15 +113,27 @@ public class KinkPlateLight
 
     private void DrawProfilePic(ImDrawListPtr drawList, KinkPlate profile, string displayName, UserData userData, bool isPair)
     {
-
-        // Draw the profile Picture
-        if (!profile.KinkPlateInfo.PublicPlate && !isPair)
+        if (userData.UID == MainHub.UID)
         {
+            // The user is us, and we are under review, show our picture.
+            var pfpWrap = profile.GetCurrentProfileOrDefault();
+            KinkPlateUI.AddImageRounded(drawList, pfpWrap, ProfilePicturePos, ProfilePictureSize, ProfilePictureSize.Y / 2);
+        }
+        else if(profile.TempDisabled)
+        {
+            // profile is pending report review.
+            KinkPlateUI.AddImageRounded(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Logo256], ProfilePicturePos, ProfilePictureSize, ProfilePictureSize.Y / 2);
+            KinkPlateUI.AddRelativeTooltip(ProfilePictureBorderPos + ProfilePictureBorderSize / 4, ProfilePictureBorderSize / 2, "Profile Image is reset to default, currently under report submission.");
+        }
+        else if ((!profile.KinkPlateInfo.PublicPlate && !isPair))
+        {
+            // profile is not public.
             KinkPlateUI.AddImageRounded(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Logo256], ProfilePicturePos, ProfilePictureSize, ProfilePictureSize.Y / 2);
             KinkPlateUI.AddRelativeTooltip(ProfilePictureBorderPos + ProfilePictureBorderSize / 4, ProfilePictureBorderSize / 2, "Profile Pic is hidden as they have not allowed public plates!");
         }
         else
         {
+            // Viewing a direct pair, draw the profile picture.
             var pfpWrap = profile.GetCurrentProfileOrDefault();
             KinkPlateUI.AddImageRounded(drawList, pfpWrap, ProfilePicturePos, ProfilePictureSize, ProfilePictureSize.Y / 2);
         }
@@ -155,7 +168,7 @@ public class KinkPlateLight
         }
     }
 
-    private void DrawDescription(ImDrawListPtr drawList, KinkPlate profile, bool isPair)
+    private void DrawDescription(ImDrawListPtr drawList, KinkPlate profile, UserData userData, bool isPair)
     {
         // draw out the description background.
         if (_cosmetics.TryGetBackground(ProfileComponent.DescriptionLight, profile.KinkPlateInfo.DescriptionBackground, out var descBG))
@@ -171,12 +184,26 @@ public class KinkPlateLight
 
         // draw out the description text here.
         ImGui.SetCursorScreenPos(DescriptionBorderPos + new Vector2(12f, 8f));
-        if (!profile.KinkPlateInfo.PublicPlate && !isPair)
+        if (userData.UID == MainHub.UID)
+        {
+            // The user is us, and we are under review, show our picture.
+            var description = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? "No Description Was Set.." : profile.KinkPlateInfo.Description;
+            var color = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? ImGuiColors.DalamudGrey2 : ImGuiColors.DalamudWhite;
+            DrawLimitedDescription(description, color, DescriptionBorderSize - new Vector2(15, 0));
+        }
+        else if (profile.TempDisabled)
+        {
+            // profile is pending report review.
+            DrawLimitedDescription("Profile is pending review from the CK Team after being reported.", ImGuiColors.DalamudRed, DescriptionBorderSize - new Vector2(15, 0));
+
+        }
+        else if ((!profile.KinkPlateInfo.PublicPlate && !isPair))
         {
             DrawLimitedDescription("This Kinkster hasn't made their plate public!", ImGuiColors.DalamudRed, DescriptionBorderSize - new Vector2(15, 0));
         }
         else
         {
+            // Draw the pairs description.
             var description = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? "No Description Was Set.." : profile.KinkPlateInfo.Description;
             var color = profile.KinkPlateInfo.Description.IsNullOrEmpty() ? ImGuiColors.DalamudGrey2 : ImGuiColors.DalamudWhite;
             DrawLimitedDescription(description, color, DescriptionBorderSize - new Vector2(15, 0));

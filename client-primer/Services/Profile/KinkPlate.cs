@@ -54,6 +54,9 @@ public class KinkPlate : DisposableMediatorSubscriberBase
     }
 
     public KinkPlateContent KinkPlateInfo;
+
+    public bool TempDisabled => KinkPlateInfo.Disabled || KinkPlateInfo.Flagged;
+
     public string Base64ProfilePicture
     {
         get => _base64ProfilePicture;

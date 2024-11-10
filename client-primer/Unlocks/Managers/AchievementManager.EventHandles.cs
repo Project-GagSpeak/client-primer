@@ -287,8 +287,17 @@ public partial class AchievementManager
                 (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.ATrueGagSlut.Title] as TimedProgressAchievement)?.IncrementProgress();
             }
 
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.WhispersToWhimpers.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OfMuffledMoans.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentStruggler.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.QuietedCaptive.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.MessyDrooler.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.DroolingDiva.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.EmbraceOfSilence.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+            (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SubjugationToSilence.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
             (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SpeechSilverSilenceGolden.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
             (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.TheKinkyLegend.Title] as DurationAchievement)?.StartTracking(gagType.GagName(), MainHub.UID);
+
             (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.Experimentalist.Title] as ConditionalAchievement)?.CheckCompletion();
             (SaveData.Components[AchievementModuleKind.Secrets].Achievements[Achievements.GaggedPleasure.Title] as ConditionalAchievement)?.CheckCompletion();
         }
@@ -301,6 +310,14 @@ public partial class AchievementManager
     {
         (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.ShushtainableResource.Title] as ThresholdAchievement)?.UpdateThreshold(_playerData.TotalGagsEquipped);
 
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.WhispersToWhimpers.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OfMuffledMoans.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentStruggler.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.QuietedCaptive.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.MessyDrooler.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.DroolingDiva.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.EmbraceOfSilence.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SubjugationToSilence.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
         (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SpeechSilverSilenceGolden.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
         (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.TheKinkyLegend.Title] as DurationAchievement)?.StopTracking(gagType.GagName(), MainHub.UID);
 
@@ -313,6 +330,14 @@ public partial class AchievementManager
     {
         Logger.LogDebug("Player Character " + user.AliasOrUID + " went online and has new active data. Cleaning up expired information!", LoggerType.Achievements);
         // Do stuff if its a gag type.
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.WhispersToWhimpers.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.OfMuffledMoans.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SilentStruggler.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.QuietedCaptive.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.MessyDrooler.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.DroolingDiva.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.EmbraceOfSilence.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
+        (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SubjugationToSilence.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
         (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.SpeechSilverSilenceGolden.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
         (SaveData.Components[AchievementModuleKind.Gags].Achievements[Achievements.TheKinkyLegend.Title] as DurationAchievement)?.CleanupTracking(user.UID, activeGags);
 
@@ -339,6 +364,15 @@ public partial class AchievementManager
         }
 
         // Do stuff if it is a pattern.
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ALittleTease.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ShortButSweet.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TemptingRythms.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MyBuildingDesire.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithWavesOfSensation.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithHeightenedSensations.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MusicalMoaner.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.StimulatingExperiences.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
+        (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceKing.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
         (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceQueen.Title] as DurationAchievement)?.CleanupTracking(user.UID, new List<string>() { Guid.Empty.ToString() });
 
         // if these are started, inturrupt them so that they do not complete.
@@ -573,14 +607,29 @@ public partial class AchievementManager
                 (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.DeviousComposer.Title] as ProgressAchievement)?.IncrementProgress();
                 break;
             case PatternInteractionKind.Downloaded:
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TasteOfTemptation.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.SeekerOfSensations.Title] as ProgressAchievement)?.IncrementProgress();
                 (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.CravingPleasure.Title] as ProgressAchievement)?.IncrementProgress();
                 break;
             case PatternInteractionKind.Liked:
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.GoodVibes.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.DelightfulPleasures.Title] as ProgressAchievement)?.IncrementProgress();
                 (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.PatternLover.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.SensualConnoisseur.Title] as ProgressAchievement)?.IncrementProgress();
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.PassionateAdmirer.Title] as ProgressAchievement)?.IncrementProgress();
                 break;
             case PatternInteractionKind.Started:
                 if (patternGuid != Guid.Empty)
                 {
+                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ALittleTease.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ShortButSweet.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TemptingRythms.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MyBuildingDesire.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithWavesOfSensation.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithHeightenedSensations.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MusicalMoaner.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.StimulatingExperiences.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
+                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceKing.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
                     (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceQueen.Title] as DurationAchievement)?.StartTracking(patternGuid.ToString(), MainHub.UID);
 
                     // motivation for restoration:
@@ -592,8 +641,16 @@ public partial class AchievementManager
                 break;
             case PatternInteractionKind.Stopped:
                 if (patternGuid != Guid.Empty)
-                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceQueen.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
-
+                    (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ALittleTease.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.ShortButSweet.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.TemptingRythms.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MyBuildingDesire.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithWavesOfSensation.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.WithHeightenedSensations.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MusicalMoaner.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.StimulatingExperiences.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceKing.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
+                (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.EnduranceQueen.Title] as DurationAchievement)?.StopTracking(patternGuid.ToString(), MainHub.UID);
                 // motivation for restoration:
                 if ((SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.TaskStarted ?? false)
                     (SaveData.Components[AchievementModuleKind.Toybox].Achievements[Achievements.MotivationForRestoration.Title] as TimeRequiredConditionalAchievement)?.CheckCompletion();
@@ -817,19 +874,48 @@ public partial class AchievementManager
         }
         // Increase regardless.
         (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.MasterOfPuppets.Title] as TimedProgressAchievement)?.IncrementProgress();
+        // inc the orders given counters.
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.OrchestratorsApprentice.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.NoStringsAttached.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.PuppetMaster.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.MasterOfManipulation.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.TheGrandConductor.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.MaestroOfStrings.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.OfGrandiousSymphony.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.SovereignMaestro.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.OrchestratorOfMinds.Title] as ProgressAchievement)?.IncrementProgress();
+    }
+
+    private void OnPuppeteerReceivedOrder()
+    {
+        // inc the orders recieved counters.
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.WillingPuppet.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.AtYourCommand.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.YourMarionette.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.TheInstrument.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.AMannequinsMadness.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.DevotedDoll.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.EnthralledDoll.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.ObedientDoll.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.ServiceDoll.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.MastersPlaything.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.MistressesPlaything.Title] as ProgressAchievement)?.IncrementProgress();
+        (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.ThePerfectDoll.Title] as ProgressAchievement)?.IncrementProgress();
     }
 
     private void OnPuppeteerReceivedEmoteOrder(ushort emoteId)
     {
         switch(emoteId)
         {
-            case 38:
+            case 38: // Sulk
                 (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.Ashamed.Title] as ProgressAchievement)?.IncrementProgress();
                 break;
-
-            case 50:
+            case 50: // Sit/Groundsit
             case 52:
                 (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.AnObedientPet.Title] as ProgressAchievement)?.IncrementProgress();
+                break;
+            case 223: //Sweep
+                (SaveData.Components[AchievementModuleKind.Puppeteer].Achievements[Achievements.HouseServant.Title] as ProgressAchievement)?.IncrementProgress();
                 break;
         }
     }

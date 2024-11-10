@@ -4,6 +4,7 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using GagSpeak.Achievements;
+using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components;
@@ -11,6 +12,7 @@ using GagspeakAPI.Data.IPC;
 using ImGuiNET;
 using OtterGui.Text;
 using System.Numerics;
+using System.Reflection.Metadata;
 
 namespace GagSpeak.UI;
 
@@ -51,6 +53,8 @@ public class AchievementsUI : WindowMediatorSubscriberBase
         pi.UiBuilder.DisableGposeUiHide = true;
         pi.UiBuilder.DisableUserUiHide = true;
     }
+
+    private string AchievementSearchString = string.Empty;
 
     protected override void PreDrawInternal()
     {
@@ -146,18 +150,41 @@ public class AchievementsUI : WindowMediatorSubscriberBase
         // We likely want to avoid pushing the style theme here if we are swapping the colors based on the state of an achievement.
         // If that is not the case. move them here.
         var unlocks = _achievementManager.GetComponent(type);
-        if (unlocks.Total == 0)
-        {
-            ImGui.Text("No achievements Added to this list.");
+        if (unlocks.Total is 0)
             return;
-        }
+
+        // filter down the unlocks to searchable results.
+        var filteredUnlocks = unlocks.All
+            .Where(goal => goal.Title.Contains(AchievementSearchString, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        // reference the same achievement for every module.
+        // draw the search filter.
+        DrawSearchFilter(ImGui.GetContentRegionAvail().X, ImGui.GetStyle().ItemSpacing.X);
 
         // create a window for scrolling through the available achievements.
         using var achievementListChild = ImRaii.Child("##AchievementListings" + type.ToString(), ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoScrollbar);
 
         // draw the achievements in the first column.
-        foreach (var achievement in unlocks.All)
+        foreach (var achievement in filteredUnlocks)
             DrawAchievementProgressBox(achievement);
+    }
+
+    public void DrawSearchFilter(float availableWidth, float spacingX)
+    {
+        var buttonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
+        ImGui.SetNextItemWidth(availableWidth - buttonSize - spacingX);
+        string filter = AchievementSearchString;
+        if (ImGui.InputTextWithHint("##AchievementSearchStringFilter", "Search for an Achievement...", ref filter, 255))
+        {
+            AchievementSearchString = filter;
+        }
+        ImUtf8.SameLineInner();
+        using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(AchievementSearchString));
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
+        {
+            AchievementSearchString = string.Empty;
+        }
     }
 
     private static Vector2 AchievementIconSize = new(96, 96);

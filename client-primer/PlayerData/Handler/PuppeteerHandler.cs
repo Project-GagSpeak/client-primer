@@ -200,7 +200,10 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
 
         // only apply it if the message meets the criteria for the sender.
         if (MeetsSettingCriteria(perms, remainingMessage))
+        {
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerOrderRecieved);
             return remainingMessage;
+        }
 
         // return an empty SeString if we failed.
         Logger.LogDebug("Message did not meet the criteria for the sender", LoggerType.Puppeteer);

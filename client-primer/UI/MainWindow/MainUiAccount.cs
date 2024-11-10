@@ -56,23 +56,10 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
         {
             try
             {
-                // fetch own profile data to store / display.
-                // This function itself does no API calls unless the requested UID is different.
                 var profileData = _profileManager.GetKinkPlate(new UserData(MainHub.UID));
 
-                // if the profile is flagged, say so.
-                if (profileData.KinkPlateInfo.Flagged)
-                {
-                    UiSharedService.ColorTextWrapped("Your profile has been flagged for inappropriate content. Please review your profile.", ImGuiColors.DalamudRed);
-                }
-
                 var pfpWrap = profileData.GetCurrentProfileOrDefault();
-
-                if (!(pfpWrap is { } wrap))
-                {
-                    /* Consume Wrap until Generated */
-                }
-                else
+                if (pfpWrap is { } wrap)
                 {
                     var region = ImGui.GetContentRegionAvail();
                     ImGui.Spacing();

@@ -11,6 +11,7 @@ using GagSpeak.Utils;
 using Microsoft.Extensions.FileSystemGlobbing;
 using System.ComponentModel;
 using System.Text.RegularExpressions;
+using static Lumina.Data.Parsing.Layer.LayerCommon;
 namespace GagSpeak.Toybox.Controllers;
 
 /// <summary>
@@ -42,10 +43,11 @@ public sealed class DeathRollService
     // add a helper function to retrieve the roll cap of the last active session our player is in.
     public int? GetLastRollCap()
     {
+        var player = _frameworkService.ClientPlayerNameAndWorld;
         // Sort all sessions in order by their LastRollTime, and return the first one where either the opponent is nullorEmpty, or matches the clientplayernameandworld.
         var matchedSession = MonitoredSessions.Values
-            .OrderByDescending(s => s.LastRollTime)
-            .FirstOrDefault(s => s.Opponent.IsNullOrEmpty() || s.Opponent == _frameworkService.ClientPlayerNameAndWorld);
+        .OrderByDescending(s => s.LastRollTime)
+            .FirstOrDefault(s => s.Opponent.IsNullOrEmpty() || ((s.Opponent == player || s.Initializer == player) && s.LastRoller != player));
 
         return matchedSession?.CurrentRollCap ?? null;
     }

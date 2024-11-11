@@ -27,8 +27,8 @@ public class ThresholdAchievement : AchievementBase
             return;
 
         LastRecordedThreshold = threshold;
-        StaticLogger.Logger.LogDebug($"Updating Threshold for {Title}. Current Threshold: {LastRecordedThreshold}" +
-            $" -- Total Required: {MilestoneGoal}", LoggerType.Achievements);
+        UnlocksEventManager.AchievementLogger.LogTrace($"Updating Threshold for {Title}. Current Threshold: {LastRecordedThreshold}" +
+            $" -- Total Required: {MilestoneGoal}", LoggerType.AchievementInfo);
         CheckCompletion();
     }
 

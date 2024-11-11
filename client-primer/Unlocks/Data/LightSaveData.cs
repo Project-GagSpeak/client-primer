@@ -65,16 +65,18 @@ public struct LightAchievement
     /// <summary>
     /// the list of items that are being monitored (for duration achievements)
     /// </summary>
-    public Dictionary<string, TrackedItem> ActiveItems { get; set; }
+    public List<TrackedItem> ActiveItems { get; set; }
 }
 
 public struct TrackedItem
 {
+    public string Item { get; init; }
     public string UIDAffected { get; init; }
     public DateTime TimeAdded { get; init; }
 
-    public TrackedItem(string uidAffected)
+    public TrackedItem(string item, string uidAffected)
     {
+        Item = item;
         UIDAffected = uidAffected;
         TimeAdded = DateTime.UtcNow;
     }

@@ -228,6 +228,8 @@ public static class Achievements
 
     public static readonly AchievementInfo CollectorOfSinfulTreasures = new AchievementInfo(81, "Collector of Sinful Treasures", "Connect a real device (Intiface / PiShock Device) to GagSpeak.");
 
+    public static readonly AchievementInfo VulnerableVibrations = new AchievementInfo(207, "Vulnerable Vibrations", "stagger while a pattern is actively playing.");
+
     public static readonly AchievementInfo MotivationForRestoration = new AchievementInfo(82, "Motivation for Restoration", "Play a pattern for over 30 minutes in Diadem.");
 
     public static readonly AchievementInfo KinkyGambler = new AchievementInfo(83, "Kinky Gambler", "Complete a DeathRoll (win or loss) while having a DeathRoll trigger on.");
@@ -298,6 +300,10 @@ public static class Achievements
     public static readonly AchievementInfo EscapingIsNotEasy = new AchievementInfo(125, "Escaping Isn't So Easy..", "Change your equipment/change job while locked in a restraint set.");
     
     public static readonly AchievementInfo ICantBelieveYouveDoneThis = new AchievementInfo(126, "I Can't Believe You've Done This", "Get /slapped while bound.");
+    
+    public static readonly AchievementInfo WithAKissGoodbye = new AchievementInfo(208, "With A Kiss Goodbye", "/dote a Kinkster that is immobilized.");
+    public static readonly AchievementInfo ProlificPetter = new AchievementInfo(209, "Prolific Petter", "/pet an immobilized Kinkster.");
+
 
     public static readonly AchievementInfo EscapedPatient = new AchievementInfo(156, "Escaped Patient", "Kill 10 enemies in PvP Frontlines while restrained or vibed.");
     public static readonly AchievementInfo BoundToKill = new AchievementInfo(157, "Bound to Kill", "Kill 25 enemies in PvP Frontlines while restrained or vibed.");
@@ -547,5 +553,8 @@ public static class Achievements
         { 204, PassionateAdmirer },
         { 205, SensualConnoisseur },
         { 206, PassionateAdmirer },
+        { 207, VulnerableVibrations },
+        { 208, WithAKissGoodbye },
+        { 209, ProlificPetter }
     };
 }

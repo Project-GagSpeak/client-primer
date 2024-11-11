@@ -64,6 +64,8 @@ public static class AchievementHelpers
         return (GateType)type;
     }
 
+    public static unsafe GFateDirectorFlag GetGateFlags() => GetFateDirector()->Flags;
+
     private static bool HasJoinedGate(GFateDirectorFlag currentFlags) => (currentFlags & GFateDirectorFlag.IsJoined) != 0;
     private static bool HasFinishedGate(GFateDirectorFlag currentFlags) => (currentFlags & GFateDirectorFlag.IsFinished) != 0;
 

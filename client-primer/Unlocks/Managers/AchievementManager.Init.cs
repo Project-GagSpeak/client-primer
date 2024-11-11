@@ -79,10 +79,12 @@ public partial class AchievementManager
             bool targetIsGagged = false;
             if (_pairManager.GetVisiblePairGameObjects().Any(x => x.GameObjectId == _frameworkUtils.TargetObjectId))
             {
+                Logger.LogTrace("Target is visible in the pair manager, checking if they are gagged.", LoggerType.Achievements);
                 var targetPair = _pairManager.DirectPairs.FirstOrDefault(x => x.VisiblePairGameObject?.GameObjectId == _frameworkUtils.TargetObjectId);
-                if (targetPair != null)
+                if (targetPair is not null)
                 {
-                    targetIsGagged = targetPair.LastReceivedAppearanceData?.GagSlots.Any(x => x.GagType.ToGagType() != GagType.None) ?? false;
+                    Logger.LogTrace("Target is in the direct pairs, checking if they are gagged.", LoggerType.Achievements);
+                    targetIsGagged = targetPair.LastAppearanceData?.GagSlots.Any(x => x.GagType.ToGagType() is not GagType.None) ?? false;
                 }
             }
             return targetIsGagged;
@@ -293,6 +295,8 @@ public partial class AchievementManager
         SaveData.AddRequiredTimeConditional(AchievementModuleKind.Toybox,Achievements.MotivationForRestoration, TimeSpan.FromMinutes(30),
             () => _clientConfigs.ActivePatternGuid() != Guid.Empty, DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), suffix: " Vibrated in Diadem");
 
+        SaveData.AddConditional(AchievementModuleKind.Toybox, Achievements.VulnerableVibrations, () => _clientConfigs.ActivePatternGuid() != Guid.Empty, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Staggers Performed");
+
         SaveData.AddConditional(AchievementModuleKind.Toybox,Achievements.KinkyGambler,
             () => _clientConfigs.ActiveSocialTriggers.Count() > 0, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "DeathRolls Gambled");
 
@@ -334,7 +338,7 @@ public partial class AchievementManager
             () =>
             {
                 if (_playerData.GlobalPerms?.IsBlindfolded() ?? false)
-                    if (_pairManager.DirectPairs.Any(x => x.UserPairGlobalPerms.IsFollowing() && x.UserPairGlobalPerms.IsBlindfolded()))
+                    if (_pairManager.DirectPairs.Any(x => x.PairGlobals.IsFollowing() && x.PairGlobals.IsBlindfolded()))
                         return true;
                 return false;
             }, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Blind Pairs Led");
@@ -393,6 +397,49 @@ public partial class AchievementManager
 
         SaveData.AddConditional(AchievementModuleKind.Generic, Achievements.ICantBelieveYouveDoneThis, () => _clientConfigs.GetActiveSetIdx() != -1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Slaps Received");
 
+        SaveData.AddConditional(AchievementModuleKind.Generic, Achievements.WithAKissGoodbye, () =>
+        {
+            bool targetIsImmobile = false;
+            if (_pairManager.GetVisiblePairGameObjects().Any(x => x.GameObjectId == _frameworkUtils.TargetObjectId))
+            {
+                Logger.LogTrace("Target is visible in the pair manager, checking if they are gagged.", LoggerType.Achievements);
+                var targetPair = _pairManager.DirectPairs.FirstOrDefault(x => x.VisiblePairGameObject?.GameObjectId == _frameworkUtils.TargetObjectId);
+                if (targetPair is not null)
+                {
+                    Logger.LogTrace("Target is in the direct pairs, checking if they are gagged.", LoggerType.Achievements);
+                    // store if they are stuck emoting.
+                    targetIsImmobile = targetPair.PairGlobals.IsAnySitting();
+                    var lightRestraintActive = targetPair.LastLightStorage?.Restraints.FirstOrDefault(x => x.Identifier == targetPair.LastWardrobeData?.ActiveSetId);
+                    if(lightRestraintActive is not null && lightRestraintActive.HardcoreTraits.TryGetValue(targetPair.LastWardrobeData?.ActiveSetEnabledBy ?? "", out var traits))
+                    {
+                        Logger.LogTrace("Targets active set enabled by someone that locked it with immobilize.", LoggerType.Achievements);
+                        targetIsImmobile = traits.Immobile;
+                    }
+                }
+            }
+            return targetIsImmobile;
+        }, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Dotes to Helpless Kinksters", "Gave");
+
+        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.ProlificPetter, 10, () =>
+        {
+            bool targetIsImmobile = false;
+            if (_pairManager.GetVisiblePairGameObjects().Any(x => x.GameObjectId == _frameworkUtils.TargetObjectId))
+            {
+                var targetPair = _pairManager.DirectPairs.FirstOrDefault(x => x.VisiblePairGameObject?.GameObjectId == _frameworkUtils.TargetObjectId);
+                if (targetPair is not null)
+                {
+                    // store if they are stuck emoting.
+                    targetIsImmobile = targetPair.PairGlobals.IsAnySitting();
+                    var lightRestraintActive = targetPair.LastLightStorage?.Restraints.FirstOrDefault(x => x.Identifier == targetPair.LastWardrobeData?.ActiveSetId);
+                    if (lightRestraintActive is not null && lightRestraintActive.HardcoreTraits.TryGetValue(targetPair.LastWardrobeData?.ActiveSetEnabledBy ?? "", out var traits))
+                    {
+                        targetIsImmobile = traits.Immobile;
+                    }
+                }
+            }
+            return targetIsImmobile;
+        }, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Helpless Kinksters", "Pet", false);
+
         SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.EscapedPatient, 10, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
         SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.BoundToKill, 25, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
         SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.TheShackledSlayer, 50, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
@@ -414,7 +461,7 @@ public partial class AchievementManager
 
         SaveData.AddConditional(AchievementModuleKind.Secrets, Achievements.HelplessDamsel, () =>
         {
-            return _playerData.IsPlayerGagged && _clientConfigs.GetActiveSetIdx() != -1 && _vibeService.ConnectedToyActive && _pairManager.DirectPairs.Any(x => x.UserPairOwnUniquePairPerms.InHardcore)
+            return _playerData.IsPlayerGagged && _clientConfigs.GetActiveSetIdx() != -1 && _vibeService.ConnectedToyActive && _pairManager.DirectPairs.Any(x => x.OwnPerms.InHardcore)
             && (_playerData.GlobalPerms?.IsFollowing() ?? false) || (_playerData.GlobalPerms?.IsSitting() ?? false);
         }, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Met", suffix: "Hardcore Conditions", isSecret: true);
 

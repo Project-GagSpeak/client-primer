@@ -40,11 +40,6 @@ internal class MigrationsUI : WindowMediatorSubscriberBase
         };
     }
 
-    public string GagStorageSearchString = string.Empty;
-    public string RestraintSetSearchString = string.Empty;
-    public string PatternSearchString = string.Empty;
-
-
     protected override void PreDrawInternal() { }
     protected override void PostDrawInternal() { }
     protected override void DrawInternal()
@@ -110,13 +105,8 @@ internal class MigrationsUI : WindowMediatorSubscriberBase
         else
         {
             _uiShared.BigText("Migrate Sets (Total: " + _wardrobeMigrator.OldRestraintSets.RestraintSets.Count + ")");
-            _uiShared.DrawComboSearchable("Select Set from Storage", 250f, ref RestraintSetSearchString,
-                _wardrobeMigrator.OldRestraintSets.RestraintSets.Select(p => p.Name).ToList(), (i) => i, true,
-            (i) =>
-            {
-                // locate the index of the pattern
-                _wardrobeMigrator.SelectedRestraintSetIdx = _wardrobeMigrator.OldRestraintSets.RestraintSets.FindIndex(p => p.Name == i);
-            });
+            _uiShared.DrawComboSearchable("Select Set from Storage", 250f, _wardrobeMigrator.OldRestraintSets.RestraintSets.Select(p => p.Name).ToList(), (i) => i, true,
+            (i) => { _wardrobeMigrator.SelectedRestraintSetIdx = _wardrobeMigrator.OldRestraintSets.RestraintSets.FindIndex(p => p.Name == i); });
 
             ImGui.Separator();
 
@@ -180,13 +170,8 @@ internal class MigrationsUI : WindowMediatorSubscriberBase
         else
         {
             _uiShared.BigText("Migrate Patterns (Total: " + _patternMigrator.OldPatternStorage.PatternList.Count + ")");
-            _uiShared.DrawComboSearchable("Select Pattern from Old Storage", 275f, ref PatternSearchString,
-                _patternMigrator.OldPatternStorage.PatternList.Select(p => p.Name).ToList(), (i) => i, true,
-            (i) =>
-            {
-                // locate the index of the pattern
-                _patternMigrator.SelectedPatternIdx = _patternMigrator.OldPatternStorage.PatternList.FindIndex(p => p.Name == i);
-            });
+            _uiShared.DrawComboSearchable("Select Pattern from Old Storage", 275f, _patternMigrator.OldPatternStorage.PatternList.Select(p => p.Name).ToList(), 
+                (i) => i, true, (i) => _patternMigrator.SelectedPatternIdx = _patternMigrator.OldPatternStorage.PatternList.FindIndex(p => p.Name == i));
 
             ImGui.Separator();
             

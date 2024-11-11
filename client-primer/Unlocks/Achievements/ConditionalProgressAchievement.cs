@@ -67,7 +67,7 @@ public class ConditionalProgressAchievement : AchievementBase
         if (!RequiredCondition())
             return;
 
-        StaticLogger.Logger.LogDebug($"Beginning Conditional Task for {Title}");
+        UnlocksEventManager.AchievementLogger.LogTrace($"Beginning Conditional Task for {Title}", LoggerType.AchievementInfo);
         ConditionalTaskBegun = true;
     }
 
@@ -76,7 +76,7 @@ public class ConditionalProgressAchievement : AchievementBase
         if (IsCompleted || !MainHub.IsConnected)
             return;
 
-        StaticLogger.Logger.LogDebug($"Finishing Conditional Task for {Title}");
+        UnlocksEventManager.AchievementLogger.LogTrace($"Finishing Conditional Task for {Title}", LoggerType.AchievementInfo);
         ConditionalTaskFinished = true;
         CheckTaskProgress();
     }
@@ -86,7 +86,7 @@ public class ConditionalProgressAchievement : AchievementBase
         if (IsCompleted || !MainHub.IsConnected)
             return;
 
-        StaticLogger.Logger.LogDebug($"Achievement {Title} Requires conditional Begin & End, but we inturrupted before reaching end. Starting Over!", LoggerType.Achievements);
+        UnlocksEventManager.AchievementLogger.LogTrace($"Achievement {Title} Requires conditional Begin & End, but we inturrupted before reaching end. Starting Over!", LoggerType.AchievementInfo);
         ConditionalTaskBegun = false;
         ConditionalTaskFinished = false;
     }
@@ -102,15 +102,15 @@ public class ConditionalProgressAchievement : AchievementBase
         // if we have failed the required condition, reset taskBegun to false.
         if (RequireTaskBeginAndFinish && ConditionalTaskBegun && !RequiredCondition())
         {
-            StaticLogger.Logger.LogDebug($"Achievement {Title} Requires a conditional task, "
-                + "and we failed conditional after it begun. Restarting!", LoggerType.Achievements);
+            UnlocksEventManager.AchievementLogger.LogTrace($"Achievement {Title} Requires a conditional task, "
+                + "and we failed conditional after it begun. Restarting!", LoggerType.AchievementInfo);
             ConditionalTaskBegun = false;
             return;
         }
         // if we have finished the task, increment the progress
         if ((!RequireTaskBeginAndFinish || (ConditionalTaskBegun && ConditionalTaskFinished)) && RequiredCondition())
         {
-            StaticLogger.Logger.LogInformation($"Achievement {Title} Had its Conditional Met from start to finish! Incrementing Progress!", LoggerType.Achievements);
+            UnlocksEventManager.AchievementLogger.LogInformation($"Achievement {Title} Had its Conditional Met from start to finish! Incrementing Progress!", LoggerType.AchievementInfo);
             IncrementProgress(amountToIncOnSuccess);
             // reset the task progress.
             ConditionalTaskBegun = false;

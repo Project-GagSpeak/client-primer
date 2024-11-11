@@ -35,12 +35,10 @@ public class ToyboxAlarmManager
         _patternHandler = patternHandler;
     }
 
+    public string AlarmSearchString = string.Empty;
     private Alarm CreatedAlarm = new Alarm();
     public bool CreatingAlarm = false;
-
     private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
-    private LowerString AlarmSearchString = LowerString.Empty;
-    private LowerString PatternSearchString = LowerString.Empty;
     private List<Alarm> FilteredAlarmsList
     => _handler.Alarms
         .Where(alarm => alarm.Name.Contains(AlarmSearchString, StringComparison.OrdinalIgnoreCase))
@@ -418,15 +416,9 @@ public class ToyboxAlarmManager
 
         // Input field for the pattern the alarm will play
         var pattern = alarmToCreate.PatternToPlay;
-        var searchString = PatternSearchString.Lower;
         // draw the selector on the left
         _uiShared.DrawComboSearchable("Alarm Pattern", UiSharedService.GetWindowContentRegionWidth() / 2,
-        ref searchString, _patternHandler.Patterns, (i) => i.Name, true,
-        (i) =>
-        {
-            if (i == null) return;
-            alarmToCreate.PatternToPlay = i.UniqueIdentifier;
-        });
+        _patternHandler.Patterns, (i) => i.Name, true, (i) => alarmToCreate.PatternToPlay = i?.UniqueIdentifier ?? Guid.Empty);
 
         // if the pattern is not the alarmTocreate.PatternToPlay, it has changed, so update newPatternMaxDuration
         TimeSpan durationTotal = _handler.GetPatternLength(alarmToCreate.PatternToPlay);

@@ -28,7 +28,7 @@ public class EventAggregator : MediatorSubscriberBase, IHostedService
             _lock.Wait();
             try
             {
-                Logger.LogTrace("Received Event: "+msg.Event.ToString(), LoggerType.Notification);
+                Logger.LogTrace("Received Event: "+msg.Event.ToString(), LoggerType.ActionsNotifier);
                 _events.Add(msg.Event);
                 WriteToFile(msg.Event);
                 UnreadInteractionsCount++;

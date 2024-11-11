@@ -139,10 +139,10 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     {
         await ExecuteWithApplierSlim(async () =>
         {
-            Logger.LogTrace("ENABLE-SET Executed");
+            Logger.LogTrace("ENABLE-SET Executed", LoggerType.AppearanceState);
             if (_clientConfigs.GetActiveSet() is not null)
             {
-                Logger.LogError("You must Disable the active Set before calling this!", LoggerType.Restraints);
+                Logger.LogError("You must Disable the active Set before calling this!");
                 return;
             }
 
@@ -150,13 +150,13 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             var setIdx = RestraintSets.FindIndex(x => x.RestraintId == restraintID);
             if (setIdx == -1)
             {
-                Logger.LogWarning("Attempted to enable a restraint set that does not exist.", LoggerType.Restraints);
+                Logger.LogWarning("Attempted to enable a restraint set that does not exist.");
                 return;
             }
 
             var setRef = RestraintSets[setIdx];
-            Logger.LogInformation("ENABLE SET [" + RestraintSets[setIdx].Name + "] START", LoggerType.Restraints);
-            Logger.LogDebug("Assigner was: " + assignerUID, LoggerType.Restraints);
+            Logger.LogInformation("ENABLE SET [" + RestraintSets[setIdx].Name + "] START", LoggerType.AppearanceState);
+            Logger.LogDebug("Assigner was: " + assignerUID, LoggerType.AppearanceState);
             setRef.Enabled = true;
             setRef.EnabledBy = assignerUID;
             _clientConfigs.SaveWardrobe();
@@ -167,17 +167,17 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             // Enable the Hardcore Properties by invoking the ipc call.
             if (setRef.HasPropertiesForUser(setRef.EnabledBy))
             {
-                Logger.LogDebug("Set Contains HardcoreProperties for " + setRef.EnabledBy, LoggerType.Restraints);
+                Logger.LogDebug("Set Contains HardcoreProperties for " + setRef.EnabledBy, LoggerType.AppearanceState);
                 if (setRef.PropertiesEnabledForUser(setRef.EnabledBy))
                 {
-                    Logger.LogDebug("Hardcore properties are enabled for this set!");
+                    Logger.LogDebug("Hardcore properties are enabled for this set!", LoggerType.AppearanceState);
                     IpcFastUpdates.InvokeHardcoreTraits(NewState.Enabled, setRef);
                 }
             }
 
             if (triggerAchievement)
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintApplicationChanged, setRef, true, assignerUID);
-            Logger.LogInformation("ENABLE SET [" + setRef.Name + "] END", LoggerType.Restraints);
+            Logger.LogInformation("ENABLE SET [" + setRef.Name + "] END", LoggerType.AppearanceState);
 
             await RecalcAndReload(false);
 
@@ -192,14 +192,14 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     {
         await ExecuteWithApplierSlim(async () =>
         {
-            Logger.LogTrace("DISABLE-SET Executed");
+            Logger.LogTrace("DISABLE-SET Executed", LoggerType.AppearanceState);
             var setIdx = RestraintSets.FindIndex(x => x.RestraintId == restraintID);
-            if (setIdx == -1) { Logger.LogWarning("Set Does not Exist, Skipping.", LoggerType.Restraints); return; }
+            if (setIdx == -1) { Logger.LogWarning("Set Does not Exist, Skipping."); return; }
 
             var setRef = RestraintSets[setIdx];
-            if (!setRef.Enabled || setRef.Locked) { Logger.LogWarning(setRef.Name + " is already disabled or locked. Skipping!", LoggerType.Restraints); return; }
+            if (!setRef.Enabled || setRef.Locked) { Logger.LogWarning(setRef.Name + " is already disabled or locked. Skipping!"); return; }
 
-            Logger.LogInformation("DISABLE SET [" + setRef.Name + "] START", LoggerType.Restraints);
+            Logger.LogInformation("DISABLE SET [" + setRef.Name + "] START", LoggerType.AppearanceState);
 
             // Lower the priority of, and if desired, disable, the mods bound to the active set.
             await PenumbraModsToggle(NewState.Disabled, setRef.AssociatedMods);
@@ -210,10 +210,10 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             // Disable the Hardcore Properties by invoking the ipc call.
             if (setRef.HasPropertiesForUser(setRef.EnabledBy))
             {
-                Logger.LogDebug("Set Contains HardcoreProperties for " + setRef.EnabledBy, LoggerType.Restraints);
+                Logger.LogDebug("Set Contains HardcoreProperties for " + setRef.EnabledBy, LoggerType.AppearanceState);
                 if (setRef.PropertiesEnabledForUser(setRef.EnabledBy))
                 {
-                    Logger.LogDebug("Hardcore properties are enabled for this set, so disabling them!");
+                    Logger.LogDebug("Hardcore properties are enabled for this set, so disabling them!", LoggerType.AppearanceState);
                     IpcFastUpdates.InvokeHardcoreTraits(NewState.Disabled, setRef);
                 }
             }
@@ -230,7 +230,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             _clientConfigs.SaveWardrobe();
             // Update our active Set monitor.
 
-            Logger.LogInformation("DISABLE SET [" + setRef.Name + "] END", LoggerType.Restraints);
+            Logger.LogInformation("DISABLE SET [" + setRef.Name + "] END", LoggerType.AppearanceState);
             await RecalcAndReload(true, moodlesToRemove);
 
             if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintDisabled));
@@ -244,17 +244,17 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     {
         await ExecuteWithApplierSlim(async () =>
         {
-            Logger.LogTrace("LOCKING SET START", LoggerType.Restraints);
+            Logger.LogTrace("LOCKING SET START", LoggerType.AppearanceState);
             var setIdx = RestraintSets.FindIndex(x => x.RestraintId == id);
             if (setIdx == -1)
             {
-                Logger.LogWarning("Set Does not Exist, Skipping.", LoggerType.Restraints);
+                Logger.LogWarning("Set Does not Exist, Skipping.");
                 return;
             }
             // if the set is not the active set, log that this is invalid, as we should only be locking / unlocking the active set.
             if (setIdx != _clientConfigs.GetActiveSetIdx())
             {
-                Logger.LogWarning("Attempted to lock a set that is not the active set. Skipping.", LoggerType.Restraints);
+                Logger.LogWarning("Attempted to lock a set that is not the active set. Skipping.");
                 return;
             }
 
@@ -262,7 +262,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             var setRef = RestraintSets[setIdx];
             if (setRef.Locked)
             {
-                Logger.LogDebug(setRef.Name + " is already locked. Skipping!", LoggerType.Restraints);
+                Logger.LogDebug(setRef.Name + " is already locked. Skipping!", LoggerType.AppearanceState);
                 return;
             }
 
@@ -277,10 +277,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
 
             Logger.LogDebug("Set: " + setRef.Name + " Locked by: " + assigner + " with a Padlock of Type: " + padlock.ToName()
-                + " with: " + (endTime - DateTimeOffset.UtcNow) + " by: " + assigner, LoggerType.Restraints);
-
-            // After this, we should fire that a change occured.
-            Mediator.Publish(new RestraintSetToggledMessage(setIdx, assigner, NewState.Locked));
+                + " with: " + (endTime - DateTimeOffset.UtcNow) + " by: " + assigner, LoggerType.AppearanceState);
 
             // After this, we should push our changes to the server, if we have marked for us to.
             if (pushToServer) Mediator.Publish(new PlayerCharWardrobeChanged(DataUpdateKind.WardrobeRestraintLocked));
@@ -289,7 +286,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             if (triggerAchievement)
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, setRef, padlock, true, assigner);
 
-            Logger.LogInformation("LOCKING SET END", LoggerType.Restraints);
+            Logger.LogInformation("LOCKING SET END", LoggerType.AppearanceState);
 
             // Finally, we should let our trigger controller know that we just enabled a restraint set.
             //_triggerController.CheckActiveRestraintTriggers(id, NewState.Locked);
@@ -300,17 +297,17 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     {
         await ExecuteWithApplierSlim(async () =>
         {
-            Logger.LogTrace("UNLOCKING SET START", LoggerType.Restraints);
+            Logger.LogTrace("UNLOCKING SET START", LoggerType.AppearanceState);
             var setIdx = RestraintSets.FindIndex(x => x.RestraintId == id);
             if (setIdx == -1)
             {
-                Logger.LogWarning("Set Does not Exist, Skipping.", LoggerType.Restraints);
+                Logger.LogWarning("Set Does not Exist, Skipping.");
                 return;
             }
             // if the set is not the active set, log that this is invalid, as we should only be locking / unlocking the active set.
             if (setIdx != _clientConfigs.GetActiveSetIdx())
             {
-                Logger.LogWarning("Attempted to unlock a set that is not the active set. Skipping.", LoggerType.Restraints);
+                Logger.LogWarning("Attempted to unlock a set that is not the active set. Skipping.");
                 return;
             }
 
@@ -318,7 +315,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             var setRef = RestraintSets[setIdx];
             if (!setRef.Locked)
             {
-                Logger.LogDebug(setRef.Name + " is not even locked. Skipping!", LoggerType.Restraints);
+                Logger.LogDebug(setRef.Name + " is not even locked. Skipping!", LoggerType.AppearanceState);
                 return;
             }
 
@@ -336,14 +333,11 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             // reset this ONLY if wasTimer was false, otherwise keep it as is so we have a valid reference after unlock callback.
             if (!fromTimer)
             {
-                Logger.LogTrace("Not Setting GagManager.ActiveSlotPadlocks to None, as this was not from a timer.", LoggerType.Restraints);
+                Logger.LogTrace("Not Setting GagManager.ActiveSlotPadlocks to None, as this was not from a timer.", LoggerType.AppearanceState);
                 GagManager.ActiveSlotPadlocks[3] = Padlocks.None;
             }
 
-            Logger.LogDebug("Set: " + setRef.Name + " Unlocked by: " + lockRemover, LoggerType.Restraints);
-
-            // After this, we should fire that a change occured.
-            Mediator.Publish(new RestraintSetToggledMessage(setIdx, lockRemover, NewState.Unlocked));
+            Logger.LogDebug("Set: " + setRef.Name + " Unlocked by: " + lockRemover, LoggerType.AppearanceState);
 
             // After this, we should push our changes to the server, if we have marked for us to.
             if (pushToServer)
@@ -358,7 +352,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             if (triggerAchievement)
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.RestraintLockChange, setRef, previousLock.ToPadlock(), false, lockRemover);
 
-            Logger.LogInformation("UNLOCKING SET END", LoggerType.Restraints);
+            Logger.LogInformation("UNLOCKING SET END", LoggerType.AppearanceState);
             // Finally, we should let our trigger controller know that we just enabled a restraint set.
             //_triggerController.CheckActiveRestraintTriggers(id, NewState.Unlocked);
         });
@@ -366,13 +360,13 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
     public async Task RestraintSwapped(Guid newSetId, bool isSelfApplied = true, bool publish = true)
     {
-        Logger.LogTrace("SET-SWAPPED Executed. Triggering DISABLE-SET, then ENABLE-SET");
+        Logger.LogTrace("SET-SWAPPED Executed. Triggering DISABLE-SET, then ENABLE-SET", LoggerType.AppearanceState);
 
         // We just do this for extra security overhead even though we could just pass it in.
         var activeSet = _clientConfigs.GetActiveSet();
         if (activeSet is null)
         {
-            Logger.LogWarning("No Active Set to swap from. Skipping.", LoggerType.Restraints);
+            Logger.LogWarning("No Active Set to swap from. Skipping.");
             return;
         }
 
@@ -393,7 +387,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
     private async Task GagApplyInternal(GagLayer layer, GagType gagType, bool isSelfApplied = true, bool publishApply = true, bool triggerAchievement = true)
     {
-        Logger.LogDebug("GAG-APPLIED triggered on slot [" + layer.ToString() + "] with a [" + gagType.GagName() + "]", LoggerType.GagManagement);
+        Logger.LogDebug("GAG-APPLIED triggered on slot [" + layer.ToString() + "] with a [" + gagType.GagName() + "]", LoggerType.AppearanceState);
 
         _gagManager.ApplyGag(layer, gagType);
 
@@ -414,7 +408,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
         // Send Achievement Event
         if (triggerAchievement)
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, layer, gagType, isSelfApplied, false);
+            UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, layer, gagType, isSelfApplied);
     }
 
     /// <summary>
@@ -425,7 +419,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     {
         await ExecuteWithApplierSlim(async () =>
         {
-            Logger.LogDebug("GAG-REMOVE triggered on slot [" + layer.ToString() + "] with a [" + gagType.GagName() + "]", LoggerType.GagManagement);
+            Logger.LogDebug("GAG-REMOVE triggered on slot [" + layer.ToString() + "] with a [" + gagType.GagName() + "]", LoggerType.AppearanceState);
 
             // if we aren't even making a change dont push anything.
             if (_playerData.AppearanceData?.GagSlots[(int)layer].GagType.ToGagType() is GagType.None)
@@ -454,7 +448,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
     public async Task GagSwapped(GagLayer layer, GagType curGag, GagType newGag, bool isSelfApplied = true, bool publish = true)
     {
-        Logger.LogTrace("GAG-SWAPPED Executed. Triggering GAG-REMOVE, then GAG-APPLIED");
+        Logger.LogTrace("GAG-SWAPPED Executed. Triggering GAG-REMOVE, then GAG-APPLIED", LoggerType.AppearanceState);
 
         // First, remove the current gag.
         await GagRemoved(layer, curGag, publishRemoval: false, isSelfApplied: isSelfApplied);
@@ -494,7 +488,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     {
         await ExecuteWithApplierSlim(async () =>
         {
-            Logger.LogTrace("CURSED-REMOVED Executed");
+            Logger.LogTrace("CURSED-REMOVED Executed", LoggerType.AppearanceState);
             // If the Cursed Item is a GagItem, it will be handled automatically by lock expiration. 
             // However, it also means none of the below will process, so we should return if it is.
             if (!cursedItem.IsGag)
@@ -525,7 +519,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
     private HashSet<Guid> RemoveMoodles(IMoodlesAssociable data)
     {
-        Logger.LogTrace("Removing Moodles");
+        Logger.LogTrace("Removing Moodles", LoggerType.AppearanceState);
         if (_playerData.IpcDataNull)
             return new HashSet<Guid>();
 
@@ -540,7 +534,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         statuses.UnionWith(data.AssociatedMoodles);
 
         // log the moodles we are removing.
-        Logger.LogTrace("Removing Moodles from Expected: " + string.Join(", ", statuses), LoggerType.ClientPlayerData);
+        Logger.LogTrace("Removing Moodles from Expected: " + string.Join(", ", statuses), LoggerType.AppearanceState);
 
         // remove the moodles.
         ExpectedMoodles.ExceptWith(statuses);
@@ -575,7 +569,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         {
             var activeIdx = _clientConfigs.GetActiveSetIdx();
             var set = RestraintSets[activeIdx];
-            Logger.LogInformation("Unlocking and Disabling Active Set [" + set.Name + "] due to Safeword.", LoggerType.Restraints);
+            Logger.LogInformation("Unlocking and Disabling Active Set [" + set.Name + "] due to Safeword.", LoggerType.Safeword);
 
             // unlock the set, dont push changes yet.
             await UnlockRestraintSet(set.RestraintId, set.LockedBy);
@@ -626,7 +620,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         }
         catch (Exception e)
         {
-            Logger.LogError("Error while toggling mods: " + e.Message, LoggerType.Restraints);
+            Logger.LogError("Error while toggling mods: " + e.Message);
             return Task.CompletedTask;
         }
         return Task.CompletedTask;
@@ -641,11 +635,11 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         // Return if the core data is null.
         if (_playerData.CoreDataNull)
         {
-            Logger.LogWarning("Core Data is Null, Skipping Recalculation.", LoggerType.ClientPlayerData);
+            Logger.LogWarning("Core Data is Null, Skipping Recalculation.");
             return;
         }
 
-        Logger.LogDebug("Recalculating Appearance Data.", LoggerType.ClientPlayerData);
+        Logger.LogInformation("Recalculating Appearance Data.", LoggerType.ClientPlayerData);
         // Temp Storage for Data Collection during reapply
         Dictionary<EquipSlot, IGlamourItem> ItemsToApply = new Dictionary<EquipSlot, IGlamourItem>();
         IpcCallerGlamourer.MetaData MetaToApply = IpcCallerGlamourer.MetaData.None;
@@ -653,7 +647,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         (JToken? Customize, JToken? Parameters) ExpectedCustomizations = (null, null);
 
         // store the data to apply from the active set.
-        Logger.LogTrace("Wardrobe is Enabled, Collecting Data from Active Set.", LoggerType.ClientPlayerData);
+        Logger.LogInformation("Wardrobe is Enabled, Collecting Data from Active Set.", LoggerType.AppearanceState);
         // we need to store a reference to the active sets draw data.
         var activeSetRef = _clientConfigs.GetActiveSet();
         if (activeSetRef is not null)
@@ -663,7 +657,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 if (!item.Value.IsEnabled && item.Value.GameItem.Equals(ItemIdVars.NothingItem(item.Value.Slot)))
                     continue;
 
-                Logger.LogTrace("Adding item to apply: " + item.Key, LoggerType.ClientPlayerData);
+                Logger.LogTrace("Adding item to apply: " + item.Key, LoggerType.AppearanceState);
                 ItemsToApply[item.Key] = item.Value;
             }
             // Add the moodles from the active set.
@@ -690,7 +684,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         }
 
         // Collect gag info if used.
-        Logger.LogTrace("Collecting Data from Active Gags.", LoggerType.ClientPlayerData);
+        Logger.LogInformation("Collecting Data from Active Gags.", LoggerType.AppearanceState);
         // grab the active gags, should grab in order (underlayer, middle, uppermost)
         var gagSlots = _playerData.AppearanceData!.GagSlots.Where(slot => slot.GagType.ToGagType() != GagType.None).ToList();
 
@@ -727,19 +721,19 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         // Collect the data from the blindfold.
         if (_playerData.GlobalPerms.IsBlindfolded())
         {
-            Logger.LogTrace("We are Blindfolded!");
+            Logger.LogDebug("We are Blindfolded!", LoggerType.AppearanceState);
             var blindfoldData = _clientConfigs.GetBlindfoldItem();
             ItemsToApply[blindfoldData.Slot] = blindfoldData;
         }
 
         // collect the data from the cursed sets.
-        Logger.LogTrace("Collecting Data from Cursed Items.", LoggerType.ClientPlayerData);
+        Logger.LogInformation("Collecting Data from Cursed Items.", LoggerType.AppearanceState);
         // track the items that will be applied.
         var cursedItems = _clientConfigs.CursedLootConfig.CursedLootStorage.CursedItems
             .Where(x => x.AppliedTime != DateTimeOffset.MinValue)
             .OrderBy(x => x.AppliedTime)
             .ToList();
-        Logger.LogDebug("Found " + cursedItems.Count + " Cursed Items to Apply.", LoggerType.ClientPlayerData);
+        Logger.LogDebug("Found " + cursedItems.Count + " Cursed Items to Apply.", LoggerType.AppearanceState);
         var appliedItems = new Dictionary<EquipSlot, CursedItem>();
 
         foreach (var cursedItem in cursedItems)
@@ -749,14 +743,14 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 // if an item was already applied to that slot, only apply if it satisfied conditions.
                 if (existingItem.CanOverride && cursedItem.OverridePrecedence >= existingItem.OverridePrecedence)
                 {
-                    Logger.LogDebug($"Slot: " + cursedItem.AppliedItem.Slot + " already had an item [" + existingItem.Name + "]. "
-                        + "but [" + cursedItem.Name + "] had higher precedence", LoggerType.ClientPlayerData);
+                    Logger.LogTrace($"Slot: " + cursedItem.AppliedItem.Slot + " already had an item [" + existingItem.Name + "]. "
+                        + "but [" + cursedItem.Name + "] had higher precedence", LoggerType.AppearanceState);
                     appliedItems[cursedItem.AppliedItem.Slot] = cursedItem;
                 }
             }
             else
             {
-                Logger.LogDebug($"Storing Cursed Item [" + cursedItem.Name + "] to Slot: " + cursedItem.AppliedItem.Slot, LoggerType.ClientPlayerData);
+                Logger.LogTrace($"Storing Cursed Item [" + cursedItem.Name + "] to Slot: " + cursedItem.AppliedItem.Slot, LoggerType.AppearanceState);
                 if (cursedItem.IsGag)
                 {
                     // store the item set in the gag storage
@@ -787,7 +781,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         // take the dictionary of applied items and replace any existing items in the ItemsToApply dictionary.
         foreach (var item in appliedItems)
         {
-            Logger.LogInformation($"Applying Cursed Item to Slot: {item.Key}", LoggerType.ClientPlayerData);
+            Logger.LogTrace($"Applying Cursed Item to Slot: {item.Key}", LoggerType.AppearanceState);
             if (item.Value.IsGag)
             {
                 var drawData = _clientConfigs.GetDrawData(item.Value.GagType);
@@ -808,7 +802,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         _appearanceService.ExpectedMoodles = ExpectedMoodles;
         _appearanceService.ExpectedCustomizations = ExpectedCustomizations;
 
-        Logger.LogDebug("Appearance Data Recalculated.", LoggerType.ClientPlayerData);
+        Logger.LogInformation("Appearance Data Recalculated.", LoggerType.AppearanceState);
         return;
     }
 
@@ -818,7 +812,6 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             return;
 
         List<MoodlesStatusInfo> latest = new List<MoodlesStatusInfo>();
-        Logger.LogWarning("Moodles Updated Event Fired.", LoggerType.ClientPlayerData);
         await _frameworkUtils.RunOnFrameworkTickDelayed(async () =>
         {
             Logger.LogDebug("Grabbing Latest Status", LoggerType.IpcGlamourer);
@@ -826,14 +819,14 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         }, 2);
 
         HashSet<Guid> latestGuids = new HashSet<Guid>(latest.Select(x => x.GUID));
-        Logger.LogTrace("Latest Moodles  : " + string.Join(", ", latestGuids), LoggerType.ClientPlayerData);
-        Logger.LogTrace("Expected Moodles: " + string.Join(", ", ExpectedMoodles), LoggerType.ClientPlayerData);
+        Logger.LogTrace("Latest Moodles  : " + string.Join(", ", latestGuids), LoggerType.IpcMoodles);
+        Logger.LogTrace("Expected Moodles: " + string.Join(", ", ExpectedMoodles), LoggerType.IpcMoodles);
         // if any Guid in ExpectedMoodles are not present in latestGuids, request it to be reapplied, instead of pushing status manager update.
         var moodlesToReapply = ExpectedMoodles.Except(latestGuids).ToList();
-        Logger.LogTrace("Missing Moodles from Required: " + string.Join(", ", moodlesToReapply), LoggerType.ClientPlayerData);
+        Logger.LogDebug("Missing Moodles from Required: " + string.Join(", ", moodlesToReapply), LoggerType.IpcMoodles);
         if (moodlesToReapply.Any())
         {
-            Logger.LogWarning("You do not currently have all active moodles that should be active from your restraints. Reapplying.", LoggerType.ClientPlayerData);
+            Logger.LogTrace("You do not currently have all active moodles that should be active from your restraints. Reapplying.", LoggerType.IpcMoodles);
             // obtain the moodles that we need to reapply to the player from the expected moodles.            
             await _ipcManager.Moodles.ApplyOwnStatusByGUID(moodlesToReapply);
             return;
@@ -847,7 +840,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 if (list.SequenceEqual(latestGuids))
                     return;
             }
-            Logger.LogWarning("Pushing IPC update to CacheCreation for processing");
+            Logger.LogDebug("Pushing IPC update to CacheCreation for processing", LoggerType.IpcMoodles);
             Mediator.Publish(new MoodlesStatusManagerUpdate());
         }
     }
@@ -893,7 +886,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
                 }
             }
 
-            Logger.LogInformation("Manual redraw processing completed. Proceeding with refresh.");
+            Logger.LogDebug("Manual redraw processing completed. Proceeding with refresh.");
         }
         catch (TaskCanceledException ex)
         {

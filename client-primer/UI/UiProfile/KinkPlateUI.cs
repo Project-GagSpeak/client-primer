@@ -188,42 +188,42 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         var iconOverviewPos = IconOverviewListPos;
 
         // draw out the icon row. For each item, we will first determine the color, and its tooltip text.
-        var vibeColor = Pair.UserPairGlobalPerms.ToyIsActive ? Gold : ImGuiColors.DalamudGrey3;
-        var vibeTT = Pair.UserPairGlobalPerms.ToyIsActive
+        var vibeColor = Pair.PairGlobals.ToyIsActive ? Gold : ImGuiColors.DalamudGrey3;
+        var vibeTT = Pair.PairGlobals.ToyIsActive
             ? DisplayName + " has a Sex Toy connected and active."
             : DisplayName + " does not have any Sex Toys connected and active.";
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Vibrator], iconOverviewPos, Vector2.One * 34, vibeColor, true, vibeTT);
         iconOverviewPos.X += iconWidthPlusSpacing;
 
-        var shockColor = Pair.UserPairGlobalPerms.HasValidShareCode() ? Gold : ImGuiColors.DalamudGrey3;
-        var shockTT = Pair.UserPairGlobalPerms.HasValidShareCode()
+        var shockColor = Pair.PairGlobals.HasValidShareCode() ? Gold : ImGuiColors.DalamudGrey3;
+        var shockTT = Pair.PairGlobals.HasValidShareCode()
             ? DisplayName + " is connected to their Shock Collar while in Hardcore Mode."
             : DisplayName + " has not connected a Shock Collar.";
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ShockCollar], iconOverviewPos, Vector2.One * 34, shockColor, true, shockTT);
         iconOverviewPos.X += iconWidthPlusSpacing;
 
-        var forcedFollowColor = !Pair.UserPairGlobalPerms.ForcedFollow.NullOrEmpty() ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey3;
-        var forcedFollowTT = !Pair.UserPairGlobalPerms.ForcedFollow.NullOrEmpty()
+        var forcedFollowColor = !Pair.PairGlobals.ForcedFollow.NullOrEmpty() ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey3;
+        var forcedFollowTT = !Pair.PairGlobals.ForcedFollow.NullOrEmpty()
             ? DisplayName + " is being leashed around by another pair while in Hardcore Mode."
             : DisplayName + " is not following anyone.";
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Leash], iconOverviewPos, Vector2.One * 34, forcedFollowColor, true, forcedFollowTT);
         iconOverviewPos.X += iconWidthPlusSpacing;
 
-        var forcedEmoteColor = !Pair.UserPairGlobalPerms.ForcedEmoteState.NullOrEmpty() ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey3;
-        var forcedEmoteTT = !Pair.UserPairGlobalPerms.ForcedEmoteState.NullOrEmpty()
+        var forcedEmoteColor = !Pair.PairGlobals.ForcedEmoteState.NullOrEmpty() ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey3;
+        var forcedEmoteTT = !Pair.PairGlobals.ForcedEmoteState.NullOrEmpty()
             ? DisplayName + " is being put on display for another pair while in Hardcore Mode."
             : DisplayName + " is not on display for anyone.";
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ForcedEmote], iconOverviewPos, Vector2.One * 34, forcedEmoteColor, true, forcedEmoteTT);
         iconOverviewPos.X += iconWidthPlusSpacing;
 
-        var forcedStayColor = !Pair.UserPairGlobalPerms.ForcedStay.NullOrEmpty() ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey3;
-        var forcedStayTT = !Pair.UserPairGlobalPerms.ForcedStay.NullOrEmpty()
+        var forcedStayColor = !Pair.PairGlobals.ForcedStay.NullOrEmpty() ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey3;
+        var forcedStayTT = !Pair.PairGlobals.ForcedStay.NullOrEmpty()
             ? DisplayName + " has been ordered to stay put for another pair while in Hardcore Mode."
             : DisplayName + " has not been ordered to stay put by anyone.";
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.ForcedStay], iconOverviewPos, Vector2.One * 34, forcedStayColor, true, forcedStayTT);
         iconOverviewPos.X += iconWidthPlusSpacing;
 
-        bool chatManipulated = Pair.UserPairGlobalPerms.IsChatHidden() || Pair.UserPairGlobalPerms.IsChatInputHidden() || Pair.UserPairGlobalPerms.IsChatInputBlocked();
+        bool chatManipulated = Pair.PairGlobals.IsChatHidden() || Pair.PairGlobals.IsChatInputHidden() || Pair.PairGlobals.IsChatInputBlocked();
         var chatBlockedColor = chatManipulated ? ImGuiColors.ParsedGold : ImGuiColors.DalamudGrey3;
         var chatBlockedTT = chatManipulated
             ? DisplayName + " is having their chat access restricted by another pair while in Hardcore Mode."
@@ -281,21 +281,21 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         }
 
         // we should draw out the gag images here if valid.
-        if (Pair.LastReceivedAppearanceData is not null)
+        if (Pair.LastAppearanceData is not null)
         {
-            if (Pair.LastReceivedAppearanceData.GagSlots[0].GagType.ToGagType() is not GagType.None)
+            if (Pair.LastAppearanceData.GagSlots[0].GagType.ToGagType() is not GagType.None)
             {
-                var gagImage = _cosmetics.GetImageFromDirectoryFile("GagImages\\" + Pair.LastReceivedAppearanceData.GagSlots[0].GagType + ".png" ?? $"ItemMouth\\None.png");
+                var gagImage = _cosmetics.GetImageFromDirectoryFile("GagImages\\" + Pair.LastAppearanceData.GagSlots[0].GagType + ".png" ?? $"ItemMouth\\None.png");
                 AddImageRounded(drawList, gagImage, GagSlotOnePos, GagSlotSize, 10f);
             }
-            if (Pair.LastReceivedAppearanceData.GagSlots[1].GagType.ToGagType() is not GagType.None)
+            if (Pair.LastAppearanceData.GagSlots[1].GagType.ToGagType() is not GagType.None)
             {
-                var gagImage = _cosmetics.GetImageFromDirectoryFile("GagImages\\" + Pair.LastReceivedAppearanceData.GagSlots[1].GagType + ".png" ?? $"ItemMouth\\None.png");
+                var gagImage = _cosmetics.GetImageFromDirectoryFile("GagImages\\" + Pair.LastAppearanceData.GagSlots[1].GagType + ".png" ?? $"ItemMouth\\None.png");
                 AddImageRounded(drawList, gagImage, GagSlotTwoPos, GagSlotSize, 10f);
             }
-            if (Pair.LastReceivedAppearanceData.GagSlots[2].GagType.ToGagType() is not GagType.None)
+            if (Pair.LastAppearanceData.GagSlots[2].GagType.ToGagType() is not GagType.None)
             {
-                var gagImage = _cosmetics.GetImageFromDirectoryFile("GagImages\\" + Pair.LastReceivedAppearanceData.GagSlots[2].GagType + ".png" ?? $"ItemMouth\\None.png");
+                var gagImage = _cosmetics.GetImageFromDirectoryFile("GagImages\\" + Pair.LastAppearanceData.GagSlots[2].GagType + ".png" ?? $"ItemMouth\\None.png");
                 AddImageRounded(drawList, gagImage, GagSlotThreePos, GagSlotSize, 10f);
             }
         }
@@ -323,21 +323,21 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         }
 
         // we should draw out the lock images here if valid.
-        if (Pair.LastReceivedAppearanceData is not null)
+        if (Pair.LastAppearanceData is not null)
         {
-            if (Pair.LastReceivedAppearanceData.GagSlots[0].Padlock.ToPadlock() is not Padlocks.None)
+            if (Pair.LastAppearanceData.GagSlots[0].Padlock.ToPadlock() is not Padlocks.None)
             {
-                var padlockImage = _cosmetics.GetImageFromDirectoryFile("PadlockImages\\" + Pair.LastReceivedAppearanceData.GagSlots[0].Padlock.ToPadlock() + ".png" ?? "Padlocks\\None.png");
+                var padlockImage = _cosmetics.GetImageFromDirectoryFile("PadlockImages\\" + Pair.LastAppearanceData.GagSlots[0].Padlock.ToPadlock() + ".png" ?? "Padlocks\\None.png");
                 AddImageRounded(drawList, padlockImage, GagLockOnePos, GagLockSize, GagLockSize.X / 2);
             }
-            if (Pair.LastReceivedAppearanceData.GagSlots[1].Padlock.ToPadlock() is not Padlocks.None)
+            if (Pair.LastAppearanceData.GagSlots[1].Padlock.ToPadlock() is not Padlocks.None)
             {
-                var padlockImage = _cosmetics.GetImageFromDirectoryFile("PadlockImages\\" + Pair.LastReceivedAppearanceData.GagSlots[1].Padlock.ToPadlock() + ".png" ?? "Padlocks\\None.png");
+                var padlockImage = _cosmetics.GetImageFromDirectoryFile("PadlockImages\\" + Pair.LastAppearanceData.GagSlots[1].Padlock.ToPadlock() + ".png" ?? "Padlocks\\None.png");
                 AddImageRounded(drawList, padlockImage, GagLockTwoPos, GagLockSize, GagLockSize.X / 2);
             }
-            if (Pair.LastReceivedAppearanceData.GagSlots[2].Padlock.ToPadlock() is not Padlocks.None)
+            if (Pair.LastAppearanceData.GagSlots[2].Padlock.ToPadlock() is not Padlocks.None)
             {
-                var padlockImage = _cosmetics.GetImageFromDirectoryFile("PadlockImages\\" + Pair.LastReceivedAppearanceData.GagSlots[2].Padlock.ToPadlock() + ".png" ?? "Padlocks\\None.png");
+                var padlockImage = _cosmetics.GetImageFromDirectoryFile("PadlockImages\\" + Pair.LastAppearanceData.GagSlots[2].Padlock.ToPadlock() + ".png" ?? "Padlocks\\None.png");
                 AddImageRounded(drawList, padlockImage, GagLockThreePos, GagLockSize, GagLockSize.X / 2);
             }
         }
@@ -379,7 +379,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         // to the right of this, draw the players total earned achievements scoring.
         statsPos += new Vector2(24, 0);
         ImGui.SetCursorScreenPos(statsPos);
-        UiSharedService.ColorText(info.CompletedAchievementsTotal + "/206", ImGuiColors.ParsedGold);
+        UiSharedService.ColorText(info.CompletedAchievementsTotal + "/" + AchievementManager.Total, ImGuiColors.ParsedGold);
         UiSharedService.AttachToolTip("The total achievements " + DisplayName + " has earned.");
     }
 
@@ -399,22 +399,22 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
         // draw out the blocked causes icon row.
         var blockedAffecterPos = LockAffectersRowPos;
-        var restrainedColor = Pair.LastReceivedWardrobeData?.ActiveSetId.IsEmptyGuid() ?? true ? ImGuiColors.DalamudGrey3 : Gold;
-        var restrainedTT = Pair.LastReceivedWardrobeData?.ActiveSetId.IsEmptyGuid() ?? true
+        var restrainedColor = Pair.LastWardrobeData?.ActiveSetId.IsEmptyGuid() ?? true ? ImGuiColors.DalamudGrey3 : Gold;
+        var restrainedTT = Pair.LastWardrobeData?.ActiveSetId.IsEmptyGuid() ?? true
             ? DisplayName + " is not wearing a restraint set."
             : DisplayName + " has an active restraint set.";
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Restrained], blockedAffecterPos, LockAffecterIconSize, restrainedColor, true, restrainedTT);
         blockedAffecterPos.X += LockAffecterIconSize.X + LockAffecterSpacing.X;
 
-        var mimicColor = (Pair.LastReceivedWardrobeData?.ActiveCursedItems.Any() ?? false) ? Gold : ImGuiColors.DalamudGrey3;
-        var mimicTT = (Pair.LastReceivedWardrobeData?.ActiveCursedItems.Any() ?? false)
+        var mimicColor = (Pair.LastWardrobeData?.ActiveCursedItems.Any() ?? false) ? Gold : ImGuiColors.DalamudGrey3;
+        var mimicTT = (Pair.LastWardrobeData?.ActiveCursedItems.Any() ?? false)
             ? DisplayName + " is restrained by Cursed Loot!"
             : DisplayName + " is not restrained with Cursed Loot.";
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.CursedLoot], blockedAffecterPos, LockAffecterIconSize, mimicColor, true, mimicTT);
         blockedAffecterPos.X += LockAffecterIconSize.X + 11f;
 
-        var blindfoldedColor = Pair.UserPairGlobalPerms.IsBlindfolded() && Pair.LastReceivedLightStorage?.BlindfoldItem is not null ? Gold : ImGuiColors.DalamudGrey3;
-        var blindfoldedTT = Pair.UserPairGlobalPerms.IsBlindfolded() && Pair.LastReceivedLightStorage?.BlindfoldItem is not null
+        var blindfoldedColor = Pair.PairGlobals.IsBlindfolded() && Pair.LastLightStorage?.BlindfoldItem is not null ? Gold : ImGuiColors.DalamudGrey3;
+        var blindfoldedTT = Pair.PairGlobals.IsBlindfolded() && Pair.LastLightStorage?.BlindfoldItem is not null
             ? DisplayName + " is blindfolded."
             : DisplayName + " is not blindfolded.";
         AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.Blindfolded], blockedAffecterPos, LockAffecterIconSize, blindfoldedColor, true, blindfoldedTT);
@@ -509,8 +509,8 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
 
         // draw the icon list underneath that displays the hardcore traits and shit
         var hardcoreTraitsPos = HardcoreTraitsRowPos;
-        var activeSetLight = Pair.LastReceivedLightStorage?.Restraints.FirstOrDefault(x => x.Identifier == Pair.LastReceivedWardrobeData?.ActiveSetId) ?? null;
-        if (Pair.LastReceivedWardrobeData is not null && activeSetLight is not null && activeSetLight.HardcoreTraits.TryGetValue(Pair.LastReceivedWardrobeData.ActiveSetEnabledBy, out var traits))
+        var activeSetLight = Pair.LastLightStorage?.Restraints.FirstOrDefault(x => x.Identifier == Pair.LastWardrobeData?.ActiveSetId) ?? null;
+        if (Pair.LastWardrobeData is not null && activeSetLight is not null && activeSetLight.HardcoreTraits.TryGetValue(Pair.LastWardrobeData.ActiveSetEnabledBy, out var traits))
         {
             if (traits.ArmsRestrained || traits.ArmsRestrained)
                 AddImage(drawList, _cosmetics.CorePluginTextures[CorePluginTexture.RestrainedArmsLegs], hardcoreTraitsPos, HardcoreTraitIconSize, Gold, true, "Hardcore Trait: Arms/Legs Restrained--SEP--Restricts Actions that require the use of arms/legs, whichever option is enabled.");
@@ -555,6 +555,24 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         }
     }
 
+    private void CloseButton(ImDrawListPtr drawList)
+    {
+        var btnPos = CloseButtonPos;
+        var btnSize = CloseButtonSize;
+
+        var closeButtonColor = HoveringCloseButton ? ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)) : ImGui.GetColorU32(ImGuiColors.ParsedPink);
+
+        drawList.AddLine(btnPos, btnPos + btnSize, closeButtonColor, 3);
+        drawList.AddLine(new Vector2(btnPos.X + btnSize.X, btnPos.Y), new Vector2(btnPos.X, btnPos.Y + btnSize.Y), closeButtonColor, 3);
+
+
+        ImGui.SetCursorScreenPos(btnPos);
+        if (ImGui.InvisibleButton($"CloseButton##KinkPlateClose" + Pair.UserData.UID, btnSize))
+        {
+            this.IsOpen = false;
+        }
+        HoveringCloseButton = ImGui.IsItemHovered();
+    }
 
     public override void OnClose()
     {

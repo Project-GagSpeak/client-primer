@@ -1,16 +1,10 @@
-using Dalamud.Game.ClientState.JobGauge.Enums;
-using Dalamud.Interface.Colors;
-using Dalamud.Interface.Utility;
-using Dalamud.Interface.Utility.Raii;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using ImGuiNET;
-using OtterGui;
 using System.Numerics;
 
 namespace GagSpeak.UI.Profile;

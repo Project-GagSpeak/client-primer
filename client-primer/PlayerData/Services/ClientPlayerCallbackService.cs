@@ -130,7 +130,7 @@ public class ClientCallbackService
             _logger.LogError("Received Update by player is no longer visible.");
             return;
         }
-        if(!matchedPair.UserPairOwnUniquePairPerms.AllowRemovingMoodles)
+        if(!matchedPair.OwnPerms.AllowRemovingMoodles)
         {
             _logger.LogError("Kinkster "+dto.User.UID+" tried to clear your moodles but you haven't given them the right!");
             return;
@@ -399,7 +399,7 @@ public class ClientCallbackService
 
         // Verify who the pair was.
         var matchedPair = _pairManager.DirectPairs.FirstOrDefault(p => p.UserData.UID == callbackDto.User.UID);
-        if (matchedPair is null || matchedPair.LastReceivedLightStorage is null)
+        if (matchedPair is null || matchedPair.LastLightStorage is null)
         {
             _logger.LogError("Received Update by pair that you no longer have added.");
             return;

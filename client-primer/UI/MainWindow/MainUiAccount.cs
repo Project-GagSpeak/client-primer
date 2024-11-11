@@ -102,12 +102,6 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
                 Mediator.Publish(new UiToggleMessage(typeof(SettingsUi)));
             });
 
-            ImGui.AlignTextToFramePadding();
-            DrawAccountSettingChild(FontAwesomeIcon.QuestionCircle, "Help", "Does not serve much purpose right now", () =>
-            {
-                Logger.LogInformation("You're on your own until its out of beta, sorry!");
-            });
-
             // now do one for ko-fi
             ImGui.AlignTextToFramePadding();
             DrawAccountSettingChild(FontAwesomeIcon.Coffee, "Support via Ko-fi", "This plugin took a massive toll on my life as a solo dev." +

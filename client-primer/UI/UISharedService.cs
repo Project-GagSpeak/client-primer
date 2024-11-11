@@ -57,6 +57,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private ISharedImmediateTexture _sharedTextures;    // represents a shared texture cache for plugin images. (REMAKE THIS INTO A DICTIONARY)
 
     public Dictionary<string, object> _selectedComboItems;    // the selected combo items
+    public Dictionary<string, string> SearchStrings;
     private bool _penumbraExists = false;                               // if penumbra currently exists on the client
     private bool _glamourerExists = false;                              // if glamourer currently exists on the client
     private bool _customizePlusExists = false;                          // if customize plus currently exists on the client
@@ -77,6 +78,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         _textureProvider = textureProvider;
 
         _selectedComboItems = new(StringComparer.Ordinal);
+        SearchStrings = new(StringComparer.Ordinal);
 
         // A subscription from our mediator to see on each delayed framework if the IPC's are available from the IPC manager
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) =>
@@ -400,6 +402,15 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         Vector2 vector2 = ImGui.CalcTextSize(text);
         float num = 3f * ImGuiHelpers.GlobalScale;
         return vector.X + vector2.X + ImGui.GetStyle().FramePadding.X * 2f + num;
+    }
+
+    public float CalcFontTextSize(string text, IFontHandle fontHandle = null!)
+    {
+        if (fontHandle is null)
+            return ImGui.CalcTextSize(text).X;
+
+        using (fontHandle.Push())
+            return ImGui.CalcTextSize(text).X;
     }
 
     /// <summary>
@@ -1097,8 +1108,8 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return;
     }
 
-    public void DrawComboSearchable<T>(string comboName, float width, ref string searchString, IEnumerable<T> comboItems,
-        Func<T, string> toName, bool showLabel = true, Action<T?>? onSelected = null, T? initialSelectedItem = default,
+    public void DrawComboSearchable<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName, 
+        bool showLabel = true, Action<T?>? onSelected = null, T? initialSelectedItem = default,
         string defaultPreviewText = "No Items Available...", ImGuiComboFlags flags = ImGuiComboFlags.None)
     {
         try
@@ -1132,6 +1143,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                 }
             }
 
+            // Retrieve or initialize the search string for this combo box.
+            if (!SearchStrings.TryGetValue(comboName, out var searchString))
+            {
+                searchString = string.Empty;
+                SearchStrings[comboName] = searchString;
+            }
+
             string displayText = selectedItem == null ? defaultPreviewText : toName((T)selectedItem!);
 
             ImGui.SetNextItemWidth(width);
@@ -1140,6 +1158,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                 // Search filter
                 ImGui.SetNextItemWidth(width);
                 ImGui.InputTextWithHint("##filter", "Filter...", ref searchString, 255);
+                SearchStrings[comboName] = searchString;
                 var searchText = searchString.ToLowerInvariant();
 
                 var filteredItems = string.IsNullOrEmpty(searchText)
@@ -1456,7 +1475,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         {
             ServerState.Connecting => ImGuiColors.DalamudYellow,
             ServerState.Reconnecting => ImGuiColors.DalamudRed,
-            ServerState.Connected => ImGuiColors.ParsedGreen,
+            ServerState.Connected => ImGuiColors.ParsedPink,
             ServerState.Disconnected => ImGuiColors.DalamudYellow,
             ServerState.Disconnecting => ImGuiColors.DalamudYellow,
             ServerState.Unauthorized => ImGuiColors.DalamudRed,

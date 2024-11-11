@@ -28,46 +28,46 @@ public partial class PairStickyUI
         // draw the common client functions
         DrawCommonClientMenu();
 
-        if (UserPairForPerms != null && UserPairForPerms.IsOnline)
+        if (StickyPair != null && StickyPair.IsOnline)
         {
             // Online Pair Actions
-            if (UserPairForPerms.LastReceivedAppearanceData != null)
+            if (StickyPair.LastAppearanceData != null)
             {
                 ImGui.TextUnformatted("Gag Actions");
                 DrawGagActions();
             }
 
-            if (UserPairForPerms.LastReceivedWardrobeData != null)
+            if (StickyPair.LastWardrobeData != null)
             {
                 ImGui.TextUnformatted("Wardrobe Actions");
                 DrawWardrobeActions();
             }
 
-            if (UserPairForPerms.LastReceivedAliasData != null)
+            if (StickyPair.LastAliasData != null)
             {
                 ImGui.TextUnformatted("Puppeteer Actions");
                 DrawPuppeteerActions();
             }
 
-            if (UserPairForPerms.LastReceivedIpcData != null && UserPairForPerms.IsVisible)
+            if (StickyPair.LastIpcData != null && StickyPair.IsVisible)
             {
                 ImGui.TextUnformatted("Moodles Actions");
                 DrawMoodlesActions();
             }
 
-            if (UserPairForPerms.LastReceivedToyboxData != null)
+            if (StickyPair.LastToyboxData != null)
             {
                 ImGui.TextUnformatted("Toybox Actions");
                 DrawToyboxActions();
             }
 
-            if (UserPairForPerms.UserPairUniquePairPerms.InHardcore)
+            if (StickyPair.PairPerms.InHardcore)
             {
                 ImGui.TextUnformatted("Hardcore Actions");
                 DrawHardcoreActions();
             }
 
-            if (UserPairForPerms.UserPairUniquePairPerms.InHardcore && (UniqueShockCollarPermsExist() || GlobalShockCollarPermsExist()))
+            if (StickyPair.PairPerms.InHardcore && (UniqueShockCollarPermsExist() || GlobalShockCollarPermsExist()))
             {
                 ImGui.TextUnformatted("Hardcore Shock Collar Actions.");
                 DrawHardcoreShockCollarActions();
@@ -79,48 +79,48 @@ public partial class PairStickyUI
         DrawIndividualMenu();
     }
 
-    private bool UniqueShockCollarPermsExist() => !UserPairForPerms.UserPairUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty() && UserPairForPerms.UserPairGlobalPerms.MaxIntensity != -1;
-    private bool GlobalShockCollarPermsExist() => !UserPairForPerms.UserPairGlobalPerms.GlobalShockShareCode.IsNullOrEmpty() && UserPairForPerms.UserPairGlobalPerms.MaxIntensity != -1;
+    private bool UniqueShockCollarPermsExist() => !StickyPair.PairPerms.ShockCollarShareCode.IsNullOrEmpty() && StickyPair.PairGlobals.MaxIntensity != -1;
+    private bool GlobalShockCollarPermsExist() => !StickyPair.PairGlobals.GlobalShockShareCode.IsNullOrEmpty() && StickyPair.PairGlobals.MaxIntensity != -1;
 
     private void DrawCommonClientMenu()
     {
-        if (!UserPairForPerms.IsPaused)
+        if (!StickyPair.IsPaused)
         {
             if (_uiShared.IconTextButton(FontAwesomeIcon.User, "Open Profile", WindowMenuWidth, true))
             {
-                _displayHandler.OpenProfile(UserPairForPerms);
+                _displayHandler.OpenProfile(StickyPair);
                 ImGui.CloseCurrentPopup();
             }
             UiSharedService.AttachToolTip("Opens the profile for this user in a new window");
         }
 
-        if (!UserPairForPerms.IsPaused)
+        if (!StickyPair.IsPaused)
         {
             if (_uiShared.IconTextButton(FontAwesomeIcon.ExclamationTriangle, "Report "+ PairNickOrAliasOrUID +"'s KinkPlate", WindowMenuWidth, true))
             {
                 ImGui.CloseCurrentPopup();
-                Mediator.Publish(new ReportKinkPlateMessage(UserPairForPerms.UserData));
+                Mediator.Publish(new ReportKinkPlateMessage(StickyPair.UserData));
             }
             UiSharedService.AttachToolTip("Snapshot "+ PairNickOrAliasOrUID+"'s KinkPlate and send it as a reported profile.");
         }
 
-        if (UserPairForPerms.IsPaired)
+        if (StickyPair.IsPaired)
         {
             var pauseIcon = OwnPerms.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
             var pauseText = OwnPerms.IsPaused ? "Unpause " + PairNickOrAliasOrUID : "Pause " + PairNickOrAliasOrUID;
             if (_uiShared.IconTextButton(pauseIcon, pauseText, WindowMenuWidth, true))
             {
-                _ = _apiHubMain.UserUpdateOwnPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
+                _ = _apiHubMain.UserUpdateOwnPairPerm(new UserPairPermChangeDto(StickyPair.UserData,
                     new KeyValuePair<string, object>("IsPaused", !OwnPerms.IsPaused)));
             }
             UiSharedService.AttachToolTip(!OwnPerms.IsPaused
                 ? "Pause pairing with " + PairNickOrAliasOrUID : "Resume pairing with " + PairNickOrAliasOrUID);
         }
-        if (UserPairForPerms.IsVisible)
+        if (StickyPair.IsVisible)
         {
             if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Reload IPC data", WindowMenuWidth, true))
             {
-                UserPairForPerms.ApplyLastReceivedIpcData(forced: true);
+                StickyPair.ApplyLastIpcData(forced: true);
                 ImGui.CloseCurrentPopup();
             }
             UiSharedService.AttachToolTip("This reapplies the latest data from Customize+ and Moodles");
@@ -146,7 +146,7 @@ public partial class PairStickyUI
             };
 
             _ = _apiHubMain.UserPushPairDataAliasStorageUpdate(new OnlineUserCharaAliasDataDto
-                (UserPairForPerms.UserData, dataToPush, DataUpdateKind.PuppeteerPlayerNameRegistered));
+                (StickyPair.UserData, dataToPush, DataUpdateKind.PuppeteerPlayerNameRegistered));
             _logger.LogDebug("Sent Puppeteer Name to " + PairNickOrAliasOrUID, LoggerType.Permissions);
         }
         UiSharedService.AttachToolTip("Sends your Name & World to this pair so their puppeteer will listen for messages from you.");
@@ -155,11 +155,11 @@ public partial class PairStickyUI
 
     private void DrawIndividualMenu()
     {
-        if (UserPairForPerms.IndividualPairStatus != IndividualPairStatus.None)
+        if (StickyPair.IndividualPairStatus != IndividualPairStatus.None)
         {
             if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", WindowMenuWidth, true, !KeyMonitor.CtrlPressed()))
             {
-                _ = _apiHubMain.UserRemovePair(new(UserPairForPerms.UserData));
+                _ = _apiHubMain.UserRemovePair(new(StickyPair.UserData));
             }
             UiSharedService.AttachToolTip("Hold CTRL and click to unpair permanently from " + PairNickOrAliasOrUID);
         }

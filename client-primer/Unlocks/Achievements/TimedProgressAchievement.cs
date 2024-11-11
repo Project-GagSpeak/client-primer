@@ -39,7 +39,7 @@ public class TimedProgressAchievement : AchievementBase
         if (IsCompleted || !MainHub.IsConnected) 
             return;
 
-        StaticLogger.Logger.LogDebug($"Checking Timer for {Title} to update our time restricted progress.", LoggerType.Achievements);
+        UnlocksEventManager.AchievementLogger.LogTrace($"Checking Timer for {Title} to update our time restricted progress.", LoggerType.AchievementInfo);
 
         // Clear out any timestamps that are older than the time to complete.
         ProgressTimestamps.RemoveAll(x => DateTime.UtcNow - x >= TimeToComplete);

@@ -105,7 +105,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
         }
         else
         {
-            Logger.LogInformation("No visible players to push IPC data to");
+            Logger.LogInformation("No visible players to push IPC data to", LoggerType.VisiblePairs);
         }
     }
 }

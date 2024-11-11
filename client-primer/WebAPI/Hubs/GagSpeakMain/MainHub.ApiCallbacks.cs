@@ -532,10 +532,10 @@ public partial class MainHub
             var pairMatch = _pairs.DirectPairs.FirstOrDefault(x => x.UserData.UID == dto.User.UID);
             if (pairMatch != null) 
             {
-                if (!pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode.IsNullOrEmpty())
+                if (!pairMatch.OwnPerms.ShockCollarShareCode.IsNullOrEmpty())
                 {
                     Logger.LogDebug("Executing Shock Instruction to UniquePair ShareCode", LoggerType.Callbacks);
-                    Mediator.Publish(new PiShockExecuteOperation(pairMatch.UserPairOwnUniquePairPerms.ShockCollarShareCode, dto.OpCode, dto.Intensity, dto.Duration));
+                    Mediator.Publish(new PiShockExecuteOperation(pairMatch.OwnPerms.ShockCollarShareCode, dto.OpCode, dto.Intensity, dto.Duration));
                     if(dto.OpCode is 0)
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.ShockReceived);
                 }

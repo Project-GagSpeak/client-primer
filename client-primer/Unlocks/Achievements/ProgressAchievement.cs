@@ -28,7 +28,7 @@ public class ProgressAchievement : AchievementBase
         if (IsCompleted || !MainHub.IsConnected) 
             return;
 
-        StaticLogger.Logger.LogDebug($"Incrementing Progress by 1 for {Title}. Total Required: {MilestoneGoal}", LoggerType.Achievements);
+        UnlocksEventManager.AchievementLogger.LogTrace($"Incrementing Progress by 1 for {Title}. Total Required: {MilestoneGoal}", LoggerType.AchievementInfo);
         Progress += amount;
         // check for completion after incrementing progress
         CheckCompletion();

@@ -1,7 +1,6 @@
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Gui.ContextMenu;
 using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Interface.Textures.TextureWraps;
 using GagSpeak.PlayerData.Factories;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.ConfigurationServices;
@@ -11,7 +10,6 @@ using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Data.Permissions;
 using GagspeakAPI.Dto.Connection;
 using GagspeakAPI.Dto.UserPair;
@@ -25,11 +23,7 @@ namespace GagSpeak.PlayerData.Pairs;
 /// Stores information about a paired user of the client.
 /// <para> 
 /// The Pair object is created by the PairFactory, which is responsible for generating pair objects.
-/// </para>
-/// <para> 
-/// These pair objects are then created and deleted via the pair manager
-/// </para>
-/// <para> 
+/// These pair objects are then created and deleted via the pair manager 
 /// The pair handler is what helps with the management of the CachedPlayer.
 /// </para>
 /// </summary>
@@ -71,21 +65,21 @@ public class Pair
     /// </para>
     /// </summary>
     public UserPairDto UserPair { get; set; }
-    public UserData UserData => UserPair.User;                                      // the UserData associated with the pair.
-    public bool OnlineToyboxUser { get; private set; } = false;                     // if the user is online.
-    public UserPairPermissions UserPairOwnUniquePairPerms => UserPair.OwnPairPerms;    // the pair permissions of the pair.
-    public UserEditAccessPermissions UserPairOwnEditAccess => UserPair.OwnEditAccessPerms; // the edit permissions of the pair.
-    public UserPairPermissions UserPairUniquePairPerms => UserPair.OtherPairPerms;  // the pair permissions of the pair.
-    public UserEditAccessPermissions UserPairEditAccess => UserPair.OtherEditAccessPerms; // the edit permissions of the pair.
-    public UserGlobalPermissions UserPairGlobalPerms => UserPair.OtherGlobalPerms;  // the global permissions of the pair.
+    public UserData UserData => UserPair.User;
+    public bool OnlineToyboxUser { get; private set; } = false;
+    public UserPairPermissions OwnPerms => UserPair.OwnPairPerms;
+    public UserEditAccessPermissions OwnPermAccess => UserPair.OwnEditAccessPerms;
+    public UserPairPermissions PairPerms => UserPair.OtherPairPerms;
+    public UserEditAccessPermissions PairPermAccess => UserPair.OtherEditAccessPerms;
+    public UserGlobalPermissions PairGlobals => UserPair.OtherGlobalPerms;
 
     // Latest cached data for this pair.
-    public CharaIPCData? LastReceivedIpcData { get; set; }
-    public CharaAppearanceData? LastReceivedAppearanceData { get; set; }
-    public CharaWardrobeData? LastReceivedWardrobeData { get; set; }
-    public CharaAliasData? LastReceivedAliasData { get; set; }
-    public CharaToyboxData? LastReceivedToyboxData { get; set; }
-    public CharaStorageData? LastReceivedLightStorage { get; set; }
+    public CharaIPCData? LastIpcData { get; set; }
+    public CharaAppearanceData? LastAppearanceData { get; set; }
+    public CharaWardrobeData? LastWardrobeData { get; set; }
+    public CharaAliasData? LastAliasData { get; set; }
+    public CharaToyboxData? LastToyboxData { get; set; }
+    public CharaStorageData? LastLightStorage { get; set; }
 
 
     // Most of these attributes should be self explanatory, but they are public methods you can fetch from the pair manager.
@@ -171,13 +165,13 @@ public class Pair
     {
         _applicationCts = _applicationCts.CancelRecreate();
         // set the last received character data to the data.CharaData
-        LastReceivedIpcData = data.IPCData;
+        LastIpcData = data.IPCData;
 
         // if the cached player is null
         if (CachedPlayer == null)
         {
             // log that we received data for the user, but the cached player does not exist, and we are waiting.
-            _logger.LogDebug("Received Data for " + data.User.UID + " but CachedPlayer does not exist, waiting", LoggerType.PairManagement);
+            _logger.LogDebug("Received Data for " + data.User.UID + " but CachedPlayer does not exist, waiting", LoggerType.PairDataTransfer);
             // asynchronously run the following code
             _ = Task.Run(async () =>
             {
@@ -201,15 +195,15 @@ public class Pair
                 if (!combined.IsCancellationRequested)
                 {
                     // apply the last received data
-                    _logger.LogDebug("Applying delayed data for " + data.User.UID, LoggerType.PairManagement);
-                    ApplyLastReceivedIpcData(); // in essence, this means apply the character data send in the Dto
+                    _logger.LogDebug("Applying delayed data for " + data.User.UID, LoggerType.PairDataTransfer);
+                    ApplyLastIpcData(); // in essence, this means apply the character data send in the Dto
                 }
             });
             return;
         }
 
         // otherwise, just apply the last received data.
-        ApplyLastReceivedIpcData();
+        ApplyLastIpcData();
     }
 
     /// <summary>
@@ -218,8 +212,8 @@ public class Pair
     /// </summary>
     public void ApplyAppearanceData(OnlineUserCharaAppearanceDataDto data)
     {
-        _logger.LogDebug("Applying updated appearance data for " + data.User.UID, LoggerType.PairManagement);
-        LastReceivedAppearanceData = data.AppearanceData;
+        _logger.LogDebug("Applying updated appearance data for " + data.User.UID, LoggerType.PairDataTransfer);
+        LastAppearanceData = data.AppearanceData;
 
         // update the locked slots.
         if (data.UpdateKind is DataUpdateKind.AppearanceGagAppliedLayerOne or DataUpdateKind.AppearanceGagAppliedLayerTwo or DataUpdateKind.AppearanceGagAppliedLayerThree
@@ -235,11 +229,11 @@ public class Pair
     /// </summary>
     public void ApplyWardrobeData(OnlineUserCharaWardrobeDataDto data)
     {
-        _logger.LogDebug("Applying updated wardrobe data for " + data.User.UID, LoggerType.PairManagement);
-        var previousSetId = LastReceivedWardrobeData?.ActiveSetId ?? Guid.Empty;
-        var previousLock = LastReceivedWardrobeData?.Padlock.ToPadlock() ?? Padlocks.None;
+        _logger.LogDebug("Applying updated wardrobe data for " + data.User.UID, LoggerType.PairDataTransfer);
+        var previousSetId = LastWardrobeData?.ActiveSetId ?? Guid.Empty;
+        var previousLock = LastWardrobeData?.Padlock.ToPadlock() ?? Padlocks.None;
 
-        LastReceivedWardrobeData = data.WardrobeData;
+        LastWardrobeData = data.WardrobeData;
 
         // depend on the EnabledBy field to know if we applied.
         if (data.UpdateKind is DataUpdateKind.WardrobeRestraintApplied)
@@ -256,11 +250,11 @@ public class Pair
         // For removal
         if (data.UpdateKind is DataUpdateKind.WardrobeRestraintDisabled)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.PairRestraintApplied, previousSetId, false, data.Enactor.UID);
-    
+
         // if the type was apply or removal, we should update the locked slots.
         if (data.UpdateKind is DataUpdateKind.WardrobeRestraintApplied or DataUpdateKind.WardrobeRestraintDisabled)
             UpdateCachedLockedSlots();
-    
+
     }
 
     /// <summary>
@@ -269,26 +263,26 @@ public class Pair
     /// </summary>
     public void ApplyAliasData(OnlineUserCharaAliasDataDto data)
     {
-        _logger.LogDebug("Applying updated alias data for " + data.User.UID, LoggerType.PairManagement);
+        _logger.LogDebug("Applying updated alias data for " + data.User.UID, LoggerType.PairDataTransfer);
         // update either the name associated to the list, or the list itself.
-        if (LastReceivedAliasData == null)
+        if (LastAliasData == null)
         {
-            LastReceivedAliasData = data.AliasData;
+            LastAliasData = data.AliasData;
         }
 
         // otherwise, update the appropriate part.
         if (data.UpdateKind is DataUpdateKind.PuppeteerAliasListUpdated)
         {
-            LastReceivedAliasData.AliasList = data.AliasData.AliasList;
+            LastAliasData.AliasList = data.AliasData.AliasList;
         }
         else if (data.UpdateKind is DataUpdateKind.PuppeteerPlayerNameRegistered)
         {
-            LastReceivedAliasData.CharacterName = data.AliasData.CharacterName;
-            LastReceivedAliasData.CharacterWorld = data.AliasData.CharacterWorld;
+            LastAliasData.CharacterName = data.AliasData.CharacterName;
+            LastAliasData.CharacterWorld = data.AliasData.CharacterWorld;
         }
         else if (data.UpdateKind is DataUpdateKind.FullDataUpdate)
         {
-            LastReceivedAliasData = data.AliasData;
+            LastAliasData = data.AliasData;
         }
         else
         {
@@ -298,26 +292,26 @@ public class Pair
 
     public void ApplyToyboxData(OnlineUserCharaToyboxDataDto data)
     {
-        _logger.LogDebug("Applying updated toybox data for " + data.User.UID, LoggerType.PairManagement);
-        LastReceivedToyboxData = data.ToyboxInfo;
+        _logger.LogDebug("Applying updated toybox data for " + data.User.UID, LoggerType.PairDataTransfer);
+        LastToyboxData = data.ToyboxInfo;
     }
 
     public void ApplyLightStorageData(OnlineUserStorageUpdateDto data)
     {
-        _logger.LogDebug("Applying updated light storage data for " + data.User.UID, LoggerType.PairManagement);
-        LastReceivedLightStorage = data.LightStorage;
+        _logger.LogDebug("Applying updated light storage data for " + data.User.UID, LoggerType.PairDataTransfer);
+        LastLightStorage = data.LightStorage;
     }
 
-    public void ApplyLastReceivedIpcData(bool forced = false)
+    public void ApplyLastIpcData(bool forced = false)
     {
         // ( This implies that the pair object has had its CreateCachedPlayer method called )
         if (CachedPlayer == null) return;
 
         // if the last received character data is null, return and do not apply.
-        if (LastReceivedIpcData == null) return;
+        if (LastIpcData == null) return;
 
         // we have satisfied the conditions to apply the character data to our paired user, so apply it.
-        CachedPlayer.ApplyCharacterData(Guid.NewGuid(), LastReceivedIpcData);
+        CachedPlayer.ApplyCharacterData(Guid.NewGuid(), LastIpcData);
     }
 
     /// <summary> 
@@ -339,7 +333,7 @@ public class Pair
             // If the cachedPlayer is already stored for this pair, we do not need to create it again, so return.
             if (CachedPlayer != null)
             {
-                _logger.LogDebug("CachedPlayer already exists for " + UserData.UID, LoggerType.PairManagement);
+                _logger.LogDebug("CachedPlayer already exists for " + UserData.UID, LoggerType.PairInfo);
                 return;
             }
 
@@ -356,11 +350,11 @@ public class Pair
             // if the OnlineUserIdentDto contains information, we should update our pairs _onlineUserIdentDto to the dto
             if (dto != null)
             {
-                _logger.LogDebug("Updating OnlineUserIdentDto for " + UserData.UID, LoggerType.PairManagement);
+                _logger.LogDebug("Updating OnlineUserIdentDto for " + UserData.UID, LoggerType.PairInfo);
                 _onlineUserIdentDto = dto;
             }
 
-            _logger.LogTrace("Disposing of existing CachedPlayer to create a new one for " + UserData.UID, LoggerType.PairManagement);
+            _logger.LogTrace("Disposing of existing CachedPlayer to create a new one for " + UserData.UID, LoggerType.PairInfo);
             // not we can dispose of the cached player
             CachedPlayer?.Dispose();
             // and create a new one from our _cachedPlayerFactory (the pair handler factory)
@@ -377,34 +371,34 @@ public class Pair
     {
         var result = new Dictionary<EquipSlot, (EquipItem, string)>();
         // return false instantly if the wardrobe data or light data is null.
-        if (LastReceivedWardrobeData is null || LastReceivedLightStorage is null || LastReceivedAppearanceData is null)
+        if (LastWardrobeData is null || LastLightStorage is null || LastAppearanceData is null)
         {
-            _logger.LogWarning("Wardrobe or LightStorage Data is null for " + UserData.UID, LoggerType.PairManagement);
+            _logger.LogWarning("Wardrobe or LightStorage Data is null for " + UserData.UID);
             return;
         }
 
         // we must check in the priority of Cursed Items -> Blindfold -> Gag -> Restraints
 
         // If the pair has any cursed items active.
-        if (LastReceivedWardrobeData.ActiveCursedItems.Any())
+        if (LastWardrobeData.ActiveCursedItems.Any())
         {
             // iterate through the active cursed items, and stop at the first
-            foreach (var cursedItem in LastReceivedWardrobeData.ActiveCursedItems)
+            foreach (var cursedItem in LastWardrobeData.ActiveCursedItems)
             {
                 // locate the light cursed item associated with the ID.
-                var lightCursedItem = LastReceivedLightStorage.CursedItems.FirstOrDefault(x => x.Identifier == cursedItem);
+                var lightCursedItem = LastLightStorage.CursedItems.FirstOrDefault(x => x.Identifier == cursedItem);
                 if (lightCursedItem != null)
                 {
                     // if the cursed item is a Gag, locate the gag glamour first.
                     if (lightCursedItem.IsGag)
                     {
-                        if (LastReceivedLightStorage.GagItems.TryGetValue(lightCursedItem.GagType, out var gagItem))
+                        if (LastLightStorage.GagItems.TryGetValue(lightCursedItem.GagType, out var gagItem))
                         {
                             // if the gag item's slot is not yet occupied by anything, add it, otherwise, skip.
                             if (!result.ContainsKey((EquipSlot)gagItem.Slot))
                                 result.Add(
-                                    (EquipSlot)gagItem.Slot, 
-                                    (ItemIdVars.Resolve((EquipSlot)gagItem.Slot, new CustomItemId(gagItem.CustomItemId)), 
+                                    (EquipSlot)gagItem.Slot,
+                                    (ItemIdVars.Resolve((EquipSlot)gagItem.Slot, new CustomItemId(gagItem.CustomItemId)),
                                     gagItem.Tooltip));
                         }
                         continue; // Move to next item. (Early Skip)
@@ -414,36 +408,36 @@ public class Pair
                     if (!result.ContainsKey((EquipSlot)lightCursedItem.AffectedSlot.Slot))
                         result.Add(
                             (EquipSlot)lightCursedItem.AffectedSlot.Slot,
-                            (ItemIdVars.Resolve((EquipSlot)lightCursedItem.AffectedSlot.Slot, new CustomItemId(lightCursedItem.AffectedSlot.CustomItemId)), 
+                            (ItemIdVars.Resolve((EquipSlot)lightCursedItem.AffectedSlot.Slot, new CustomItemId(lightCursedItem.AffectedSlot.CustomItemId)),
                             lightCursedItem.AffectedSlot.Tooltip));
                 }
             }
         }
 
         // Next check the blindfold item if they are blindfolded.
-        if (UserPairGlobalPerms.IsBlindfolded())
+        if (PairGlobals.IsBlindfolded())
         {
             // add the blindfold item to a slot if it is not occupied.
-            if (!result.ContainsKey((EquipSlot)LastReceivedLightStorage.BlindfoldItem.Slot))
+            if (!result.ContainsKey((EquipSlot)LastLightStorage.BlindfoldItem.Slot))
                 result.Add(
-                    (EquipSlot)LastReceivedLightStorage.BlindfoldItem.Slot,
-                    (ItemIdVars.Resolve((EquipSlot)LastReceivedLightStorage.BlindfoldItem.Slot, new CustomItemId(LastReceivedLightStorage.BlindfoldItem.CustomItemId)),
-                    LastReceivedLightStorage.BlindfoldItem.Tooltip));
+                    (EquipSlot)LastLightStorage.BlindfoldItem.Slot,
+                    (ItemIdVars.Resolve((EquipSlot)LastLightStorage.BlindfoldItem.Slot, new CustomItemId(LastLightStorage.BlindfoldItem.CustomItemId)),
+                    LastLightStorage.BlindfoldItem.Tooltip));
         }
 
         // next iterate through our locked gags, adding any gag glamour's to locked slots if they are present.
-        foreach (var gagSlot in LastReceivedAppearanceData.GagSlots.Where(x => x.GagType.ToGagType() is not GagType.None))
+        foreach (var gagSlot in LastAppearanceData.GagSlots.Where(x => x.GagType.ToGagType() is not GagType.None))
         {
             // if the pairs stored gag items contains a glamour for that item, attempt to add it, if possible.
-            if (LastReceivedLightStorage.GagItems.TryGetValue(gagSlot.GagType.ToGagType(), out var gagItem))
+            if (LastLightStorage.GagItems.TryGetValue(gagSlot.GagType.ToGagType(), out var gagItem))
                 if (!result.ContainsKey((EquipSlot)gagItem.Slot))
                     result.Add((EquipSlot)gagItem.Slot, (ItemIdVars.Resolve((EquipSlot)gagItem.Slot, new CustomItemId(gagItem.CustomItemId)), gagItem.Tooltip));
         }
 
         // finally, locate the active restraint set, and iterate through the restraint item glamours, adding them if not already a part of the dictionary.
-        if (!LastReceivedWardrobeData.ActiveSetId.IsEmptyGuid())
+        if (!LastWardrobeData.ActiveSetId.IsEmptyGuid())
         {
-            var activeSet = LastReceivedLightStorage.Restraints.FirstOrDefault(x => x.Identifier == LastReceivedWardrobeData.ActiveSetId);
+            var activeSet = LastLightStorage.Restraints.FirstOrDefault(x => x.Identifier == LastWardrobeData.ActiveSetId);
             if (activeSet is not null)
             {
                 foreach (var restraintAffectedSlot in activeSet.AffectedSlots)
@@ -451,7 +445,7 @@ public class Pair
                         result.Add((EquipSlot)restraintAffectedSlot.Slot, (ItemIdVars.Resolve((EquipSlot)restraintAffectedSlot.Slot, new CustomItemId(restraintAffectedSlot.CustomItemId)), restraintAffectedSlot.Tooltip));
             }
         }
-        _logger.LogDebug("Updated Locked Slots for " + UserData.UID, LoggerType.PairManagement);
+        _logger.LogDebug("Updated Locked Slots for " + UserData.UID, LoggerType.PairInfo);
         LockedSlots = result;
     }
 
@@ -485,7 +479,7 @@ public class Pair
             // set the online user ident dto to null
             _onlineUserIdentDto = null;
             // set the last received character data to null
-            LastReceivedIpcData = null;
+            LastIpcData = null;
             // set the pair handler player = to the cached player
             var player = CachedPlayer;
             // set the cached player to null

@@ -22,9 +22,9 @@ public static class PairExtensions
 {
     public static string ActiveSetName(this Pair pair)
     {
-        if(pair.LastReceivedWardrobeData?.ActiveSetId.IsEmptyGuid() ?? true)
+        if(pair.LastWardrobeData?.ActiveSetId.IsEmptyGuid() ?? true)
             return "No Set Active";
         // return the active set.
-        return pair.LastReceivedLightStorage?.Restraints.FirstOrDefault(x => x.Identifier == pair.LastReceivedWardrobeData?.ActiveSetId)?.Name ?? "No Set Active";
+        return pair.LastLightStorage?.Restraints.FirstOrDefault(x => x.Identifier == pair.LastWardrobeData?.ActiveSetId)?.Name ?? "No Set Active";
     }
 }

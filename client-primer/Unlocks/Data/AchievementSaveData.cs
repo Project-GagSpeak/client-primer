@@ -161,7 +161,7 @@ public class AchievementSaveData
                 ConditionalTaskBegun = achievementItem is ConditionalProgressAchievement conditionalProgressAchievement ? conditionalProgressAchievement.ConditionalTaskBegun : false,
                 StartTime = GetStartTime(achievementItem) ?? DateTime.MinValue,
                 RecordedDateTimes = achievementItem is TimedProgressAchievement timedProgressAchievement ? (timedProgressAchievement.ProgressTimestamps ?? new List<DateTime>()) : new List<DateTime>(),
-                ActiveItems = achievementItem is DurationAchievement durationAchievement ? durationAchievement.ActiveItems : new Dictionary<string, TrackedItem>()
+                ActiveItems = achievementItem is DurationAchievement durationAchievement ? durationAchievement.ActiveItems : new List<TrackedItem>()
             };
 
             dto.LightAchievementData.Add(lightAchievement);

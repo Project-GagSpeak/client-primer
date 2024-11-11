@@ -53,7 +53,7 @@ public class Participant
 
     public void MarkOffline()
     {
-        _logger.LogInformation("Marking participant "+User.ChatAlias+" as offline", LoggerType.PrivateRoom);
+        _logger.LogInformation("Marking participant "+User.ChatAlias+" as offline", LoggerType.PrivateRooms);
         ClearDevices();
     }
 }

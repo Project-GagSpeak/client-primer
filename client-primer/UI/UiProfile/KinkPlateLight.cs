@@ -263,7 +263,7 @@ public class KinkPlateLight
         var formattedDate = userData.createdOn ?? DateTime.MinValue;
         string createdDate = formattedDate != DateTime.MinValue ? formattedDate.ToString("d", CultureInfo.CurrentCulture) : "MM-DD-YYYY";
         float dateWidth = ImGui.CalcTextSize(createdDate).X;
-        float achievementWidth = ImGui.CalcTextSize(info.CompletedAchievementsTotal + "/141").X;
+        float achievementWidth = ImGui.CalcTextSize(info.CompletedAchievementsTotal + "/" + AchievementManager.Total).X;
         float totalWidth = dateWidth + achievementWidth + StatIconSize.X * 3 + spacing * 3;
 
         statsPos.X += (PlateSize.X - totalWidth) / 2;
@@ -280,7 +280,7 @@ public class KinkPlateLight
 
         statsPos.X += StatIconSize.X + 2f;
         ImGui.SetCursorScreenPos(statsPos);
-        UiSharedService.ColorText(info.CompletedAchievementsTotal + "/206", ImGuiColors.ParsedGold);
+        UiSharedService.ColorText(info.CompletedAchievementsTotal + "/" + AchievementManager.Total, ImGuiColors.ParsedGold);
         UiSharedService.AttachToolTip("The total achievements " + displayName + " has earned.");
 
         statsPos.X += achievementWidth + spacing;

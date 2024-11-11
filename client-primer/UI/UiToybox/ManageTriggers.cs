@@ -67,9 +67,6 @@ public class ToyboxTriggerManager
 
     private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
     private LowerString TriggerSearchString = LowerString.Empty;
-
-    private string PatternSearchString = LowerString.Empty;
-    private string GagSearchString = LowerString.Empty;
     private string SelectedDeviceName = LowerString.Empty;
 
     private int SelectedMoodleIdx = 0;
@@ -559,7 +556,7 @@ public class ToyboxTriggerManager
 
         using (var disabled = ImRaii.Disabled(anyChecked))
         {
-            _uiShared.DrawComboSearchable("##ActionJobSelectionCombo", 85f, ref JobTypeSearchString, _triggerService.BattleClassJobs,
+            _uiShared.DrawComboSearchable("##ActionJobSelectionCombo", 85f, _triggerService.BattleClassJobs,
             (job) => job.Name, false, (i) =>
             {
                 _logger.LogTrace($"Selected Job ID for Trigger: {SelectedJobId}");
@@ -569,7 +566,7 @@ public class ToyboxTriggerManager
 
             ImUtf8.SameLineInner();
             var loadedActions = _triggerService.LoadedActions[SelectedJobId];
-            _uiShared.DrawComboSearchable("##ActionToListenTo", 150f, ref ActionSearchString, loadedActions, (action) => action.Name,
+            _uiShared.DrawComboSearchable("##ActionToListenTo", 150f, loadedActions, (action) => action.Name,
             false, (i) => spellActionTrigger.ActionID = i?.RowId ?? uint.MaxValue, null, "Select Job Action..");
         }
 
@@ -706,8 +703,7 @@ public class ToyboxTriggerManager
         UiSharedService.ColorText("Gag to Monitor", ImGuiColors.ParsedGold);
         var gagTypes = Enum.GetValues<GagType>().Where(gag => gag != GagType.None).ToArray();
         ImGui.SetNextItemWidth(200f);
-        _uiShared.DrawComboSearchable("GagTriggerGagType" + gagTrigger.TriggerIdentifier, 250, ref GagSearchString, gagTypes,
-            (gag) => gag.GagName(), false, (i) => gagTrigger.Gag = i, gagTrigger.Gag);
+        _uiShared.DrawComboSearchable("GagTriggerGagType" + gagTrigger.TriggerIdentifier, 250, gagTypes, (gag) => gag.GagName(), false, (i) => gagTrigger.Gag = i, gagTrigger.Gag);
         _uiShared.DrawHelpText("The Gag to listen to for this trigger.");
 
         UiSharedService.ColorText("Gag State that fires Trigger", ImGuiColors.ParsedGold);
@@ -881,12 +877,11 @@ public class ToyboxTriggerManager
         UiSharedService.ColorText("Apply Gag Type", ImGuiColors.ParsedGold);
         var gagTypes = Enum.GetValues<GagType>().Where(gag => gag != GagType.None).ToArray();
         ImGui.SetNextItemWidth(200f);
-        _uiShared.DrawComboSearchable("GagActionGagType" + trigger.TriggerIdentifier, 250, ref GagSearchString, gagTypes,
-            (gag) => gag.GagName(), false, (i) =>
-            {
-                _logger.LogTrace($"Selected Gag Type for Trigger: {i}");
-                trigger.GagTypeAction = i;
-            }, trigger.GagTypeAction, "No Gag Type Selected");
+        _uiShared.DrawComboSearchable("GagActionGagType" + trigger.TriggerIdentifier, 250, gagTypes, (gag) => gag.GagName(), false, (i) =>
+        {
+            _logger.LogTrace($"Selected Gag Type for Trigger: {i}");
+            trigger.GagTypeAction = i;
+        }, trigger.GagTypeAction, "No Gag Type Selected");
         _uiShared.DrawHelpText("Apply this Gag to your character when the trigger is fired.");
     }
 
@@ -1000,9 +995,8 @@ public class ToyboxTriggerManager
         }
         else
         {
-            _uiShared.DrawComboSearchable("PatternSelector" + deviceAction.DeviceName + motorIndex, ImGui.GetContentRegionAvail().X,
-            ref PatternSearchString, _patternHandler.Patterns, pattern => pattern.Name, false,
-            (i) =>
+            _uiShared.DrawComboSearchable("PatternSelector" + deviceAction.DeviceName + motorIndex, ImGui.GetContentRegionAvail().X, _patternHandler.Patterns, 
+                pattern => pattern.Name, false, (i) =>
             {
                 motor.PatternIdentifier = i?.UniqueIdentifier ?? Guid.Empty;
                 motor.StartPoint = i?.StartPoint ?? TimeSpan.Zero;

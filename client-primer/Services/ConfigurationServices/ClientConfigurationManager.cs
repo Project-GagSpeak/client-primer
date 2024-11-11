@@ -158,7 +158,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
                 _gagStorageConfig.Current.GagStorage.GagEquipData = Enum.GetValues(typeof(GagType))
                     .Cast<GagType>().ToDictionary(gagType => gagType, gagType => new GagDrawData(ItemIdVars.NothingItem(EquipSlot.Head)));
                 // print the keys in the dictionary
-                Logger.LogInformation("Gag Storage Config Created with " + _gagStorageConfig.Current.GagStorage.GagEquipData.Count + " keys", LoggerType.GagManagement);
+                Logger.LogInformation("Gag Storage Config Created with " + _gagStorageConfig.Current.GagStorage.GagEquipData.Count + " keys", LoggerType.GagHandling);
                 _gagStorageConfig.Save();
             }
             catch (Exception e)

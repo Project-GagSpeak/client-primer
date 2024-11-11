@@ -58,15 +58,12 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     // Info related to the person we are inspecting.
     private CharaIPCData LastCreatedCharacterData = null!;
     
-    private LowerString GagSearchString = LowerString.Empty;
-    private string CustomizePlusSearchString = LowerString.Empty;
     private Vector2 IconSize;
     private float ComboLength;
     private Vector2 DefaultItemSpacing;
     private readonly GameItemCombo[] GameItemCombo;
     private readonly StainColorCombo StainCombo;
 
-    private string GagFilterSearchString = string.Empty;
     private GagDrawData UnsavedDrawData = null!;
     private GagType SelectedGag = GagType.BallGag;
 
@@ -92,9 +89,8 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
             ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - saveSize - 175f - ImGui.GetStyle().ItemSpacing.X * 2);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
-            _uiShared.DrawComboSearchable("GagStorage Gag Type", 175f, ref GagFilterSearchString,
-            Enum.GetValues<GagType>().Where(gag => gag != GagType.None), (gag) => gag.GagName(), false,
-            (i) =>
+            _uiShared.DrawComboSearchable("GagStorage Gag Type", 175f, Enum.GetValues<GagType>().Where(gag => gag != GagType.None), 
+                (gag) => gag.GagName(), false, (i) =>
             {
                 // grab the new gag info.
                 SelectedGag = i;
@@ -340,8 +336,7 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
             // Insert the placeholder profile at the beginning of the list
             profiles.Insert(0, noneProfile);
 
-            _uiShared.DrawComboSearchable("C+ Profile##GagStorageCP_Profile" + SelectedGag, 150f, ref CustomizePlusSearchString, profiles,
-            (profile) => profile.ProfileName, true, (i) =>
+            _uiShared.DrawComboSearchable("C+ Profile##GagStorageCP_Profile" + SelectedGag, 150f, profiles, (profile) => profile.ProfileName, true, (i) =>
             {
                 UnsavedDrawData.CustomizeGuid = i.ProfileGuid;
                 Logger.LogTrace($"Gag {SelectedGag.GagName()} will now use the Customize+ Profile {i.ProfileName}");

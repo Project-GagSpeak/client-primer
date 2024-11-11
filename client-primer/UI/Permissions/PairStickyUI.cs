@@ -51,7 +51,7 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
         _presetService = presetService;
         _permActions = permActionHelpers;
 
-        UserPairForPerms = pairToDrawFor; // set the pair we're drawing for
+        StickyPair = pairToDrawFor; // set the pair we're drawing for
         DrawType = drawType; // set the type of window we're drawing
 
         Flags = ImGuiWindowFlags.NoCollapse | ImGuiWindowFlags.NoTitleBar
@@ -61,16 +61,16 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
     }
 
     private CharaIPCData? LastCreatedCharacterData => _playerManager.LastIpcData;
-    public Pair UserPairForPerms { get; init; } // pair we're drawing the sticky permissions for.
-    private UserGlobalPermissions PairGlobals => UserPairForPerms.UserPairGlobalPerms;
-    private UserPairPermissions OwnPerms => UserPairForPerms.UserPairOwnUniquePairPerms;
-    private UserPairPermissions PairPerms => UserPairForPerms.UserPairUniquePairPerms;
+    public Pair StickyPair { get; init; } // pair we're drawing the sticky permissions for.
+    private UserGlobalPermissions PairGlobals => StickyPair.PairGlobals;
+    private UserPairPermissions OwnPerms => StickyPair.OwnPerms;
+    private UserPairPermissions PairPerms => StickyPair.PairPerms;
 
     public StickyWindowType DrawType = StickyWindowType.None; // type of window drawn.
     public float WindowMenuWidth { get; private set; } = -1; // width of the window menu.
     public float IconButtonTextWidth => WindowMenuWidth - ImGui.GetFrameHeightWithSpacing();
-    public string PairNickOrAliasOrUID => UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID;
-    public string PairUID => UserPairForPerms.UserData.UID;
+    public string PairNickOrAliasOrUID => StickyPair.GetNickname() ?? StickyPair.UserData.AliasOrUID;
+    public string PairUID => StickyPair.UserData.UID;
 
     protected override void PreDrawInternal()
     {
@@ -114,7 +114,7 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
             // draw out the permission preset applied.
             var presetListWidth = 225f;
             _uiShared.SetCursorXtoCenter(presetListWidth);
-            _presetService.DrawPresetList(UserPairForPerms, presetListWidth);
+            _presetService.DrawPresetList(StickyPair, presetListWidth);
 
             ImGui.Separator();
 

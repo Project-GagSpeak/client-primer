@@ -23,7 +23,7 @@ public partial class PairStickyUI
     //
     // For each row, to the left will be an icon. Displaying the status relative to the state.
     //
-    // beside it will be the current UserPairForPerms.UserPair.OwnPairPerms we have set for them.
+    // beside it will be the current StickyPair.UserPair.OwnPairPerms we have set for them.
     // 
     // to the far right will be a interactable checkbox, this will display if we allow
     // this pair to have control over this option or not.
@@ -411,7 +411,7 @@ public partial class PairStickyUI
                     OwnPerms.MaxDuration = newPerms.MaxDuration;
                     OwnPerms.MaxIntensity = newPerms.MaxIntensity;
                     // update the permissions.
-                    _ = _apiHubMain.UserPushAllUniquePerms(new(UserPairForPerms.UserData, OwnPerms, UserPairForPerms.UserPairOwnEditAccess));
+                    _ = _apiHubMain.UserPushAllUniquePerms(new(StickyPair.UserData, OwnPerms, StickyPair.OwnPermAccess));
                 });
             }
         }
@@ -466,7 +466,7 @@ public partial class PairStickyUI
                     break;
                 // this case should technically never be called for this particular instance.
                 case PermissionType.UniquePairPermEditAccess:
-                    DrawOwnPermission(permissionType, UserPairForPerms.UserPairOwnEditAccess, textLabel, icon, tooltipStr, isLocked,
+                    DrawOwnPermission(permissionType, StickyPair.OwnPermAccess, textLabel, icon, tooltipStr, isLocked,
                         permissionName, permissionValueType, permissionAccessName);
                     break;
                 case PermissionType.Hardcore:
@@ -512,11 +512,11 @@ public partial class PairStickyUI
                 if (!permissionAccessName.IsNullOrEmpty()) // only display checkbox if we should.
                 {
                     ImGui.SameLine(IconButtonTextWidth);
-                    bool refState = (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!;
+                    bool refState = (bool)StickyPair.OwnPermAccess.GetType().GetProperty(permissionAccessName)?.GetValue(StickyPair.OwnPermAccess)!;
                     if (ImGui.Checkbox("##" + permissionAccessName, ref refState))
                     {
                         // if the new state is not the same as the current state, then we should update the permission access.
-                        if (refState != (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!)
+                        if (refState != (bool)StickyPair.OwnPermAccess.GetType().GetProperty(permissionAccessName)?.GetValue(StickyPair.OwnPermAccess)!)
                             SetOwnPermission(PermissionType.UniquePairPermEditAccess, permissionAccessName, refState);
                     }
                     UiSharedService.AttachToolTip(refState
@@ -558,16 +558,16 @@ public partial class PairStickyUI
                 if (!permissionAccessName.IsNullOrEmpty()) // only display checkbox if we should.
                 {
                     ImGui.SameLine(IconButtonTextWidth);
-                    bool refState = (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!;
+                    bool refState = (bool)StickyPair.OwnPermAccess.GetType().GetProperty(permissionAccessName)?.GetValue(StickyPair.OwnPermAccess)!;
                     if (ImGui.Checkbox("##" + permissionAccessName, ref refState))
                     {
                         // if the new state is not the same as the current state, then we should update the permission access.
-                        if (refState != (bool)UserPairForPerms.UserPairOwnEditAccess.GetType().GetProperty(permissionAccessName)?.GetValue(UserPairForPerms.UserPairOwnEditAccess)!)
+                        if (refState != (bool)StickyPair.OwnPermAccess.GetType().GetProperty(permissionAccessName)?.GetValue(StickyPair.OwnPermAccess)!)
                             SetOwnPermission(PermissionType.UniquePairPermEditAccess, permissionAccessName, refState);
                     }
                     UiSharedService.AttachToolTip(refState
-                        ? ("Revoke " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID + "'s control over this permission.")
-                        : ("Grant " + UserPairForPerms.GetNickname() ?? UserPairForPerms.UserData.AliasOrUID) + " control over this permission, allowing them to change " +
+                        ? ("Revoke " + StickyPair.GetNickname() ?? StickyPair.UserData.AliasOrUID + "'s control over this permission.")
+                        : ("Grant " + StickyPair.GetNickname() ?? StickyPair.UserData.AliasOrUID) + " control over this permission, allowing them to change " +
                            "what you've set for them at will.");
                 }
             }
@@ -634,7 +634,7 @@ public partial class PairStickyUI
             case PermissionType.UniquePairPerm:
                 {
                     _logger.LogTrace($"Updated own pair permission: {permissionName} to {newValue}", LoggerType.Permissions);
-                    _ = _apiHubMain.UserUpdateOwnPairPerm(new UserPairPermChangeDto(UserPairForPerms.UserData,
+                    _ = _apiHubMain.UserUpdateOwnPairPerm(new UserPairPermChangeDto(StickyPair.UserData,
                         new KeyValuePair<string, object>(permissionName, newValue)));
                 }
                 break;
@@ -642,7 +642,7 @@ public partial class PairStickyUI
             case PermissionType.UniquePairPermEditAccess:
                 {
                     _logger.LogTrace($"Updated own edit access permission: {permissionName} to {newValue}", LoggerType.Permissions);
-                    _ = _apiHubMain.UserUpdateOwnPairPermAccess(new UserPairAccessChangeDto(UserPairForPerms.UserData,
+                    _ = _apiHubMain.UserUpdateOwnPairPermAccess(new UserPairAccessChangeDto(StickyPair.UserData,
                         new KeyValuePair<string, object>(permissionName, newValue)));
                 }
                 break;

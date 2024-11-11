@@ -30,7 +30,6 @@ public class DrawUserPair
     private readonly CosmeticService _cosmetics;
     private readonly UiSharedService _uiShared;
     private float _menuWidth = -1;
-    private bool _wasHovered = false;
     private string tooltipString = "";
     // store the created texture wrap for the supporter tier image so we are not loading it every single time.
     private IDalamudTextureWrap? _supporterWrap = null;
@@ -56,14 +55,14 @@ public class DrawUserPair
         _supporterWrap = null;
     }
 
-    public bool DrawPairedClient(bool supporterIcon = true, bool icon = true, bool iconTT = true,
-        bool displayToggleOnClick = true, bool displayNameTT = true, bool showHovered = true, bool showRightButtons = true)
+    public bool DrawPairedClient(bool isHovered, bool supporterIcon = true, bool icon = true, bool iconTT = true, bool displayToggleOnClick = true, 
+        bool displayNameTT = true, bool showHovered = true, bool showRightButtons = true)
     {
         bool selected = false;
         // get the current screen cursor pos
         var cursorPos = ImGui.GetCursorPosX();
         using var id = ImRaii.PushId(GetType() + _id);
-        using (var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), showHovered && _wasHovered))
+        using (ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), showHovered && isHovered))
         {
             using (ImRaii.Child(GetType() + _id, new Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
             {
@@ -85,7 +84,7 @@ public class DrawUserPair
 
                 selected = DrawName(posX, rightSide, displayToggleOnClick, displayNameTT);
             }
-            _wasHovered = ImGui.IsItemHovered();
+            isHovered = ImGui.IsItemHovered();
         }
         // if they were a supporter, go back to the start and draw the image.
         if (supporterIcon && _pair.UserData.SupporterTier is not CkSupporterTier.NoRole)
@@ -97,42 +96,12 @@ public class DrawUserPair
 
     private void DrawSupporterIcon(float cursorPos)
     {
-        // fetch new image if needed, otherwise use existing
-        if (_supporterWrap == null)
-        {
-            // fetch the supporter wrap.
-            switch (_pair.UserData.SupporterTier)
-            {
-                case CkSupporterTier.ServerBooster:
-                    _supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterBooster];
-                    tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting the discord with a server Boost!";
-                    break;
-                case CkSupporterTier.IllustriousSupporter:
-                    _supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier1];
-                    tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting CK as a Illustrious Supporter";
-                    break;
-                case CkSupporterTier.EsteemedPatron:
-                    _supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier2];
-                    tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting CK as a Esteemed Patron";
-                    break;
-                case CkSupporterTier.DistinguishedConnoisseur:
-                    _supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier3];
-                    tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is supporting CK as a Distinguished Connoisseur";
-                    break;
-                case CkSupporterTier.KinkporiumMistress:
-                    _supporterWrap = _cosmetics.CorePluginTextures[CorePluginTexture.SupporterTier4];
-                    tooltipString = (_pair.GetNickname() ?? _pair.UserData.AliasOrUID) + " is the Shop Mistress of CK, and the Dev of GagSpeak.";
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        if ((_supporterWrap is { } supporterImage))
+        var Image = _cosmetics.GetSupporterInfo(Pair.UserData).SupporterWrap;
+        if (Image is { } wrap)
         {
             ImGui.SameLine(cursorPos);
             ImGui.SetCursorPosX(cursorPos - _uiShared.GetIconData(FontAwesomeIcon.EllipsisV).X - ImGui.GetStyle().ItemSpacing.X);
-            ImGui.Image(supporterImage.ImGuiHandle, new Vector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight()));
+            ImGui.Image(wrap.ImGuiHandle, new Vector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight()));
             UiSharedService.AttachToolTip(tooltipString);
         }
         // return to the end of the line.
@@ -256,7 +225,7 @@ public class DrawUserPair
         {
             if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Reload last data", _menuWidth, true))
             {
-                _pair.ApplyLastReceivedIpcData(forced: true);
+                _pair.ApplyLastIpcData(forced: true);
                 ImGui.CloseCurrentPopup();
             }
             UiSharedService.AttachToolTip("This reapplies the last received character data to this character");

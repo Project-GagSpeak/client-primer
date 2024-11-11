@@ -85,7 +85,7 @@ public abstract class DrawFolderBase : IDrawFolder
             {
                 foreach (var item in DrawPairs)
                 {
-                    item.DrawPairedClient();
+                    item.DrawPairedClient(false);
                 }
             }
             else

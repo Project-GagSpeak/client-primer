@@ -41,12 +41,12 @@ public class OnEmote : IDisposable
             OnExecuteEmoteHook = interopProvider.HookFromAddress<AgentEmote.Delegates.ExecuteEmote>((nint)AgentEmote.MemberFunctionPointers.ExecuteEmote, OnExecuteEmote);
         }
         EnableHook();
-        _logger.LogInformation("Started EmoteDetour", LoggerType.ChatDetours);
+        _logger.LogInformation("Started EmoteDetour");
     }
 
     public void EnableHook()
     {
-        _logger.LogInformation("Enabling EmoteDetour", LoggerType.ChatDetours);
+        _logger.LogInformation("Enabling EmoteDetour");
         ProcessEmoteHook.Enable();
         OnExecuteEmoteHook.Enable();
     }
@@ -54,14 +54,14 @@ public class OnEmote : IDisposable
     public void DisableHook()
     {
         if (!ProcessEmoteHook.IsEnabled) return;
-        _logger.LogInformation("Disabling EmoteDetour", LoggerType.ChatDetours);
+        _logger.LogInformation("Disabling EmoteDetour");
         ProcessEmoteHook.Disable();
         OnExecuteEmoteHook.Disable();
     }
 
     public void Dispose()
     {
-        _logger.LogInformation("Stopping EmoteDetour", LoggerType.ChatDetours);
+        _logger.LogInformation("Stopping EmoteDetour");
         try
         {
             DisableHook();
@@ -72,7 +72,7 @@ public class OnEmote : IDisposable
         {
             _logger.LogError(e, "Error disposing of EmoteDetour");
         }
-        _logger.LogInformation("Stopped EmoteDetour", LoggerType.ChatDetours);
+        _logger.LogInformation("Stopped EmoteDetour");
     }
 
     /// <summary>
@@ -89,7 +89,7 @@ public class OnEmote : IDisposable
                 var emoteName = EmoteMonitor.GetEmoteName(emoteId);
                 var targetObj = (_frameworkUtils.SearchObjectTableById((uint)targetId));
                 var targetName = (targetObj as IPlayerCharacter)?.GetNameWithWorld() ?? "No Player Was Target";
-                _logger.LogTrace("OnEmote >> [" + emoteCallerName + "] used Emote [" + emoteName + "](ID:"+emoteId+") on Target: [" + targetName+"]", LoggerType.ChatDetours);
+                _logger.LogTrace("OnEmote >> [" + emoteCallerName + "] used Emote [" + emoteName + "](ID:"+emoteId+") on Target: [" + targetName+"]", LoggerType.EmoteMonitor);
 
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.EmoteExecuted, emoteCaller, emoteId, targetObj);
             });
@@ -111,7 +111,7 @@ public class OnEmote : IDisposable
     {
         try
         {
-            _logger.LogTrace("OnExecuteEmote >> Emote [" + EmoteMonitor.GetEmoteName(emoteId) + "](ID:"+emoteId+") requested to be Executed", LoggerType.ChatDetours);
+            _logger.LogTrace("OnExecuteEmote >> Emote [" + EmoteMonitor.GetEmoteName(emoteId) + "](ID:"+emoteId+") requested to be Executed", LoggerType.EmoteMonitor);
             // Block all emotes if forced to follow
             if(_hardcoreHandler.IsForcedToFollow)
                 return;
@@ -122,7 +122,7 @@ public class OnEmote : IDisposable
                 // if our current emote state is any sitting pose and we are attempting to perform yes or no, allow it.
                 if (_hardcoreHandler.ForcedEmoteState.EmoteID is 50 or 52 && emoteId is 42 or 24)
                 {
-                    _logger.LogInformation("Allowing Emote Execution for Emote ID: " + emoteId);
+                    _logger.LogDebug("Allowing Emote Execution for Emote ID: " + emoteId, LoggerType.EmoteMonitor);
                 }
                 else
                 {
@@ -135,11 +135,11 @@ public class OnEmote : IDisposable
                     // If we were allowed to execute an emote but a player tried to squeeze in another emote that wasnt the expected, return.
                     if (AllowExecution.EmoteId != emoteId)
                     {
-                        _logger.LogDebug("Sorry sugar, but you ain't cheesing this system that easily." + emoteId);
+                        _logger.LogInformation("Sorry sugar, but you ain't cheesing this system that easily." + emoteId);
                         return;
                     }
                     // The Emote is the same as the expected, so allow it.
-                    _logger.LogInformation("Allowing Emote Execution for Emote ID: " + emoteId);
+                    _logger.LogTrace("Allowing Emote Execution for Emote ID: " + emoteId, LoggerType.EmoteMonitor);
                 }
                 AllowExecution = (false, 0);
             }

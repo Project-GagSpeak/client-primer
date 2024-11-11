@@ -63,18 +63,18 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
 
     public void AddParticipantToRoom(PrivateRoomUser newUser, bool addToLastAddedParticipant = true)
     {
-        Logger.LogTrace("Scanning all participants to see if added user already exists", LoggerType.PrivateRoom);
+        Logger.LogTrace("Scanning all participants to see if added user already exists", LoggerType.PrivateRooms);
         // if the user is not in the room's participant list, create a new participant for them.
         if (!_participants.ContainsKey(newUser.UserUID))
         {
-            Logger.LogDebug("User " + newUser.ChatAlias + " not found in participants, creating new participant", LoggerType.PrivateRoom);
+            Logger.LogDebug("User " + newUser.ChatAlias + " not found in participants, creating new participant", LoggerType.PrivateRooms);
             // create a new participant object for the user through the participant factory
             _participants[newUser.UserUID] = _participantFactory.Create(newUser);
         }
         // if the user is in the room's participant list, apply the last received data to the participant.
         else
         {
-            Logger.LogDebug("User " + newUser.ChatAlias + " found in participants, applying last received data instead.", LoggerType.PrivateRoom);
+            Logger.LogDebug("User " + newUser.ChatAlias + " found in participants, applying last received data instead.", LoggerType.PrivateRooms);
             // apply the last received data to the participant.
             _participants[newUser.UserUID].User = newUser;
         }
@@ -124,7 +124,7 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
     {
         // update the last received room info
         LastReceivedRoomInfo = dto;
-        Logger.LogTrace("Updating Room Info for " + dto.NewRoomName, LoggerType.PrivateRoom);
+        Logger.LogTrace("Updating Room Info for " + dto.NewRoomName, LoggerType.PrivateRooms);
         try
         {
             // update the host
@@ -138,13 +138,13 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
                 // if the participant is not equal to the stored participant with the same UID, update it.
                 if (!_participants.TryGetValue(participant.UserUID, out var storedParticipant))
                 {
-                    Logger.LogTrace("User " + participant.ChatAlias + " not found in participants, adding them to the room", LoggerType.PrivateRoom);
+                    Logger.LogTrace("User " + participant.ChatAlias + " not found in participants, adding them to the room", LoggerType.PrivateRooms);
                     // this means the participant is not in the room, so add them.
                     AddParticipantToRoom(participant);
                 }
                 else
                 {
-                    Logger.LogTrace("User " + participant.ChatAlias + " found in participants, updating their data", LoggerType.PrivateRoom);
+                    Logger.LogTrace("User " + participant.ChatAlias + " found in participants, updating their data", LoggerType.PrivateRooms);
                     // the participant is already in the room, so update their data with the latest
                     storedParticipant.User.ChatAlias = participant.ChatAlias;
                     storedParticipant.User.ActiveInRoom = participant.ActiveInRoom;
@@ -222,7 +222,7 @@ public class PrivateRoom : DisposableMediatorSubscriberBase
     private void DisposeParticipants()
     {
         // log the action about to occur
-        Logger.LogDebug("Disposing all Participants of the Private Room", LoggerType.PrivateRoom);
+        Logger.LogDebug("Disposing all Participants of the Private Room", LoggerType.PrivateRooms);
         Parallel.ForEach(_participants, item =>
         {
             item.Value.MarkOffline();

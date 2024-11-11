@@ -2,7 +2,6 @@ using Dalamud.Game.ClientState.Objects.Types;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Factories;
-using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI.Utils;
@@ -63,7 +62,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             if (_isVisible != value)
             {
                 _isVisible = value;
-                Logger.LogTrace("User Visibility Changed, now: " + (_isVisible ? "Is Visible" : "Is not Visible"), LoggerType.PairManagement);
+                Logger.LogTrace("User Visibility Changed, now: " + (_isVisible ? "Is Visible" : "Is not Visible"), LoggerType.PairHandlers);
                 // publish a refresh ui message to the mediator
                 Mediator.Publish(new RefreshUiMessage());
                 // push latest list details to Moodles.
@@ -83,7 +82,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     {
         return OnlineUser == null
             ? base.ToString() ?? string.Empty
-            : "AliasOrUID: " + OnlineUser.User.AliasOrUID + "||"+(_charaHandler != null ? _charaHandler.ToString() : "NoHandler");
+            : "AliasOrUID: " + OnlineUser.User.AliasOrUID + "||" + (_charaHandler != null ? _charaHandler.ToString() : "NoHandler");
     }
 
     protected override void Dispose(bool disposing)
@@ -93,7 +92,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         // store name and address to reference removal properly.
         var name = PlayerNameWithWorld;
         var address = _charaHandler?.Address ?? nint.Zero;
-        Logger.LogDebug("Disposing "+name+" ("+OnlineUser+")", LoggerType.GameObjects);
+        Logger.LogDebug("Disposing " + name + " (" + OnlineUser + ")", LoggerType.PairHandlers);
         try
         {
             Guid applicationId = Guid.NewGuid();
@@ -109,7 +108,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             // Because this is happening, we need to make sure that we revert their IPC data and toggle their address & visibility.
             if (_frameworkUtil is { IsZoning: false } && !string.IsNullOrEmpty(name))
             {
-                Logger.LogTrace("[" + applicationId + "] Restoring State for [" + name + "] (" + OnlineUser + ")", LoggerType.GameObjects);
+                Logger.LogTrace("[" + applicationId + "] Restoring State for [" + name + "] (" + OnlineUser + ")", LoggerType.PairHandlers);
 
                 // They are visible but being disposed, so revert their applied customization data
                 var cts = new CancellationTokenSource();
@@ -133,9 +132,6 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         }
         finally
         {
-            // ensure the player name is null and cachedData gets set to null
-            Logger.LogDebug("Disposing " + PlayerName + " complete", LoggerType.GameObjects);
-
             PlayerName = null;
             _cachedIpcData = null;
         }
@@ -151,19 +147,19 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     public void ApplyCharacterData(Guid applicationBase, CharaIPCData characterData)
     {
         // publish the message to the mediator that we are applying character data
-        Logger.LogDebug("Applying Character IPC Data for (" + PlayerName + ")", LoggerType.PairManagement);
+        Logger.LogDebug("Applying Character IPC Data for (" + PlayerName + ")", LoggerType.PairHandlers);
 
         // check update data to see what character data we will need to update.
         // We pass in _cachedIpcData?.DeepClone() to send what the past data was,
         // so we can compare it against the new data to know if its different.
         var charaDataChangesToUpdate = characterData.CheckUpdatedData(applicationBase, _cachedIpcData?.DeepClone() ?? new(), Logger, this);
 
-        Logger.LogDebug("Applying IPC data for [" + this + "] (" + PlayerName + ")", LoggerType.PairManagement);
+        Logger.LogDebug("Applying IPC data for [" + this + "] (" + PlayerName + ")", LoggerType.PairHandlers);
 
         // process the changes to the character data (look further into the purpose of the deep cloning at a later time)
         if (!charaDataChangesToUpdate.Any())
         {
-            Logger.LogDebug("Nothing to update for [" + applicationBase + "] (" + PlayerName + ")", LoggerType.PairManagement);
+            Logger.LogDebug("Nothing to update for [" + applicationBase + "] (" + PlayerName + ")", LoggerType.PairHandlers);
             return;
         }
 
@@ -182,7 +178,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             // update the cachedData 
             _cachedIpcData = characterData;
 
-            Logger.LogDebug("ApplyData finished for [" + _applicationId + "] (" + PlayerName + ")", LoggerType.PairManagement);
+            Logger.LogDebug("ApplyData finished for [" + _applicationId + "] (" + PlayerName + ")", LoggerType.PairHandlers);
         }, token);
     }
 
@@ -202,13 +198,13 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             if (handler.Address == nint.Zero) { return; }
 
             // otherwise, log that we are applying the customization data for the handlers
-            Logger.LogDebug("Applying visual customization changes for [" + handler + "] (" + applicationId + ")", LoggerType.PairManagement);
+            Logger.LogDebug("Applying visual customization changes for [" + handler + "] (" + applicationId + ")", LoggerType.PairHandlers);
 
             // otherwise, for each change in the changes, apply the changes
             foreach (var change in changes.OrderBy(p => (int)p))
             {
                 // log that we are processing the change for the handler
-                Logger.LogDebug("Processing " + change + " for [" + handler + "] (" + applicationId + ")", LoggerType.PairManagement);
+                Logger.LogDebug("Processing " + change + " for [" + handler + "] (" + applicationId + ")", LoggerType.PairHandlers);
                 switch (change)
                 {
                     case PlayerChanges.Customize:
@@ -242,11 +238,11 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             if (pc == default((string, nint))) return;
 
             // otherwise, call a one-time initialization
-            Logger.LogDebug("One-Time Initializing " + this, LoggerType.GameObjects);
+            Logger.LogDebug("One-Time Initializing " + this, LoggerType.PairHandlers);
             // initialize the player character
             Initialize(pc.Name);
             if (_charaHandler != null) _charaHandler.UpdatePlayerCharacterRef();
-            Logger.LogDebug("One-Time Initialized " + this + "(" + pc.Name + ")", LoggerType.GameObjects);
+            Logger.LogDebug("One-Time Initialized " + this + "(" + pc.Name + ")", LoggerType.PairHandlers);
         }
 
         // if the game object for this pair has a pointer that is not zero (meaning they are present) but the pair is marked as not visible
@@ -262,7 +258,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             // if the pairs cachedData is not null
             if (_cachedIpcData != null)
             {
-                Logger.LogTrace("[BASE-" + appData + "] " + this + " visibility changed, now: " + IsVisible + ", cached IPC data exists", LoggerType.PairManagement);
+                Logger.LogTrace("[BASE-" + appData + "] " + this + " visibility changed, now: " + IsVisible + ", cached IPC data exists", LoggerType.PairHandlers);
                 // then we should apply it to the character data
                 _ = Task.Run(() =>
                 {
@@ -272,7 +268,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             else
             {
                 // otherwise, do not apply it to the character as they are not present
-                Logger.LogTrace(this +" visibility changed, now: "+IsVisible+" (No Ipc Data)", LoggerType.GameObjects);
+                Logger.LogTrace(this + " visibility changed, now: " + IsVisible + " (No Ipc Data)", LoggerType.PairHandlers);
             }
         }
         // if the player address is 0 but they are visible, invalidate them
@@ -281,18 +277,18 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             // set is visible to false and invalidate the pair handler
             _charaHandler.Invalidate();
             IsVisible = false;
-            Logger.LogTrace(this + " visibility changed, now: " + IsVisible, LoggerType.GameObjects);
+            Logger.LogTrace(this + " visibility changed, now: " + IsVisible, LoggerType.PairHandlers);
         }
     }
 
     /// <summary> Initializes a pair handler object </summary>
     private void Initialize(string name)
     {
-        Logger.LogTrace("Initializing "+this, LoggerType.GameObjects);
+        Logger.LogTrace("Initializing " + this, LoggerType.PairHandlers);
         // set the player name to the name
         PlayerName = name;
         // create a new game object handler for the player character
-        Logger.LogTrace("Creating CharaHandler for "+this, LoggerType.GameObjects);
+        Logger.LogTrace("Creating CharaHandler for " + this, LoggerType.PairHandlers);
         _charaHandler = _gameObjectHandlerFactory.Create(() =>
             _frameworkUtil.GetIPlayerCharacterFromCachedTableByIdent(OnlineUser.Ident), isWatched: false).GetAwaiter().GetResult();
     }
@@ -309,7 +305,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         // if the address is zero, return
         if (name == string.Empty) return;
 
-        Logger.LogDebug("["+applicationId+"] Reverting all Customization for "+OnlineUser.User.AliasOrUID, LoggerType.GameObjects);
+        Logger.LogDebug("[" + applicationId + "] Reverting all Customization for " + OnlineUser.User.AliasOrUID, LoggerType.PairHandlers);
 
         // first, we should validate if they are a mare player or not.
         bool isMareUser = await IsMareUser(address).ConfigureAwait(false);
@@ -319,11 +315,11 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         // Handle Moodle Revert
         if (isMareUser)
         {
-            Logger.LogDebug(name+" Is a Mare user. Retaining Moodles for "+OnlineUser.User.AliasOrUID, LoggerType.GameObjects);
+            Logger.LogDebug(name + " Is a Mare user. Retaining Moodles for " + OnlineUser.User.AliasOrUID, LoggerType.PairHandlers);
         }
         else
         {
-            Logger.LogDebug(name+" is not a Mare user. Clearing Moodles for "+OnlineUser.User.AliasOrUID, LoggerType.GameObjects);
+            Logger.LogDebug(name + " is not a Mare user. Clearing Moodles for " + OnlineUser.User.AliasOrUID, LoggerType.PairHandlers);
             await _ipcManager.Moodles.ClearStatusAsync(name).ConfigureAwait(false);
         }
     }
@@ -335,7 +331,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     {
         var handledMarePlayers = await _ipcManager.Mare.GetHandledMarePlayers().ConfigureAwait(false);
         // log the mare players.
-        Logger.LogDebug("Mare Players: "+string.Join(", ", handledMarePlayers), LoggerType.IpcMare);
+        Logger.LogDebug("Mare Players: " + string.Join(", ", handledMarePlayers), LoggerType.IpcMare);
         if (handledMarePlayers == null) return false;
         return handledMarePlayers.Any(playerAddress => playerAddress == address);
     }

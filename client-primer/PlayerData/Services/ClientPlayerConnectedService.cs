@@ -77,13 +77,6 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         // update the active gags
         _gagManager.UpdateGagLockComboSelections();
         _gagManager.UpdateGagGarblerLogic();
-        // If any of our gags are applied, we should fire the Achievement Checks for them being applied.
-        for(var i = 0; i < 3; i++)
-        {
-            var gagType = _playerData.AppearanceData.GagSlots[i].GagType.ToGagType();
-            if (gagType is not GagType.None)
-                UnlocksEventManager.AchievementEvent(UnlocksEvent.GagAction, (GagLayer)i, gagType, true, true);
-        }
 
         Logger.LogInformation("Syncing Data with Connection DTO", LoggerType.ClientPlayerData);
         var serverData = MainHub.ConnectionDto.CharacterActiveStateData;
@@ -145,7 +138,7 @@ public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHost
         _gagManager.UpdateGagLockComboSelections();
         _gagManager.UpdateRestraintLockSelections(false);
         // send our updated data.
-        var activeGags = _playerData.AppearanceData.GagSlots.Select(x => x.GagType).ToList();
+        var activeGags = _playerData.AppearanceData.GagSlots.Where(x => x.GagType.ToGagType() is not GagType.None).Select(x => x.GagType).ToList();
         
         // now that everything is updated, get the active set.
         var activeSetFinal = _clientConfigs.GetActiveSet();

@@ -26,7 +26,7 @@ public class ConditionalAchievement : AchievementBase
         if (IsCompleted || !MainHub.IsConnected)
             return;
 
-        StaticLogger.Logger.LogDebug($"Checking if {Title} satisfies conditional", LoggerType.Achievements);
+        UnlocksEventManager.AchievementLogger.LogTrace($"Checking if {Title} satisfies conditional", LoggerType.AchievementInfo);
 
         if (Condition())
         {

@@ -114,12 +114,13 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                 ImGui.Spacing();
                 ImGui.Separator();
                 float width = ImGui.GetContentRegionAvail().X;
+
                 // show the search filter just above the contacts list to form a nice separation.
                 _userPairListHandler.DrawSearchFilter(width, ImGui.GetStyle().ItemInnerSpacing.X, false);
                 ImGui.Separator();
-                using (var listChild = ImRaii.Child($"###PuppeteerList", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoScrollbar))
+                using (ImRaii.Child($"###PuppeteerList", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoScrollbar))
                 {
-                    _userPairListHandler.DrawPairListSelectable(width, true);
+                    _userPairListHandler.DrawPairListSelectable(width, false, "PuppetList");
                 }
             }
             // pop pushed style variables and draw next column.
@@ -187,12 +188,12 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                 _aliasTable.DrawAliasListTable(_puppeteerHandler.SelectedPair.UserData.UID, DefaultCellPadding.Y);
                 break;
             case PuppeteerTab.PairAliasList:
-                DrawPairAliasList(_puppeteerHandler.SelectedPair.LastReceivedAliasData);
+                DrawPairAliasList(_puppeteerHandler.SelectedPair.LastAliasData);
                 break;
         }
     }
 
-    private bool AliasDataListExists => _puppeteerHandler.SelectedPair?.LastReceivedAliasData?.AliasList.Any() ?? false;
+    private bool AliasDataListExists => _puppeteerHandler.SelectedPair?.LastAliasData?.AliasList.Any() ?? false;
     private DateTime LastSaveTime = DateTime.MinValue;
 
     private void DrawPuppeteerHeader(Vector2 DefaultCellPadding)
@@ -291,12 +292,12 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
 
         // compile a struct for displaying the example data.
         var clientTriggerData = new TriggerData(string.Empty, "Client",
-            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.TriggerPhrase,
-            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.StartChar,
-            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.EndChar,
-            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowSitRequests,
-            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowMotionRequests,
-            _puppeteerHandler.SelectedPair.UserPairOwnUniquePairPerms.AllowAllRequests);
+            _puppeteerHandler.SelectedPair.OwnPerms.TriggerPhrase,
+            _puppeteerHandler.SelectedPair.OwnPerms.StartChar,
+            _puppeteerHandler.SelectedPair.OwnPerms.EndChar,
+            _puppeteerHandler.SelectedPair.OwnPerms.AllowSitRequests,
+            _puppeteerHandler.SelectedPair.OwnPerms.AllowMotionRequests,
+            _puppeteerHandler.SelectedPair.OwnPerms.AllowAllRequests);
 
         DrawTriggerPhraseDetailBox(clientTriggerData);
 
@@ -304,12 +305,12 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
 
         var pairTriggerData = new TriggerData(_puppeteerHandler.SelectedPair.GetNickname() ?? _puppeteerHandler.SelectedPair.UserData.Alias ?? string.Empty,
             _puppeteerHandler.SelectedPair.UserData.UID,
-            _puppeteerHandler.SelectedPair.UserPairUniquePairPerms.TriggerPhrase,
-            _puppeteerHandler.SelectedPair.UserPairUniquePairPerms.StartChar,
-            _puppeteerHandler.SelectedPair.UserPairUniquePairPerms.EndChar,
-            _puppeteerHandler.SelectedPair.UserPairUniquePairPerms.AllowSitRequests,
-            _puppeteerHandler.SelectedPair.UserPairUniquePairPerms.AllowMotionRequests,
-            _puppeteerHandler.SelectedPair.UserPairUniquePairPerms.AllowAllRequests);
+            _puppeteerHandler.SelectedPair.PairPerms.TriggerPhrase,
+            _puppeteerHandler.SelectedPair.PairPerms.StartChar,
+            _puppeteerHandler.SelectedPair.PairPerms.EndChar,
+            _puppeteerHandler.SelectedPair.PairPerms.AllowSitRequests,
+            _puppeteerHandler.SelectedPair.PairPerms.AllowMotionRequests,
+            _puppeteerHandler.SelectedPair.PairPerms.AllowAllRequests);
 
         DrawTriggerPhraseDetailBox(pairTriggerData);
     }
@@ -552,9 +553,9 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                       $"{_puppeteerHandler.ClonedAliasStorageForEdit?.CharacterWorld}> ";
                 UiSharedService.ColorText("Example Usage:", ImGuiColors.ParsedPink);
                 ImGui.TextWrapped(charaName + triggers[0] + " " +
-                    _puppeteerHandler.SelectedPair?.UserPairOwnUniquePairPerms.StartChar +
+                    _puppeteerHandler.SelectedPair?.OwnPerms.StartChar +
                    " glamour apply Hogtied | p | [me] " +
-                   _puppeteerHandler.SelectedPair?.UserPairOwnUniquePairPerms.EndChar);
+                   _puppeteerHandler.SelectedPair?.OwnPerms.EndChar);
             }
         }
     }

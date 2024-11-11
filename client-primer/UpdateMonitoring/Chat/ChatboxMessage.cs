@@ -202,13 +202,13 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         // check for puppeteer pair triggers
         if (SenderIsInPuppeteerListeners(senderName, senderWorld, out Pair pair))
         {
-            var pairTriggers = pair.UserPairOwnUniquePairPerms.TriggerPhrase.Split('|').ToList();
+            var pairTriggers = pair.OwnPerms.TriggerPhrase.Split('|').ToList();
             if (_puppeteerHandler.IsValidTriggerWord(pairTriggers, message, out string matchedPairTrigger))
             {
                 Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!");
-                var permsPair = new PuppeteerPerms(pair.UserPairOwnUniquePairPerms.AllowSitRequests,
-                    pair.UserPairOwnUniquePairPerms.AllowMotionRequests, pair.UserPairOwnUniquePairPerms.AllowAllRequests,
-                    pair.UserPairOwnUniquePairPerms.StartChar, pair.UserPairOwnUniquePairPerms.EndChar);
+                var permsPair = new PuppeteerPerms(pair.OwnPerms.AllowSitRequests,
+                    pair.OwnPerms.AllowMotionRequests, pair.OwnPerms.AllowAllRequests,
+                    pair.OwnPerms.StartChar, pair.OwnPerms.EndChar);
 
                 SeString msgToSend = _puppeteerHandler.GetMessageFromTrigger(matchedPairTrigger, permsPair, message, type, pair.UserData.UID);
                 

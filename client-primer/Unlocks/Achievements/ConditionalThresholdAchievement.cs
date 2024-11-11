@@ -38,8 +38,8 @@ public class ConditionalThresholdAchievement : AchievementBase
         if(Condition())
         {
             LastRecordedThreshold = newestThreshold;
-            StaticLogger.Logger.LogDebug($"Updating Threshold for {Title}. Current Threshold: {LastRecordedThreshold}" +
-                $" -- Total Required: {MilestoneGoal}", LoggerType.Achievements);
+            UnlocksEventManager.AchievementLogger.LogTrace($"Updating Threshold for {Title}. Current Threshold: {LastRecordedThreshold}" +
+                $" -- Total Required: {MilestoneGoal}", LoggerType.AchievementInfo);
             CheckCompletion();
         }
         else

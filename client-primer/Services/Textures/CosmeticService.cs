@@ -37,24 +37,6 @@ public class CosmeticService : IHostedService, IDisposable
 
     private Dictionary<string, IDalamudTextureWrap> InternalCosmeticCache = [];
     public Dictionary<CorePluginTexture, IDalamudTextureWrap> CorePluginTextures = [];
-    public List<ProfileStyleBG> UnlockedPlateBackgrounds { get; private set; } = new();
-    public List<ProfileStyleBorder> UnlockedPlateBorders { get; private set; } = new();
-    public List<ProfileStyleBorder> UnlockedProfilePictureBorder { get; private set; } = new();
-    public List<ProfileStyleOverlay> UnlockedProfilePictureOverlay { get; private set; } = new();
-    public List<ProfileStyleBG> UnlockedDescriptionBackground { get; private set; } = new();
-    public List<ProfileStyleBorder> UnlockedDescriptionBorder { get; private set; } = new();
-    public List<ProfileStyleOverlay> UnlockedDescriptionOverlay { get; private set; } = new();
-    public List<ProfileStyleBG> UnlockedGagSlotBackground { get; private set; } = new();
-    public List<ProfileStyleBorder> UnlockedGagSlotBorder { get; private set; } = new();
-    public List<ProfileStyleOverlay> UnlockedGagSlotOverlay { get; private set; } = new();
-    public List<ProfileStyleBG> UnlockedPadlockBackground { get; private set; } = new();
-    public List<ProfileStyleBorder> UnlockedPadlockBorder { get; private set; } = new();
-    public List<ProfileStyleOverlay> UnlockedPadlockOverlay { get; private set; } = new();
-    public List<ProfileStyleBG> UnlockedBlockedSlotsBackground { get; private set; } = new();
-    public List<ProfileStyleBorder> UnlockedBlockedSlotsBorder { get; private set; } = new();
-    public List<ProfileStyleOverlay> UnlockedBlockedSlotsOverlay { get; private set; } = new();
-    public List<ProfileStyleBorder> UnlockedBlockedSlotBorder { get; private set; } = new();
-    public List<ProfileStyleOverlay> UnlockedBlockedSlotOverlay { get; private set; } = new();
 
     // MUST ensure ALL images are disposed of or else we will leak a very large amount of memory.
     public void Dispose()
@@ -82,16 +64,17 @@ public class CosmeticService : IHostedService, IDisposable
                 return;
             }
 
-            _logger.LogTrace("Renting image to store in Cache: " + key, LoggerType.Textures);
+            _logger.LogDebug("Renting image to store in Cache: " + key, LoggerType.Textures);
             if(TryRentImageFromFile(path, out var texture))
                 CorePluginTextures[key] = texture;
         }
-        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all NecessaryImages!");
+        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all NecessaryImages!", LoggerType.Cosmetics);
     }
 
     public void LoadAllCosmetics()
     {
-        // load in all the images to the dictionary by iterating through all public const strings stored in the cosmetic labels and appending them as new texture wraps that should be stored into the cache.
+        // load in all the images to the dictionary by iterating through all public const strings stored in the cosmetic labels
+        // and appending them as new texture wraps that should be stored into the cache.
         foreach (var label in CosmeticLabels.CosmeticTextures)
         {
             var key = label.Key;
@@ -102,11 +85,11 @@ public class CosmeticService : IHostedService, IDisposable
                 return;
             }
 
-            _logger.LogTrace("Renting image to store in Cache: " + key, LoggerType.Textures);
+            _logger.LogDebug("Renting image to store in Cache: " + key, LoggerType.Textures);
             if (TryRentImageFromFile(path, out var texture))
                 InternalCosmeticCache[key] = texture;
         }
-        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all Cosmetic Images!");
+        _logger.LogInformation("GagSpeak Profile Cosmetic Cache Fetched all Cosmetic Images!", LoggerType.Cosmetics);
 
     }
 
@@ -219,85 +202,6 @@ public class CosmeticService : IHostedService, IDisposable
             return false;
         }
     }
-
-    public void RecalculateUnlockedItems()
-    {
-        var completedAchievementIds = AchievementManager.CompletedAchievements.Select(x => x.AchievementId).ToHashSet();
-        completedAchievementIds.Add(0); // Add the default achievement to the list.
-
-        UnlockedPlateBackgrounds = CosmeticLabels.PlateBackgroundMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedPlateBorders = CosmeticLabels.PlateBorderMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedProfilePictureBorder = CosmeticLabels.ProfilePictureBorderMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedProfilePictureOverlay = CosmeticLabels.ProfilePictureOverlayMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedDescriptionBackground = CosmeticLabels.DescriptionBackgroundMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedDescriptionBorder = CosmeticLabels.DescriptionBorderMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedDescriptionOverlay = CosmeticLabels.DescriptionOverlayMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedGagSlotBackground = CosmeticLabels.GagSlotBackgroundMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedGagSlotBorder = CosmeticLabels.GagSlotBorderMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedGagSlotOverlay = CosmeticLabels.GagSlotOverlayMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedPadlockBackground = CosmeticLabels.PadlockBackgroundMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedPadlockBorder = CosmeticLabels.PadlockBorderMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedPadlockOverlay = CosmeticLabels.PadlockOverlayMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedBlockedSlotsBackground = CosmeticLabels.BlockedSlotsBackgroundMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedBlockedSlotsBorder = CosmeticLabels.BlockedSlotsBorderMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedBlockedSlotsOverlay = CosmeticLabels.BlockedSlotsOverlayMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedBlockedSlotBorder = CosmeticLabels.BlockedSlotBorderMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-
-        UnlockedBlockedSlotOverlay = CosmeticLabels.BlockedSlotOverlayMap
-            .Where(kvp => completedAchievementIds.Contains(kvp.Key)).Select(kvp => kvp.Value)
-            .ToList();
-    }
-
 
     public Task StartAsync(CancellationToken cancellationToken)
     {

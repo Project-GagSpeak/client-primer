@@ -56,26 +56,7 @@ public partial class KinkPlateUI : WindowMediatorSubscriberBase
         catch (Exception ex) { StaticLogger.Logger.LogError($"Error: {ex}"); }
     }
 
-    private void CloseButton(ImDrawListPtr drawList)
-    {
-        var btnPos = CloseButtonPos;
-        var btnSize = CloseButtonSize;
-
-        var closeButtonColor = HoveringCloseButton ? ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)) : ImGui.GetColorU32(ImGuiColors.ParsedPink);
-
-        drawList.AddLine(btnPos, btnPos + btnSize, closeButtonColor, 3);
-        drawList.AddLine(new Vector2(btnPos.X + btnSize.X, btnPos.Y), new Vector2(btnPos.X, btnPos.Y + btnSize.Y), closeButtonColor, 3);
-
-
-        ImGui.SetCursorScreenPos(btnPos);
-        if (ImGui.InvisibleButton($"CloseButton##KinkPlateClose" + Pair.UserData.UID, btnSize))
-        {
-            this.IsOpen = false;
-        }
-        HoveringCloseButton = ImGui.IsItemHovered();
-    }
-
-    private void DrawLimitedDescription(string desc, Vector4 color, Vector2 size)
+    public static void DrawLimitedDescription(string desc, Vector4 color, Vector2 size)
     {
         // Calculate the line height and determine the max lines based on available height
         float lineHeight = ImGui.CalcTextSize("A").Y;

@@ -955,15 +955,16 @@ public class SettingsUi : WindowMediatorSubscriberBase
     /// <summary> Displays the Debug section within the settings, where we can set our debug level </summary>
     private static readonly Dictionary<string, LoggerType[]> loggerSections = new Dictionary<string, LoggerType[]>
     {
-        { "Main", new[] { LoggerType.Achievements, LoggerType.Mediator, LoggerType.GarblerCore } },
-        { "Interop", new[] { LoggerType.IpcGagSpeak, LoggerType.IpcCustomize, LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra, LoggerType.Appearance } },
+        { "Foundation", new[] { LoggerType.Achievements, LoggerType.AchievementEvents, LoggerType.AchievementInfo } },
+        { "Interop", new[] { LoggerType.IpcGagSpeak, LoggerType.IpcCustomize, LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra } },
+        { "State Managers", new[] { LoggerType.AppearanceState, LoggerType.ToyboxState, LoggerType.Mediator, LoggerType.GarblerCore } },
+        { "Update Monitors", new[] { LoggerType.ToyboxAlarms, LoggerType.ActionsNotifier, LoggerType.KinkPlateMonitor, LoggerType.EmoteMonitor, LoggerType.ChatDetours, LoggerType.ActionEffects, LoggerType.SpatialAudioLogger } },
         { "Hardcore", new[] { LoggerType.HardcoreActions, LoggerType.HardcoreMovement, LoggerType.HardcorePrompt } },
-        { "Player Data", new[] { LoggerType.GagManagement, LoggerType.PadlockManagement, LoggerType.ClientPlayerData, LoggerType.GameObjects, LoggerType.PairManagement, LoggerType.OnlinePairs, LoggerType.VisiblePairs, LoggerType.Restraints, LoggerType.Puppeteer } },
-        { "Services", new[] { LoggerType.Notification, LoggerType.Profiles, LoggerType.Cosmetics, LoggerType.GlobalChat, LoggerType.ContextDtr, LoggerType.PatternHub, LoggerType.Safeword, LoggerType.CursedLoot } },
-        { "Toybox", new[] { LoggerType.ToyboxDevices, LoggerType.ToyboxPatterns, LoggerType.ToyboxTriggers, LoggerType.ToyboxAlarms, LoggerType.VibeControl, LoggerType.PrivateRoom } },
-        { "Update Monitoring", new[] { LoggerType.ChatDetours, LoggerType.ActionEffects, LoggerType.SpatialAudioController, LoggerType.SpatialAudioLogger } },
+        { "Data & Modules", new[] { LoggerType.ClientPlayerData, LoggerType.GagHandling, LoggerType.PadlockHandling, LoggerType.Restraints, LoggerType.Puppeteer, LoggerType.CursedLoot, LoggerType.ToyboxDevices, LoggerType.ToyboxPatterns, LoggerType.ToyboxTriggers, LoggerType.VibeControl } },
+        { "Pair Data", new[] { LoggerType.PairManagement, LoggerType.PairInfo, LoggerType.PairDataTransfer, LoggerType.PairHandlers, LoggerType.OnlinePairs, LoggerType.VisiblePairs, LoggerType.PrivateRooms, LoggerType.GameObjects } },
+        { "Services", new[] { LoggerType.Cosmetics, LoggerType.Textures, LoggerType.GlobalChat, LoggerType.ContextDtr, LoggerType.PatternHub, LoggerType.Safeword } },
         { "UI", new[] { LoggerType.UiCore, LoggerType.UserPairDrawer, LoggerType.Permissions, LoggerType.Simulation } },
-        { "WebAPI", new[] { LoggerType.PiShock, LoggerType.ApiCore, LoggerType.Callbacks, LoggerType.Health, LoggerType.HubFactory, LoggerType.JwtTokens, LoggerType.Textures } }
+        { "WebAPI", new[] { LoggerType.PiShock, LoggerType.ApiCore, LoggerType.Callbacks, LoggerType.Health, LoggerType.HubFactory, LoggerType.JwtTokens } }
     };
 
     private void DrawLoggerSettings()
@@ -1186,168 +1187,168 @@ public class SettingsUi : WindowMediatorSubscriberBase
                 ImGui.Text($"IsOnline: {clientPair.IsOnline}");
                 ImGui.Text($"IsPaired: {clientPair.IsPaired}");
                 ImGui.Text($"IsVisible: {clientPair.IsVisible}");
-                ImGui.Text($"HasIPCData: {clientPair.LastReceivedIpcData == null}");
+                ImGui.Text($"HasIPCData: {clientPair.LastIpcData == null}");
                 ImGui.Text($"PlayerName: {clientPair.PlayerNameWithWorld ?? "N/A"}");
 
-                if (clientPair.UserPairGlobalPerms != null)
+                if (clientPair.PairGlobals != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Global permissions || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
-                        ImGui.Text($"Safeword: {clientPair.UserPairGlobalPerms.Safeword}");
-                        ImGui.Text($"SafewordUsed: {clientPair.UserPairGlobalPerms.SafewordUsed}");
-                        ImGui.Text($"LiveChatGarblerActive: {clientPair.UserPairGlobalPerms.LiveChatGarblerActive}");
-                        ImGui.Text($"LiveChatGarblerLocked: {clientPair.UserPairGlobalPerms.LiveChatGarblerLocked}");
+                        ImGui.Text($"Safeword: {clientPair.PairGlobals.Safeword}");
+                        ImGui.Text($"SafewordUsed: {clientPair.PairGlobals.SafewordUsed}");
+                        ImGui.Text($"LiveChatGarblerActive: {clientPair.PairGlobals.LiveChatGarblerActive}");
+                        ImGui.Text($"LiveChatGarblerLocked: {clientPair.PairGlobals.LiveChatGarblerLocked}");
                         ImGui.Separator();
-                        ImGui.Text($"WardrobeEnabled: {clientPair.UserPairGlobalPerms.WardrobeEnabled}");
-                        ImGui.Text($"ItemAutoEquip: {clientPair.UserPairGlobalPerms.ItemAutoEquip}");
-                        ImGui.Text($"RestraintSetAutoEquip: {clientPair.UserPairGlobalPerms.RestraintSetAutoEquip}");
+                        ImGui.Text($"WardrobeEnabled: {clientPair.PairGlobals.WardrobeEnabled}");
+                        ImGui.Text($"ItemAutoEquip: {clientPair.PairGlobals.ItemAutoEquip}");
+                        ImGui.Text($"RestraintSetAutoEquip: {clientPair.PairGlobals.RestraintSetAutoEquip}");
                         ImGui.Separator();
-                        ImGui.Text($"PuppeteerEnabled: {clientPair.UserPairGlobalPerms.PuppeteerEnabled}");
-                        ImGui.Text($"GlobalTriggerPhrase: {clientPair.UserPairGlobalPerms.GlobalTriggerPhrase}");
-                        ImGui.Text($"GlobalAllowSitRequests: {clientPair.UserPairGlobalPerms.GlobalAllowSitRequests}");
-                        ImGui.Text($"GlobalAllowMotionRequests: {clientPair.UserPairGlobalPerms.GlobalAllowMotionRequests}");
-                        ImGui.Text($"GlobalAllowAllRequests: {clientPair.UserPairGlobalPerms.GlobalAllowAllRequests}");
+                        ImGui.Text($"PuppeteerEnabled: {clientPair.PairGlobals.PuppeteerEnabled}");
+                        ImGui.Text($"GlobalTriggerPhrase: {clientPair.PairGlobals.GlobalTriggerPhrase}");
+                        ImGui.Text($"GlobalAllowSitRequests: {clientPair.PairGlobals.GlobalAllowSitRequests}");
+                        ImGui.Text($"GlobalAllowMotionRequests: {clientPair.PairGlobals.GlobalAllowMotionRequests}");
+                        ImGui.Text($"GlobalAllowAllRequests: {clientPair.PairGlobals.GlobalAllowAllRequests}");
                         ImGui.Separator();
-                        ImGui.Text($"MoodlesEnabled: {clientPair.UserPairGlobalPerms.MoodlesEnabled}");
+                        ImGui.Text($"MoodlesEnabled: {clientPair.PairGlobals.MoodlesEnabled}");
                         ImGui.Separator();
-                        ImGui.Text($"ToyboxEnabled: {clientPair.UserPairGlobalPerms.ToyboxEnabled}");
-                        ImGui.Text($"LockToyboxUI: {clientPair.UserPairGlobalPerms.LockToyboxUI}");
-                        ImGui.Text($"ToyIsActive: {clientPair.UserPairGlobalPerms.ToyIsActive}");
-                        ImGui.Text($"ToyIntensity: {clientPair.UserPairGlobalPerms.ToyIntensity}");
-                        ImGui.Text($"SpatialVibratorAudio: {clientPair.UserPairGlobalPerms.SpatialVibratorAudio}");
-                        ImGui.Text($"ForcedFollow: {clientPair.UserPairGlobalPerms.ForcedFollow}");
-                        ImGui.Text($"ForcedEmoteState: {clientPair.UserPairGlobalPerms.ForcedEmoteState}");
-                        ImGui.Text($"ForcedToStay: {clientPair.UserPairGlobalPerms.ForcedStay}");
-                        ImGui.Text($"Blindfold: {clientPair.UserPairGlobalPerms.ForcedBlindfold}");
-                        ImGui.Text($"HiddenChat: {clientPair.UserPairGlobalPerms.ChatBoxesHidden}");
-                        ImGui.Text($"HiddenChatInput: {clientPair.UserPairGlobalPerms.ChatInputHidden}");
-                        ImGui.Text($"BlockingChatInput: {clientPair.UserPairGlobalPerms.ChatInputBlocked}");
+                        ImGui.Text($"ToyboxEnabled: {clientPair.PairGlobals.ToyboxEnabled}");
+                        ImGui.Text($"LockToyboxUI: {clientPair.PairGlobals.LockToyboxUI}");
+                        ImGui.Text($"ToyIsActive: {clientPair.PairGlobals.ToyIsActive}");
+                        ImGui.Text($"ToyIntensity: {clientPair.PairGlobals.ToyIntensity}");
+                        ImGui.Text($"SpatialVibratorAudio: {clientPair.PairGlobals.SpatialVibratorAudio}");
+                        ImGui.Text($"ForcedFollow: {clientPair.PairGlobals.ForcedFollow}");
+                        ImGui.Text($"ForcedEmoteState: {clientPair.PairGlobals.ForcedEmoteState}");
+                        ImGui.Text($"ForcedToStay: {clientPair.PairGlobals.ForcedStay}");
+                        ImGui.Text($"Blindfold: {clientPair.PairGlobals.ForcedBlindfold}");
+                        ImGui.Text($"HiddenChat: {clientPair.PairGlobals.ChatBoxesHidden}");
+                        ImGui.Text($"HiddenChatInput: {clientPair.PairGlobals.ChatInputHidden}");
+                        ImGui.Text($"BlockingChatInput: {clientPair.PairGlobals.ChatInputBlocked}");
                     }
                 }
-                if (clientPair.UserPairUniquePairPerms != null)
+                if (clientPair.PairPerms != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Pair permissions || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
-                        ImGui.Text($"IsPaused: {clientPair.UserPairUniquePairPerms.IsPaused}");
-                        ImGui.Text($"ExtendedLockTimes: {clientPair.UserPairUniquePairPerms.ExtendedLockTimes}");
-                        ImGui.Text($"MaxLockTime: {clientPair.UserPairUniquePairPerms.MaxLockTime}");
-                        ImGui.Text($"InHardcore: {clientPair.UserPairUniquePairPerms.InHardcore}");
+                        ImGui.Text($"IsPaused: {clientPair.PairPerms.IsPaused}");
+                        ImGui.Text($"ExtendedLockTimes: {clientPair.PairPerms.ExtendedLockTimes}");
+                        ImGui.Text($"MaxLockTime: {clientPair.PairPerms.MaxLockTime}");
+                        ImGui.Text($"InHardcore: {clientPair.PairPerms.InHardcore}");
                         ImGui.Separator();
-                        ImGui.Text($"ApplyRestraintSets: {clientPair.UserPairUniquePairPerms.ApplyRestraintSets}");
-                        ImGui.Text($"LockRestraintSets: {clientPair.UserPairUniquePairPerms.LockRestraintSets}");
-                        ImGui.Text($"MaxAllowedRestraintTime: {clientPair.UserPairUniquePairPerms.MaxAllowedRestraintTime}");
-                        ImGui.Text($"RemoveRestraintSets: {clientPair.UserPairUniquePairPerms.RemoveRestraintSets}");
+                        ImGui.Text($"ApplyRestraintSets: {clientPair.PairPerms.ApplyRestraintSets}");
+                        ImGui.Text($"LockRestraintSets: {clientPair.PairPerms.LockRestraintSets}");
+                        ImGui.Text($"MaxAllowedRestraintTime: {clientPair.PairPerms.MaxAllowedRestraintTime}");
+                        ImGui.Text($"RemoveRestraintSets: {clientPair.PairPerms.RemoveRestraintSets}");
                         ImGui.Separator();
-                        ImGui.Text($"TriggerPhrase: {clientPair.UserPairUniquePairPerms.TriggerPhrase}");
-                        ImGui.Text($"StartChar: {clientPair.UserPairUniquePairPerms.StartChar}");
-                        ImGui.Text($"EndChar: {clientPair.UserPairUniquePairPerms.EndChar}");
-                        ImGui.Text($"AllowSitRequests: {clientPair.UserPairUniquePairPerms.AllowSitRequests}");
-                        ImGui.Text($"AllowMotionRequests: {clientPair.UserPairUniquePairPerms.AllowMotionRequests}");
-                        ImGui.Text($"AllowAllRequests: {clientPair.UserPairUniquePairPerms.AllowAllRequests}");
+                        ImGui.Text($"TriggerPhrase: {clientPair.PairPerms.TriggerPhrase}");
+                        ImGui.Text($"StartChar: {clientPair.PairPerms.StartChar}");
+                        ImGui.Text($"EndChar: {clientPair.PairPerms.EndChar}");
+                        ImGui.Text($"AllowSitRequests: {clientPair.PairPerms.AllowSitRequests}");
+                        ImGui.Text($"AllowMotionRequests: {clientPair.PairPerms.AllowMotionRequests}");
+                        ImGui.Text($"AllowAllRequests: {clientPair.PairPerms.AllowAllRequests}");
                         ImGui.Separator();
-                        ImGui.Text($"AllowPositiveStatusTypes: {clientPair.UserPairUniquePairPerms.AllowPositiveStatusTypes}");
-                        ImGui.Text($"AllowNegativeStatusTypes: {clientPair.UserPairUniquePairPerms.AllowNegativeStatusTypes}");
-                        ImGui.Text($"AllowSpecialStatusTypes: {clientPair.UserPairUniquePairPerms.AllowSpecialStatusTypes}");
-                        ImGui.Text($"PairCanApplyOwnMoodlesToYou: {clientPair.UserPairUniquePairPerms.PairCanApplyOwnMoodlesToYou}");
-                        ImGui.Text($"PairCanApplyYourMoodlesToYou: {clientPair.UserPairUniquePairPerms.PairCanApplyYourMoodlesToYou}");
-                        ImGui.Text($"MaxMoodleTime: {clientPair.UserPairUniquePairPerms.MaxMoodleTime}");
-                        ImGui.Text($"AllowPermanentMoodles: {clientPair.UserPairUniquePairPerms.AllowPermanentMoodles}");
+                        ImGui.Text($"AllowPositiveStatusTypes: {clientPair.PairPerms.AllowPositiveStatusTypes}");
+                        ImGui.Text($"AllowNegativeStatusTypes: {clientPair.PairPerms.AllowNegativeStatusTypes}");
+                        ImGui.Text($"AllowSpecialStatusTypes: {clientPair.PairPerms.AllowSpecialStatusTypes}");
+                        ImGui.Text($"PairCanApplyOwnMoodlesToYou: {clientPair.PairPerms.PairCanApplyOwnMoodlesToYou}");
+                        ImGui.Text($"PairCanApplyYourMoodlesToYou: {clientPair.PairPerms.PairCanApplyYourMoodlesToYou}");
+                        ImGui.Text($"MaxMoodleTime: {clientPair.PairPerms.MaxMoodleTime}");
+                        ImGui.Text($"AllowPermanentMoodles: {clientPair.PairPerms.AllowPermanentMoodles}");
                         ImGui.Separator();
-                        ImGui.Text($"ChangeToyState: {clientPair.UserPairUniquePairPerms.CanToggleToyState}");
-                        ImGui.Text($"CanUseVibeRemote: {clientPair.UserPairUniquePairPerms.CanUseVibeRemote}");
-                        ImGui.Text($"CanToggleAlarms: {clientPair.UserPairUniquePairPerms.CanToggleAlarms}");
-                        ImGui.Text($"CanSendAlarms: {clientPair.UserPairUniquePairPerms.CanSendAlarms}");
-                        ImGui.Text($"CanExecutePatterns: {clientPair.UserPairUniquePairPerms.CanExecutePatterns}");
-                        ImGui.Text($"CanStopPatterns: {clientPair.UserPairUniquePairPerms.CanStopPatterns}");
-                        ImGui.Text($"CanToggleTriggers: {clientPair.UserPairUniquePairPerms.CanToggleTriggers}");
+                        ImGui.Text($"ChangeToyState: {clientPair.PairPerms.CanToggleToyState}");
+                        ImGui.Text($"CanUseVibeRemote: {clientPair.PairPerms.CanUseVibeRemote}");
+                        ImGui.Text($"CanToggleAlarms: {clientPair.PairPerms.CanToggleAlarms}");
+                        ImGui.Text($"CanSendAlarms: {clientPair.PairPerms.CanSendAlarms}");
+                        ImGui.Text($"CanExecutePatterns: {clientPair.PairPerms.CanExecutePatterns}");
+                        ImGui.Text($"CanStopPatterns: {clientPair.PairPerms.CanStopPatterns}");
+                        ImGui.Text($"CanToggleTriggers: {clientPair.PairPerms.CanToggleTriggers}");
                         ImGui.Separator();
-                        ImGui.Text($"AllowForcedFollow: {clientPair.UserPairUniquePairPerms.AllowForcedFollow}");
-                        ImGui.Text($"AllowForcedSit: {clientPair.UserPairUniquePairPerms.AllowForcedSit}");
-                        ImGui.Text($"AllowForcedEmoteState: {clientPair.UserPairUniquePairPerms.AllowForcedEmote}");
-                        ImGui.Text($"AllowForcedToStay: {clientPair.UserPairUniquePairPerms.AllowForcedToStay}");
-                        ImGui.Text($"AllowBlindfold: {clientPair.UserPairUniquePairPerms.AllowBlindfold}");
-                        ImGui.Text($"AllowHiddenChat: {clientPair.UserPairUniquePairPerms.AllowHidingChatBoxes}");
-                        ImGui.Text($"AllowHiddenChatInput: {clientPair.UserPairUniquePairPerms.AllowHidingChatInput}");
-                        ImGui.Text($"AllowBlockingChatInput: {clientPair.UserPairUniquePairPerms.AllowChatInputBlocking}");
+                        ImGui.Text($"AllowForcedFollow: {clientPair.PairPerms.AllowForcedFollow}");
+                        ImGui.Text($"AllowForcedSit: {clientPair.PairPerms.AllowForcedSit}");
+                        ImGui.Text($"AllowForcedEmoteState: {clientPair.PairPerms.AllowForcedEmote}");
+                        ImGui.Text($"AllowForcedToStay: {clientPair.PairPerms.AllowForcedToStay}");
+                        ImGui.Text($"AllowBlindfold: {clientPair.PairPerms.AllowBlindfold}");
+                        ImGui.Text($"AllowHiddenChat: {clientPair.PairPerms.AllowHidingChatBoxes}");
+                        ImGui.Text($"AllowHiddenChatInput: {clientPair.PairPerms.AllowHidingChatInput}");
+                        ImGui.Text($"AllowBlockingChatInput: {clientPair.PairPerms.AllowChatInputBlocking}");
                     }
                 }
-                if (clientPair.UserPairEditAccess != null)
+                if (clientPair.PairPermAccess != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Edit Access || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
-                        ImGui.Text("Live Chat Garbler Active Allowed: " + clientPair.UserPairEditAccess.LiveChatGarblerActiveAllowed);
-                        ImGui.Text("Live Chat Garbler Locked Allowed: " + clientPair.UserPairEditAccess.LiveChatGarblerLockedAllowed);
-                        ImGui.Text("Extended Lock Times Allowed: " + clientPair.UserPairEditAccess.ExtendedLockTimesAllowed);
-                        ImGui.Text("Max Lock Time Allowed: " + clientPair.UserPairEditAccess.MaxLockTimeAllowed);
+                        ImGui.Text("Live Chat Garbler Active Allowed: " + clientPair.PairPermAccess.LiveChatGarblerActiveAllowed);
+                        ImGui.Text("Live Chat Garbler Locked Allowed: " + clientPair.PairPermAccess.LiveChatGarblerLockedAllowed);
+                        ImGui.Text("Extended Lock Times Allowed: " + clientPair.PairPermAccess.ExtendedLockTimesAllowed);
+                        ImGui.Text("Max Lock Time Allowed: " + clientPair.PairPermAccess.MaxLockTimeAllowed);
                         ImGui.Separator();
-                        ImGui.Text("Wardrobe Enabled Allowed: " + clientPair.UserPairEditAccess.WardrobeEnabledAllowed);
-                        ImGui.Text("Item Auto Equip Allowed: " + clientPair.UserPairEditAccess.ItemAutoEquipAllowed);
-                        ImGui.Text("Restraint Set Auto Equip Allowed: " + clientPair.UserPairEditAccess.RestraintSetAutoEquipAllowed); ImGui.Text("Apply Restraint Sets Allowed: " + clientPair.UserPairEditAccess.ApplyRestraintSetsAllowed);
-                        ImGui.Text("Lock Restraint Sets Allowed: " + clientPair.UserPairEditAccess.LockRestraintSetsAllowed);
-                        ImGui.Text("Max Allowed Restraint Time Allowed: " + clientPair.UserPairEditAccess.MaxAllowedRestraintTimeAllowed);
-                        ImGui.Text("Remove Restraint Sets Allowed: " + clientPair.UserPairEditAccess.RemoveRestraintSetsAllowed);
+                        ImGui.Text("Wardrobe Enabled Allowed: " + clientPair.PairPermAccess.WardrobeEnabledAllowed);
+                        ImGui.Text("Item Auto Equip Allowed: " + clientPair.PairPermAccess.ItemAutoEquipAllowed);
+                        ImGui.Text("Restraint Set Auto Equip Allowed: " + clientPair.PairPermAccess.RestraintSetAutoEquipAllowed); ImGui.Text("Apply Restraint Sets Allowed: " + clientPair.PairPermAccess.ApplyRestraintSetsAllowed);
+                        ImGui.Text("Lock Restraint Sets Allowed: " + clientPair.PairPermAccess.LockRestraintSetsAllowed);
+                        ImGui.Text("Max Allowed Restraint Time Allowed: " + clientPair.PairPermAccess.MaxAllowedRestraintTimeAllowed);
+                        ImGui.Text("Remove Restraint Sets Allowed: " + clientPair.PairPermAccess.RemoveRestraintSetsAllowed);
                         ImGui.Separator();
-                        ImGui.Text("Puppeteer Enabled Allowed: " + clientPair.UserPairEditAccess.PuppeteerEnabledAllowed);
-                        ImGui.Text("Allow Sit Requests Allowed: " + clientPair.UserPairEditAccess.AllowSitRequestsAllowed);
-                        ImGui.Text("Allow Motion Requests Allowed: " + clientPair.UserPairEditAccess.AllowMotionRequestsAllowed);
-                        ImGui.Text("Allow All Requests Allowed: " + clientPair.UserPairEditAccess.AllowAllRequestsAllowed);
+                        ImGui.Text("Puppeteer Enabled Allowed: " + clientPair.PairPermAccess.PuppeteerEnabledAllowed);
+                        ImGui.Text("Allow Sit Requests Allowed: " + clientPair.PairPermAccess.AllowSitRequestsAllowed);
+                        ImGui.Text("Allow Motion Requests Allowed: " + clientPair.PairPermAccess.AllowMotionRequestsAllowed);
+                        ImGui.Text("Allow All Requests Allowed: " + clientPair.PairPermAccess.AllowAllRequestsAllowed);
                         ImGui.Separator();
-                        ImGui.Text("Moodles Enabled Allowed: " + clientPair.UserPairEditAccess.MoodlesEnabledAllowed);
-                        ImGui.Text("Allow Positive Status Types Allowed: " + clientPair.UserPairEditAccess.AllowPositiveStatusTypesAllowed);
-                        ImGui.Text("Allow Negative Status Types Allowed: " + clientPair.UserPairEditAccess.AllowNegativeStatusTypesAllowed);
-                        ImGui.Text("Allow Special Status Types Allowed: " + clientPair.UserPairEditAccess.AllowSpecialStatusTypesAllowed);
-                        ImGui.Text("Pair Can Apply Own Moodles To You Allowed: " + clientPair.UserPairEditAccess.PairCanApplyOwnMoodlesToYouAllowed);
-                        ImGui.Text("Pair Can Apply Your Moodles To You Allowed: " + clientPair.UserPairEditAccess.PairCanApplyYourMoodlesToYouAllowed);
-                        ImGui.Text("Max Moodle Time Allowed: " + clientPair.UserPairEditAccess.MaxMoodleTimeAllowed);
-                        ImGui.Text("Allow Permanent Moodles Allowed: " + clientPair.UserPairEditAccess.AllowPermanentMoodlesAllowed);
-                        ImGui.Text("Allow Removing Moodles Allowed: " + clientPair.UserPairEditAccess.AllowRemovingMoodlesAllowed);
+                        ImGui.Text("Moodles Enabled Allowed: " + clientPair.PairPermAccess.MoodlesEnabledAllowed);
+                        ImGui.Text("Allow Positive Status Types Allowed: " + clientPair.PairPermAccess.AllowPositiveStatusTypesAllowed);
+                        ImGui.Text("Allow Negative Status Types Allowed: " + clientPair.PairPermAccess.AllowNegativeStatusTypesAllowed);
+                        ImGui.Text("Allow Special Status Types Allowed: " + clientPair.PairPermAccess.AllowSpecialStatusTypesAllowed);
+                        ImGui.Text("Pair Can Apply Own Moodles To You Allowed: " + clientPair.PairPermAccess.PairCanApplyOwnMoodlesToYouAllowed);
+                        ImGui.Text("Pair Can Apply Your Moodles To You Allowed: " + clientPair.PairPermAccess.PairCanApplyYourMoodlesToYouAllowed);
+                        ImGui.Text("Max Moodle Time Allowed: " + clientPair.PairPermAccess.MaxMoodleTimeAllowed);
+                        ImGui.Text("Allow Permanent Moodles Allowed: " + clientPair.PairPermAccess.AllowPermanentMoodlesAllowed);
+                        ImGui.Text("Allow Removing Moodles Allowed: " + clientPair.PairPermAccess.AllowRemovingMoodlesAllowed);
                         ImGui.Separator();
-                        ImGui.Text("Toybox Enabled Allowed: " + clientPair.UserPairEditAccess.ToyboxEnabledAllowed);
-                        ImGui.Text("Lock Toybox UI Allowed: " + clientPair.UserPairEditAccess.LockToyboxUIAllowed);
-                        ImGui.Text("Spatial Vibrator Audio Allowed: " + clientPair.UserPairEditAccess.SpatialVibratorAudioAllowed);
-                        ImGui.Text("Change Toy State Allowed: " + clientPair.UserPairEditAccess.CanToggleToyStateAllowed);
-                        ImGui.Text("Can Use Realtime Vibe Remote Allowed: " + clientPair.UserPairEditAccess.CanUseVibeRemoteAllowed);
-                        ImGui.Text("Can Toggle Alarms: " + clientPair.UserPairEditAccess.CanToggleAlarmsAllowed);
-                        ImGui.Text("Can Send Alarms Allowed: " + clientPair.UserPairEditAccess.CanSendAlarmsAllowed);
-                        ImGui.Text("Can Execute Patterns Allowed: " + clientPair.UserPairEditAccess.CanExecutePatternsAllowed);
-                        ImGui.Text("Can Stop Patterns Allowed: " + clientPair.UserPairEditAccess.CanStopPatternsAllowed);
-                        ImGui.Text("Can Toggle Triggers Allowed: " + clientPair.UserPairEditAccess.CanToggleTriggersAllowed);
+                        ImGui.Text("Toybox Enabled Allowed: " + clientPair.PairPermAccess.ToyboxEnabledAllowed);
+                        ImGui.Text("Lock Toybox UI Allowed: " + clientPair.PairPermAccess.LockToyboxUIAllowed);
+                        ImGui.Text("Spatial Vibrator Audio Allowed: " + clientPair.PairPermAccess.SpatialVibratorAudioAllowed);
+                        ImGui.Text("Change Toy State Allowed: " + clientPair.PairPermAccess.CanToggleToyStateAllowed);
+                        ImGui.Text("Can Use Realtime Vibe Remote Allowed: " + clientPair.PairPermAccess.CanUseVibeRemoteAllowed);
+                        ImGui.Text("Can Toggle Alarms: " + clientPair.PairPermAccess.CanToggleAlarmsAllowed);
+                        ImGui.Text("Can Send Alarms Allowed: " + clientPair.PairPermAccess.CanSendAlarmsAllowed);
+                        ImGui.Text("Can Execute Patterns Allowed: " + clientPair.PairPermAccess.CanExecutePatternsAllowed);
+                        ImGui.Text("Can Stop Patterns Allowed: " + clientPair.PairPermAccess.CanStopPatternsAllowed);
+                        ImGui.Text("Can Toggle Triggers Allowed: " + clientPair.PairPermAccess.CanToggleTriggersAllowed);
                     }
                 }
-                if (clientPair.LastReceivedAppearanceData != null)
+                if (clientPair.LastAppearanceData != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Appearance Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
                         for (int i = 0; i < 3; i++)
                         {
-                            ImGui.Text($"Slot{i}GagType: {clientPair.LastReceivedAppearanceData.GagSlots[i].GagType}");
-                            ImGui.Text($"Slot{i}GagPadlock: {clientPair.LastReceivedAppearanceData.GagSlots[i].Padlock}");
-                            ImGui.Text($"Slot{i}GagPassword: {clientPair.LastReceivedAppearanceData.GagSlots[i].Password}");
-                            ImGui.Text($"Slot{i}GagTimer: {clientPair.LastReceivedAppearanceData.GagSlots[i].Timer}");
-                            ImGui.Text($"Slot{i}GagAssigner: {clientPair.LastReceivedAppearanceData.GagSlots[i].Assigner}");
+                            ImGui.Text($"Slot{i}GagType: {clientPair.LastAppearanceData.GagSlots[i].GagType}");
+                            ImGui.Text($"Slot{i}GagPadlock: {clientPair.LastAppearanceData.GagSlots[i].Padlock}");
+                            ImGui.Text($"Slot{i}GagPassword: {clientPair.LastAppearanceData.GagSlots[i].Password}");
+                            ImGui.Text($"Slot{i}GagTimer: {clientPair.LastAppearanceData.GagSlots[i].Timer}");
+                            ImGui.Text($"Slot{i}GagAssigner: {clientPair.LastAppearanceData.GagSlots[i].Assigner}");
                             ImGui.Separator();
                         }
                     }
                 }
-                if (clientPair.LastReceivedWardrobeData != null)
+                if (clientPair.LastWardrobeData != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Wardrobe Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
-                        ImGui.Text($"ActiveSetId: {clientPair.LastReceivedWardrobeData.ActiveSetId}");
-                        ImGui.Text($"ActiveSetEnabledBy: {clientPair.LastReceivedWardrobeData.ActiveSetEnabledBy}");
-                        ImGui.Text($"ActiveSetLockType: {clientPair.LastReceivedWardrobeData.Padlock}");
-                        ImGui.Text($"ActiveSetLockPassword: {clientPair.LastReceivedWardrobeData.Password}");
-                        ImGui.Text($"ActiveSetLockTime: {clientPair.LastReceivedWardrobeData.Timer}");
-                        ImGui.Text($"ActiveSetLockedBy: {clientPair.LastReceivedWardrobeData.Assigner}");
+                        ImGui.Text($"ActiveSetId: {clientPair.LastWardrobeData.ActiveSetId}");
+                        ImGui.Text($"ActiveSetEnabledBy: {clientPair.LastWardrobeData.ActiveSetEnabledBy}");
+                        ImGui.Text($"ActiveSetLockType: {clientPair.LastWardrobeData.Padlock}");
+                        ImGui.Text($"ActiveSetLockPassword: {clientPair.LastWardrobeData.Password}");
+                        ImGui.Text($"ActiveSetLockTime: {clientPair.LastWardrobeData.Timer}");
+                        ImGui.Text($"ActiveSetLockedBy: {clientPair.LastWardrobeData.Assigner}");
                     }
                 }
-                if (clientPair.LastReceivedAliasData != null)
+                if (clientPair.LastAliasData != null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Alias Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
                         ImGui.Indent();
-                        ImGui.Text($"Listening To: {clientPair.LastReceivedAliasData.CharacterName} @ {clientPair.LastReceivedAliasData.CharacterWorld}");
-                        foreach (var alias in clientPair.LastReceivedAliasData.AliasList)
+                        ImGui.Text($"Listening To: {clientPair.LastAliasData.CharacterName} @ {clientPair.LastAliasData.CharacterWorld}");
+                        foreach (var alias in clientPair.LastAliasData.AliasList)
                         {
                             var tmptext = alias.Enabled ? "Enabled" : "Disabled";
                             ImGui.Text($"{tmptext} :: INPUT -> {alias.InputCommand}");
@@ -1356,45 +1357,45 @@ public class SettingsUi : WindowMediatorSubscriberBase
                         ImGui.Unindent();
                     }
                 }
-                if (clientPair.LastReceivedLightStorage is not null)
+                if (clientPair.LastLightStorage is not null)
                 {
                     if (ImGui.CollapsingHeader($"{clientPair.UserData.UID}'s Light Storage Data || {_serverConfigs.GetNicknameForUid(clientPair.UserData.UID)}"))
                     {
                         ImGui.Text("Gags with Glamour's:");
                         ImGui.Indent();
-                        foreach (var gag in clientPair.LastReceivedLightStorage.GagItems)
+                        foreach (var gag in clientPair.LastLightStorage.GagItems)
                             ImGui.Text($"Gag with Glamour: {gag.Key}");
                         ImGui.Unindent();
                         ImGui.Spacing();
                         ImGui.Text("Restraints:");
                         ImGui.Indent();
-                        foreach (var restraint in clientPair.LastReceivedLightStorage.Restraints)
+                        foreach (var restraint in clientPair.LastLightStorage.Restraints)
                             ImGui.Text("[Identifier: " + restraint.Identifier + "] [Name: " + restraint.Name + "] [AffectedSlots: " + restraint.AffectedSlots.Count + "]");
                         ImGui.Unindent();
                         ImGui.Spacing();
-                        ImGui.Text("Blindfold Item Slot: " + (EquipSlot)clientPair.LastReceivedLightStorage.BlindfoldItem.Slot);
+                        ImGui.Text("Blindfold Item Slot: " + (EquipSlot)clientPair.LastLightStorage.BlindfoldItem.Slot);
                         ImGui.Spacing();
                         ImGui.Text("Cursed Items: ");
                         ImGui.Indent();
-                        foreach (var cursedItem in clientPair.LastReceivedLightStorage.CursedItems)
+                        foreach (var cursedItem in clientPair.LastLightStorage.CursedItems)
                             ImGui.Text("[Identifier: " + cursedItem.Identifier + "] [Name: " + cursedItem.Name + "]");
                         ImGui.Unindent();
                         ImGui.Spacing();
                         ImGui.Text("Patterns: ");
                         ImGui.Indent();
-                        foreach (var pattern in clientPair.LastReceivedLightStorage.Patterns)
+                        foreach (var pattern in clientPair.LastLightStorage.Patterns)
                             ImGui.Text("[Identifier: " + pattern.Identifier + "] [Name: " + pattern.Name + "]");
                         ImGui.Unindent();
                         ImGui.Spacing();
                         ImGui.Text("Alarms: ");
                         ImGui.Indent();
-                        foreach (var alarm in clientPair.LastReceivedLightStorage.Alarms)
+                        foreach (var alarm in clientPair.LastLightStorage.Alarms)
                             ImGui.Text("[Identifier: " + alarm.Identifier + "] [Name: " + alarm.Name + "]");
                         ImGui.Unindent();
                         ImGui.Spacing();
                         ImGui.Text("Triggers: ");
                         ImGui.Indent();
-                        foreach (var trigger in clientPair.LastReceivedLightStorage.Triggers)
+                        foreach (var trigger in clientPair.LastLightStorage.Triggers)
                             ImGui.Text("[Identifier: " + trigger.Identifier + "] [Name: " + trigger.Name + "]");
                         ImGui.Unindent();
                     }

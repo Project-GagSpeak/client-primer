@@ -83,8 +83,8 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
 
     public static AchievementSaveData SaveData { get; private set; } = new();
 
-    public int Total => SaveData.Achievements.Count;
-    public int Completed => SaveData.Achievements.Values.Count(a => a.IsCompleted);
+    public static int Total => SaveData.Achievements.Count;
+    public static int Completed => SaveData.Achievements.Values.Count(a => a.IsCompleted);
     public static List<AchievementBase> AllBase => SaveData.Achievements.Values.Cast<AchievementBase>().ToList();
     public static List<AchievementBase> CompletedAchievements => SaveData.Achievements.Values.Where(a => a.IsCompleted).ToList();
     public static string GetTitleById(int id) => SaveData.Achievements.Values.FirstOrDefault(a => a.AchievementId == id)?.Title ?? "No Title Set";
@@ -132,8 +132,6 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
                 // Update the KinkPlate info
                 await _mainHub.UserSetKinkPlate(new(MainHub.PlayerUserData, profile.Info, profile.ProfilePictureBase64));
                 Logger.LogInformation("Updated KinkPlate™ with latest achievement count total. with new Achievement Completion", LoggerType.Achievements);
-                // recalculate our unlocks.
-                _cosmetics.RecalculateUnlockedItems();
             }
         }
         catch (TaskCanceledException)
@@ -276,9 +274,6 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         _saveDataUpdateCTS?.Dispose();
         _saveDataUpdateCTS = new CancellationTokenSource();
         _ = AchievementDataPeriodicUpdate(_saveDataUpdateCTS.Token);
-
-        // recalculate our unlocks.
-        _cosmetics.RecalculateUnlockedItems();
     }
 
     private static string SaveDataSerialize(LightSaveDataDto lightSaveDataDto)
@@ -302,13 +297,15 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         JObject saveDataJsonObject = JObject.Parse(jsonString);
 
         // Extract and validate the version
-        int version = saveDataJsonObject["Version"]?.Value<int>() ?? 2;
+        int version = saveDataJsonObject["Version"]?.Value<int>() ?? 3;
 
         // Apply migrations based on the version number
-        if (version < 2)
+        if (version < 3)
         {
             // Example migration: Update structure for version 1 to version 2
-            MigrateVersion1ToVersion2(saveDataJsonObject);
+            MigrateToVersion3(saveDataJsonObject);
+            // update verion to 3
+            version = 3;
         }
 
         // Extract and validate LightAchievementData
@@ -339,8 +336,13 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
                     ConditionalTaskBegun = achievement["ConditionalTaskBegun"]?.Value<bool>() ?? false,
                     StartTime = achievement["StartTime"]?.Value<DateTime>() ?? DateTime.MinValue,
                     RecordedDateTimes = achievement["RecordedDateTimes"]?.ToObject<List<DateTime>>() ?? new List<DateTime>(),
-                    ActiveItems = achievement["ActiveItems"]?.ToObject<Dictionary<string, TrackedItem>>() ?? new Dictionary<string, TrackedItem>()
+                    ActiveItems = achievement["ActiveItems"]?.ToObject<List<TrackedItem>>() ?? new List<TrackedItem>()
                 };
+
+/*                // log a string that shows each active items key, and its respective values item and apply time.
+                if(lightAchievement.Type is AchievementType.Duration && lightAchievement.ActiveItems != new List<TrackedItem>())
+                    StaticLogger.Logger.LogDebug("ActiveItems:" + string.Join(", ", lightAchievement.ActiveItems.Select(x => x.Item + " (" + x.UIDAffected + " - " + x.TimeAdded + ")")));*/
+
                 lightAchievementDataList.Add(lightAchievement);
             }
             else
@@ -370,27 +372,37 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
         return lightSaveDataDto;
     }
 
-    private static void MigrateVersion1ToVersion2(JObject saveDataJsonObject)
+    private static void MigrateToVersion3(JObject saveDataJsonObject)
     {
-        // Example migration logic for version 1 to version 2
-        // Add or modify fields as necessary to match the version 2 structure
-        // This is just an example and should be customized based on actual migration needs
+        // this made a successful update.
+        JArray lightAchievementDataArray = saveDataJsonObject["LightAchievementData"] as JArray ?? new JArray();
 
-        // Example: Add a new field that exists in version 2 but not in version 1
-        /*        if (saveDataJsonObject["NewField"] == null)
-                {
-                    saveDataJsonObject["NewField"] = "DefaultValue";
-                }*/
+        foreach (JObject achievement in lightAchievementDataArray)
+        {
+            // Check if ActiveItems is a dictionary
+            if (achievement["ActiveItems"] is JObject activeItemsObject)
+            {
+                // Convert the dictionary to a list
+                var activeItemsList = activeItemsObject.Properties()
+                    .Select(p => new TrackedItem
+                    {
+                        Item = p.Name,
+                        UIDAffected = p.Value["UIDAffected"]?.ToString(),
+                        TimeAdded = p.Value["TimeAdded"]?.Value<DateTime>() ?? DateTime.MinValue
+                    })
+                    .ToList();
 
-        // Example: Modify existing fields to match the new structure
-        // ...
+                // Replace the ActiveItems property with the new list
+                achievement["ActiveItems"] = JToken.FromObject(activeItemsList);
+            }
+        }
     }
 
     private void SubscribeToEvents()
     {
         Logger.LogInformation("Player Logged In, Subscribing to Events!");
         _eventManager.Subscribe<OrderInteractionKind>(UnlocksEvent.OrderAction, OnOrderAction);
-        _eventManager.Subscribe<GagLayer, GagType, bool, bool>(UnlocksEvent.GagAction, OnGagApplied);
+        _eventManager.Subscribe<GagLayer, GagType, bool>(UnlocksEvent.GagAction, OnGagApplied);
         _eventManager.Subscribe<GagLayer, GagType, bool>(UnlocksEvent.GagRemoval, OnGagRemoval);
         _eventManager.Subscribe<GagType>(UnlocksEvent.PairGagAction, OnPairGagApplied);
         _eventManager.Subscribe(UnlocksEvent.GagUnlockGuessFailed, () => (SaveData.Achievements[Achievements.RunningGag.Id] as ConditionalAchievement)?.CheckCompletion());
@@ -467,7 +479,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     private void UnsubscribeFromEvents()
     {
         _eventManager.Unsubscribe<OrderInteractionKind>(UnlocksEvent.OrderAction, OnOrderAction);
-        _eventManager.Unsubscribe<GagLayer, GagType, bool, bool>(UnlocksEvent.GagAction, OnGagApplied);
+        _eventManager.Unsubscribe<GagLayer, GagType, bool>(UnlocksEvent.GagAction, OnGagApplied);
         _eventManager.Unsubscribe<GagLayer, GagType, bool>(UnlocksEvent.GagRemoval, OnGagRemoval);
         _eventManager.Unsubscribe<GagType>(UnlocksEvent.PairGagAction, OnPairGagApplied);
         _eventManager.Unsubscribe(UnlocksEvent.GagUnlockGuessFailed, () => (SaveData.Achievements[Achievements.RunningGag.Id] as ConditionalAchievement)?.CheckCompletion());

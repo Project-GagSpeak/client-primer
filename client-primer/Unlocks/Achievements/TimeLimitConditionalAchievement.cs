@@ -10,7 +10,7 @@ public class TimeLimitConditionalAchievement : AchievementBase
     public Func<bool> RequiredCondition;
     public DurationTimeUnit TimeUnit { get; init; }
     private CancellationTokenSource _cancellationTokenSource;
-    private bool _taskStarted = false;
+    private bool TaskStarted = false;
 
 
     public TimeLimitConditionalAchievement(AchievementModuleKind module, AchievementInfo infoBase, TimeSpan duration, Func<bool> condition, 
@@ -89,7 +89,7 @@ public class TimeLimitConditionalAchievement : AchievementBase
         }
         else
         {
-            StaticLogger.Logger.LogDebug($"Condition for {Title} not met. Resetting the timer.", LoggerType.Achievements);
+            UnlocksEventManager.AchievementLogger.LogTrace($"Condition for {Title} not met. Resetting the timer.", LoggerType.AchievementInfo);
             ResetTask();
         }
     }
@@ -97,14 +97,14 @@ public class TimeLimitConditionalAchievement : AchievementBase
     // Method to Start the Task/Timer
     public void StartTask()
     {
-        if (IsCompleted || !MainHub.IsConnected || _taskStarted)
+        if (IsCompleted || !MainHub.IsConnected || TaskStarted)
             return;
 
         if (RequiredCondition())
         {
-            StaticLogger.Logger.LogDebug($"Condition for {Title} met. Starting the timer.", LoggerType.Achievements);
+            UnlocksEventManager.AchievementLogger.LogTrace($"Condition for {Title} met. Starting the timer.", LoggerType.AchievementInfo);
             StartPoint = DateTime.UtcNow;
-            _taskStarted = true;
+            TaskStarted = true;
             StartTimer();
         }
     }
@@ -115,18 +115,18 @@ public class TimeLimitConditionalAchievement : AchievementBase
         if (IsCompleted || !MainHub.IsConnected)
             return;
 
-        StaticLogger.Logger.LogDebug($"Interrupting task for {Title}.", LoggerType.Achievements);
-        _taskStarted = false;
+        UnlocksEventManager.AchievementLogger.LogTrace($"Interrupting task for {Title}.", LoggerType.AchievementInfo);
+        TaskStarted = false;
         ResetTask();
     }
 
     // Method to Complete the Task when time and condition are met
     private void CompleteTask()
     {
-        StaticLogger.Logger.LogDebug($"Time and condition met for {Title}. Marking as completed.", LoggerType.Achievements);
+        UnlocksEventManager.AchievementLogger.LogTrace($"Time and condition met for {Title}. Marking as completed.", LoggerType.AchievementInfo);
         MarkCompleted();
         _cancellationTokenSource?.Cancel();
-        _taskStarted = false;
+        TaskStarted = false;
     }
 
     // Starts the timer task
@@ -145,7 +145,7 @@ public class TimeLimitConditionalAchievement : AchievementBase
             }
             catch (TaskCanceledException)
             {
-                StaticLogger.Logger.LogDebug($"Timer for {Title} was canceled.", LoggerType.Achievements);
+                UnlocksEventManager.AchievementLogger.LogDebug($"Timer for {Title} was canceled.", LoggerType.AchievementInfo);
             }
         }, token);
     }
@@ -153,8 +153,10 @@ public class TimeLimitConditionalAchievement : AchievementBase
     // Resets the task if condition fails or is interrupted
     private void ResetTask()
     {
+        UnlocksEventManager.AchievementLogger.LogTrace($"Failed to complete {Title} in time, resetting task..", LoggerType.AchievementInfo);
         StartPoint = DateTime.MinValue;
         _cancellationTokenSource?.Cancel();
+        TaskStarted = false;
     }
 
     public override AchievementType GetAchievementType() => AchievementType.TimeLimitConditional;

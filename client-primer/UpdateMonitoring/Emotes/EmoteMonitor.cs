@@ -51,9 +51,9 @@ public class EmoteMonitor
         EmoteCommandsYesNoAccepted = EmoteCommandsWithId.Keys.Except(yesNoCommands).ToHashSet();
 
         // log all recorded emotes.
-        _logger.LogDebug("Emote Commands: " + string.Join(", ", EmoteCommands));
+        _logger.LogDebug("Emote Commands: " + string.Join(", ", EmoteCommands), LoggerType.EmoteMonitor);
 
-        _logger.LogDebug("CposeInfo => " + EmoteDataAll.FirstOrDefault(x => x.RowId is 90)?.Name.RawString);
+        _logger.LogDebug("CposeInfo => " + EmoteDataAll.FirstOrDefault(x => x.RowId is 90)?.Name.RawString, LoggerType.EmoteMonitor);
     }
 
     public static readonly ushort[] StandIdleList = new ushort[] { 0, 91, 92, 107, 108, 218, 219 };
@@ -90,7 +90,6 @@ public class EmoteMonitor
             return;
         }
         // set the next allowance.
-        StaticLogger.Logger.LogWarning("Setting Next Emote Allowance to true!");
         OnEmote.AllowExecution = (true, emoteId);
         // Execute.
         EmoteAgentRef->ExecuteEmote(emoteId);
@@ -110,109 +109,13 @@ public class EmoteMonitor
     public static bool IsSittingAny(ushort emoteId) => SitIdList.Concat(GroundSitIdList).Contains(emoteId);
     public static bool IsAnyPoseWithCyclePose(ushort emoteId) => SitIdList.Concat(GroundSitIdList).Concat(StandIdleList).Contains(emoteId);
 
-    /// <summary>
-    /// Examines our current Emote State and processes if we should be forcing any emote or not.
-    /// <para>
-    /// This function is extra overhead to avoid players being falsely flagged in bad states 
-    /// and firing way more emotes than they should.
-    /// </para>
-    /// It will need to account for many factors, so try and make it optimized.
-    /// </summary>
-    /// <param name="emoteState"> The Requested Forced Emote State to Ensure. </param>
-    /// <returns> True if we should handle emote or Cycle Pose, false if we shouldnt do either. </returns>
-    public bool ShouldHandleExpected(GlobalPermExtensions.EmoteState emoteState, out bool doEmote, out bool doCyclePose, out bool ensureNoSit)
-    {
-        ushort currentEmote = CurrentEmoteId();
-        byte currentCyclePose = CurrentCyclePose();
-        bool inPositionLoop = InPositionLoop();
-        // Assume we need to make no changes.
-        doEmote = false;
-        doCyclePose = false;
-        ensureNoSit = false;
-
-        // If our expected Emote is 50, handle sitting.
-        if (emoteState.EmoteID is 50)
-        {
-            if (!IsSitting(currentEmote))
-            {
-                // Check to see if we might actually be sitting, but are just shifting between our cposes. (no change req.)
-                if (inPositionLoop)
-                    return false;
-
-                // We are actually not sitting, so we need to execute the sit emote, but not the cycle pose.
-                doEmote = true;
-                return true;
-            }
-            // We are sitting, so check the cycle pose.
-            if (currentCyclePose != emoteState.CyclePoseByte)
-            {
-                // Only enforce this if our cycle pose state is not already running.
-                if (EnforceCyclePoseTask is not null && !EnforceCyclePoseTask.IsCompleted)
-                    return false;
-
-                // do the cycle pose thang.
-                doCyclePose = true;
-                return true;
-            }
-            // We are already in the correct cycle pose, so we don't need to do anything.
-            return false;
-        }
-
-        // Handle the GroundSitBullshittery.
-        if (emoteState.EmoteID is 52)
-        {
-            if (!IsGroundSitting(currentEmote))
-            {
-                // Check to see if we might actually be sitting, but are just shifting between our Cycle Poses. (no change req.)
-                if (inPositionLoop)
-                    return false;
-
-                // We are actually not sitting, so we need to execute the sit emote, but not the cycle pose.
-                doEmote = true;
-                return true;
-            }
-            // We are sitting, so check the cycle pose.
-            if (currentCyclePose != emoteState.CyclePoseByte)
-            {
-                // Only enforce this if our cycle pose state is not already running.
-                if (EnforceCyclePoseTask is not null && !EnforceCyclePoseTask.IsCompleted)
-                    return false;
-
-                // do the cycle pose thang.
-                doCyclePose = true;
-                return true;
-            }
-            // We are already in the correct cycle pose, so we don't need to do anything.
-            return false;
-        }
-
-        // if our expected state is not 50 or 52, but we are in any state, we need to execute /sit instead.
-        if (IsSittingAny(currentEmote) && emoteState.EmoteID is not (50 or 52))
-        {
-            _logger.LogDebug("Forcing player to stand up from sitting state.", LoggerType.HardcoreMovement);
-            // We are sitting, so we need to execute the sit emote, but not the cycle pose.
-            ensureNoSit = true;
-            return true;
-        }
-
-        // Handling Any other emote requires no Cycle Pose shifts.
-        if (currentEmote != emoteState.EmoteID)
-        {
-            // We are not in the correct emote, so we need to execute the emote, but not the cycle pose.
-            doEmote = true;
-            return true;
-        }
-
-        return false;
-    }
-
     public static bool IsCyclePoseTaskRunning => EnforceCyclePoseTask is not null && !EnforceCyclePoseTask.IsCompleted;
     private static Task? EnforceCyclePoseTask;
 
     public void ForceCyclePose(byte expectedCyclePose)
     {
         if (EmoteMonitor.IsCyclePoseTaskRunning) return;
-        _logger.LogDebug("Forcing player into cycle pose: " + expectedCyclePose, LoggerType.HardcoreMovement);
+        _logger.LogDebug("Forcing player into cycle pose: " + expectedCyclePose, LoggerType.EmoteMonitor);
         EnforceCyclePoseTask = ForceCyclePoseInternal(expectedCyclePose);
     }
 
@@ -236,7 +139,7 @@ public class EmoteMonitor
                     if (current == expectedCyclePose)
                         break;
 
-                    _logger.LogTrace("Cycle Pose State was [" + current + "], expected [" + expectedCyclePose + "]. Sending /cpose.", LoggerType.HardcoreMovement);
+                    _logger.LogTrace("Cycle Pose State was [" + current + "], expected [" + expectedCyclePose + "]. Sending /cpose.", LoggerType.EmoteMonitor);
                     ExecuteEmote(90);
                     await WaitForCondition(() => EmoteMonitor.CanUseEmote(90), 5);
                 }
@@ -262,13 +165,13 @@ public class EmoteMonitor
         {
             while (!condition() && !timeout.Token.IsCancellationRequested)
             {
-                StaticLogger.Logger.LogTrace("(Excessive) Waiting for condition to be true.");
+                StaticLogger.Logger.LogTrace("(Excessive) Waiting for condition to be true.", LoggerType.EmoteMonitor);
                 await Task.Delay(100, timeout.Token);
             }
         }
         catch (TaskCanceledException)
         {
-            StaticLogger.Logger.LogDebug("WaitForCondition was canceled due to timeout.");
+            StaticLogger.Logger.LogTrace("WaitForCondition was canceled due to timeout.", LoggerType.EmoteMonitor);
         }
     }
 }

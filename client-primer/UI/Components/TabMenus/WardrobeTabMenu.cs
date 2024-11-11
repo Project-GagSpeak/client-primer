@@ -37,7 +37,7 @@ public class WardrobeTabMenu : TabMenuBase
             {
                 WardrobeTabs.Tabs.ManageSets => "Overview of current restraint sets.--SEP--Apply, Lock, Unlock, Disable, and Customize them here.",
                 WardrobeTabs.Tabs.StruggleSim => "A WIP Concept that is questionable on if it will ever be added.--SEP--WIP During Open Beta.",
-                WardrobeTabs.Tabs.CursedLoot => "Remember those Pic Sets & Videos about dungeon Mimics that make people helpless & bound in bad ends?" +
+                WardrobeTabs.Tabs.CursedLoot => "Remember those Pic Sets & Videos about dungeon Mimics\nthat make people helpless & bound in bad ends?" +
                 "--SEP--Yeah, that's effectively what this makes a reality for you.",
                 WardrobeTabs.Tabs.ManageMoodles => "See the details of your status and presets, and your pairs status and presets.",
                 _ => string.Empty,

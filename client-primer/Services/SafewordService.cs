@@ -109,7 +109,7 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
                 if (pair.UserPair.OwnPairPerms.InHardcore)
                 {
                     // put us out of hardcore, and disable any active hardcore stuff.
-                    pair.UserPairOwnUniquePairPerms.InHardcore = false;
+                    pair.OwnPerms.InHardcore = false;
                     // send the updates to the server.
                     if (MainHub.ServerStatus is ServerState.Connected)
                         _ = _apiHubMain.UserUpdateOwnPairPerm(new(pair.UserData, new KeyValuePair<string, object>("InHardcore", false)));
@@ -166,15 +166,15 @@ public class SafewordService : MediatorSubscriberBase, IHostedService
             if (pair.UserPair.OwnPairPerms.InHardcore)
             {
                 // put us out of hardcore, and disable any active hardcore stuff.
-                pair.UserPairOwnUniquePairPerms.InHardcore = false;
-                pair.UserPairOwnUniquePairPerms.AllowForcedFollow = false;
-                pair.UserPairOwnUniquePairPerms.AllowForcedSit = false;
-                pair.UserPairOwnUniquePairPerms.AllowForcedEmote = false;
-                pair.UserPairOwnUniquePairPerms.AllowForcedToStay = false;
-                pair.UserPairOwnUniquePairPerms.AllowBlindfold = false;
-                pair.UserPairOwnUniquePairPerms.AllowHidingChatBoxes = false;
-                pair.UserPairOwnUniquePairPerms.AllowHidingChatInput = false;
-                pair.UserPairOwnUniquePairPerms.AllowChatInputBlocking = false;
+                pair.OwnPerms.InHardcore = false;
+                pair.OwnPerms.AllowForcedFollow = false;
+                pair.OwnPerms.AllowForcedSit = false;
+                pair.OwnPerms.AllowForcedEmote = false;
+                pair.OwnPerms.AllowForcedToStay = false;
+                pair.OwnPerms.AllowBlindfold = false;
+                pair.OwnPerms.AllowHidingChatBoxes = false;
+                pair.OwnPerms.AllowHidingChatInput = false;
+                pair.OwnPerms.AllowChatInputBlocking = false;
                 // send the updates to the server.
                 if (MainHub.ServerStatus is ServerState.Connected)
                 {

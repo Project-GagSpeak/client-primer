@@ -24,25 +24,25 @@ public partial class PairStickyUI
 {
     private void DrawToyboxActions()
     {
-        var lastToyboxData = UserPairForPerms.LastReceivedToyboxData;
-        var lastLightStorage = UserPairForPerms.LastReceivedLightStorage;
+        var lastToyboxData = StickyPair.LastToyboxData;
+        var lastLightStorage = StickyPair.LastLightStorage;
         if (lastToyboxData is null || lastLightStorage is null)
             return;
 
-        bool openVibeRemoteDisabled = !UserPairForPerms.OnlineToyboxUser || !PairPerms.CanUseVibeRemote;
-        bool patternExecuteDisabled = !PairPerms.CanExecutePatterns || !UserPairForPerms.UserPairGlobalPerms.ToyIsActive || !lastLightStorage.Patterns.Any();
-        bool patternStopDisabled = !PairPerms.CanStopPatterns || !UserPairForPerms.UserPairGlobalPerms.ToyIsActive || lastToyboxData.ActivePatternId.IsEmptyGuid();
+        bool openVibeRemoteDisabled = !StickyPair.OnlineToyboxUser || !PairPerms.CanUseVibeRemote;
+        bool patternExecuteDisabled = !PairPerms.CanExecutePatterns || !StickyPair.PairGlobals.ToyIsActive || !lastLightStorage.Patterns.Any();
+        bool patternStopDisabled = !PairPerms.CanStopPatterns || !StickyPair.PairGlobals.ToyIsActive || lastToyboxData.ActivePatternId.IsEmptyGuid();
         bool alarmToggleDisabled = !PairPerms.CanToggleAlarms || !lastLightStorage.Alarms.Any();
         bool alarmSendDisabled = !PairPerms.CanSendAlarms;
         bool triggerToggleDisabled = !PairPerms.CanToggleTriggers || !lastLightStorage.Triggers.Any();
 
         ////////// TOGGLE PAIRS ACTIVE TOYS //////////
-        string toyToggleText = UserPairForPerms.UserPairGlobalPerms.ToyIsActive ? "Turn Off " + PairNickOrAliasOrUID + "'s Toys" : "Turn On " + PairNickOrAliasOrUID + "'s Toys";
+        string toyToggleText = StickyPair.PairGlobals.ToyIsActive ? "Turn Off " + PairNickOrAliasOrUID + "'s Toys" : "Turn On " + PairNickOrAliasOrUID + "'s Toys";
         if (_uiShared.IconTextButton(FontAwesomeIcon.User, toyToggleText, WindowMenuWidth, true))
         {
-            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(UserPairForPerms.UserData,
-                new KeyValuePair<string, object>("ToyIsActive", !UserPairForPerms.UserPairGlobalPerms.ToyIsActive), MainHub.PlayerUserData));
-            _logger.LogDebug("Toggled Toybox for " + PairNickOrAliasOrUID + "(New State: " + !UserPairForPerms.UserPairGlobalPerms.ToyIsActive + ")", LoggerType.Permissions);
+            _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(StickyPair.UserData,
+                new KeyValuePair<string, object>("ToyIsActive", !StickyPair.PairGlobals.ToyIsActive), MainHub.PlayerUserData));
+            _logger.LogDebug("Toggled Toybox for " + PairNickOrAliasOrUID + "(New State: " + !StickyPair.PairGlobals.ToyIsActive + ")", LoggerType.Permissions);
         }
         UiSharedService.AttachToolTip("Toggles the state of " + PairNickOrAliasOrUID + "'s connected Toys.");
 
@@ -89,7 +89,7 @@ public partial class PairStickyUI
                             newToyboxData.ActivePatternId = onButtonPress.Identifier;
 
                             // Run the call to execute the pattern to the server.
-                            _ = _apiHubMain.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxPatternExecuted));
+                            _ = _apiHubMain.UserPushPairDataToyboxUpdate(new(StickyPair.UserData, newToyboxData, DataUpdateKind.ToyboxPatternExecuted));
                             _logger.LogDebug("Executing Pattern " + onButtonPress.Name + " on " + PairNickOrAliasOrUID + "'s Toy", LoggerType.Permissions);
                             Opened = InteractionType.None;
                         }
@@ -107,7 +107,7 @@ public partial class PairStickyUI
                 var newToyboxData = lastToyboxData.DeepClone();
                 if (newToyboxData == null) throw new Exception("Toybox data is null, not sending");
 
-                _ = _apiHubMain.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxPatternStopped));
+                _ = _apiHubMain.UserPushPairDataToyboxUpdate(new(StickyPair.UserData, newToyboxData, DataUpdateKind.ToyboxPatternStopped));
                 _logger.LogDebug("Stopped active Pattern running on "+PairNickOrAliasOrUID+"'s toy", LoggerType.Permissions);
             }
             catch (Exception e) { _logger.LogError("Failed to push updated ToyboxPattern data: " + e.Message); }
@@ -128,7 +128,7 @@ public partial class PairStickyUI
 
 
                 LightAlarm selectedAlarm = _permActions.GetSelectedItem<LightAlarm>("ToggleAlarmForPairPermCombo", PairUID) ?? new LightAlarm();
-                bool isEnabled = UserPairForPerms.LastReceivedToyboxData?.ActiveAlarms.Contains(selectedAlarm.Identifier) ?? false;
+                bool isEnabled = StickyPair.LastToyboxData?.ActiveAlarms.Contains(selectedAlarm.Identifier) ?? false;
 
                 _permActions.DrawGenericComboButton(PairUID, "ExecutePatternForPairPermCombo", (isEnabled ? "Disable" : "Enable"), WindowMenuWidth, 
                     comboItems: lastLightStorage.Alarms, 
@@ -155,7 +155,7 @@ public partial class PairStickyUI
                                 newToyboxData.ActiveAlarms.Add(onButtonPress.Identifier);
 
                             // Send out the command.
-                            _ = _apiHubMain.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxAlarmToggled));
+                            _ = _apiHubMain.UserPushPairDataToyboxUpdate(new(StickyPair.UserData, newToyboxData, DataUpdateKind.ToyboxAlarmToggled));
                             _logger.LogDebug("Toggling Alarm " + onButtonPress.Name + " on " + PairNickOrAliasOrUID + "'s AlarmList", LoggerType.Permissions);
                             Opened = InteractionType.None;
                         }
@@ -202,7 +202,7 @@ public partial class PairStickyUI
                             else 
                                 newToyboxData.ActiveTriggers.Add(onButtonPress.Identifier);
 
-                            _ = _apiHubMain.UserPushPairDataToyboxUpdate(new(UserPairForPerms.UserData, newToyboxData, DataUpdateKind.ToyboxTriggerToggled));
+                            _ = _apiHubMain.UserPushPairDataToyboxUpdate(new(StickyPair.UserData, newToyboxData, DataUpdateKind.ToyboxTriggerToggled));
                             _logger.LogDebug("Toggling Trigger "+onButtonPress.Name+" on "+PairNickOrAliasOrUID+"'s TriggerList", LoggerType.Permissions);
                             Opened = InteractionType.None;
                         }

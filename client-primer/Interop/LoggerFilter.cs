@@ -46,15 +46,31 @@ public static class LoggerFilter
     {
         return new HashSet<LoggerType>
         {
-            LoggerType.None, LoggerType.Achievements, LoggerType.Mediator, LoggerType.IpcGagSpeak, LoggerType.IpcCustomize,
-            LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra, LoggerType.Appearance,
-            LoggerType.GagManagement, LoggerType.PadlockManagement, LoggerType.ClientPlayerData, LoggerType.GameObjects,
-            LoggerType.PairManagement, LoggerType.OnlinePairs, LoggerType.VisiblePairs, LoggerType.PrivateRoom,
-            LoggerType.Notification, LoggerType.Profiles, LoggerType.Cosmetics, LoggerType.ContextDtr, LoggerType.PatternHub,
-            LoggerType.Safeword, LoggerType.CursedLoot, LoggerType.Restraints, LoggerType.Puppeteer, LoggerType.ToyboxDevices,
-            LoggerType.ToyboxPatterns, LoggerType.ToyboxTriggers, LoggerType.ToyboxAlarms, LoggerType.VibeControl,
-            LoggerType.SpatialAudioController, LoggerType.UiCore, LoggerType.UserPairDrawer, LoggerType.Permissions,
-            LoggerType.Simulation, LoggerType.PiShock, LoggerType.ApiCore, LoggerType.Callbacks, LoggerType.HubFactory,
+            // Foundation
+            LoggerType.None, LoggerType.Achievements, 
+            // Interop
+            LoggerType.IpcGagSpeak, LoggerType.IpcCustomize, LoggerType.IpcGlamourer, LoggerType.IpcMare, LoggerType.IpcMoodles, LoggerType.IpcPenumbra, 
+            // State Managers
+            LoggerType.AppearanceState, LoggerType.ToyboxState,
+            // Update Monitors
+            LoggerType.ActionsNotifier, LoggerType.KinkPlateMonitor,
+            // Hardcore (nothing)
+
+            // PlayerData & Modules
+            LoggerType.ClientPlayerData, LoggerType.GagHandling, LoggerType.PadlockHandling, LoggerType.Restraints, 
+            LoggerType.Puppeteer, LoggerType.CursedLoot, LoggerType.ToyboxDevices, LoggerType.ToyboxPatterns, 
+            LoggerType.ToyboxTriggers,
+
+            // Pair Data
+            LoggerType.PairManagement, LoggerType.PairInfo, LoggerType.PairDataTransfer, LoggerType.OnlinePairs, 
+            LoggerType.VisiblePairs,
+
+            // services
+            LoggerType.Cosmetics, LoggerType.ContextDtr, LoggerType.Safeword,
+            
+            LoggerType.UiCore, LoggerType.UserPairDrawer, LoggerType.Permissions, 
+            
+            LoggerType.PiShock, LoggerType.ApiCore, LoggerType.Callbacks, LoggerType.HubFactory,
         };
     }
 

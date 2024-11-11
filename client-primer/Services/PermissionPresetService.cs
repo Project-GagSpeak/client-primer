@@ -40,7 +40,7 @@ public class PermissionPresetService
     {
         // before drawing, we need to know if we should disable it or not.
         // It's OK if things are active for the player, since it doesn't actually trigger everything at once.
-        bool disabledCondition = DateTime.UtcNow - LastApplyTime < TimeSpan.FromSeconds(10) || pairToDrawListFor.UserPairOwnUniquePairPerms.InHardcore;
+        bool disabledCondition = DateTime.UtcNow - LastApplyTime < TimeSpan.FromSeconds(10) || pairToDrawListFor.OwnPerms.InHardcore;
 
         float comboWidth = width - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Sync, "Apply Preset");
         using (var disabled = ImRaii.Disabled(disabledCondition))
@@ -54,7 +54,7 @@ public class PermissionPresetService
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.PresetApplied);
             }
         }
-        UiSharedService.AttachToolTip(pairToDrawListFor.UserPairOwnUniquePairPerms.InHardcore
+        UiSharedService.AttachToolTip(pairToDrawListFor.OwnPerms.InHardcore
             ? "Cannot execute presets while in Hardcore mode."
             : disabledCondition
                 ? "You must wait 10 seconds between applying presets."

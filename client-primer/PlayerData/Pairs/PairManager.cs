@@ -100,7 +100,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             Logger.LogDebug("User " + dto.User.UID + " found in client pairs, applying last received data instead.", LoggerType.PairManagement);
             // apply the last received data to the pair.
             _allClientPairs[dto.User].UserPair.IndividualPairStatus = dto.IndividualPairStatus;
-            _allClientPairs[dto.User].ApplyLastReceivedIpcData();
+            _allClientPairs[dto.User].ApplyLastIpcData();
         }
         // recreate the lazy list of direct pairs.
         RecreateLazy();
@@ -136,7 +136,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
             LastAddedUser = _allClientPairs[dto.User];
         }
         // finally, be sure to apply the last recieved data to this user's Pair object.
-        _allClientPairs[dto.User].ApplyLastReceivedIpcData();
+        _allClientPairs[dto.User].ApplyLastIpcData();
         // recreate the lazy list of direct pairs.
         RecreateLazy();
 
@@ -186,31 +186,31 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
     public (MoodlesGSpeakPairPerms, MoodlesGSpeakPairPerms) GetMoodlePermsForPairByName(string nameWithWorld)
     {
         var pair = _allClientPairs.FirstOrDefault(p => p.Value.PlayerNameWithWorld == nameWithWorld).Value;
-        if (pair == null || pair.UserPairOwnUniquePairPerms == null || pair.UserPairUniquePairPerms == null)
+        if (pair == null || pair.OwnPerms == null || pair.PairPerms == null)
         {
             return (new MoodlesGSpeakPairPerms(), new MoodlesGSpeakPairPerms());
         }
 
         var ownPerms = (
-            pair.UserPairOwnUniquePairPerms.AllowPositiveStatusTypes,
-            pair.UserPairOwnUniquePairPerms.AllowNegativeStatusTypes,
-            pair.UserPairOwnUniquePairPerms.AllowSpecialStatusTypes,
-            pair.UserPairOwnUniquePairPerms.PairCanApplyYourMoodlesToYou,
-            pair.UserPairOwnUniquePairPerms.PairCanApplyOwnMoodlesToYou,
-            pair.UserPairOwnUniquePairPerms.MaxMoodleTime,
-            pair.UserPairOwnUniquePairPerms.AllowPermanentMoodles,
-            pair.UserPairOwnUniquePairPerms.AllowRemovingMoodles
+            pair.OwnPerms.AllowPositiveStatusTypes,
+            pair.OwnPerms.AllowNegativeStatusTypes,
+            pair.OwnPerms.AllowSpecialStatusTypes,
+            pair.OwnPerms.PairCanApplyYourMoodlesToYou,
+            pair.OwnPerms.PairCanApplyOwnMoodlesToYou,
+            pair.OwnPerms.MaxMoodleTime,
+            pair.OwnPerms.AllowPermanentMoodles,
+            pair.OwnPerms.AllowRemovingMoodles
         );
 
         var uniquePerms = (
-                pair.UserPairUniquePairPerms.AllowPositiveStatusTypes,
-                pair.UserPairUniquePairPerms.AllowNegativeStatusTypes,
-                pair.UserPairUniquePairPerms.AllowSpecialStatusTypes,
-                pair.UserPairUniquePairPerms.PairCanApplyYourMoodlesToYou,
-                pair.UserPairUniquePairPerms.PairCanApplyOwnMoodlesToYou,
-                pair.UserPairUniquePairPerms.MaxMoodleTime,
-                pair.UserPairUniquePairPerms.AllowPermanentMoodles,
-                pair.UserPairUniquePairPerms.AllowRemovingMoodles
+                pair.PairPerms.AllowPositiveStatusTypes,
+                pair.PairPerms.AllowNegativeStatusTypes,
+                pair.PairPerms.AllowSpecialStatusTypes,
+                pair.PairPerms.PairCanApplyYourMoodlesToYou,
+                pair.PairPerms.PairCanApplyOwnMoodlesToYou,
+                pair.PairPerms.MaxMoodleTime,
+                pair.PairPerms.AllowPermanentMoodles,
+                pair.PairPerms.AllowRemovingMoodles
         );
 
         return (ownPerms, uniquePerms);
@@ -310,7 +310,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Received Character Composite Data from "+(pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character Composite Data from "+(pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairDataTransfer);
 
         _allClientPairs[dto.User].ApplyLightStorageData(new(dto.User, dto.CompositeData.LightStorageData));
         _allClientPairs[dto.User].ApplyAppearanceData(new(dto.User, dto.CompositeData.AppearanceData, dto.UpdateKind));
@@ -320,12 +320,12 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // first see if our clientUID exists as a key in dto.CompositeData.AliasData. If it does not, define it as an empty data.
         if (dto.CompositeData.AliasData.ContainsKey(clientUID))
         {
-            Logger.LogTrace("Found Alias Data Stroage for " + pair.GetNickAliasOrUid());
+            Logger.LogTrace("Found Alias Data Stroage for " + pair.GetNickAliasOrUid(), LoggerType.PairDataTransfer);
             _allClientPairs[dto.User].ApplyAliasData(new(dto.User, dto.CompositeData.AliasData[clientUID], dto.UpdateKind));
         }
         else
         {
-            Logger.LogTrace("No Alias Data Storage found for " + pair.GetNickAliasOrUid());
+            Logger.LogTrace("No Alias Data Storage found for " + pair.GetNickAliasOrUid(), LoggerType.PairDataTransfer);
             _allClientPairs[dto.User].ApplyAliasData(new(dto.User, new CharaAliasData(), dto.UpdateKind));
         }
 
@@ -333,7 +333,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         _allClientPairs[dto.User].UpdateCachedLockedSlots();
 
         // publish a mediator message that is listened to by the achievement manager for duration cleanup.
-        var activeGags = dto.CompositeData.AppearanceData.GagSlots.Select(x => x.GagType).ToList();
+        var activeGags = dto.CompositeData.AppearanceData.GagSlots.Where(x => x.GagType.ToGagType() is not GagType.None).Select(x => x.GagType).ToList();
         Mediator.Publish(new PlayerLatestActiveItems(pair.UserData, activeGags, dto.CompositeData.WardrobeData.ActiveSetId));
     }
 
@@ -344,7 +344,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Received Character IPC Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character IPC Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairDataTransfer);
 
         // apply the IPC data to the pair.
         _allClientPairs[dto.User].ApplyVisibleData(dto);
@@ -357,7 +357,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // publish event if found.
-        Logger.LogInformation("Received Character Appearance Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character Appearance Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairDataTransfer);
 
         // Apply the update.
         _allClientPairs[dto.User].ApplyAppearanceData(dto);
@@ -370,7 +370,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Received Character Wardrobe Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character Wardrobe Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairDataTransfer);
 
         // apply the wardrobe data to the pair.
         _allClientPairs[dto.User].ApplyWardrobeData(dto);
@@ -383,7 +383,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Received Character Alias Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character Alias Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairDataTransfer);
 
         // apply the alias data to the pair.
         _allClientPairs[dto.User].ApplyAliasData(dto);
@@ -396,7 +396,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Received Character Toybox Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character Toybox Data from " + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairDataTransfer);
 
         // apply the pattern data to the pair.
         _allClientPairs[dto.User].ApplyToyboxData(dto);
@@ -409,7 +409,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         if (!_allClientPairs.TryGetValue(dto.User, out var pair)) throw new InvalidOperationException("No user found for " + dto.User);
 
         // if they are found, publish an event message that we have received character data from our paired User
-        Logger.LogInformation("Received Character Light Storage Data Update from" + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairManagement);
+        Logger.LogInformation("Received Character Light Storage Data Update from" + (pair.GetNickname() ?? pair.UserData.AliasOrUID), LoggerType.PairDataTransfer);
         _allClientPairs[dto.User].ApplyLightStorageData(dto);
     }
 
@@ -477,7 +477,7 @@ public sealed partial class PairManager : DisposableMediatorSubscriberBase
         // for each pair in the clients pair list, apply the last received data
         foreach (var pair in _allClientPairs.Select(k => k.Value))
         {
-            pair.ApplyLastReceivedIpcData(forced: true);
+            pair.ApplyLastIpcData(forced: true);
         }
     }
 

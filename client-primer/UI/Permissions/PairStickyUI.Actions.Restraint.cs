@@ -24,8 +24,8 @@ public partial class PairStickyUI
     private void DrawWardrobeActions()
     {
         // verify that the unique pair perms and last recieved wardrobe data are not null.
-        var lastWardrobeData = UserPairForPerms.LastReceivedWardrobeData;
-        var lastLightStorage = UserPairForPerms.LastReceivedLightStorage;
+        var lastWardrobeData = StickyPair.LastWardrobeData;
+        var lastLightStorage = StickyPair.LastLightStorage;
         if (lastWardrobeData is null || PairPerms is null || lastLightStorage is null)
             return;
 
@@ -39,16 +39,16 @@ public partial class PairStickyUI
         {
             Opened = Opened == InteractionType.ApplyRestraint ? InteractionType.None : InteractionType.ApplyRestraint;
         }
-        UiSharedService.AttachToolTip("Applies a Restraint Set to " + UserPairForPerms.UserData.AliasOrUID + ". Click to select set.");
+        UiSharedService.AttachToolTip("Applies a Restraint Set to " + StickyPair.UserData.AliasOrUID + ". Click to select set.");
         if (Opened is InteractionType.ApplyRestraint)
         {
             using (var actionChild = ImRaii.Child("SetApplyChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
                 if (!actionChild) return;
 
-                LightRestraintData storedSelectedSet = _permActions.GetSelectedItem<LightRestraintData>("ApplyRestraintSetForPairPermCombo", UserPairForPerms.UserData.UID) ?? new LightRestraintData();
+                LightRestraintData storedSelectedSet = _permActions.GetSelectedItem<LightRestraintData>("ApplyRestraintSetForPairPermCombo", StickyPair.UserData.UID) ?? new LightRestraintData();
 
-                _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ApplyRestraintSetForPairPermCombo", "Apply Set", WindowMenuWidth,
+                _permActions.DrawGenericComboButton(StickyPair.UserData.UID, "ApplyRestraintSetForPairPermCombo", "Apply Set", WindowMenuWidth,
                     comboItems: lastLightStorage.Restraints,
                     itemToName: (RSet) => RSet.Name,
                     isSearchable: true,
@@ -60,12 +60,12 @@ public partial class PairStickyUI
                 {
                     try
                     {
-                        var newWardrobe = UserPairForPerms.LastReceivedWardrobeData.DeepClone();
+                        var newWardrobe = StickyPair.LastWardrobeData.DeepClone();
                         if (newWardrobe == null || onButtonPress == null) throw new Exception("Wardrobe data is null, not sending");
 
                         newWardrobe.ActiveSetId = onButtonPress.Identifier;
                         newWardrobe.ActiveSetEnabledBy = MainHub.UID;
-                        _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobe, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintApplied));
+                        _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(StickyPair.UserData, newWardrobe, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintApplied));
                         _logger.LogDebug("Applying Restraint Set with GagPadlock " + onButtonPress.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
                         Opened = InteractionType.ApplyRestraint;
                     }
@@ -93,7 +93,7 @@ public partial class PairStickyUI
 
         if (Opened is InteractionType.LockRestraint)
         {
-            Padlocks selected = _permActions.GetSelectedItem<Padlocks>("LockRestraintSetForPairPermCombo", UserPairForPerms.UserData.UID);
+            Padlocks selected = _permActions.GetSelectedItem<Padlocks>("LockRestraintSetForPairPermCombo", StickyPair.UserData.UID);
             float height = _permActions.ExpandLockHeightCheck(selected)
                 ? 3 * ImGui.GetFrameHeight() + 2 * ImGui.GetStyle().ItemSpacing.Y
                 : 2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y;
@@ -107,11 +107,11 @@ public partial class PairStickyUI
                 using (ImRaii.Disabled(true))
                 {
                     ImGui.SetNextItemWidth(WindowMenuWidth);
-                    if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", "Locking: " + UserPairForPerms.ActiveSetName())) { ImGui.EndCombo(); }
+                    if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", "Locking: " + StickyPair.ActiveSetName())) { ImGui.EndCombo(); }
                 }
 
                 // Draw combo
-                _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "LockRestraintSetForPairPermCombo", "Lock Set",
+                _permActions.DrawGenericComboButton(StickyPair.UserData.UID, "LockRestraintSetForPairPermCombo", "Lock Set",
                 WindowMenuWidth, GenericHelpers.NoMimicPadlockList, (padlock) => padlock.ToName(), false, disabled, true, Padlocks.None,
                 FontAwesomeIcon.Lock, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Padlock: " + selected, LoggerType.Permissions); },
                 (onButtonPress) =>
@@ -130,7 +130,7 @@ public partial class PairStickyUI
                             newWardrobeData.Password = _permActions.Password;
                             newWardrobeData.Timer = UiSharedService.GetEndTimeUTC(_permActions.Timer);
                             newWardrobeData.Assigner = MainHub.UID;
-                            _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintLocked));
+                            _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(StickyPair.UserData, newWardrobeData, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintLocked));
                             _logger.LogDebug("Locking Restraint Set with GagPadlock " + onButtonPress.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;
                             // reset the password and timer
@@ -158,7 +158,7 @@ public partial class PairStickyUI
         UiSharedService.AttachToolTip("Unlocks the Restraint Set applied to " + PairNickOrAliasOrUID + ". Click to view options.");
         if (Opened is InteractionType.UnlockRestraint)
         {
-            Padlocks selected = UserPairForPerms.LastReceivedWardrobeData?.Padlock.ToPadlock() ?? Padlocks.None;
+            Padlocks selected = StickyPair.LastWardrobeData?.Padlock.ToPadlock() ?? Padlocks.None;
             float height = _permActions.ExpandLockHeightCheck(selected)
                 ? 2 * ImGui.GetFrameHeight() + ImGui.GetStyle().ItemSpacing.Y
                 : ImGui.GetFrameHeight();
@@ -172,7 +172,7 @@ public partial class PairStickyUI
                 using (ImRaii.Disabled(true))
                 {
                     ImGui.SetNextItemWidth(width);
-                    if (ImGui.BeginCombo("##DummyComboDisplayLockedRestraintSet", UserPairForPerms.LastReceivedWardrobeData?.Padlock ?? "No Set Lock Active")) { ImGui.EndCombo(); }
+                    if (ImGui.BeginCombo("##DummyComboDisplayLockedRestraintSet", StickyPair.LastWardrobeData?.Padlock ?? "No Set Lock Active")) { ImGui.EndCombo(); }
                 }
                 ImUtf8.SameLineInner();
                 if (_uiShared.IconTextButton(FontAwesomeIcon.Unlock, "Unlock", ImGui.GetContentRegionAvail().X, false, disabled))
@@ -189,7 +189,7 @@ public partial class PairStickyUI
                             newWardrobeData.Password = _permActions.Password;
                             newWardrobeData.Timer = DateTimeOffset.UtcNow;
                             newWardrobeData.Assigner = MainHub.UID;
-                            _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintUnlocked));
+                            _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(StickyPair.UserData, newWardrobeData, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintUnlocked));
                             _logger.LogDebug("Unlocking Restraint Set with GagPadlock " + selected.ToString() + " to " + PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;
                         }
@@ -228,7 +228,7 @@ public partial class PairStickyUI
                         if (newWardrobeData == null) throw new Exception("Wardrobe data is null, not sending");
                         newWardrobeData.ActiveSetId = Guid.Empty;
                         newWardrobeData.ActiveSetEnabledBy = string.Empty;
-                        _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(UserPairForPerms.UserData, newWardrobeData, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintDisabled));
+                        _ = _apiHubMain.UserPushPairDataWardrobeUpdate(new(StickyPair.UserData, newWardrobeData, MainHub.PlayerUserData, DataUpdateKind.WardrobeRestraintDisabled));
                         _logger.LogDebug("Removing Restraint Set from " + PairNickOrAliasOrUID, LoggerType.Permissions);
                         Opened = InteractionType.None;
                     }

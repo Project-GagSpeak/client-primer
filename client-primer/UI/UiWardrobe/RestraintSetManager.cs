@@ -42,8 +42,6 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
         CreatedRestraintSet = new RestraintSet();
 
-        Mediator.Subscribe<RestraintSetToggledMessage>(this, (msg) => LastHoveredIndex = -1);
-
         Mediator.Subscribe<TooltipSetItemToRestraintSetMessage>(this, (msg) =>
         {
             if (_handler.ClonedSetForEdit is not null)
@@ -60,9 +58,9 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
     private RestraintSet CreatedRestraintSet;
     public bool CreatingRestraintSet = false;
-
     private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
     private LowerString RestraintSetSearchString = LowerString.Empty;
+
     private List<RestraintSet> FilteredSetList
     {
         get
@@ -388,35 +386,47 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
     private void DrawRestraintSetSelectableMenu()
     {
-        // display the selectable for each restraintSet using a for loop to keep track of the index
-        for (int i = 0; i < FilteredSetList.Count; i++)
+        var region = ImGui.GetContentRegionAvail();
+        var topLeftSideHeight = region.Y;
+        bool anyItemHovered = false;
+        using (ImRaii.Child($"###RestraintSetListPreview", region with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
         {
-            var set = FilteredSetList[i];
-            DrawRestraintSetSelectable(set, i);
-
-            if (ImGui.IsItemHovered())
-                LastHoveredIndex = i;
-
-            // if the item is right clicked, open the popup
-            if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredSetList[i].Enabled)
+            for (int i = 0; i < FilteredSetList.Count; i++)
             {
-                ImGui.OpenPopup($"RestraintSetContext{i}");
+                var set = FilteredSetList[i];
+                DrawRestraintSetSelectable(set, i);
+
+                if (ImGui.IsItemHovered())
+                {
+                    anyItemHovered = true;
+                    LastHoveredIndex = i;
+                }
+
+                // if the item is right clicked, open the popup
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredSetList[i].Enabled)
+                {
+                    ImGui.OpenPopup($"RestraintSetContext{i}");
+                }
             }
-        }
 
-        if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredSetList.Count)
-        {
-            if (ImGui.BeginPopup($"RestraintSetContext{LastHoveredIndex}"))
+
+            // if no item is hovered, reset the last hovered index
+            if (!anyItemHovered) LastHoveredIndex = -1;
+
+            if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredSetList.Count)
             {
-                if (ImGui.Selectable("Clone Restraint Set") && FilteredSetList[LastHoveredIndex] != null)
+                if (ImGui.BeginPopup($"RestraintSetContext{LastHoveredIndex}"))
                 {
-                    _handler.CloneRestraintSet(FilteredSetList[LastHoveredIndex]);
+                    if (ImGui.Selectable("Clone Restraint Set") && FilteredSetList[LastHoveredIndex] != null)
+                    {
+                        _handler.CloneRestraintSet(FilteredSetList[LastHoveredIndex]);
+                    }
+                    if (ImGui.Selectable("Delete Set") && FilteredSetList[LastHoveredIndex] != null)
+                    {
+                        _handler.RemoveRestraintSet(FilteredSetList[LastHoveredIndex].RestraintId);
+                    }
+                    ImGui.EndPopup();
                 }
-                if (ImGui.Selectable("Delete Set") && FilteredSetList[LastHoveredIndex] != null)
-                {
-                    _handler.RemoveRestraintSet(FilteredSetList[LastHoveredIndex].RestraintId);
-                }
-                ImGui.EndPopup();
             }
         }
     }

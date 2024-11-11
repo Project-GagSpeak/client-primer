@@ -76,14 +76,14 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
     {
         foreach (var pair in _pairManager.DirectPairs)
         {
-            string[] triggers = pair.UserPairUniquePairPerms.TriggerPhrase.Split("|").Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
+            string[] triggers = pair.PairPerms.TriggerPhrase.Split("|").Where(x => !string.IsNullOrWhiteSpace(x)).ToArray();
             string? foundTrigger = triggers.FirstOrDefault(trigger => msg.Contains(trigger));
 
             if (!string.IsNullOrEmpty(foundTrigger))
             {
                 // This was a trigger message for the pair, so let's see what the pairs settings are for.
-                var startChar = pair.UserPairUniquePairPerms.StartChar;
-                var endChar = pair.UserPairUniquePairPerms.EndChar;
+                var startChar = pair.PairPerms.StartChar;
+                var endChar = pair.PairPerms.EndChar;
 
                 // Get the string that exists beyond the trigger phrase found in the message.
                 Logger.LogTrace("Sent Message with trigger phrase set by " + pair.GetNickAliasOrUid() + ". Gathering Results.", LoggerType.Puppeteer);

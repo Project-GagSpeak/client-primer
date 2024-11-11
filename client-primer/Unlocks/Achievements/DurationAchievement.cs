@@ -7,7 +7,7 @@ public class DurationAchievement : AchievementBase
     private readonly TimeSpan MilestoneDuration; // Required duration to achieve
 
     // The Current Active Item(s) being tracked. (can be multiple because of gags.
-    public Dictionary<string, TrackedItem> ActiveItems { get; set; } = new Dictionary<string, TrackedItem>();
+    public List<TrackedItem> ActiveItems { get; set; } = new List<TrackedItem>();
 
     public DurationTimeUnit TimeUnit { get; init; }
 
@@ -38,7 +38,7 @@ public class DurationAchievement : AchievementBase
             return MilestoneGoal;
 
         // otherwise, return the ActiveItem with the longest duration from the DateTime.UtcNow and return its value in total minutes.
-        var elapsed = ActiveItems.Any() ? (DateTime.UtcNow - ActiveItems.Values.Max(x => x.TimeAdded)) : TimeSpan.Zero;
+        var elapsed = ActiveItems.Any() ? (DateTime.UtcNow - ActiveItems.Max(x => x.TimeAdded)) : TimeSpan.Zero;
 
         // Return progress based on the specified unit
         return TimeUnit switch
@@ -58,13 +58,13 @@ public class DurationAchievement : AchievementBase
             return PrefixText + " " + (MilestoneGoal + "/" + MilestoneGoal) + " " + SuffixText;
         }
         // Get the current longest equipped thing.
-        var elapsed = ActiveItems.Any() ? (DateTime.UtcNow - ActiveItems.Values.Min(x => x.TimeAdded)) : TimeSpan.Zero;
+        var elapsed = ActiveItems.Any() ? (DateTime.UtcNow - ActiveItems.Min(x => x.TimeAdded)) : TimeSpan.Zero;
 
         // Construct the string to output for the progress.
         string outputStr = "";
         if (elapsed == TimeSpan.Zero)
         {
-            outputStr = "0s";
+            outputStr = "No Items Added";
         }
         else
         {
@@ -80,8 +80,7 @@ public class DurationAchievement : AchievementBase
     public string GetActiveItemProgressString()
     {
         // join together every item in the dictionary with the time elapsed on each item, displaying the UID its on, and the item identifier, and the time elapsed.
-        return string.Join("\n", ActiveItems.Select(x => "Item: " + x.Key + ", Applied on: " + x.Value.UIDAffected + " @ " + 
-            (DateTime.UtcNow - x.Value.TimeAdded).ToString(@"hh\:mm\:ss")));
+        return string.Join("\n", ActiveItems.Select(x => "Item: " + x.Item + ", Applied on: " + x.UIDAffected + " @ " + (DateTime.UtcNow - x.TimeAdded).ToString(@"hh\:mm\:ss")));
     }
 
     /// <summary>
@@ -92,14 +91,14 @@ public class DurationAchievement : AchievementBase
         if (IsCompleted || !MainHub.IsConnected)
             return;
 
-        if (!ActiveItems.ContainsKey(item))
+        if (!ActiveItems.Any(x => x.Item == item && x.UIDAffected == affectedUID))
         {
-            StaticLogger.Logger.LogDebug($"Started Tracking item {item} on {affectedUID} for {Title}", LoggerType.Achievements);
-            ActiveItems[item] = new TrackedItem(affectedUID); // Start tracking time
+            UnlocksEventManager.AchievementLogger.LogTrace($"Started Tracking item {item} on {affectedUID} for {Title}", LoggerType.Achievements);
+            ActiveItems.Add(new TrackedItem(item, affectedUID)); // Start tracking time
         }
         else
         {
-            StaticLogger.Logger.LogDebug($"Item {item} on {affectedUID} is already being tracked for {Title}, ignoring. (Likely loading in from reconnect)", LoggerType.Achievements);
+            UnlocksEventManager.AchievementLogger.LogTrace($"Item {item} on {affectedUID} is already being tracked for {Title}, ignoring. (Likely loading in from reconnect)", LoggerType.AchievementInfo);
         }
     }
 
@@ -108,14 +107,16 @@ public class DurationAchievement : AchievementBase
     /// </summary>
     public void CleanupTracking(string uidToScan, List<string> itemsStillActive)
     {
-        // if we havent 
+        // determine the items to remove by taking all items in the existing list that contain the matching affecteduid, and select all from that subset that's item doesnt exist in the list of active items.
+        var itemsToRemove = ActiveItems
+            .Where(x => x.UIDAffected == uidToScan && !itemsStillActive.Contains(x.Item))
+            .Select(x => x.Item)
+            .ToList();
 
-        var itemsToRemove = ActiveItems.Keys.Except(itemsStillActive).ToList();
-        StaticLogger.Logger.LogDebug($"Cleaning up tracking items for {Title}", LoggerType.Achievements);
         foreach (var key in itemsToRemove)
         {
-            StaticLogger.Logger.LogDebug("Kinkster: "+uidToScan +" no longer has "+ key +" applied, removing from tracking.", LoggerType.Achievements);
-            ActiveItems.Remove(key);
+            UnlocksEventManager.AchievementLogger.LogTrace("Kinkster: "+uidToScan +" no longer has "+ key +" applied, removing from tracking.", LoggerType.AchievementInfo);
+            ActiveItems.RemoveAll(x => x.Item == key && x.UIDAffected == uidToScan);
         }
     }
 
@@ -127,22 +128,22 @@ public class DurationAchievement : AchievementBase
         if (IsCompleted || !MainHub.IsConnected)
             return;
 
-        StaticLogger.Logger.LogDebug($"Stopped Tracking item "+item+" on "+fromThisUID+" for "+Title, LoggerType.Achievements);
+        UnlocksEventManager.AchievementLogger.LogTrace($"Stopped Tracking item "+item+" on "+fromThisUID+" for "+Title, LoggerType.AchievementInfo);
 
         // check completion before we stop tracking.
         CheckCompletion();
         // if not completed, remove the item from tracking.
         if (!IsCompleted)
         {
-            if (ActiveItems.ContainsKey(item))
+            if (ActiveItems.Any(x => x.Item == item && x.UIDAffected == fromThisUID))
             {
-                StaticLogger.Logger.LogDebug($"Item "+item+" from "+fromThisUID+" was not completed, removing from tracking.", LoggerType.Achievements);
-                ActiveItems.Remove(item); // Stop tracking the item
+                UnlocksEventManager.AchievementLogger.LogTrace($"Item "+item+" from "+fromThisUID+" was not completed, removing from tracking.", LoggerType.AchievementInfo);
+                ActiveItems.RemoveAll(x => x.Item == item && x.UIDAffected == fromThisUID);
             }
             else
             {
                 // Log all currently active tracked items for debugging.
-                StaticLogger.Logger.LogDebug($"Items Currently still being tracked: {string.Join(", ", ActiveItems.Keys)}", LoggerType.Achievements);
+                UnlocksEventManager.AchievementLogger.LogTrace($"Items Currently still being tracked: {string.Join(", ", ActiveItems.Select(x => x.Item))}", LoggerType.AchievementInfo);
             }
         }
     }
@@ -153,11 +154,11 @@ public class DurationAchievement : AchievementBase
     public override void CheckCompletion()
     {
         // if any of the active items exceed the required duration, mark the achievement as completed
-        if (ActiveItems.Any(x => DateTime.UtcNow - x.Value.TimeAdded >= MilestoneDuration))
+        if (ActiveItems.Any(x => DateTime.UtcNow - x.TimeAdded >= MilestoneDuration))
         {
             // Mark the achievement as completed
-            StaticLogger.Logger.LogInformation($"Achievement {Title} has been been active for the required Duration. "
-                + "Marking as finished!", LoggerType.Achievements);
+            UnlocksEventManager.AchievementLogger.LogInformation($"Achievement {Title} has been been active for the required Duration. "
+                + "Marking as finished!", LoggerType.AchievementInfo);
             MarkCompleted();
         }
     }

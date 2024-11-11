@@ -442,6 +442,7 @@ public static class GagSpeakServiceExtensions
         .AddScoped<SelectTagForPairUi>()
         .AddScoped<WindowMediatorSubscriberBase, SettingsUi>()
         .AddScoped<WindowMediatorSubscriberBase, IntroUi>()
+        .AddScoped<WindowMediatorSubscriberBase, KinkPlatePreviewUI>()
         .AddScoped<WindowMediatorSubscriberBase, AchievementsUI>((s) => new AchievementsUI(s.GetRequiredService<ILogger<AchievementsUI>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<AchievementManager>(), s.GetRequiredService<AchievementTabsMenu>(), s.GetRequiredService<CosmeticService>(), s.GetRequiredService<UiSharedService>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, MainWindowUI>((s) => new MainWindowUI(s.GetRequiredService<ILogger<MainWindowUI>>(),

@@ -77,7 +77,7 @@ public class MoodlesManager : MediatorSubscriberBase
             ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - statusesSize - presetsSize - 175f - ImGui.GetStyle().ItemSpacing.X * 4);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             var PairList = _pairManager.GetOnlineUserPairs()
-                .Where(pair => pair.LastReceivedIpcData != null
+                .Where(pair => pair.LastIpcData != null
                 && (string.IsNullOrEmpty(PairSearchString)
                 || pair.UserData.AliasOrUID.Contains(PairSearchString, StringComparison.OrdinalIgnoreCase)
                 || (pair.GetNickname() != null && pair.GetNickname()!.Contains(PairSearchString, StringComparison.OrdinalIgnoreCase))))
@@ -88,8 +88,7 @@ public class MoodlesManager : MediatorSubscriberBase
             // Add a special option for "Client Player" at the top of the list
             PairList.Insert(0, null!);
 
-            _uiShared.DrawComboSearchable("##InspectPair", 175f, ref PairSearchString, PairList,
-                (pair) => pair == null ? "Examine Self" : pair.GetNickname() ?? pair.UserData.AliasOrUID, false,
+            _uiShared.DrawComboSearchable("##InspectPair", 175f, PairList, (pair) => pair == null ? "Examine Self" : pair.GetNickname() ?? pair.UserData.AliasOrUID, false,
                 (pair) =>
                 {
                     int idxOfSelected;
@@ -137,7 +136,7 @@ public class MoodlesManager : MediatorSubscriberBase
     {
         MoodlesHeader();
         ImGui.Separator();
-        var DataToDisplay = SelectedExamineIndex == 0 ? LastCreatedCharacterData : PairToInspect?.LastReceivedIpcData;
+        var DataToDisplay = SelectedExamineIndex == 0 ? LastCreatedCharacterData : PairToInspect?.LastIpcData;
 
         if (CurrentType == InspectType.Status)
         {
@@ -210,12 +209,9 @@ public class MoodlesManager : MediatorSubscriberBase
         }
 
         var length = ImGui.GetContentRegionAvail().X;
-        _uiShared.DrawComboSearchable("##PresetSelector", length, ref PresetSearchString, DataToDisplay!.MoodlesPresets,
-            (preset) => preset.Item1.ToString(), false,
-            (preset) =>
-            {
-                SelectedPresetIndex = DataToDisplay.MoodlesPresets.IndexOf(preset);
-            });
+        _uiShared.DrawComboSearchable("##PresetSelector", length, DataToDisplay!.MoodlesPresets, (preset) => preset.Item1.ToString(), false,
+            (preset) => { SelectedPresetIndex = DataToDisplay.MoodlesPresets.IndexOf(preset); });
+
         ImGui.Separator();
         using var child = ImRaii.Child("PresetsInspectionWindow", -Vector2.One, false);
         if (!child) return;

@@ -23,12 +23,12 @@ public partial class PairStickyUI
 {
     private void DrawGagActions()
     {
-        if(UserPairForPerms.LastReceivedAppearanceData == null) 
+        if(StickyPair.LastAppearanceData == null) 
             return;
         // draw the layer
-        _permActions.DrawGagLayerSelection(ImGui.GetContentRegionAvail().X, UserPairForPerms.UserData.UID);
+        _permActions.DrawGagLayerSelection(ImGui.GetContentRegionAvail().X, StickyPair.UserData.UID);
 
-        var gagSlot = UserPairForPerms.LastReceivedAppearanceData.GagSlots[_permActions.GagLayer];
+        var gagSlot = StickyPair.LastAppearanceData.GagSlots[_permActions.GagLayer];
 
 
         bool disableLocking = gagSlot.GagType.ToGagType() is GagType.None;
@@ -49,16 +49,16 @@ public partial class PairStickyUI
             using (var actionChild = ImRaii.Child("GagApplyChild", new Vector2(WindowMenuWidth, ImGui.GetFrameHeight()), false))
             {
                 if (!actionChild) return;
-                GagType selected = _permActions.GetSelectedItem<GagType>("ApplyGagForPairPermCombo", UserPairForPerms.UserData.UID);
+                GagType selected = _permActions.GetSelectedItem<GagType>("ApplyGagForPairPermCombo", StickyPair.UserData.UID);
 
-                _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "ApplyGagForPairPermCombo", "Apply Gag",
+                _permActions.DrawGenericComboButton(StickyPair.UserData.UID, "ApplyGagForPairPermCombo", "Apply Gag",
                 WindowMenuWidth, Enum.GetValues<GagType>(), (gag) => gag.GagName(), true, selected == GagType.None, false, GagType.None,
                 FontAwesomeIcon.None, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Gag: " + selected, LoggerType.Permissions); },
                 (onButtonPress) =>
                 {
                     try
                     {
-                        var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
+                        var newAppearance = StickyPair.LastAppearanceData.DeepClone();
                         if (newAppearance == null) throw new Exception("Appearance data is null, not sending");
 
                         newAppearance.GagSlots[_permActions.GagLayer].GagType = onButtonPress.GagName();
@@ -69,8 +69,8 @@ public partial class PairStickyUI
                             2 => DataUpdateKind.AppearanceGagAppliedLayerThree,
                             _ => throw new Exception("Invalid layer selected.")
                         };
-                        _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
-                        _logger.LogDebug("Applying Selected Gag "+onButtonPress.GagName()+" to "+UserPairForPerms.UserData.AliasOrUID, LoggerType.Permissions);
+                        _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(StickyPair.UserData, newAppearance, updateKind));
+                        _logger.LogDebug("Applying Selected Gag "+onButtonPress.GagName()+" to "+StickyPair.UserData.AliasOrUID, LoggerType.Permissions);
                         UnlocksEventManager.AchievementEvent(UnlocksEvent.PairGagAction, onButtonPress);
                         Opened = InteractionType.None;
                     }
@@ -98,7 +98,7 @@ public partial class PairStickyUI
         if (Opened is InteractionType.LockGag)
         {
 
-            Padlocks selected = _permActions.GetSelectedItem<Padlocks>("LockGagForPairPermCombo", UserPairForPerms.UserData.UID);
+            Padlocks selected = _permActions.GetSelectedItem<Padlocks>("LockGagForPairPermCombo", StickyPair.UserData.UID);
             float height = _permActions.ExpandLockHeightCheck(selected) ? ImGui.GetFrameHeight() * 2 + ImGui.GetStyle().ItemSpacing.Y : ImGui.GetFrameHeight();
 
             using (var actionChild = ImRaii.Child("GagLockChild", new Vector2(WindowMenuWidth, height), false))
@@ -107,15 +107,15 @@ public partial class PairStickyUI
 
                 bool disabled = selected == Padlocks.None || !PairPerms.GagFeatures;
                 // Draw combo
-                _permActions.DrawGenericComboButton(UserPairForPerms.UserData.UID, "LockGagForPairPermCombo", "Lock",
+                _permActions.DrawGenericComboButton(StickyPair.UserData.UID, "LockGagForPairPermCombo", "Lock",
                 WindowMenuWidth, GenericHelpers.NoMimicPadlockList, (padlock) => padlock.ToName(), false, disabled, true, Padlocks.None,
                 FontAwesomeIcon.Lock, ImGuiComboFlags.None, (selected) => { _logger.LogDebug("Selected Padlock: " + selected); },
                 (onButtonPress) =>
                 {
-                    var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
+                    var newAppearance = StickyPair.LastAppearanceData.DeepClone();
                     if (newAppearance == null) throw new Exception("Appearance data is null or lock is invalid., not sending");
                     
-                    _logger.LogDebug("Verifying lock for padlock: " + onButtonPress.ToName(), LoggerType.PadlockManagement);
+                    _logger.LogDebug("Verifying lock for padlock: " + onButtonPress.ToName(), LoggerType.PadlockHandling);
                     var res = _permActions.PadlockVerifyLock<IPadlockable>(newAppearance.GagSlots[_permActions.GagLayer], onButtonPress,
                                     PairPerms.ExtendedLockTimes, PairPerms.OwnerLocks, PairPerms.DevotionalLocks, PairPerms.MaxLockTime);
                     if (res.Item1)
@@ -133,7 +133,7 @@ public partial class PairStickyUI
                                 2 => DataUpdateKind.AppearanceGagLockedLayerThree,
                                 _ => throw new Exception("Invalid layer selected.")
                             };
-                            _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
+                            _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(StickyPair.UserData, newAppearance, updateKind));
                             _logger.LogDebug("Locking Gag with GagPadlock "+onButtonPress.ToName()+" to "+PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;
                         }
@@ -160,7 +160,7 @@ public partial class PairStickyUI
         UiSharedService.AttachToolTip("Unlock " + PairUID + "'s Gag. Click to view options.");
         if (Opened is InteractionType.UnlockGag)
         {
-            Padlocks selected = UserPairForPerms.LastReceivedAppearanceData.GagSlots[_permActions.GagLayer].Padlock.ToPadlock();
+            Padlocks selected = StickyPair.LastAppearanceData.GagSlots[_permActions.GagLayer].Padlock.ToPadlock();
             float height = _permActions.ExpandLockHeightCheck(selected) ? ImGui.GetFrameHeight() * 2 + ImGui.GetStyle().ItemSpacing.Y : ImGui.GetFrameHeight();
             using (var actionChild = ImRaii.Child("GagUnlockChild", new Vector2(WindowMenuWidth, height), false))
             {
@@ -173,7 +173,7 @@ public partial class PairStickyUI
 
                 using (ImRaii.Disabled(true))
                 {
-                    if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", UserPairForPerms.LastReceivedAppearanceData.GagSlots[_permActions.GagLayer].Padlock ?? "Not Lock Active")) { ImGui.EndCombo(); }
+                    if (ImGui.BeginCombo("##DummyComboDisplayLockedSet", StickyPair.LastAppearanceData.GagSlots[_permActions.GagLayer].Padlock ?? "Not Lock Active")) { ImGui.EndCombo(); }
                 }
 
                 ImUtf8.SameLineInner();
@@ -181,10 +181,10 @@ public partial class PairStickyUI
                 {
                     try
                     {
-                        var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
+                        var newAppearance = StickyPair.LastAppearanceData.DeepClone();
                         if (newAppearance == null) throw new Exception("Appearance data is null or unlock is invalid. not sending");
 
-                        _logger.LogDebug("Verifying password for padlock: " + selected.ToName() + "with password " + _permActions.Password, LoggerType.PadlockManagement);
+                        _logger.LogDebug("Verifying password for padlock: " + selected.ToName() + "with password " + _permActions.Password, LoggerType.PadlockHandling);
                         var res = _permActions.PadlockVerifyUnlock<IPadlockable>(newAppearance.GagSlots[_permActions.GagLayer], selected, PairPerms.OwnerLocks, PairPerms.DevotionalLocks);
                         
                         if(res.Item1)
@@ -200,7 +200,7 @@ public partial class PairStickyUI
                                 2 => DataUpdateKind.AppearanceGagUnlockedLayerThree,
                                 _ => throw new Exception("Invalid layer selected.")
                             };
-                            _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
+                            _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(StickyPair.UserData, newAppearance, updateKind));
                             _logger.LogDebug("Unlocking Gag with GagPadlock "+selected.ToName()+" to "+PairNickOrAliasOrUID, LoggerType.Permissions);
                             Opened = InteractionType.None;
                         }
@@ -236,7 +236,7 @@ public partial class PairStickyUI
                 {
                     try
                     {
-                        var newAppearance = UserPairForPerms.LastReceivedAppearanceData.DeepClone();
+                        var newAppearance = StickyPair.LastAppearanceData.DeepClone();
                         if (newAppearance == null) throw new Exception("Appearance data is null, not sending");
                         newAppearance.GagSlots[_permActions.GagLayer].GagType = GagType.None.GagName();
                         DataUpdateKind updateKind = _permActions.GagLayer switch
@@ -246,7 +246,7 @@ public partial class PairStickyUI
                             2 => DataUpdateKind.AppearanceGagRemovedLayerThree,
                             _ => throw new Exception("Invalid layer selected.")
                         };
-                        _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(UserPairForPerms.UserData, newAppearance, updateKind));
+                        _ = _apiHubMain.UserPushPairDataAppearanceUpdate(new(StickyPair.UserData, newAppearance, updateKind));
                         _logger.LogDebug("Removing Gag from "+PairNickOrAliasOrUID, LoggerType.Permissions);
                         Opened = InteractionType.None;
                     }

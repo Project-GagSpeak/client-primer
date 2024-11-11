@@ -129,7 +129,7 @@ public class AchievementsUI : WindowMediatorSubscriberBase
     private void CenteredHeader()
     {
 
-        var text = "GagSpeak Achievements (" + _achievementManager.Completed + "/" + _achievementManager.Total + ")";
+        var text = "GagSpeak Achievements (" + AchievementManager.Completed + "/" + AchievementManager.Total + ")";
         using (_uiShared.UidFont.Push())
         {
             var uidTextSize = ImGui.CalcTextSize(text);

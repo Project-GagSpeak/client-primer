@@ -38,8 +38,8 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool ShowProfiles { get; set; } = true;
     public float ProfileDelay { get; set; } = 1.5f;
     public bool ShowContextMenus { get; set; } = true;
-    public List<ChatChannel.Channels> ChannelsGagSpeak { get; set; } = new List<ChatChannel.Channels> { ChatChannel.Channels.Say };
-    public List<ChatChannel.Channels> ChannelsPuppeteer { get; set; } = new List<ChatChannel.Channels> { ChatChannel.Channels.Say };
+    public HashSet<ChatChannel.Channels> ChannelsGagSpeak { get; set; } = new HashSet<ChatChannel.Channels> { ChatChannel.Channels.Say };
+    public HashSet<ChatChannel.Channels> ChannelsPuppeteer { get; set; } = new HashSet<ChatChannel.Channels> { ChatChannel.Channels.Say };
 
     // logging (debug)
     public bool LiveGarblerZoneChangeWarn { get; set; } = true;

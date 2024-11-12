@@ -196,7 +196,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 ImGui.TextColored(ImGuiColors.ParsedPink, errorTitle);
             }
             // the wrapped text explanation based on the error.
-            UiSharedService.ColorTextWrapped(errorText, ImGuiColors.ParsedGold);
+            UiSharedService.ColorTextWrapped(errorText, ImGuiColors.DalamudWhite);
         }
         else
         {

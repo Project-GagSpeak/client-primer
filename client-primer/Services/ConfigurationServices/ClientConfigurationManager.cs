@@ -83,7 +83,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     public GagStorageConfig GagStorageConfig => _gagStorageConfig.Current; // PER PLAYER
     public WardrobeConfig WardrobeConfig => _wardrobeConfig.Current; // PER PLAYER
     public CursedLootConfig CursedLootConfig => _cursedLootConfig.Current; // PER PLAYER
-    private AliasConfig AliasConfig => _aliasConfig.Current; // PER PLAYER
+    public AliasConfig AliasConfig => _aliasConfig.Current; // PER PLAYER
     public PatternConfig PatternConfig => _patternConfig.Current; // PER PLAYER
     public AlarmConfig AlarmConfig => _alarmConfig.Current; // PER PLAYER
     public TriggerConfig TriggerConfig => _triggerConfig.Current; // PER PLAYER
@@ -125,45 +125,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
             // reset with recommended.
             _configService.Current.LoggerFilters = LoggerFilter.GetAllRecommendedFilters();
             Save();
-        }
-        // create a new storage file
-        if (_gagStorageConfig.Current.GagStorage.GagEquipData.IsNullOrEmpty())
-        {
-            Logger.LogWarning("Gag Storage Config is empty, creating a new one.");
-            try
-            {
-                _gagStorageConfig.Current.GagStorage.GagEquipData = Enum.GetValues(typeof(GagType))
-                    .Cast<GagType>().ToDictionary(gagType => gagType, gagType => new GagDrawData(ItemIdVars.NothingItem(EquipSlot.Head)));
-                // print the keys in the dictionary
-                Logger.LogInformation("Gag Storage Config Created with " + _gagStorageConfig.Current.GagStorage.GagEquipData.Count + " keys", LoggerType.GagHandling);
-                _gagStorageConfig.Save();
-            }
-            catch (Exception e)
-            {
-                Logger.LogError(e, "Failed to create Gag Storage Config");
-            }
-        }
-
-        if (_wardrobeConfig.Current.WardrobeStorage.RestraintSets.Any(x => x.RestraintId == Guid.Empty))
-        {
-            Logger.LogWarning("Wardrobe Storage Config has a restraint set with an empty GUID. Creating a new GUID for it.");
-            foreach (var set in _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Where(x => x.RestraintId == Guid.Empty))
-            {
-                set.RestraintId = Guid.NewGuid();
-            }
-            _wardrobeConfig.Save();
-        }
-
-        // Correct any pattern storage errors that occurs between logins or version updates.
-        if (_patternConfig.Current.PatternStorage.Patterns.Any(x => x.UniqueIdentifier == Guid.Empty))
-        {
-            Logger.LogWarning("Pattern Storage Config has a pattern with an empty GUID. Creating a new GUID for it.");
-            foreach (var pattern in _patternConfig.Current.PatternStorage.Patterns.Where(x => x.UniqueIdentifier == Guid.Empty))
-            {
-                pattern.UniqueIdentifier = Guid.NewGuid();
-            }
-            _patternConfig.Save();
-        }       
+        }    
     }
 
     /* -------------------- Update Monitoring & Hardcore Methods -------------------- */

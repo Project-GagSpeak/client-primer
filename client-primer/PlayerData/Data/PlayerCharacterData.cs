@@ -246,7 +246,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         return dataToPush;
     }
 
-    private CharaWardrobeData CompileWardrobeToAPI()
+    public CharaWardrobeData CompileWardrobeToAPI()
     {
         // attempt to locate the active restraint set
         var activeSet = _clientConfigs.GetActiveSet();
@@ -262,7 +262,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         };
     }
 
-    private CharaAliasData CompileAliasToAPI(string UserUID)
+    public CharaAliasData CompileAliasToAPI(string UserUID)
     {
         var AliasStorage = _clientConfigs.FetchAliasStorageForPair(UserUID);
         CharaAliasData dataToPush = new CharaAliasData
@@ -274,7 +274,7 @@ public class PlayerCharacterData : DisposableMediatorSubscriberBase
         return dataToPush;
     }
 
-    private CharaToyboxData CompileToyboxToAPI()
+    public CharaToyboxData CompileToyboxToAPI()
     {
         return _clientConfigs.CompileToyboxToAPI();
     }

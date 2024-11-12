@@ -384,7 +384,7 @@ namespace GagSpeak.Localization
         public readonly string CopyKeyToClipboard = Loc.Localize("Accounts_CopyKeyToClipboard", "Click to copy the actual secret key to your clipboard!");
 
         public readonly string RemoveAccountPrimaryWarning = Loc.Localize("Accounts_RemoveAccountPrimaryWarning", "Be Deleting your primary GagSpeak account, all secondary users below will also be deleted.");
-        public readonly string RemoveAccountWarning = Loc.Localize("Accounts_RemoveAccountWarning", "Your UID will be removed from all pairing lists.");
+        public readonly string RemoveAccountWarning = Loc.Localize("Accounts_RemoveAccountWarning", "Your UID will be removed from all pairing lists.\nYou won't be able to reuse this secret key.");
         public readonly string RemoveAccountConfirm = Loc.Localize("Accounts_RemoveAccountConfirm", "Are you sure you want to remove this account?");
     }
     #endregion Settings

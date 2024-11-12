@@ -132,7 +132,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
 
     public Dictionary<ushort, string> WorldData => _frameworkUtil.WorldData.Value;
-    public ulong PlayerLocalContentID => _frameworkUtil.GetPlayerLocalContentId();
     public Vector2 LastMainUIWindowPosition { get; set; } = Vector2.Zero;
     public Vector2 LastMainUIWindowSize { get; set; } = Vector2.Zero;
 

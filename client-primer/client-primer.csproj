@@ -39,6 +39,9 @@
       <EmbeddedResource Remove="Hardcore\ForcedStay\NewFolder\**" />
       <None Remove="Hardcore\ForcedStay\NewFolder\**" />
     </ItemGroup>
+    <ItemGroup>
+      <None Remove="UI\UiSettings\4by30bg2.hbz~" />
+    </ItemGroup>
 
     <!--Other DLL's for dalamud supporting module/components-->
     <ItemGroup>
@@ -151,6 +154,9 @@
         </None>
         <EmbeddedResource Include="Localization\de.json" />
         <EmbeddedResource Include="Localization\fr.json" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="UI\Tutorials\" />
     </ItemGroup>
 </Project>
 

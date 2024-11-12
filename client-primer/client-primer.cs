@@ -286,6 +286,11 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new ItemsSecondaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>()))
         .AddSingleton((s) => new ItemsTertiaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>(),
             s.GetRequiredService<ItemsSecondaryModel>()))
+        .AddSingleton((s) => new AccountsTab(s.GetRequiredService<ILogger<AccountsTab>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(), 
+            s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<OnFrameworkService>(), 
+            s.GetRequiredService<UiSharedService>(), pi.ConfigDirectory.FullName))
+        .AddSingleton<DebugTab>()
+        .AddSingleton<AccountInfoExchanger>()
 
         // UI Simulation Services
         .AddSingleton<StruggleStamina>()

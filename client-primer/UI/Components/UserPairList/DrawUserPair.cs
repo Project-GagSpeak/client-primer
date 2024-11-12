@@ -30,7 +30,7 @@ public class DrawUserPair
     private readonly CosmeticService _cosmetics;
     private readonly UiSharedService _uiShared;
     private float _menuWidth = -1;
-    private string tooltipString = "";
+    private Dictionary<byte, bool> IsHovered = new();
     // store the created texture wrap for the supporter tier image so we are not loading it every single time.
     private IDalamudTextureWrap? _supporterWrap = null;
     public DrawUserPair(ILogger<DrawUserPair> logger, string id, Pair entry, MainHub apiHubMain,
@@ -55,14 +55,20 @@ public class DrawUserPair
         _supporterWrap = null;
     }
 
-    public bool DrawPairedClient(bool isHovered, bool supporterIcon = true, bool icon = true, bool iconTT = true, bool displayToggleOnClick = true, 
+    public bool DrawPairedClient(byte ident, bool supporterIcon = true, bool icon = true, bool iconTT = true, bool displayToggles = true, 
         bool displayNameTT = true, bool showHovered = true, bool showRightButtons = true)
     {
+        // if no key exist for the dictionary, add it with default value of false.
+        if (!IsHovered.ContainsKey(ident))
+        {
+            IsHovered.Add(ident, false);
+        }
+
         bool selected = false;
         // get the current screen cursor pos
         var cursorPos = ImGui.GetCursorPosX();
         using var id = ImRaii.PushId(GetType() + _id);
-        using (ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), showHovered && isHovered))
+        using (ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered), showHovered && IsHovered[ident]))
         {
             using (ImRaii.Child(GetType() + _id, new Vector2(UiSharedService.GetWindowContentRegionWidth() - ImGui.GetCursorPosX(), ImGui.GetFrameHeight())))
             {
@@ -82,9 +88,10 @@ public class DrawUserPair
                     rightSide = DrawRightSide();
                 }
 
-                selected = DrawName(posX, rightSide, displayToggleOnClick, displayNameTT);
+                selected = DrawName(posX, rightSide, displayToggles, displayNameTT);
             }
-            isHovered = ImGui.IsItemHovered();
+
+            IsHovered[ident] = ImGui.IsItemHovered();
         }
         // if they were a supporter, go back to the start and draw the image.
         if (supporterIcon && _pair.UserData.SupporterTier is not CkSupporterTier.NoRole)
@@ -96,13 +103,13 @@ public class DrawUserPair
 
     private void DrawSupporterIcon(float cursorPos)
     {
-        var Image = _cosmetics.GetSupporterInfo(Pair.UserData).SupporterWrap;
-        if (Image is { } wrap)
+        var Image = _cosmetics.GetSupporterInfo(Pair.UserData);
+        if (Image.SupporterWrap is { } wrap)
         {
             ImGui.SameLine(cursorPos);
             ImGui.SetCursorPosX(cursorPos - _uiShared.GetIconData(FontAwesomeIcon.EllipsisV).X - ImGui.GetStyle().ItemSpacing.X);
             ImGui.Image(wrap.ImGuiHandle, new Vector2(ImGui.GetFrameHeight(), ImGui.GetFrameHeight()));
-            UiSharedService.AttachToolTip(tooltipString);
+            UiSharedService.AttachToolTip(Image.Tooltip);
         }
         // return to the end of the line.
     }
@@ -193,66 +200,5 @@ public class DrawUserPair
         UiSharedService.AttachToolTip("Inspect " + _pair.UserData.AliasOrUID + "'s permissions");
 
         return currentRightSide;
-    }
-
-    private void DrawCommonClientMenu()
-    {
-        if (!_pair.IsPaused)
-        {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.User, "Open Profile", _menuWidth, true))
-            {
-                _displayHandler.OpenProfile(_pair);
-                ImGui.CloseCurrentPopup();
-            }
-            UiSharedService.AttachToolTip("Opens the profile for this user in a new window");
-        }
-        if (_pair.IsPaired)
-        {
-            var pauseIcon = _pair.UserPair!.OwnPairPerms.IsPaused ? FontAwesomeIcon.Play : FontAwesomeIcon.Pause;
-            var pauseIconSize = _uiShared.GetIconButtonSize(pauseIcon);
-            var pauseText = _pair.UserPair!.OwnPairPerms.IsPaused ? $"Unpause {_pair.UserData.AliasOrUID}" : $"Pause {_pair.UserData.AliasOrUID}";
-            if (_uiShared.IconTextButton(pauseIcon, pauseText, _menuWidth, true))
-            {
-                var perm = _pair.UserPair!.OwnPairPerms;
-                _ = _apiHubMain.UserUpdateOwnPairPerm(new UserPairPermChangeDto(_pair.UserData,
-                    new KeyValuePair<string, object>("IsPaused", !perm.IsPaused)));
-            }
-            UiSharedService.AttachToolTip(!_pair.UserPair!.OwnPairPerms.IsPaused
-                ? "Pause pairing with " + _pair.UserData.AliasOrUID
-                : "Resume pairing with " + _pair.UserData.AliasOrUID);
-        }
-        if (_pair.IsVisible)
-        {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Reload last data", _menuWidth, true))
-            {
-                _pair.ApplyLastIpcData(forced: true);
-                ImGui.CloseCurrentPopup();
-            }
-            UiSharedService.AttachToolTip("This reapplies the last received character data to this character");
-        }
-
-        ImGui.Separator();
-    }
-
-    private void DrawIndividualMenu()
-    {
-        var entryUID = _pair.UserData.AliasOrUID;
-
-        if (_pair.IndividualPairStatus != IndividualPairStatus.None)
-        {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Unpair Permanently", _menuWidth, true) && KeyMonitor.CtrlPressed())
-            {
-                _ = _apiHubMain.UserRemovePair(new(_pair.UserData));
-            }
-            UiSharedService.AttachToolTip("Hold CTRL and click to unpair permanently from " + entryUID);
-        }
-        else
-        {
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Plus, "Pair individually", _menuWidth, true))
-            {
-                _ = _apiHubMain.UserAddPair(new(_pair.UserData));
-            }
-            UiSharedService.AttachToolTip("Pair individually with " + entryUID);
-        }
     }
 }

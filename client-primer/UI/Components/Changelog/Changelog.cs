@@ -19,6 +19,17 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 10)
+            .RegisterMain("PROBABLY THE FINAL CLOSED BETA UPDATE, JUST FYI")
+            .RegisterMain("Profile editor has been polished up. Now supports light and full plate previews.")
+            .RegisterMain("Duration achievements are now properly tracked.")
+            .RegisterFeature("Achievements and cosmetics are now directly linked after a large backend rework. (400% faster)")
+            .RegisterQol("Achievements now only skip over achievements that fail to load, instead of wiping all your achievements.")
+            .RegisterQol("Polished up the homepage.")
+            .RegisterQol("More debug filters for the logger have been added.")
+            .RegisterQol("All config versions have been reset to 0, in preperation for launch day.")
+            .RegisterBugfix("Fixes with several achievements made.")
+            .RegisterBugfix("Puppeteer, Wardorbe, and Whitelist pair lists no longer have conflicting hovers.");
         VersionEntry(0, 9, 9, 8)
             .RegisterMain("Reporting functoinality polling completed!")
             .RegisterMain("added over 50 more achievements!")

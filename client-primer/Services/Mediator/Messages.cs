@@ -160,7 +160,6 @@ public record ReportKinkPlateMessage(UserData KinksterToReport) : MessageBase; /
 public record VerificationPopupMessage(VerificationDto VerificationCode) : MessageBase; // indicating that we have received a verification code popup.
 public record PatternSavePromptMessage(List<byte> StoredData, TimeSpan Duration) : MessageBase; // prompts the popup and passes in savedata
 public record BlindfoldUiTypeChange(BlindfoldType NewType) : MessageBase; // for changing blindfold type.
-public record ToggleDtrBarMessage : MessageBase;
 
 /* -------------------- DISCOVER TAB RECORDS -------------------- */
 public record GlobalChatMessage(GlobalChatMessageDto ChatMessage, bool FromSelf) : MessageBase;

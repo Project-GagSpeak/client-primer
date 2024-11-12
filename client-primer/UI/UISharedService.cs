@@ -404,13 +404,13 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return vector.X + vector2.X + ImGui.GetStyle().FramePadding.X * 2f + num;
     }
 
-    public float CalcFontTextSize(string text, IFontHandle fontHandle = null!)
+    public Vector2 CalcFontTextSize(string text, IFontHandle fontHandle = null!)
     {
         if (fontHandle is null)
-            return ImGui.CalcTextSize(text).X;
+            return ImGui.CalcTextSize(text);
 
         using (fontHandle.Push())
-            return ImGui.CalcTextSize(text).X;
+            return ImGui.CalcTextSize(text);
     }
 
     /// <summary>

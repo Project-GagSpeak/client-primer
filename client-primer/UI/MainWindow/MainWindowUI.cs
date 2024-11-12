@@ -4,19 +4,16 @@ using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration;
-using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.Components;
 using GagSpeak.WebAPI;
-using GagspeakAPI.Enums;
 using ImGuiNET;
 using System.Globalization;
 using System.Numerics;
 using System.Reflection;
-using static Dalamud.Interface.Windowing.Window;
 
 namespace GagSpeak.UI.MainWindow;
 
@@ -35,7 +32,6 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private readonly MainUiChat _globalChat;
     private readonly MainUiAccount _account;
     private readonly IDalamudPluginInterface _pi;
-    private int _secretKeyIdx = -1;
     private float _windowContentWidth;
     private bool _addingNewUser = false;
     public string _pairToAdd = string.Empty; // the pair to add
@@ -47,14 +43,11 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private bool _shouldDrawStickyPerms = false;
     private bool _showModalForUserAddition;
 
-    // for theme management
-    public bool ThemePushed = false;
-
     public MainWindowUI(ILogger<MainWindowUI> logger, GagspeakMediator mediator,
-        UiSharedService uiShared, MainHub apiHubMain, GagspeakConfigService configService, 
+        UiSharedService uiShared, MainHub apiHubMain, GagspeakConfigService configService,
         PairManager pairManager, ServerConfigurationManager serverConfigs, MainUiHomepage homepage,
-        MainUiWhitelist whitelist, MainUiPatternHub patternHub, MainUiChat globalChat, 
-        MainUiAccount account, MainTabMenu tabMenu, DrawEntityFactory drawEntityFactory, 
+        MainUiWhitelist whitelist, MainUiPatternHub patternHub, MainUiChat globalChat,
+        MainUiAccount account, MainTabMenu tabMenu, DrawEntityFactory drawEntityFactory,
         IDalamudPluginInterface pi) : base(logger, mediator, "###GagSpeakMainUI")
     {
         _apiHubMain = apiHubMain;
@@ -136,18 +129,18 @@ public class MainWindowUI : WindowMediatorSubscriberBase
 
         SizeConstraints = new WindowSizeConstraints()
         {
-            MinimumSize = new Vector2(325, 400),
-            MaximumSize = new Vector2(600, 2000),
+            MinimumSize = new Vector2(325, 420),
+            MaximumSize = new Vector2(325, 2000),
         };
     }
 
+    private bool ThemePushed = false;
     protected override void PreDrawInternal()
     {
-        // no config option yet, so it will always be active. When one is added, append "&& !_configOption.useTheme" to the if statement.
         if (!ThemePushed)
         {
-            ImGui.PushStyleColor(ImGuiCol.TitleBg, new Vector4(0.01f, 0.07f, 0.01f, 1f));
-            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0, 0.56f, 0.09f, 0.51f));
+            ImGui.PushStyleColor(ImGuiCol.TitleBg, new Vector4(0.331f, 0.081f, 0.169f, .803f));
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0.579f, 0.170f, 0.359f, 0.828f));
 
             ThemePushed = true;
         }
@@ -190,8 +183,8 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 "\n\nThis Means that your client is outdated, and you need to update it." +
                 "\n\nIf there is no update Available, then this message Likely Means Cordy is running some last minute tests " +
                 "to ensure everyone doesn't crash with the latest update. Hang in there!",
-                ServerState.Unauthorized => "You are Unauthorized to access GagSpeak Servers with this account due to an Unauthorization. Details:\n"
-                + GagspeakHubBase.AuthFailureMessage,
+                ServerState.Unauthorized => "You are Unauthorized to access GagSpeak Servers with this account due to an " +
+                "Unauthorization. \n\nDetails:\n" + GagspeakHubBase.AuthFailureMessage,
                 _ => "Unknown Reasoning for this error."
             };
             // push the notice that we are unsupported
@@ -230,7 +223,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             switch (_tabMenu.TabSelection)
             {
                 case MainTabMenu.SelectedTab.Homepage:
-                    using (ImRaii.PushId("homepageComponent")) _homepage.DrawHomepageSection(_pi);
+                    using (ImRaii.PushId("homepageComponent")) _homepage.DrawHomepageSection();
                     break;
                 case MainTabMenu.SelectedTab.Whitelist:
                     using (ImRaii.PushId("whitelistComponent")) _whitelist.DrawWhitelistSection();
@@ -377,7 +370,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         if (MainHub.IsConnected)
         {
             // fancy math shit for clean display, adjust when moving things around
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) 
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth())
                 / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
             ImGui.TextColored(ImGuiColors.ParsedPink, userCount);
             ImGui.SameLine();
@@ -386,7 +379,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         // otherwise, if we are not connected, display that we aren't connected.
         else
         {
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) 
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth())
                 / 2 - ImGui.CalcTextSize("Not connected to any server").X / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
             ImGui.TextColored(ImGuiColors.DalamudRed, "Not connected to any server");
         }
@@ -415,7 +408,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             {
                 // then display it
                 if (_uiShared.IconButton(connectedIcon))
-                { 
+                {
                     // If its true, make sure our ServerStatus is Connected, or if its false, make sure our ServerStatus is Disconnected or offline.
                     if (MainHub.ServerStatus is ServerState.Connected)
                     {
@@ -434,9 +427,9 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 }
             }
             // attach the tooltip for the connection / disconnection button)
-            UiSharedService.AttachToolTip(MainHub.IsConnected 
-                ? "Disconnect from " + _serverConfigs.CurrentServer.ServerName + "--SEP--Current Status: "+MainHub.ServerStatus 
-                : "Connect to " + _serverConfigs.CurrentServer.ServerName + "--SEP--Current Status: "+MainHub.ServerStatus);
+            UiSharedService.AttachToolTip(MainHub.IsConnected
+                ? "Disconnect from " + _serverConfigs.CurrentServer.ServerName + "--SEP--Current Status: " + MainHub.ServerStatus
+                : "Connect to " + _serverConfigs.CurrentServer.ServerName + "--SEP--Current Status: " + MainHub.ServerStatus);
 
             // go back to the far left, at the same height, and draw another button.
             var addUserIcon = FontAwesomeIcon.UserPlus;

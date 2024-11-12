@@ -8,6 +8,7 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components;
+using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
 using ImGuiNET;
 using OtterGui.Text;
@@ -58,12 +59,10 @@ public class AchievementsUI : WindowMediatorSubscriberBase
 
     protected override void PreDrawInternal()
     {
-        // no config option yet, so it will always be active. When one is added, append "&& !_configOption.useTheme" to the if statement.
         if (!ThemePushed)
         {
-            ImGui.PushStyleColor(ImGuiCol.TitleBg, new Vector4(0.01f, 0.07f, 0.01f, 1f));
-            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0, 0.56f, 0.09f, 0.51f));
-
+            ImGui.PushStyleColor(ImGuiCol.TitleBg, new Vector4(0.331f, 0.081f, 0.169f, .803f));
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0.579f, 0.170f, 0.359f, 0.828f));
             ThemePushed = true;
         }
     }
@@ -128,20 +127,14 @@ public class AchievementsUI : WindowMediatorSubscriberBase
 
     private void CenteredHeader()
     {
-
         var text = "GagSpeak Achievements (" + AchievementManager.Completed + "/" + AchievementManager.Total + ")";
         using (_uiShared.UidFont.Push())
         {
             var uidTextSize = ImGui.CalcTextSize(text);
-            //ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X) / 2 - uidTextSize.X / 2);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().WindowPadding.Y / 2);
             // display it, it should be green if connected and red when not.
             ImGui.TextColored(ImGuiColors.ParsedGold, text);
-        }
-        ImGui.SameLine();
-        if (_uiShared.IconTextButton(FontAwesomeIcon.SyncAlt, "Reset"))
-        {
-            _achievementManager.ResetAchievementData();
         }
     }
 
@@ -160,7 +153,8 @@ public class AchievementsUI : WindowMediatorSubscriberBase
 
         // reference the same achievement for every module.
         // draw the search filter.
-        DrawSearchFilter(ImGui.GetContentRegionAvail().X, ImGui.GetStyle().ItemSpacing.X);
+        DrawSearchFilter(ImGui.GetContentRegionAvail().X, ImGui.GetStyle().ItemInnerSpacing.X);
+        ImGui.Separator();
 
         // create a window for scrolling through the available achievements.
         using var achievementListChild = ImRaii.Child("##AchievementListings" + type.ToString(), ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoScrollbar);
@@ -172,19 +166,27 @@ public class AchievementsUI : WindowMediatorSubscriberBase
 
     public void DrawSearchFilter(float availableWidth, float spacingX)
     {
-        var buttonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
-        ImGui.SetNextItemWidth(availableWidth - buttonSize - spacingX);
+        var clearButtonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
+        var resetButtonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.SyncAlt, "Reset");
+
+        if (_uiShared.IconTextButton(FontAwesomeIcon.SyncAlt, "Reset", disabled: !(KeyMonitor.ShiftPressed() && KeyMonitor.CtrlPressed())))
+        {
+            _achievementManager.ResetAchievementData();
+        }
+        UiSharedService.AttachToolTip("Reset all Achievement Progress and Data.--SEP--Must hold CTRL+SHIFT to execute.--SEP--THIS ACTION IS NOT REVERSABLE.");
+        ImUtf8.SameLineInner();
+        ImGui.SetNextItemWidth(availableWidth - clearButtonSize - resetButtonSize - spacingX*2);
         string filter = AchievementSearchString;
         if (ImGui.InputTextWithHint("##AchievementSearchStringFilter", "Search for an Achievement...", ref filter, 255))
         {
             AchievementSearchString = filter;
         }
         ImUtf8.SameLineInner();
-        using var disabled = ImRaii.Disabled(string.IsNullOrEmpty(AchievementSearchString));
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, "Clear"))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Ban, "Clear", disabled: string.IsNullOrEmpty(AchievementSearchString)))
         {
             AchievementSearchString = string.Empty;
         }
+        UiSharedService.AttachToolTip("Clear the search filter.");
     }
 
     private static Vector2 AchievementIconSize = new(96, 96);

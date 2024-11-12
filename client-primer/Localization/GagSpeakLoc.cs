@@ -1,18 +1,6 @@
-using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects;
-using Dalamud.Game.ClientState.Objects.SubKinds;
-using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin;
-using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using FFXIVClientStructs.FFXIV.Component.GUI;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Localization;
-using GagSpeak.PlayerData.Services;
-using GagSpeak.Services.Mediator;
-using GagSpeak.Utils;
-using GagSpeak.WebAPI.Utils;
 using Microsoft.Extensions.Hosting;
 
 namespace GagSpeak.UpdateMonitoring;
@@ -24,17 +12,16 @@ public class GagSpeakLoc : IDisposable, IHostedService
 {
     private readonly ILogger<GagSpeakLoc> _logger;
     private readonly Dalamud.Localization _localization;
+    private readonly GagspeakConfigService _mainConfig;
     private readonly IDalamudPluginInterface _pi;
 
-    public GagSpeakLoc(ILogger<GagSpeakLoc> logger, Dalamud.Localization localization, 
-        IDalamudPluginInterface pi)
+    public GagSpeakLoc(ILogger<GagSpeakLoc> logger, Dalamud.Localization localization,
+        GagspeakConfigService configService, IDalamudPluginInterface pi)
     {
         _logger = logger;
         _localization = localization;
+        _mainConfig = configService;
         _pi = pi;
-
-        // set up initial localization
-        _localization.SetupWithLangCode(_pi.UiLanguage);
 
         // subscribe to any localization changes.
         _pi.LanguageChanged += LoadLocalization;
@@ -49,13 +36,24 @@ public class GagSpeakLoc : IDisposable, IHostedService
     {
         _logger.LogInformation($"Loading Localization for {languageCode}");
         _localization.SetupWithLangCode(languageCode);
-
         GSLoc.ReInitialize();
+
+        // Update our forced stay entries as well.
+        _mainConfig.Current.ForcedStayPromptList.CheckAndInsertRequired();
+        _mainConfig.Current.ForcedStayPromptList.PruneEmpty();
+        _mainConfig.Save();
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
         _logger.LogInformation("Starting GagSpeak Localization Service.");
+        _localization.SetupWithLangCode(_pi.UiLanguage);
+        GSLoc.ReInitialize();
+
+        // Update our forced stay entries as well.
+        _mainConfig.Current.ForcedStayPromptList.CheckAndInsertRequired();
+        _mainConfig.Current.ForcedStayPromptList.PruneEmpty();
+        _mainConfig.Save();
         return Task.CompletedTask;
     }
 

@@ -22,6 +22,7 @@ internal class MigrationsUI : WindowMediatorSubscriberBase
     private readonly MigratePatterns _patternMigrator;
     private readonly MigrateRestraintSets _wardrobeMigrator;
     private readonly UiSharedService _uiShared;
+    private bool ThemePushed = false;
 
     public MigrationsUI(ILogger<InteractionEventsUI> logger, GagspeakMediator mediator,
         MigrateGagStorage migrateGagStorage, MigratePatterns migratePatterns,
@@ -40,8 +41,26 @@ internal class MigrationsUI : WindowMediatorSubscriberBase
         };
     }
 
-    protected override void PreDrawInternal() { }
-    protected override void PostDrawInternal() { }
+    protected override void PreDrawInternal()
+    {
+        if (!ThemePushed)
+        {
+            ImGui.PushStyleColor(ImGuiCol.TitleBg, new Vector4(0.331f, 0.081f, 0.169f, .803f));
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0.579f, 0.170f, 0.359f, 0.828f));
+
+            ThemePushed = true;
+        }
+    }
+
+    protected override void PostDrawInternal()
+    {
+        if (ThemePushed)
+        {
+            ImGui.PopStyleColor(2);
+            ThemePushed = false;
+        }
+    }
+
     protected override void DrawInternal()
     {
         _uiShared.BigText("GagSpeak Migrations");

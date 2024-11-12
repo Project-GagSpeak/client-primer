@@ -64,7 +64,7 @@ public class DurationAchievement : AchievementBase
         string outputStr = "";
         if (elapsed == TimeSpan.Zero)
         {
-            outputStr = "No Items Added";
+            outputStr = "0s";
         }
         else
         {
@@ -110,13 +110,24 @@ public class DurationAchievement : AchievementBase
         // determine the items to remove by taking all items in the existing list that contain the matching affecteduid, and select all from that subset that's item doesnt exist in the list of active items.
         var itemsToRemove = ActiveItems
             .Where(x => x.UIDAffected == uidToScan && !itemsStillActive.Contains(x.Item))
-            .Select(x => x.Item)
             .ToList();
 
-        foreach (var key in itemsToRemove)
+        foreach (var trackedItem in itemsToRemove)
         {
-            UnlocksEventManager.AchievementLogger.LogTrace("Kinkster: "+uidToScan +" no longer has "+ key +" applied, removing from tracking.", LoggerType.AchievementInfo);
-            ActiveItems.RemoveAll(x => x.Item == key && x.UIDAffected == uidToScan);
+            // if the item is no longer present, we should first
+            // calculate the the current datetime, subtract from time added. and see if it passes the milestone duration.
+            // if it does, we should mark the achievement as completed.
+            if (DateTime.UtcNow - trackedItem.TimeAdded >= MilestoneDuration)
+            {
+                UnlocksEventManager.AchievementLogger.LogInformation($"Achievement {Title} has been been active for the required Duration. "
+                    + "Marking as finished!", LoggerType.AchievementInfo);
+                MarkCompleted();
+                continue;
+            }
+
+            // otherwise, it failed to meet the expected duration, so we should remove it from tracking.
+            UnlocksEventManager.AchievementLogger.LogTrace("Kinkster: "+uidToScan +" no longer has "+ trackedItem.Item +" applied, removing from tracking.", LoggerType.AchievementInfo);
+            ActiveItems.Remove(trackedItem);
         }
     }
 

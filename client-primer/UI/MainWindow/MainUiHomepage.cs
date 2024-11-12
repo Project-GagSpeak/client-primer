@@ -1,7 +1,6 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Plugin;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.UiGagSetup;
 using GagSpeak.UI.UiOrders;
@@ -9,11 +8,7 @@ using GagSpeak.UI.UiPuppeteer;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.UI.UiToybox;
 using GagSpeak.UI.UiWardrobe;
-using GagSpeak.UpdateMonitoring;
-using GagSpeak.Utils;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
-using OtterGui.Classes;
 using System.Numerics;
 
 namespace GagSpeak.UI.MainWindow;
@@ -22,100 +17,95 @@ namespace GagSpeak.UI.MainWindow;
 /// Partial class responsible for drawing the homepage element of the main UI.
 /// The homepage will provide the player with links to open up other windows in the plugin via components.
 /// </summary>
-public class MainUiHomepage : DisposableMediatorSubscriberBase
+public class MainUiHomepage
 {
+    private readonly GagspeakMediator _mediator;
     private readonly UiSharedService _uiShared;
-    private readonly EmoteMonitor _emoteMonitor;
-    public MainUiHomepage(ILogger<MainUiHomepage> logger, GagspeakMediator mediator,
-        UiSharedService uiSharedService, EmoteMonitor emoteMonitor) : base(logger, mediator)
+
+    private int HoveredItemIndex = -1;
+    private readonly List<(string Label, FontAwesomeIcon Icon, Type ToggleType)> Modules;
+
+    public MainUiHomepage(GagspeakMediator mediator, UiSharedService uiSharedService)
     {
+        _mediator = mediator;
         _uiShared = uiSharedService;
-        _emoteMonitor = emoteMonitor;
+
+        // Define all module information in a single place
+        Modules = new List<(string, FontAwesomeIcon, Type)>
+        {
+            ("Sextoy Remote", FontAwesomeIcon.WaveSquare, typeof(RemotePersonal)),
+            ("Orders Module", FontAwesomeIcon.ClipboardList, typeof(OrdersUI)),
+            ("Gags Module", FontAwesomeIcon.CommentSlash, typeof(GagSetupUI)),
+            ("Wardrobe Module", FontAwesomeIcon.ToiletPortable, typeof(WardrobeUI)),
+            ("Puppeteer Module", FontAwesomeIcon.PersonHarassing, typeof(PuppeteerUI)),
+            ("Toybox Module", FontAwesomeIcon.BoxOpen, typeof(ToyboxUI)),
+            ("Achievements Module", FontAwesomeIcon.Trophy, typeof(AchievementsUI)),
+        };
     }
 
-    public float DrawHomepageSection(IDalamudPluginInterface pi)
+    public void DrawHomepageSection()
     {
-        // get the width of the window content region we set earlier
-        var _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
-        float pairlistEnd = 0;
+        using var borderSize = ImRaii.PushStyle(ImGuiStyleVar.WindowBorderSize, 1f);
+        using var rounding = ImRaii.PushStyle(ImGuiStyleVar.ChildRounding, 4f);
+        using var padding = ImRaii.PushStyle(ImGuiStyleVar.WindowPadding, new Vector2(6, 1));
+        using var borderCol = ImRaii.PushColor(ImGuiCol.Border, ImGuiColors.ParsedPink);
+        using var homepageChild = ImRaii.Child("##Homepage", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 0), false, ImGuiWindowFlags.NoScrollbar);
 
-        var availableWidth = ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
-        var spacing = ImGui.GetStyle().ItemSpacing;
+        var sizeFont = _uiShared.CalcFontTextSize("Achievements Module", _uiShared.GagspeakLabelFont);
+        var selectableSize = new Vector2(UiSharedService.GetWindowContentRegionWidth(), sizeFont.Y + ImGui.GetStyle().WindowPadding.Y * 2);
+        bool itemGotHovered = false;
 
-        // span the height of the pair list to be the height of the window minus the transfer section, which we are removing later anyways.
-        var ySize = ImGui.GetWindowContentRegionMax().Y - ImGui.GetWindowContentRegionMin().Y
-            + ImGui.GetTextLineHeight() - ImGui.GetStyle().WindowPadding.Y - ImGui.GetStyle().WindowBorderSize - ImGui.GetCursorPosY();
+        for (int i = 0; i < Modules.Count; i++)
+        {
+            var module = Modules[i];
+            bool isHovered = HoveredItemIndex == i;
 
-        // begin the list child, with no border and of the height calculated above
-        ImGui.BeginChild("homepageModuleListings", new Vector2(_windowContentWidth, ySize), border: false);
+            if (HomepageSelectable(module.Label, module.Icon, selectableSize, isHovered))
+            {
+                _mediator.Publish(new UiToggleMessage(module.ToggleType));
+                if (module.ToggleType == typeof(RemotePersonal))
+                    UnlocksEventManager.AchievementEvent(UnlocksEvent.RemoteOpened);
+            }
 
-        // draw the buttons (basic for now) for access to other windows
-        DrawHomepageModules(availableWidth, spacing.X, pi);
+            if (ImGui.IsItemHovered())
+            {
+                itemGotHovered = true;
+                HoveredItemIndex = i;
+            }
+        }
 
-        // then end the list child
-        ImGui.EndChild();
-
-        // fetch the cursor position where the footer is
-        pairlistEnd = ImGui.GetCursorPosY();
-
-        // return a push to the footer to know where to draw our bottom tab bar
-        return ImGui.GetCursorPosY() - pairlistEnd - ImGui.GetTextLineHeight();
+        if (!itemGotHovered)
+            HoveredItemIndex = -1;
     }
 
-    /// <summary>
-    /// Draws the list of pairs belonging to the client user.
-    /// </summary>
-    private void DrawHomepageModules(float availableWidth, float spacingX, IDalamudPluginInterface pi)
+    private bool HomepageSelectable(string label, FontAwesomeIcon icon, Vector2 region, bool hovered = false)
     {
-        // get the width of the window content region we set earlier
-        var _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
-        var _spacingX = ImGui.GetStyle().ItemSpacing.X;
-        var buttonX = (availableWidth - spacingX);
+        using var bgColor = hovered
+            ? ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(ImGuiCol.FrameBgHovered))
+            : ImRaii.PushColor(ImGuiCol.ChildBg, new Vector4(0.25f, 0.2f, 0.2f, 0.4f));
 
-        // My Remote
-        if (_uiShared.IconTextButton(FontAwesomeIcon.WaveSquare, "Lovense Remote Interface", buttonX))
+        bool ret = false;
+        using (var child = ImRaii.Child($"##HomepageItem" + label, region, true))
         {
-            // possibly use a factory to generate pair-unique remotes, or, if you want to incorporate multiple use functionality,
-            // you can configure users in the remote menu.
-            Mediator.Publish(new UiToggleMessage(typeof(RemotePersonal)));
-            UnlocksEventManager.AchievementEvent(UnlocksEvent.RemoteOpened);
-        }
-        UiSharedService.AttachToolTip("Use your personal Lovense Remote to send vibrations to yourself or other pairs ");
+            using var group = ImRaii.Group();
+            var height = ImGui.GetContentRegionAvail().Y;
 
-        // Opens the Orders Module UI
-        if (_uiShared.IconTextButton(FontAwesomeIcon.ClipboardList, "Orders Interface", buttonX))
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(OrdersUI)));
-        }
+            _uiShared.GagspeakBigText(label);
+            ImGui.SetWindowFontScale(1.5f);
 
-        // Opens the Gags Status Interface UI
-        if (_uiShared.IconTextButton(FontAwesomeIcon.CommentSlash, "Gags Interface", buttonX))
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(GagSetupUI)));
-        }
+            var size = _uiShared.GetIconData(FontAwesomeIcon.WaveSquare);
+            var color = hovered ? ImGuiColors.ParsedGold : ImGuiColors.DalamudWhite;
+            ImGui.SameLine(UiSharedService.GetWindowContentRegionWidth() - size.X - ImGui.GetStyle().ItemInnerSpacing.X);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (height - size.Y) / 2);
+            _uiShared.IconText(icon, color);
 
-        // Opens the Wardrobe Module UI
-        if (_uiShared.IconTextButton(FontAwesomeIcon.ToiletPortable, "Wardrobe Interface", buttonX))
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(WardrobeUI)));
-        }
+            ImGui.SetWindowFontScale(1.0f);
 
-        // Opens the Puppeteer Module UI
-        if (_uiShared.IconTextButton(FontAwesomeIcon.PersonHarassing, "Puppeteer Interface", buttonX))
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(PuppeteerUI)));
-        }
+            // Use InvisibleButton to detect clicks on the full area
+            ImGui.SetCursorPos(new Vector2(0, 0)); // Reset position for button overlay
+            ret = ImGui.InvisibleButton($"##Button{label}", region - ImGui.GetStyle().ItemInnerSpacing);
 
-        // Opens the Toybox Module UI
-        if (_uiShared.IconTextButton(FontAwesomeIcon.BoxOpen, "Toybox Interface", buttonX))
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(ToyboxUI)));
         }
-
-        // Opens the Achievements Window
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Trophy, "Achievements", buttonX))
-        {
-            Mediator.Publish(new UiToggleMessage(typeof(AchievementsUI)));
-        }
+        return ret;
     }
 }

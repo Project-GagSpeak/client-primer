@@ -63,6 +63,12 @@ public sealed class TokenProvider : IDisposable, IMediatorSubscriber
         }
     }
 
+    public void ResetTokenCache()
+    {
+        _lastJwtIdentifier = null;
+        _tokenCache.Clear();
+    }
+
 
     /// <summary>
     /// Gets a new token from the server, either by requesting a new token or renewing an existing token.

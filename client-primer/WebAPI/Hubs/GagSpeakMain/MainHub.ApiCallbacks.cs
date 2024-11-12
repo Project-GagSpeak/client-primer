@@ -85,6 +85,10 @@ public partial class MainHub
                 SuppressNextNotification = true;
                 // create a new connection to force the disconnect.
                 await Disconnect(ServerState.Disconnected).ConfigureAwait(false);
+
+                // because this is a forced reconnection, clear our token cache between, incase we were banned.
+                _tokenProvider.ResetTokenCache();
+
                 // after it stops, switch the connection pause back to false and create a new connection.
                 _serverConfigs.CurrentServer.FullPause = false;
                 _serverConfigs.Save();

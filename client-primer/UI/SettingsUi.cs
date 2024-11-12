@@ -44,13 +44,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly AvfxManager _avfxManager;
     private readonly VfxSpawns _vfxSpawns;
     private bool _deleteAccountPopupModalShown = false;
-    private bool _deleteFilesPopupModalShown = false;
-    private string _exportDescription = string.Empty;
-    private bool? _notesSuccessfullyApplied = null;
-    private bool _overwriteExistingLabels = false;
-    private bool _readClearCache = false;
-    private bool _readExport = false;
-    private bool _wasOpen = false;
+    private bool ThemePushed = false;
     private CancellationTokenSource? _validationCts;
 
     public SettingsUi(ILogger<SettingsUi> logger, UiSharedService uiShared,
@@ -142,8 +136,25 @@ public class SettingsUi : WindowMediatorSubscriberBase
         }
     }
 
-    protected override void PreDrawInternal() { }
-    protected override void PostDrawInternal() { }
+    protected override void PreDrawInternal()
+    {
+        if (!ThemePushed)
+        {
+            ImGui.PushStyleColor(ImGuiCol.TitleBg, new Vector4(0.331f, 0.081f, 0.169f, .803f));
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0.579f, 0.170f, 0.359f, 0.828f));
+
+            ThemePushed = true;
+        }
+    }
+
+    protected override void PostDrawInternal()
+    {
+        if (ThemePushed)
+        {
+            ImGui.PopStyleColor(2);
+            ThemePushed = false;
+        }
+    }
 
 
     protected override void DrawInternal()
@@ -831,19 +842,18 @@ public class SettingsUi : WindowMediatorSubscriberBase
             var allowDelete = (!(KeyMonitor.CtrlPressed() && KeyMonitor.ShiftPressed()) || !(MainHub.IsServerAlive && MainHub.IsConnected && isOnlineUser));
             ImGui.SameLine(ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Trash, GSLoc.Settings.Accounts.DeleteButtonLabel));
 
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account", isInPopup: true, disabled: !allowDelete, id: "DeleteAccount"+ account.CharacterPlayerContentId))
+            var canDelete = account.SecretKey.HasHadSuccessfulConnection;
+
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account", isInPopup: true, disabled: !canDelete || !allowDelete, id: "DeleteAccount"+ account.CharacterPlayerContentId))
             {
                 _deleteAccountPopupModalShown = true;
                 ImGui.OpenPopup("Delete your account?");
             }
-            if (isPrimary)
-            {
-                UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.DeleteButtonTT + GSLoc.Settings.Accounts.DeleteButtonPrimaryTT, color: ImGuiColors.DalamudRed);
-            }
-            else
-            {
-                UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.DeleteButtonTT);
-            }
+            UiSharedService.AttachToolTip(canDelete
+                ? GSLoc.Settings.Accounts.DeleteButtonDisabledTT : isPrimary
+                    ? GSLoc.Settings.Accounts.DeleteButtonTT + GSLoc.Settings.Accounts.DeleteButtonPrimaryTT
+                    : GSLoc.Settings.Accounts.DeleteButtonTT, color: ImGuiColors.DalamudRed);
+
         }
         // next line:
         using (var group2 = ImRaii.Group())

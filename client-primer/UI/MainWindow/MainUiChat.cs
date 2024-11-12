@@ -19,17 +19,19 @@ public class MainUiChat : DisposableMediatorSubscriberBase
     private readonly MainHub _apiHubMain;
     private readonly PlayerCharacterData _playerManager;
     private readonly GagManager _gagManager;
+    private readonly KinkPlateService _kinkPlateManager;
     private readonly UiSharedService _uiSharedService;
     private readonly DiscoverService _discoveryService;
 
     public MainUiChat(ILogger<MainUiChat> logger, GagspeakMediator mediator, 
         MainHub apiHubMain, PlayerCharacterData playerManager, GagManager gagManager,
-        UiSharedService uiSharedService, DiscoverService discoverService) 
-        : base(logger, mediator)
+        KinkPlateService kinkPlateManager, UiSharedService uiSharedService, 
+        DiscoverService discoverService) : base(logger, mediator)
     {
         _apiHubMain = apiHubMain;
         _playerManager = playerManager;
         _gagManager = gagManager;
+        _kinkPlateManager = kinkPlateManager;
         _uiSharedService = uiSharedService;
         _discoveryService = discoverService;
     }
@@ -48,6 +50,16 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         ImGuiUtil.Center("Global GagSpeak Chat");
         ImGui.Separator();
 
+        // grab the profile object from the profile service.
+        var profile = _kinkPlateManager.GetKinkPlate(MainHub.PlayerUserData);
+        if(profile.KinkPlateInfo.Disabled)
+        {
+            ImGui.Spacing();
+            UiSharedService.ColorTextCentered("Social Features have been Restricted", ImGuiColors.DalamudRed);
+            ImGui.Spacing();
+            UiSharedService.ColorTextCentered("Cannot View Global Chat because of this.", ImGuiColors.DalamudRed);
+            return;
+        }
         // Calculate the height for the chat log, leaving space for the input text field
         float inputTextHeight = ImGui.GetFrameHeightWithSpacing();
         float chatLogHeight = CurrentRegion.Y - inputTextHeight;

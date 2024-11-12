@@ -1,6 +1,5 @@
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Utils;
 #nullable disable
 namespace GagSpeak.GagspeakConfiguration;
 
@@ -13,116 +12,26 @@ public class WardrobeConfigService : ConfigurationServiceBase<WardrobeConfig>
     protected override string ConfigurationName => ConfigName;
     protected override bool PerCharacterConfigPath => PerCharacterConfig;
 
+    // apply an override for migrations off the baseconfigservice
     protected override JObject MigrateConfig(JObject oldConfigJson, int readVersion)
     {
-        JObject newConfigJson = oldConfigJson;
-        // if migrating from any version less than 2, to 2
-        if (readVersion <= 2)
-        {
-            newConfigJson = MigrateFromV2toV3(oldConfigJson);
-        }
-        else
-        {
-            newConfigJson = oldConfigJson;
-        }
+        JObject newConfigJson;
+
+        // no migration needed
+        newConfigJson = oldConfigJson;
         return newConfigJson;
     }
 
-    private JObject MigrateFromV2toV3(JObject oldConfigJson)
+    // Safely update data for new format.
+    private JObject MigrateFromV0toV1(JObject oldConfigJson)
     {
-        // Create a new JObject for V3
-        var v3Data = new JObject
-        {
-            ["Version"] = 3,
-            ["WardrobeStorage"] = new JObject()
-        };
+        // create a new JObject to store the new config
+        JObject newConfigJson = new();
+        // set the version to 1
+        newConfigJson["Version"] = 1;
 
-        // Get the V2 WardrobeStorage and RestraintSets
-        var v2WardrobeStorage = (JObject)oldConfigJson["WardrobeStorage"];
-        var v2RestraintSets = (JArray)v2WardrobeStorage["RestraintSets"];
-        var v3RestraintSets = new JArray();
-
-        foreach (var v2Set in v2RestraintSets)
-        {
-            var v3Set = new JObject
-            {
-                ["Name"] = v2Set["Name"],
-                ["Description"] = v2Set["Description"],
-                ["Enabled"] = v2Set["Enabled"],
-                ["EnabledBy"] = v2Set["EnabledBy"],
-                ["Locked"] = v2Set["Locked"],
-                ["LockType"] = v2Set["LockType"],
-                ["LockPassword"] = v2Set["LockPassword"],
-                ["LockedUntil"] = v2Set["LockedUntil"],
-                ["LockedBy"] = v2Set["LockedBy"],
-                ["ForceHeadgear"] = false, // Assuming default values for new properties
-                ["ForceVisor"] = false,
-                ["DrawData"] = new JObject()
-            };
-
-            // Process DrawData
-            var v2DrawData = (JArray)v2Set["DrawData"];
-            foreach (var drawItem in v2DrawData)
-            {
-                var slot = drawItem["EquipmentSlot"].ToString();
-                var drawData = drawItem["DrawData"];
-
-                var v3DrawItem = new JObject
-                {
-                    ["Slot"] = slot,
-                    ["IsEnabled"] = drawData["IsEnabled"],
-                    ["CustomItemId"] = drawData["GameItem"]["Id"],
-                    ["GameStain"] = drawData["GameStain"]
-                };
-
-                v3Set["DrawData"][slot] = v3DrawItem;
-            }
-
-            // Copy BonusDrawData directly
-            v3Set["BonusDrawData"] = v2Set["BonusDrawData"];
-
-            // Copy AssociatedMods directly
-            v3Set["AssociatedMods"] = v2Set["AssociatedMods"];
-
-            // Initialize new collections for AssociatedMoodles, ViewAccess, SetTraits
-            v3Set["AssociatedMoodles"] = new JArray();
-            v3Set["ViewAccess"] = v2Set["ViewAccess"];
-            v3Set["SetTraits"] = v2Set["SetTraits"];
-
-            v3RestraintSets.Add(v3Set);
-        }
-
-        // Assign the transformed restraint sets to V3 data
-        v3Data["WardrobeStorage"]["RestraintSets"] = v3RestraintSets;
-
-        // Migrate BlindfoldInfo
-        var v2BlindfoldInfo = (JObject)v2WardrobeStorage["BlindfoldInfo"];
-        if (v2BlindfoldInfo != null)
-        {
-            var v2BlindfoldItem = (JObject)v2BlindfoldInfo["BlindfoldItem"];
-            var v3BlindfoldItem = new JObject
-            {
-                ["IsEnabled"] = v2BlindfoldItem["IsEnabled"],
-                ["Slot"] = v2BlindfoldItem["Slot"],
-                ["GameItem"] = v2BlindfoldItem["GameItem"]["Id"],
-                ["GameStain"] = v2BlindfoldItem["GameStain"]
-            };
-
-            var v3BlindfoldInfo = new JObject
-            {
-                ["ForceHeadgear"] = false, // Assuming default values for new properties
-                ["ForceVisor"] = false,
-                ["BlindfoldMoodles"] = new JArray(),
-                ["BlindfoldItem"] = v3BlindfoldItem
-            };
-
-            v3Data["WardrobeStorage"]["BlindfoldInfo"] = v3BlindfoldInfo;
-        }
-
-
-        return v3Data;
+        return oldConfigJson;
     }
-
 
     protected override WardrobeConfig DeserializeConfig(JObject configJson)
     {

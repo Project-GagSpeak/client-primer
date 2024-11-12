@@ -29,8 +29,6 @@ public class UserPairListHandler
     private readonly UiSharedService _uiSharedService;
     private string _filter = string.Empty;
 
-    private static Dictionary<string, int> _hoverIndices = new Dictionary<string, int>();
-
     public UserPairListHandler(ILogger<UserPairListHandler> logger,
         GagspeakMediator mediator, TagHandler tagHandler,
         PairManager pairManager, DrawEntityFactory drawEntityFactory,
@@ -91,7 +89,7 @@ public class UserPairListHandler
     /// <summary> 
     /// Draws all bi-directionally paired users (online or offline) without any tag header. 
     /// </summary>
-    public void DrawPairListSelectable(float windowContentWidth, bool useCustomOnlineTag, string instanceId)
+    public void DrawPairListSelectable(float windowContentWidth, bool useCustomOnlineTag, byte id)
     {
         var tagToUse = useCustomOnlineTag ? TagHandler.CustomOnlineTag : TagHandler.CustomAllTag;
 
@@ -109,37 +107,19 @@ public class UserPairListHandler
             ImGui.TextUnformatted("No Draw Pairs to Draw");
         }
 
-        int hoverIndex = -1;
-        if (_hoverIndices.TryGetValue(instanceId, out var storedHoverIndex))
-        {
-            hoverIndex = storedHoverIndex;
-        }
-
         for (int i = 0; i < drawFolderBase.DrawPairs.Count; i++)
         {
             var item = drawFolderBase.DrawPairs[i];
-            bool isHovered = (i == hoverIndex);
             bool isSelected = SelectedPair is not null && SelectedPair.UserData.UID == item.Pair.UserData.UID;
 
-            using (var color = ImRaii.PushColor(ImGuiCol.ChildBg,
-                    ImGui.GetColorU32(isHovered ? ImGuiCol.FrameBgHovered : ImGuiCol.FrameBg),
-                    isSelected || isHovered))
+            using (var color = ImRaii.PushColor(ImGuiCol.ChildBg, ImGui.GetColorU32(isSelected ? ImGuiCol.FrameBgHovered : ImGuiCol.FrameBg), isSelected))
             {
-                if (item.DrawPairedClient(true, true, false, false, false, true, false))
+                if (item.DrawPairedClient(id, true, true, false, false, false, true, false))
                 {
                     SelectedPair = item.Pair;
                 }
-
-                // Update hoverIndex if the current item is hovered
-                if (ImGui.IsItemHovered())
-                {
-                    hoverIndex = i;
-                }
             }
         }
-
-        // Store the updated hover index
-        _hoverIndices[instanceId] = hoverIndex;
     }
 
     /// <summary> Draws the search filter for our user pair list (whitelist) </summary>

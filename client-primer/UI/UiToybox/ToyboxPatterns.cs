@@ -8,6 +8,7 @@ using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.Utils;
+using GagSpeak.WebAPI;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Classes;
@@ -20,16 +21,18 @@ public class ToyboxPatterns
 {
     private readonly ILogger<ToyboxPatterns> _logger;
     private readonly GagspeakMediator _mediator;
+    private readonly KinkPlateService _kinkPlates;
     private readonly UiSharedService _uiShared;
     private readonly PatternHandler _handler;
     private readonly PatternHubService _patternHubService;
 
-    public ToyboxPatterns(ILogger<ToyboxPatterns> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
+    public ToyboxPatterns(ILogger<ToyboxPatterns> logger, GagspeakMediator mediator,
+        KinkPlateService kinkPlates, UiSharedService uiSharedService,
         PatternHandler patternHandler, PatternHubService patternHubService)
     {
         _logger = logger;
         _mediator = mediator;
+        _kinkPlates = kinkPlates;
         _uiShared = uiSharedService;
         _handler = patternHandler;
         _patternHubService = patternHubService;
@@ -102,6 +105,10 @@ public class ToyboxPatterns
 
     private void DrawPatternEditorHeader()
     {
+        // get if social features are revoked to know if we should prevent uploads.
+        var profile = _kinkPlates.GetKinkPlate(MainHub.PlayerUserData);
+        var canPublish = !profile.KinkPlateInfo.Disabled;
+
         // use button rounding
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();
@@ -117,6 +124,8 @@ public class ToyboxPatterns
         var centerYpos = (textSize.Y - iconSize.Y);
         using (ImRaii.Child("EditPatternHeader", new Vector2(UiSharedService.GetWindowContentRegionWidth(), iconSize.Y + (centerYpos - startYpos) * 2), false, ImGuiWindowFlags.NoScrollbar))
         {
+            if(_handler.ClonedPatternForEdit is null) return;
+
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
             ImGui.SameLine(10 * ImGuiHelpers.GlobalScale);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
@@ -143,13 +152,17 @@ public class ToyboxPatterns
             var currentYpos = ImGui.GetCursorPosY();
 
             // draw out the icon button
-            if (_uiShared.IconTextButton(publishOrTakedownIcon, publishOrTakedownText, null, false, !_handler.ClonedPatternForEdit.CreatedByClient))
+            var disabled = _handler.ClonedPatternForEdit.CreatedByClient is false || (_handler.ClonedPatternForEdit.IsPublished is false && !canPublish);
+            if (_uiShared.IconTextButton(publishOrTakedownIcon, publishOrTakedownText, null, false, disabled))
             {
                 ImGui.OpenPopup("UploadPopup");
                 var buttonPos = ImGui.GetItemRectMin();
                 var buttonSize = ImGui.GetItemRectSize();
                 ImGui.SetNextWindowPos(new Vector2(buttonPos.X, buttonPos.Y + buttonSize.Y));
             }
+            UiSharedService.AttachToolTip(canPublish is false
+                ? "Cannot Publish Patterns, your social features have been revoked!" : _handler.ClonedPatternForEdit.IsPublished 
+                    ? "Remove Pattern from Server" : "Upload Pattern to Server");
 
             // for saving contents
             ImGui.SameLine();
@@ -172,7 +185,7 @@ public class ToyboxPatterns
             {
                 if (ImGui.BeginPopup("UploadPopup"))
                 {
-                    string text = _handler.ClonedPatternForEdit.IsPublished ? "Remove Pattern from Server?" : "Upload Pattern to Server?";
+                    string text = canPublish && _handler.ClonedPatternForEdit.IsPublished ? "Remove Pattern from Server?" : "Upload Pattern to Server?";
                     ImGuiUtil.Center(text);
                     var width = (ImGui.GetContentRegionAvail().X / 2) - ImGui.GetStyle().ItemInnerSpacing.X;
                     if (ImGui.Button("Yes, I'm Sure", new Vector2(width, 25f)))

@@ -1,3 +1,5 @@
+using GagSpeak.Localization;
+using NAudio.Wave;
 using System.Text.RegularExpressions;
 
 namespace GagSpeak.Hardcore.ForcedStay;
@@ -147,98 +149,98 @@ public class TextFolderNode : ITextNode
     {
         // if there are no entries in the children with the text "Leave Estate" with selection "no" and "Leave Private Chambers" with selection "nothing.",
         var presetNodes = new List<ITextNode>()
-    {
-        new TextEntryNode()
         {
-            Enabled = true,
-            FriendlyName = "[ForcedStay] Prevent Apartment Leaving",
-            TargetRestricted = true,
-            TargetNodeName = "Exit",
-            TargetNodeLabel = "",
-            SelectedOptionText = "Cancel",
-        },
-        new TextEntryNode()
-        {
-            Enabled = true,
-            FriendlyName = "[ForcedStay] Prevent Chamber Leaving",
-            TargetRestricted = true,
-            TargetNodeName = "Exit",
-            TargetNodeLabel = "What would you like to do?",
-            SelectedOptionText = "Nothing.",
-        },
-        new TextEntryNode()
-        {
-            Enabled = true,
-            FriendlyName = "[ForcedStay] Prevent Estate Leaving",
-            TargetRestricted = true,
-            TargetNodeName = "Exit",
-            TargetNodeLabel = "Leave the estate hall?",
-            SelectedOptionText = "No",
-        },
-        new TextEntryNode()
-        {
-            Enabled = true,
-            FriendlyName = "[ForcedStay] Auto-Enter Estate's (Prevent Logout Escape)",
-            TargetRestricted = true,
-            TargetNodeName = "Entrance",
-            TargetNodeLabel = "Enter the estate hall?",
-            SelectedOptionText = "Yes",
-        },
-        new TextEntryNode()
-        {
-            Enabled = true,
-            FriendlyName = "[ForcedStay] Enter Apartment Menu (1/3)",
-            TargetRestricted = true,
-            TargetNodeName = "Apartment Building Entrance",
-            TargetNodeLabel = "",
-            SelectedOptionText = "Go to specified apartment",
-        },
-        new ChambersTextNode()
-        {
-            Enabled = true,
-            FriendlyName = "[ForcedStay] Auto-Select Apartment Room (2/3)",
-            TargetRestricted = true,
-            TargetNodeName = "Apartment Building Entrance",
-            ChamberRoomSet = 0,
-            ChamberListIdx = 0,
-        },
-        new TextEntryNode()
-        {
-            Enabled = true,
-            FriendlyName = "[ForcedStay] Auto-Enter Any Player's Chambers (3/3)",
-            TargetRestricted = true,
-            TargetNodeName = "Apartment Building Entrance",
-            TargetNodeLabel = "/^Enter .+?'s room\\?$/",
-            SelectedOptionText = "Yes",
-        },
-        new TextEntryNode()
-        {
-            Enabled = true,
-            FriendlyName = "[ForcedStay] Auto-Enter FC Chambers Menu (1/3)",
-            TargetRestricted = true,
-            TargetNodeName = "Entrance to Additional Chambers",
-            TargetNodeLabel = "",
-            SelectedOptionText = "Move to specified private chambers",
-        },
-        new ChambersTextNode()
-        {
-            Enabled = true,
-            FriendlyName = "[ForcedStay] Auto-Select FC Chamber Room (2/3)",
-            TargetRestricted = true,
-            TargetNodeName = "Entrance to Additional Chambers",
-            ChamberRoomSet = 0,
-            ChamberListIdx = 0,
-        },
-        new TextEntryNode()
-        {
-            Enabled = true,
-            FriendlyName = "[ForcedStay] Auto-Enter Any Player's Chambers (3/3)",
-            TargetRestricted = true,
-            TargetNodeName = "Apartment Building Entrance",
-            TargetNodeLabel = "/^Enter .+?'s room\\?$/",
-            SelectedOptionText = "Yes",
-        }
-    };
+            new TextEntryNode()
+            {
+                Enabled = true,
+                FriendlyName = GSLoc.Settings.ForcedStay.LeaveAPTFriendly,
+                TargetRestricted = true,
+                TargetNodeName = GSLoc.Settings.ForcedStay.LeaveAPTName,
+                TargetNodeLabel = "",
+                SelectedOptionText = GSLoc.Settings.ForcedStay.LeaveAPTOption,
+            },
+            new TextEntryNode()
+            {
+                Enabled = true,
+                FriendlyName = GSLoc.Settings.ForcedStay.LeaveChamberFriendly,
+                TargetRestricted = true,
+                TargetNodeName = GSLoc.Settings.ForcedStay.LeaveChamberName,
+                TargetNodeLabel = GSLoc.Settings.ForcedStay.LeaveChamberLabel,
+                SelectedOptionText = GSLoc.Settings.ForcedStay.LeaveChamberOption,
+            },
+            new TextEntryNode()
+            {
+                Enabled = true,
+                FriendlyName = GSLoc.Settings.ForcedStay.LeaveEstateFriendly,
+                TargetRestricted = true,
+                TargetNodeName = GSLoc.Settings.ForcedStay.LeaveEstateName,
+                TargetNodeLabel = GSLoc.Settings.ForcedStay.LeaveEstateLabel,
+                SelectedOptionText = GSLoc.Settings.ForcedStay.LeaveEstateOption,
+            },
+            new TextEntryNode()
+            {
+                Enabled = true,
+                FriendlyName = GSLoc.Settings.ForcedStay.EnterEstateFriendly,
+                TargetRestricted = true,
+                TargetNodeName = GSLoc.Settings.ForcedStay.EnterEstateName,
+                TargetNodeLabel = GSLoc.Settings.ForcedStay.EnterEstateLabel,
+                SelectedOptionText = GSLoc.Settings.ForcedStay.EnterEstateOption,
+            },
+            new TextEntryNode()
+            {
+                Enabled = true,
+                FriendlyName = GSLoc.Settings.ForcedStay.EnterAPTOneFriendly,
+                TargetRestricted = true,
+                TargetNodeName = GSLoc.Settings.ForcedStay.EnterAPTOneName,
+                TargetNodeLabel = "",
+                SelectedOptionText = GSLoc.Settings.ForcedStay.EnterAPTOneOption,
+            },
+            new ChambersTextNode()
+            {
+                Enabled = true,
+                FriendlyName = GSLoc.Settings.ForcedStay.EnterAPTTwoFriendly,
+                TargetRestricted = true,
+                TargetNodeName = GSLoc.Settings.ForcedStay.EnterAPTTwoName,
+                ChamberRoomSet = 0,
+                ChamberListIdx = 0,
+            },
+            new TextEntryNode()
+            {
+                Enabled = true,
+                FriendlyName = GSLoc.Settings.ForcedStay.EnterAPTThreeFriendly,
+                TargetRestricted = true,
+                TargetNodeName = GSLoc.Settings.ForcedStay.EnterAPTThreeName,
+                TargetNodeLabel = GSLoc.Settings.ForcedStay.EnterAPTThreeLabel,
+                SelectedOptionText = GSLoc.Settings.ForcedStay.EnterAPTThreeOption,
+            },
+            new TextEntryNode()
+            {
+                Enabled = true,
+                FriendlyName = GSLoc.Settings.ForcedStay.EnterFCOneFriendly,
+                TargetRestricted = true,
+                TargetNodeName = GSLoc.Settings.ForcedStay.EnterFCOneName,
+                TargetNodeLabel = "",
+                SelectedOptionText = GSLoc.Settings.ForcedStay.EnterFCOneOption,
+            },
+            new ChambersTextNode()
+            {
+                Enabled = true,
+                FriendlyName = GSLoc.Settings.ForcedStay.EnterFCTwoFriendly,
+                TargetRestricted = true,
+                TargetNodeName = GSLoc.Settings.ForcedStay.EnterFCTwoName,
+                ChamberRoomSet = 0,
+                ChamberListIdx = 0,
+            },
+            new TextEntryNode()
+            {
+                Enabled = true,
+                FriendlyName = GSLoc.Settings.ForcedStay.EnterFCThreeFriendly,
+                TargetRestricted = true,
+                TargetNodeName = GSLoc.Settings.ForcedStay.EnterFCThreeName,
+                TargetNodeLabel = GSLoc.Settings.ForcedStay.EnterFCThreeLabel,
+                SelectedOptionText = GSLoc.Settings.ForcedStay.EnterFCThreeOption,
+            }
+        };
 
         // If there are no entries, add all preset nodes
         if (Children.Count == 0)

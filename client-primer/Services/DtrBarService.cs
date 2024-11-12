@@ -4,6 +4,7 @@ using Dalamud.Game.Gui.Dtr;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
+using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
@@ -20,6 +21,7 @@ namespace GagSpeak.UpdateMonitoring;
 public sealed class DtrBarService : DisposableMediatorSubscriberBase
 {
     private readonly MainHub _apiHubMain;
+    private readonly GagspeakConfigService _mainConfig;
     private readonly EventAggregator _eventAggregator;
     private readonly PairManager _pairManager;
     private readonly OnFrameworkService _frameworkUtils;
@@ -27,11 +29,12 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
     private readonly IDataManager _gameData;
     private readonly IDtrBar _dtrBar;
     public DtrBarService(ILogger<DtrBarService> logger, GagspeakMediator mediator, 
-        MainHub apiHubMain, EventAggregator eventAggregator, PairManager pairManager, 
-        OnFrameworkService frameworkUtils, IClientState clientState, IDataManager dataManager,
-        IDtrBar dtrBar) : base(logger, mediator)
+        MainHub apiHubMain, GagspeakConfigService mainConfig,  EventAggregator eventAggregator, 
+        PairManager pairManager,  OnFrameworkService frameworkUtils, IClientState clientState, 
+        IDataManager dataManager, IDtrBar dtrBar) : base(logger, mediator)
     {
         _apiHubMain = apiHubMain;
+        _mainConfig = mainConfig;
         _eventAggregator = eventAggregator;
         _pairManager = pairManager;
         _frameworkUtils = frameworkUtils;
@@ -61,7 +64,6 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
             PrivacyEntry.Shown = false;
             UpdateMessagesEntry.Shown = false;
         });
-        //Mediator.Subscribe<ToggleDtrBarMessage>(this, (_) => DtrBarEnabled = !DtrBarEnabled);
         Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) => UpdateDtrBar());
     }
 
@@ -83,6 +85,10 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
     {
         if (!MainHub.IsServerAlive)
             return;
+
+        PrivacyEntry.Shown = _mainConfig.Current.ShowPrivacyRadar;
+        UpdateMessagesEntry.Shown = _mainConfig.Current.ShowActionNotifs;
+        VibratorEntry.Shown = _mainConfig.Current.ShowVibeStatus;
 
         if (PrivacyEntry.Shown)
         {

@@ -17,33 +17,19 @@ public class AlarmConfigService : ConfigurationServiceBase<AlarmConfig>
     {
         JObject newConfigJson;
 
-        // if migrating from any version less than 2, to 2
-        if (readVersion <= 2)
-        {
-            newConfigJson = MigrateFromV1toV2(oldConfigJson);
-        }
-        else
-        {
-            // no migration needed
-            newConfigJson = oldConfigJson;
-        }
+        // no migration needed
+        newConfigJson = oldConfigJson;
         return newConfigJson;
     }
 
     // Safely update data for new format.
-    private JObject MigrateFromV1toV2(JObject oldConfigJson)
+    private JObject MigrateFromV0toV1(JObject oldConfigJson)
     {
         // create a new JObject to store the new config
         JObject newConfigJson = new();
-        // set the version to 2
-        newConfigJson["Version"] = 2;
+        // set the version to 1
+        newConfigJson["Version"] = 1;
 
-        // completely erase the old alarm storage, and replace with a new one.
-        newConfigJson["AlarmStorage"] = new JObject
-        {
-            ["Alarms"] = new JArray()
-        };
-
-        return newConfigJson;
+        return oldConfigJson;
     }
 }

@@ -15,75 +15,25 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
     protected override string ConfigurationName => ConfigName;
     protected override bool PerCharacterConfigPath => PerCharacterConfig;
 
+    // apply an override for migrations off the baseconfigservice
     protected override JObject MigrateConfig(JObject oldConfigJson, int readVersion)
     {
-        JObject newConfigJson = oldConfigJson;
-        if (readVersion == 1)
-        {
-            newConfigJson = MigrateFromV1toV2(oldConfigJson);
-        }
-        else
-        {
-            newConfigJson = oldConfigJson;
-        }
+        JObject newConfigJson;
+
+        // no migration needed
+        newConfigJson = oldConfigJson;
         return newConfigJson;
     }
 
-    public JObject MigrateFromV1toV2(JObject v1Data)
+    // Safely update data for new format.
+    private JObject MigrateFromV0toV1(JObject oldConfigJson)
     {
-        // Create a new JObject for V2
-        var v2Data = new JObject
-        {
-            ["Version"] = 2,
-            ["GagStorage"] = new JObject
-            {
-                ["GagEquipData"] = new JObject()
-            }
-        };
+        // create a new JObject to store the new config
+        JObject newConfigJson = new();
+        // set the version to 1
+        newConfigJson["Version"] = 1;
 
-        // Get the V1 GagEquipData
-        var v1GagEquipData = v1Data["GagStorage"]?["GagEquipData"] as JObject ?? new JObject();
-
-        var v2GagEquipData = new JObject();
-
-        foreach (var item in v1GagEquipData.Properties())
-        {
-            try
-            {
-                var gagName = item.Name;
-                var v1Gag = (JObject)item.Value;
-
-                // Corrected path to access GameItem
-                var gameItem = v1Gag["GameItem"] as JObject;
-                if (gameItem == null)
-                {
-                    StaticLogger.Logger.LogError($"gameItem is null for gagName: {gagName}. v1Gag contents: {v1Gag.ToString(Formatting.Indented)}");
-                    throw new Exception($"gameItem is null for gagName: {gagName}");
-                }
-
-                var v2Gag = new JObject
-                {
-                    ["IsEnabled"] = v1Gag["IsEnabled"],
-                    ["ForceHeadgear"] = false,
-                    ["ForceVisor"] = false,
-                    ["GagMoodles"] = new JArray(),
-                    ["Slot"] = v1Gag["Slot"],
-                    ["CustomItemId"] = gameItem["Id"]?.ToString(),
-                    ["GameStain"] = v1Gag["GameStain"]
-                };
-
-                v2GagEquipData[gagName] = v2Gag;
-            }
-            catch (AggregateException ex)
-            {
-                throw new AggregateException($"Failed to migrate gag item '{item.Name}'.", ex);
-            }
-        }
-
-        // Assign the transformed GagEquipData to V2 data
-        v2Data["GagStorage"]!["GagEquipData"] = v2GagEquipData;
-
-        return v2Data;
+        return oldConfigJson;
     }
 
     protected override GagStorageConfig DeserializeConfig(JObject configJson)
@@ -92,41 +42,37 @@ public class GagStorageConfigService : ConfigurationServiceBase<GagStorageConfig
 
         // Assuming GagStorage has a default constructor
         config.GagStorage = new GagStorage();
-        config.GagStorage.GagEquipData = new Dictionary<GagType, GagDrawData>();
 
         JObject gagEquipDataObject = configJson["GagStorage"]!["GagEquipData"] as JObject ?? new JObject();
         if (gagEquipDataObject == null) return config;
 
-        int i = 0;
         foreach (var gagData in gagEquipDataObject)
         {
-            GagType gagType;
-            if (gagData.Key.IsValidGagName())
+            // Try to parse GagType directly from the key
+            if (gagData.Key.IsValidGagName() && gagData.Value is JObject itemObject)
             {
-                gagType = Enum.GetValues(typeof(GagType))
+                var gagType = Enum.GetValues(typeof(GagType))
                     .Cast<GagType>()
                     .FirstOrDefault(gt => gt.GagName() == gagData.Key);
-            }
-            else
-            {
-                gagType = Enum.GetValues(typeof(GagType))
-                    .Cast<GagType>()
-                    .FirstOrDefault(gt => gt.ToString() == gagData.Key);
-                if (gagType == default)
-                {
-                    if (gagData.Key == "WiffleGag") gagType = GagType.WhiffleGag;
-                    if (gagData.Key == "TenticleGag") gagType = GagType.TentacleGag;
-                }
-            }
 
-            if (gagData.Value is JObject itemObject)
-            {
+
                 string? slotString = itemObject["Slot"]?.Value<string>() ?? "Head";
                 EquipSlot slot = (EquipSlot)Enum.Parse(typeof(EquipSlot), slotString);
                 var gagDrawData = new GagDrawData(ItemIdVars.NothingItem(slot));
                 gagDrawData.Deserialize(itemObject);
-                config.GagStorage.GagEquipData.Add(gagType, gagDrawData);
-                i++;
+                if(config.GagStorage.GagEquipData.ContainsKey(gagType))
+                {
+                    config.GagStorage.GagEquipData[gagType] = gagDrawData;
+                }
+                else
+                {
+                    config.GagStorage.GagEquipData.Add(gagType, gagDrawData);
+                }
+            }
+            else
+            {
+                // Log a warning if the key could not be parsed
+                StaticLogger.Logger.LogWarning($"Warning: Could not parse GagType key: {gagData.Key}");
             }
         }
         return config;

@@ -4,7 +4,6 @@ using GagSpeak.ChatMessages;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Configurations;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.ForcedStay;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
@@ -13,8 +12,6 @@ using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
-using GagspeakAPI.Data.Struct;
-using GagspeakAPI.Extensions;
 using ImGuiNET;
 using Microsoft.IdentityModel.Tokens;
 using Penumbra.GameData.Enums;
@@ -123,32 +120,12 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     // but at the moment this handles any commonly known possible holes in config generation.
     public void InitConfigs()
     {
-        if (_configService.Current.LoggerFilters.Count == 0)
+        if(_configService.Current.LoggerFilters.Contains(LoggerType.SpatialAudioLogger))
         {
-            Logger.LogWarning("Logger Filters are empty, adding all loggers.");
+            // reset with recommended.
             _configService.Current.LoggerFilters = LoggerFilter.GetAllRecommendedFilters();
-            _configService.Save();
+            Save();
         }
-
-        if (_configService.Current.ChannelsGagSpeak.Count == 0)
-        {
-            Logger.LogWarning("Channel list is empty, adding Say as the default channel.");
-            _configService.Current.ChannelsGagSpeak = new List<ChatChannel.Channels> { ChatChannel.Channels.Say };
-            _configService.Save();
-
-        }
-        if (_configService.Current.ChannelsPuppeteer.Count == 0)
-        {
-            Logger.LogWarning("Channel list is empty, adding Say as the default channel.");
-            _configService.Current.ChannelsPuppeteer = new List<ChatChannel.Channels> { ChatChannel.Channels.Say };
-            _configService.Save();
-        }
-
-        _configService.Current.ForcedStayPromptList.CheckAndInsertRequired();
-        _configService.Current.ForcedStayPromptList.PruneEmpty();
-        _configService.Save();
-
-
         // create a new storage file
         if (_gagStorageConfig.Current.GagStorage.GagEquipData.IsNullOrEmpty())
         {
@@ -186,7 +163,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
                 pattern.UniqueIdentifier = Guid.NewGuid();
             }
             _patternConfig.Save();
-        }
+        }       
     }
 
     /* -------------------- Update Monitoring & Hardcore Methods -------------------- */
@@ -364,7 +341,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
     internal void CloneRestraintSet(RestraintSet setToClone)
     {
         var clonedSet = setToClone.DeepCloneSet();
-        clonedSet.Name = EnsureUniqueName(clonedSet.Name, WardrobeConfig.WardrobeStorage.RestraintSets, set => set.Name); 
+        clonedSet.Name = EnsureUniqueName(clonedSet.Name, WardrobeConfig.WardrobeStorage.RestraintSets, set => set.Name);
         _wardrobeConfig.Current.WardrobeStorage.RestraintSets.Add(clonedSet);
         _wardrobeConfig.Save();
         Logger.LogInformation("Restraint Set added to wardrobe", LoggerType.Restraints);
@@ -579,7 +556,7 @@ public class ClientConfigurationManager : DisposableMediatorSubscriberBase
         _patternConfig.Save();
 
         // iterate through the alarms to see if we need to remove patterns from any of them.
-        foreach(var alarm in AlarmConfig.AlarmStorage.Alarms)
+        foreach (var alarm in AlarmConfig.AlarmStorage.Alarms)
         {
             if (alarm.PatternToPlay == identifierToRemove)
             {

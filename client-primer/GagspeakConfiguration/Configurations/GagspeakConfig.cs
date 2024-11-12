@@ -11,7 +11,7 @@ namespace GagSpeak.GagspeakConfiguration.Configurations;
 public class GagspeakConfig : IGagspeakConfiguration
 {
     // Internal data used for account checking and changelogs.
-    public static int CurrentVersion => 3;
+    public static int CurrentVersion => 0;
     public int Version { get; set; } = CurrentVersion;
     public Version? LastRunVersion { get; set; } = null;
     public string LastUidLoggedIn { get; set; } = "";
@@ -38,8 +38,8 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool ShowProfiles { get; set; } = true;
     public float ProfileDelay { get; set; } = 1.5f;
     public bool ShowContextMenus { get; set; } = true;
-    public List<ChatChannel.Channels> ChannelsGagSpeak { get; set; } = [];
-    public List<ChatChannel.Channels> ChannelsPuppeteer { get; set; } = [];
+    public List<ChatChannel.Channels> ChannelsGagSpeak { get; set; } = new List<ChatChannel.Channels> { ChatChannel.Channels.Say };
+    public List<ChatChannel.Channels> ChannelsPuppeteer { get; set; } = new List<ChatChannel.Channels> { ChatChannel.Channels.Say };
 
     // logging (debug)
     public bool LiveGarblerZoneChangeWarn { get; set; } = true;
@@ -48,7 +48,7 @@ public class GagspeakConfig : IGagspeakConfiguration
     public bool NotifyLimitToNickedPairs { get; set; } = false;
 
     public LogLevel LogLevel { get; set; } = LogLevel.Trace;
-    public HashSet<LoggerType> LoggerFilters { get; set; } = new HashSet<LoggerType>();
+    public HashSet<LoggerType> LoggerFilters { get; set; } = LoggerFilter.GetAllRecommendedFilters();
     public NotificationLocation InfoNotification { get; set; } = NotificationLocation.Both;
     public NotificationLocation WarningNotification { get; set; } = NotificationLocation.Both;
     public NotificationLocation ErrorNotification { get; set; } = NotificationLocation.Both;

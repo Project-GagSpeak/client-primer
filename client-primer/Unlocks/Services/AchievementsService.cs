@@ -76,7 +76,7 @@ public class AchievementsService : DisposableMediatorSubscriberBase
 
         if(playersInRange != _lastPlayerCount)
         {
-            Logger.LogTrace("(New Update) There are " + playersInRange + " Players nearby");
+            Logger.LogTrace("(New Update) There are " + playersInRange + " Players nearby", LoggerType.AchievementInfo);
             UnlocksEventManager.AchievementEvent(UnlocksEvent.PlayersInProximity, playersInRange);
             _lastPlayerCount = playersInRange;
         }

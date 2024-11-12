@@ -17,34 +17,21 @@ public class PatternConfigService : ConfigurationServiceBase<PatternConfig>
     protected override JObject MigrateConfig(JObject oldConfigJson, int readVersion)
     {
         JObject newConfigJson;
-        // if migrating from any version less than 2, to 2
-        if (readVersion <= 2)
-        {
-            newConfigJson = MigrateFromV2toV3(oldConfigJson);
-        }
-        else
-        {
-            // no migration needed
-            newConfigJson = oldConfigJson;
-        }
+
+        // no migration needed
+        newConfigJson = oldConfigJson;
         return newConfigJson;
     }
 
     // Safely update data for new format.
-    private JObject MigrateFromV2toV3(JObject oldConfigJson)
+    private JObject MigrateFromV0toV1(JObject oldConfigJson)
     {
         // create a new JObject to store the new config
         JObject newConfigJson = new();
-        // set the version to 2
-        newConfigJson["Version"] = 3;
+        // set the version to 1
+        newConfigJson["Version"] = 1;
 
-        // completely erase the old pattern storage, and replace with a new one.
-        newConfigJson["PatternStorage"] = new JObject
-        {
-            ["Patterns"] = new JArray()
-        };
-
-        return newConfigJson;
+        return oldConfigJson;
     }
 
 

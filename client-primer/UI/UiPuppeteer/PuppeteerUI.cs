@@ -62,14 +62,27 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
     private string? UnsavedNewStartChar = null;
     private string? UnsavedNewEndChar = null;
 
+    private bool ThemePushed = false;
     protected override void PreDrawInternal()
     {
-        // include our personalized theme for this window here if we have themes enabled.
+        if (!ThemePushed)
+        {
+            ImGui.PushStyleColor(ImGuiCol.TitleBg, new Vector4(0.331f, 0.081f, 0.169f, .803f));
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, new Vector4(0.579f, 0.170f, 0.359f, 0.828f));
+
+            ThemePushed = true;
+        }
     }
+
     protected override void PostDrawInternal()
     {
-        // include our personalized theme for this window here if we have themes enabled.
+        if (ThemePushed)
+        {
+            ImGui.PopStyleColor(2);
+            ThemePushed = false;
+        }
     }
+
     protected override void DrawInternal()
     {
         // _logger.LogInformation(ImGui.GetWindowSize().ToString()); <-- USE FOR DEBUGGING ONLY.
@@ -120,7 +133,7 @@ public class PuppeteerUI : WindowMediatorSubscriberBase
                 ImGui.Separator();
                 using (ImRaii.Child($"###PuppeteerList", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.NoScrollbar))
                 {
-                    _userPairListHandler.DrawPairListSelectable(width, false, "PuppetList");
+                    _userPairListHandler.DrawPairListSelectable(width, true, 2);
                 }
             }
             // pop pushed style variables and draw next column.

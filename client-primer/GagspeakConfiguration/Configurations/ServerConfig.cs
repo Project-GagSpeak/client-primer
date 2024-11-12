@@ -13,6 +13,6 @@ public class ServerConfig : IGagspeakConfiguration
         ServiceUri = MainHub.MainServiceUri,
     };
 
-    public static int CurrentVersion => 2;
+    public static int CurrentVersion => 0;
     public int Version { get; set; } = CurrentVersion;
 }

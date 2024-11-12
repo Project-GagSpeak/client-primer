@@ -366,6 +366,7 @@ namespace GagSpeak.Localization
         public readonly string CharaKeyLabel = Loc.Localize("Accounts_CharaKeyLabel", "The Account Secret Key");
         
         public readonly string DeleteButtonLabel = Loc.Localize("Accounts_DeleteButtonLabel", "Delete Account");
+        public readonly string DeleteButtonDisabledTT = Loc.Localize("Accounts_DeleteButtonDisabledTT", "Cannot remove this account as it is not yet registered");
         public readonly string DeleteButtonTT = Loc.Localize("Accounts_DeleteButtonTT", "Permanently Remove this account from GagSpeak services." +
             "--SEP--WARNING: Once account is deleted, the secret key used with it will not be reusable." +
             "--SEP--If you want to create a fresh account for the logged in character, you will need to obtain a new key for it." +

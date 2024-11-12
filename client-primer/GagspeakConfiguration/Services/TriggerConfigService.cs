@@ -13,45 +13,26 @@ public class TriggerConfigService : ConfigurationServiceBase<TriggerConfig>
     protected override string ConfigurationName => ConfigName;
     protected override bool PerCharacterConfigPath => PerCharacterConfig;
 
+    // apply an override for migrations off the baseconfigservice
     protected override JObject MigrateConfig(JObject oldConfigJson, int readVersion)
     {
-        JObject newConfigJson = oldConfigJson;
-        // if migrating from any version less than 2, to 2
-        if (readVersion <= 2)
-        {
-            newConfigJson = MigrateFromV1toV2(oldConfigJson);
-        }
-        else
-        {
-            newConfigJson = oldConfigJson;
-        }
+        JObject newConfigJson;
+
+        // no migration needed
+        newConfigJson = oldConfigJson;
         return newConfigJson;
     }
 
-    private JObject MigrateFromV1toV2(JObject oldConfigJson)
+    // Safely update data for new format.
+    private JObject MigrateFromV0toV1(JObject oldConfigJson)
     {
-        // Create a new JObject for V2, including TriggerStorage initialization
-        var v2TriggerStorage = new JObject(); // Create the TriggerStorage here
-        var v2Data = new JObject
-        {
-            ["Version"] = 2,
-            ["TriggerStorage"] = v2TriggerStorage // Assign it directly
-        };
+        // create a new JObject to store the new config
+        JObject newConfigJson = new();
+        // set the version to 1
+        newConfigJson["Version"] = 1;
 
-        // Try to get the old TriggerStorage and Triggers, or default to empty JObject/JArray if missing
-        var v2TriggersStorage = oldConfigJson["TriggerStorage"] as JObject ?? new JObject();
-        var v2Triggers = v2TriggersStorage["Triggers"] as JArray ?? new JArray();
-
-        // Create a new array to hold the migrated triggers (you can add migration logic here if needed)
-        var v2TriggersNew = new JArray(v2Triggers);
-
-        // Assign the new triggers array to the pre-created TriggerStorage
-        v2TriggerStorage["Triggers"] = v2TriggersNew;
-
-        return v2Data;
+        return oldConfigJson;
     }
-
-
 
     protected override TriggerConfig DeserializeConfig(JObject configJson)
     {

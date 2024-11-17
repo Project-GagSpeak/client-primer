@@ -104,7 +104,6 @@ public abstract class ConfigurationServiceBase<T> : IDisposable where T : IGagsp
             catch (Exception ex)
             {
                 throw new Exception($"Failed to load {ConfigurationName} configuration. {ex.StackTrace}");
-                config = default;
             }
             // if config was null, create a new instance of the config
             if (config == null)

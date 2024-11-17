@@ -29,10 +29,7 @@ public class DrawUserPair
     private readonly string _id;
     private readonly CosmeticService _cosmetics;
     private readonly UiSharedService _uiShared;
-    private float _menuWidth = -1;
     private Dictionary<byte, bool> IsHovered = new();
-    // store the created texture wrap for the supporter tier image so we are not loading it every single time.
-    private IDalamudTextureWrap? _supporterWrap = null;
     public DrawUserPair(ILogger<DrawUserPair> logger, string id, Pair entry, MainHub apiHubMain,
         IdDisplayHandler uIDDisplayHandler, GagspeakMediator mediator,
         CosmeticService cosmetics, UiSharedService uiShared)
@@ -48,12 +45,6 @@ public class DrawUserPair
 
     public Pair Pair => _pair;
     public UserPairDto UserPair => _pair.UserPair!;
-
-    public void Dispose()
-    {
-        _supporterWrap?.Dispose();
-        _supporterWrap = null;
-    }
 
     public bool DrawPairedClient(byte ident, bool supporterIcon = true, bool icon = true, bool iconTT = true, bool displayToggles = true, 
         bool displayNameTT = true, bool showHovered = true, bool showRightButtons = true)

@@ -7,7 +7,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Utils;
 using System.Runtime.InteropServices;
 using ValType = FFXIVClientStructs.FFXIV.Component.GUI;
-//#nullable disable
+#nullable disable
 
 namespace GagSpeak.UpdateMonitoring;
 public unsafe class ForcedStayCallback : IDisposable
@@ -17,7 +17,7 @@ public unsafe class ForcedStayCallback : IDisposable
 
     private unsafe delegate void* FireCallbackDelegate(AtkUnitBase* atkUnitBase, int valueCount, AtkValue* atkValues, byte updateVisibility);
     [Signature("E8 ?? ?? ?? ?? 0F B6 E8 8B 44 24 20", DetourName = nameof(FireCallbackDetour), Fallibility = Fallibility.Auto)]
-    private static Hook<FireCallbackDelegate>? FireCallbackHook { get; set; } = null!;
+    private static Hook<FireCallbackDelegate> FireCallbackHook { get; set; } = null;
     [return: MarshalAs(UnmanagedType.U1)]
     private unsafe void* FireCallbackDetour(AtkUnitBase* atkUnitBase, int valueCount, AtkValue* atkValues, byte updateVisibility)
     {

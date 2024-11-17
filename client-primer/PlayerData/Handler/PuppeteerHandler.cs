@@ -233,8 +233,8 @@ public class PuppeteerHandler : DisposableMediatorSubscriberBase
         if (perms.AllowSitRequests)
         {
             Logger.LogTrace("Checking if message is a sit command", LoggerType.Puppeteer);
-            var sitEmote = EmoteMonitor.SitEmoteComboList.FirstOrDefault(e => message.TextValue.Contains(e.Name.RawString.Replace(" ", "").ToLower()));
-            if (sitEmote?.RowId is 50 or 52)
+            var sitEmote = EmoteMonitor.SitEmoteComboList.FirstOrDefault(e => message.TextValue.Contains(e.Name.ToString().Replace(" ", "").ToLower()));
+            if (sitEmote.RowId is 50 or 52)
             {
                 Logger.LogTrace("Message is a sit command", LoggerType.Puppeteer);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.PuppeteerEmoteRecieved, (ushort)sitEmote.RowId);

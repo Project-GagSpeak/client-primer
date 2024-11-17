@@ -15,9 +15,9 @@ using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Extensions;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using OtterGui;
-using GameAction = Lumina.Excel.GeneratedSheets.Action;
+using GameAction = Lumina.Excel.Sheets.Action;
 
 namespace GagSpeak.Toybox.Services;
 
@@ -30,19 +30,16 @@ public class TriggerService : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly IpcCallerMoodles _moodlesIpc;
     private readonly UnlocksEventManager _eventManager;
+    private readonly ClientMonitorService _clientMonitor;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly VibratorService _vibeService;
-    private readonly IClientState _clientState;
-    private readonly IDataManager _dataManager;
-
-    public List<ClassJob> ClassJobs { get; private set; } = new List<ClassJob>();
-    public List<ClassJob> BattleClassJobs => ClassJobs.Where(x => x.Role != 0).ToList();
-    public Dictionary<uint, List<GameAction>> LoadedActions { get; private set; } = new Dictionary<uint, List<GameAction>>();
 
     public TriggerService(ILogger<TriggerService> logger, GagspeakMediator mediator,
-        PlayerCharacterData playerData, ToyboxFactory playerMonitorFactory, AppearanceManager appearanceManager,
-        ClientConfigurationManager clientConfigs, IpcCallerMoodles moodlesIpc, UnlocksEventManager eventManager,
-        OnFrameworkService frameworkUtils, VibratorService vibeService, IClientState clientState, IDataManager dataManager) : base(logger, mediator)
+        PlayerCharacterData playerData, ToyboxFactory playerMonitorFactory, 
+        AppearanceManager appearanceManager, ClientConfigurationManager clientConfigs, 
+        IpcCallerMoodles moodlesIpc, UnlocksEventManager eventManager,
+        ClientMonitorService clientMonitor, OnFrameworkService frameworkUtils, 
+        VibratorService vibeService) : base(logger, mediator)
     {
         _playerData = playerData;
         _playerMonitorFactory = playerMonitorFactory;
@@ -50,12 +47,9 @@ public class TriggerService : DisposableMediatorSubscriberBase
         _clientConfigs = clientConfigs;
         _moodlesIpc = moodlesIpc;
         _eventManager = eventManager;
+        _clientMonitor = clientMonitor;
         _frameworkUtils = frameworkUtils;
         _vibeService = vibeService;
-        _clientState = clientState;
-        _dataManager = dataManager;
-
-        ClassJobs = _dataManager.GetExcelSheet<ClassJob>()?.ToList() ?? new List<ClassJob>();
 
         ActionEffectMonitor.ActionEffectEntryEvent += OnActionEffectEvent;
 
@@ -78,49 +72,6 @@ public class TriggerService : DisposableMediatorSubscriberBase
         base.Dispose(disposing);
     }
 
-    public void TryUpdateClassJobList()
-    {
-        Logger.LogDebug("Attempting to update ClassJob list.", LoggerType.ToyboxTriggers);
-        if (ClassJobs.Count == 0)
-        {
-            ClassJobs = _dataManager.GetExcelSheet<ClassJob>()?.ToList() ?? new List<ClassJob>();
-            Logger.LogDebug($"ClassJob list updated. Total jobs: " + ClassJobs.Count, LoggerType.ToyboxTriggers);
-        }
-    }
-
-    public ClassJob? GetClientClassJob()
-    {
-        var clientClassJob = ClassJobs?.FirstOrDefault(x => x.RowId == _frameworkUtils.PlayerClassJobId);
-        return clientClassJob ?? default;
-    }
-
-    public void CacheJobActionList(uint JobId)
-    {
-        Logger.LogDebug($"Attempting to cache actions for JobId: " + JobId, LoggerType.ToyboxTriggers);
-
-        if (JobId == uint.MaxValue)
-        {
-            Logger.LogWarning("Invalid JobId: uint.MaxValue. No actions cached.");
-            return;
-        }
-
-        // Otherwise, store or load actions for the job
-        if (!LoadedActions.ContainsKey(JobId))
-        {
-            // Fetch all actions for the jobId and add to the dictionary if we haven't cached it already
-            var actions = _dataManager.GetExcelSheet<GameAction>()?
-                .Where(row => row.IsPlayerAction && row.ClassJob.Value != null && row.ClassJob.Value.RowId == JobId)
-                .ToList() ?? new List<GameAction>();
-
-            LoadedActions[JobId] = actions;
-            Logger.LogDebug($"Cached {actions.Count} actions for JobId: {JobId}", LoggerType.ToyboxTriggers);
-        }
-        else
-        {
-            Logger.LogDebug($"Actions for JobId: {JobId} are already cached.", LoggerType.ToyboxTriggers);
-        }
-    }
-
     private void OnRestraintApply(RestraintSet set, bool isEnabling, string enactor)
     {
         if (isEnabling) CheckActiveRestraintTriggers(set.RestraintId, NewState.Enabled);
@@ -135,7 +86,7 @@ public class TriggerService : DisposableMediatorSubscriberBase
     public void CheckActiveChatTriggers(XivChatType chatType, string senderNameWithWorld, string message)
     {
         // if the sender name is ourselves, ignore the message.
-        if (senderNameWithWorld == _frameworkUtils.ClientState.LocalPlayer?.GetNameWithWorld()) return;
+        if (senderNameWithWorld == _clientMonitor.ClientPlayer.NameWithWorld()) return;
 
         // Check to see if any active chat triggers are in the message
         var channel = ChatChannel.GetChatChannelFromXivChatType(chatType);
@@ -175,8 +126,8 @@ public class TriggerService : DisposableMediatorSubscriberBase
             {
                 Logger.LogDebug("Checking Trigger: " + trigger.Name, LoggerType.ToyboxTriggers);
                 // Determine if the direction matches
-                var isSourcePlayer = _frameworkUtils.ClientState.LocalPlayer!.GameObjectId == actionEffect.SourceID;
-                var isTargetPlayer = _frameworkUtils.ClientState.LocalPlayer!.GameObjectId == actionEffect.TargetID;
+                var isSourcePlayer = _clientMonitor.ObjectId == actionEffect.SourceID;
+                var isTargetPlayer = _clientMonitor.ObjectId == actionEffect.TargetID;
 
                 Logger.LogDebug("Trigger Direction we are checking was: " + trigger.Direction, LoggerType.ToyboxTriggers);
                 bool directionMatches = trigger.Direction switch
@@ -392,7 +343,7 @@ public class TriggerService : DisposableMediatorSubscriberBase
 
     public async void OnActionEffectEvent(List<ActionEffectEntry> actionEffects)
     {
-        if (_frameworkUtils.ClientState.LocalPlayer is null || !ShouldProcessActionEffectHooks)
+        if (!_clientMonitor.IsPresent || !ShouldProcessActionEffectHooks)
             return;
 
         await _frameworkUtils.RunOnFrameworkThread(() =>
@@ -404,7 +355,8 @@ public class TriggerService : DisposableMediatorSubscriberBase
                     // Perform logging and action processing for each effect
                     var sourceCharaStr = (_frameworkUtils.SearchObjectTableById(actionEffect.SourceID) as IPlayerCharacter)?.GetNameWithWorld() ?? "UNKN OBJ";
                     var targetCharaStr = (_frameworkUtils.SearchObjectTableById(actionEffect.TargetID) as IPlayerCharacter)?.GetNameWithWorld() ?? "UNKN OBJ";
-                    var actionStr = _dataManager.GetExcelSheet<GameAction>()!.GetRow(actionEffect.ActionID)?.Name.ToString() ?? "UNKN ACT";
+                    string actionStr = "UNKN ACT";
+                    if(_clientMonitor.TryGetAction(actionEffect.ActionID, out GameAction action)) actionStr = action.Name.ToString();
                     Logger.LogDebug($"Source:{sourceCharaStr}, Target: {targetCharaStr}, Action: {actionStr}, Action ID:{actionEffect.ActionID}, " +
                         $"Type: {actionEffect.Type.ToString()} Amount: {actionEffect.Damage}", LoggerType.ActionEffects);
                 }

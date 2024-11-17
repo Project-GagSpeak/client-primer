@@ -20,80 +20,92 @@ namespace GagSpeak.Services;
 
 public class UiFactory
 {
+    // Generic Classes
     private readonly ILoggerFactory _loggerFactory;
     private readonly GagspeakMediator _gagspeakMediator;
-    private readonly MainHub _apiHubMain;
-    private readonly ToyboxHub _apiHubToybox;
+    private readonly PiShockProvider _shockProvider;
+
+    // Managers
+    private readonly ClientConfigurationManager _clientConfigs;
+    private readonly ClientMonitorService _clientService;
     private readonly GagManager _gagManager;
-    private readonly UiSharedService _uiSharedService;
-    private readonly VibratorService _vibeService;
-    private readonly IdDisplayHandler _displayHandler;
     private readonly PairManager _pairManager;
     private readonly PlayerCharacterData _playerManager;
-    private readonly ClientConfigurationManager _clientConfigs;
-    private readonly ToyboxRemoteService _remoteService;
-    private readonly KinkPlateService _KinkPlateManager;
-    private readonly OnFrameworkService _frameworkUtils;
-    private readonly KinkPlateLight _kinkPlateLight;
-    private readonly MoodlesService _moodlesService;
-    private readonly PermissionPresetService _presetService;
-    private readonly CosmeticService _cosmetics;
-    private readonly TextureService _textures;
-    private readonly PermActionsComponents _permActionHelpers;
 
-    public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator, MainHub apiHubMain, 
-        ToyboxHub apiHubToybox, GagManager gagManager, UiSharedService uiSharedService, 
-        VibratorService vibeService, IdDisplayHandler displayHandler, PairManager pairManager, 
-        PlayerCharacterData playerManager, ToyboxRemoteService remoteService, KinkPlateLight kinkPlateLight,
-        KinkPlateService profileManager, OnFrameworkService frameworkUtils, ClientConfigurationManager clientConfigs, 
-        MoodlesService moodlesService, PermissionPresetService presetService, CosmeticService cosmetics, 
-        TextureService textures, PermActionsComponents permActionHelpers)
+    // Services
+    private readonly CosmeticService _cosmetics;
+    private readonly IdDisplayHandler _displayHandler;
+    private readonly KinkPlateLight _kinkPlateLight;
+    private readonly KinkPlateService _kinkPlates;
+    private readonly MoodlesService _moodlesService;
+    private readonly OnFrameworkService _frameworkUtils;
+    private readonly PermissionPresetService _presetService;
+    private readonly PermActionsComponents _permActionHelpers;
+    private readonly TextureService _textures;
+    private readonly ToyboxRemoteService _remoteService;
+    private readonly UiSharedService _uiShared;
+    private readonly VibratorService _vibeService;
+
+    // API Hubs
+    private readonly MainHub _apiHubMain;
+    private readonly ToyboxHub _apiHubToybox;
+
+    public UiFactory(ILoggerFactory loggerFactory, GagspeakMediator gagspeakMediator, 
+        PiShockProvider shockProvider, ClientConfigurationManager clientConfigs, 
+        ClientMonitorService clientService, GagManager gagManager, PairManager pairManager, 
+        PlayerCharacterData playerManager, CosmeticService cosmetics, IdDisplayHandler displayHandler, 
+        KinkPlateLight kinkPlateLight, KinkPlateService kinkPlates, MoodlesService moodlesService, 
+        OnFrameworkService frameworkUtils, PermissionPresetService presetService, 
+        PermActionsComponents permActionHelpers, TextureService textures, ToyboxRemoteService remoteService, 
+        UiSharedService uiShared, VibratorService vibeService, MainHub apiHubMain, ToyboxHub apiHubToybox)
     {
         _loggerFactory = loggerFactory;
         _gagspeakMediator = gagspeakMediator;
-        _apiHubMain = apiHubMain;
-        _apiHubToybox = apiHubToybox;
+        _shockProvider = shockProvider;
+        _clientConfigs = clientConfigs;
+        _clientService = clientService;
         _gagManager = gagManager;
-        _uiSharedService = uiSharedService;
-        _vibeService = vibeService;
-        _displayHandler = displayHandler;
         _pairManager = pairManager;
         _playerManager = playerManager;
-        _remoteService = remoteService;
-        _KinkPlateManager = profileManager;
-        _kinkPlateLight = kinkPlateLight;
-        _frameworkUtils = frameworkUtils;
-        _clientConfigs = clientConfigs;
-        _moodlesService = moodlesService;
-        _presetService = presetService;
         _cosmetics = cosmetics;
-        _textures = textures;
+        _displayHandler = displayHandler;
+        _kinkPlateLight = kinkPlateLight;
+        _kinkPlates = kinkPlates;
+        _moodlesService = moodlesService;
+        _frameworkUtils = frameworkUtils;
+        _presetService = presetService;
         _permActionHelpers = permActionHelpers;
+        _textures = textures;
+        _remoteService = remoteService;
+        _uiShared = uiShared;
+        _vibeService = vibeService;
+        _apiHubMain = apiHubMain;
+        _apiHubToybox = apiHubToybox;
     }
 
     public RemoteController CreateControllerRemote(PrivateRoom privateRoom)
     {
         return new RemoteController(_loggerFactory.CreateLogger<RemoteController>(), _gagspeakMediator,
-            _playerManager, _gagManager, _uiSharedService, _vibeService, _remoteService, _apiHubToybox, privateRoom);
+            _playerManager, _gagManager, _uiShared, _vibeService, _remoteService, _apiHubToybox, privateRoom);
     }
 
     public KinkPlateUI CreateStandaloneKinkPlateUi(Pair pair)
     {
         return new KinkPlateUI(_loggerFactory.CreateLogger<KinkPlateUI>(), _gagspeakMediator,
-            _pairManager, _KinkPlateManager, _cosmetics, _textures, _uiSharedService, pair);
+            _pairManager, _kinkPlates, _cosmetics, _textures, _uiShared, pair);
     }
 
     public KinkPlateLightUI CreateStandaloneKinkPlateLightUi(UserData pairUserData)
     {
         return new KinkPlateLightUI(_loggerFactory.CreateLogger<KinkPlateLightUI>(), _gagspeakMediator,
-            _kinkPlateLight, _KinkPlateManager, _pairManager, _uiSharedService, pairUserData);
+            _kinkPlateLight, _kinkPlates, _pairManager, _uiShared, pairUserData);
     }
 
     // create a new instance window of the userpair permissions window every time a new pair is selected.
     public PairStickyUI CreateStickyPairPerms(Pair pair, StickyWindowType drawType)
     {
         return new PairStickyUI(_loggerFactory.CreateLogger<PairStickyUI>(), _gagspeakMediator, pair,
-            drawType, _frameworkUtils, _clientConfigs, _playerManager, _displayHandler, _uiSharedService,
-            _apiHubMain, _pairManager, _moodlesService, _presetService, _permActionHelpers);
+            drawType, _displayHandler, _apiHubMain, _playerManager, _permActionHelpers, _shockProvider,
+            _pairManager, _clientConfigs, _clientService, _moodlesService, _presetService, _uiShared);
     }
 }

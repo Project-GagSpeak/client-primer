@@ -1,8 +1,6 @@
 using GagSpeak.Services.Mediator;
 using GagspeakAPI.Data;
-using GagspeakAPI.Data;
 using GagspeakAPI.Dto.Toybox;
-using GagspeakAPI.Dto.User;
 
 namespace GagSpeak.PlayerData.PrivateRooms;
 
@@ -53,7 +51,7 @@ public class Participant
 
     public void MarkOffline()
     {
-        _logger.LogInformation("Marking participant "+User.ChatAlias+" as offline", LoggerType.PrivateRooms);
+        _logger.LogInformation("Marking participant " + User.ChatAlias + " as offline", LoggerType.PrivateRooms);
         ClearDevices();
     }
 }

@@ -16,7 +16,7 @@ namespace GagSpeak.PlayerData.Pairs;
 public class VisiblePairManager : DisposableMediatorSubscriberBase
 {
     private readonly MainHub _apiHubMain;
-    private readonly OnFrameworkService _frameworkUtil;
+    private readonly ClientMonitorService _clientService;
     private readonly PlayerCharacterData _playerManager;
     private readonly PairManager _pairManager;
 
@@ -26,13 +26,12 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
     // stores the set of newly visible players to update with our latest IPC data.
     private readonly HashSet<PairHandler> _newVisiblePlayers = [];
 
-    public VisiblePairManager(ILogger<VisiblePairManager> logger,
-        GagspeakMediator mediator, MainHub apiHubMain,
-        OnFrameworkService dalamudUtil, PlayerCharacterData playerManager,
+    public VisiblePairManager(ILogger<VisiblePairManager> logger, GagspeakMediator mediator, 
+        MainHub apiHubMain, ClientMonitorService clientService, PlayerCharacterData playerManager,
         PairManager pairManager) : base(logger, mediator)
     {
         _apiHubMain = apiHubMain;
-        _frameworkUtil = dalamudUtil;
+        _clientService = clientService;
         _playerManager = playerManager;
         _pairManager = pairManager;
 
@@ -76,7 +75,7 @@ public class VisiblePairManager : DisposableMediatorSubscriberBase
     private void FrameworkOnUpdate()
     {
         // return if Client Player is not visible or not connected.
-        if (!_frameworkUtil.GetIsPlayerPresent() || !MainHub.IsConnected) return;
+        if (!_clientService.IsPresent || !MainHub.IsConnected) return;
 
         // return if no new visible players.
         if (!_newVisiblePlayers.Any()) return;

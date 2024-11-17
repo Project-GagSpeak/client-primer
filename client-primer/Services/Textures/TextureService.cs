@@ -25,9 +25,9 @@ public sealed class TextureService(IUiBuilder uiBuilder, IDataManager dataManage
             : (nint.Zero, Vector2.Zero, true);
     }
 
-    public (nint, Vector2, bool) GetIcon(BonusItem item, BonusItemFlag slot)
+    public (nint, Vector2, bool) GetIcon(EquipItem item, BonusItemFlag slot)
     {
-        if (item.Icon.Id != 0 && TryLoadIcon(item.Icon.Id, out var ret))
+        if (item.IconId.Id != 0 && TryLoadIcon(item.IconId.Id, out var ret))
             return (ret.ImGuiHandle, new Vector2(ret.Width, ret.Height), false);
 
         var idx = slot.ToIndex();
@@ -82,7 +82,7 @@ public sealed class TextureService(IUiBuilder uiBuilder, IDataManager dataManage
             {
                 ret[slot] = uldWrapper.LoadTexturePart("ui/uld/Character_hr1.tex", index)!;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
 /*                logger.LogError($"Could not get empty slot texture for {name}, icon will be left empty. "
                   + $"This may be because of incompatible mods affecting your character screen interface:\n{ex}");*/

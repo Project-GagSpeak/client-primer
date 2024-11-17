@@ -1,10 +1,11 @@
 using Dalamud.Plugin.Services;
+using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using GagSpeak.UpdateMonitoring.Triggers;
-using GagspeakAPI.Extensions;
 using Lumina.Excel;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
+using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using System.Collections.ObjectModel;
 using ClientStructFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
@@ -13,30 +14,27 @@ namespace GagSpeak.UpdateMonitoring;
 public class EmoteMonitor
 {
     private readonly ILogger<EmoteMonitor> _logger;
-    private readonly OnFrameworkService _frameworkUtils;
-    private readonly IClientState _clientState;
+    private readonly ClientMonitorService _clientService;
     private readonly IDataManager _gameData;
 
     private static unsafe AgentEmote* EmoteAgentRef = (AgentEmote*)ClientStructFramework.Instance()->GetUIModule()->GetAgentModule()->GetAgentByInternalId(AgentId.Emote);
-    public unsafe EmoteMonitor(ILogger<EmoteMonitor> logger, OnFrameworkService frameworkUtils,
-        IClientState clientState, IDataManager dataManager)
+    public unsafe EmoteMonitor(ILogger<EmoteMonitor> logger, ClientMonitorService clientService, IDataManager dataManager)
     {
         _logger = logger;
-        _frameworkUtils = frameworkUtils;
-        _clientState = clientState;
+        _clientService = clientService;
         _gameData = dataManager;
-        EmoteDataAll = _gameData.GetExcelSheet<Emote>()!;
-        EmoteDataLoops = EmoteDataAll.Where(x => x.RowId is (50 or 52) || x.EmoteMode.Value?.ConditionMode is 3).ToDictionary(x => x.RowId, x => x).AsReadOnly();
+        EmoteDataAll = _gameData.GetExcelSheet<Emote>();
+        EmoteDataLoops = EmoteDataAll.Where(x => x.RowId is (50 or 52) || x.EmoteMode.Value.ConditionMode is 3).ToDictionary(x => x.RowId, x => x).AsReadOnly();
 
         // Generate Emote List.
         EmoteCommandsWithId = EmoteDataAll
-        .Where(x => x.EmoteCategory?.Value?.RowId is not 3)
+        .Where(x => x.EmoteCategory.IsValid && x.EmoteCategory.Value.RowId is not 3)
         .SelectMany(emoteCommand => new[]
         {
-            (Command: emoteCommand.TextCommand.Value?.Command.RawString?.TrimStart('/'), RowId: emoteCommand.RowId),
-            (Command: emoteCommand.TextCommand.Value?.ShortCommand.RawString?.TrimStart('/'), RowId: emoteCommand.RowId),
-            (Command: emoteCommand.TextCommand.Value?.Alias.RawString?.TrimStart('/'), RowId: emoteCommand.RowId),
-            (Command: emoteCommand.TextCommand.Value?.ShortAlias.RawString?.TrimStart('/'), RowId: emoteCommand.RowId)
+            (Command: emoteCommand.TextCommand.ValueNullable?.Command.ToString().TrimStart('/'), emoteCommand.RowId),
+            (Command: emoteCommand.TextCommand.ValueNullable?.ShortCommand.ToString().TrimStart('/'), emoteCommand.RowId),
+            (Command: emoteCommand.TextCommand.ValueNullable?.Alias.ToString().TrimStart('/'), emoteCommand.RowId),
+            (Command: emoteCommand.TextCommand.ValueNullable?.ShortAlias.ToString().TrimStart('/'), emoteCommand.RowId)
         })
         .Where(cmd => !string.IsNullOrWhiteSpace(cmd.Command))
         .GroupBy(cmd => cmd.Command)
@@ -53,7 +51,7 @@ public class EmoteMonitor
         // log all recorded emotes.
         _logger.LogDebug("Emote Commands: " + string.Join(", ", EmoteCommands), LoggerType.EmoteMonitor);
 
-        _logger.LogDebug("CposeInfo => " + EmoteDataAll.FirstOrDefault(x => x.RowId is 90)?.Name.RawString, LoggerType.EmoteMonitor);
+        _logger.LogDebug("CposeInfo => " + EmoteDataAll.FirstOrDefault(x => x.RowId is 90).Name.ToString(), LoggerType.EmoteMonitor);
     }
 
     public static readonly ushort[] StandIdleList = new ushort[] { 0, 91, 92, 107, 108, 218, 219 };
@@ -70,13 +68,13 @@ public class EmoteMonitor
     public static IEnumerable<Emote> EmoteComboList => EmoteDataLoops.Values.ToArray();
     public static string GetEmoteName(uint emoteId)
     {
-        if (EmoteDataLoops.TryGetValue(emoteId, out var emote)) return emote?.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") ?? $"Emote#{emoteId}";
+        if (EmoteDataLoops.TryGetValue(emoteId, out var emote)) return emote.Name.ExtractText().Replace("\u00AD", "") ?? $"Emote#{emoteId}";
         return $"Emote#{emoteId}";
     }
 
-    public unsafe ushort CurrentEmoteId() => ((Character*)(_frameworkUtils.ClientPlayerAddress))->EmoteController.EmoteId;
-    public unsafe byte CurrentCyclePose() => ((Character*)(_frameworkUtils.ClientPlayerAddress))->EmoteController.CPoseState;
-    public unsafe bool InPositionLoop() => ((Character*)(_frameworkUtils.ClientPlayerAddress))->Mode is CharacterModes.InPositionLoop;
+    public unsafe ushort CurrentEmoteId() => ((Character*)(_clientService.Address))->EmoteController.EmoteId;
+    public unsafe byte CurrentCyclePose() => ((Character*)(_clientService.Address))->EmoteController.CPoseState;
+    public unsafe bool InPositionLoop() => ((Character*)(_clientService.Address))->Mode is CharacterModes.InPositionLoop;
 
     // This is valid for both if its not unlocked or if you are on cooldown.
     public static unsafe bool CanUseEmote(ushort emoteId) => EmoteAgentRef->CanUseEmote(emoteId);

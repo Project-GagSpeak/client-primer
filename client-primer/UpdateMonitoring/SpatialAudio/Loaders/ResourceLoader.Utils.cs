@@ -8,21 +8,6 @@ public unsafe partial class ResourceLoader
 {
     private const int INVIS_FLAG = (1 << 1) | (1 << 11);
 
-    // ====== REDRAW ======= (Should remove)
-
-    private enum RedrawState
-    {
-        None,
-        Start,
-        Invisible,
-        Visible
-    }
-
-    private RedrawState CurrentRedrawState = RedrawState.None;
-    private int WaitFrames = 0;
-
-    // ========= MISC ==============
-
     public delegate IntPtr GetMatrixSingletonDelegate();
 
     public GetMatrixSingletonDelegate GetMatrixSingleton { get; private set; }
@@ -83,7 +68,7 @@ public unsafe partial class ResourceLoader
         localPath = null!;
         if (_dataManager.FileExists(gamePath)) return false; // not custom path
 
-        return CustomPathBackups.TryGetValue(gamePath.ToLower(), out localPath);
+        return CustomPathBackups.TryGetValue(gamePath.ToLower(), out localPath!);
     }
 
     public void ReloadPath(string gamePath, string localPath)

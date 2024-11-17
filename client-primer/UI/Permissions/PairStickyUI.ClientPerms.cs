@@ -33,7 +33,7 @@ public partial class PairStickyUI
         ImGui.TextUnformatted("Global Settings");
 
         DrawOwnSetting("LiveChatGarblerActive", "LiveChatGarblerActiveAllowed", // permission name and permission access name
-            _playerManager.GlobalPerms.LiveChatGarblerActive ? "Live Chat Garbler Active" : "Live Chat Garbler Inactive", // label
+            _playerManager.GlobalPerms!.LiveChatGarblerActive ? "Live Chat Garbler Active" : "Live Chat Garbler Inactive", // label
             _playerManager.GlobalPerms.LiveChatGarblerActive ? FontAwesomeIcon.MicrophoneSlash : FontAwesomeIcon.Microphone, // icon
             _playerManager.GlobalPerms.LiveChatGarblerActive ? "Disable the Live Chat Garbler. [Global]" : "Enable the Live Chat Garbler. [Global]", // tooltip
             OwnPerms.InHardcore || _playerManager.GlobalPerms.LiveChatGarblerLocked, // Disable condition

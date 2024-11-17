@@ -1,10 +1,7 @@
-using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Interface.Utility;
-using Dalamud.Plugin.Services;
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using GagSpeak.Services.Textures;
 using ImGuiNET;
 using OtterGui;
@@ -18,11 +15,11 @@ namespace GagSpeak.Utils;
 
 public static class UtilsExtensions
 {
-    public static bool IsTimerLock(this Padlocks padlock) => 
+    public static bool IsTimerLock(this Padlocks padlock) =>
         padlock is Padlocks.FiveMinutesPadlock or Padlocks.TimerPasswordPadlock or Padlocks.OwnerTimerPadlock or Padlocks.DevotionalTimerPadlock or Padlocks.MimicPadlock;
-    public static string ComboEmoteName(this Lumina.Excel.GeneratedSheets.Emote emote)
+    public static string ComboEmoteName(this Lumina.Excel.Sheets.Emote emote)
     {
-        return emote.Name.AsReadOnly().ExtractText().Replace("\u00AD", "") + "(" + emote.RowId + ")";
+        return emote.Name.ExtractText().Replace("\u00AD", "") + "(" + emote.RowId + ")";
     }
     /// <summary> Draw a game icon display (not icon button or anything) </summary>
     public static void DrawIcon(this EquipItem item, TextureService textures, Vector2 size, EquipSlot slot, bool doHover = true)
@@ -44,13 +41,13 @@ public static class UtilsExtensions
         else
         {
             ImGui.Image(ptr, size);
-            if(doHover) ImGuiUtil.HoverIconTooltip(ptr, size, textureSize);
+            if (doHover) ImGuiUtil.HoverIconTooltip(ptr, size, textureSize);
         }
     }
 
-    public static void DrawIcon(this BonusItem item, TextureService textures, Vector2 size, BonusItemFlag slot)
+    public static void DrawIcon(this EquipItem item, TextureService textures, Vector2 size, BonusItemFlag slot)
     {
-        var isEmpty = item.ModelId.Id == 0;
+        var isEmpty = item.PrimaryId.Id == 0;
         var (ptr, textureSize, empty) = textures.GetIcon(item, slot);
         if (empty)
         {
@@ -122,8 +119,7 @@ public static class UtilsExtensions
     }
 
     public static string GetNameWithWorld(this IPlayerCharacter pc)
-        => pc is not null ? (pc.Name.ToString() + "@" + (pc.HomeWorld.GameData?.Name ?? "UNK-WORLD")) : "UNK-CHAR";
-
+        => pc.Name.ToString() + "@" + pc.HomeWorld.Value.Name.ToString();
 
     public static string StripColorTags(this string input)
     {
@@ -169,7 +165,7 @@ public static class UtilsExtensions
     }
 
     /// <summary> Converts square brackets to angle brackets </summary>
-    public static SeString ConvertSquareToAngleBrackets(this SeString str) 
+    public static SeString ConvertSquareToAngleBrackets(this SeString str)
         => str.TextValue.Replace("[", "<").Replace("]", ">");
 
 }

@@ -20,133 +20,59 @@ namespace GagSpeak.UpdateMonitoring;
 /// </summary>
 public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedService
 {
-    private readonly IClientState _clientState;
-    private readonly ICondition _condition;
-    private readonly IDataManager _gameData;
+    private readonly ClientMonitorService _clientService;
     private readonly IFramework _framework;
-    private readonly IGameGui _gameGui;
     private readonly IObjectTable _objectTable;
-    private readonly IPartyList _partyList;
-    private readonly ITargetManager _targetManager;
-
-    private ushort _lastZone = 0;
-    public bool _sentBetweenAreas = false;
-    public uint PlayerClassJobId = 0;
-    public bool IsLoggedIn { get; private set; }
-    public short LastCommendationsCount { get; private set; } = 0;
-    private DateTime _delayedFrameworkUpdateCheck = DateTime.Now; // for letting us know if we are in a delayed framework check
-
 
     // The list of player characters, to associate their hashes with the player character name and addresses. Useful for indicating if they are visible or not.
     private readonly Dictionary<string, (string Name, nint Address)> _playerCharas;
     private readonly List<string> _notUpdatedCharas = [];
-    public ActionRoles PlayerJobRole => (ActionRoles)(_clientState.LocalPlayer?.ClassJob?.GameData?.Role ?? 0);
-    public IntPtr ClientPlayerAddress; // player address
-    public string ClientPlayerNameAndWorld => _clientState.LocalPlayer?.GetNameWithWorld() ?? string.Empty;
-    public static bool GlamourChangeEventsDisabled = false; // 1st variable responsible for handling glamour change events
-    public Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
-    public ulong TargetObjectId => _targetManager.Target?.GameObjectId ?? ulong.MaxValue;
-    public bool IsInGpose { get; private set; } = false;
-    public bool IsInCutscene { get; private set; } = false;
-    public bool IsZoning => _condition[ConditionFlag.BetweenAreas] || _condition[ConditionFlag.BetweenAreas51];
-    public byte PlayerLevel => _clientState.LocalPlayer?.Level ?? byte.MaxValue;
-    public bool InPvP => _clientState.IsPvP;
-    public bool InDungeonOrDuty => _condition[ConditionFlag.BoundByDuty] || _condition[ConditionFlag.BoundByDuty56]  || _condition[ConditionFlag.BoundByDuty95] || _condition[ConditionFlag.InDeepDungeon];
-    public bool InCutsceneEvent => !InDungeonOrDuty && _condition[ConditionFlag.OccupiedInCutSceneEvent] || _condition[ConditionFlag.WatchingCutscene78];
-    public int PartyListSize => _partyList.Count;
-    public IClientState ClientState => _clientState;
-    public ICondition Condition => _condition;
-    public bool IsInMainCity => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Aetheryte>()?
-        .Any(x => x.IsAetheryte && x.Territory.Row == _clientState.TerritoryType && x.Territory.Value?.TerritoryIntendedUse == 0) ?? false;
-    public string MainCityName => _gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.Aetheryte>()?
-        .FirstOrDefault(x => x.IsAetheryte && x.Territory.Row == _clientState.TerritoryType && x.Territory.Value?.TerritoryIntendedUse == 0)?.PlaceName.ToString() ?? "Unknown";
 
+    private DateTime _delayedFrameworkUpdateCheck = DateTime.Now;
+    private ushort _lastZone = 0;
+    private bool _hasLoggedIn = false;
+    private bool _sentBetweenAreas = false;
+    private bool IsInGpose = false;
+    private bool IsInCutscene = false;
+
+    public bool Zoning => _clientService.IsZoning;
+    public short LastCommendationsCount { get; private set; } = 0;
+    public static bool GlamourChangeEventsDisabled = false; // prevents glamourer hell
+    public static Lazy<Dictionary<ushort, string>> WorldData { get; private set; }
     public bool IsFrameworkUnloading => _framework.IsFrameworkUnloading;
 
     public OnFrameworkService(ILogger<OnFrameworkService> logger, GagspeakMediator mediator,
-        IClientState clientState, ICondition condition, IDataManager gameData, IFramework framework, 
-        IGameGui gameGui, IObjectTable objectTable, IPartyList partyList, ITargetManager targetManager) : base(logger, mediator)
+        ClientMonitorService clientService, IDataManager gameData, IFramework framework, 
+        IObjectTable objectTable, ITargetManager targets) : base(logger, mediator)
     {
-        _clientState = clientState;
-        _condition = condition;
-        _gameData = gameData;
+        _clientService = clientService;
         _framework = framework;
-        _gameGui = gameGui;
         _objectTable = objectTable;
-        _partyList = partyList;
-        _targetManager = targetManager;
 
-        ClientPlayerAddress = GetPlayerPointerAsync().GetAwaiter().GetResult();
+        /*ClientPlayerAddress = GetPlayerPointerAsync().GetAwaiter().GetResult();*/
 
         _playerCharas = new(StringComparer.Ordinal);
 
         WorldData = new(() =>
         {
-            return gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.World>(Dalamud.Game.ClientLanguage.English)!
-                .Where(w => w.IsPublic && !w.Name.RawData.IsEmpty)
+            return gameData.GetExcelSheet<Lumina.Excel.Sheets.World>(Dalamud.Game.ClientLanguage.English)!
+                .Where(w => w.IsPublic && !w.Name.IsEmpty)
                 .ToDictionary(w => (ushort)w.RowId, w => w.Name.ToString());
         });
 
         // stores added pairs character name and addresses when added.
         mediator.Subscribe<TargetPairMessage>(this, (msg) =>
         {
-            if (clientState.IsPvP) return;
+            if (_clientService.InPvP) return;
             var name = msg.Pair.PlayerName;
             if (string.IsNullOrEmpty(name)) return;
             var addr = _playerCharas.FirstOrDefault(f => string.Equals(f.Value.Name, name, StringComparison.Ordinal)).Value.Address;
             if (addr == nint.Zero) return;
             _ = RunOnFrameworkThread(() =>
             {
-                targetManager.Target = CreateGameObject(addr);
+                targets.Target = CreateGameObject(addr);
             }).ConfigureAwait(false);
         });
-
-        _clientState.ClassJobChanged += OnJobChanged;
-        _clientState.Logout += OnLogout;
-    }
-
-    protected override void Dispose(bool disposing)
-    {
-        base.Dispose(disposing);
-
-        // unsubscribe from the events.
-        _clientState.ClassJobChanged -= OnJobChanged;
-        _clientState.Logout -= OnLogout;
-    }
-
-    private void OnJobChanged(uint jobId)
-    {
-        // Ignore if we are not logged in
-        if (!_clientState.IsLoggedIn)
-            return;
-
-        PlayerClassJobId = jobId;
-        IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.JobChange);
-    }
-
-    private void OnLogout()
-    {
-        Logger.LogWarning("Player Logged out from their client.");
-        IsLoggedIn = false;
-        Mediator.Publish(new DalamudLogoutMessage());
-    }
-
-
-    public void OpenMapWithMapLink(MapLinkPayload mapLink) => _gameGui.OpenMapWithMapLink(mapLink);
-    public static unsafe short GetCurrentCommendationCount() => PlayerState.Instance()->PlayerCommendations;
-    public DeepDungeonType? GetDeepDungeonType()
-    {
-        if (_gameData.GetExcelSheet<Lumina.Excel.GeneratedSheets.TerritoryType>()?.GetRow(_clientState.TerritoryType) is { } territoryInfo)
-        {
-            return territoryInfo switch
-            {
-                { TerritoryIntendedUse: 31, ExVersion.Row: 0 or 1 } => DeepDungeonType.PalaceOfTheDead,
-                { TerritoryIntendedUse: 31, ExVersion.Row: 2 } => DeepDungeonType.HeavenOnHigh,
-                { TerritoryIntendedUse: 31, ExVersion.Row: 4 } => DeepDungeonType.EurekaOrthos,
-                _ => null
-            };
-        }
-        return null;
     }
 
     #region FrameworkMethods
@@ -212,7 +138,7 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
     }
 
 
-    /// <summary> Get if the player is not null, and if FFXIVClientState determines the playercharacter is valid </summary>
+ /*   /// <summary> Get if the player is not null, and if FFXIVClientState determines the playercharacter is valid </summary>
     /// <returns>a boolean telling us if the player character is present or not</returns>
     public bool GetIsPlayerPresent()
     {
@@ -242,15 +168,16 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
     public async Task<string> GetPlayerNameAsync()
     {
         return await RunOnFrameworkThread(GetPlayerName).ConfigureAwait(false);
-    }
+    }*/
 
     /// <summary> Gets the player name hashed </summary>
     /// <returns> The local player character's name hashed </returns>
     public async Task<string> GetPlayerNameHashedAsync()
     {
-        return await RunOnFrameworkThread(() => (GetPlayerName(), (ushort)GetHomeWorldId()).GetHash256()).ConfigureAwait(false);
+        return await RunOnFrameworkThread(() => (_clientService.Name, (ushort)_clientService.ClientPlayer.HomeWorldId()).GetHash256()).ConfigureAwait(false);
     }
 
+    /*
     public ulong GetPlayerLocalContentId()
     {
         EnsureIsOnFramework();
@@ -283,7 +210,7 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
     public uint GetHomeWorldId()
     {
         EnsureIsOnFramework();
-        return _clientState.LocalPlayer!.HomeWorld.Id;
+        return _clientState.LocalPlayer!.HomeWorld.RowId;
     }
 
     /// <summary> Gets the player characters homeworld ID asynchronously</summary>
@@ -298,7 +225,7 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
     public uint GetWorldId()
     {
         EnsureIsOnFramework();
-        return _clientState.LocalPlayer!.CurrentWorld.Id;
+        return _clientState.LocalPlayer!.CurrentWorld.RowId;
     }
 
     /// <summary> Gets the player characters ID of the world they are currently in asynchronously.</summary>
@@ -306,7 +233,7 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
     public async Task<uint> GetWorldIdAsync()
     {
         return await RunOnFrameworkThread(GetWorldId).ConfigureAwait(false);
-    }
+    }*/
 
     /// <summary> Gets the player characters ID of the world they are currently in.</summary>
     /// <returns> a <c>uint</c> type for the ID of the current world.</returns>
@@ -396,7 +323,7 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
     private unsafe void FrameworkOnUpdateInternal()
     {
         // If the local player is dead or null, return after setting the hasDied flag to true
-        if (_clientState.LocalPlayer is null)
+        if (!_clientService.IsPresent)
             return;
 
         // we need to update our stored player characters to know if they are still valid, and to update our pair handlers
@@ -426,26 +353,26 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
         // check if we are in the middle of a delayed framework update
         var isNormalFrameworkUpdate = DateTime.Now < _delayedFrameworkUpdateCheck.AddSeconds(1);
 
-        if (InCutsceneEvent && !IsInCutscene)
+        if (_clientService.InCutscene && !IsInCutscene)
         {
             Logger.LogDebug("Cutscene start");
             IsInCutscene = true;
             Mediator.Publish(new CutsceneBeginMessage());
         }
-        else if (!InCutsceneEvent && IsInCutscene)
+        else if (!_clientService.InCutscene && IsInCutscene)
         {
             Logger.LogDebug("Cutscene end");
             IsInCutscene = false;
             Mediator.Publish(new CutsceneEndMessage());
         }
 
-        if(_clientState.IsGPosing && !IsInGpose)
+        if(_clientService.InGPose && !IsInGpose)
         {
             Logger.LogDebug("Gpose start");
             IsInGpose = true;
             Mediator.Publish(new GPoseStartMessage());
         }
-        else if(!_clientState.IsGPosing && IsInGpose)
+        else if(!_clientService.InGPose && IsInGpose)
         {
             Logger.LogDebug("Gpose end");
             IsInGpose = false;
@@ -453,10 +380,10 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
         }
 
         // if we are zoning, 
-        if (IsZoning)
+        if (_clientService.IsZoning)
         {
             // get the zone
-            var zone = _clientState.TerritoryType;
+            var zone = _clientService.TerritoryId;
             // if the zone is different from the last zone
             if (_lastZone != zone)
             {
@@ -487,7 +414,7 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
             {
                 Logger.LogDebug("Our Previous Commendation Count was: "+LastCommendationsCount+" and our new commendation count is: "+newCommendations);
                 // publish to mediator if we are logged in
-                if(IsLoggedIn)
+                if(_clientService.IsLoggedIn)
                     Mediator.Publish(new CommendationsIncreasedMessage(newCommendations - LastCommendationsCount));
                 // update the count
                 LastCommendationsCount = newCommendations;
@@ -502,21 +429,21 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
         if (isNormalFrameworkUpdate)
             return;
 
-        var localPlayer = _clientState.LocalPlayer;
+        var localPlayer = _clientService.ClientPlayer!;
 
         // check if we are at 1 hp, if so, grant the boundgee jumping achievement.
         if (localPlayer.CurrentHp is 1)
             UnlocksEventManager.AchievementEvent(UnlocksEvent.ClientOneHp);
 
         // if it is not null (they exist) and isLoggedIn is not true
-        if (localPlayer != null && !IsLoggedIn)
+        if (_clientService.IsPresent && !_hasLoggedIn)
         {
             // they have logged in, so set IsLoggedIn to true, and publish the DalamudLoginMessage
             Logger.LogDebug("Logged in");
-            IsLoggedIn = true;
-            _lastZone = _clientState.TerritoryType;
-            ClientPlayerAddress = GetPlayerPointerAsync().GetAwaiter().GetResult();
-            PlayerClassJobId = _clientState.LocalPlayer?.ClassJob.Id ?? 0;
+            _hasLoggedIn = true;
+            _lastZone = _clientService.TerritoryId;
+            /*ClientPlayerAddress = GetPlayerPointerAsync().GetAwaiter().GetResult();*/
+            /*PlayerClassJobId = _clientState.LocalPlayer?.ClassJob.RowId ?? 0;*/
             LastCommendationsCount = PlayerState.Instance()->PlayerCommendations;
             Mediator.Publish(new DalamudLoginMessage());
         }

@@ -62,9 +62,6 @@ public class ProfilePictureEditor : WindowMediatorSubscriberBase
     private byte[] _croppedImageData;
     private IDalamudTextureWrap? _croppedImageToShow;
 
-    // if we should hide the width
-    private bool HideWidth = false;
-
     // the other values for movement, rotation, and scaling.
     private float _cropX = 0.5f; // Center by default
     private float _cropY = 0.5f; // Center by default

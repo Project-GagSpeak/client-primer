@@ -11,6 +11,7 @@ using GagspeakAPI.Dto.IPC;
 using GagSpeak.Utils;
 using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Common.Lua;
+using GagSpeak.UpdateMonitoring;
 
 namespace GagSpeak.WebAPI;
 
@@ -144,7 +145,7 @@ public partial class MainHub
     {
         Logger.LogDebug("Client_UserApplyMoodlesByStatus: "+dto, LoggerType.Callbacks);
         // obtain the local player name and world
-        string NameWithWorld = _frameworkUtils.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtils.ClientPlayerAddress).GetAwaiter().GetResult()?.GetNameWithWorld() ?? string.Empty;
+        string NameWithWorld = _clientService.ClientPlayer.NameWithWorld();
         ExecuteSafely(() => _clientCallbacks.ApplyStatusesToSelf(dto, NameWithWorld));
         return Task.CompletedTask;
     }

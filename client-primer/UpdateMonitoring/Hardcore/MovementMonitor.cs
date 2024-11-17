@@ -5,9 +5,6 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.Game.Object;
-using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
-using FFXIVClientStructs.FFXIV.Common.Lua;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Hardcore.ForcedStay;
 using GagSpeak.Hardcore.Movement;
@@ -17,14 +14,10 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
-using GagspeakAPI.Data.Permissions;
-using Microsoft.Extensions.Logging;
 using System.Numerics;
 using System.Reflection;
-using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using static Lumina.Data.Parsing.Layer.LayerCommon;
 using XivControl = FFXIVClientStructs.FFXIV.Client.Game.Control;
 
 namespace GagSpeak.UpdateMonitoring;
@@ -36,11 +29,10 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
     private readonly SelectStringPrompt _promptsString;
     private readonly YesNoPrompt _promptsYesNo;
     private readonly RoomSelectPrompt _promptsRooms;
+    private readonly ClientMonitorService _clientService;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly EmoteMonitor _emoteMonitor;
     private readonly MoveController _MoveController;
-    private readonly ICondition _condition;
-    private readonly IClientState _clientState;
     private readonly IKeyState _keyState;
     private readonly IObjectTable _objectTable;
     private readonly ITargetManager _targetManager;
@@ -58,10 +50,9 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
     public MovementMonitor(ILogger<MovementMonitor> logger, GagspeakMediator mediator,
         HardcoreHandler hardcoreHandler, WardrobeHandler outfitHandler,
         ClientConfigurationManager clientConfigs, SelectStringPrompt stringPrompts,
-        YesNoPrompt yesNoPrompts, RoomSelectPrompt rooms, OnFrameworkService frameworkUtils,
-        EmoteMonitor emoteMonitor, MoveController moveController, ICondition condition, 
-        IClientState clientState, IKeyState keyState, IObjectTable objectTable, 
-        ITargetManager targetManager) : base(logger, mediator)
+        YesNoPrompt yesNoPrompts, RoomSelectPrompt rooms, ClientMonitorService clientService,
+        OnFrameworkService frameworkUtils, EmoteMonitor emoteMonitor, MoveController moveController, 
+        IKeyState keyState, IObjectTable objectTable, ITargetManager targetManager) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _handler = hardcoreHandler;
@@ -69,11 +60,10 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         _promptsString = stringPrompts;
         _promptsYesNo = yesNoPrompts;
         _promptsRooms = rooms;
+        _clientService = clientService;
         _frameworkUtils = frameworkUtils;
         _emoteMonitor = emoteMonitor;
         _MoveController = moveController;
-        _condition = condition;
-        _clientState = clientState;
         _keyState = keyState;
         _objectTable = objectTable;
         _targetManager = targetManager;
@@ -130,7 +120,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         if (properties.Weighty)
             HandleWeighty = newState is NewState.Enabled ? true : false;
 
-        if(properties.Immobile)
+        if (properties.Immobile)
         {
             if (newState is NewState.Enabled)
             {
@@ -162,7 +152,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
     private unsafe void FrameworkUpdate()
     {
         // make sure we only do checks when we are properly logged in and have a character loaded
-        if (_clientState.LocalPlayer is null || _clientState.LocalPlayer.IsDead)
+        if (!_clientService.IsPresent || _clientService.IsDead)
             return;
 
         // FORCED FOLLOW LOGIC: Keep player following until idle for 6 seconds.
@@ -171,17 +161,17 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             // Ensure our movement and unfollow hooks are active.
             if (!GameConfig.UiControl.GetBool("MoveMode"))
                 GameConfig.UiControl.Set("MoveMode", (int)MovementMode.Legacy);
-            
+
             _MoveController.EnableUnfollowHook();
 
             // Do not account for auto-disable logic if our Offset is .MinValue.
             if (_handler.LastMovementTime != DateTimeOffset.MinValue)
             {
                 // Check to see if the player is moving or not.
-                if (_clientState.LocalPlayer.Position != _handler.LastPosition)
+                if (_clientService.ClientPlayer!.Position != _handler.LastPosition)
                 {
                     _handler.LastMovementTime = DateTimeOffset.UtcNow;           // reset timer
-                    _handler.LastPosition = _clientState.LocalPlayer.Position;// update last position
+                    _handler.LastPosition = _clientService.ClientPlayer!.Position; // reset position
                 }
 
                 // if we have been idle for longer than 6 seconds, we should release the player.
@@ -205,14 +195,14 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         if (_handler.MonitorStayLogic)
         {
             // while they are active, if we are not in a dialog prompt option, scan to see if we are by an estate entrance
-            if (!_condition[ConditionFlag.OccupiedInQuestEvent] && !_frameworkUtils._sentBetweenAreas)
+            if (!_clientService.InQuestEvent)
             {
                 // grab all the event object nodes (door interactions)
                 var nodes = _objectTable.Where(x => x.ObjectKind == Dalamud.Game.ClientState.Objects.Enums.ObjectKind.EventObj).ToList();
                 foreach (var node in nodes)
                 {
                     // Grab distance to object.
-                    var distance = GetTargetDistance(node);
+                    var distance = _clientService.ClientPlayer?.GetTargetDistance(node) ?? float.MaxValue;
                     // If its a estate entrance, and we are within 3.5f, interact with it.
 
 
@@ -235,7 +225,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
                         }
 
                         // if we are within 2f, interact with it.
-                        if(distance <= 2f)
+                        if (distance <= 2f)
                         {
                             _targetManager.Target = node;
                             TargetSystem.Instance()->InteractWithObject((GameObject*)node.Address, false);
@@ -247,7 +237,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
         }
 
         // Handle Prompt Logic.
-        if (_handler.MonitorStayLogic || _frameworkUtils.InCutsceneEvent)
+        if (_handler.MonitorStayLogic || _clientService.InCutscene)
         {
             // enable the hooks for the option prompts
             if (!_promptsString.Enabled) _promptsString.Enable();
@@ -304,7 +294,7 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             {
                 uint isWalking = Marshal.ReadByte((nint)gameControl, 24131);
                 // they are walking, so make them run.
-                if (isWalking is not 0) 
+                if (isWalking is not 0)
                     Marshal.WriteByte((nint)gameControl, 24131, 0x0);
             }
             // await for 5 seconds then complete the task.
@@ -315,15 +305,6 @@ public class MovementMonitor : DisposableMediatorSubscriberBase
             _moveToChambersTask = null;
         }
     }
-
-    // Helper functions for minimizing the content in the framework update code section above
-    public float GetTargetDistance(IGameObject target)
-    {
-        Vector2 position = new(target.Position.X, target.Position.Z);
-        Vector2 selfPosition = new(_clientState.LocalPlayer!.Position.X, _clientState.LocalPlayer.Position.Z);
-        return Math.Max(0, Vector2.Distance(position, selfPosition) - target.HitboxRadius - _clientState.LocalPlayer.HitboxRadius);
-    }
-
 
     private void CancelMoveKeys()
     {

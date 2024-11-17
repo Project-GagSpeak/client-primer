@@ -32,8 +32,6 @@ public class RemoteController : RemoteBase
     private readonly VibratorService _vibeService; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
     private readonly ToyboxHub _apiHubToybox;
-    private bool _isExpanded = false;
-
     public RemoteController(ILogger<RemoteController> logger, GagspeakMediator mediator, 
         PlayerCharacterData playerManager, GagManager gagManager, UiSharedService uiShared,
         VibratorService vibeService, ToyboxRemoteService remoteService, ToyboxHub apiHubToybox, 
@@ -131,7 +129,6 @@ public class RemoteController : RemoteBase
         }
     }
 
-    private bool shouldFocusChatInput = false;
     private bool showMessagePreview = false;
     private string NextChatMessage = string.Empty;
 
@@ -170,8 +167,6 @@ public class RemoteController : RemoteBase
             // Check if the input text field is focused and the Enter key is pressed
             if (ImGui.IsItemFocused() && ImGui.IsKeyPressed(ImGuiKey.Enter))
             {
-                shouldFocusChatInput = true;
-
                 // If message is empty, return
                 if (string.IsNullOrWhiteSpace(NextChatMessage))
                     return;

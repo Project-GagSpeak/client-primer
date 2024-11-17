@@ -67,7 +67,7 @@ public record GagDrawData : IMoodlesAssociable, IGlamourItem
 
         // Deserialize the AssociatedMoodles
         if (jsonObject["GagMoodles"] is JArray associatedMoodlesArray)
-            AssociatedMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
+            AssociatedMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>() ?? string.Empty)).ToList();
 
         // Deserialize the AssociatedMoodlePreset TODO: Remove this on full release (the array check)
         var gagMoodlePresetsToken = jsonObject["GagMoodlePresets"];

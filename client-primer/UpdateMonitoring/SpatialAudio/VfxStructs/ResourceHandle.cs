@@ -50,7 +50,7 @@ public unsafe struct ResourceHandle
         => new(FileNamePtr(), FileNameLength);
 
     public bool GamePath(out Utf8GamePath path)
-        => Utf8GamePath.FromSpan(FileNameAsSpan(), out path);
+        => Utf8GamePath.FromSpan(FileNameAsSpan(), MetaDataComputation.All, out path);
 
     [FieldOffset(0x00)]
     public void** VTable;

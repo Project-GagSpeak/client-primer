@@ -22,10 +22,6 @@ public class CosmeticService : IHostedService, IDisposable
     private readonly OnFrameworkService _frameworkUtils;
     private readonly ITextureProvider _textures;
     private readonly IDalamudPluginInterface _pi;
-
-    // This is shared across all states of our plugin, so should attach to the one in UISharedService
-    private ISharedImmediateTexture _sharedTextures;
-
     public CosmeticService(ILogger<CosmeticService> logger, GagspeakMediator mediator,
         OnFrameworkService frameworkUtils, IDalamudPluginInterface pi, ITextureProvider tp)
     {
@@ -194,7 +190,7 @@ public class CosmeticService : IHostedService, IDisposable
             fileTexture = image;
             return true;
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // TODO: Remove surpression once we have defined proper images.
             //_logger.LogWarning($"Failed to load texture from path: {path}");

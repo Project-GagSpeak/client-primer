@@ -25,8 +25,8 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 {
     /* ------------- Class Attributes ------------- */
     private readonly IDalamudPluginInterface _pi;
-    private readonly IClientState _clientState;
     private readonly GagspeakConfigService _gagspeakConfig;
+    private readonly ClientMonitorService _clientService;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly IpcFastUpdates _fastUpdates;
     private bool _shownGlamourerUnavailable = false; // safety net to prevent notification spam.
@@ -42,15 +42,15 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private readonly RevertState _RevertCharacter;
     private readonly RevertToAutomation _RevertToAutomation;
 
-    public IpcCallerGlamourer(ILogger<IpcCallerGlamourer> logger,
-        IDalamudPluginInterface pluginInterface, IClientState clientState,
-        GagspeakConfigService clientConfigs, OnFrameworkService OnFrameworkService,
-        GagspeakMediator mediator, IpcFastUpdates fastUpdates) : base(logger, mediator)
+    public IpcCallerGlamourer(ILogger<IpcCallerGlamourer> logger, GagspeakMediator mediator,
+        IDalamudPluginInterface pluginInterface, GagspeakConfigService clientConfigs, 
+        ClientMonitorService clientService, OnFrameworkService frameworkUtils,
+        IpcFastUpdates fastUpdates) : base(logger, mediator)
     {
         _pi = pluginInterface;
         _gagspeakConfig = clientConfigs;
-        _frameworkUtils = OnFrameworkService;
-        _clientState = clientState;
+        _frameworkUtils = frameworkUtils;
+        _clientService = clientService;
         _fastUpdates = fastUpdates;
 
         // set IPC callers
@@ -133,15 +133,13 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task SetItemToCharacterAsync(ApiEquipSlot slot, ulong item, IReadOnlyList<byte> dye, uint variant)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || _frameworkUtils.IsZoning) return;
+        if (!APIAvailable || !_clientService.IsPresent) return;
         try
         {
             // await for us to be running on the framework thread. Once we are:
             await _frameworkUtils.RunOnFrameworkThread(() =>
             {
-                // Determine object index
-                var objIndex = _clientState.LocalPlayer?.ObjectIndex ?? 0;
-                _SetItem!.Invoke(objIndex, slot, item, dye, 1337);
+                _SetItem!.Invoke(0, slot, item, dye, 1337);
             }).ConfigureAwait(true);
         }
         catch (Exception ex)
@@ -217,7 +215,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task<bool> ForceSetMetaData(MetaData metaData, bool? forcedState = null)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || _frameworkUtils.IsZoning) return false;
+        if (!APIAvailable || !_clientService.IsPresent) return false;
         try
         {
             return await _frameworkUtils.RunOnFrameworkThread(() =>
@@ -250,7 +248,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task ForceSetCustomize(JToken customizations, JToken parameters)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || _frameworkUtils.IsZoning) return;
+        if (!APIAvailable || !_clientService.IsPresent) return;
         try
         {
             await _frameworkUtils.RunOnFrameworkThread(() =>
@@ -274,7 +272,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public async Task GlamourerRevertToAutomation(bool reapply)
     {
-        if (!APIAvailable || _frameworkUtils.IsZoning) return;
+        if (!APIAvailable || !_clientService.IsPresent) return;
 
         try
         {
@@ -300,7 +298,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public async Task GlamourerRevertToGame(bool reapply)
     {
-        if (!APIAvailable || _frameworkUtils.IsZoning) return;
+        if (!APIAvailable || !_clientService.IsPresent) return;
 
         try
         {
@@ -325,7 +323,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     private void GlamourerChanged(nint address, StateChangeType changeType)
     {
         // do not accept if coming from other player besides us.
-        if (address != _frameworkUtils.ClientPlayerAddress) return;
+        if (address != _clientService.Address) return;
 
         // block if we are not desiring to listen to changes yet.
         if (OnFrameworkService.GlamourChangeEventsDisabled) 

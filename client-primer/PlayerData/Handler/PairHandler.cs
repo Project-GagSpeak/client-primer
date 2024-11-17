@@ -20,7 +20,6 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private readonly GameObjectHandlerFactory _gameObjectHandlerFactory;
     private readonly IpcManager _ipcManager;
     private readonly IHostApplicationLifetime _lifetime;
-    private Guid _applicationId;
     private Task? _applicationTask;
     private CancellationTokenSource? _applicationCTS = new();
 
@@ -106,7 +105,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
 
             // if we are not zoning, or in a cutscene, but this player is being disposed, they are leaving a zone.
             // Because this is happening, we need to make sure that we revert their IPC data and toggle their address & visibility.
-            if (_frameworkUtil is { IsZoning: false } && !string.IsNullOrEmpty(name))
+            if (!_frameworkUtil.Zoning && !string.IsNullOrEmpty(name))
             {
                 Logger.LogTrace("[" + applicationId + "] Restoring State for [" + name + "] (" + OnlineUser + ")", LoggerType.PairHandlers);
 
@@ -171,14 +170,14 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
         _applicationTask = Task.Run(async () =>
         {
             // await for the customization data to be applied
-            await CallAlterationsToIpcAsync(_applicationId, charaDataChangesToUpdate, characterData, token).ConfigureAwait(false);
+            await CallAlterationsToIpcAsync(charaDataChangesToUpdate, characterData, token).ConfigureAwait(false);
             // throw if canceled
             token.ThrowIfCancellationRequested();
 
             // update the cachedData 
             _cachedIpcData = characterData;
 
-            Logger.LogDebug("ApplyData finished for [" + _applicationId + "] (" + PlayerName + ")", LoggerType.PairHandlers);
+            Logger.LogDebug("ApplyData finished for (" + PlayerName + ")", LoggerType.PairHandlers);
         }, token);
     }
 
@@ -186,7 +185,7 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     /// Applies the visible alterations to a character's IPC data.
     /// This means only IPC related changes should be monitored here. Not anything else.
     /// </summary>
-    private async Task CallAlterationsToIpcAsync(Guid applicationId, HashSet<PlayerChanges> changes, CharaIPCData charaData, CancellationToken token)
+    private async Task CallAlterationsToIpcAsync(HashSet<PlayerChanges> changes, CharaIPCData charaData, CancellationToken token)
     {
         if (PairAddress == nint.Zero) return;
         // pointer address to playerCharacter address, which is equal to the gameobject handlers address.
@@ -198,13 +197,13 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
             if (handler.Address == nint.Zero) { return; }
 
             // otherwise, log that we are applying the customization data for the handlers
-            Logger.LogDebug("Applying visual customization changes for [" + handler + "] (" + applicationId + ")", LoggerType.PairHandlers);
+            Logger.LogDebug("Applying visual customization changes for [" + handler + "]", LoggerType.PairHandlers);
 
             // otherwise, for each change in the changes, apply the changes
             foreach (var change in changes.OrderBy(p => (int)p))
             {
                 // log that we are processing the change for the handler
-                Logger.LogDebug("Processing " + change + " for [" + handler + "] (" + applicationId + ")", LoggerType.PairHandlers);
+                Logger.LogDebug("Processing " + change + " for [" + handler + "]", LoggerType.PairHandlers);
                 switch (change)
                 {
                     case PlayerChanges.Customize:
@@ -330,9 +329,10 @@ public sealed class PairHandler : DisposableMediatorSubscriberBase
     private async Task<bool> IsMareUser(nint address)
     {
         var handledMarePlayers = await _ipcManager.Mare.GetHandledMarePlayers().ConfigureAwait(false);
+        if (handledMarePlayers == null) return false;
+
         // log the mare players.
         Logger.LogDebug("Mare Players: " + string.Join(", ", handledMarePlayers), LoggerType.IpcMare);
-        if (handledMarePlayers == null) return false;
         return handledMarePlayers.Any(playerAddress => playerAddress == address);
     }
 }

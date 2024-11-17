@@ -13,6 +13,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Controllers;
 using GagSpeak.Toybox.Services;
+using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Extensions;
@@ -20,7 +21,7 @@ using ImGuiNET;
 using OtterGui.Classes;
 using OtterGui.Text;
 using System.Numerics;
-using GameAction = Lumina.Excel.GeneratedSheets.Action;
+using GameAction = Lumina.Excel.Sheets.Action;
 
 namespace GagSpeak.UI.UiToybox;
 
@@ -35,7 +36,7 @@ public class ToyboxTriggerManager
     private readonly DeviceService _deviceController;
     private readonly TriggerHandler _handler;
     private readonly PatternHandler _patternHandler;
-    private readonly TriggerService _triggerService;
+    private readonly ClientMonitorService _clientService;
     private readonly MoodlesService _moodlesService;
 
     public ToyboxTriggerManager(ILogger<ToyboxTriggerManager> logger,
@@ -43,7 +44,7 @@ public class ToyboxTriggerManager
         PairManager pairManager, ClientConfigurationManager clientConfigs,
         PlayerCharacterData playerManager, DeviceService deviceController,
         TriggerHandler handler, PatternHandler patternHandler,
-        TriggerService triggerService, MoodlesService moodlesService)
+        ClientMonitorService clientService, MoodlesService moodlesService)
     {
         _logger = logger;
         _mediator = mediator;
@@ -54,7 +55,7 @@ public class ToyboxTriggerManager
         _deviceController = deviceController;
         _handler = handler;
         _patternHandler = patternHandler;
-        _triggerService = triggerService;
+        _clientService = clientService;
         _moodlesService = moodlesService;
     }
 
@@ -68,9 +69,7 @@ public class ToyboxTriggerManager
     private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
     private LowerString TriggerSearchString = LowerString.Empty;
     private string SelectedDeviceName = LowerString.Empty;
-
     private int SelectedMoodleIdx = 0;
-    private int SelectedPresetGUID = 0;
 
     public void DrawTriggersPanel()
     {
@@ -177,10 +176,10 @@ public class ToyboxTriggerManager
             ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X - ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             // the "fuck go back" button.
-            if (_uiShared.IconButton(FontAwesomeIcon.Save, null, null, CreatedTrigger == null))
+            if (_uiShared.IconButton(FontAwesomeIcon.Save, null, null, CreatedTrigger is null))
             {
                 // add the newly created trigger to the list of triggers
-                _handler.AddNewTrigger(CreatedTrigger);
+                _handler.AddNewTrigger(CreatedTrigger!);
                 // reset to default and turn off creating status.
                 CreatedTrigger = new ChatTrigger();
                 CreatingTrigger = false;
@@ -556,18 +555,17 @@ public class ToyboxTriggerManager
 
         using (var disabled = ImRaii.Disabled(anyChecked))
         {
-            _uiShared.DrawComboSearchable("##ActionJobSelectionCombo", 85f, _triggerService.BattleClassJobs,
-            (job) => job.Name, false, (i) =>
+            _uiShared.DrawComboSearchable("##ActionJobSelectionCombo", 85f, _clientService.BattleClassJobs,
+            (job) => job.Name.ToString(), false, (i) =>
             {
-                _logger.LogTrace($"Selected Job ID for Trigger: {SelectedJobId}");
-                SelectedJobId = i?.RowId ?? uint.MaxValue;
-                _triggerService.CacheJobActionList(SelectedJobId);
-            }, _triggerService.GetClientClassJob() ?? default, "Job..", ImGuiComboFlags.NoArrowButton);
+                _logger.LogTrace($"Selected Job ID for Trigger: {i.RowId}");
+                _clientService.CacheJobActionList(i.RowId);
+            }, _clientService.GetClientClassJob() ?? default, "Job..", ImGuiComboFlags.NoArrowButton);
 
             ImUtf8.SameLineInner();
-            var loadedActions = _triggerService.LoadedActions[SelectedJobId];
-            _uiShared.DrawComboSearchable("##ActionToListenTo", 150f, loadedActions, (action) => action.Name,
-            false, (i) => spellActionTrigger.ActionID = i?.RowId ?? uint.MaxValue, null, "Select Job Action..");
+            var loadedActions = _clientService.LoadedActions[SelectedJobId];
+            _uiShared.DrawComboSearchable("##ActionToListenTo", 150f, loadedActions, (action) => action.Name.ToString(),
+            false, (i) => spellActionTrigger.ActionID = i.RowId, defaultPreviewText: "Select Job Action..");
         }
 
         // Determine how we draw out the rest of this based on the action type:
@@ -1007,31 +1005,27 @@ public class ToyboxTriggerManager
 
     private bool CanDrawSpellActionTriggerUI()
     {
-        if (_triggerService.ClassJobs.Count == 0)
+        if (_clientService.ClassJobs.Count == 0)
         {
             _logger.LogTrace("Updating ClassJob list because it was empty!");
-            _triggerService.TryUpdateClassJobList();
+            _clientService.TryUpdateClassJobList();
         }
         // if the selected job id is the max value and the client is logged in, set it to the client class job.
         if (SelectedJobId == uint.MaxValue)
         {
             // try and get the client class job.
-            var clientClassJob = _triggerService.GetClientClassJob();
-            if (clientClassJob == null || clientClassJob == default)
-            {
-                _logger.LogWarning("Client Class Job is null or default. Cannot set SelectedJobId.");
-                return false;
-            }
+            var clientClassJob = _clientService.GetClientClassJob() ?? default;
+
             // otherwise, update job ID and cache actions for the job.
             _logger.LogTrace("Set SelectedJobId to current client jobId.");
             SelectedJobId = clientClassJob.RowId;
-            _triggerService.CacheJobActionList(SelectedJobId);
+            _clientService.CacheJobActionList(SelectedJobId);
         }
-        if (SelectedJobId != uint.MaxValue && !_triggerService.LoadedActions.ContainsKey(SelectedJobId))
+        if (SelectedJobId != uint.MaxValue && !_clientService.LoadedActions.ContainsKey(SelectedJobId))
         {
             ImGui.Text("SelectedJobID: " + SelectedJobId);
             ImGui.Text("Loading Actions, please wait.");
-            ImGui.Text("Current ClassJob size: " + _triggerService.ClassJobs.Count);
+            ImGui.Text("Current ClassJob size: " + _clientService.ClassJobs.Count);
             ImGui.Text("If this doesnt go away, its an error. Report it!");
             return false;
         }

@@ -7,7 +7,7 @@ using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Struct;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
-
+#nullable enable
 namespace GagSpeak.GagspeakConfiguration.Models;
 
 /// <summary>
@@ -24,7 +24,7 @@ public record RestraintSet : IMoodlesAssociable
 
         // Initialize BonusDrawData in the constructor
         BonusDrawData = BonusExtensions.AllFlags.ToDictionary(
-            slot => slot, slot => new BonusDrawData(BonusItem.Empty(slot)) { Slot = slot, IsEnabled = false });
+            slot => slot, slot => new BonusDrawData(EquipItem.BonusItemNothing(slot)) { Slot = slot, IsEnabled = false });
     }
 
     public Guid RestraintId { get; set; } = Guid.NewGuid();
@@ -269,11 +269,13 @@ public record RestraintSet : IMoodlesAssociable
 
             // Deserialize the AssociatedMods
             if (jsonObject["AssociatedMods"] is JArray associatedModsArray)
-                AssociatedMods = associatedModsArray.Select(mod => mod.ToObject<AssociatedMod>()).ToList();
+                AssociatedMods = associatedModsArray.Select(mod => mod.ToObject<AssociatedMod>()).Where(mod => mod != null).ToList()!;
+            else
+                AssociatedMods = new List<AssociatedMod>();
 
             // Deserialize the AssociatedMoodles
             if (jsonObject["AssociatedMoodles"] is JArray associatedMoodlesArray)
-                AssociatedMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
+                AssociatedMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>() ?? string.Empty)).ToList();
 
             // Deserialize the AssociatedMoodlePreset
             var moodlePreset = jsonObject["AssociatedMoodlePresets"];

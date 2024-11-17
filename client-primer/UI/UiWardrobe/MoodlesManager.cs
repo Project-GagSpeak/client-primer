@@ -39,8 +39,6 @@ public class MoodlesManager : MediatorSubscriberBase
     private Pair? PairToInspect = null;
     private int SelectedExamineIndex = 0;
     private int SelectedPresetIndex = 0;
-    private string PresetSearchString = string.Empty;
-    private Vector2 DefaultItemSpacing;
 
     private const string MoodleManagerStatusComboLabel = "##MoodlesManagerStatusSelector";
     private const string MoodleManagerPresetComboLabel = "##MoodlesManagerPresetSelector";

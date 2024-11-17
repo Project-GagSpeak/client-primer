@@ -12,19 +12,19 @@ namespace GagSpeak.Services.ConfigurationServices;
 /// </summary>
 public class ServerConfigurationManager
 {
-    private readonly OnFrameworkService _frameworkUtils;            // a utilities class with methods that work with the Dalamud framework
+    private readonly ClientMonitorService _clientService;            // a utilities class with methods that work with the Dalamud framework
     private readonly ILogger<ServerConfigurationManager> _logger;   // the logger for the server config manager
     private readonly GagspeakMediator _gagspeakMediator;            // the mediator for our Gagspeak Mediator
     private readonly ServerConfigService _configService;            // the config service for the server
     private readonly NicknamesConfigService _nicknamesConfig;       // config for the nicknames service (This adds lots of files that seem unessisary, but we'll see down the line.)
     private readonly ServerTagConfigService _serverTagConfig;       // the config service for the server tags (also dont think we need this, but we'll see)
 
-    public ServerConfigurationManager(ILogger<ServerConfigurationManager> logger, OnFrameworkService onFrameworkService,
+    public ServerConfigurationManager(ILogger<ServerConfigurationManager> logger, ClientMonitorService clientService,
         ServerConfigService configService, ServerTagConfigService serverTagConfig, NicknamesConfigService nicknamesConfig,
         GagspeakMediator GagspeakMediator)
     {
         _logger = logger;
-        _frameworkUtils = onFrameworkService;
+        _clientService = clientService;
         _configService = configService;
         _serverTagConfig = serverTagConfig;
         _nicknamesConfig = nicknamesConfig;
@@ -44,14 +44,14 @@ public class ServerConfigurationManager
     public ServerTagStorage TagStorage => _serverTagConfig.Current.ServerTagStorage;
     public ServerNicknamesStorage NicknameStorage => _nicknamesConfig.Current.ServerNicknames;
 
-    public ulong GetLocalContentIdForCharacter() => _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
+    public ulong GetLocalContentIdForCharacter() => _clientService.ContentId;
 
     /// <summary> Retrieves the key for the currently logged in character. Returns null if none found. </summary>
     /// <returns> The Secret Key </returns>
     public string? GetSecretKeyForCharacter()
     {
         // fetch the players local content ID (matches regardless of name or world change) and the name & worldId.
-        var LocalContentID = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
+        var LocalContentID = _clientService.ContentId;
 
         // Once we have obtained the information, check to see if the currently logged in character has a matching authentication with the same local content ID.
         Authentication? auth = CurrentServer.Authentications.Find(f => f.CharacterPlayerContentId == LocalContentID);
@@ -76,8 +76,8 @@ public class ServerConfigurationManager
         if (auth == null) return;
 
         // fetch the players name and world ID.
-        var charaName = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
-        var worldId = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult();
+        var charaName = _clientService.Name;
+        var worldId = _clientService.HomeWorldId;
 
         // update the name if it has changed.
         if (auth.CharacterName != charaName)
@@ -96,14 +96,12 @@ public class ServerConfigurationManager
 
     public bool CharacterHasSecretKey()
     {
-        var localContentID = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
-        return CurrentServer.Authentications.Any(a => a.CharacterPlayerContentId == localContentID && !string.IsNullOrEmpty(a.SecretKey.Key));
+        return CurrentServer.Authentications.Any(a => a.CharacterPlayerContentId == _clientService.ContentId && !string.IsNullOrEmpty(a.SecretKey.Key));
     }
 
     public bool AuthExistsForCurrentLocalContentId()
     {
-        var localContentID = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
-        return CurrentServer.Authentications.Any(a => a.CharacterPlayerContentId == localContentID);
+        return CurrentServer.Authentications.Any(a => a.CharacterPlayerContentId == _clientService.ContentId);
     }
 
     public void GenerateAuthForCurrentCharacter(bool isPrimary = false)
@@ -111,9 +109,9 @@ public class ServerConfigurationManager
         // generates a new auth object for the list of authentications with no secret key.
         var auth = new Authentication
         {
-            CharacterPlayerContentId = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult(),
-            CharacterName = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult(),
-            WorldId = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult(),
+            CharacterPlayerContentId = _clientService.ContentId,
+            CharacterName = _clientService.Name,
+            WorldId = _clientService.HomeWorldId,
             IsPrimary = isPrimary,
             SecretKey = new SecretKey()
         };

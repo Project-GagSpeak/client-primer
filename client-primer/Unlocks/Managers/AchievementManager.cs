@@ -26,6 +26,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PlayerCharacterData _playerData;
     private readonly PairManager _pairManager;
+    private readonly ClientMonitorService _clientService;
     private readonly OnFrameworkService _frameworkUtils;
     private readonly CosmeticService _cosmetics;
     private readonly VibratorService _vibeService;
@@ -44,18 +45,19 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
     private bool _reconnectedAfterException => DateTime.UtcNow - _lastDisconnectTime < TimeSpan.FromMinutes(5);
     public AchievementManager(ILogger<AchievementManager> logger, GagspeakMediator mediator, MainHub mainHub,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData, PairManager pairManager,
-        OnFrameworkService frameworkUtils, CosmeticService cosmetics, VibratorService vibeService,
-        UnlocksEventManager eventManager, INotificationManager notifs, IDutyState dutyState) : base(logger, mediator)
+        ClientMonitorService clientService, OnFrameworkService frameworkUtils, CosmeticService cosmetics, 
+        VibratorService vibeService, UnlocksEventManager eventManager, INotificationManager notifs, 
+        IDutyState dutyState) : base(logger, mediator)
     {
         _mainHub = mainHub;
         _clientConfigs = clientConfigs;
         _playerData = playerData;
         _pairManager = pairManager;
+        _clientService = clientService;
         _frameworkUtils = frameworkUtils;
         _cosmetics = cosmetics;
         _vibeService = vibeService;
         _eventManager = eventManager;
-
         _notify = notifs;
         _dutyState = dutyState;
 
@@ -387,7 +389,7 @@ public partial class AchievementManager : DisposableMediatorSubscriberBase
                     .Select(p => new TrackedItem
                     {
                         Item = p.Name,
-                        UIDAffected = p.Value["UIDAffected"]?.ToString(),
+                        UIDAffected = p.Value["UIDAffected"]?.ToString() ?? string.Empty,
                         TimeAdded = p.Value["TimeAdded"]?.Value<DateTime>() ?? DateTime.MinValue
                     })
                     .ToList();

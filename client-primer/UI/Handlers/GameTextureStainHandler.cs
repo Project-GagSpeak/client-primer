@@ -48,7 +48,7 @@ public sealed class GameItemStainHandler
     /// </summary>
     /// <returns></returns>
     public BonusItemCombo[] ObtainBonusItemCombos()
-        => BonusExtensions.AllFlags.Select(f => new BonusItemCombo(_gameData, f, _bonusItems, _logger)).ToArray();
+        => BonusExtensions.AllFlags.Select(f => new BonusItemCombo(_gameData, f, _logger)).ToArray();
 
     /// <summary>
     /// Public provider for Icon Textures.

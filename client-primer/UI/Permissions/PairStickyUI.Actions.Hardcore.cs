@@ -12,7 +12,7 @@ using GagspeakAPI.Dto.Toybox;
 using GagspeakAPI.Enums;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using OtterGui.Text;
 using System.Numerics;
 
@@ -40,8 +40,8 @@ public partial class PairStickyUI
         }
 
         // conditions for disabled actions
-        bool inRange = _frameworkUtils.ClientState.LocalPlayer is not null && StickyPair.VisiblePairGameObject is not null 
-            && Vector3.Distance(_frameworkUtils.ClientState.LocalPlayer.Position, StickyPair.VisiblePairGameObject.Position) < 3;
+        bool inRange = _clientService.IsPresent && StickyPair.VisiblePairGameObject is not null 
+            && Vector3.Distance(_clientService.ClientPlayer!.Position, StickyPair.VisiblePairGameObject.Position) < 3;
         // Conditionals for hardcore interactions
         bool disableForceFollow = !inRange || !PairPerms.AllowForcedFollow || !StickyPair.IsVisible || !PairGlobals.CanToggleFollow(MainHub.UID);
         bool disableForceToStay = !PairPerms.AllowForcedToStay || !PairGlobals.CanToggleStay(MainHub.UID);
@@ -154,7 +154,7 @@ public partial class PairStickyUI
                         {
                             // Compile the string for sending.
                             string newStr = MainHub.UID + "|" + SelectedEmote?.RowId.ToString() + "|" + SelectedCPose.ToString() + (PairPerms.DevotionalStatesForPair ? Globals.DevotedString : string.Empty);
-                            _logger.LogDebug("Sending EmoteState update for emote: " + (SelectedEmote?.Name ?? "UNK"));
+                            _logger.LogDebug("Sending EmoteState update for emote: " + (SelectedEmote?.Name.ToString()));
                             _ = _apiHubMain.UserUpdateOtherGlobalPerm(new UserGlobalPermChangeDto(StickyPair.UserData, new KeyValuePair<string, object>("ForcedEmoteState", newStr), MainHub.PlayerUserData));
                             Opened = InteractionType.None;
                         }

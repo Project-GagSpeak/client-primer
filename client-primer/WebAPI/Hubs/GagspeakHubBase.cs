@@ -21,12 +21,15 @@ public abstract class GagspeakHubBase : DisposableMediatorSubscriberBase
 {
     // make any accessible classes in here protected.
     protected readonly TokenProvider _tokenProvider;
+    protected readonly ClientMonitorService _clientService;
     protected readonly OnFrameworkService _frameworkUtils;
 
     public GagspeakHubBase(ILogger logger, GagspeakMediator mediator, 
-        TokenProvider tokenProvider, OnFrameworkService frameworkUtils) : base(logger, mediator)
+        TokenProvider tokenProvider, ClientMonitorService clientService, 
+        OnFrameworkService frameworkUtils) : base(logger, mediator)
     {
         _tokenProvider = tokenProvider;
+        _clientService = clientService;
         _frameworkUtils = frameworkUtils;
 
         // Should fire to all overrides.
@@ -84,7 +87,6 @@ public abstract class GagspeakHubBase : DisposableMediatorSubscriberBase
 
     // Unknown purpose yet.
     public virtual Task Reconnect() { return Task.CompletedTask; }
-    public virtual Task SetupHub() { return Task.CompletedTask; }
 
     /// <summary>
     /// Determines if we meet the necessary requirements to connect to the hub.
@@ -99,7 +101,7 @@ public abstract class GagspeakHubBase : DisposableMediatorSubscriberBase
     protected async Task WaitForWhenPlayerIsPresent(CancellationToken token)
     {
         // wait to connect to the server until they have logged in with their player character and make sure the cancelation token has not yet been called
-        while (!await _frameworkUtils.GetIsPlayerPresentAsync().ConfigureAwait(false) && !token.IsCancellationRequested)
+        while (!_clientService.IsPresent && !token.IsCancellationRequested)
         {
             Logger.LogDebug("Player not loaded in yet, waiting", LoggerType.ApiCore);
             await Task.Delay(TimeSpan.FromSeconds(1), token).ConfigureAwait(false);

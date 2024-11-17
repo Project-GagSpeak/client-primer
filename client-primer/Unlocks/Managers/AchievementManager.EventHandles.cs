@@ -3,6 +3,7 @@ using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Localization;
+using GagSpeak.UpdateMonitoring;
 using GagSpeak.UpdateMonitoring.Triggers;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
@@ -71,14 +72,14 @@ public partial class AchievementManager
 
     private void CheckOnZoneSwitchEnd()
     {
-        Logger.LogTrace("Current Territory Id: " + _frameworkUtils.ClientState.TerritoryType, LoggerType.AchievementEvents);
-        if(_frameworkUtils.IsInMainCity)
+        Logger.LogTrace("Current Territory Id: " + _clientService.TerritoryId, LoggerType.AchievementEvents);
+        if(_clientService.InMainCity)
             (SaveData.Achievements[Achievements.WalkOfShame.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
 
-        ushort territory = _frameworkUtils.ClientState.TerritoryType;
+        ushort territory = _clientService.TerritoryId;
 
         // if present in diadem (for diamdem achievement)
-        if (territory is 939 && !_frameworkUtils.ClientState.IsPvP)
+        if (territory is 939 && !_clientService.InPvP)
             (SaveData.Achievements[Achievements.MotivationForRestoration.Id] as TimeRequiredConditionalAchievement)?.StartTask();
         else
             (SaveData.Achievements[Achievements.MotivationForRestoration.Id] as TimeRequiredConditionalAchievement)?.CheckCompletion();
@@ -119,12 +120,14 @@ public partial class AchievementManager
         if (!AchievementHelpers.InDeepDungeon()) return;
 
         var floor = AchievementHelpers.GetFloor();
-        if (floor is null) return;
+        if (floor is null) 
+            return;
 
-        var deepDungeonType = _frameworkUtils.GetDeepDungeonType();
-        if (deepDungeonType is null) return;
+        var deepDungeonType = _clientService.GetDeepDungeonType();
+        if (deepDungeonType is null) 
+            return;
 
-        if (_frameworkUtils.PartyListSize is 1)
+        if (_clientService.PartySize is 1)
             (SaveData.Achievements[Achievements.MyKinksRunDeeper.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
         // start this under any condition.
         (SaveData.Achievements[Achievements.MyKinkRunsDeep.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
@@ -173,7 +176,7 @@ public partial class AchievementManager
     private void OnDutyStart(object? sender, ushort e)
     {
         Logger.LogInformation("Duty Started", LoggerType.AchievementEvents);
-        if (_frameworkUtils.InPvP)// || _frameworkUtils.PartyListSize < 4)
+        if (_clientService.InPvP)
             return;
 
         (SaveData.Achievements[Achievements.KinkyExplorer.Id] as ConditionalAchievement)?.CheckCompletion();
@@ -181,11 +184,11 @@ public partial class AchievementManager
         (SaveData.Achievements[Achievements.SilentButDeadly.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
         (SaveData.Achievements[Achievements.UCanTieThis.Id] as ConditionalProgressAchievement)?.BeginConditionalTask(25); // 10s delay.
 
-        if (_frameworkUtils.PlayerJobRole is ActionRoles.Healer)
+        if (_clientService.ClientPlayer.ClassJobRole() is ActionRoles.Healer)
             (SaveData.Achievements[Achievements.HealSlut.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
 
         // If the party size is 8, let's check for the trials.
-        if(_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
+        if(_clientService.PartySize is 8 && _clientService.Level >= 90)
         {
             (SaveData.Achievements[Achievements.TrialOfFocus.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
             (SaveData.Achievements[Achievements.TrialOfDexterity.Id] as ConditionalProgressAchievement)?.BeginConditionalTask();
@@ -195,7 +198,7 @@ public partial class AchievementManager
 
     private void OnDutyEnd(object? sender, ushort e)
     {
-        if (_frameworkUtils.InPvP)// || _frameworkUtils.PartyListSize < 4)
+        if (_clientService.InPvP)
             return;
         Logger.LogInformation("Duty Ended", LoggerType.AchievementEvents);
         if ((SaveData.Achievements[Achievements.UCanTieThis.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
@@ -210,7 +213,7 @@ public partial class AchievementManager
         // Trial has ended, check for completion.
         if ((SaveData.Achievements[Achievements.TrialOfFocus.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
         {
-            if (_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
+            if (_clientService.PartySize is 8 && _clientService.Level >= 90)
                 (SaveData.Achievements[Achievements.TrialOfFocus.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
             else // if we are not in a full party, we should reset the task.
                 (SaveData.Achievements[Achievements.TrialOfFocus.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
@@ -218,7 +221,7 @@ public partial class AchievementManager
         
         if ((SaveData.Achievements[Achievements.TrialOfDexterity.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
         {
-            if(_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
+            if (_clientService.PartySize is 8 && _clientService.Level >= 90)
                 (SaveData.Achievements[Achievements.TrialOfDexterity.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
             else // if we are not in a full party, we should reset the task.
                 (SaveData.Achievements[Achievements.TrialOfDexterity.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
@@ -226,7 +229,7 @@ public partial class AchievementManager
         
         if ((SaveData.Achievements[Achievements.TrialOfTheBlind.Id] as ConditionalProgressAchievement)?.ConditionalTaskBegun ?? false)
         {
-            if (_frameworkUtils.PartyListSize is 8 && _frameworkUtils.PlayerLevel >= 90)
+            if (_clientService.PartySize is 8 && _clientService.Level >= 90)
                 (SaveData.Achievements[Achievements.TrialOfTheBlind.Id] as ConditionalProgressAchievement)?.FinishConditionalTask();
             else // if we are not in a full party, we should reset the task.
                 (SaveData.Achievements[Achievements.TrialOfTheBlind.Id] as ConditionalProgressAchievement)?.StartOverDueToInturrupt();
@@ -263,7 +266,6 @@ public partial class AchievementManager
     /// <param name="gagLayer"> The Layer the gag was applied to. </param>
     /// <param name="gagType"> The type of Gag Applied. </param>
     /// <param name="isSelfApplied"> If it was applied by the client or not. </param>
-    /// <param name="fromInitialConnection"> If this event was triggered from the OnConnectedService. </param>
     private void OnGagApplied(GagLayer gagLayer, GagType gagType, bool isSelfApplied)
     {
         if (gagType is GagType.None) return;
@@ -413,7 +415,7 @@ public partial class AchievementManager
         // Set is being enabled.
         if (isEnabling)
         {
-            var territory = _frameworkUtils.ClientState.TerritoryType;
+            var territory = _clientService.TerritoryId;
             // Check to see if we qualify for starting any world tour conditions.
             if (SaveData.VisitedWorldTour.ContainsKey(territory) && SaveData.VisitedWorldTour[territory] is false)
             {
@@ -480,7 +482,7 @@ public partial class AchievementManager
             (SaveData.Achievements[Achievements.ExtremeBondageEnjoyer.Id] as ThresholdAchievement)?.UpdateThreshold(0);
 
             // Validate the world tour achievement.
-            var territory = _frameworkUtils.ClientState.TerritoryType;
+            var territory = _clientService.TerritoryId;
             // Ensure it has been longer than 2 minutes since the recorded time. (in UTC)
             if (SaveData.VisitedWorldTour.ContainsKey(territory) && SaveData.VisitedWorldTour[territory] is false)
             {
@@ -985,11 +987,11 @@ public partial class AchievementManager
     {
 
         // Check if client player is null
-        if (_frameworkUtils.ClientState.LocalPlayer is null)
+        if (!_clientService.IsPresent)
             return;
 
         // Return if not in the gold saucer
-        if (_frameworkUtils.ClientState.TerritoryType is not 144)
+        if (_clientService.TerritoryId is not 144)
             return;
 
         // Check if the GagReflex achievement is already completed
@@ -1013,7 +1015,7 @@ public partial class AchievementManager
         }
 
         // Check if any effects were a knockback effect targeting the local player
-        if (actionEffects.Any(x => x.Type == LimitedActionEffectType.Knockback && x.TargetID == _frameworkUtils.ClientState.LocalPlayer.GameObjectId))
+        if (actionEffects.Any(x => x.Type == LimitedActionEffectType.Knockback && x.TargetID == _clientService.ObjectId))
         {
             // Increment progress if the achievement is not yet completed
             gagReflexAchievement.IncrementProgress();

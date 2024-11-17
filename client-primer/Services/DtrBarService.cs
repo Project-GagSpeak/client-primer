@@ -11,7 +11,7 @@ using GagSpeak.Services.Mediator;
 using GagSpeak.UI;
 using GagSpeak.UI.Components;
 using GagSpeak.WebAPI;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 
 namespace GagSpeak.UpdateMonitoring;
 
@@ -24,22 +24,22 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
     private readonly GagspeakConfigService _mainConfig;
     private readonly EventAggregator _eventAggregator;
     private readonly PairManager _pairManager;
+    private readonly ClientMonitorService _clientService;
     private readonly OnFrameworkService _frameworkUtils;
-    private readonly IClientState _clientState;
     private readonly IDataManager _gameData;
     private readonly IDtrBar _dtrBar;
     public DtrBarService(ILogger<DtrBarService> logger, GagspeakMediator mediator, 
         MainHub apiHubMain, GagspeakConfigService mainConfig,  EventAggregator eventAggregator, 
-        PairManager pairManager,  OnFrameworkService frameworkUtils, IClientState clientState, 
-        IDataManager dataManager, IDtrBar dtrBar) : base(logger, mediator)
+        PairManager pairs, OnFrameworkService frameworkUtils, ClientMonitorService clientService,
+        IDataManager gameData, IDtrBar dtrBar) : base(logger, mediator)
     {
         _apiHubMain = apiHubMain;
         _mainConfig = mainConfig;
         _eventAggregator = eventAggregator;
-        _pairManager = pairManager;
+        _pairManager = pairs;
         _frameworkUtils = frameworkUtils;
-        _clientState = clientState;
-        _gameData = dataManager;
+        _clientService = clientService;
+        _gameData = gameData;
         _dtrBar = dtrBar;
 
         PrivacyEntry = _dtrBar.Get("GagSpeakPrivacy");
@@ -96,7 +96,7 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
             var visiblePairGameObjects = _pairManager.GetVisiblePairGameObjects();
             // get players not included in our gagspeak pairs.
             var playersNotInPairs = _frameworkUtils.GetObjectTablePlayers()
-                .Where(player => player != _clientState.LocalPlayer && !visiblePairGameObjects.Contains(player))
+                .Where(player => player != _clientService.ClientPlayer && !visiblePairGameObjects.Contains(player))
                 .ToList();
 
             // Store the list of visible players
@@ -110,7 +110,7 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
             string TextDisplay = playersNotInPairs.Any() ? (playersNotInPairs.Count + " Others") : "Only Pairs";
             // Limit to 10 players and indicate if there are more
             string TooltipDisplay = playersNotInPairs.Any()
-                ? "Non-GagSpeak Players:\n" + string.Join("\n", displayedPlayers.Select(player => player.Name.ToString() + "  " + player.HomeWorld.GameData!.Name)) +
+                ? "Non-GagSpeak Players:\n" + string.Join("\n", displayedPlayers.Select(player => player.Name.ToString() + "  " + player.HomeWorld.Value.Name.ToString())) +
                     (remainingCount > 0 ? $"\nand {remainingCount} others..." : string.Empty)
                 : "Only GagSpeak Pairs Visible";
             // pair display string for tooltip.
@@ -129,23 +129,20 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
 
     public void LocatePlayer(IPlayerCharacter player)
     {
-        if (_gameData is null || _clientState is null) 
+        if (!_clientService.IsPresent) 
             return;
 
         try
         {
-            //Logger.LogTrace("Player Locations:");
-            var map = _gameData.GetExcelSheet<TerritoryType>()?.GetRow(_clientState.TerritoryType)?.Map;
-            if (map == null)
+            if(!_gameData.GetExcelSheet<TerritoryType>().TryGetRow(_clientService.TerritoryId, out TerritoryType row))
             {
                 Logger.LogError("Failed to get map data.");
                 return;
             }
-
             var coords = GenerateMapLinkMessageForObject(player);
             Logger.LogTrace($"{player.Name} at {coords}", LoggerType.ContextDtr);
-            var mapLink = new MapLinkPayload(_clientState.TerritoryType, map.Row, coords.Item1, coords.Item2);
-            _frameworkUtils.OpenMapWithMapLink(mapLink);
+            var mapLink = new MapLinkPayload(_clientService.TerritoryId, row.Map.RowId, coords.Item1, coords.Item2);
+            _clientService.OpenMapWithMapLink(mapLink);
         }
         catch (Exception ex)
         {
@@ -155,8 +152,10 @@ public sealed class DtrBarService : DisposableMediatorSubscriberBase
 
     private (float, float) GenerateMapLinkMessageForObject(IGameObject playerObject)
     {
-        var place = _gameData.GetExcelSheet<Map>(_clientState.ClientLanguage)?.FirstOrDefault(m => m.TerritoryType.Row == _clientState.TerritoryType);
-        var placeName = place?.PlaceName.Row;
+        var place = _gameData
+            .GetExcelSheet<Map>(_clientService.ClientLanguage)?
+            .FirstOrDefault(m => m.TerritoryType.RowId == _clientService.TerritoryId);
+        var placeName = place?.PlaceName.RowId;
         float scale = place?.SizeFactor ?? 100f;
 
         return ((float)ToMapCoordinate(playerObject.Position.X, scale), (float)ToMapCoordinate(playerObject.Position.Z, scale));

@@ -27,24 +27,26 @@ namespace GagSpeak;
 
 public class GagSpeakHost : MediatorSubscriberBase, IHostedService
 {
-    private readonly OnFrameworkService _frameworkUtil;                     // For running on the games framework thread
-    private readonly ClientConfigurationManager _clientConfigurationManager;// the client-related config manager
-    private readonly ServerConfigurationManager _serverConfigurationManager;// the server-related config manager
-    private readonly IServiceScopeFactory _serviceScopeFactory;             // the service scope factory.
-    private IServiceScope? _runtimeServiceScope;                            // the runtime service scope
-    private Task? _launchTask;                                              // the task ran when plugin is launched.
-    public GagSpeakHost(ILogger<GagSpeak> logger, ClientConfigurationManager clientConfigurationManager,
-        ServerConfigurationManager serverConfigurationManager, OnFrameworkService frameworkUtil,
-        IServiceScopeFactory serviceScopeFactory, GagspeakMediator mediator) : base(logger, mediator)
+    private readonly ClientMonitorService _clientService;
+    private readonly ClientConfigurationManager _clientConfigs;
+    private readonly ServerConfigurationManager _serverConfigs;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private IServiceScope? _runtimeServiceScope;
+    private Task? _launchTask;
+    public GagSpeakHost(ILogger<GagSpeak> logger, GagspeakMediator mediator,
+        ClientConfigurationManager clientConfigs, ServerConfigurationManager serverConfigs,
+        ClientMonitorService clientService, IServiceScopeFactory scopeFactory)
+        : base(logger, mediator)
     {
         // set the services
-        _frameworkUtil = frameworkUtil;
-        _serviceScopeFactory = serviceScopeFactory;
-        _clientConfigurationManager = clientConfigurationManager;
-        _serverConfigurationManager = serverConfigurationManager;
+        _clientService = clientService;
+        _clientConfigs = clientConfigs;
+        _serverConfigs = serverConfigs;
+        _serviceScopeFactory = scopeFactory;
     }
-    /// <summary> The task to run after all services have been properly constructed.
-    /// <para> this will kickstart the server and begin all operations and verifications.</para>
+    /// <summary> 
+    /// The task to run after all services have been properly constructed.
+    /// This will kickstart the server and begin all operations and verifications.
     /// </summary>
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -115,7 +117,7 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
     private async Task WaitForPlayerAndLaunchCharacterManager()
     {
         // wait for the player to be present
-        while (!await _frameworkUtil.GetIsPlayerPresentAsync().ConfigureAwait(false))
+        while (!_clientService.IsPresent)
         {
             await Task.Delay(100).ConfigureAwait(false);
         }
@@ -131,23 +133,23 @@ public class GagSpeakHost : MediatorSubscriberBase, IHostedService
             _runtimeServiceScope.ServiceProvider.GetRequiredService<UiService>();
             _runtimeServiceScope.ServiceProvider.GetRequiredService<CommandManager>();
 
-            _clientConfigurationManager.GagspeakConfig.ButtonUsed = false;
+            _clientConfigs.GagspeakConfig.ButtonUsed = false;
 
             // if the client does not have a valid setup or config, switch to the intro ui
-            if (!_clientConfigurationManager.GagspeakConfig.HasValidSetup() || !_serverConfigurationManager.HasValidConfig())
+            if (!_clientConfigs.GagspeakConfig.HasValidSetup() || !_serverConfigs.HasValidConfig())
             {
-                Logger?.LogDebug("Has Valid Setup: {setup} Has Valid Config: {config}", _clientConfigurationManager.GagspeakConfig.HasValidSetup(), _serverConfigurationManager.HasValidConfig());
+                Logger?.LogDebug("Has Valid Setup: {setup} Has Valid Config: {config}", _clientConfigs.GagspeakConfig.HasValidSetup(), _serverConfigs.HasValidConfig());
                 // publish the switch to intro ui message to the mediator
                 Mediator.Publish(new SwitchToIntroUiMessage());
                 return;
             }
 
             // display changelog if we should.
-            if (_clientConfigurationManager.GagspeakConfig.LastRunVersion != Assembly.GetExecutingAssembly().GetName().Version!)
+            if (_clientConfigs.GagspeakConfig.LastRunVersion != Assembly.GetExecutingAssembly().GetName().Version!)
             {
                 // update the version and toggle the UI.
                 Logger?.LogInformation("Version was different, displaying UI");
-                _clientConfigurationManager.GagspeakConfig.LastRunVersion = Assembly.GetExecutingAssembly().GetName().Version!;
+                _clientConfigs.GagspeakConfig.LastRunVersion = Assembly.GetExecutingAssembly().GetName().Version!;
                 Mediator.Publish(new UiToggleMessage(typeof(ChangelogUI)));
             }
 

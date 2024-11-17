@@ -49,7 +49,7 @@ public class BlindfoldModel
         ForceVisor = jsonObject["ForceVisor"]?.Value<bool>() ?? false;
         if (jsonObject["BlindfoldMoodles"] is JArray associatedMoodlesArray)
         {
-            BlindfoldMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>())).ToList();
+            BlindfoldMoodles = associatedMoodlesArray.Select(moodle => Guid.Parse(moodle.Value<string>() ?? string.Empty)).ToList();
         }
         BlindfoldItem.Deserialize((JObject)jsonObject["BlindfoldItem"]!);
     }

@@ -282,6 +282,12 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
     private void DrawRestraintSetEditorHeader()
     {
+        if(_handler.ClonedSetForEdit is null)
+        {
+            ImGui.Text("Cloned Set for Edit is Null!");
+            return;
+        }
+
         // use button wrounding
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
         var startYpos = ImGui.GetCursorPosY();

@@ -22,18 +22,18 @@ public sealed class DeathRollService
     private readonly ILogger<DeathRollService> _logger;
     private readonly PlayerCharacterData _playerManager;
     private readonly ClientConfigurationManager _clientConfigs;
-    private readonly OnFrameworkService _frameworkService;
+    private readonly ClientMonitorService _clientService;
     private readonly TriggerService _triggerService;
     private readonly IChatGui _chatGui;
 
     public DeathRollService(ILogger<DeathRollService> logger, PlayerCharacterData playerManager,
-        ClientConfigurationManager clientConfigs, TriggerService triggerService, 
-        OnFrameworkService frameworkService, IChatGui chatGui)
+        ClientConfigurationManager clientConfigs, TriggerService triggerService,
+        ClientMonitorService clientService, IChatGui chatGui)
     {
         _logger = logger;
         _playerManager = playerManager;
         _clientConfigs = clientConfigs;
-        _frameworkService = frameworkService;
+        _clientService = clientService;
         _triggerService = triggerService;
         _chatGui = chatGui;
     }
@@ -43,7 +43,7 @@ public sealed class DeathRollService
     // add a helper function to retrieve the roll cap of the last active session our player is in.
     public int? GetLastRollCap()
     {
-        var player = _frameworkService.ClientPlayerNameAndWorld;
+        var player = _clientService.ClientPlayer.NameWithWorld();
         // Sort all sessions in order by their LastRollTime, and return the first one where either the opponent is nullorEmpty, or matches the clientplayernameandworld.
         var matchedSession = MonitoredSessions.Values
         .OrderByDescending(s => s.LastRollTime)
@@ -54,7 +54,7 @@ public sealed class DeathRollService
 
     public void ProcessMessage(XivChatType type, string nameWithWorld, SeString message)
     {
-        if (_frameworkService.ClientPlayerAddress == nint.Zero || !message.Payloads.Exists(p => p.Type == PayloadType.Icon))
+        if (_clientService.Address == nint.Zero || !message.Payloads.Exists(p => p.Type == PayloadType.Icon))
         {
             _logger.LogDebug("Ignoring message due to not being in a world or not being a chat message.", LoggerType.ToyboxTriggers);
             return;
@@ -151,7 +151,7 @@ public sealed class DeathRollService
         _chatGui.Print(se.BuiltString);
         _logger.LogInformation("Session completed and removed.");
         // if we were the loser, then fire the deathroll trigger.
-        if (session.LastRoller == _frameworkService.ClientPlayerNameAndWorld)
+        if (session.LastRoller == _clientService.ClientPlayer.NameWithWorld())
         {
             foreach (var trigger in _clientConfigs.ActiveSocialTriggers)
                 _triggerService.ExecuteTriggerAction(trigger);

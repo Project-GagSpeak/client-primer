@@ -33,8 +33,8 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
 
     public MainHub(ILogger<MainHub> logger, GagspeakMediator mediator, HubFactory hubFactory,
         TokenProvider tokenProvider, PairManager pairs, ServerConfigurationManager serverConfigs, 
-        GagspeakConfigService mainConfig, ClientCallbackService callbackService, 
-        OnFrameworkService frameworkUtils) : base(logger, mediator, tokenProvider, frameworkUtils)
+        GagspeakConfigService mainConfig, ClientCallbackService callbackService, ClientMonitorService clientService,
+        OnFrameworkService frameworkUtils) : base(logger, mediator, tokenProvider, clientService, frameworkUtils)
     {
         _hubFactory = hubFactory;
         _pairs = pairs;
@@ -51,7 +51,7 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
         Mediator.Subscribe<MainHubReconnectingMessage>(this, (msg) => HubInstanceOnReconnecting(msg.Exception));
 
         // if we are already logged in, then run the login function
-        if (_frameworkUtils.IsLoggedIn)
+        if (_clientService.IsLoggedIn)
             OnLogin();
     }
 
@@ -270,11 +270,6 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
         await Connect().ConfigureAwait(false);
     }
 
-    public override async Task SetupHub()
-    {
-        // If we need to setup the hub, do that here.
-    }
-
     /// <summary>
     /// A Temporary connection established without the Authorized Claim, but rather TemporaryAccess claim.
     /// This allows us to generate a fresh UID & SecretKey for our account upon its first creation.
@@ -338,14 +333,14 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
     {
         fetchedSecretKey = string.Empty;
 
-        if (_frameworkUtils.IsLoggedIn is false)
+        if (!_clientService.IsLoggedIn)
         {
             Logger.LogWarning("Attempted to connect while not logged in, this shouldnt be possible! Aborting!", LoggerType.ApiCore);
             return false;
         }
 
         // if we have not yet made an account, abort this connection.
-        if (_mainConfig.Current.AccountCreated is false)
+        if (!_mainConfig.Current.AccountCreated)
         {
             Logger.LogDebug("Account not yet created, Aborting Connection.", LoggerType.ApiCore);
             return false;

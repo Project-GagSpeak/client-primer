@@ -8,7 +8,7 @@ using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
 using GagspeakAPI.Data.Permissions;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using OtterGui;
 using OtterGui.Raii;
 using OtterGui.Text;
@@ -349,13 +349,13 @@ public class MoodlesService
             }
             var info = new IconInfo()
             {
-                Name = data.Name.ToDalamudString().ExtractText(),
+                Name = data.Value.Name.ToDalamudString().ExtractText(),
                 IconID = iconID,
-                Type = data.CanIncreaseRewards == 1 ? StatusType.Special : (data.StatusCategory == 2 ? StatusType.Negative : StatusType.Positive),
-                ClassJobCategory = data.ClassJobCategory.Value,
-                IsFCBuff = data.IsFcBuff,
-                IsStackable = data.MaxStacks > 1,
-                Description = data.Description.ToDalamudString().ExtractText()
+                Type = data.Value.CanIncreaseRewards == 1 ? StatusType.Special : (data.Value.StatusCategory == 2 ? StatusType.Negative : StatusType.Positive),
+                ClassJobCategory = data.Value.ClassJobCategory.Value,
+                IsFCBuff = data.Value.IsFcBuff,
+                IsStackable = data.Value.MaxStacks > 1,
+                Description = data.Value.Description.ToDalamudString().ExtractText()
 
             };
             IconInfoCache[iconID] = info;

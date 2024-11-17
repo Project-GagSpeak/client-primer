@@ -149,7 +149,6 @@ public class RestraintSetEditor : IMediatorSubscriber
 
             // draw out the equipment slots
             ImGui.TableNextRow(); ImGui.TableNextColumn();
-            int i = 0;
             foreach (var slot in EquipSlotExtensions.EquipmentSlots)
             {
                 refRestraintSet.DrawData[slot].GameItem.DrawIcon(_itemStainHandler.IconData, GameIconSize, slot);
@@ -520,14 +519,14 @@ public class RestraintSetEditor : IMediatorSubscriber
             ImGui.OpenPopup($"##{combo.Label}");
 
         var change = combo.Draw(refRestraintSet.BonusDrawData[flag].GameItem.Name,
-            refRestraintSet.BonusDrawData[flag].GameItem.Id,
+            refRestraintSet.BonusDrawData[flag].GameItem.Id.BonusItem,
             width, ComboWidth * 1.3f);
 
         if (change && !refRestraintSet.BonusDrawData[flag].GameItem.Equals(combo.CurrentSelection))
         {
             // log full details.
-            _logger.LogTrace($"Item changed from {combo.CurrentSelection} [{combo.CurrentSelection.ModelId}] " +
-                $"to {refRestraintSet.BonusDrawData[flag].GameItem} [{refRestraintSet.BonusDrawData[flag].GameItem.ModelId}]");
+            _logger.LogTrace($"Item changed from {combo.CurrentSelection} [{combo.CurrentSelection.PrimaryId}] " +
+                $"to {refRestraintSet.BonusDrawData[flag].GameItem} [{refRestraintSet.BonusDrawData[flag].GameItem.PrimaryId}]");
             // change
             refRestraintSet.BonusDrawData[flag].GameItem = combo.CurrentSelection;
         }
@@ -536,8 +535,7 @@ public class RestraintSetEditor : IMediatorSubscriber
         {
             // Assuming a method to handle item reset or clear, similar to your DrawItem method
             _logger.LogTrace($"Item reset to default for slot {flag}");
-            // reset it
-            refRestraintSet.BonusDrawData[flag].GameItem = BonusItem.Empty(flag);
+            refRestraintSet.BonusDrawData[flag].GameItem = EquipItem.BonusItemNothing(flag);
         }
     }
 

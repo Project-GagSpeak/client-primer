@@ -13,6 +13,7 @@
         <Deterministic>true</Deterministic>
         <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
         <Platforms>AnyCPU</Platforms>
+        <NoWarn>MSB3270</NoWarn>
     </PropertyGroup>
 
     
@@ -33,15 +34,6 @@
         <DalamudLibPath>$(APPDATA)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
         <OutputType>Library</OutputType>
     </PropertyGroup>
-    <ItemGroup>
-      <Compile Remove="Hardcore\ForcedStay\NewFolder\**" />
-      <Content Remove="Hardcore\ForcedStay\NewFolder\**" />
-      <EmbeddedResource Remove="Hardcore\ForcedStay\NewFolder\**" />
-      <None Remove="Hardcore\ForcedStay\NewFolder\**" />
-    </ItemGroup>
-    <ItemGroup>
-      <None Remove="UI\UiSettings\4by30bg2.hbz~" />
-    </ItemGroup>
 
     <!--Other DLL's for dalamud supporting module/components-->
     <ItemGroup>
@@ -117,11 +109,11 @@
         <ProjectReference Include="..\Penumbra.String\Penumbra.String.csproj" />
         <ProjectReference Include="..\Penumbra.GameData\Penumbra.GameData.csproj" />
         <ProjectReference Include="..\Glamourer.Api\Glamourer.Api.csproj" />
+        
         <!-- Required for Buttplug, but because Dalamud has its own Newtonsoft Assembly, thus, any
         JObject types, despite being the same, are coming from different assemblies, so we must exclude 
         all assets to only reference the dalamud Newtonsoft.-->
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" ExcludeAssets="all" />
-
 
         <!--For JWT token handling, helpful for server connectivity processing-->
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.5.2" />

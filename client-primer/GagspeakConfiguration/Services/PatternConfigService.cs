@@ -52,14 +52,16 @@ public class PatternConfigService : ConfigurationServiceBase<PatternConfig>
             // then for each pattern in the list
             foreach (var pattern in PatternsList)
             {
-                // create a new pattern object
-                var patternData = new PatternData();
-                // deserialize the object
-                if(pattern is JObject)
-                    patternData.Deserialize(pattern.Value<JObject>());
-                patternData.Deserialize(pattern.Value<JObject>());
-                // add the pattern to the list
-                config.PatternStorage.Patterns.Add(patternData);
+                // Ensure the pattern is a JObject and not null
+                if (pattern is JObject patternObject)
+                {
+                    // Create a new pattern object
+                    var patternData = new PatternData();
+                    // Deserialize the object
+                    patternData.Deserialize(patternObject);
+                    // Add the pattern to the list
+                    config.PatternStorage.Patterns.Add(patternData);
+                }
             }
         }
         return config;

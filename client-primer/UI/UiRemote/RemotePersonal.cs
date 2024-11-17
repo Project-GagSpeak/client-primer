@@ -24,14 +24,10 @@ public class RemotePersonal : RemoteBase
     private readonly UiSharedService _uiShared;
     private readonly VibratorService _vibeService; // these SHOULD all be shared. but if not put into Service.
     private readonly ToyboxRemoteService _remoteService;
-    private readonly string _windowName;
-
-    public RemotePersonal(ILogger<RemotePersonal> logger,
-        GagspeakMediator mediator, UiSharedService uiShared,
-        ToyboxRemoteService remoteService, VibratorService vibeService,
+    public RemotePersonal(ILogger<RemotePersonal> logger,GagspeakMediator mediator, 
+        UiSharedService uiShared, ToyboxRemoteService remoteService, VibratorService vibeService,
         string windowName = "Personal") : base(logger, mediator, uiShared, remoteService, vibeService, windowName)
     {
-        // grab the shared services
         _uiShared = uiShared;
         _vibeService = vibeService;
         _remoteService = remoteService;
@@ -99,7 +95,7 @@ public class RemotePersonal : RemoteBase
             {
                 Vector4 buttonColor = IsLooping ? _remoteService.LushPinkButton : _remoteService.SideButton;
                 // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("LoopButton" + _windowName, new Vector2(50, 50),
+                if (_uiShared.DrawScaledCenterButtonImage("LoopButton" + WindowBaseName, new Vector2(50, 50),
                     buttonColor, new Vector2(40, 40), wrap))
                 {
                     ProcessLoopToggle();
@@ -114,7 +110,7 @@ public class RemotePersonal : RemoteBase
             {
                 Vector4 buttonColor2 = IsFloating ? _remoteService.LushPinkButton : _remoteService.SideButton;
                 // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("FloatButton" + _windowName, new Vector2(50, 50),
+                if (_uiShared.DrawScaledCenterButtonImage("FloatButton" + WindowBaseName, new Vector2(50, 50),
                     buttonColor2, new Vector2(40, 40), wrap2))
                 {
                     ProcessFloatToggle();
@@ -128,7 +124,7 @@ public class RemotePersonal : RemoteBase
             {
                 Vector4 buttonColor3 = RemoteOnline ? _remoteService.LushPinkButton : _remoteService.SideButton;
                 // aligns the image in the center like we want.
-                if (_uiShared.DrawScaledCenterButtonImage("PowerToggleButton"+_windowName, new Vector2(50, 50),
+                if (_uiShared.DrawScaledCenterButtonImage("PowerToggleButton"+ WindowBaseName, new Vector2(50, 50),
                     buttonColor3, new Vector2(40, 40), wrap3))
                 {
                     if (!RemoteOnline)

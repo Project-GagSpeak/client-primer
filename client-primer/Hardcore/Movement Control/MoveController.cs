@@ -17,7 +17,7 @@ public class MoveController : IDisposable
     #region Pointer Signature Fuckery
     // controls the complete blockage of movement from the player (Blocks /follow movement)
     [Signature("F3 0F 10 05 ?? ?? ?? ?? 0F 2E C7", ScanType = ScanType.StaticAddress, Fallibility = Fallibility.Infallible)]
-    private nint forceDisableMovementPtr;
+    private readonly nint forceDisableMovementPtr;
     internal unsafe ref int ForceDisableMovement => ref *(int*)(forceDisableMovementPtr + 4);
 
     // prevents LMB+RMB moving by processing it prior to the games update movement check.

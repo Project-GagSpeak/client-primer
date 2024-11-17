@@ -1,6 +1,7 @@
 using Dalamud.Interface;
 using Dalamud.Utility;
 using GagSpeak.Services.Mediator;
+using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagspeakAPI.Data;
 using GagspeakAPI.Data.Character;
@@ -134,9 +135,9 @@ public partial class PairStickyUI
         // draw the Alias List popout ref button. (opens a popout window 
         if (_uiShared.IconTextButton(FontAwesomeIcon.Sync, "Update " + PairNickOrAliasOrUID + " with your Name", WindowMenuWidth, true))
         {
-            var name = _frameworkUtils.GetPlayerNameAsync().GetAwaiter().GetResult();
-            var world = _frameworkUtils.GetHomeWorldIdAsync().GetAwaiter().GetResult();
-            var worldName = _uiShared.WorldData[(ushort)world];
+            var name = _clientService.Name;
+            var world = _clientService.HomeWorldId;
+            var worldName = OnFrameworkService.WorldData.Value[(ushort)world];
             // compile the alias data to send including our own name and world information, along with an empty alias list.
             var dataToPush = new CharaAliasData()
             {

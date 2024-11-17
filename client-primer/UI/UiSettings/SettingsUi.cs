@@ -45,7 +45,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private readonly AvfxManager _avfxManager;
     private readonly VfxSpawns _vfxSpawns;
     private bool ThemePushed = false;
-    private CancellationTokenSource? _validationCts;
 
     public SettingsUi(ILogger<SettingsUi> logger, GagspeakMediator mediator,
         MainHub apiHubMain, AccountsTab accounts, DebugTab debug,
@@ -101,8 +100,6 @@ public class SettingsUi : WindowMediatorSubscriberBase
     public Dictionary<string, string[]> LanguagesDialects { get; init; } // Languages and Dialects for Chat Garbler.
     private string[] _currentDialects; // Array of Dialects for each Language
     private string _activeDialect; // Selected Dialect for Language
-    private string _selectedAvfxFile;
-    private string _selectedAvfxFile2;
 
 
     private string GetDialectFromConfigDialect()
@@ -226,7 +223,7 @@ public class SettingsUi : WindowMediatorSubscriberBase
     private DateTime _lastRefresh = DateTime.MinValue;
     private void DrawGlobalSettings()
     {
-        bool liveChatGarblerActive = _playerCharacterManager.GlobalPerms.LiveChatGarblerActive;
+        bool liveChatGarblerActive = _playerCharacterManager.GlobalPerms!.LiveChatGarblerActive;
         bool liveChatGarblerLocked = _playerCharacterManager.GlobalPerms.LiveChatGarblerLocked;
         bool removeGagOnLockExpiration = _clientConfigs.GagspeakConfig.RemoveGagUponLockExpiration;
 

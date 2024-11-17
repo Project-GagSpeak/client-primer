@@ -22,7 +22,7 @@ public class AccountsTab
     private readonly MainHub _apiHubMain;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly ServerConfigurationManager _serverConfigs;
-    private readonly OnFrameworkService _frameworkUtil;
+    private readonly ClientMonitorService _clientService;
     private readonly UiSharedService _uiShared;
 
     private string ConfigDirectory { get; init; } = string.Empty;
@@ -31,14 +31,14 @@ public class AccountsTab
     private int EditingIdx = -1;
     public AccountsTab(ILogger<AccountsTab> logger, GagspeakMediator mediator, MainHub apiHubMain,
         ClientConfigurationManager clientConfigs, ServerConfigurationManager serverConfigs,
-        OnFrameworkService frameworkUtil, UiSharedService uiShared, string configDirectory)
+        ClientMonitorService clientService, UiSharedService uiShared, string configDirectory)
     {
         _logger = logger;
         _mediator = mediator;
         _apiHubMain = apiHubMain;
         _clientConfigs = clientConfigs;
         _serverConfigs = serverConfigs;
-        _frameworkUtil = frameworkUtil;
+        _clientService = clientService;
         _uiShared = uiShared;
 
         ConfigDirectory = configDirectory;
@@ -47,7 +47,7 @@ public class AccountsTab
     public void DrawManager()
     {
         _uiShared.GagspeakBigText(GSLoc.Settings.Accounts.PrimaryLabel);
-        var localContentId = _frameworkUtil.GetPlayerLocalContentId();
+        var localContentId = _clientService.ContentId;
 
         // obtain the primary account auth.
         var primaryAuth = _serverConfigs.CurrentServer.Authentications.FirstOrDefault(c => c.IsPrimary);
@@ -125,7 +125,7 @@ public class AccountsTab
             ImGui.AlignTextToFramePadding();
             _uiShared.IconText(FontAwesomeIcon.Globe);
             ImUtf8.SameLineInner();
-            UiSharedService.ColorText(_uiShared.WorldData[(ushort)account.WorldId], isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink);
+            UiSharedService.ColorText(OnFrameworkService.WorldData.Value[(ushort)account.WorldId], isPrimary ? ImGuiColors.ParsedGold : ImGuiColors.ParsedPink);
             UiSharedService.AttachToolTip(GSLoc.Settings.Accounts.CharaWorldLabel);
 
             var isPrimaryIcon = _uiShared.GetIconData(FontAwesomeIcon.Fingerprint);
@@ -159,7 +159,7 @@ public class AccountsTab
                 if (ImGui.InputTextWithHint("##SecondaryAuthKey" + account.CharacterPlayerContentId, "Paste Secret Key Here...", ref key, 64, ImGuiInputTextFlags.EnterReturnsTrue))
                 {
                     if (account.SecretKey.Label.IsNullOrEmpty())
-                        account.SecretKey.Label = "Alt Character Key for " + account.CharacterName + " on " + _uiShared.WorldData[(ushort)account.WorldId];
+                        account.SecretKey.Label = "Alt Character Key for " + account.CharacterName + " on " + OnFrameworkService.WorldData.Value[(ushort)account.WorldId];
                     // set the key and save the changes.
                     account.SecretKey.Key = key;
                     EditingIdx = -1;

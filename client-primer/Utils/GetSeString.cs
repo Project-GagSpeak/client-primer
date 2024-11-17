@@ -22,7 +22,7 @@ public static class GS_GetSeString
         {
             return MemoryHelper.ReadSeStringNullTerminated(textPtr);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // _logger.LogError($"Error in GetSeString: {ex.Message}");
             return null!;

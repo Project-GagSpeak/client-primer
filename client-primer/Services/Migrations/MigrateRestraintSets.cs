@@ -189,7 +189,7 @@ public class OldRestraintSet
                 {
                     var equipmentSlot = (EquipSlot)Enum.Parse(typeof(EquipSlot), itemObject["EquipmentSlot"]?.Value<string>() ?? string.Empty);
                     var drawData = new OldEquipDrawData(ItemIdVars.NothingItem(equipmentSlot));
-                    drawData.Deserialize(itemObject["DrawData"]?.Value<JObject>());
+                    drawData.Deserialize(itemObject["DrawData"]?.Value<JObject>() ?? new JObject());
                     DrawData.Add(equipmentSlot, drawData);
                 }
             }

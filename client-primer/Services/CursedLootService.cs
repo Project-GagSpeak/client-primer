@@ -28,24 +28,23 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
     private readonly GagManager _gagManager;
     private readonly PlayerCharacterData _playerData;
     private readonly CursedLootHandler _handler;
+    private readonly ClientMonitorService _clientService;
     private readonly OnFrameworkService _frameworkUtils;
-    private readonly NotificationService _chatNotifier;
 
     // SHOULD fire whenever we interact with any object thing.
     internal Hook<TargetSystem.Delegates.InteractWithObject> ItemInteractedHook;
 
     public CursedLootService(ILogger<CursedLootService> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, GagManager gagManager,
-        PlayerCharacterData playerData, CursedLootHandler handler,
-        OnFrameworkService frameworkUtils, NotificationService chatGui, 
-        IGameInteropProvider interop) : base(logger, mediator)
+        PlayerCharacterData playerData, CursedLootHandler handler, ClientMonitorService clientService, 
+        OnFrameworkService frameworkUtils, IGameInteropProvider interop) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _gagManager = gagManager;
         _playerData = playerData;
         _handler = handler;
+        _clientService = clientService;
         _frameworkUtils = frameworkUtils;
-        _chatNotifier = chatGui;
 
         unsafe
         {
@@ -84,7 +83,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
             }
 
             // dont bother if cursed dungeon loot isnt enabled, or if there are no inactive items in the pool.
-            if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot || _frameworkUtils._sentBetweenAreas || !_handler.InactiveItemsInPool.Any() || MainHub.IsOnUnregistered)
+            if (!_clientConfigs.GagspeakConfig.CursedDungeonLoot || !_handler.InactiveItemsInPool.Any() || MainHub.IsOnUnregistered)
                 return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
 
             // if we are forced to stay, we should block any interactions with objects.
@@ -106,7 +105,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 return ItemInteractedHook.Original(thisPtr, obj, checkLineOfSight);
 
             // Make sure we are opening it. If we were not the first, it will exist in here.
-            if (_frameworkUtils.PartyListSize is not 1)
+            if (_clientService.PartySize is not 1)
             {
                 foreach (var item in Loot.Instance()->Items)
                 {
@@ -140,7 +139,7 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
             {
                 unsafe
                 {
-                    bool valid = _frameworkUtils.PartyListSize is 1 ? true : Loot.Instance()->Items.ToArray().Any(x => x.ChestObjectId == objectInteractedWith);
+                    bool valid = _clientService.PartySize is 1 ? true : Loot.Instance()->Items.ToArray().Any(x => x.ChestObjectId == objectInteractedWith);
                     if (valid && objectInteractedWith != LastOpenedTreasureId)
                     {
                         Logger.LogTrace("One of the loot items is the nearest treasure and we just previously attempted to open one.", LoggerType.CursedLoot);
@@ -193,8 +192,8 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 Logger.LogDebug("A Gag Slot is available to apply and lock. Doing so now!", LoggerType.CursedLoot);
                 selectedLootId = _handler.InactiveItemsInPool[randomIndex].LootId;
                 // Notify the client of their impending fate~
-                _chatNotifier.PrintCustomErrorChat(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
-                    "forth, silencing your mouth with a Gag now strapped on tight!"));
+                Mediator.Publish(new NotifyChatMessage(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
+                    "forth, silencing your mouth with a Gag now strapped on tight!"), NotificationType.Error));
                 // generate the length they will be locked for:
                 var lockTimeGag = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
                 // apply the gag via the gag manager at the available slot we found.
@@ -237,8 +236,8 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
                 Logger.LogDebug("Selected Index: " + randomIndexNoGag + " (" + inactiveSetsWithoutGags[randomIndexNoGag].Name + ")", LoggerType.CursedLoot);
                 selectedLootId = inactiveSetsWithoutGags[randomIndexNoGag].LootId;
                 // Notify the client of their impending fate~
-                _chatNotifier.PrintCustomErrorChat(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
-                    "forth, binding you tightly in an inescapable snare of restraints!"));
+                Mediator.Publish(new NotifyChatMessage(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
+                    "forth, binding you tightly in an inescapable snare of restraints!"), NotificationType.Error));
                 // generate the length they will be locked for:
                 var lockTime = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
                 // Activate the cursed loot item.
@@ -253,8 +252,8 @@ public class CursedLootService : DisposableMediatorSubscriberBase, IHostedServic
         {
             selectedLootId = _handler.InactiveItemsInPool[randomIndex].LootId;
             // Notify the client of their impending fate~
-            _chatNotifier.PrintCustomErrorChat(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
-                "forth, binding you tightly in an inescapable snare of restraints!"));
+            Mediator.Publish(new NotifyChatMessage(new SeStringBuilder().AddItalics("As the coffer opens, cursed loot spills " +
+                "forth, binding you tightly in an inescapable snare of restraints!"), NotificationType.Error));
             // generate the length they will be locked for:
             var lockTime = GetRandomTimeSpan(_handler.LowerLockLimit, _handler.UpperLockLimit, random);
             // Activate the cursed loot item.

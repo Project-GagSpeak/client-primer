@@ -87,7 +87,6 @@ internal class ChangelogUI : WindowMediatorSubscriberBase
             .ThenBy(g => g.Key.Minor)
             .ThenBy(g => g.Key.Build).Reverse();
 
-        var i = 0;
         foreach (var group in groupedVersions)
         {
             var groupLabel = $"Version {group.Key.Major}.{group.Key.Minor}.{group.Key.Build}.X";

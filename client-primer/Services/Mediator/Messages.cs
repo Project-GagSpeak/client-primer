@@ -1,4 +1,5 @@
 using Buttplug.Client;
+using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.ImGuiNotification;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Data;
@@ -24,7 +25,7 @@ namespace GagSpeak.Services.Mediator;
 
 /* ------------------ MESSAGE RELATED RECORDS ------------------ */
 public record NotificationMessage(string Title, string Message, NotificationType Type, TimeSpan? TimeShownOnScreen = null) : MessageBase;
-public record NotifyChatMessage(string Message, NotificationType Type) : MessageBase;
+public record NotifyChatMessage(SeStringBuilder Message, NotificationType Type) : MessageBase;
 public record EventMessage(InteractionEvent Event) : MessageBase;
 
 public record MainHubDisconnectedMessage : SameThreadMessage;
@@ -47,7 +48,7 @@ public record OpenPrivateRoomRemote(PrivateRoom PrivateRoom) : MessageBase;
 
 /* ------------- DALAMUD FRAMEWORK UPDATE RECORDS ------------- */
 public record DalamudLoginMessage : MessageBase; // record indicating the moment the client logs into the game instance.
-public record DalamudLogoutMessage : MessageBase; // record indicating the moment the client logs out of the game instance.
+public record DalamudLogoutMessage(int type, int code) : MessageBase; // record indicating the moment the client logs out of the game instance.
 public record FrameworkUpdateMessage : SameThreadMessage; // a message indicating the need for a framework update.
 public record DelayedFrameworkUpdateMessage : SameThreadMessage; // a message indicating the need for a delayed framework update.
 public record GPoseStartMessage : MessageBase; // a message indicating the start of gpose.

@@ -3,7 +3,6 @@ using GagSpeak.WebAPI.Utils;
 using GagSpeak.UpdateMonitoring;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using GagSpeak.Utils;
-#nullable disable
 
 namespace GagSpeak.PlayerData.Handlers;
 
@@ -16,7 +15,7 @@ public sealed class GameObjectHandler : DisposableMediatorSubscriberBase
 {
     private readonly OnFrameworkService _frameworkUtil; // for method helpers handled on the game's framework thread.
     private readonly Func<IntPtr> _getAddress;          // for getting the address of the object.
-    private Task? _delayedZoningTask;                   // task to delay checking and updating owned object between zones.
+    private Task? _delayedZoningTask = null;                   // task to delay checking and updating owned object between zones.
     private CancellationTokenSource _zoningCts = new(); // CTS for the zoning task
     private CancellationTokenSource? _clearCts = new(); // CTS for the cache creation service
     private bool _haltProcessing = false;               // if we should halt the processing of our managed character.

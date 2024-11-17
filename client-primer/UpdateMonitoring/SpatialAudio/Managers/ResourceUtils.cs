@@ -5,15 +5,16 @@ namespace GagSpeak.UpdateMonitoring.SpatialAudio.Managers;
 
 public static unsafe class ResourceUtils
 {
-    public static int ComputeHash(ByteString path, GetResourceParameters* resParams)
+    // https://github.com/xivdev/Penumbra/blob/e3a1ae693813eb06d96d311958aabb5b3abfef55/Penumbra/Interop/Hooks/ResourceLoading/ResourceLoader.cs#L269
+    public static int ComputeHash(CiByteString path, GetResourceParameters* pGetResParams)
     {
-        if (resParams == null || !resParams->IsPartialRead) return path.Crc32;
+        if (pGetResParams is null || !pGetResParams->IsPartialRead) return path.Crc32;
 
-        return ByteString.Join(
+        return CiByteString.Join(
             (byte)'.',
             path,
-            ByteString.FromStringUnsafe(resParams->SegmentOffset.ToString("x"), true),
-            ByteString.FromStringUnsafe(resParams->SegmentLength.ToString("x"), true)
+            CiByteString.FromString(pGetResParams->SegmentOffset.ToString("x"), out var s1, MetaDataComputation.None) ? s1 : CiByteString.Empty,
+            CiByteString.FromString(pGetResParams->SegmentLength.ToString("x"), out var s2, MetaDataComputation.None) ? s2 : CiByteString.Empty
         ).Crc32;
     }
 

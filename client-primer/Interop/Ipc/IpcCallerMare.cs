@@ -16,8 +16,6 @@ public sealed class IpcCallerMare : IIpcCaller
     private readonly OnFrameworkService _frameworkUtil;
     private readonly GagspeakMediator _gagspeakMediator;
     private readonly IDalamudPluginInterface _pi;
-    private bool _shownMoodlesUnavailable = false; // safety net to prevent notification spam.
-
     public IpcCallerMare(ILogger<IpcCallerMare> logger, IDalamudPluginInterface pi,
         OnFrameworkService frameworkUtil, GagspeakMediator gagspeakMediator)
     {

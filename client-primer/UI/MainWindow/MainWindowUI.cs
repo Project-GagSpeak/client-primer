@@ -40,7 +40,6 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private Pair? _lastAddedUser;
     private string _lastAddedUserComment = string.Empty;
     // If we should draw sticky perms for the currently selected user pair.
-    private bool _shouldDrawStickyPerms = false;
     private bool _showModalForUserAddition;
 
     public MainWindowUI(ILogger<MainWindowUI> logger, GagspeakMediator mediator,

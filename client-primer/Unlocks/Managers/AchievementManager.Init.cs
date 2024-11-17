@@ -77,10 +77,10 @@ public partial class AchievementManager
         SaveData.AddConditional(AchievementModuleKind.Gags, Achievements.QuietNowDear, () =>
         {
             bool targetIsGagged = false;
-            if (_pairManager.GetVisiblePairGameObjects().Any(x => x.GameObjectId == _frameworkUtils.TargetObjectId))
+            if (_pairManager.GetVisiblePairGameObjects().Any(x => x.GameObjectId == _clientService.TargetObjectId))
             {
                 Logger.LogTrace("Target is visible in the pair manager, checking if they are gagged.", LoggerType.Achievements);
-                var targetPair = _pairManager.DirectPairs.FirstOrDefault(x => x.VisiblePairGameObject?.GameObjectId == _frameworkUtils.TargetObjectId);
+                var targetPair = _pairManager.DirectPairs.FirstOrDefault(x => x.VisiblePairGameObject?.GameObjectId == _clientService.TargetObjectId);
                 if (targetPair is not null)
                 {
                     Logger.LogTrace("Target is in the direct pairs, checking if they are gagged.", LoggerType.Achievements);
@@ -160,7 +160,7 @@ public partial class AchievementManager
 
         SaveData.AddConditionalProgress(AchievementModuleKind.Wardrobe,Achievements.TrialOfFocus, 1, () =>
         {
-            if (_frameworkUtils.PlayerLevel < 90) return false;
+            if (_clientService.Level < 90) return false;
             var activeSet = _clientConfigs.GetActiveSet();
             if (activeSet is null) return false;
 
@@ -171,7 +171,7 @@ public partial class AchievementManager
         }, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Hardcore Trials Cleared");
         SaveData.AddConditionalProgress(AchievementModuleKind.Wardrobe,Achievements.TrialOfDexterity, 1, () =>
         {
-            if (_frameworkUtils.PlayerLevel < 90) return false;
+            if (_clientService.Level < 90) return false;
             var activeSet = _clientConfigs.GetActiveSet();
             if (activeSet is null) return false;
 
@@ -182,7 +182,7 @@ public partial class AchievementManager
         }, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Hardcore Trials Cleared");
         SaveData.AddConditionalProgress(AchievementModuleKind.Wardrobe,Achievements.TrialOfTheBlind, 1, () =>
         {
-            if (_frameworkUtils.PlayerLevel < 90) return false;
+            if (_clientService.Level < 90) return false;
             // get the set and make sure stimulation is enabled for the person who enabled it.
             var activeSet = _clientConfigs.GetActiveSet();
             if (activeSet is null) return false;
@@ -329,7 +329,7 @@ public partial class AchievementManager
             () =>
             {
                 if (_clientConfigs.GetActiveSetIdx() != -1 && (_playerData.GlobalPerms?.IsBlindfolded() ?? false) && (_playerData.GlobalPerms?.IsFollowing() ?? false))
-                    if (_frameworkUtils.IsInMainCity)
+                    if (_clientService.InMainCity)
                         return true;
                 return false;
             }, DurationTimeUnit.Minutes, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Walked for", suffix: "In a Major City");
@@ -400,10 +400,10 @@ public partial class AchievementManager
         SaveData.AddConditional(AchievementModuleKind.Generic, Achievements.WithAKissGoodbye, () =>
         {
             bool targetIsImmobile = false;
-            if (_pairManager.GetVisiblePairGameObjects().Any(x => x.GameObjectId == _frameworkUtils.TargetObjectId))
+            if (_pairManager.GetVisiblePairGameObjects().Any(x => x.GameObjectId == _clientService.TargetObjectId))
             {
                 Logger.LogTrace("Target is visible in the pair manager, checking if they are gagged.", LoggerType.Achievements);
-                var targetPair = _pairManager.DirectPairs.FirstOrDefault(x => x.VisiblePairGameObject?.GameObjectId == _frameworkUtils.TargetObjectId);
+                var targetPair = _pairManager.DirectPairs.FirstOrDefault(x => x.VisiblePairGameObject?.GameObjectId == _clientService.TargetObjectId);
                 if (targetPair is not null)
                 {
                     Logger.LogTrace("Target is in the direct pairs, checking if they are gagged.", LoggerType.Achievements);
@@ -423,9 +423,9 @@ public partial class AchievementManager
         SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.ProlificPetter, 10, () =>
         {
             bool targetIsImmobile = false;
-            if (_pairManager.GetVisiblePairGameObjects().Any(x => x.GameObjectId == _frameworkUtils.TargetObjectId))
+            if (_pairManager.GetVisiblePairGameObjects().Any(x => x.GameObjectId == _clientService.TargetObjectId))
             {
-                var targetPair = _pairManager.DirectPairs.FirstOrDefault(x => x.VisiblePairGameObject?.GameObjectId == _frameworkUtils.TargetObjectId);
+                var targetPair = _pairManager.DirectPairs.FirstOrDefault(x => x.VisiblePairGameObject?.GameObjectId == _clientService.TargetObjectId);
                 if (targetPair is not null)
                 {
                     // store if they are stuck emoting.
@@ -440,14 +440,14 @@ public partial class AchievementManager
             return targetIsImmobile;
         }, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Helpless Kinksters", "Pet", false);
 
-        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.EscapedPatient, 10, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
-        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.BoundToKill, 25, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
-        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.TheShackledSlayer, 50, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
-        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.DangerousConvict, 100, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
-        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.OfUnyieldingForce, 200, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
-        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.StimulationOverdrive, 300, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
-        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.BoundYetUnbroken, 400, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
-        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.ChainsCantHoldMe, 500, () => _frameworkUtils.ClientState.IsPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
+        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.EscapedPatient, 10, () => _clientService.InPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
+        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.BoundToKill, 25, () => _clientService.InPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
+        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.TheShackledSlayer, 50, () => _clientService.InPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
+        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.DangerousConvict, 100, () => _clientService.InPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
+        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.OfUnyieldingForce, 200, () => _clientService.InPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
+        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.StimulationOverdrive, 300, () => _clientService.InPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
+        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.BoundYetUnbroken, 400, () => _clientService.InPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
+        SaveData.AddConditionalProgress(AchievementModuleKind.Generic, Achievements.ChainsCantHoldMe, 500, () => _clientService.InPvP, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Players Slain", "", false);
         #endregion GENERIC MODULE
 
         #region SECRETS MODULE
@@ -467,7 +467,7 @@ public partial class AchievementManager
 
         SaveData.AddConditional(AchievementModuleKind.Secrets, Achievements.GaggedPleasure, () => _vibeService.ConnectedToyActive && _playerData.IsPlayerGagged, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Pleasure Requirements Met", isSecret: true);
         SaveData.AddThreshold(AchievementModuleKind.Secrets, Achievements.BondageClub, 8, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Club Members Gathered", isSecret: true);
-        SaveData.AddConditional(AchievementModuleKind.Secrets, Achievements.BadEndHostage, () => _clientConfigs.GetActiveSetIdx() != -1 && (_frameworkUtils.ClientState.LocalPlayer?.IsDead ?? false), (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Encountered", suffix: "Bad Ends", isSecret: true);
+        SaveData.AddConditional(AchievementModuleKind.Secrets, Achievements.BadEndHostage, () => _clientConfigs.GetActiveSetIdx() != -1 && _clientService.IsDead, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Encountered", suffix: "Bad Ends", isSecret: true);
         SaveData.AddConditionalProgress(AchievementModuleKind.Secrets, Achievements.TourDeBound, 11, () => _clientConfigs.GetActiveSetIdx() != -1, (id, name) => WasCompleted(id, name).ConfigureAwait(false), prefix: "Taken", suffix: "Tours in Bondage", isSecret: true);
         SaveData.AddConditionalProgress(AchievementModuleKind.Secrets, Achievements.MuffledProtagonist, 1, () => _playerData.IsPlayerGagged && _playerData.GlobalPerms!.LiveChatGarblerActive, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "MissTypes Made", isSecret: true);
         // The above is currently non functional as i dont have the data to know which chat message type contains these request tasks.
@@ -479,7 +479,6 @@ public partial class AchievementManager
         SaveData.AddThreshold(AchievementModuleKind.Secrets, Achievements.ExtremeBondageEnjoyer, 10, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Restriction Conditions Satisfied", isSecret: true); 
         SaveData.AddConditional(AchievementModuleKind.Secrets, Achievements.WildRide, () =>
         {
-            var isRacing = _frameworkUtils.Condition[Dalamud.Game.ClientState.Conditions.ConditionFlag.ChocoboRacing];
             bool raceEndVisible = false;
             unsafe
             {
@@ -487,7 +486,7 @@ public partial class AchievementManager
                 if (raceEnded != null)
                     raceEndVisible = raceEnded->RootNode->IsVisible();
             };
-            return isRacing && raceEndVisible && _clientConfigs.GetActiveSetIdx() != -1;
+            return _clientService.IsChocoboRacing && raceEndVisible && _clientConfigs.GetActiveSetIdx() != -1;
         }, (id, name) => WasCompleted(id, name).ConfigureAwait(false), "Races Won In Unusual Conditions", isSecret: true);
 
         SaveData.AddConditional(AchievementModuleKind.Secrets, Achievements.SlavePresentation, () =>

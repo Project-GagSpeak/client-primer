@@ -1,6 +1,5 @@
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
-using Dalamud.Plugin.Services;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
@@ -12,7 +11,6 @@ using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data.Character;
 using GagspeakAPI.Data.Permissions;
-using GagspeakAPI.Enums;
 using GagspeakAPI.Extensions;
 using ImGuiNET;
 using OtterGui;
@@ -22,34 +20,36 @@ namespace GagSpeak.UI.Permissions;
 
 public partial class PairStickyUI : WindowMediatorSubscriberBase
 {
-    private readonly OnFrameworkService _frameworkUtils;
-    private readonly ClientConfigurationManager _clientConfigs;
-    private readonly PlayerCharacterData _playerManager;
     protected readonly IdDisplayHandler _displayHandler;
-    private readonly UiSharedService _uiShared;
     private readonly MainHub _apiHubMain;
-    private readonly PairManager _pairManager;
-    private readonly MoodlesService _moodlesService;
-    private readonly PermissionPresetService _presetService;
+    private readonly PlayerCharacterData _playerManager;
     private readonly PermActionsComponents _permActions;
     private readonly PiShockProvider _shockProvider;
+    private readonly PairManager _pairManager;
+    private readonly ClientConfigurationManager _clientConfigs;
+    private readonly ClientMonitorService _clientService;
+    private readonly MoodlesService _moodlesService;
+    private readonly PermissionPresetService _presetService;
+    private readonly UiSharedService _uiShared;
 
-    public PairStickyUI(ILogger<PairStickyUI> logger, GagspeakMediator mediator, Pair pairToDrawFor, 
-        StickyWindowType drawType, OnFrameworkService frameworkUtils, ClientConfigurationManager clientConfigs,
-        PlayerCharacterData pcManager, IdDisplayHandler displayHandler, UiSharedService uiSharedService, 
-        MainHub apiHubMain, PairManager pairManager, MoodlesService moodlesService, PermissionPresetService presetService, 
-        PermActionsComponents permActionHelpers) : base(logger, mediator, "PairStickyUI for " + pairToDrawFor.UserData.UID + "pair.")
+    public PairStickyUI(ILogger<PairStickyUI> logger, GagspeakMediator mediator, Pair pairToDrawFor,
+        StickyWindowType drawType, IdDisplayHandler displayHandler, MainHub apiHubMain, 
+        PlayerCharacterData playerManager, PermActionsComponents permActions, 
+        PiShockProvider shockProvider, PairManager pairManager, ClientConfigurationManager clientConfigs,
+        ClientMonitorService clientService, MoodlesService moodlesService, PermissionPresetService presetService,
+        UiSharedService uiShared) : base(logger, mediator, "PairStickyUI for " + pairToDrawFor.UserData.UID + "pair.")
     {
-        _frameworkUtils = frameworkUtils;
-        _clientConfigs = clientConfigs;
-        _playerManager = pcManager;
-        _uiShared = uiSharedService;
-        _apiHubMain = apiHubMain;
-        _pairManager = pairManager;
-        _moodlesService = moodlesService;
         _displayHandler = displayHandler;
+        _apiHubMain = apiHubMain;
+        _playerManager = playerManager;
+        _permActions = permActions;
+        _shockProvider = shockProvider;
+        _pairManager = pairManager;
+        _clientConfigs = clientConfigs;
+        _clientService = clientService;
+        _moodlesService = moodlesService;
         _presetService = presetService;
-        _permActions = permActionHelpers;
+        _uiShared = uiShared;
 
         StickyPair = pairToDrawFor; // set the pair we're drawing for
         DrawType = drawType; // set the type of window we're drawing
@@ -128,8 +128,8 @@ public partial class PairStickyUI : WindowMediatorSubscriberBase
         else if (DrawType == StickyWindowType.PairActionFunctions)
         {
             ImGuiUtil.Center("Actions For " + PairNickOrAliasOrUID);
-            if(!_currentErrorMessage.NullOrEmpty())
-               UiSharedService.ColorTextWrapped(_currentErrorMessage, ImGuiColors.DalamudRed);
+            if (!_currentErrorMessage.NullOrEmpty())
+                UiSharedService.ColorTextWrapped(_currentErrorMessage, ImGuiColors.DalamudRed);
 
             ImGui.Separator();
 

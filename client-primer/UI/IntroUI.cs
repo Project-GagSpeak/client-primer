@@ -19,21 +19,21 @@ public class IntroUi : WindowMediatorSubscriberBase
     private readonly MainHub _apiHubMain;
     private readonly GagspeakConfigService _configService;
     private readonly ServerConfigurationManager _serverConfigs;
-    private readonly OnFrameworkService _frameworkUtils;
+    private readonly ClientMonitorService _clientService;
     private readonly UiSharedService _uiShared;
-    private bool _readFirstPage;
+    private bool _readFirstPage = true;
     private string _aquiredUID = string.Empty;
     private string _secretKey = string.Empty;
 
     public IntroUi(ILogger<IntroUi> logger, GagspeakMediator mediator, MainHub mainHub,
-        GagspeakConfigService configService, ServerConfigurationManager serverConfigs, 
-        OnFrameworkService frameworkUtils, UiSharedService uiShared) 
+        GagspeakConfigService configService, ServerConfigurationManager serverConfigs,
+        ClientMonitorService clientService, UiSharedService uiShared) 
         : base(logger, mediator, "Welcome to GagSpeak! ♥")
     {
         _apiHubMain = mainHub;
         _configService = configService;
         _serverConfigs = serverConfigs;
-        _frameworkUtils = frameworkUtils;
+        _clientService = clientService;
         _uiShared = uiShared;
         
         IsOpen = false;
@@ -137,7 +137,7 @@ public class IntroUi : WindowMediatorSubscriberBase
                 {
                     _serverConfigs.GenerateAuthForCurrentCharacter(true);
                     // grab our local content id
-                    var contentId = _frameworkUtils.GetPlayerLocalContentIdAsync().GetAwaiter().GetResult();
+                    var contentId = _clientService.ContentId;
 
                     // set the key to that newly added authentication
                     SecretKey newKey = new()

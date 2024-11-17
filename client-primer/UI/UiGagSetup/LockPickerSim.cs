@@ -18,8 +18,6 @@ public class LockPickerSim : DisposableMediatorSubscriberBase
         _lockpickSim = lockpickSim;
     }
 
-    private bool isLocked = true;
-    private bool isSuccess = false;
     // Sample data for pin positions and targets
     public List<float> pinOffsets = new List<float> { 0, 0, 0, 0, 0 };
     public List<float> pinTargetOffsets = new List<float> { 80, 60, 90, 50, 70 };

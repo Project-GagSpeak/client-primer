@@ -35,13 +35,14 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
     private readonly PairManager _pairManager;
     private readonly IpcManager _ipcManager;
     private readonly AppearanceService _appearanceService;
+    private readonly ClientMonitorService _clientService;
     private readonly OnFrameworkService _frameworkUtils;
 
     public AppearanceManager(ILogger<AppearanceManager> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, PlayerCharacterData playerData,
-        GagManager gagManager, PairManager pairManager, 
-        IpcManager ipcManager, AppearanceService appearanceService, OnFrameworkService frameworkUtils) 
-        : base(logger, mediator)
+        GagManager gagManager, PairManager pairManager, IpcManager ipcManager, 
+        AppearanceService appearanceService, ClientMonitorService clientService,
+        OnFrameworkService frameworkUtils) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _playerData = playerData;
@@ -49,6 +50,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
         _pairManager = pairManager;
         _ipcManager = ipcManager;
         _appearanceService = appearanceService;
+        _clientService = clientService;
         _frameworkUtils = frameworkUtils;
 
         Mediator.Subscribe<ClientPlayerInCutscene>(this, (msg) => _ = _appearanceService.RefreshAppearance(GlamourUpdateType.ReapplyAll));
@@ -242,20 +244,20 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
     public async Task LockRestraintSet(Guid id, Padlocks padlock, string pwd, DateTimeOffset endTime, string assigner, bool pushToServer = true, bool triggerAchievement = true)
     {
-        await ExecuteWithApplierSlim(async () =>
+        await ExecuteWithApplierSlim(() =>
         {
             Logger.LogTrace("LOCKING SET START", LoggerType.AppearanceState);
             var setIdx = RestraintSets.FindIndex(x => x.RestraintId == id);
             if (setIdx == -1)
             {
                 Logger.LogWarning("Set Does not Exist, Skipping.");
-                return;
+                return Task.CompletedTask;
             }
             // if the set is not the active set, log that this is invalid, as we should only be locking / unlocking the active set.
             if (setIdx != _clientConfigs.GetActiveSetIdx())
             {
                 Logger.LogWarning("Attempted to lock a set that is not the active set. Skipping.");
-                return;
+                return Task.CompletedTask;
             }
 
             // Grab the set reference.
@@ -263,7 +265,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             if (setRef.Locked)
             {
                 Logger.LogDebug(setRef.Name + " is already locked. Skipping!", LoggerType.AppearanceState);
-                return;
+                return Task.CompletedTask;
             }
 
             // Assign the lock information to the set.
@@ -290,25 +292,26 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
             // Finally, we should let our trigger controller know that we just enabled a restraint set.
             //_triggerController.CheckActiveRestraintTriggers(id, NewState.Locked);
+            return Task.CompletedTask;
         });
     }
 
     public async Task UnlockRestraintSet(Guid id, string lockRemover, bool pushToServer = true, bool triggerAchievement = true, bool fromTimer = false)
     {
-        await ExecuteWithApplierSlim(async () =>
+        await ExecuteWithApplierSlim(() =>
         {
             Logger.LogTrace("UNLOCKING SET START", LoggerType.AppearanceState);
             var setIdx = RestraintSets.FindIndex(x => x.RestraintId == id);
             if (setIdx == -1)
             {
                 Logger.LogWarning("Set Does not Exist, Skipping.");
-                return;
+                return Task.CompletedTask;
             }
             // if the set is not the active set, log that this is invalid, as we should only be locking / unlocking the active set.
             if (setIdx != _clientConfigs.GetActiveSetIdx())
             {
                 Logger.LogWarning("Attempted to unlock a set that is not the active set. Skipping.");
-                return;
+                return Task.CompletedTask;
             }
 
             // Grab the set reference.
@@ -316,7 +319,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             if (!setRef.Locked)
             {
                 Logger.LogDebug(setRef.Name + " is not even locked. Skipping!", LoggerType.AppearanceState);
-                return;
+                return Task.CompletedTask;
             }
 
             // Store a copy of the values we need before we change them.
@@ -355,6 +358,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
             Logger.LogInformation("UNLOCKING SET END", LoggerType.AppearanceState);
             // Finally, we should let our trigger controller know that we just enabled a restraint set.
             //_triggerController.CheckActiveRestraintTriggers(id, NewState.Unlocked);
+            return Task.CompletedTask;
         });
     }
 
@@ -808,7 +812,7 @@ public sealed class AppearanceManager : DisposableMediatorSubscriberBase
 
     private async Task MoodlesUpdated(IntPtr address)
     {
-        if (address != _frameworkUtils.ClientPlayerAddress)
+        if (address != _clientService.Address)
             return;
 
         List<MoodlesStatusInfo> latest = new List<MoodlesStatusInfo>();

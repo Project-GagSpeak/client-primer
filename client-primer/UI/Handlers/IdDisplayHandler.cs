@@ -17,7 +17,6 @@ public class IdDisplayHandler
     private readonly Dictionary<string, bool> _showIdForEntry = new(StringComparer.Ordinal);
     private string _editComment = string.Empty;
     private string _editEntry = string.Empty;
-    private bool _editIsUid = false;
     private string _lastMouseOverUid = string.Empty;
     private bool _popupShown = false;
     private DateTime? _popupTime;
@@ -108,7 +107,6 @@ public class IdDisplayHandler
 
                     _editComment = pair.GetNickname() ?? string.Empty;
                     _editEntry = pair.UserData.UID;
-                    _editIsUid = true;
                 }
 
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Middle))

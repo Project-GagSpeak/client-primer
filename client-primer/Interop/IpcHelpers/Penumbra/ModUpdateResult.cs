@@ -6,7 +6,7 @@ public class ModUpdateResult
     public AssociatedMod UpdatedMod { get; set; }
     public bool IsChanged { get; set; }
 
-    public ModUpdateResult(AssociatedMod? updatedMod, bool isChanged)
+    public ModUpdateResult(AssociatedMod updatedMod, bool isChanged)
     {
         UpdatedMod = updatedMod;
         IsChanged = isChanged;

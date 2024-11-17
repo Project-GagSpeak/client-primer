@@ -45,16 +45,17 @@ public sealed class IpcCallerMoodles : IIpcCaller
 
 
     private readonly ILogger<IpcCallerMoodles> _logger;
+    private readonly GagspeakMediator _mediator;
+    private readonly ClientMonitorService _clientService;
     private readonly OnFrameworkService _frameworkUtil;
-    private readonly GagspeakMediator _gagspeakMediator;
-    private bool _shownMoodlesUnavailable = false; // safety net to prevent notification spam.
 
     public IpcCallerMoodles(ILogger<IpcCallerMoodles> logger, IDalamudPluginInterface pi,
-        OnFrameworkService frameworkUtil, GagspeakMediator gagspeakMediator)
+        GagspeakMediator mediator, ClientMonitorService clientService, OnFrameworkService frameworkUtils)
     {
         _logger = logger;
-        _frameworkUtil = frameworkUtil;
-        _gagspeakMediator = gagspeakMediator;
+        _mediator = mediator;
+        _clientService = clientService;
+        _frameworkUtil = frameworkUtils;
 
         _moodlesApiVersion = pi.GetIpcSubscriber<int>("Moodles.Version");
         _moodlesReady = pi.GetIpcSubscriber<object>("Moodles.Ready");
@@ -95,7 +96,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     private void OnMoodlesReady()
     {
         _logger.LogWarning("Moodles Ready Invoked!", LoggerType.IpcMoodles);
-        _gagspeakMediator.Publish(new MoodlesReady());
+        _mediator.Publish(new MoodlesReady());
     }
 
     /// <summary> This method is called when the moodles status list changes </summary>
@@ -105,11 +106,11 @@ public sealed class IpcCallerMoodles : IIpcCaller
 
     /// <summary> This method is called when the moodles change </summary>
     private void OnStatusModified(Guid guid)
-        => _gagspeakMediator.Publish(new MoodlesStatusModified(guid));
+        => _mediator.Publish(new MoodlesStatusModified(guid));
 
     /// <summary> This method is called when the moodles change </summary>
     private void OnPresetModified(Guid guid)
-        => _gagspeakMediator.Publish(new MoodlesPresetModified(guid));
+        => _mediator.Publish(new MoodlesPresetModified(guid));
 
 
     /// <summary> this boolean determines if the moodles API is available or not.</summary>
@@ -265,7 +266,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
     {
         if (!APIAvailable) return;
 
-        string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil.ClientPlayerAddress).GetAwaiter().GetResult()!.GetNameWithWorld();
+        string playerNameWithWorld = _clientService.ClientPlayer.NameWithWorld();
         if (string.IsNullOrEmpty(playerNameWithWorld))
         {
             _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);
@@ -302,7 +303,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         {
             await _frameworkUtil.RunOnFrameworkThread(() =>
             {
-                string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil.ClientPlayerAddress).GetAwaiter().GetResult()!.GetNameWithWorld();
+                string playerNameWithWorld = _clientService.ClientPlayer.NameWithWorld();
                 if (string.IsNullOrEmpty(playerNameWithWorld))
                 {
                     _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);
@@ -340,7 +341,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
         {
             await _frameworkUtil.RunOnFrameworkThread(() =>
             {
-                string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil.ClientPlayerAddress).GetAwaiter().GetResult()!.GetNameWithWorld();
+                string playerNameWithWorld = _clientService.ClientPlayer.NameWithWorld();
                 if (string.IsNullOrEmpty(playerNameWithWorld))
                 {
                     _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);
@@ -374,7 +375,7 @@ public sealed class IpcCallerMoodles : IIpcCaller
 
     public async Task ClearStatusAsync()
     {
-        string playerNameWithWorld = _frameworkUtil.GetIPlayerCharacterFromObjectTableAsync(_frameworkUtil.ClientPlayerAddress).GetAwaiter().GetResult()!.GetNameWithWorld();
+        string playerNameWithWorld = _clientService.ClientPlayer.NameWithWorld();
         if (string.IsNullOrEmpty(playerNameWithWorld))
         {
             _logger.LogError("Could not get player name with world for Client Player!!!!", LoggerType.IpcMoodles);

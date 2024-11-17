@@ -120,8 +120,6 @@ public class ActiveGagsPanel : DisposableMediatorSubscriberBase
     }
 
     private Task? _gagTypeChangeTask;
-    private Task? _gagPadlockChangeTask;
-
     private void DrawGagLockGroup(int idx, Vector2 region, GagSlot[] gagSlots, bool currentlyLocked, Padlocks currentPadlockSelection)
     {
         bool gagTypeIsNone = gagSlots[idx].GagType.ToGagType() is GagType.None;

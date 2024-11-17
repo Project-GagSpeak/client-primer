@@ -1,9 +1,12 @@
 using GagSpeak.Services;
+using Glamourer.Api.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Penumbra.GameData.Data;
+using Penumbra.GameData.DataContainers;
 using Penumbra.GameData.DataContainers.Bases;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
+using System.Runtime.CompilerServices;
 
 namespace GagSpeak.Utils;
 public static class ItemIdVars
@@ -11,7 +14,12 @@ public static class ItemIdVars
     // Fantastic hack that pulls from the itemdata stored in the _host services to pull directly.
     // As its singleton and only needed to be made once, there isnt a reason it should need to be
     // included everywhere else for use. Especially on every clone action done in the plugin.
+    //
+    // If issues arrise with the introduction of these static methods, try and find a way to manage this somehow.
+    // However, these should automatically be disposed of when the service provider is disposed of.
     private static ItemData Data = GagSpeak.ServiceProvider.GetService<ItemData>()!;
+    private static DictBonusItems BonusData = GagSpeak.ServiceProvider.GetService<DictBonusItems>()!;
+    private static ObjectIdentification ObjectIdentification = GagSpeak.ServiceProvider.GetService<ObjectIdentification>()!;
 
     public static ItemId NothingId(EquipSlot slot) // used
         => uint.MaxValue - 128 - (uint)slot.ToSlot();
@@ -57,4 +65,59 @@ public static class ItemIdVars
             return item;
         }
     }
+
+    public static IReadOnlyList<EquipItem> GetBonusItems(BonusItemFlag slot)
+    {
+        var nothing = EquipItem.BonusItemNothing(slot);
+        return Data.ByType[slot.ToEquipType()].OrderBy(i => i.Name).Prepend(nothing).ToList();
+    }
+    
+    /// <summary> Returns whether a bonus item id represents a valid item for a slot and gives the item. </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static bool IsBonusItemValid(BonusItemFlag slot, BonusItemId itemId, out EquipItem item)
+    {
+        if (itemId.Id != 0)
+            return BonusData.TryGetValue(itemId, out item) && slot == item.Type.ToBonus();
+
+        item = EquipItem.BonusItemNothing(slot);
+        return true;
+    }
+
+    public static EquipItem Resolve(BonusItemFlag slot, BonusItemId id)
+        => IsBonusItemValid(slot, id, out var item) ? item : new EquipItem($"Invalid ({id.Id})", id, 0, 0, 0, 0, slot.ToEquipType(), 0, 0, 0);
+
+    public static EquipItem Resolve(BonusItemFlag slot, CustomItemId id)
+    {
+        // Only from early designs as migration.
+        if (!id.IsBonusItem || id.Id == 0)
+        {
+            IsBonusItemValid(slot, (BonusItemId)id.Id, out var item);
+            return item;
+        }
+
+        if (!id.IsCustom)
+        {
+            if (IsBonusItemValid(slot, id.BonusItem, out var item))
+                return item;
+
+            return EquipItem.BonusItemNothing(slot);
+        }
+
+        var (model, variant, slot2) = id.SplitBonus;
+        if (slot != slot2)
+            return EquipItem.BonusItemNothing(slot);
+
+        return Identify(slot, model, variant);
+    }
+
+    public static EquipItem Identify(BonusItemFlag slot, PrimaryId id, Variant variant)
+    {
+        var index = slot.ToIndex();
+        if (index == uint.MaxValue)
+            return new EquipItem($"Invalid ({id.Id}-{variant})", 0, 0, id, 0, variant, slot.ToEquipType(), 0, 0, 0);
+
+        return ObjectIdentification.Identify(id, variant, slot)
+            .FirstOrDefault(new EquipItem($"Invalid ({id.Id}-{variant})", 0, 0, id, 0, variant, slot.ToEquipType(), 0, 0, 0));
+    }
+
 }

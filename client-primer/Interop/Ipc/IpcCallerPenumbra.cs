@@ -16,7 +16,7 @@ using Dalamud.Interface.ImGuiNotification;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.GagspeakConfiguration.Models;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using GagSpeak.PlayerData.Services;
 using GagSpeak.PlayerData.Handlers;
 

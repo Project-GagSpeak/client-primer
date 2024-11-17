@@ -33,6 +33,7 @@ public struct CacheData
 public sealed class CacheCreationService : DisposableMediatorSubscriberBase
 {
     private readonly SemaphoreSlim _cacheCreateLock = new(1);
+    private readonly ClientMonitorService _clientService;
     private readonly OnFrameworkService _frameworkUtil;
     private readonly IpcManager _ipcManager;
     private readonly CancellationTokenSource _cts = new();
@@ -46,13 +47,14 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
     private readonly GameObjectHandler _playerObject;         // handler for player characters object.
 
     public CacheCreationService(ILogger<CacheCreationService> logger, GagspeakMediator mediator,
-        GameObjectHandlerFactory gameObjectHandlerFactory, OnFrameworkService frameworkUtil,
-        IpcManager ipcManager) : base(logger, mediator)
+        GameObjectHandlerFactory gameObjectHandlerFactory, ClientMonitorService clientService,
+        OnFrameworkService frameworkUtil, IpcManager ipcManager) : base(logger, mediator)
     {
+        _clientService = clientService;
         _frameworkUtil = frameworkUtil;
         _ipcManager = ipcManager;
 
-        _playerObject = gameObjectHandlerFactory.Create(frameworkUtil.GetPlayerPointer, isWatched: true).GetAwaiter().GetResult();
+        _playerObject = gameObjectHandlerFactory.Create(() => _clientService.Address, isWatched: true).GetAwaiter().GetResult();
 
 
         // called upon whenever a new cache should be added to the cache creation service.
@@ -80,7 +82,7 @@ public sealed class CacheCreationService : DisposableMediatorSubscriberBase
                 // If we are in a cutscene, we should publish a mediator event to let our appearance handler know we need to redraw.
                 // This is a safe workaround from executing things on cutscene start because glamourer takes precedence first.
                 // However, this toggle consistently occurs after Glamourer finishes its draws.
-                if (_frameworkUtil.InCutsceneEvent)
+                if (_clientService.InCutscene)
                     Mediator.Publish(new ClientPlayerInCutscene());
             });
         });

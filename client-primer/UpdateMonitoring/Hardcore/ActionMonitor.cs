@@ -14,6 +14,7 @@ using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring.Chat;
 using GagSpeak.Utils;
+using GagSpeak.Utils.Enums;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
 using System.Collections.Immutable;
@@ -25,9 +26,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly HardcoreHandler _hardcoreHandler;
     private readonly WardrobeHandler _wardrobeHandler;
-    private readonly OnFrameworkService _frameworkUtils;
-    private readonly IClientState _clientState;
-    private readonly IDataManager _dataManager;
+    private readonly ClientMonitorService _clientService;
 
     // attempt to get the rapture hotbar module so we can modify the display of hotbar items
     public unsafe RaptureHotbarModule* raptureHotbarModule = ClientStructFramework.Instance()->GetUIModule()->GetRaptureHotbarModule();
@@ -41,15 +40,13 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
 
     public unsafe ActionMonitor(ILogger<ActionMonitor> logger, GagspeakMediator mediator,
         ClientConfigurationManager clientConfigs, HardcoreHandler handler,
-        WardrobeHandler wardrobeHandler, OnFrameworkService frameworkUtils, IClientState clientState,
-        IDataManager dataManager, IGameInteropProvider interop) : base(logger, mediator)
+        WardrobeHandler wardrobeHandler, ClientMonitorService clientService,
+        IGameInteropProvider interop) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _hardcoreHandler = handler;
         _wardrobeHandler = wardrobeHandler;
-        _frameworkUtils = frameworkUtils;
-        _clientState = clientState;
-        _dataManager = dataManager;
+        _clientService = clientService;
 
         // set up a hook to fire every time the address signature is detected in our game.
         UseActionHook = interop.HookFromAddress<UseActionDelegate>((nint)ActionManager.MemberFunctionPointers.UseAction, UseActionDetour);
@@ -63,7 +60,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         IpcFastUpdates.HardcoreTraitsEventFired += ToggleHardcoreTraits;
 
         // if we are already logged in, then run the login function
-        if (_frameworkUtils.IsLoggedIn)
+        if (_clientService.IsLoggedIn)
             UpdateJobList();
     }
 
@@ -143,7 +140,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
             var hotbarRow = baseSpan.GetPointer(i);
             // if the hotbar is not null, we can get the slots data
             if (hotbarRow is not null)
-                raptureHotbarModule->LoadSavedHotbar(_frameworkUtils.PlayerClassJobId, (uint)i);
+                raptureHotbarModule->LoadSavedHotbar(_clientService.ClientPlayer.ClassJobId(), (uint)i);
         }
     }
 
@@ -213,13 +210,13 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
     private unsafe void UpdateJobList()
     {
         // this will be called by the job changed event. When it does, we will update our job list with the new job.
-        if (_clientState.LocalPlayer != null && _clientState.LocalPlayer.ClassJob != null)
+        if (_clientService.IsPresent)
         {
-            Logger.LogDebug("Updating job list to : " + (JobType)_frameworkUtils.PlayerClassJobId, LoggerType.HardcoreActions);
-            GagspeakActionData.GetJobActionProperties((JobType)_frameworkUtils.PlayerClassJobId, out var bannedJobActions);
+            Logger.LogDebug("Updating job list to : " + (JobType)_clientService.ClientPlayer.ClassJobId(), LoggerType.HardcoreActions);
+            GagspeakActionData.GetJobActionProperties((JobType)_clientService.ClientPlayer.ClassJobId(), out var bannedJobActions);
             CurrentJobBannedActions = bannedJobActions; // updated our job list
             // only do this if we are logged in
-            if (_clientState.LocalPlayer.Address != nint.Zero && raptureHotbarModule->StandardHotbars != null)
+            if (_clientService.IsPresent && raptureHotbarModule->StandardHotbars != null)
             {
                 GenerateCooldowns();
             }
@@ -250,21 +247,23 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
             // get our hotbar row
             var hotbar = baseSpan.GetPointer(i);
             // if the hotbar is not null, we can get the slots data
-            if (hotbar != null)
+            if (hotbar is null)
+                continue;
+
+            // get the slots data...
+            for (var j = 0; j < 16; j++)
             {
-                // get the slots data...
-                for (var j = 0; j < 16; j++)
+                var slot = hotbar->Slots.GetPointer(j);
+                if (slot is null) break;
+
+                if (slot->CommandType == RaptureHotbarModule.HotbarSlotType.Action)
                 {
-                    var slot = hotbar->Slots.GetPointer(j);
-                    if (slot == null) break;
-                    if (slot->CommandType == RaptureHotbarModule.HotbarSlotType.Action)
+                    // we will want to add the tuple for each slot, the tuple should contain the cooldown group
+                    var adjustedId = ActionManager.Instance()->GetAdjustedActionId(slot->CommandId);
+                    // get the cooldown group
+                    var cooldownGroup = -1;
+                    if(_clientService.TryGetAction(adjustedId, out Lumina.Excel.Sheets.Action action))
                     {
-                        // we will want to add the tuple for each slot, the tuple should contain the cooldown group
-                        var adjustedId = ActionManager.Instance()->GetAdjustedActionId(slot->CommandId);
-                        // get the cooldown group
-                        var cooldownGroup = -1;
-                        var action = _dataManager.Excel.GetSheet<Lumina.Excel.GeneratedSheets.Action>()!.GetRow(adjustedId);
-                        if (action == null) { break; }
                         // there is a minus one offset for actions, while general actions do not have them.
                         cooldownGroup = action.CooldownGroup - 1;
                         // get recast time
@@ -297,7 +296,7 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
     private unsafe void FrameworkUpdate()
     {
         // make sure we only do checks when we are properly logged in and have a character loaded
-        if (_clientState.LocalPlayer?.IsDead ?? false)
+        if (!_clientService.IsPresent)
             return;
 
         // Setup a hotkey for safeword keybinding to trigger a hardcore safeword message.

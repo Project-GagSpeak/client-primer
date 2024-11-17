@@ -43,9 +43,9 @@ public sealed partial class ToyboxHub : GagspeakHubBase, IToyboxHubClient
 
     public ToyboxHub(ILogger<ToyboxHub> logger, GagspeakMediator mediator, HubFactory hubFactory, 
         TokenProvider tokenProvider, PairManager pairs, ServerConfigurationManager serverConfigs, 
-        GagspeakConfigService mainConfig, ClientCallbackService clientCallbacks, 
-        OnFrameworkService frameworkUtils, PrivateRoomManager privateRooms) 
-        : base(logger, mediator, tokenProvider, frameworkUtils)
+        GagspeakConfigService mainConfig, ClientCallbackService clientCallbacks,
+        PrivateRoomManager privateRooms, ClientMonitorService clientService,
+        OnFrameworkService frameworkUtils) : base(logger, mediator, tokenProvider, clientService, frameworkUtils)
     {
         _hubFactory = hubFactory;
         _privateRooms = privateRooms;
@@ -233,28 +233,18 @@ public sealed partial class ToyboxHub : GagspeakHubBase, IToyboxHubClient
         ServerStatus = disconnectionReason;
     }
 
-    public override async Task Reconnect()
-    {
-        // Probably not the best idea to have this but we will see.
-    }
-
-    public override async Task SetupHub()
-    {
-        // If we need to setup the hub, do that here.
-    }
-
     protected override bool ShouldClientConnect(out string fetchedSecretKey)
     {
         fetchedSecretKey = string.Empty;
 
-        if (_frameworkUtils.IsLoggedIn is false)
+        if (!_clientService.IsLoggedIn)
         {
             Logger.LogWarning("Attempted to connect while not logged in, this shouldnt be possible! Aborting!", LoggerType.ApiCore);
             return false;
         }
 
         // if we have not yet made an account, abort this connection.
-        if (_mainConfig.Current.AccountCreated is false)
+        if (!_mainConfig.Current.AccountCreated)
         {
             Logger.LogDebug("Account not yet created, Aborting Connection.", LoggerType.ApiCore);
             return false;
@@ -396,7 +386,7 @@ public sealed partial class ToyboxHub : GagspeakHubBase, IToyboxHubClient
         }
     }
 
-    protected override async void OnLogin()
+    protected override void OnLogin()
     {
         Logger.LogInformation("Detected Login!", LoggerType.ApiCore);
     }

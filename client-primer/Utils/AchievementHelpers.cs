@@ -2,7 +2,7 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Event;
 using FFXIVClientStructs.FFXIV.Client.Game.GoldSaucer;
 using FFXIVClientStructs.FFXIV.Client.Game.InstanceContent;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using System.Windows.Forms;
 
 namespace GagSpeak.Utils;

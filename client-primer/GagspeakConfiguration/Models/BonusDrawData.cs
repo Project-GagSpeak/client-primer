@@ -1,5 +1,4 @@
-
-using Newtonsoft.Json.Linq;
+using GagSpeak.Utils;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 
@@ -13,9 +12,9 @@ public record BonusDrawData
     public string EquippedBy = string.Empty; // remove if no use
     public bool Locked = false; // remove if no use
     public BonusItemFlag Slot = BonusItemFlag.Glasses;
-    public BonusItem GameItem;
+    public EquipItem GameItem;
     // no stains for now.
-    public BonusDrawData(BonusItem gameItem) => GameItem = gameItem;
+    public BonusDrawData(EquipItem gameItem) => GameItem = gameItem;
 
     // In EquipDrawData
     public JObject Serialize()
@@ -27,7 +26,7 @@ public record BonusDrawData
             ["EquippedBy"] = EquippedBy,
             ["Locked"] = Locked,
             ["Slot"] = Slot.ToString(),
-            ["GameItem"] = JObject.FromObject(GameItem),
+            ["CustomItemId"] = GameItem.Id.ToString(),
         };
     }
 
@@ -37,6 +36,7 @@ public record BonusDrawData
         EquippedBy = jsonObject["EquippedBy"]?.Value<string>() ?? string.Empty;
         Locked = jsonObject["Locked"]?.Value<bool>() ?? false;
         Slot = (BonusItemFlag)Enum.Parse(typeof(BonusItemFlag), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
-        GameItem = jsonObject["GameItem"] != null ? jsonObject["GameItem"]?.ToObject<BonusItem>() ?? new BonusItem() : new BonusItem();
+        ulong customItemId = jsonObject["CustomItemId"]?.Value<ulong>() ?? 4294967164;
+        GameItem = ItemIdVars.Resolve(Slot, new CustomItemId(customItemId));
     }
 }

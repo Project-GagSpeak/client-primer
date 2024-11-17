@@ -44,7 +44,7 @@ public static unsafe class AtkFuckery
         var btnRes = target.AtkComponentBase.OwnerNode->AtkResNode;
         var evt = btnRes.AtkEventManager.Event;
 
-        addon->ReceiveEvent(evt->Type, (int)evt->Param, btnRes.AtkEventManager.Event);
+        addon->ReceiveEvent(evt->State.EventType, (int)evt->Param, btnRes.AtkEventManager.Event);
     }
 
     public static void ClickAddonButton(this AtkCollisionNode target, AtkUnitBase* addon)
@@ -52,10 +52,10 @@ public static unsafe class AtkFuckery
         var btnRes = target.AtkResNode;
         var evt = btnRes.AtkEventManager.Event;
 
-        while (evt->Type != AtkEventType.MouseClick)
+        while (evt->State.EventType != AtkEventType.MouseClick)
             evt = evt->NextEvent;
 
-        addon->ReceiveEvent(evt->Type, (int)evt->Param, btnRes.AtkEventManager.Event);
+        addon->ReceiveEvent(evt->State.EventType, (int)evt->Param, btnRes.AtkEventManager.Event);
     }
 
     public static void GenerateCallback(AtkUnitBase* unitBase, params object[] values)

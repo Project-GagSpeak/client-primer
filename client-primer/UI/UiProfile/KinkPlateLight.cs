@@ -36,8 +36,6 @@ public class KinkPlateLight
     private readonly CosmeticService _cosmetics;
     private readonly TextureService _textures;
     private readonly UiSharedService _uiShared;
-
-    private bool ThemePushed = false;
     public KinkPlateLight(ILogger<KinkPlateLight> logger, GagspeakMediator mediator,
         PairManager pairManager, ServerConfigurationManager serverConfigs,
         KinkPlateService profileService, CosmeticService cosmetics,

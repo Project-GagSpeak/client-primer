@@ -1,10 +1,9 @@
 using Dalamud.Plugin.Services;
 using GagSpeak.Utils;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using OtterGui;
 using OtterGui.Classes;
-using OtterGui.Log;
 using OtterGui.Raii;
 using OtterGui.Widgets;
 using Penumbra.GameData.Data;
@@ -79,16 +78,16 @@ public sealed class GameItemCombo : CustomFilterComboCache<EquipItem>
 
         return slot switch
         {
-            EquipSlot.Head => sheet.GetRow(740)?.Text.ToString() ?? "Head",
-            EquipSlot.Body => sheet.GetRow(741)?.Text.ToString() ?? "Body",
-            EquipSlot.Hands => sheet.GetRow(742)?.Text.ToString() ?? "Hands",
-            EquipSlot.Legs => sheet.GetRow(744)?.Text.ToString() ?? "Legs",
-            EquipSlot.Feet => sheet.GetRow(745)?.Text.ToString() ?? "Feet",
-            EquipSlot.Ears => sheet.GetRow(746)?.Text.ToString() ?? "Ears",
-            EquipSlot.Neck => sheet.GetRow(747)?.Text.ToString() ?? "Neck",
-            EquipSlot.Wrists => sheet.GetRow(748)?.Text.ToString() ?? "Wrists",
-            EquipSlot.RFinger => sheet.GetRow(749)?.Text.ToString() ?? "Right Ring",
-            EquipSlot.LFinger => sheet.GetRow(750)?.Text.ToString() ?? "Left Ring",
+            EquipSlot.Head => sheet.GetRow(740).Text.ToString() ?? "Head",
+            EquipSlot.Body => sheet.GetRow(741).Text.ToString() ?? "Body",
+            EquipSlot.Hands => sheet.GetRow(742).Text.ToString() ?? "Hands",
+            EquipSlot.Legs => sheet.GetRow(744).Text.ToString() ?? "Legs",
+            EquipSlot.Feet => sheet.GetRow(745).Text.ToString() ?? "Feet",
+            EquipSlot.Ears => sheet.GetRow(746).Text.ToString() ?? "Ears",
+            EquipSlot.Neck => sheet.GetRow(747).Text.ToString() ?? "Neck",
+            EquipSlot.Wrists => sheet.GetRow(748).Text.ToString() ?? "Wrists",
+            EquipSlot.RFinger => sheet.GetRow(749).Text.ToString() ?? "Right Ring",
+            EquipSlot.LFinger => sheet.GetRow(750).Text.ToString() ?? "Left Ring",
             _ => string.Empty,
         };
     }

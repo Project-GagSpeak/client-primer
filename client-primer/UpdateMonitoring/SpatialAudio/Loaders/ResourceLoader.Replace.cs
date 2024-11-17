@@ -49,7 +49,7 @@ public unsafe partial class ResourceLoader
     private void* GetResourceHandler(bool isSync, IntPtr resourceManager, uint* categoryId, 
         ResourceType* resourceType, int* resourceHash, byte* path, GetResourceParameters* resParams, bool isUnknown)
     {
-        if (!Utf8GamePath.FromPointer(path, out var gamePath))
+        if (!Utf8GamePath.FromPointer(path, MetaDataComputation.All, out var gamePath))
         {
             return CallOriginalHandler(isSync, resourceManager, categoryId, resourceType, resourceHash, path, resParams, isUnknown);
         }

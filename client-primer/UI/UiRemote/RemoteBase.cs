@@ -61,7 +61,7 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
         IntensityUpdateTimer = new UpdateTimer(20, RecordData);
     }
 
-    private string WindowBaseName;
+    protected string WindowBaseName;
     protected static float WindowWidthMin = 300f;
     protected static float WindowWidthMax = 550f;
     public bool IsExpanded { get; private set; } = false;

@@ -83,57 +83,12 @@ public class ChatCircularBuffer<T> : IEnumerable<T>
         }
     }
 
-    public void PushFront(T item)
-    {
-        if (IsFull)
-        {
-            Decrement(ref _start);
-            _end = _start;
-            _buffer[_start] = item;
-        }
-        else
-        {
-            Decrement(ref _start);
-            _buffer[_start] = item;
-            ++_size;
-        }
-    }
-
-    public void PopBack()
-    {
-        ThrowIfEmpty("Cannot take elements from an empty buffer.");
-        Decrement(ref _end);
-        _buffer[_end] = default;
-        --_size;
-    }
-
-    public void PopFront()
-    {
-        ThrowIfEmpty("Cannot take elements from an empty buffer.");
-        _buffer[_start] = default;
-        Increment(ref _start);
-        --_size;
-    }
-
     public void Clear()
     {
         _start = 0;
         _end = 0;
         _size = 0;
         Array.Clear(_buffer, 0, _buffer.Length);
-    }
-
-    public T[] ToArray()
-    {
-        var newArray = new T[Size];
-        var newArrayOffset = 0;
-        var segments = ToArraySegments();
-        foreach (var segment in segments)
-        {
-            Array.Copy(segment.Array, segment.Offset, newArray, newArrayOffset, segment.Count);
-            newArrayOffset += segment.Count;
-        }
-        return newArray;
     }
 
     public IList<ArraySegment<T>> ToArraySegments()
@@ -146,12 +101,15 @@ public class ChatCircularBuffer<T> : IEnumerable<T>
         var segments = ToArraySegments();
         foreach (var segment in segments)
         {
+            if (segment.Array is null)
+                continue;
+
             for (var i = 0; i < segment.Count; i++)
-            {
                 yield return segment.Array[segment.Offset + i];
-            }
         }
     }
+
+
 
     IEnumerator IEnumerable.GetEnumerator()
     {

@@ -8,16 +8,11 @@ using GagSpeak.GagspeakConfiguration;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.PlayerData.Pairs;
-using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Toybox.Controllers;
 using GagSpeak.Toybox.Services;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
-using Lumina.Excel.GeneratedSheets;
-using Lumina.Excel.GeneratedSheets2;
-using System.Linq;
-using static GagSpeak.PlayerData.Handlers.PuppeteerHandler;
 using Territory = FFXIVClientStructs.FFXIV.Client.Game.UI.TerritoryInfo;
 
 namespace GagSpeak.UpdateMonitoring.Chat;
@@ -40,15 +35,13 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
     private readonly IChatGui _chat;
     private readonly IClientState _clientState;
     private readonly IDataManager _dataManager;
-    private Stopwatch messageTimer; // Stopwatch Timer for time between messages sent (should no longer be needed since we are not sending chained messages)
-
-    private unsafe Territory* info = Territory.Instance();
+    private Stopwatch messageTimer;
 
     /// <summary> This is the constructor for the OnChatMsgManager class. </summary>
     public ChatBoxMessage(ILogger<ChatBoxMessage> logger, GagspeakMediator mediator,
         GagspeakConfigService mainConfig, PlayerCharacterData playerInfo,
-        PuppeteerHandler puppeteerHandler, ChatSender chatSender, 
-        DeathRollService deathRolls, TriggerService triggers, IChatGui clientChat, 
+        PuppeteerHandler puppeteerHandler, ChatSender chatSender,
+        DeathRollService deathRolls, TriggerService triggers, IChatGui clientChat,
         IClientState clientState, IDataManager dataManager) : base(logger, mediator)
     {
         _mainConfig = mainConfig;
@@ -124,7 +117,7 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
                 if (firstPayload != null)
                 {
                     // check for social triggers
-                    _deathRolls.ProcessMessage(type, firstPayload.PlayerName + "@" + firstPayload.World.Name, message);
+                    _deathRolls.ProcessMessage(type, firstPayload.PlayerName + "@" + firstPayload.World.Value.Name.ToString(), message);
                 }
             }
             else
@@ -142,12 +135,12 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         if (senderPlayerPayload == null)
         {
             senderName = _clientState.LocalPlayer.Name.TextValue;
-            senderWorld = _clientState.LocalPlayer.HomeWorld.GameData!.Name;
+            senderWorld = _clientState.LocalPlayer.HomeWorld.Value.Name.ToString();
         }
         else
         {
             senderName = senderPlayerPayload.PlayerName;
-            senderWorld = senderPlayerPayload.World.Name;
+            senderWorld = senderPlayerPayload.World.Value.Name.ToString();
         }
 
         // After this point we only check triggers, so if its not a valid trigger then dont worry about it.
@@ -177,21 +170,21 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
             Logger.LogDebug("Message was not in a valid channel for puppeteer.", LoggerType.Puppeteer);
             return;
         }
-        
+
 
         // check for global puppeteer triggers
         var globalTriggers = _playerInfo.GlobalPerms?.GlobalTriggerPhrase.Split('|').ToList() ?? new List<string>();
         if (_puppeteerHandler.IsValidTriggerWord(globalTriggers, message, out string matchedTrigger))
         {
             // convert everything to PuppeteerPerms
-            var permsGlobal = new PuppeteerPerms(
+            var permsGlobal = new PuppeteerHandler.PuppeteerPerms(
                 _playerInfo.GlobalPerms!.GlobalAllowSitRequests,
                 _playerInfo.GlobalPerms.GlobalAllowMotionRequests,
                 _playerInfo.GlobalPerms.GlobalAllowAllRequests);
             // the message did contain the trigger word, to obtain the message to send.
             SeString msgToSend = _puppeteerHandler.GetMessageFromTrigger(matchedTrigger, permsGlobal, message, type);
-            
-            if (msgToSend.TextValue.IsNullOrEmpty()) 
+
+            if (msgToSend.TextValue.IsNullOrEmpty())
                 return;
 
             // enqueue the message and log success
@@ -206,12 +199,12 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
             if (_puppeteerHandler.IsValidTriggerWord(pairTriggers, message, out string matchedPairTrigger))
             {
                 Logger.LogInformation(senderName + " used your pair trigger phrase to make you execute a message!");
-                var permsPair = new PuppeteerPerms(pair.OwnPerms.AllowSitRequests,
+                var permsPair = new PuppeteerHandler.PuppeteerPerms(pair.OwnPerms.AllowSitRequests,
                     pair.OwnPerms.AllowMotionRequests, pair.OwnPerms.AllowAllRequests,
                     pair.OwnPerms.StartChar, pair.OwnPerms.EndChar);
 
                 SeString msgToSend = _puppeteerHandler.GetMessageFromTrigger(matchedPairTrigger, permsPair, message, type, pair.UserData.UID);
-                
+
                 if (msgToSend.TextValue.IsNullOrEmpty())
                     return;
 
@@ -226,16 +219,16 @@ public unsafe class ChatBoxMessage : DisposableMediatorSubscriberBase
         matchedPair = null!;
         string nameWithWorld = name + "@" + world;
         // make sure we are listening for this player.
-        if (!PlayersToListenFor.Contains(nameWithWorld)) 
+        if (!PlayersToListenFor.Contains(nameWithWorld))
             return false;
 
         // make sure they exist in our alias list config
         var uidOfSender = _puppeteerHandler.GetUIDMatchingSender(name, world);
-        if (uidOfSender.IsNullOrEmpty()) 
+        if (uidOfSender.IsNullOrEmpty())
             return false;
 
         var pairOfUid = _puppeteerHandler.GetPairOfUid(uidOfSender!);
-        if (pairOfUid is null) 
+        if (pairOfUid is null)
             return false;
 
         // successful match

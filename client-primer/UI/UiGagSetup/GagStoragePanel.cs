@@ -60,7 +60,6 @@ public class GagStoragePanel : DisposableMediatorSubscriberBase
     
     private Vector2 IconSize;
     private float ComboLength;
-    private Vector2 DefaultItemSpacing;
     private readonly GameItemCombo[] GameItemCombo;
     private readonly StainColorCombo StainCombo;
 

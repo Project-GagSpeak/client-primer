@@ -59,7 +59,7 @@ internal class DtrVisibleWindow : WindowMediatorSubscriberBase
 
         for(var i=0; i<displayedPlayers.Count; i++)
         {
-            string text = displayedPlayers[i].Name.ToString() + "  " + displayedPlayers[i].HomeWorld.GameData!.Name;
+            string text = displayedPlayers[i].GetName() + "  " + displayedPlayers[i].HomeWorldName();
             if(ImGui.Selectable(text, SelectedIndex == i))
             {
                 SelectedIndex = i;

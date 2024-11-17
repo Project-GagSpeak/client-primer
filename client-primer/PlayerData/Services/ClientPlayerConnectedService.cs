@@ -21,7 +21,6 @@ namespace GagSpeak.PlayerData.Services;
 public sealed class OnConnectedService : DisposableMediatorSubscriberBase, IHostedService
 {
     private readonly PlayerCharacterData _playerData;
-    private readonly PiShockProvider _shockProvider;
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PairManager _pairManager;
     private readonly GagManager _gagManager;

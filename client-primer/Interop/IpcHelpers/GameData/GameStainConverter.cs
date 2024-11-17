@@ -9,8 +9,10 @@ public class GameStainConverter : JsonConverter
         return objectType == typeof(StainIds);
     }
 
-    public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
     {
+        if (value == null) throw new ArgumentNullException(nameof(value), "Value cannot be null");
+
         var gameStain = (StainIds)value;
         // Assuming StainIds is a struct that contains two StainId values
         var stainsArray = new JArray
@@ -22,7 +24,7 @@ public class GameStainConverter : JsonConverter
         stainsArray.WriteTo(writer);
     }
 
-    public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+    public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
     {
         // Deserialize the JSON array back into StainIds
         var stainsArray = JArray.Load(reader);

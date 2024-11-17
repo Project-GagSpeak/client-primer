@@ -93,15 +93,12 @@ public class NotificationService : DisposableMediatorSubscriberBase
             case NotificationType.Info:
             case NotificationType.Success:
             case NotificationType.None:
-                PrintInfoChat(msg.Message);
-                break;
-
             case NotificationType.Warning:
-                PrintWarnChat(msg.Message);
+                PrintCustomChat(msg.Message);
                 break;
 
             case NotificationType.Error:
-                PrintErrorChat(msg.Message);
+                PrintCustomErrorChat(msg.Message);
                 break;
         }
     }

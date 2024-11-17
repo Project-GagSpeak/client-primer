@@ -63,7 +63,7 @@ public class SavePatternPopupHandler : IPopupHandler
         }
         // description field
         var description = CompiledPatternData.Description;
-        if (ImGui.InputTextMultiline("Description", ref description, 256, new Vector2(150, 100)));
+        ImGui.InputTextMultiline("Description", ref description, 256, new Vector2(150, 100));
         if(ImGui.IsItemDeactivatedAfterEdit())
         {
             CompiledPatternData.Description = description;

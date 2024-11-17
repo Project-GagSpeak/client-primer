@@ -54,7 +54,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     private readonly IDalamudPluginInterface _pi;       // the primary interface for our plugin
     private readonly ITextureProvider _textureProvider; // the texture provider for our plugin
-    private ISharedImmediateTexture _sharedTextures;    // represents a shared texture cache for plugin images. (REMAKE THIS INTO A DICTIONARY)
 
     public Dictionary<string, object> _selectedComboItems;    // the selected combo items
     public Dictionary<string, string> SearchStrings;
@@ -129,9 +128,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public IFontHandle GagspeakFont { get; init; }
     public IFontHandle GagspeakLabelFont { get; init; }
     public IFontHandle GagspeakTitleFont { get; init; }
-
-
-    public Dictionary<ushort, string> WorldData => _frameworkUtil.WorldData.Value;
     public Vector2 LastMainUIWindowPosition { get; set; } = Vector2.Zero;
     public Vector2 LastMainUIWindowSize { get; set; } = Vector2.Zero;
 
@@ -905,8 +901,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         text = text.Replace("\r\n", "\n");
         var lines = text.Split('\n').ToList();
 
-        bool textModified = false;
-
         // Traverse each line to check if it exceeds the wrap width
         for (int i = 0; i < lines.Count; i++)
         {
@@ -923,7 +917,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                     string part2 = lines[i].Substring(wrapPos).TrimStart();
                     lines[i] = part1;
                     lines.Insert(i + 1, part2);
-                    textModified = true;
                     lineWidth = ImGui.CalcTextSize(part2).X;
                 }
                 else

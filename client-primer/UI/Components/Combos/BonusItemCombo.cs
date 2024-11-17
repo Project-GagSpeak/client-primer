@@ -1,28 +1,26 @@
 using Dalamud.Plugin.Services;
 using GagSpeak.Utils;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using OtterGui;
 using OtterGui.Classes;
-using OtterGui.Log;
 using OtterGui.Raii;
 using OtterGui.Widgets;
-using Penumbra.GameData.Data;
 using Penumbra.GameData.DataContainers;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 
 namespace GagSpeak.UI.Components.Combos;
 
-public sealed class BonusItemCombo : CustomFilterComboCache<BonusItem>
+public sealed class BonusItemCombo : CustomFilterComboCache<EquipItem>
 {
     public readonly string Label;
     public BonusItemId _currentItem;
     private float _innerWidth;
     public PrimaryId CustomSetId { get; private set; }
     public Variant CustomVariant { get; private set; }
-    public BonusItemCombo(IDataManager gameData, BonusItemFlag slot, DictBonusItems itemData, ILogger log)
-        : base(() => GetItems(itemData, slot), MouseWheelType.Unmodified, log)
+    public BonusItemCombo(IDataManager gameData, BonusItemFlag slot, ILogger log)
+        : base(() => GetItems(slot), MouseWheelType.Unmodified, log)
     {
         Label = GetLabel(gameData, slot);
         _currentItem = 0;
@@ -64,14 +62,14 @@ public sealed class BonusItemCombo : CustomFilterComboCache<BonusItem>
         var ret = ImGui.Selectable(name, selected);
         ImGui.SameLine();
         using var color = ImRaii.PushColor(ImGuiCol.Text, 0xFF808080);
-        ImGuiUtil.RightAlign($"({obj.ModelId.Id}-{obj.Variant.Id})");
+        ImGuiUtil.RightAlign($"({obj.PrimaryId.Id}-{obj.Variant.Id})");
         return ret;
     }
 
     protected override bool IsVisible(int globalIndex, LowerString filter)
-        => base.IsVisible(globalIndex, filter) || filter.IsContained(Items[globalIndex].ModelId.Id.ToString());
+        => base.IsVisible(globalIndex, filter) || Items[globalIndex].ModelString.StartsWith(filter.Lower);
 
-    protected override string ToString(BonusItem obj)
+    protected override string ToString(EquipItem obj)
         => obj.Name;
 
     private static string GetLabel(IDataManager gameData, BonusItemFlag slot)
@@ -80,21 +78,14 @@ public sealed class BonusItemCombo : CustomFilterComboCache<BonusItem>
 
         return slot switch
         {
-            BonusItemFlag.Glasses => sheet.GetRow(16050)?.Text.ToString() ?? "Facewear",
-            BonusItemFlag.UnkSlot => sheet.GetRow(16051)?.Text.ToString() ?? "Facewear",
+            BonusItemFlag.Glasses => sheet.GetRow(16050).Text.ToString() ?? "Facewear",
+            BonusItemFlag.UnkSlot => sheet.GetRow(16051).Text.ToString() ?? "Facewear",
 
             _ => string.Empty,
         };
     }
 
-    private static IReadOnlyList<BonusItem> GetItems(DictBonusItems itemData, BonusItemFlag slot)
-    {
-        var nothing = BonusItem.Empty(slot);
-        if (slot is not BonusItemFlag.Glasses)
-            return [nothing];
-
-        return itemData.Values.OrderBy(i => i.Name).Prepend(nothing).ToList();
-    }
+    private static IReadOnlyList<EquipItem> GetItems(BonusItemFlag slot) => ItemIdVars.GetBonusItems(slot);
 
     protected override void OnClosePopup()
     {

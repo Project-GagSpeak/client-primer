@@ -1,4 +1,5 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration;
@@ -75,14 +76,22 @@ public class UserPairListHandler
         // begin the list child, with no border and of the height calculated above
         using var child = ImRaii.Child("list", ImGui.GetContentRegionAvail(), border: false, ImGuiWindowFlags.NoScrollbar);
 
-        // for each item in the draw folders,
-        // _logger.LogTrace("Drawing {count} folders", _drawFolders.Count);
-        foreach (var item in _drawFolders)
+
+        // display a message is no pairs are present.
+        if (AllPairDrawsDistinct.Count <= 0)
         {
-            // draw the content
-            if (item is DrawFolderBase folderBase && folderBase.ID == TagHandler.CustomAllTag && _configService.Current.ShowOfflineUsersSeparately) continue;
-            // draw folder if not all tag.
-            item.Draw();
+            UiSharedService.ColorTextCentered("You Have No Pairs Added!", ImGuiColors.DalamudYellow);
+        }
+        else
+        {
+            // _logger.LogTrace("Drawing {count} folders", _drawFolders.Count);
+            foreach (var item in _drawFolders)
+            {
+                // draw the content
+                if (item is DrawFolderBase folderBase && folderBase.ID == TagHandler.CustomAllTag && _configService.Current.ShowOfflineUsersSeparately) continue;
+                // draw folder if not all tag.
+                item.Draw();
+            }
         }
     }
 

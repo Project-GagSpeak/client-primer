@@ -34,12 +34,6 @@ public class MainUiWhitelist : DisposableMediatorSubscriberBase
             _userPairListHandler.DrawSearchFilter(_windowContentWidth, _spacingX);
             ImGui.Separator();
             _userPairListHandler.DrawPairs(_windowContentWidth);
-
-            // display a message is no pairs are present.
-            if (_userPairListHandler.AllPairDrawsDistinct.Count <= 0)
-            {
-                UiSharedService.ColorTextCentered("You Have No Pairs Added!", ImGuiColors.DalamudYellow);
-            }
         }
         catch (Exception ex)
         {

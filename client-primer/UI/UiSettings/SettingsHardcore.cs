@@ -1,28 +1,19 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Plugin.Services;
 using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
-using GagSpeak.Hardcore;
 using GagSpeak.Hardcore.ForcedStay;
 using GagSpeak.Localization;
 using GagSpeak.PlayerData.Handlers;
-using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
-using GagSpeak.Services.Mediator;
-using GagSpeak.Services.Textures;
 using GagSpeak.UI.Components.Combos;
 using GagSpeak.UI.Handlers;
 using GagSpeak.Utils;
-using GagSpeak.WebAPI;
-using GagspeakAPI.Dto.Permissions;
 using ImGuiNET;
 using OtterGui;
 using OtterGui.Classes;
 using OtterGui.Text;
-using Penumbra.GameData.Data;
-using Penumbra.GameData.DataContainers;
 using Penumbra.GameData.Enums;
 using Penumbra.GameData.Structs;
 using System.Numerics;
@@ -44,8 +35,8 @@ public class SettingsHardcore
     private readonly GameItemCombo[] GameItemCombo;
     private readonly StainColorCombo StainCombo;
 
-    public SettingsHardcore(ILogger<SettingsHardcore> logger, 
-        ClientConfigurationManager clientConfigs, GameItemStainHandler itemStainHandler, 
+    public SettingsHardcore(ILogger<SettingsHardcore> logger,
+        ClientConfigurationManager clientConfigs, GameItemStainHandler itemStainHandler,
         WardrobeHandler wardrobeHandler, HardcoreHandler hardcoreHandler, UiSharedService uiShared)
     {
         _logger = logger;
@@ -196,7 +187,7 @@ public class SettingsHardcore
             }
         }
         UiSharedService.AttachToolTip(GSLoc.Settings.Hardcore.ChamberAutoMoveTT);
-        
+
         ImGui.Separator();
     }
 
@@ -207,7 +198,7 @@ public class SettingsHardcore
         if (!node.Enabled)
             ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(.5f, .5f, .5f, 1));
 
-        ImGui.TreeNodeEx(node.FriendlyName+"##"+ node.FriendlyName + "-tree", ImGuiTreeNodeFlags.Leaf);
+        ImGui.TreeNodeEx(node.FriendlyName + "##" + node.FriendlyName + "-tree", ImGuiTreeNodeFlags.Leaf);
         ImGui.TreePop();
 
         ImGui.PopStyleColor();
@@ -302,7 +293,7 @@ public class SettingsHardcore
             }
             // Draw editable fields for the chamber node, but disable them if we are in ForcedStay mode.
             if (node is ChambersTextNode chambersNode)
-            DrawChambersUniqueFields(chambersNode);
+                DrawChambersUniqueFields(chambersNode);
 
             ImGui.EndPopup();
         }

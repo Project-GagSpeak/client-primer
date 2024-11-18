@@ -33,18 +33,24 @@ public class PatternHandler : MediatorSubscriberBase
 
     public void StartEditingPattern(PatternData pattern)
     {
+        Logger.LogDebug("Editing Pattern.", LoggerType.ToyboxPatterns);
         ClonedPatternForEdit = pattern.DeepCloneData();
         Guid originalID = pattern.UniqueIdentifier; // Prevent storing the pattern ID by reference.
         ClonedPatternForEdit.UniqueIdentifier = originalID; // Ensure the ID remains the same here.
     }
 
-    public void CancelEditingPattern() => ClonedPatternForEdit = null;
+    public void CancelEditingPattern()
+    {
+        ClonedPatternForEdit = null;
+        Logger.LogDebug("Pattern Editing Cancelled.", LoggerType.ToyboxPatterns);
+    }
 
     public void SaveEditedPattern()
     {
         if (ClonedPatternForEdit is null)
             return;
 
+        Logger.LogDebug("Saving Edited Pattern.", LoggerType.ToyboxPatterns);
         // locate the restraint set that contains the matching guid.
         var setIdx = Patterns.FindIndex(x => x.UniqueIdentifier == ClonedPatternForEdit.UniqueIdentifier);
         if (setIdx == -1)

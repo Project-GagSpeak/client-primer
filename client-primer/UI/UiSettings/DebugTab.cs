@@ -45,7 +45,38 @@ public class DebugTab
         _uiShared = uiShared;
     }
 
-    public void DrawLoggerSettings()
+    public void DrawDebugMain()
+    {
+        _uiShared.GagspeakBigText("Debug Configuration");
+
+        // display the combo box for setting the log level we wish to have for our plugin
+        _uiShared.DrawCombo("Log Level", 400, Enum.GetValues<LogLevel>(), (level) => level.ToString(), (level) =>
+        {
+            _clientConfigs.GagspeakConfig.LogLevel = level;
+            _clientConfigs.Save();
+        }, _clientConfigs.GagspeakConfig.LogLevel);
+
+        var logFilters = _clientConfigs.GagspeakConfig.LoggerFilters;
+
+        // draw a collapsible tree node here to draw the logger settings:
+        ImGui.Spacing();
+        if (ImGui.TreeNode("Advanced Logger Filters (Only Edit if you know what you're doing!)"))
+        {
+            AdvancedLogger();
+            ImGui.TreePop();
+        }
+    }
+
+    public void DrawDevDebug()
+    {
+        if (ImGui.CollapsingHeader("Client Player Data"))
+            DrawPlayerCharacterDebug();
+
+        if (ImGui.CollapsingHeader("Pair Data"))
+            DrawPairsDebug();
+    }
+
+    private void AdvancedLogger()
     {
         bool isFirstSection = true;
 
@@ -133,36 +164,7 @@ public class DebugTab
             LoggerFilter.AddAllowedCategory(LoggerType.None);
         }
     }
-    public void DrawDebugMain()
-    {
-        _uiShared.GagspeakBigText("Debug Configuration");
 
-        // display the combo box for setting the log level we wish to have for our plugin
-        _uiShared.DrawCombo("Log Level", 400, Enum.GetValues<LogLevel>(), (level) => level.ToString(), (level) =>
-        {
-            _clientConfigs.GagspeakConfig.LogLevel = level;
-            _clientConfigs.Save();
-        }, _clientConfigs.GagspeakConfig.LogLevel);
-
-        var logFilters = _clientConfigs.GagspeakConfig.LoggerFilters;
-
-        // draw a collapsible tree node here to draw the logger settings:
-        ImGui.Spacing();
-        if (ImGui.TreeNode("Advanced Logger Filters (Only Edit if you know what you're doing!)"))
-        {
-            DrawLoggerSettings();
-            ImGui.TreePop();
-        }
-    }
-
-    private void DrawDevDebug()
-    {
-        if (ImGui.CollapsingHeader("Client Player Data"))
-            DrawPlayerCharacterDebug();
-
-        if (ImGui.CollapsingHeader("Pair Data"))
-            DrawPairsDebug();
-    }
 
     private void DrawPlayerCharacterDebug()
     {
@@ -188,24 +190,24 @@ public class DebugTab
         ImGui.Text($"Total Pairs: {_pairManager.DirectPairs.Count}");
         ImGui.Text($"Visible Users: {_pairManager.GetVisibleUserCount()}");
         // draw an enclosed tree node here for the pair data. Inside of this, we will have a different tree node for each of the keys in our pair storage.
-        using (ImRaii.TreeNode("Pair Data"))
+        using var pairData = ImRaii.TreeNode("Pair Data");
+        if (!pairData) return;
+
+        foreach (var pair in _pairManager.DirectPairs)
         {
-            foreach (var pair in _pairManager.DirectPairs)
-            {
-                using (ImRaii.TreeNode(pair.GetNickAliasOrUid() + "'s Pair Info"))
-                {
-                    DrawPairPerms("Own Pair Perms for " + pair.UserData.UID, pair.OwnPerms);
-                    DrawPairPermAccess("Own Pair Perm Access for " + pair.UserData.UID, pair.OwnPermAccess);
-                    DrawGlobalPermissions(pair.UserData.UID + "'s Global Perms", pair.PairGlobals);
-                    DrawPairPerms(pair.UserData.UID + "'s Pair Perms for you.", pair.PairPerms);
-                    DrawPairPermAccess(pair.UserData.UID + "'s Pair Perm Access for you", pair.PairPermAccess);
-                    DrawAppearance(pair.UserData.UID, pair.LastAppearanceData ?? new CharaAppearanceData());
-                    DrawWardrobe(pair.UserData.UID, pair.LastWardrobeData ?? new CharaWardrobeData());
-                    DrawAlias(pair.UserData.UID, pair.LastAliasData ?? new CharaAliasData());
-                    DrawToybox(pair.UserData.UID, pair.LastToyboxData ?? new CharaToyboxData());
-                    DrawLightStorage(pair.UserData.UID, pair.LastLightStorage ?? new CharaStorageData());
-                }
-            }
+            using var listing = ImRaii.TreeNode(pair.GetNickAliasOrUid() + "'s Pair Info");
+            if (!listing) continue;
+
+            DrawPairPerms("Own Pair Perms for " + pair.UserData.UID, pair.OwnPerms);
+            DrawPairPermAccess("Own Pair Perm Access for " + pair.UserData.UID, pair.OwnPermAccess);
+            DrawGlobalPermissions(pair.UserData.UID + "'s Global Perms", pair.PairGlobals);
+            DrawPairPerms(pair.UserData.UID + "'s Pair Perms for you.", pair.PairPerms);
+            DrawPairPermAccess(pair.UserData.UID + "'s Pair Perm Access for you", pair.PairPermAccess);
+            DrawAppearance(pair.UserData.UID, pair.LastAppearanceData ?? new CharaAppearanceData());
+            DrawWardrobe(pair.UserData.UID, pair.LastWardrobeData ?? new CharaWardrobeData());
+            DrawAlias(pair.UserData.UID, pair.LastAliasData ?? new CharaAliasData());
+            DrawToybox(pair.UserData.UID, pair.LastToyboxData ?? new CharaToyboxData());
+            DrawLightStorage(pair.UserData.UID, pair.LastLightStorage ?? new CharaStorageData());
         }
     }
 
@@ -228,6 +230,7 @@ public class DebugTab
     private void DrawGlobalPermissions(string uid, UserGlobalPermissions perms)
     {
         using var nodeMain = ImRaii.TreeNode(uid + " Global Perms");
+        if (!nodeMain) return;
 
         using var table = ImRaii.Table("##debug-global" + uid, 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
         ImGui.TableSetupColumn("Permission");
@@ -275,6 +278,7 @@ public class DebugTab
     private void DrawPairPerms(string uid, UserPairPermissions perms)
     {
         using var nodeMain = ImRaii.TreeNode(uid + " Pair Perms");
+        if (!nodeMain) return;
 
         using var table = ImRaii.Table("##debug-pair" + uid, 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
         ImGui.TableSetupColumn("Permission");
@@ -340,6 +344,7 @@ public class DebugTab
     private void DrawPairPermAccess(string uid, UserEditAccessPermissions perms)
     {
         using var nodeMain = ImRaii.TreeNode(uid + " Perm Edit Access");
+        if (!nodeMain) return;
 
         using var table = ImRaii.Table("##debug-access-pair" + uid, 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
         ImGui.TableSetupColumn("Permission");
@@ -402,6 +407,7 @@ public class DebugTab
     private void DrawAppearance(string uid, CharaAppearanceData appearance)
     {
         using var nodeMain = ImRaii.TreeNode("Appearance Data");
+        if (!nodeMain) return;
 
         using var table = ImRaii.Table("##debug-appearance" + uid, 4, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
         ImGui.TableSetupColumn("##EmptyHeader");
@@ -436,6 +442,7 @@ public class DebugTab
     private void DrawWardrobe(string uid, CharaWardrobeData wardrobe)
     {
         using var nodeMain = ImRaii.TreeNode("Wardrobe Data");
+        if (!nodeMain) return;
 
         using (ImRaii.Table("##debug-wardrobe" + uid, 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit))
         {
@@ -460,6 +467,7 @@ public class DebugTab
     private void DrawAlias(string uid, CharaAliasData alias)
     {
         using var nodeMain = ImRaii.TreeNode("Alias Data");
+        if (!nodeMain) return;
 
         using var table = ImRaii.Table("##debug-aliasdata-" + uid, 2, ImGuiTableFlags.RowBg | ImGuiTableFlags.SizingFixedFit);
         ImGui.TableSetupColumn("Alias Input");
@@ -476,6 +484,7 @@ public class DebugTab
     private void DrawToybox(string uid, CharaToyboxData toybox)
     {
         using var nodeMain = ImRaii.TreeNode("Toybox Data");
+        if (!nodeMain) return;
 
         ImGui.Text("Active Pattern ID: " + toybox.ActivePatternId);
         using (ImRaii.TreeNode("Active Alarms"))
@@ -495,6 +504,7 @@ public class DebugTab
     private void DrawLightStorage(string uid, CharaStorageData lightStorage)
     {
         using var nodeMain = ImRaii.TreeNode("Light Storage Data");
+        if (!nodeMain) return;
 
         ImGui.Text("Blindfold Item Slot: " + lightStorage.BlindfoldItem.Slot);
 

@@ -46,6 +46,8 @@ internal class ReportPopupHandler : IPopupHandler
     public Vector2 PopupSize => new(800, 450);
     public bool ShowClosed => false;
     public bool CloseHovered { get; set; } = false;
+    public Vector2? WindowPadding => Vector2.Zero;
+    public float? WindowRounding => 35f;
 
     public void DrawContent()
     {

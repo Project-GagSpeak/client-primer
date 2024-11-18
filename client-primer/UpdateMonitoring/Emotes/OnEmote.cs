@@ -19,7 +19,7 @@ public class OnEmote : IDisposable
     private static class Signatures
     {
         // Will process rendered uses an emote. Can be us or anyone else. This is called after the emote has been executed.
-        public const string OnEmoteDetour = "40 53 56 41 54 41 57 48 83 EC ?? 48 8B 02";
+        public const string OnEmoteDetour = "E8 ?? ?? ?? ?? 48 8D 8B ?? ?? ?? ?? 4C 89 74 24";
     }
 
     // Processed only when the client requests to perform an emote. Performing an early return of this will result in it not being processed.

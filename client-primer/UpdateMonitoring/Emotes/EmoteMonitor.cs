@@ -1,11 +1,9 @@
 using Dalamud.Plugin.Services;
-using Dalamud.Utility;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using GagSpeak.UpdateMonitoring.Triggers;
 using Lumina.Excel;
 using Lumina.Excel.Sheets;
-using SixLabors.ImageSharp.Formats.Tiff.Compression.Decompressors;
 using System.Collections.ObjectModel;
 using ClientStructFramework = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 

@@ -62,7 +62,7 @@ public class AccountsTab
 
         // display title for account management
         _uiShared.GagspeakBigText(GSLoc.Settings.Accounts.SecondaryLabel);
-        if (_serverConfigs.HasAnySecretKeys())
+        if (_serverConfigs.HasAnyAltAuths())
         {
             // fetch the list of additional authentications that are not the primary account.
             var secondaryAuths = _serverConfigs.CurrentServer.Authentications.Where(c => !c.IsPrimary).ToList();
@@ -108,7 +108,7 @@ public class AccountsTab
 
             var hadEstablishedConnection = account.SecretKey.HasHadSuccessfulConnection;
 
-            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account", isInPopup: true, disabled: !hadEstablishedConnection || cannotDelete, id: "DeleteAccount" + account.CharacterPlayerContentId))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, "Delete Account", isInPopup: true, disabled: false/*!hadEstablishedConnection || cannotDelete*/, id: "DeleteAccount" + account.CharacterPlayerContentId))
             {
                 DeleteAccountConfirmation = true;
                 ImGui.OpenPopup("Delete your account?");
@@ -202,10 +202,11 @@ public class AccountsTab
 
             var buttonSize = (ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X - ImGui.GetStyle().ItemSpacing.X) / 2;
 
-            if (ImGui.Button(GSLoc.Settings.Accounts.DeleteButtonLabel, new Vector2(buttonSize, 0)))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.Trash, GSLoc.Settings.Accounts.DeleteButtonLabel, buttonSize, false, (!(KeyMonitor.CtrlPressed() && KeyMonitor.ShiftPressed()))))
             {
                 _ = RemoveAccountAndRelog(account, isPrimary);
             }
+            UiSharedService.AttachToolTip("CTRL+SHIFT Required");
 
             ImGui.SameLine();
 
@@ -223,47 +224,60 @@ public class AccountsTab
         var uid = MainHub.UID;
 
         // remove the current authentication.
-        _logger.LogInformation("Removing Authentication for current character.");
-        _serverConfigs.CurrentServer.Authentications.Remove(account);
-        _logger.LogInformation("Deleting Account from Server.");
-        await _apiHubMain.UserDelete();
-        // recreate a new authentication for this user.
-        if (!isPrimary)
+        try
         {
-            _logger.LogInformation("Recreating Authentication for current character.");
-            if (!_serverConfigs.AuthExistsForCurrentLocalContentId())
+            _logger.LogInformation("Deleting Account from Server.");
+            await _apiHubMain.UserDelete(!isPrimary);
+
+            // remove all patterns belonging to this account.
+            _logger.LogInformation("Removing Patterns for current character.");
+            _clientConfigs.RemoveAllPatternsFromUID(uid);
+
+            _logger.LogInformation("Removing Authentication for current character.");
+            _serverConfigs.CurrentServer.Authentications.Remove(account);
+
+            // recreate a new authentication for this user.
+            if (!isPrimary)
             {
-                _logger.LogDebug("Character has no secret key, generating new auth for current character", LoggerType.ApiCore);
-                _serverConfigs.GenerateAuthForCurrentCharacter();
+                _logger.LogInformation("Recreating Authentication for current character.");
+                if (!_serverConfigs.AuthExistsForCurrentLocalContentId())
+                {
+                    _logger.LogDebug("Character has no secret key, generating new auth for current character", LoggerType.ApiCore);
+                    _serverConfigs.GenerateAuthForCurrentCharacter();
+                }
+                // identify the location of the account profile folder.
+                var accountProfileFolder = Path.Combine(ConfigDirectory, uid);
+                // delete the account profile folder.
+                if (Directory.Exists(accountProfileFolder))
+                {
+                    _logger.LogDebug("Deleting Account Profile Folder for current character.", LoggerType.ApiCore);
+                    Directory.Delete(accountProfileFolder, true);
+                }
             }
-            // identify the location of the account profile folder.
-            var accountProfileFolder = Path.Combine(ConfigDirectory, uid);
-            // delete the account profile folder.
-            if (Directory.Exists(accountProfileFolder))
+            else
             {
-                _logger.LogDebug("Deleting Account Profile Folder for current character.", LoggerType.ApiCore);
-                Directory.Delete(accountProfileFolder, true);
+                // we should remove all other authentications from our server storage authentications and reconnect.
+                _serverConfigs.CurrentServer.Authentications.Clear();
+                _clientConfigs.GagspeakConfig.AcknowledgementUnderstood = false;
+                _clientConfigs.GagspeakConfig.AccountCreated = false;
+                _clientConfigs.GagspeakConfig.LastUidLoggedIn = "";
+                // fetch the collection of all folders that contain UID names. This is every folder except the ones named "eventlog" and "audiofiles".
+                var allFolders = Directory.GetDirectories(ConfigDirectory).Where(c => !c.Contains("eventlog") && !c.Contains("audiofiles")).ToList();
+                // delete all the folders.
+                foreach (var folder in allFolders)
+                {
+                    Directory.Delete(folder, true);
+                }
+                _logger.LogInformation("Removed all deleted account folders.");
+                _mediator.Publish(new SwitchToIntroUiMessage());
             }
+            DeleteAccountConfirmation = false;
+            _serverConfigs.Save();
+            _clientConfigs.Save();
         }
-        else
+        catch (Exception ex)
         {
-            // we should remove all other authentications from our server storage authentications and reconnect.
-            _serverConfigs.CurrentServer.Authentications.Clear();
-            _clientConfigs.GagspeakConfig.AcknowledgementUnderstood = false;
-            _clientConfigs.GagspeakConfig.AccountCreated = false;
-            _clientConfigs.GagspeakConfig.LastUidLoggedIn = "";
-            // fetch the collection of all folders that contain UID names. This is every folder except the ones named "eventlog" and "audiofiles".
-            var allFolders = Directory.GetDirectories(ConfigDirectory).Where(c => !c.Contains("eventlog") && !c.Contains("audiofiles")).ToList();
-            // delete all the folders.
-            foreach (var folder in allFolders)
-            {
-                Directory.Delete(folder, true);
-            }
-            _logger.LogInformation("Removed all deleted account folders.");
-            _mediator.Publish(new SwitchToIntroUiMessage());
+            _logger.LogError("Failed to delete account from server." + ex);
         }
-        DeleteAccountConfirmation = false;
-        _serverConfigs.Save();
-        _clientConfigs.Save();
     }
 }

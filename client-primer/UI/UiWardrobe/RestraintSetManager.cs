@@ -409,15 +409,14 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 }
 
                 // if the item is right clicked, open the popup
-                if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredSetList[i].Enabled)
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
-                    ImGui.OpenPopup($"RestraintSetContext{i}");
+                    if(LastHoveredIndex == i && !FilteredSetList[i].Enabled)
+                        ImGui.OpenPopup($"RestraintSetContext{i}");
                 }
             }
 
-
-            // if no item is hovered, reset the last hovered index
-            if (!anyItemHovered) LastHoveredIndex = -1;
+            bool isPopupOpen = LastHoveredIndex != -1 && ImGui.IsPopupOpen($"RestraintSetContext{LastHoveredIndex}");
 
             if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredSetList.Count)
             {
@@ -434,6 +433,9 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                     ImGui.EndPopup();
                 }
             }
+
+            // if no item is hovered, reset the last hovered index
+            if (!anyItemHovered && !isPopupOpen) LastHoveredIndex = -1;
         }
     }
 

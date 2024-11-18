@@ -228,7 +228,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<UnlocksEventManager>()
 
         // UpdateMonitoring Services
-        .AddSingleton((s) => new ClientMonitorService(s.GetRequiredService<ILogger<ClientMonitorService>>(), s.GetRequiredService<GagspeakMediator>(), cs, con, dm, gg, pl))
+        .AddSingleton((s) => new ClientMonitorService(s.GetRequiredService<ILogger<ClientMonitorService>>(), s.GetRequiredService<GagspeakMediator>(), cs, con, dm, fw, gg, pl))
         .AddSingleton((s) => new ActionMonitor(s.GetRequiredService<ILogger<ActionMonitor>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<WardrobeHandler>(),
             s.GetRequiredService<ClientMonitorService>(), gip))
@@ -266,22 +266,20 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<MoodlesAssociations>()
         .AddSingleton<KinkPlateFactory>()
 
-        // Register ObjectIdentification and ItemData
-        .AddSingleton<ObjectIdentification>()
+        // Register ItemData and everything else because apparently dependancy injection hates Penumbra.GameData???
         .AddSingleton<ItemData>()
+        .AddSingleton((s) => new DictBonusItems(pi, new Logger(), dm))
+        .AddSingleton((s) => new DictStain(pi, new Logger(), dm))
+        .AddSingleton((s) => new ItemsByType(pi, new Logger(), dm, s.GetRequiredService<DictBonusItems>()))
+        .AddSingleton((s) => new ItemsPrimaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>()))
+        .AddSingleton((s) => new ItemsSecondaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>()))
+        .AddSingleton((s) => new ItemsTertiaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>(), s.GetRequiredService<ItemsSecondaryModel>()))
+
 
         // UI Helpers
         .AddSingleton<SetPreviewComponent>()
         .AddSingleton<MainTabMenu>()
         .AddSingleton<AchievementTabsMenu>()
-        .AddSingleton((s) => new DictBonusItems(pi, new Logger(), dm))
-        .AddSingleton((s) => new DictStain(pi, new Logger(), dm))
-        .AddSingleton<ItemData>()
-        .AddSingleton((s) => new ItemsByType(pi, new Logger(), dm, s.GetRequiredService<DictBonusItems>()))
-        .AddSingleton((s) => new ItemsPrimaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>()))
-        .AddSingleton((s) => new ItemsSecondaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>()))
-        .AddSingleton((s) => new ItemsTertiaryModel(pi, new Logger(), dm, s.GetRequiredService<ItemsByType>(),
-            s.GetRequiredService<ItemsSecondaryModel>()))
         .AddSingleton((s) => new AccountsTab(s.GetRequiredService<ILogger<AccountsTab>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<ClientMonitorService>(),
             s.GetRequiredService<UiSharedService>(), pi.ConfigDirectory.FullName))

@@ -36,7 +36,7 @@ public record BonusDrawData
         EquippedBy = jsonObject["EquippedBy"]?.Value<string>() ?? string.Empty;
         Locked = jsonObject["Locked"]?.Value<bool>() ?? false;
         Slot = (BonusItemFlag)Enum.Parse(typeof(BonusItemFlag), jsonObject["Slot"]?.Value<string>() ?? string.Empty);
-        ulong customItemId = jsonObject["CustomItemId"]?.Value<ulong>() ?? 4294967164;
-        GameItem = ItemIdVars.Resolve(Slot, new CustomItemId(customItemId));
+        ushort customItemId = jsonObject["CustomItemId"]?.Value<ushort>() ?? ushort.MaxValue;
+        GameItem = ItemIdVars.Resolve(Slot, new BonusItemId(customItemId));
     }
 }

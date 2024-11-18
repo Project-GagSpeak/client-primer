@@ -1,15 +1,14 @@
+using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
-using GagSpeak.Localization;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
-using ImGuiNET;
-using OtterGui;
-using System.Numerics;
 using GagSpeak.WebAPI;
+using ImGuiNET;
+using System.Numerics;
 
 namespace GagSpeak.UI;
 
@@ -22,12 +21,13 @@ public class IntroUi : WindowMediatorSubscriberBase
     private readonly ClientMonitorService _clientService;
     private readonly UiSharedService _uiShared;
     private bool _readFirstPage = true;
+    private Task? _fetchAccountDetailsTask;
     private string _aquiredUID = string.Empty;
     private string _secretKey = string.Empty;
 
     public IntroUi(ILogger<IntroUi> logger, GagspeakMediator mediator, MainHub mainHub,
         GagspeakConfigService configService, ServerConfigurationManager serverConfigs,
-        ClientMonitorService clientService, UiSharedService uiShared) 
+        ClientMonitorService clientService, UiSharedService uiShared)
         : base(logger, mediator, "Welcome to GagSpeak! ♥")
     {
         _apiHubMain = mainHub;
@@ -35,7 +35,7 @@ public class IntroUi : WindowMediatorSubscriberBase
         _serverConfigs = serverConfigs;
         _clientService = clientService;
         _uiShared = uiShared;
-        
+
         IsOpen = false;
         ShowCloseButton = false;
         RespectCloseHotkey = false;
@@ -69,8 +69,8 @@ public class IntroUi : WindowMediatorSubscriberBase
             // seperator before the next button is available
             ImGui.Separator();
             // add a button to switch to the account setup page
-/*            if (ImGui.Button("Setup Account##toAgreement"))
-                _readFirstPage = true;*/
+            /*            if (ImGui.Button("Setup Account##toAgreement"))
+                            _readFirstPage = true;*/
         }
         // if they have read the first page but not yet created an account, we will need to present the account setup page for them.
         else if (!_configService.Current.AcknowledgementUnderstood && _readFirstPage)
@@ -99,18 +99,18 @@ public class IntroUi : WindowMediatorSubscriberBase
 
             // display the fields for generation and creation
             var oneTimeKeyGenButtonText = "One-Time Primary Key Generator";
-            if (ImGuiUtil.DrawDisabledButton(oneTimeKeyGenButtonText, Vector2.Zero, oneTimeKeyGenButtonText, _configService.Current.ButtonUsed))
+            if (_uiShared.IconTextButton(FontAwesomeIcon.UserPlus, oneTimeKeyGenButtonText, disabled: _configService.Current.ButtonUsed))
             {
                 // toggle the account created flag to true
                 _configService.Current.ButtonUsed = true;
                 _configService.Save();
                 // generate a secret key for the user.
-                _ = Task.Run(async () =>
-                {
-                    var accountDetails = await _apiHubMain.FetchFreshAccountDetails();
-                    _aquiredUID = accountDetails.Item1;
-                    _secretKey = accountDetails.Item2;
-                });
+                _fetchAccountDetailsTask = FetchAccountDetailsAsync();
+            }
+
+            if (_fetchAccountDetailsTask != null && !_fetchAccountDetailsTask.IsCompleted)
+            {
+                UiSharedService.ColorTextWrapped("Fetching details, please wait...", ImGuiColors.DalamudYellow);
             }
 
             // next place the text field for inserting the key, and then the button for creating the account.
@@ -171,6 +171,25 @@ public class IntroUi : WindowMediatorSubscriberBase
             Mediator.Publish(new SwitchToMainUiMessage());
             // toggle this intro UI window off.
             IsOpen = false;
+        }
+    }
+
+    private async Task FetchAccountDetailsAsync()
+    {
+        try
+        {
+            var accountDetails = await _apiHubMain.FetchFreshAccountDetails();
+            _aquiredUID = accountDetails.Item1;
+            _secretKey = accountDetails.Item2;
+            _fetchAccountDetailsTask = null;
+        }
+        catch (Exception)
+        {
+            // Log the error
+            _logger.LogError("Failed to fetch account details Server is likely down. Resetting Button.");
+            // Reset the button used flag
+            _configService.Current.ButtonUsed = false;
+            _configService.Save();
         }
     }
 }

@@ -19,6 +19,8 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 11)
+            .RegisterMain("Final DevPatch update for any beta testers to report anything that may have broken from the update.");
         VersionEntry(0, 9, 9, 10)
             .RegisterMain("PROBABLY THE FINAL CLOSED BETA UPDATE, JUST FYI")
             .RegisterMain("Profile editor has been polished up. Now supports light and full plate previews.")

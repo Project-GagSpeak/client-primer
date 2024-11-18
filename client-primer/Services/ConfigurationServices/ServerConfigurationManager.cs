@@ -44,14 +44,12 @@ public class ServerConfigurationManager
     public ServerTagStorage TagStorage => _serverTagConfig.Current.ServerTagStorage;
     public ServerNicknamesStorage NicknameStorage => _nicknamesConfig.Current.ServerNicknames;
 
-    public ulong GetLocalContentIdForCharacter() => _clientService.ContentId;
-
     /// <summary> Retrieves the key for the currently logged in character. Returns null if none found. </summary>
     /// <returns> The Secret Key </returns>
     public string? GetSecretKeyForCharacter()
     {
         // fetch the players local content ID (matches regardless of name or world change) and the name & worldId.
-        var LocalContentID = _clientService.ContentId;
+        var LocalContentID = _clientService.ContentIdAsync().GetAwaiter().GetResult();
 
         // Once we have obtained the information, check to see if the currently logged in character has a matching authentication with the same local content ID.
         Authentication? auth = CurrentServer.Authentications.Find(f => f.CharacterPlayerContentId == LocalContentID);
@@ -76,8 +74,8 @@ public class ServerConfigurationManager
         if (auth == null) return;
 
         // fetch the players name and world ID.
-        var charaName = _clientService.Name;
-        var worldId = _clientService.HomeWorldId;
+        var charaName = _clientService.NameAsync().GetAwaiter().GetResult();
+        var worldId = _clientService.HomeWorldIdAsync().GetAwaiter().GetResult();
 
         // update the name if it has changed.
         if (auth.CharacterName != charaName)
@@ -92,7 +90,7 @@ public class ServerConfigurationManager
         }
     }
 
-    public bool HasAnySecretKeys() => CurrentServer.Authentications.Any(a => !string.IsNullOrEmpty(a.SecretKey.Key));
+    public bool HasAnyAltAuths() => CurrentServer.Authentications.Any(a => !a.IsPrimary && !string.IsNullOrEmpty(a.SecretKey.Key));
 
     public bool CharacterHasSecretKey()
     {
@@ -109,9 +107,9 @@ public class ServerConfigurationManager
         // generates a new auth object for the list of authentications with no secret key.
         var auth = new Authentication
         {
-            CharacterPlayerContentId = _clientService.ContentId,
-            CharacterName = _clientService.Name,
-            WorldId = _clientService.HomeWorldId,
+            CharacterPlayerContentId = _clientService.ContentIdAsync().GetAwaiter().GetResult(),
+            CharacterName = _clientService.NameAsync().GetAwaiter().GetResult(),
+            WorldId = _clientService.HomeWorldIdAsync().GetAwaiter().GetResult(),
             IsPrimary = isPrimary,
             SecretKey = new SecretKey()
         };

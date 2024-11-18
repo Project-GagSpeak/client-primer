@@ -51,8 +51,8 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
         Mediator.Subscribe<MainHubReconnectingMessage>(this, (msg) => HubInstanceOnReconnecting(msg.Exception));
 
         // if we are already logged in, then run the login function
-        if (_clientService.IsLoggedIn)
-            OnLogin();
+/*        if (_clientService.IsLoggedIn)
+            OnLogin();*/
     }
 
     public static UserData PlayerUserData => ConnectionDto!.User;
@@ -226,10 +226,10 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
         }
     }
 
-    public override async Task Disconnect(ServerState disconnectionReason)
+    public override async Task Disconnect(ServerState disconnectionReason, bool saveAchievements = true)
     {
         // If our current state was Connected, be sure to fire, or at least attempt to fire, a final achievement save prior to disconnection.
-        if (ServerStatus is ServerState.Connected && AchievementManager.HadFailedAchievementDataLoad is false)
+        if (ServerStatus is ServerState.Connected && AchievementManager.HadFailedAchievementDataLoad is false && saveAchievements)
         {
             Logger.LogInformation("Sending Final Achievement SaveData Update before Hub Instance Disposal.", LoggerType.Achievements);
             await UserUpdateAchievementData(new(new(UID), AchievementManager.GetSaveDataDtoString()));
@@ -262,10 +262,10 @@ public sealed partial class MainHub : GagspeakHubBase, IGagspeakHubClient
         ServerStatus = disconnectionReason;
     }
 
-    public override async Task Reconnect()
+    public override async Task Reconnect(bool saveAchievements = true)
     {
         // Disconnect, wait 3 seconds, then connect.
-        await Disconnect(ServerState.Disconnected).ConfigureAwait(false);
+        await Disconnect(ServerState.Disconnected, saveAchievements).ConfigureAwait(false);
         await Task.Delay(TimeSpan.FromSeconds(5));
         await Connect().ConfigureAwait(false);
     }

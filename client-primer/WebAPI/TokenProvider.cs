@@ -74,7 +74,6 @@ public sealed class TokenProvider : DisposableMediatorSubscriberBase
     /// <param name="isRenewal">if the token is a renewal</param>
     /// <param name="identifier">the identifier requesting a new token</param>
     /// <param name="token">the cancelation token for the task</param>
-    /// <returns></returns>
     /// <exception cref="GagspeakAuthFailureException">If the authentication fails</exception>
     /// <exception cref="InvalidOperationException">If an invalid operation is attempted</exception>
     public async Task<string> GetNewToken(bool isRenewal, JwtIdentifier identifier, CancellationToken token)
@@ -225,13 +224,12 @@ public sealed class TokenProvider : DisposableMediatorSubscriberBase
     /// <returns>the JWT identifier object for the token</returns>
     private JwtIdentifier? GetIdentifier()
     {
-        var tempLocalContentID = _clientService.ContentId;
+        var tempLocalContentID = _clientService.ContentIdAsync().GetAwaiter().GetResult();
         try
         {
             var apiUrl = _serverManager.CurrentApiUrl;
             var charaHash = _frameworkUtil.GetPlayerNameHashedAsync().GetAwaiter().GetResult();
             var secretKey = _serverManager.GetSecretKeyForCharacter();
-
             // Example logic to decide which identifier to use.
             if (!string.IsNullOrEmpty(secretKey))
             {
@@ -299,7 +297,7 @@ public sealed class TokenProvider : DisposableMediatorSubscriberBase
         // await for the player to be present to get the JWT token
         try
         {
-            while (!_clientService.IsPresent && !linkedCTS.Token.IsCancellationRequested)
+            while (!await _clientService.IsPresentAsync().ConfigureAwait(false) && !linkedCTS.Token.IsCancellationRequested)
             {
                 Logger.LogDebug("Player not loaded in yet, waiting", LoggerType.ApiCore);
                 await Task.Delay(TimeSpan.FromSeconds(1), linkedCTS.Token).ConfigureAwait(false);
@@ -334,7 +332,7 @@ public sealed class TokenProvider : DisposableMediatorSubscriberBase
             if (jwt.ValidTo == DateTime.MinValue || jwt.ValidTo.Subtract(TimeSpan.FromMinutes(5)) > DateTime.UtcNow)
             {
                 // token was valid, so return it LOG NOTE: This is very spammy to the logs if left unchecked.
-                // Logger.LogTrace("GetOrUpdate: Returning token from cache");
+                Logger.LogTrace("GetOrUpdate: Returning Valid token from cache", LoggerType.JwtTokens);
                 return token;
             }
 

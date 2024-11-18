@@ -14,6 +14,7 @@ using GagspeakAPI.Enums;
 using GagspeakAPI.Dto.Patterns;
 using ImGuiNET;
 using System.Numerics;
+using System.Reflection.Metadata;
 
 namespace GagSpeak.Services;
 
@@ -172,7 +173,6 @@ public class PatternHubService : DisposableMediatorSubscriberBase
                 // if the pattern for whatever reason is enabled, set it to false, and also set appropriate download variables.
                 pattern.IsActive = false;
                 pattern.IsPublished = false;
-                pattern.CreatedByClient = false;
                 // Set the active pattern
                 _clientConfigs.AddNewPattern(pattern);
                 UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Downloaded, pattern.UniqueIdentifier, false);
@@ -244,22 +244,35 @@ public class PatternHubService : DisposableMediatorSubscriberBase
             UsesRotations = false,
             UsesOscillation = false,
         };
+        Logger.LogTrace("Uploading Pattern to server.", LoggerType.PatternHub);
         // construct the dto for the upload.
         PatternUploadDto patternDto = new(MainHub.PlayerUserData, patternInfo, base64Pattern);
         // perform the api call for the upload.
         UploadPatternTask = _apiHubMain.UploadPattern(patternDto);
         UploadPatternTask.ContinueWith(task =>
         {
+            Logger.LogTrace("UploadPatternTask completed.", LoggerType.PatternHub);
             if (task.Result)
             {
+
                 Mediator.Publish(new NotificationMessage("Pattern Upload", "uploaded successful!", NotificationType.Info));
                 // update the published state.
-                pattern.IsPublished = true;
-                // find the index of the pattern.
-                int patternIdx = _clientConfigs.PatternConfig.PatternStorage.Patterns.FindIndex(x => x.UniqueIdentifier == pattern.UniqueIdentifier);
+                if(_patternHandler.ClonedPatternForEdit is not null)
+                {
+                    Logger.LogDebug("ClonedPatternForEdit is not null, setting IsPublished to true.", LoggerType.PatternHub);
+                    _patternHandler.ClonedPatternForEdit.IsPublished = true;
+                    _patternHandler.SaveEditedPattern();
+                }
+                else
+                {
+                    Logger.LogDebug("ClonedPatternForEdit is null, setting IsPublished to true.", LoggerType.PatternHub);
+                    pattern.IsPublished = true;
+                }
+                UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Published, Guid.Empty, false);
             }
             else
             {
+                Logger.LogError("UploadPatternTask failed.");
                 Mediator.Publish(new NotificationMessage("Pattern Upload", "upload failed!", NotificationType.Error));
             }
             _ = ClearTaskInOneSecond(() => UploadPatternTask, () => UploadPatternTask = null);
@@ -286,15 +299,24 @@ public class PatternHubService : DisposableMediatorSubscriberBase
         {
             if (task.Result)
             {
+                Logger.LogTrace("RemovePatternTask completed.", LoggerType.PatternHub);
                 // if successful. Notify the success.
                 Mediator.Publish(new NotificationMessage("Pattern Removal", "removed successful!", NotificationType.Info));
-                patternToRemove.IsPublished = false;
-                // find the index of the pattern.
-                int patternIdx = _clientConfigs.PatternConfig.PatternStorage.Patterns.FindIndex(x => x.UniqueIdentifier == patternToRemove.UniqueIdentifier);
-                _clientConfigs.UpdatePattern(patternToRemove, patternIdx);
+                if (_patternHandler.ClonedPatternForEdit is not null)
+                {
+                    Logger.LogDebug("ClonedPatternForEdit is not null, setting IsPublished to true.", LoggerType.PatternHub);
+                    _patternHandler.ClonedPatternForEdit.IsPublished = false;
+                    _patternHandler.SaveEditedPattern();
+                }
+                else
+                {
+                    Logger.LogDebug("ClonedPatternForEdit is null, setting IsPublished to true.", LoggerType.PatternHub);
+                    patternToRemove.IsPublished = false;
+                }
             }
             else
             {
+                Logger.LogError("RemovePatternTask failed.");
                 Mediator.Publish(new NotificationMessage("Pattern Removal", "removal failed!", NotificationType.Error));
             }
             _ = ClearTaskInOneSecond(() => RemovePatternTask, () => RemovePatternTask = null);

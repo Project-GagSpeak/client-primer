@@ -83,10 +83,10 @@ public abstract class GagspeakHubBase : DisposableMediatorSubscriberBase
     /// Disconnects us from the GagSpeakHub-HUBTYPE.
     /// Sends a final update of our Achievement Save Data to the server before disconnecting.
     /// </summary>
-    public abstract Task Disconnect(ServerState disconnectionReason = ServerState.Disconnected);
+    public abstract Task Disconnect(ServerState disconnectionReason, bool saveAchievements = true);
 
     // Unknown purpose yet.
-    public virtual Task Reconnect() { return Task.CompletedTask; }
+    public virtual Task Reconnect(bool saveAchievements = true) { return Task.CompletedTask; }
 
     /// <summary>
     /// Determines if we meet the necessary requirements to connect to the hub.
@@ -101,7 +101,7 @@ public abstract class GagspeakHubBase : DisposableMediatorSubscriberBase
     protected async Task WaitForWhenPlayerIsPresent(CancellationToken token)
     {
         // wait to connect to the server until they have logged in with their player character and make sure the cancelation token has not yet been called
-        while (!_clientService.IsPresent && !token.IsCancellationRequested)
+        while (!await _clientService.IsPresentAsync().ConfigureAwait(false) && !token.IsCancellationRequested)
         {
             Logger.LogDebug("Player not loaded in yet, waiting", LoggerType.ApiCore);
             await Task.Delay(TimeSpan.FromSeconds(1), token).ConfigureAwait(false);

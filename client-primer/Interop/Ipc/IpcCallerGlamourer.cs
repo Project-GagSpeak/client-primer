@@ -133,7 +133,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task SetItemToCharacterAsync(ApiEquipSlot slot, ulong item, IReadOnlyList<byte> dye, uint variant)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || !_clientService.IsPresent) return;
+        if (!APIAvailable || _clientService.IsZoning) return;
         try
         {
             // await for us to be running on the framework thread. Once we are:
@@ -215,7 +215,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task<bool> ForceSetMetaData(MetaData metaData, bool? forcedState = null)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || !_clientService.IsPresent) return false;
+        if (!APIAvailable || _clientService.IsZoning) return false;
         try
         {
             return await _frameworkUtils.RunOnFrameworkThread(() =>
@@ -248,7 +248,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
     public async Task ForceSetCustomize(JToken customizations, JToken parameters)
     {
         // if the glamourerApi is not active, then return an empty string for the customization
-        if (!APIAvailable || !_clientService.IsPresent) return;
+        if (!APIAvailable || _clientService.IsZoning) return;
         try
         {
             await _frameworkUtils.RunOnFrameworkThread(() =>
@@ -272,7 +272,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public async Task GlamourerRevertToAutomation(bool reapply)
     {
-        if (!APIAvailable || !_clientService.IsPresent) return;
+        if (!APIAvailable || _clientService.IsZoning) return;
 
         try
         {
@@ -298,7 +298,7 @@ public sealed class IpcCallerGlamourer : DisposableMediatorSubscriberBase, IIpcC
 
     public async Task GlamourerRevertToGame(bool reapply)
     {
-        if (!APIAvailable || !_clientService.IsPresent) return;
+        if (!APIAvailable || _clientService.IsZoning) return;
 
         try
         {

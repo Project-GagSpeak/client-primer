@@ -1,15 +1,10 @@
-using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
 using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using FFXIVClientStructs.FFXIV.Component.GUI;
-using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.Mediator;
-using GagSpeak.Utils;
 using GagSpeak.WebAPI.Utils;
 using Microsoft.Extensions.Hosting;
 
@@ -42,7 +37,7 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
     public bool IsFrameworkUnloading => _framework.IsFrameworkUnloading;
 
     public OnFrameworkService(ILogger<OnFrameworkService> logger, GagspeakMediator mediator,
-        ClientMonitorService clientService, IDataManager gameData, IFramework framework, 
+        ClientMonitorService clientService, IDataManager gameData, IFramework framework,
         IObjectTable objectTable, ITargetManager targets) : base(logger, mediator)
     {
         _clientService = clientService;
@@ -137,103 +132,12 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
         return await RunOnFrameworkThread(GetObjectTablePlayers).ConfigureAwait(false);
     }
 
-
- /*   /// <summary> Get if the player is not null, and if FFXIVClientState determines the playercharacter is valid </summary>
-    /// <returns>a boolean telling us if the player character is present or not</returns>
-    public bool GetIsPlayerPresent()
-    {
-        EnsureIsOnFramework();
-        return _clientState.LocalPlayer != null && _clientState.LocalPlayer.IsValid();
-    }
-
-    /// <summary> Get if the player is not null, and if FFXIVClientState determines the playercharacter is valid
-    /// <para>This is done in Async as a task</para>
-    /// </summary>
-    /// <returns>a boolean telling us if the player character is present or not</returns>
-    public async Task<bool> GetIsPlayerPresentAsync()
-    {
-        return await RunOnFrameworkThread(GetIsPlayerPresent).ConfigureAwait(false);
-    }
-
-    /// <summary> Gets the player name. </summary>
-    /// <returns> The local player character's name. </returns>
-    public string GetPlayerName()
-    {
-        EnsureIsOnFramework();
-        return _clientState.LocalPlayer?.Name.ToString() ?? "--";
-    }
-
-    /// <summary> Gets the player name asynchronously </summary>
-    /// <returns> The local player character's name. </returns>
-    public async Task<string> GetPlayerNameAsync()
-    {
-        return await RunOnFrameworkThread(GetPlayerName).ConfigureAwait(false);
-    }*/
-
     /// <summary> Gets the player name hashed </summary>
     /// <returns> The local player character's name hashed </returns>
     public async Task<string> GetPlayerNameHashedAsync()
     {
         return await RunOnFrameworkThread(() => (_clientService.Name, (ushort)_clientService.ClientPlayer.HomeWorldId()).GetHash256()).ConfigureAwait(false);
     }
-
-    /*
-    public ulong GetPlayerLocalContentId()
-    {
-        EnsureIsOnFramework();
-        return _clientState.LocalContentId;
-    }
-
-    public async Task<ulong> GetPlayerLocalContentIdAsync()
-    {
-        return await RunOnFrameworkThread(GetPlayerLocalContentId).ConfigureAwait(false);
-    }
-
-
-    /// <summary> Gets the player characters pointer address</summary>
-    /// <returns> The pointer address of the player character</returns>
-    public nint GetPlayerPointer()
-    {
-        EnsureIsOnFramework();
-        return _clientState.LocalPlayer?.Address ?? nint.Zero;
-    }
-
-    /// <summary> Gets the player characters pointer address in async</summary>
-    /// <returns> The pointer address of the player character</returns>
-    public async Task<nint> GetPlayerPointerAsync()
-    {
-        return await RunOnFrameworkThread(GetPlayerPointer).ConfigureAwait(false);
-    }
-
-    /// <summary> Gets the player characters homeworld ID</summary>
-    /// <returns> a <c>uint</c> of your IPlayerCharacters homeworld ID</returns>
-    public uint GetHomeWorldId()
-    {
-        EnsureIsOnFramework();
-        return _clientState.LocalPlayer!.HomeWorld.RowId;
-    }
-
-    /// <summary> Gets the player characters homeworld ID asynchronously</summary>
-    /// <returns> a <c>uint</c> of Your IPlayerCharacters homeworld ID</returns>
-    public async Task<uint> GetHomeWorldIdAsync()
-    {
-        return await RunOnFrameworkThread(GetHomeWorldId).ConfigureAwait(false);
-    }
-
-    /// <summary> Gets the player characters ID of the world they are currently in.</summary>
-    /// <returns> a <c>uint</c> type for the ID of the current world.</returns>
-    public uint GetWorldId()
-    {
-        EnsureIsOnFramework();
-        return _clientState.LocalPlayer!.CurrentWorld.RowId;
-    }
-
-    /// <summary> Gets the player characters ID of the world they are currently in asynchronously.</summary>
-    /// <returns> a <c>uint</c> type for the ID of the current world.</returns>
-    public async Task<uint> GetWorldIdAsync()
-    {
-        return await RunOnFrameworkThread(GetWorldId).ConfigureAwait(false);
-    }*/
 
     /// <summary> Gets the player characters ID of the world they are currently in.</summary>
     /// <returns> a <c>uint</c> type for the ID of the current world.</returns>
@@ -366,13 +270,13 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
             Mediator.Publish(new CutsceneEndMessage());
         }
 
-        if(_clientService.InGPose && !IsInGpose)
+        if (_clientService.InGPose && !IsInGpose)
         {
             Logger.LogDebug("Gpose start");
             IsInGpose = true;
             Mediator.Publish(new GPoseStartMessage());
         }
-        else if(!_clientService.InGPose && IsInGpose)
+        else if (!_clientService.InGPose && IsInGpose)
         {
             Logger.LogDebug("Gpose end");
             IsInGpose = false;
@@ -412,9 +316,9 @@ public class OnFrameworkService : DisposableMediatorSubscriberBase, IHostedServi
             var newCommendations = PlayerState.Instance()->PlayerCommendations;
             if (newCommendations != LastCommendationsCount)
             {
-                Logger.LogDebug("Our Previous Commendation Count was: "+LastCommendationsCount+" and our new commendation count is: "+newCommendations);
+                Logger.LogDebug("Our Previous Commendation Count was: " + LastCommendationsCount + " and our new commendation count is: " + newCommendations);
                 // publish to mediator if we are logged in
-                if(_clientService.IsLoggedIn)
+                if (_clientService.IsLoggedIn)
                     Mediator.Publish(new CommendationsIncreasedMessage(newCommendations - LastCommendationsCount));
                 // update the count
                 LastCommendationsCount = newCommendations;

@@ -6,6 +6,7 @@ using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.WebAPI;
 using ImGuiNET;
 using System.Numerics;
 
@@ -33,6 +34,8 @@ public class SavePatternPopupHandler : IPopupHandler
     public Vector2 PopupSize => _size;
     public bool ShowClosed => false;
     public bool CloseHovered { get; set; } = false;
+    public Vector2? WindowPadding => null;
+    public float? WindowRounding => null;
 
     public void DrawContent()
     {
@@ -48,23 +51,20 @@ public class SavePatternPopupHandler : IPopupHandler
         ImGui.Separator();
         var name = CompiledPatternData.Name;
         ImGui.SetNextItemWidth(150);
-        ImGui.InputTextWithHint("Pattern Name", "Enter a name...", ref name, 48);
-        if (ImGui.IsItemDeactivatedAfterEdit())
+        if(ImGui.InputTextWithHint("Pattern Name", "Enter a name...", ref name, 48))
         {
             CompiledPatternData.Name = name;
         }
         // author field
         var author = CompiledPatternData.Author.IsNullOrEmpty() ? "Anonymous Kinkster" : CompiledPatternData.Author;
         ImGui.SetNextItemWidth(150);
-        ImGui.InputTextWithHint("Author", "Enter your name...", ref author, 24);
-        if (ImGui.IsItemDeactivatedAfterEdit())
+        if(ImGui.InputTextWithHint("Author", "Enter your name...", ref author, 24))
         {
             CompiledPatternData.Author = author;
         }
         // description field
         var description = CompiledPatternData.Description;
-        ImGui.InputTextMultiline("Description", ref description, 256, new Vector2(150, 100));
-        if(ImGui.IsItemDeactivatedAfterEdit())
+        if(ImGui.InputTextMultiline("Description", ref description, 256, new Vector2(150, 100)))
         {
             CompiledPatternData.Description = description;
         }
@@ -202,6 +202,7 @@ public class SavePatternPopupHandler : IPopupHandler
         CompiledPatternData.Duration = message.Duration;
         // set the pattern data
         CompiledPatternData.PatternByteData = message.StoredData;
-        // set vibration data
+        // set the creator.
+        CompiledPatternData.CreatorUID = MainHub.UID;
     }
 }

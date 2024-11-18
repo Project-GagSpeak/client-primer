@@ -132,23 +132,27 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
             // next line:
             using (var group3 = ImRaii.Group())
             {
-                ImGui.AlignTextToFramePadding();
-                _uiSharedService.IconText(FontAwesomeIcon.Tags);
-                UiSharedService.AttachToolTip("Tags for the Pattern");
-                ImGui.SameLine();
-                ImGui.TextUnformatted(string.Join(", ", patternInfo.Tags));
-
                 var vibeSize = _uiSharedService.GetIconData(FontAwesomeIcon.Water);
                 var rotationSize = _uiSharedService.GetIconData(FontAwesomeIcon.GroupArrowsRotate);
-                var oscillationSize = _uiSharedService.GetIconData(FontAwesomeIcon.WaveSquare);
-                float rightEnd = ImGui.GetContentRegionAvail().X - vibeSize.X - rotationSize.X - oscillationSize.X - 2*ImGui.GetStyle().ItemSpacing.X;
+                float allowedLength = ImGui.GetContentRegionAvail().X - vibeSize.X - rotationSize.X - ImGui.GetStyle().ItemSpacing.X;
+
+                ImGui.AlignTextToFramePadding();
+                _uiSharedService.IconText(FontAwesomeIcon.Tags);
+
+                UiSharedService.AttachToolTip("Tags for the Pattern");
+                ImGui.SameLine();
+                var tagsString = string.Join(", ", patternInfo.Tags);
+                if (ImGui.CalcTextSize(tagsString).X > allowedLength)
+                {
+                    tagsString = tagsString.Substring(0, (int)(allowedLength / ImGui.CalcTextSize("A").X)) + "...";
+                }
+                ImGui.TextUnformatted(tagsString);
+                float rightEnd = ImGui.GetContentRegionAvail().X - vibeSize.X - rotationSize.X - ImGui.GetStyle().ItemSpacing.X;
                 ImGui.SameLine(rightEnd);
                 _uiSharedService.BooleanToColoredIcon(patternInfo.UsesVibrations, false, FontAwesomeIcon.Water, FontAwesomeIcon.Water, ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
                 UiSharedService.AttachToolTip(patternInfo.UsesVibrations? "Uses Vibrations" : "Does not use Vibrations");
                 _uiSharedService.BooleanToColoredIcon(patternInfo.UsesRotations, true, FontAwesomeIcon.Sync, FontAwesomeIcon.Sync, ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
                 UiSharedService.AttachToolTip(patternInfo.UsesRotations ? "Uses Rotations" : "Does not use Rotations");
-                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesOscillation, true, FontAwesomeIcon.WaveSquare, FontAwesomeIcon.WaveSquare, ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
-                UiSharedService.AttachToolTip(patternInfo.UsesOscillation ? "Uses Oscillation" : "Does not use Oscillation");
             }
         }
 

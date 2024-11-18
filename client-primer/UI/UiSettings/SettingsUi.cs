@@ -193,14 +193,14 @@ public class SettingsUi : WindowMediatorSubscriberBase
 
                 if (ImGui.BeginTabItem("Debug"))
                 {
-                    _debugTab.DrawLoggerSettings();
+                    _debugTab.DrawDebugMain();
                     ImGui.EndTabItem();
                 }
 
                 // do not leave this uncommented for normal end users.
                 if (ImGui.BeginTabItem("Dev"))
                 {
-                    _debugTab.DrawDebugMain();
+                    _debugTab.DrawDevDebug();
                     ImGui.EndTabItem();
                 }
                 ImGui.EndTabBar();

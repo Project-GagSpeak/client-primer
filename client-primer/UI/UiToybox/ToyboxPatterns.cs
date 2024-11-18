@@ -146,46 +146,55 @@ public class ToyboxPatterns
             }
 
             // now calculate it so that the cursors Yposition centers the button in the middle height of the text
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()
-                - publishOrTakedownSize - iconSize.X * 2 - ImGui.GetStyle().ItemSpacing.X * 3);
+            var jumpWidth = _handler.ClonedPatternForEdit.CreatorUID == MainHub.UID
+                ? ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - publishOrTakedownSize - iconSize.X * 2 - ImGui.GetStyle().ItemSpacing.X * 3
+                : ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - iconSize.X * 2 - ImGui.GetStyle().ItemSpacing.X * 2;
+            ImGui.SameLine(jumpWidth);
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
             var currentYpos = ImGui.GetCursorPosY();
 
             // draw out the icon button
-            var disabled = _handler.ClonedPatternForEdit.CreatedByClient is false || (_handler.ClonedPatternForEdit.IsPublished is false && !canPublish);
-            if (_uiShared.IconTextButton(publishOrTakedownIcon, publishOrTakedownText, null, false, disabled))
+            if(_handler.ClonedPatternForEdit.CreatorUID == MainHub.UID)
             {
-                ImGui.OpenPopup("UploadPopup");
-                var buttonPos = ImGui.GetItemRectMin();
-                var buttonSize = ImGui.GetItemRectSize();
-                ImGui.SetNextWindowPos(new Vector2(buttonPos.X, buttonPos.Y + buttonSize.Y));
-            }
-            UiSharedService.AttachToolTip(canPublish is false
-                ? "Cannot Publish Patterns, your social features have been revoked!" : _handler.ClonedPatternForEdit.IsPublished 
-                    ? "Remove Pattern from Server" : "Upload Pattern to Server");
+                var disabled = _handler.ClonedPatternForEdit.IsPublished is false && !canPublish;
+                if (_uiShared.IconTextButton(publishOrTakedownIcon, publishOrTakedownText, null, false, disabled))
+                {
+                    ImGui.OpenPopup("UploadPopup");
+                    var buttonPos = ImGui.GetItemRectMin();
+                    var buttonSize = ImGui.GetItemRectSize();
+                    ImGui.SetNextWindowPos(new Vector2(buttonPos.X, buttonPos.Y + buttonSize.Y));
+                }
+                UiSharedService.AttachToolTip(canPublish is false
+                    ? "Cannot Publish Patterns, your social features have been revoked!" : _handler.ClonedPatternForEdit.IsPublished
+                        ? "Remove Pattern from Server" : "Upload Pattern to Server");
 
-            // for saving contents
-            ImGui.SameLine();
-            ImGui.SetCursorPosY(currentYpos);
+                // for saving contents
+                ImGui.SameLine();
+                ImGui.SetCursorPosY(currentYpos);
+            }
+
             if (_uiShared.IconButton(FontAwesomeIcon.Save))
                 _handler.SaveEditedPattern();
             UiSharedService.AttachToolTip("Save changes to Pattern & Return to Pattern List");
 
             // right beside it to the right, we need to draw the delete button
-            using (var disableDelete = ImRaii.Disabled(!KeyMonitor.ShiftPressed()))
+            ImGui.SameLine();
+            ImGui.SetCursorPosY(currentYpos);
+            if (_uiShared.IconButton(FontAwesomeIcon.Trash, disabled: !KeyMonitor.ShiftPressed()))
             {
-                ImGui.SameLine();
-                ImGui.SetCursorPosY(currentYpos);
-                if (_uiShared.IconButton(FontAwesomeIcon.Trash))
-                    _handler.RemovePattern(_handler.ClonedPatternForEdit.UniqueIdentifier);
+                _patternHubService.RemovePatternFromServer(FilteredPatternsList[LastHoveredIndex]);
+                _handler.RemovePattern(_handler.ClonedPatternForEdit.UniqueIdentifier);
             }
-            UiSharedService.AttachToolTip("Delete this Pattern\n(Must hold CTRL while clicking to delete)");
+            UiSharedService.AttachToolTip(
+                "Delete this Pattern" + Environment.NewLine +
+                "(Must hold SHIFT while clicking to delete)");
 
             try
             {
                 if (ImGui.BeginPopup("UploadPopup"))
                 {
-                    string text = canPublish && _handler.ClonedPatternForEdit.IsPublished ? "Remove Pattern from Server?" : "Upload Pattern to Server?";
+                    ImGui.InvisibleButton("##DummyWidth", new Vector2(ImGui.CalcTextSize("Yes I'm Sure __ Fuck, Go Back.").X, 0));
+                    string text = _handler.ClonedPatternForEdit.IsPublished ? "Remove Pattern from Server?" : "Upload Pattern to Server?";
                     ImGuiUtil.Center(text);
                     var width = (ImGui.GetContentRegionAvail().X / 2) - ImGui.GetStyle().ItemInnerSpacing.X;
                     if (ImGui.Button("Yes, I'm Sure", new Vector2(width, 25f)))
@@ -197,7 +206,6 @@ public class ToyboxPatterns
                         else
                         {
                             _patternHubService.UploadPatternToServer(_handler.ClonedPatternForEdit);
-                            UnlocksEventManager.AchievementEvent(UnlocksEvent.PatternAction, PatternInteractionKind.Published, Guid.Empty, false);
                         }
                         ImGui.CloseCurrentPopup();
                     }
@@ -257,26 +265,43 @@ public class ToyboxPatterns
                 }
 
                 // if the item is right clicked, open the popup
-                if (ImGui.IsItemClicked(ImGuiMouseButton.Right) && LastHoveredIndex == i && !FilteredPatternsList[i].IsActive)
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
-                    ImGui.OpenPopup($"PatternDataContext{i}");
+                    if (LastHoveredIndex == i && !FilteredPatternsList[i].IsActive)
+                        ImGui.OpenPopup($"PatternDataContext{i}");
                 }
             }
 
-            // if no item is hovered, reset the last hovered index
-            if (!anyItemHovered) LastHoveredIndex = -1;
+            bool isPopupOpen = LastHoveredIndex != -1 && ImGui.IsPopupOpen($"PatternDataContext{LastHoveredIndex}");
 
             if (LastHoveredIndex != -1 && LastHoveredIndex < FilteredPatternsList.Count)
             {
+                // Begin the popup for the current item
                 if (ImGui.BeginPopup($"PatternDataContext{LastHoveredIndex}"))
                 {
-                    if (ImGui.Selectable("Delete Pattern") && FilteredPatternsList[LastHoveredIndex] is not null)
+                    if(FilteredPatternsList[LastHoveredIndex].CreatorUID != MainHub.UID)
                     {
-                        _handler.RemovePattern(FilteredPatternsList[LastHoveredIndex].UniqueIdentifier);
+                        ImGui.Text("No Options Available for this Pattern.");
+                    }
+                    else
+                    {
+                        if (ImGui.Selectable("Delete Pattern"))
+                        {
+                            _handler.RemovePattern(FilteredPatternsList[LastHoveredIndex].UniqueIdentifier);
+                        }
+
+                        if (ImGui.Selectable("Unpublish & Delete Pattern"))
+                        {
+                            _patternHubService.RemovePatternFromServer(FilteredPatternsList[LastHoveredIndex]);
+                            _handler.RemovePattern(FilteredPatternsList[LastHoveredIndex].UniqueIdentifier);
+                        }
                     }
                     ImGui.EndPopup();
                 }
             }
+
+            // if no item is hovered, reset the last hovered index
+            if (!anyItemHovered && !isPopupOpen) LastHoveredIndex = -1;
         }
     }
 
@@ -403,7 +428,7 @@ public class ToyboxPatterns
         // author
         var refAuthor = pattern.Author;
         UiSharedService.ColorText("Author", ImGuiColors.ParsedGold);
-        using (var disableAuthor = ImRaii.Disabled(!pattern.CreatedByClient))
+        using (ImRaii.Disabled(pattern.CreatorUID != MainHub.UID))
         {
             ImGui.SetNextItemWidth(200f);
             if (ImGui.InputTextWithHint("##PatternAuthor", "Author Here...", ref refAuthor, 25))
@@ -422,6 +447,12 @@ public class ToyboxPatterns
             pattern.Description = refDescription;
         }
         _uiShared.DrawHelpText("Define the description for the Pattern.\n(Shown on tooltip hover if uploaded)");
+
+        // tags.
+        var tags = pattern.Tags;
+        UiSharedService.ColorText("Tags:", ImGuiColors.ParsedGold);
+        foreach (var tag in tags)
+            ImGui.TextUnformatted("- "+tag);
     }
 
     private void DrawAdjustments(PatternData pattern)

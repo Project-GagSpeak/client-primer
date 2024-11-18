@@ -40,8 +40,8 @@ public record PatternData
     /// <summary> If the pattern is uploaded to the server. </summary>
     public bool IsPublished { get; set; } = false;
 
-    /// <summary> Lets client know if the pattern is ours or theirs. </summary>
-    public bool CreatedByClient { get; set; } = true;
+    /// <summary> Let's us know who made the pattern. If empty, it was downloaded, if a string, it was one of our UID's. </summary>
+    public string CreatorUID { get; set; } = string.Empty;
 
     /// <summary> The pattern byte data </summary>
     public List<byte> PatternByteData { get; set; } = new();
@@ -72,7 +72,7 @@ public record PatternData
             IsActive = IsActive,
             ShouldLoop = ShouldLoop,
             IsPublished = IsPublished,
-            CreatedByClient = CreatedByClient,
+            CreatorUID = CreatorUID,
             PatternByteData = PatternByteData,
         };
     }
@@ -96,7 +96,7 @@ public record PatternData
             ["IsActive"] = IsActive,
             ["ShouldLoop"] = ShouldLoop,
             ["IsPublished"] = IsPublished,
-            ["CreatedByClient"] = CreatedByClient,
+            ["CreatedByClient"] = CreatorUID,
             ["PatternByteData"] = patternDataString,
         };
     }
@@ -123,7 +123,7 @@ public record PatternData
             IsActive = jsonObject["IsActive"]?.Value<bool>() ?? false;
             ShouldLoop = jsonObject["ShouldLoop"]?.Value<bool>() ?? false;
             IsPublished = jsonObject["IsPublished"]?.Value<bool>() ?? false;
-            CreatedByClient = jsonObject["CreatedByClient"]?.Value<bool>() ?? true; // prevent uploading if not failed.
+            CreatorUID = jsonObject["CreatedByClient"]?.Value<string>() ?? string.Empty; // prevent uploading if not failed.
 
             PatternByteData.Clear();
             var patternDataString = jsonObject["PatternByteData"]?.Value<string>();

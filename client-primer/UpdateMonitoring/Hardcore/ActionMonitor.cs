@@ -61,7 +61,9 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
 
         // if we are already logged in, then run the login function
         if (_clientService.IsLoggedIn)
-            UpdateJobList();
+        {
+            _clientService.RunOnFrameworkThread(UpdateJobList).ConfigureAwait(false);
+        }
     }
 
     public static bool MonitorHardcoreRestraintSetTraits = false;
@@ -206,29 +208,35 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         }
     }
 
-    // for updating our stored job list dictionary
-    private unsafe void UpdateJobList()
+    // this will be called by the job changed event. When it does,
+    // we will update our job list with the new job.
+    // This updates the job list dictionary.
+    private Task UpdateJobList()
     {
-        // this will be called by the job changed event. When it does, we will update our job list with the new job.
+        // change the getawaiter if running into issues here.
         if (_clientService.IsPresent)
         {
             Logger.LogDebug("Updating job list to : " + (JobType)_clientService.ClientPlayer.ClassJobId(), LoggerType.HardcoreActions);
             GagspeakActionData.GetJobActionProperties((JobType)_clientService.ClientPlayer.ClassJobId(), out var bannedJobActions);
             CurrentJobBannedActions = bannedJobActions; // updated our job list
             // only do this if we are logged in
-            if (_clientService.IsPresent && raptureHotbarModule->StandardHotbars != null)
+            unsafe
             {
-                GenerateCooldowns();
-            }
-            else
-            {
-                Logger.LogDebug("Player is null, or hotbars are null", LoggerType.HardcoreActions);
+                if (raptureHotbarModule->StandardHotbars != null)
+                {
+                    GenerateCooldowns();
+                }
+                else
+                {
+                    Logger.LogDebug("Player is null, or hotbars are null", LoggerType.HardcoreActions);
+                }
             }
         }
         else
         {
             Logger.LogDebug("Player is null, returning", LoggerType.HardcoreActions);
         }
+        return Task.CompletedTask;
     }
 
     private unsafe void GenerateCooldowns()

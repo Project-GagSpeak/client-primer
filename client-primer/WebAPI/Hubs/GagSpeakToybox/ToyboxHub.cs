@@ -205,7 +205,7 @@ public sealed partial class ToyboxHub : GagspeakHubBase, IToyboxHubClient
         }
     }
 
-    public override async Task Disconnect(ServerState disconnectionReason)
+    public override async Task Disconnect(ServerState disconnectionReason, bool saveAchievements = true)
     {
         // Set the new state to be Disconnecting.
         ServerStatus = ServerState.Disconnecting;

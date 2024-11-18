@@ -28,17 +28,19 @@ public class ClientMonitorService : IHostedService
     private readonly IClientState _clientState;
     private readonly ICondition _condition;
     private readonly IDataManager _gameData;
+    private readonly IFramework _framework;
     private readonly IGameGui _gameGui;
     private readonly IPartyList _partyList;
-    public ClientMonitorService(ILogger<ClientMonitorService> logger, GagspeakMediator mediator, 
-        IClientState clientState, ICondition condition, IDataManager gameData, IGameGui gameGui, 
-        IPartyList partyList)
+    public ClientMonitorService(ILogger<ClientMonitorService> logger, GagspeakMediator mediator,
+        IClientState clientState, ICondition condition, IDataManager gameData, IFramework framework, 
+        IGameGui gameGui, IPartyList partyList)
     {
         _logger = logger;
         _mediator = mediator;
         _clientState = clientState;
         _condition = condition;
         _gameData = gameData;
+        _framework = framework;
         _gameGui = gameGui;
         _partyList = partyList;
 
@@ -58,19 +60,26 @@ public class ClientMonitorService : IHostedService
     public static unsafe short Commondations => PlayerState.Instance()->PlayerCommendations;
     public static unsafe bool IsInDuty => GameMain.Instance()->CurrentContentFinderConditionId is not 0; // alternative method from IDutyState
     public static unsafe bool IsOnIsland => MJIManager.Instance()->IsPlayerInSanctuary is 1;
-
     public ClientLanguage ClientLanguage => _clientState.ClientLanguage;
-    public bool IsPresent => _clientState.LocalPlayer is not null && _clientState.LocalPlayer.IsValid() && _clientState.IsLoggedIn;
-    public bool IsDead => _clientState.LocalPlayer?.IsDead ?? true;
     public IPlayerCharacter? ClientPlayer => _clientState.LocalPlayer;
+    public bool IsPresent => _clientState.LocalPlayer is not null && _clientState.LocalPlayer.IsValid();
+    public async Task<bool> IsPresentAsync() => await RunOnFrameworkThread(() => IsPresent).ConfigureAwait(false); 
+    public ulong ContentId => _clientState.LocalContentId;
+    public async Task<ulong> ContentIdAsync() => await RunOnFrameworkThread(() => ContentId).ConfigureAwait(false);
+    public IntPtr Address => _clientState.LocalPlayer?.Address ?? IntPtr.Zero;
+    public string Name => _clientState.LocalPlayer.GetName();
+    public async Task<string> NameAsync() => await RunOnFrameworkThread(() => Name).ConfigureAwait(false);
+    public uint HomeWorldId => _clientState.LocalPlayer.HomeWorldId();
+    public async Task<uint> HomeWorldIdAsync() => await RunOnFrameworkThread(() => HomeWorldId).ConfigureAwait(false);
+    public string HomeWorldName => _clientState.LocalPlayer.HomeWorldName();
+
+    public byte Level => _clientState.LocalPlayer?.Level ?? 0;
+    public bool IsDead => _clientState.LocalPlayer?.IsDead ?? true;
     public ulong ObjectId => _clientState.LocalPlayer?.GameObjectId ?? ulong.MaxValue;
     public ushort ObjectTableIndex => _clientState.LocalPlayer?.ObjectIndex ?? ushort.MaxValue;
-    public IntPtr Address => _clientState.LocalPlayer?.Address ?? IntPtr.Zero;
-    public ulong ContentId => _clientState.LocalContentId;
-    public string Name => _clientState.LocalPlayer?.Name.ToString() ?? string.Empty;
-    public uint HomeWorldId => _clientState.LocalPlayer.HomeWorldId();
-    public string HomeWorldName => _clientState.LocalPlayer.HomeWorldName();
     public uint Health => _clientState.LocalPlayer?.CurrentHp ?? 0;
+    public ulong TargetObjectId => _clientState.LocalPlayer?.TargetObjectId ?? ulong.MaxValue;
+
     public bool IsLoggedIn => _clientState.IsLoggedIn;
     public bool InQuestEvent => _condition[ConditionFlag.OccupiedInQuestEvent];
     public bool IsChocoboRacing => _condition[ConditionFlag.ChocoboRacing];
@@ -81,15 +90,12 @@ public class ClientMonitorService : IHostedService
     public bool InCutscene => !InDungeonDuty && _condition[ConditionFlag.OccupiedInCutSceneEvent] || _condition[ConditionFlag.WatchingCutscene78];
     public bool InMainCity => _gameData.GetExcelSheet<Aetheryte>()?.Any(x => x.IsAetheryte && x.Territory.RowId == _clientState.TerritoryType && x.Territory.Value.TerritoryIntendedUse.Value.RowId is 0) ?? false;
     public string MainCityName => _gameData.GetExcelSheet<Aetheryte>()?.FirstOrDefault(x => x.IsAetheryte && x.Territory.RowId == _clientState.TerritoryType && x.Territory.Value.TerritoryIntendedUse.Value.RowId is 0).PlaceName.ToString() ?? "Unknown";
-    public byte Level => _clientState.LocalPlayer?.Level ?? 0;
     public ushort TerritoryId => _clientState.TerritoryType;
     public TerritoryType TerritoryType => _gameData.GetExcelSheet<TerritoryType>()?.GetRowOrDefault(TerritoryId) ?? default;
     public TerritoryIntendedUseEnum TerritoryIntendedUse => (TerritoryIntendedUseEnum)(_gameData.GetExcelSheet<TerritoryType>().GetRowOrDefault(TerritoryId)?.TerritoryIntendedUse.ValueNullable?.RowId ?? default);
 
     public int PartySize => _partyList.Count;
     public bool InSoloParty => _partyList.Count is 1 && IsInDuty;
-    public ulong TargetObjectId => _clientState.LocalPlayer?.TargetObjectId ?? ulong.MaxValue;
-
 
     public void OpenMapWithMapLink(MapLinkPayload mapLink) => _gameGui.OpenMapWithMapLink(mapLink);
     public bool TryGetAction(uint actionId, out GameAction action)
@@ -158,6 +164,25 @@ public class ClientMonitorService : IHostedService
         _mediator.Publish(new DalamudLogoutMessage(type, code));
     }
 
+    /// <summary> 
+    /// Helper function to ensure some actions called off the framework thread, 
+    /// happen on the framework thread. 
+    /// </summary>
+    public async Task<T> RunOnFrameworkThread<T>(Func<T> func)
+    {
+        if (!_framework.IsInFrameworkUpdateThread)
+        {
+            var result = await _framework.RunOnFrameworkThread(func).ContinueWith((task) => task.Result).ConfigureAwait(false);
+            while (_framework.IsInFrameworkUpdateThread)
+            {
+                _logger.LogTrace("Still on framework");
+                await Task.Delay(1).ConfigureAwait(false);
+            }
+            return result;
+        }
+        return func.Invoke();
+    }
+
     public Task StartAsync(CancellationToken cancellationToken)
     {
         StaticLogger.Logger.LogInformation("Starting ClientMonitorService");
@@ -174,7 +199,7 @@ public class ClientMonitorService : IHostedService
 public static class PlayerCharacterExtensions
 {
     public static nint GetPointer(this IPlayerCharacter? pc) => pc?.Address ?? IntPtr.Zero;
-    public static string GetName(this IPlayerCharacter pc) => pc.Name.ToString();
+    public static string GetName(this IPlayerCharacter? pc) => pc?.Name.ToString() ?? string.Empty;
     public static uint HomeWorldId(this IPlayerCharacter? pc) => pc?.HomeWorld.Value.RowId ?? 0;
     public static string HomeWorldName(this IPlayerCharacter? pc) => pc?.HomeWorld.Value.Name.ToString() ?? string.Empty;
     public static uint CurrentWorldId(this IPlayerCharacter? pc) => pc?.CurrentWorld.Value.RowId ?? 0;

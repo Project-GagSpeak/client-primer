@@ -56,10 +56,10 @@ public record GPoseEndMessage : MessageBase; // a message indicating the end of 
 public record CutsceneBeginMessage : MessageBase;
 public record CutsceneSkippedMessage : MessageBase; // Whenever a cutscene is skipped.
 public record ClientPlayerInCutscene : MessageBase; // Informs us when the player has been loaded in a cutscene.
-
 public record CutsceneEndMessage : MessageBase; // helps us know when to reapply data like moodles.
 public record ZoneSwitchStartMessage(ushort prevZone) : MessageBase; // know when we are beginning to switch zones
 public record ZoneSwitchEndMessage : MessageBase; // know when we have finished switching zones
+public record JobChangeMessage(uint jobId) : MessageBase; // know when we have changed jobs
 public record CommendationsIncreasedMessage(int amount) : MessageBase;
 
 /* ------------------ PLAYER DATA RELATED RECORDS------------------ */

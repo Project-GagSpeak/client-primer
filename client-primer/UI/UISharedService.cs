@@ -13,31 +13,30 @@ using GagSpeak.Interop;
 using GagSpeak.Interop.Ipc;
 using GagSpeak.Localization;
 using GagSpeak.PlayerData.Pairs;
+using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
 using ImGuiNET;
-using OtterGui;
 using OtterGui.Text;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
-using static FFXIVClientStructs.FFXIV.Client.UI.Misc.GroupPoseModule;
 
 
 namespace GagSpeak.UI;
 
 /// <summary> 
 /// The shared service for UI elements within our plugin. 
-/// 
+/// <para>
 /// This function should be expected to take advantage 
 /// of classes with common functionality, preventing copy pasting.
-/// 
+/// </para>
 /// Think of it as a collection of helpers for all functions.
 /// </summary>
-public partial class UiSharedService : DisposableMediatorSubscriberBase
+public partial class UiSharedService
 {
     public static readonly ImGuiWindowFlags PopupWindowFlags = ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse;
 
@@ -46,14 +45,15 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private const string _nicknameEnd = "##GAGSPEAK_USER_NICKNAME_END##";
     private const string _nicknameStart = "##GAGSPEAK_USER_NICKNAME_START##";
 
-    private readonly MainHub _apiHubMain;                              // our api controller for the server connectivity
-    private readonly ClientConfigurationManager _clientConfigs;    // the client-end related config service 
-    private readonly ServerConfigurationManager _serverConfigs;    // the server-end related config manager
-    private readonly OnFrameworkService _frameworkUtil;                         // helpers for functions that should occur dalamud's framework  thread
-    private readonly IpcManager _ipcManager;                                    // manager for the IPC's our plugin links 
-
-    private readonly IDalamudPluginInterface _pi;       // the primary interface for our plugin
-    private readonly ITextureProvider _textureProvider; // the texture provider for our plugin
+    private readonly ILogger<UiSharedService> _logger;
+    private readonly MainHub _apiHubMain;
+    private readonly ClientConfigurationManager _clientConfigs;
+    private readonly ServerConfigurationManager _serverConfigs;
+    private readonly UiFontService _fonts;
+    private readonly OnFrameworkService _frameworkUtil;
+    private readonly IpcManager _ipcManager;
+    private readonly IDalamudPluginInterface _pi;
+    private readonly ITextureProvider _textureProvider;
 
     public Dictionary<string, object> _selectedComboItems;    // the selected combo items
     public Dictionary<string, string> SearchStrings;
@@ -62,15 +62,16 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     private bool _customizePlusExists = false;                          // if customize plus currently exists on the client
     private bool _moodlesExists = false;                                // if moodles currently exists on the client
 
-    public UiSharedService(ILogger<UiSharedService> logger, GagspeakMediator mediator,
-        MainHub apiHubMain, ClientConfigurationManager clientConfigs,
-        ServerConfigurationManager serverConfigs, OnFrameworkService frameworkUtil, 
-        IpcManager ipcManager, IDalamudPluginInterface pi, ITextureProvider textureProvider)
-        : base(logger, mediator)
+    public UiSharedService(ILogger<UiSharedService> logger, MainHub apiHubMain, 
+        ClientConfigurationManager clientConfigs, ServerConfigurationManager serverConfigs,
+        UiFontService fonts, OnFrameworkService frameworkUtil, IpcManager ipcManager, 
+        IDalamudPluginInterface pi, ITextureProvider textureProvider)
     {
+        _logger = logger;
         _apiHubMain = apiHubMain;
         _clientConfigs = clientConfigs;
         _serverConfigs = serverConfigs;
+        _fonts = fonts;
         _frameworkUtil = frameworkUtil;
         _ipcManager = ipcManager;
         _pi = pi;
@@ -78,112 +79,16 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         _selectedComboItems = new(StringComparer.Ordinal);
         SearchStrings = new(StringComparer.Ordinal);
-
-        // A subscription from our mediator to see on each delayed framework if the IPC's are available from the IPC manager
-        Mediator.Subscribe<DelayedFrameworkUpdateMessage>(this, (_) =>
-        {
-            _penumbraExists = IpcCallerPenumbra.APIAvailable;
-            _glamourerExists = IpcCallerGlamourer.APIAvailable;
-            _customizePlusExists = IpcCallerCustomize.APIAvailable;
-            _moodlesExists = IpcCallerMoodles.APIAvailable;
-        });
-
-        // the special gagspeak font that i cant ever get to load for some wierd ass reason.
-        var gagspeakFontFile = Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", "DoulosSIL-Regular.ttf");
-        if (File.Exists(gagspeakFontFile))
-        {
-            // get the glyph ranges
-            var glyphRanges = GetGlyphRanges();
-
-            // create the font handle
-            GagspeakFont = _pi.UiBuilder.FontAtlas.NewDelegateFontHandle(e => e.OnPreBuild(
-                tk => tk.AddFontFromFile(gagspeakFontFile, new SafeFontConfig { SizePx = 22, GlyphRanges = glyphRanges })));
-
-            GagspeakLabelFont = _pi.UiBuilder.FontAtlas.NewDelegateFontHandle(e => e.OnPreBuild(
-                tk => tk.AddFontFromFile(gagspeakFontFile, new SafeFontConfig { SizePx = 36, GlyphRanges = glyphRanges })));
-
-            GagspeakTitleFont = _pi.UiBuilder.FontAtlas.NewDelegateFontHandle(e => e.OnPreBuild(
-                tk => tk.AddFontFromFile(gagspeakFontFile, new SafeFontConfig { SizePx = 48, GlyphRanges = glyphRanges })));
-        }
-
-        // the font atlas for our UID display (make it the font from gagspeak probably unless this fits more)
-        UidFont = _pi.UiBuilder.FontAtlas.NewDelegateFontHandle(e =>
-        {
-            e.OnPreBuild(tk => tk.AddDalamudAssetFont(Dalamud.DalamudAsset.NotoSansJpMedium, new()
-            {
-                SizePx = 35
-            }));
-        });
-
-        // the font atlas for our game font
-        GameFont = _pi.UiBuilder.FontAtlas.NewGameFontHandle(new(GameFontFamilyAndSize.Axis12));
-        // the font atlas for our icon font
-        IconFont = _pi.UiBuilder.IconFontFixedWidthHandle;
     }
-
-    /*    public ApiController ApiController => _apiController;   // a public accessible api controller for the plugin, pulled from the private field*/
-    public IFontHandle GameFont { get; init; } // the current game font
-    public IFontHandle IconFont { get; init; } // the current icon font
-    public IFontHandle UidFont { get; init; } // the current UID font
-    public IFontHandle GagspeakFont { get; init; }
-    public IFontHandle GagspeakLabelFont { get; init; }
-    public IFontHandle GagspeakTitleFont { get; init; }
     public Vector2 LastMainUIWindowPosition { get; set; } = Vector2.Zero;
     public Vector2 LastMainUIWindowSize { get; set; } = Vector2.Zero;
 
-    protected override void Dispose(bool disposing)
-    {
-        if (!disposing) return;
-
-        base.Dispose(disposing);
-        GagspeakFont.Dispose();
-        GagspeakLabelFont.Dispose();
-        GagspeakTitleFont.Dispose();
-        UidFont.Dispose();
-        GameFont.Dispose();
-    }
-
-    private ushort[] GetGlyphRanges() // Used for the GagSpeak custom Font Service to be injected properly.
-    {
-        return new ushort[] {
-            0x0020, 0x007E,  // Basic Latin
-            0x00A0, 0x00FF,  // Latin-1 Supplement
-            0x0100, 0x017F,  // Latin Extended-A
-            0x0180, 0x024F,  // Latin Extended-B
-            0x0250, 0x02AF,  // IPA Extensions
-            0x02B0, 0x02FF,  // Spacing Modifier Letters
-            0x0300, 0x036F,  // Combining Diacritical Marks
-            0x0370, 0x03FF,  // Greek and Coptic
-            0x0400, 0x04FF,  // Cyrillic
-            0x0500, 0x052F,  // Cyrillic Supplement
-            0x1AB0, 0x1AFF,  // Combining Diacritical Marks Extended
-            0x1D00, 0x1D7F,  // Phonetic Extensions
-            0x1D80, 0x1DBF,  // Phonetic Extensions Supplement
-            0x1DC0, 0x1DFF,  // Combining Diacritical Marks Supplement
-            0x1E00, 0x1EFF,  // Latin Extended Additional
-            0x2000, 0x206F,  // General Punctuation
-            0x2070, 0x209F,  // Superscripts and Subscripts
-            0x20A0, 0x20CF,  // Currency Symbols
-            0x20D0, 0x20FF,  // Combining Diacritical Marks for Symbols
-            0x2100, 0x214F,  // Letterlike Symbols
-            0x2150, 0x218F,  // Number Forms
-            0x2190, 0x21FF,  // Arrows
-            0x2200, 0x22FF,  // Mathematical Operators
-            0x2300, 0x23FF,  // Miscellaneous Technical
-            0x2400, 0x243F,  // Control Pictures
-            0x2440, 0x245F,  // Optical Character Recognition
-            0x2460, 0x24FF,  // Enclosed Alphanumerics
-            0x2500, 0x257F,  // Box Drawing
-            0x2580, 0x259F,  // Block Elements
-            0x25A0, 0x25FF,  // Geometric Shapes
-            0x2600, 0x26FF,  // Miscellaneous Symbols
-            0x2700, 0x27BF,  // Dingbats
-            0x27C0, 0x27EF,  // Miscellaneous Mathematical Symbols-A
-            0x27F0, 0x27FF,  // Supplemental Arrows-A
-            0
-        };
-    }
-
+    public IFontHandle GameFont => _fonts.GameFont;
+    public IFontHandle IconFont => _fonts.IconFont;
+    public IFontHandle UidFont => _fonts.UidFont;
+    public IFontHandle GagspeakFont => _fonts.GagspeakFont;
+    public IFontHandle GagspeakLabelFont => _fonts.GagspeakLabelFont;
+    public IFontHandle GagspeakTitleFont => _fonts.GagspeakTitleFont;
     public IDalamudTextureWrap GetImageFromDirectoryFile(string path)
         => _textureProvider.GetFromFile(Path.Combine(_pi.AssemblyLocation.DirectoryName!, "Assets", path)).GetWrapOrEmpty();
 
@@ -193,7 +98,6 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     /// <summary> 
     /// A helper function to attach a tooltip to a section in the UI currently hovered. 
     /// </summary>
-    /// <param name="text"> The text to display in the tooltip. </param>
     public static void AttachToolTip(string text, float borderSize = 1f, Vector4? color = null)
     {
         // if the item is currently hovered, with the ImGuiHoveredFlags set to allow when disabled
@@ -391,7 +295,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     public float GetIconTextButtonSize(FontAwesomeIcon icon, string text)
     {
         Vector2 vector;
-        using (IconFont.Push())
+        using (_fonts.IconFont.Push())
             vector = ImGui.CalcTextSize(icon.ToIconString());
 
         Vector2 vector2 = ImGui.CalcTextSize(text);
@@ -447,7 +351,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
         var oldCur = ImGui.GetCursorPosX();
         bool result = ImGui.Button(string.Empty, buttonSize);
-        //Logger.LogTrace("Result of button: {result}", result);
+        //_logger.LogTrace("Result of button: {result}", result);
         ImGui.SameLine(0, 0);
         UtilsExtensions.CenteredLineWidths[ID] = ImGui.GetCursorPosX() - oldCur;
         ImGui.Dummy(Vector2.Zero);
@@ -477,7 +381,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         ImGui.PushID((id == null) ? icon.ToIconString() : id + icon.ToIconString());
         Vector2 vector;
-        using (IconFont.Push())
+        using (_fonts.IconFont.Push())
             vector = ImGui.CalcTextSize(text);
         ImDrawListPtr windowDrawList = ImGui.GetWindowDrawList();
         Vector2 cursorScreenPos = ImGui.GetCursorScreenPos();
@@ -486,7 +390,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         bool result = ImGui.Button(string.Empty, new Vector2(x, frameHeight));
         Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X,
             cursorScreenPos.Y + (height ?? ImGui.GetFrameHeight()) / 2f - (vector.Y / 2f));
-        using (IconFont.Push())
+        using (_fonts.IconFont.Push())
             windowDrawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), text);
         ImGui.PopID();
 
@@ -509,7 +413,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         ImGui.PushID(text + "##" + id);
         Vector2 vector;
-        using (IconFont.Push())
+        using (_fonts.IconFont.Push())
             vector = ImGui.CalcTextSize(icon.ToIconString());
         Vector2 vector2 = ImGui.CalcTextSize(text);
         ImDrawListPtr windowDrawList = ImGui.GetWindowDrawList();
@@ -519,7 +423,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         float frameHeight = ImGui.GetFrameHeight();
         bool result = ImGui.Button(string.Empty, new Vector2(x, frameHeight));
         Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
-        using (IconFont.Push())
+        using (_fonts.IconFont.Push())
             windowDrawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
         Vector2 pos2 = new Vector2(pos.X + vector.X + num2, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
         windowDrawList.AddText(pos2, ImGui.GetColorU32(ImGuiCol.Text), text);
@@ -555,7 +459,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         ImGui.PushID(id);
         Vector2 vector;
-        using (IconFont.Push())
+        using (_fonts.IconFont.Push())
             vector = ImGui.CalcTextSize(icon.ToIconString());
         Vector2 vector2 = ImGui.CalcTextSize(label);
         ImDrawListPtr windowDrawList = ImGui.GetWindowDrawList();
@@ -568,7 +472,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         bool result = ImGui.SliderFloat(label + "##" + id, ref valueRef, min, max, format);
 
         Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
-        using (IconFont.Push())
+        using (_fonts.IconFont.Push())
             windowDrawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
         ImGui.PopID();
         if (num > 0)
@@ -603,7 +507,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
         ImGui.PushID(id);
         Vector2 vector;
-        using (IconFont.Push())
+        using (_fonts.IconFont.Push())
             vector = ImGui.CalcTextSize(icon.ToIconString());
         Vector2 vector2 = ImGui.CalcTextSize(label);
         ImDrawListPtr windowDrawList = ImGui.GetWindowDrawList();
@@ -616,7 +520,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         bool result = ImGui.InputTextWithHint(label, hint, ref inputStr, maxLength, ImGuiInputTextFlags.EnterReturnsTrue);
 
         Vector2 pos = new Vector2(cursorScreenPos.X + ImGui.GetStyle().FramePadding.X, cursorScreenPos.Y + ImGui.GetStyle().FramePadding.Y);
-        using (IconFont.Push())
+        using (_fonts.IconFont.Push())
             windowDrawList.AddText(pos, ImGui.GetColorU32(ImGuiCol.Text), icon.ToIconString());
         ImGui.PopID();
         if (num > 0)
@@ -675,14 +579,14 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     /// <summary> Validates a password </summary>
     public bool ValidatePassword(string password)
     {
-        Logger.LogDebug($"Validating Password {password}");
+        _logger.LogDebug($"Validating Password {password}");
         return !string.IsNullOrWhiteSpace(password) && password.Length <= 20 && !password.Contains(" ");
     }
 
     /// <summary> Validates a 4 digit combination </summary>
     public bool ValidateCombination(string combination)
     {
-        Logger.LogDebug($"Validating Combination {combination}");
+        _logger.LogDebug($"Validating Combination {combination}");
         return int.TryParse(combination, out _) && combination.Length == 4;
     }
 
@@ -854,7 +758,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             }
             catch
             {
-                Logger.LogWarning("Could not parse {note}", note);
+                _logger.LogWarning("Could not parse {note}", note);
             }
         }
 
@@ -864,16 +768,16 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
     }
 
     public void GagspeakText(string text, Vector4? color = null)
-        => FontText(text, GagspeakFont, color);
+        => FontText(text, _fonts.GagspeakFont, color);
 
     public void GagspeakBigText(string text, Vector4? color = null)
-        => FontText(text, GagspeakLabelFont, color);
+        => FontText(text, _fonts.GagspeakLabelFont, color);
 
     public void GagspeakTitleText(string text, Vector4? color = null)
-        => FontText(text, GagspeakTitleFont, color);
+        => FontText(text, _fonts.GagspeakTitleFont, color);
 
     public void BigText(string text, Vector4? color = null)
-        => FontText(text, UidFont, color);
+        => FontText(text, _fonts.UidFont, color);
 
     private static int FindWrapPosition(string text, float wrapWidth)
     {
@@ -1092,7 +996,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         // Check if the item was right-clicked. If so, reset to default value.
         if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
         {
-            Logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboName);
+            _logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboName);
             selectedItem = comboItems.First();
             _selectedComboItems[comboName] = selectedItem!;
             onSelected?.Invoke((T)selectedItem!);
@@ -1100,7 +1004,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         return;
     }
 
-    public void DrawComboSearchable<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName, 
+    public void DrawComboSearchable<T>(string comboName, float width, IEnumerable<T> comboItems, Func<T, string> toName,
         bool showLabel = true, Action<T?>? onSelected = null, T? initialSelectedItem = default,
         string defaultPreviewText = "No Items Available...", ImGuiComboFlags flags = ImGuiComboFlags.None)
     {
@@ -1163,7 +1067,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
                     bool isSelected = EqualityComparer<T>.Default.Equals(item, (T?)selectedItem);
                     if (ImGui.Selectable(toName(item), isSelected))
                     {
-                        Logger.LogTrace("Selected {item} from {comboName}", toName(item), comboName);
+                        _logger.LogTrace("Selected {item} from {comboName}", toName(item), comboName);
                         _selectedComboItems[comboName] = item!;
                         onSelected?.Invoke(item!);
                     }
@@ -1173,7 +1077,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             // Check if the item was right-clicked. If so, reset to default value.
             if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
             {
-                Logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboName);
+                _logger.LogTrace("Right-clicked on {comboName}. Resetting to default value.", comboName);
                 selectedItem = comboItems.First();
                 _selectedComboItems[comboName] = selectedItem!;
                 onSelected?.Invoke((T)selectedItem!);
@@ -1181,7 +1085,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error in DrawComboSearchable");
+            _logger.LogError(ex, "Error in DrawComboSearchable");
         }
     }
 
@@ -1224,7 +1128,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         Vector2 patternSecondTextSize;
         Vector2 patternMillisecondTextSize;
 
-        using (UidFont.Push())
+        using (_fonts.UidFont.Push())
         {
             patternHourTextSize = ImGui.CalcTextSize($"{patternDuration.Hours:00}h");
             patternMinuteTextSize = ImGui.CalcTextSize($"{patternDuration.Minutes:00}m");
@@ -1298,7 +1202,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         };
 
         float CurrentValBigSize;
-        using (UidFont.Push())
+        using (_fonts.UidFont.Push())
         {
             CurrentValBigSize = ImGui.CalcTextSize(currentValue).X;
         }
@@ -1337,7 +1241,7 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
             // update the duration
             duration = new TimeSpan(0, hours, minutes, seconds, milliseconds);
 
-            //Logger.LogDebug($"Duration changed to {duration.ToString("hh\\:mm\\:ss\\:fff")}");
+            //_logger.LogDebug($"Duration changed to {duration.ToString("hh\\:mm\\:ss\\:fff")}");
         }
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5f);
         var offset2 = (CurrentValBigSize - ImGui.CalcTextSize(prevValue).X) / 2;
@@ -1377,33 +1281,33 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
         ImGui.SameLine();
         ImGui.TextUnformatted("Penumbra");
         ImGui.SameLine();
-        IconText(_penumbraExists ? check : cross, GetBoolColor(_penumbraExists));
+        IconText(IpcCallerPenumbra.APIAvailable ? check : cross, GetBoolColor(IpcCallerPenumbra.APIAvailable));
         ImGui.SameLine();
-        AttachToolTip(_penumbraExists ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
+        AttachToolTip(IpcCallerPenumbra.APIAvailable ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
         ImGui.Spacing();
 
         ImGui.SameLine();
         ImGui.TextUnformatted("Glamourer");
         ImGui.SameLine();
-        IconText(_glamourerExists ? check : cross, GetBoolColor(_glamourerExists));
+        IconText(IpcCallerGlamourer.APIAvailable ? check : cross, GetBoolColor(IpcCallerGlamourer.APIAvailable));
         ImGui.SameLine();
-        AttachToolTip(_glamourerExists ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
+        AttachToolTip(IpcCallerGlamourer.APIAvailable ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
         ImGui.Spacing();
 
         ImGui.SameLine();
         ImGui.TextUnformatted("Customize+");
         ImGui.SameLine();
-        IconText(_customizePlusExists ? check : cross, GetBoolColor(_customizePlusExists));
+        IconText(IpcCallerCustomize.APIAvailable ? check : cross, GetBoolColor(IpcCallerCustomize.APIAvailable));
         ImGui.SameLine();
-        AttachToolTip(_customizePlusExists ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
+        AttachToolTip(IpcCallerCustomize.APIAvailable ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
         ImGui.Spacing();
 
         ImGui.SameLine();
         ImGui.TextUnformatted("Moodles");
         ImGui.SameLine();
-        IconText(_moodlesExists ? check : cross, GetBoolColor(_moodlesExists));
+        IconText(IpcCallerMoodles.APIAvailable ? check : cross, GetBoolColor(IpcCallerMoodles.APIAvailable));
         ImGui.SameLine();
-        AttachToolTip(_moodlesExists ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
+        AttachToolTip(IpcCallerMoodles.APIAvailable ? GSLoc.Settings.PluginValid : GSLoc.Settings.PluginInvalid);
         ImGui.Spacing();
 
         return true;
@@ -1411,19 +1315,19 @@ public partial class UiSharedService : DisposableMediatorSubscriberBase
 
     public Vector2 GetIconButtonSize(FontAwesomeIcon icon)
     {
-        using var font = IconFont.Push();
+        using var font = _fonts.IconFont.Push();
         return ImGuiHelpers.GetButtonSize(icon.ToIconString());
     }
 
     public Vector2 GetIconData(FontAwesomeIcon icon)
     {
-        using var font = IconFont.Push();
+        using var font = _fonts.IconFont.Push();
         return ImGui.CalcTextSize(icon.ToIconString());
     }
 
     public void IconText(FontAwesomeIcon icon, uint color)
     {
-        FontText(icon.ToIconString(), IconFont, color);
+        FontText(icon.ToIconString(), _fonts.IconFont, color);
     }
 
     public void IconText(FontAwesomeIcon icon, Vector4? color = null)

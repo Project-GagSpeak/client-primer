@@ -8,6 +8,7 @@ using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.UI.Components;
 using GagSpeak.WebAPI;
 using ImGuiNET;
@@ -31,6 +32,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private readonly MainUiPatternHub _patternHub;
     private readonly MainUiChat _globalChat;
     private readonly MainUiAccount _account;
+    private readonly TutorialService _tutorialService;
     private readonly IDalamudPluginInterface _pi;
     private float _windowContentWidth;
     private bool _addingNewUser = false;
@@ -46,7 +48,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         UiSharedService uiShared, MainHub apiHubMain, GagspeakConfigService configService,
         PairManager pairManager, ServerConfigurationManager serverConfigs, MainUiHomepage homepage,
         MainUiWhitelist whitelist, MainUiPatternHub patternHub, MainUiChat globalChat,
-        MainUiAccount account, MainTabMenu tabMenu, DrawEntityFactory drawEntityFactory,
+        MainUiAccount account, MainTabMenu tabMenu, TutorialService tutorialService,
         IDalamudPluginInterface pi) : base(logger, mediator, "###GagSpeakMainUI")
     {
         _apiHubMain = apiHubMain;
@@ -58,6 +60,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         _patternHub = patternHub;
         _globalChat = globalChat;
         _account = account;
+        _tutorialService = tutorialService;
         _pi = pi;
         _uiShared = uiShared;
         _tabMenu = tabMenu;
@@ -84,25 +87,34 @@ public class MainWindowUI : WindowMediatorSubscriberBase
             },
             new TitleBarButton()
             {
-                Icon = FontAwesomeIcon.BellSlash,
+                Icon = FontAwesomeIcon.Book,
                 Click = (msg) =>
                 {
-                    Mediator.Publish(new UiToggleMessage(typeof(InteractionEventsUI)));
+                    Mediator.Publish(new UiToggleMessage(typeof(ChangelogUI)));
                 },
                 IconOffset = new(2,1),
                 ShowTooltip = () =>
                 {
                     ImGui.BeginTooltip();
-                    ImGui.Text(EventAggregator.UnreadInteractionsCount == 0 ? "Interactions Notifier (no new unread)" : "Interactions Notifier (" + EventAggregator.UnreadInteractionsCount + " unread)");
+                    ImGui.Text("Changelog");
                     ImGui.EndTooltip();
                 }
             },
             new TitleBarButton()
             {
-                Icon = FontAwesomeIcon.Book,
+                Icon = FontAwesomeIcon.QuestionCircle,
                 Click = (msg) =>
                 {
-                    Mediator.Publish(new UiToggleMessage(typeof(ChangelogUI)));
+                    if(_tutorialService.IsTutorialActive(TutorialType.MainUi))
+                    {
+                        _tutorialService.SkipTutorial(TutorialType.MainUi);
+                        _logger.LogInformation("Skipping Main UI Tutorial");
+                    }
+                    else
+                    {
+                        _tutorialService.StartTutorial(TutorialType.MainUi);
+                        _logger.LogInformation("Starting Main UI Tutorial");
+                    }
                 },
                 IconOffset = new(2,1),
                 ShowTooltip = () =>
@@ -156,9 +168,6 @@ public class MainWindowUI : WindowMediatorSubscriberBase
 
     protected override void DrawInternal()
     {
-        // Update the title bar label things.
-        this.TitleBarButtons[1].Icon = EventAggregator.UnreadInteractionsCount == 0 ? FontAwesomeIcon.BellSlash : FontAwesomeIcon.Bell;
-
         // get the width of the window content region we set earlier
         _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
 

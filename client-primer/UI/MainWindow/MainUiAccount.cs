@@ -91,16 +91,14 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
             ImGui.Spacing();
 
             ImGui.AlignTextToFramePadding();
-            DrawAccountSettingChild(FontAwesomeIcon.PenSquare, "My Profile", "Open and Customize your Profile!", () =>
-            {
-                Mediator.Publish(new UiToggleMessage(typeof(KinkPlateEditorUI)));
-            });
+            DrawAccountSettingChild(FontAwesomeIcon.PenSquare, "My Profile", "Open and Customize your Profile!", () => Mediator.Publish(new UiToggleMessage(typeof(KinkPlateEditorUI))));
 
             ImGui.AlignTextToFramePadding();
-            DrawAccountSettingChild(FontAwesomeIcon.Cog, "My Settings", "Opens the Settings UI", () =>
-            {
-                Mediator.Publish(new UiToggleMessage(typeof(SettingsUi)));
-            });
+            DrawAccountSettingChild(FontAwesomeIcon.Cog, "My Settings", "Opens the Settings UI", () => Mediator.Publish(new UiToggleMessage(typeof(SettingsUi))));
+
+            // Actions Notifier thing.
+            ImGui.AlignTextToFramePadding();
+            DrawAccountSettingChild(FontAwesomeIcon.Bell, "Actions Notifier", "See who did what actions on you!", () => Mediator.Publish(new UiToggleMessage(typeof(InteractionEventsUI))));
 
             // now do one for ko-fi
             ImGui.AlignTextToFramePadding();

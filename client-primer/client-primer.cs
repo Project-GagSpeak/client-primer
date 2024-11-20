@@ -26,6 +26,7 @@ using GagSpeak.Services.Events;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Migrations;
 using GagSpeak.Services.Textures;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.Toybox.Controllers;
 using GagSpeak.Toybox.Data;
 using GagSpeak.Toybox.Services;
@@ -222,7 +223,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<TriggerService>(), s.GetRequiredService<ClientMonitorService>(), cg))
 
         // Unlocks / Achievements
-        .AddSingleton((s) => new AchievementManager(s.GetRequiredService<ILogger<AchievementManager>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(), 
+        .AddSingleton((s) => new AchievementManager(s.GetRequiredService<ILogger<AchievementManager>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<PlayerCharacterData>(), s.GetRequiredService<PairManager>(), s.GetRequiredService<ClientMonitorService>(),
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<CosmeticService>(), s.GetRequiredService<VibratorService>(), s.GetRequiredService<UnlocksEventManager>(), nm, ds))
         .AddSingleton<UnlocksEventManager>()
@@ -233,9 +234,9 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<HardcoreHandler>(), s.GetRequiredService<WardrobeHandler>(),
             s.GetRequiredService<ClientMonitorService>(), gip))
 
-        .AddSingleton((s) => new MovementMonitor(s.GetRequiredService<ILogger<MovementMonitor>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<HardcoreHandler>(), 
-            s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<SelectStringPrompt>(), s.GetRequiredService<YesNoPrompt>(), 
-            s.GetRequiredService<RoomSelectPrompt>(), s.GetRequiredService<ClientMonitorService>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<EmoteMonitor>(), 
+        .AddSingleton((s) => new MovementMonitor(s.GetRequiredService<ILogger<MovementMonitor>>(), s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<HardcoreHandler>(),
+            s.GetRequiredService<WardrobeHandler>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<SelectStringPrompt>(), s.GetRequiredService<YesNoPrompt>(),
+            s.GetRequiredService<RoomSelectPrompt>(), s.GetRequiredService<ClientMonitorService>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<EmoteMonitor>(),
             s.GetRequiredService<MoveController>(), ks, ot, tm))
         .AddSingleton((s) => new MoveController(s.GetRequiredService<ILogger<MoveController>>(), gip, ot))
         .AddSingleton((s) => new ForcedStayCallback(s.GetRequiredService<ILogger<ForcedStayCallback>>(), s.GetRequiredService<ClientConfigurationManager>(), ss, gip))
@@ -349,6 +350,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<PiShockProvider>()
 
         // Service Services
+        .AddSingleton<TutorialService>()
+        .AddSingleton<Tutorial>()
         .AddSingleton<AchievementsService>()
         .AddSingleton((s) => new CursedLootService(s.GetRequiredService<ILogger<CursedLootService>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<GagManager>(), s.GetRequiredService<PlayerCharacterData>(),
@@ -360,6 +363,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton<AppearanceService>()
         .AddSingleton<ClientConfigurationManager>()
         .AddSingleton<ServerConfigurationManager>()
+        .AddSingleton((s) => new UiFontService(pi))
         .AddSingleton<GagspeakMediator>()
         .AddSingleton((s) => new DiscoverService(pi.ConfigDirectory.FullName, s.GetRequiredService<ILogger<DiscoverService>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainTabMenu>(), s.GetRequiredService<PairManager>()))
@@ -369,7 +373,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(),
             s.GetRequiredService<KinkPlateFactory>()))
         .AddSingleton((s) => new OnFrameworkService(s.GetRequiredService<ILogger<OnFrameworkService>>(),
-            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientMonitorService>(),  dm, fw, ot, tm))
+            s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<ClientMonitorService>(), dm, fw, ot, tm))
         .AddSingleton((s) => new CosmeticService(s.GetRequiredService<ILogger<CosmeticService>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<OnFrameworkService>(), pi, tp));
     #endregion GenericServices
@@ -384,7 +388,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new IpcCallerPenumbra(s.GetRequiredService<ILogger<IpcCallerPenumbra>>(), pi,
             s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<GagspeakMediator>()))
         .AddSingleton((s) => new IpcCallerGlamourer(s.GetRequiredService<ILogger<IpcCallerGlamourer>>(), s.GetRequiredService<GagspeakMediator>(),
-            pi, s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<ClientMonitorService>(), s.GetRequiredService<OnFrameworkService>(), 
+            pi, s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<ClientMonitorService>(), s.GetRequiredService<OnFrameworkService>(),
              s.GetRequiredService<IpcFastUpdates>()))
         .AddSingleton((s) => new IpcCallerCustomize(s.GetRequiredService<ILogger<IpcCallerCustomize>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<OnFrameworkService>(),
@@ -449,7 +453,7 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<PairManager>(), s.GetRequiredService<ServerConfigurationManager>(),
             s.GetRequiredService<MainUiHomepage>(), s.GetRequiredService<MainUiWhitelist>(),
             s.GetRequiredService<MainUiPatternHub>(), s.GetRequiredService<MainUiChat>(), s.GetRequiredService<MainUiAccount>(),
-            s.GetRequiredService<MainTabMenu>(), s.GetRequiredService<DrawEntityFactory>(), pi))
+            s.GetRequiredService<MainTabMenu>(), s.GetRequiredService<TutorialService>(), pi))
         .AddScoped<WindowMediatorSubscriberBase, PopoutKinkPlateUi>()
         .AddScoped<WindowMediatorSubscriberBase, InteractionEventsUI>()
         .AddScoped<WindowMediatorSubscriberBase, DtrVisibleWindow>()
@@ -483,9 +487,8 @@ public static class GagSpeakServiceExtensions
             s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<ChatBoxMessage>(), s.GetRequiredService<DeathRollService>(), cg, cs, cm))
         .AddScoped((s) => new NotificationService(s.GetRequiredService<ILogger<NotificationService>>(), s.GetRequiredService<GagspeakMediator>(),
             s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<PlayerCharacterData>(), cg, nm))
-        .AddScoped((s) => new UiSharedService(s.GetRequiredService<ILogger<UiSharedService>>(), s.GetRequiredService<GagspeakMediator>(),
-            s.GetRequiredService<MainHub>(), s.GetRequiredService<ClientConfigurationManager>(), s.GetRequiredService<ServerConfigurationManager>(),
-            s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<IpcManager>(), pi, tp));
+        .AddScoped((s) => new UiSharedService(s.GetRequiredService<ILogger<UiSharedService>>(), s.GetRequiredService<MainHub>(), s.GetRequiredService<ClientConfigurationManager>(), 
+            s.GetRequiredService<ServerConfigurationManager>(), s.GetRequiredService<UiFontService>(), s.GetRequiredService<OnFrameworkService>(), s.GetRequiredService<IpcManager>(), pi, tp));
     #endregion ScopedServices
     #region HostedServices
     public static IServiceCollection AddGagSpeakHosted(this IServiceCollection services)

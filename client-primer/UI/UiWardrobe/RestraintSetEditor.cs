@@ -100,7 +100,7 @@ public class RestraintSetEditor : IMediatorSubscriber
                 DrawSpatialAudioOptions(refRestraint, cellPadding.Y);
                 ImGui.EndTabItem();
             }
-            if (ImGui.BeginTabItem("View Access & Hardcore"))
+            if (ImGui.BeginTabItem("Hardcore Traits"))
             {
                 DrawVisibilityAndProperties(refRestraint);
                 ImGui.EndTabItem();

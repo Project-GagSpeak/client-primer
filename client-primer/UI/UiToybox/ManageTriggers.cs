@@ -68,6 +68,7 @@ public class ToyboxTriggerManager
 
     private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
     private LowerString TriggerSearchString = LowerString.Empty;
+    private uint SelectedJobId = 1;
     private string SelectedDeviceName = LowerString.Empty;
     private int SelectedMoodleIdx = 0;
 
@@ -256,7 +257,7 @@ public class ToyboxTriggerManager
                 case TriggerKind.GagState: CreatedTrigger = new GagTrigger(); break;
                 case TriggerKind.SocialAction: CreatedTrigger = new SocialTrigger(); break;
             }
-        }, default);
+        }, CreatedTrigger?.Type ?? default);
     }
 
     /// <summary> Draws the search filter for the triggers. </summary>
@@ -526,13 +527,10 @@ public class ToyboxTriggerManager
         DrawChatTriggerChannels(chatTrigger);
     }
 
-
-    private uint SelectedJobId = uint.MaxValue;
-    private List<GameAction> SelectedActions = new List<GameAction>();
-    private string JobTypeSearchString = string.Empty;
-    private string ActionSearchString = string.Empty;
     private void DrawSpellActionTriggerEditor(SpellActionTrigger spellActionTrigger)
     {
+        // pre-display the correctly chosen action here.
+
         if (!CanDrawSpellActionTriggerUI()) return;
 
         UiSharedService.ColorText("Action Type", ImGuiColors.ParsedGold);
@@ -544,7 +542,7 @@ public class ToyboxTriggerManager
         // the name of the action to listen to.
         UiSharedService.ColorText("Action Name", ImGuiColors.ParsedGold);
         _uiShared.DrawHelpText("Action To listen for." + Environment.NewLine + Environment.NewLine
-            + "NOTE: Effects Divine Benison or regen, that cast no heal value, so not count as heals.");
+            + "NOTE: Effects Divine Benison or regen, that cast no heal value, do not count as heals.");
 
         bool anyChecked = spellActionTrigger.ActionID == uint.MaxValue;
         if (ImGui.Checkbox("Any", ref anyChecked))
@@ -559,12 +557,13 @@ public class ToyboxTriggerManager
             (job) => job.Name.ToString(), false, (i) =>
             {
                 _logger.LogTrace($"Selected Job ID for Trigger: {i.RowId}");
+                SelectedJobId = i.RowId;
                 _clientService.CacheJobActionList(i.RowId);
-            }, _clientService.GetClientClassJob() ?? default, "Job..", ImGuiComboFlags.NoArrowButton);
+            }, flags: ImGuiComboFlags.NoArrowButton);
 
             ImUtf8.SameLineInner();
             var loadedActions = _clientService.LoadedActions[SelectedJobId];
-            _uiShared.DrawComboSearchable("##ActionToListenTo", 150f, loadedActions, (action) => action.Name.ToString(),
+            _uiShared.DrawComboSearchable("##ActionToListenTo"+SelectedJobId, 150f, loadedActions, (action) => action.Name.ToString(),
             false, (i) => spellActionTrigger.ActionID = i.RowId, defaultPreviewText: "Select Job Action..");
         }
 
@@ -1005,24 +1004,11 @@ public class ToyboxTriggerManager
 
     private bool CanDrawSpellActionTriggerUI()
     {
-        if (_clientService.ClassJobs.Count == 0)
-        {
-            _logger.LogTrace("Updating ClassJob list because it was empty!");
-            _clientService.TryUpdateClassJobList();
-        }
         // if the selected job id is the max value and the client is logged in, set it to the client class job.
-        if (SelectedJobId == uint.MaxValue)
+        if (!_clientService.LoadedActions.ContainsKey(SelectedJobId))
         {
-            // try and get the client class job.
-            var clientClassJob = _clientService.GetClientClassJob() ?? default;
-
-            // otherwise, update job ID and cache actions for the job.
-            _logger.LogTrace("Set SelectedJobId to current client jobId.");
-            SelectedJobId = clientClassJob.RowId;
             _clientService.CacheJobActionList(SelectedJobId);
-        }
-        if (SelectedJobId != uint.MaxValue && !_clientService.LoadedActions.ContainsKey(SelectedJobId))
-        {
+
             ImGui.Text("SelectedJobID: " + SelectedJobId);
             ImGui.Text("Loading Actions, please wait.");
             ImGui.Text("Current ClassJob size: " + _clientService.ClassJobs.Count);

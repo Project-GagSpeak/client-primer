@@ -53,16 +53,19 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         UseActionHook.Enable();
 
         Mediator.Subscribe<SafewordHardcoreUsedMessage>(this, _ => SafewordUsed());
-        Mediator.Subscribe<DalamudLoginMessage>(this, _ => UpdateJobList());
+        Mediator.Subscribe<DalamudLoginMessage>(this, _ =>
+        {
+            _clientService.RunOnFrameworkThread(() => UpdateJobList(_clientService.ClientPlayer.ClassJobId())).ConfigureAwait(false);
+        });
         Mediator.Subscribe<DalamudLogoutMessage>(this, _ => DisableManipulatedActionData());
         Mediator.Subscribe<FrameworkUpdateMessage>(this, (_) => FrameworkUpdate());
-        IpcFastUpdates.GlamourEventFired += JobChanged;
+        Mediator.Subscribe<JobChangeMessage>(this, (msg) => JobChanged(msg.jobId));
         IpcFastUpdates.HardcoreTraitsEventFired += ToggleHardcoreTraits;
 
         // if we are already logged in, then run the login function
         if (_clientService.IsLoggedIn)
         {
-            _clientService.RunOnFrameworkThread(UpdateJobList).ConfigureAwait(false);
+            _clientService.RunOnFrameworkThread(() => UpdateJobList(_clientService.ClientPlayer.ClassJobId())).ConfigureAwait(false);
         }
     }
 
@@ -78,12 +81,14 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         MonitorHardcoreRestraintSetTraits = false;
     }
 
-    private void EnableManipulatedActionData(RestraintSet set, string enabler)
+    private async void EnableManipulatedActionData(RestraintSet set, string enabler)
     {
         _hardcoreHandler.ApplyMultiplier();
         // recalculate the cooldowns for the current job if using stimulation
         if (set.SetTraits[enabler].StimulationLevel is not StimulationLevel.None)
-            UpdateJobList();
+        {
+            await _clientService.RunOnFrameworkThread(() => UpdateJobList(_clientService.ClientPlayer.ClassJobId()));
+        }
 
         HotbarLocker.SetHotbarLockState(NewState.Locked);
         // Begin monitoring hardcore restraint properties.
@@ -98,7 +103,6 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         UseActionHook?.Dispose();
         UseActionHook = null!;
 
-        IpcFastUpdates.GlamourEventFired -= JobChanged;
         IpcFastUpdates.HardcoreTraitsEventFired -= ToggleHardcoreTraits;
         // dispose of the base class
         base.Dispose(disposing);
@@ -120,12 +124,12 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
     {
         if (restraintSetRef.EnabledBy != MainHub.UID && newState is NewState.Enabled)
         {
-            Logger.LogWarning(restraintSetRef.EnabledBy + " has enabled hardcore traits", LoggerType.HardcoreActions);
+            Logger.LogWarning(restraintSetRef.EnabledBy + " has enabled hardcore traits");
             EnableManipulatedActionData(restraintSetRef, restraintSetRef.EnabledBy);
         }
         if (restraintSetRef.EnabledBy != MainHub.UID && newState is NewState.Disabled)
         {
-            Logger.LogWarning(restraintSetRef.EnabledBy + " has disabled hardcore traits", LoggerType.HardcoreActions);
+            Logger.LogWarning(restraintSetRef.EnabledBy + " has disabled hardcore traits");
             DisableManipulatedActionData();
         }
     }
@@ -211,30 +215,20 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
     // this will be called by the job changed event. When it does,
     // we will update our job list with the new job.
     // This updates the job list dictionary.
-    private Task UpdateJobList()
+    private Task UpdateJobList(uint jobId)
     {
         // change the getawaiter if running into issues here.
         if (_clientService.IsPresent)
         {
-            Logger.LogDebug("Updating job list to : " + (JobType)_clientService.ClientPlayer.ClassJobId(), LoggerType.HardcoreActions);
-            GagspeakActionData.GetJobActionProperties((JobType)_clientService.ClientPlayer.ClassJobId(), out var bannedJobActions);
+            Logger.LogDebug("Updating job list to : " + (JobType)jobId, LoggerType.HardcoreActions);
+            GagspeakActionData.GetJobActionProperties((JobType)jobId, out var bannedJobActions);
             CurrentJobBannedActions = bannedJobActions; // updated our job list
             // only do this if we are logged in
             unsafe
             {
                 if (raptureHotbarModule->StandardHotbars != null)
-                {
                     GenerateCooldowns();
-                }
-                else
-                {
-                    Logger.LogDebug("Player is null, or hotbars are null", LoggerType.HardcoreActions);
-                }
             }
-        }
-        else
-        {
-            Logger.LogDebug("Player is null, returning", LoggerType.HardcoreActions);
         }
         return Task.CompletedTask;
     }
@@ -289,13 +283,13 @@ public class ActionMonitor : DisposableMediatorSubscriberBase
         }
     }
 
-    private void JobChanged(GlamourUpdateType updateKind)
+    private void JobChanged(uint jobId)
     {
-        if (updateKind != GlamourUpdateType.JobChange)
-            return;
-
-        UpdateJobList();
-        RestoreSavedSlots();
+        UpdateJobList(jobId);
+        if (MonitorHardcoreRestraintSetTraits)
+        {
+            RestoreSavedSlots();
+        }
     }
 
     #region Framework Updates

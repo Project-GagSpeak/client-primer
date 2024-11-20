@@ -1,6 +1,5 @@
 using Dalamud.Game;
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.SubKinds;
 using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
@@ -8,7 +7,6 @@ using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.MJI;
 using FFXIVClientStructs.FFXIV.Client.Game.UI;
-using GagSpeak.PlayerData.Services;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Utils.Enums;
 using Lumina.Excel.Sheets;
@@ -32,7 +30,7 @@ public class ClientMonitorService : IHostedService
     private readonly IGameGui _gameGui;
     private readonly IPartyList _partyList;
     public ClientMonitorService(ILogger<ClientMonitorService> logger, GagspeakMediator mediator,
-        IClientState clientState, ICondition condition, IDataManager gameData, IFramework framework, 
+        IClientState clientState, ICondition condition, IDataManager gameData, IFramework framework,
         IGameGui gameGui, IPartyList partyList)
     {
         _logger = logger;
@@ -44,12 +42,13 @@ public class ClientMonitorService : IHostedService
         _gameGui = gameGui;
         _partyList = partyList;
 
-        ClassJobs = _gameData.GetExcelSheet<ClassJob>()?.ToList() ?? new List<ClassJob>();
+        ClassJobs = _gameData.GetExcelSheet<ClassJob>().ToList();
+        _logger.LogInformation("Obtained Sheets for " + ClassJobs.Count + " ClassJobs");
 
         _clientState.ClassJobChanged += OnJobChanged;
         _clientState.Logout += OnLogout;
     }
-    
+
     public List<ClassJob> ClassJobs { get; private set; } = new List<ClassJob>();
     public List<ClassJob> BattleClassJobs => ClassJobs.Where(x => x.Role != 0).ToList();
     public Dictionary<uint, List<GameAction>> LoadedActions { get; private set; } = new Dictionary<uint, List<GameAction>>();
@@ -63,7 +62,7 @@ public class ClientMonitorService : IHostedService
     public ClientLanguage ClientLanguage => _clientState.ClientLanguage;
     public IPlayerCharacter? ClientPlayer => _clientState.LocalPlayer;
     public bool IsPresent => _clientState.LocalPlayer is not null && _clientState.LocalPlayer.IsValid();
-    public async Task<bool> IsPresentAsync() => await RunOnFrameworkThread(() => IsPresent).ConfigureAwait(false); 
+    public async Task<bool> IsPresentAsync() => await RunOnFrameworkThread(() => IsPresent).ConfigureAwait(false);
     public ulong ContentId => _clientState.LocalContentId;
     public async Task<ulong> ContentIdAsync() => await RunOnFrameworkThread(() => ContentId).ConfigureAwait(false);
     public IntPtr Address => _clientState.LocalPlayer?.Address ?? IntPtr.Zero;
@@ -104,19 +103,14 @@ public class ClientMonitorService : IHostedService
         return action.RowId != 0;
     }
 
+    public ClassJob? GetClientClassJob() => ClassJobs.FirstOrDefault(x => x.RowId == ClientPlayer.ClassJobId());
     public void TryUpdateClassJobList()
     {
         if (ClassJobs.Count is 0)
         {
-            ClassJobs = _gameData.GetExcelSheet<ClassJob>()?.ToList() ?? new List<ClassJob>();
+            ClassJobs = _gameData.GetExcelSheet<ClassJob>().ToList();
             _logger.LogDebug($"ClassJob list updated. Total jobs: " + ClassJobs.Count, LoggerType.ToyboxTriggers);
         }
-    }
-
-    public ClassJob? GetClientClassJob()
-    {
-        var clientClassJob = ClassJobs?.FirstOrDefault(x => x.RowId == ClientPlayer.ClassJobId());
-        return clientClassJob ?? default;
     }
 
     public void CacheJobActionList(uint JobId)
@@ -124,16 +118,27 @@ public class ClientMonitorService : IHostedService
         _logger.LogDebug($"Attempting to cache actions for JobId: " + JobId, LoggerType.ToyboxTriggers);
         if (!LoadedActions.ContainsKey(JobId))
         {
-            var actions = _gameData.GetExcelSheet<GameAction>()
-                .Where(row => row.IsPlayerAction && row.ClassJob.Value.RowId == JobId)
-                .ToList() ?? new List<GameAction>();
+            var actions = new List<GameAction>();
+            foreach (var row in _gameData.GetExcelSheet<GameAction>())
+            {
+                if (row.IsPlayerAction)
+                {
+                    try
+                    {
+                        if (row.ClassJob.ValueNullable.HasValue is true && row.ClassJob.Value.RowId == JobId)
+                        {
+                            actions.Add(row);
+                        }
+                    }
+                    catch (InvalidOperationException ex)
+                    {
+                        _logger.LogError($"Error processing action {row.RowId}: {ex.Message}", LoggerType.ToyboxTriggers);
+                    }
+                }
+            }
 
             LoadedActions[JobId] = actions;
             _logger.LogDebug($"Cached {actions.Count} actions for JobId: {JobId}", LoggerType.ToyboxTriggers);
-        }
-        else
-        {
-            _logger.LogDebug($"Actions for JobId: {JobId} are already cached.", LoggerType.ToyboxTriggers);
         }
     }
 
@@ -155,7 +160,7 @@ public class ClientMonitorService : IHostedService
     private void OnJobChanged(uint jobId)
     {
         if (!_clientState.IsLoggedIn) return;
-        IpcFastUpdates.InvokeGlamourer(GlamourUpdateType.JobChange);
+        _mediator.Publish(new JobChangeMessage(jobId));
     }
 
     private void OnLogout(int type, int code)

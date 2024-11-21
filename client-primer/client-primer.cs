@@ -163,7 +163,7 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new EventAggregator(pi.ConfigDirectory.FullName, s.GetRequiredService<ILogger<EventAggregator>>(), s.GetRequiredService<GagspeakMediator>()))
         .AddSingleton<IpcFastUpdates>()
         .AddSingleton((s) => new GagSpeakLoc(s.GetRequiredService<ILogger<GagSpeakLoc>>(), s.GetRequiredService<Dalamud.Localization>(),
-            s.GetRequiredService<GagspeakConfigService>(), pi))
+            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<TutorialService>(), pi))
 
         // MufflerCore
         .AddSingleton((s) => new GagDataHandler(s.GetRequiredService<ILogger<GagDataHandler>>(),
@@ -340,7 +340,8 @@ public static class GagSpeakServiceExtensions
         .AddSingleton((s) => new MainUiAccount(s.GetRequiredService<ILogger<MainUiAccount>>(),
             s.GetRequiredService<GagspeakMediator>(), s.GetRequiredService<MainHub>(),
             s.GetRequiredService<UiSharedService>(), s.GetRequiredService<OnFrameworkService>(),
-            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<KinkPlateService>(), pi))
+            s.GetRequiredService<GagspeakConfigService>(), s.GetRequiredService<KinkPlateService>(),
+            s.GetRequiredService<TutorialService>(), pi))
 
         // WebAPI Services
         .AddSingleton<MainHub>()

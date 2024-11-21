@@ -4,9 +4,11 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Dto.Toybox;
 using ImGuiNET;
+using Lumina.Text.ReadOnly;
 using OtterGui;
 using OtterGui.Text;
 using System.Numerics;
@@ -22,11 +24,12 @@ public class MainUiChat : DisposableMediatorSubscriberBase
     private readonly KinkPlateService _kinkPlateManager;
     private readonly UiSharedService _uiSharedService;
     private readonly DiscoverService _discoveryService;
+    private readonly TutorialService _guides;
 
     public MainUiChat(ILogger<MainUiChat> logger, GagspeakMediator mediator, 
         MainHub apiHubMain, PlayerCharacterData playerManager, GagManager gagManager,
         KinkPlateService kinkPlateManager, UiSharedService uiSharedService, 
-        DiscoverService discoverService) : base(logger, mediator)
+        DiscoverService discoverService, TutorialService guides) : base(logger, mediator)
     {
         _apiHubMain = apiHubMain;
         _playerManager = playerManager;
@@ -34,6 +37,7 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         _kinkPlateManager = kinkPlateManager;
         _uiSharedService = uiSharedService;
         _discoveryService = discoverService;
+        _guides = guides;
     }
 
     public void DrawDiscoverySection() => DrawGlobalChatlog();
@@ -70,6 +74,7 @@ public class MainUiChat : DisposableMediatorSubscriberBase
         {
             DiscoverService.GlobalChat.PrintChatLogHistory(showMessagePreview, NextChatMessage, region);
         }
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.GlobalChat, ImGui.GetWindowPos(), ImGui.GetWindowSize());
 
         // Now draw out the input text field
         var nextMessageRef = NextChatMessage;

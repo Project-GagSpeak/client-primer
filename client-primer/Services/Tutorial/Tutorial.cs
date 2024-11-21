@@ -1,8 +1,13 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
+using Dalamud.Interface.Utility.Raii;
+using FFXIVClientStructs.FFXIV.Client.Graphics;
 using GagSpeak.UI;
+using GagSpeak.Utils;
 using ImGuiNET;
 using OtterGui;
+using OtterGui.Text;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using static OtterGui.Raii.ImRaii;
@@ -26,6 +31,8 @@ public class Tutorial
     private readonly List<Step> _steps = new();
     private int _waitFrames = 0;
     private bool _showDetails = false;
+    private bool _hoveringExit = false;
+    private static Vector2 _buttonCloseSize = Vector2.One * 20;
 
     public int EndStep => _steps.Count;
     public IReadOnlyList<Step> Steps => _steps;
@@ -37,19 +44,19 @@ public class Tutorial
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
-    public void Open(int step)
+    public void Open(int step, Vector2 parentWinPos, Vector2 parentWinSize, Action? onNext = null)
     {
         if (step != CurrentStep)
             return;
 
-        OpenWhenMatch();
+        OpenWhenMatch(parentWinPos, parentWinSize, onNext);
         --_waitFrames;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization | MethodImplOptions.AggressiveInlining)]
     public void Skip() => CurrentStep = NextId();
 
-    private void OpenWhenMatch()
+    private void OpenWhenMatch(Vector2 parentWinPos, Vector2 parentWinSize, Action? onNext = null)
     {
         var step = Steps[CurrentStep];
 
@@ -64,9 +71,10 @@ public class Tutorial
             --_waitFrames;
         else if (ImGui.IsWindowFocused(ImGuiFocusedFlags.RootAndChildWindows) && !ImGui.IsPopupOpen(PopupLabel))
             ImGui.OpenPopup(PopupLabel);
-
-        var windowPos = HighlightObject();
-        DrawPopup(windowPos, step, NextId());
+        
+        HighlightObject();
+        var popupPos = new Vector2(parentWinPos.X + parentWinSize.X, parentWinPos.Y); // Position the popup to the right of the window
+        DrawPopup(popupPos, step, NextId(), onNext);
     }
 
 
@@ -75,7 +83,6 @@ public class Tutorial
     /// </summary>
     private Vector2 HighlightObject()
     {
-        ImGui.SetScrollHereX();
         ImGui.SetScrollHereY();
         var offset = ImGuiHelpers.ScaledVector2(5, 4);
         var min = ImGui.GetItemRectMin() - offset;
@@ -90,23 +97,19 @@ public class Tutorial
     /// <summary>
     /// The tutorial display.
     /// </summary>
-    private void DrawPopup(Vector2 pos, Step step, int nextStepVal)
+    private void DrawPopup(Vector2 pos, Step step, int nextStepVal, Action? onNext = null)
     {
         using var style = DefaultStyle()
             .Push(ImGuiStyleVar.PopupBorderSize, 2 * ImGuiHelpers.GlobalScale)
             .Push(ImGuiStyleVar.PopupRounding, 5 * ImGuiHelpers.GlobalScale);
         using var color = DefaultColors()
             .Push(ImGuiCol.Border, BorderColor)
-            .Push(ImGuiCol.PopupBg, 0xFF000000);
+            .Push(ImGuiCol.PopupBg, 0xFF000000)
+            .Push(ImGuiCol.Button, ImGui.ColorConvertFloat4ToU32(new(0, 0, 0, 0)));
         using var font = DefaultFont();
         // Prevent the window from opening outside of the screen.
         var size = ImGuiHelpers.ScaledVector2(350, 0);
         var diff = ImGui.GetWindowSize().X - size.X;
-        pos.X = diff < 0 ? ImGui.GetWindowPos().X : Math.Clamp(pos.X, ImGui.GetWindowPos().X, ImGui.GetWindowPos().X + diff);
-
-        // Ensure the header line is visible with a button to go to next.
-        pos.Y = Math.Clamp(pos.Y, ImGui.GetWindowPos().Y + ImGui.GetFrameHeightWithSpacing(),
-            ImGui.GetWindowPos().Y + ImGui.GetWindowSize().Y - ImGui.GetFrameHeightWithSpacing());
 
         ImGui.SetNextWindowPos(pos);
         ImGui.SetNextWindowSize(size);
@@ -115,10 +118,13 @@ public class Tutorial
         if (!popup)
             return;
 
-        ImGui.AlignTextToFramePadding();
-        ImGui.TextUnformatted(step.Name);
-        ImGui.SameLine(ImGui.GetContentRegionAvail().X - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.ArrowCircleRight, "Next"));
-        int? nextValue = _uiShared.IconTextButton(FontAwesomeIcon.ArrowCircleRight, "Next") ? nextStepVal : null;
+        // grab the window position and size.
+        var windowPos = ImGui.GetCursorScreenPos();
+        var windowSize = ImGui.GetContentRegionAvail();
+
+        ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5f);
+        _uiShared.GagspeakBigText(step.Name);
+        int? nextValue = null;
 
         ImGui.Separator();
         ImGui.PushTextWrapPos();
@@ -127,36 +133,58 @@ public class Tutorial
             if (text.Length == 0)
                 ImGui.Spacing();
             else
-                ImGui.TextUnformatted(text);
+                ImGui.Text(text);
         }
         ImGui.PopTextWrapPos();
 
-        // Draw the detailed description if the show detailed info button is active.
-
-        ImGui.NewLine();
-        nextValue = ImGui.Button("Skip Tutorial") ? EndStep : nextValue;
-        ImGuiUtil.HoverTooltip("Skip through the rest of the guide, Completing this Tutorial.");
-        ImGui.SameLine();
-        ImGui.Checkbox("Show Details", ref _showDetails);
-        ImGuiUtil.HoverTooltip("Shows additional details about each step for anyone curious.");
-
         if (_showDetails)
         {
-            ImGui.Separator();
+            ImGui.Spacing();
             ImGui.PushTextWrapPos();
             foreach (var text in step.MoreInfo.Split('\n', StringSplitOptions.TrimEntries))
             {
                 if (text.Length == 0)
                     ImGui.Spacing();
                 else
-                    ImGui.TextUnformatted(text);
+                    UiSharedService.ColorText(text, ImGuiColors.DalamudGrey);
             }
             ImGui.PopTextWrapPos();
         }
 
+        // Draw out the button row.
+        ImGui.Spacing();
+        using (ImRaii.Group())
+        {
+/*            if(_uiShared.IconButton(FontAwesomeIcon.ArrowAltCircleLeft, disabled: CurrentStep == 0))
+                nextValue = nextStepVal-2;
+            ImGuiUtil.HoverTooltip("Go back one Step.");
+
+            ImUtf8.SameLineInner();*/
+            using (ImRaii.PushColor(ImGuiCol.Text, ImGui.GetColorU32(_showDetails ? ImGuiColors.DalamudViolet : ImGuiColors.DalamudWhite)))
+            {
+                if(_uiShared.IconButton(FontAwesomeIcon.InfoCircle))
+                    _showDetails = !_showDetails;
+                ImGuiUtil.HoverTooltip("Shows additional details about each step for anyone curious.");
+            }
+
+            ImUtf8.SameLineInner();
+            if(_uiShared.IconButton(FontAwesomeIcon.ArrowAltCircleRight))
+                nextValue = nextStepVal;
+            ImGuiUtil.HoverTooltip("Go to the next Step.");
+
+            ImUtf8.SameLineInner();
+            ImGui.AlignTextToFramePadding();
+            ImGui.TextColored(ImGuiColors.ParsedPink, PopupLabel + " ("+CurrentStep+"/"+EndStep+")");
+        }
+
+        var buttonPos = windowPos + new Vector2(windowSize.X - _buttonCloseSize.X - ImGui.GetStyle().ItemInnerSpacing.X, ImGui.GetStyle().ItemSpacing.Y);
+        if (CloseButton(buttonPos))
+            nextValue = EndStep;
+
         if (nextValue != null)
         {
             CurrentStep = nextValue.Value;
+            onNext?.Invoke();
             _waitFrames = 2;
             ImGui.CloseCurrentPopup();
         }
@@ -191,9 +219,34 @@ public class Tutorial
     // Make sure you have as many tutorials registered as you intend to.
     public Tutorial EnsureSize(int size)
     {
-        if (_steps.Count != size)
-            throw new Exception("Tutorial size is incorrect.");
-
+        try
+        {
+            if (_steps.Count != size)
+            {
+                throw new Exception("Tutorial size for ["+ PopupLabel + "] is incorrect. Current Size is " + _steps.Count + " and expected size is " + size);
+            }
+        }
+        catch (Exception e)
+        {
+            StaticLogger.Logger.LogError("EnsureSize Exception:" + e.Message);
+        }
         return this;
+    }
+
+    private bool CloseButton(Vector2 btnPos)
+    {
+        var drawList = ImGui.GetWindowDrawList();
+
+        var closeButtonColor = _hoveringExit ? ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)) : BorderColor;
+
+        drawList.AddLine(btnPos, btnPos + _buttonCloseSize, closeButtonColor, 3);
+        drawList.AddLine(new Vector2(btnPos.X + _buttonCloseSize.X, btnPos.Y), new Vector2(btnPos.X, btnPos.Y + _buttonCloseSize.Y), closeButtonColor, 3);
+
+        ImGui.SetCursorScreenPos(btnPos);
+        if (ImGui.InvisibleButton("##CloseTutorial-" + PopupLabel, _buttonCloseSize))
+            return true;
+
+        _hoveringExit = ImGui.IsItemHovered();
+        return false;
     }
 }

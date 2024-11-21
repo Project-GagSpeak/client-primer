@@ -1,17 +1,16 @@
 using Dalamud.Interface;
 using Dalamud.Interface.Colors;
-using Dalamud.Interface.Textures.TextureWraps;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using Dalamud.Plugin;
 using GagSpeak.GagspeakConfiguration;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.UI.Profile;
 using GagSpeak.UpdateMonitoring;
 using GagSpeak.WebAPI;
 using GagspeakAPI.Data;
-using GagspeakAPI.Enums;
 using ImGuiNET;
 using System.Numerics;
 
@@ -27,12 +26,12 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
     private readonly OnFrameworkService _frameworkUtils;
     private readonly GagspeakConfigService _config;
     private readonly KinkPlateService _profileManager;
+    private readonly TutorialService _guides;
     private readonly IDalamudPluginInterface _pi;
 
-    public MainUiAccount(ILogger<MainUiAccount> logger,
-        GagspeakMediator mediator, MainHub apiHubMain,
-        UiSharedService uiShared, OnFrameworkService frameworkUtils,
-        GagspeakConfigService config, KinkPlateService profileManager,
+    public MainUiAccount(ILogger<MainUiAccount> logger, GagspeakMediator mediator,
+        MainHub apiHubMain, UiSharedService uiShared, OnFrameworkService frameworkUtils,
+        GagspeakConfigService config, KinkPlateService profileManager, TutorialService guides,
         IDalamudPluginInterface pi) : base(logger, mediator)
     {
         _apiHubMain = apiHubMain;
@@ -40,14 +39,20 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
         _frameworkUtils = frameworkUtils;
         _config = config;
         _profileManager = profileManager;
+        _guides = guides;
         _pi = pi;
     }
+
+    private static Vector2 LastWinPos = Vector2.Zero;
+    private static Vector2 LastWinSize = Vector2.Zero;
 
     /// <summary> Main Draw function for this tab </summary>
     public void DrawAccountSection()
     {
         // get the width of the window content region we set earlier
         var _windowContentWidth = UiSharedService.GetWindowContentRegionWidth();
+        LastWinPos = ImGui.GetWindowPos();
+        LastWinSize = ImGui.GetWindowSize();
         var _spacingX = ImGui.GetStyle().ItemSpacing.X;
 
         // make this whole thing a scrollable child window.
@@ -71,6 +76,8 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
                     var pos = ImGui.GetCursorScreenPos();
                     ImGui.GetWindowDrawList().AddImageRounded(wrap.ImGuiHandle, pos, pos + imgSize, Vector2.Zero, Vector2.One,
                         ImGui.GetColorU32(new Vector4(1f, 1f, 1f, 1f)), 90f);
+                    ImGuiHelpers.ScaledDummy(imgSize);
+                    _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.UserProfilePicture, LastWinPos, LastWinSize);
                     ImGui.SetCursorPos(new Vector2(currentPosition.X, currentPosition.Y + imgSize.Y));
 
                 }
@@ -82,6 +89,8 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
 
             // draw the UID header below this.
             DrawUIDHeader();
+            _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.UserIdentification, LastWinPos, LastWinSize);
+
             // below this, draw a separator. (temp)
             ImGui.Spacing();
             ImGui.Separator();
@@ -92,9 +101,12 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
 
             ImGui.AlignTextToFramePadding();
             DrawAccountSettingChild(FontAwesomeIcon.PenSquare, "My Profile", "Open and Customize your Profile!", () => Mediator.Publish(new UiToggleMessage(typeof(KinkPlateEditorUI))));
+            _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.ProfileEditing, LastWinPos, LastWinSize);
+
 
             ImGui.AlignTextToFramePadding();
             DrawAccountSettingChild(FontAwesomeIcon.Cog, "My Settings", "Opens the Settings UI", () => Mediator.Publish(new UiToggleMessage(typeof(SettingsUi))));
+            _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.AccessingSettings, LastWinPos, LastWinSize);
 
             // Actions Notifier thing.
             ImGui.AlignTextToFramePadding();
@@ -109,6 +121,8 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
                     try { Process.Start(new ProcessStartInfo { FileName = "https://www.ko-fi.com/cordeliamist", UseShellExecute = true }); }
                     catch (Exception e) { Logger.LogError($"Failed to open the Ko-Fi link. {e.Message}"); }
                 });
+            _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.SelfPlug, LastWinPos, LastWinSize);
+
 
             ImGui.AlignTextToFramePadding();
             DrawAccountSettingChild(FontAwesomeIcon.Pray, "Support via Patreon", "This plugin took a massive toll on my life as a solo dev." +
@@ -237,6 +251,8 @@ public class MainUiAccount : DisposableMediatorSubscriberBase
             }
         }
         UiSharedService.AttachToolTip("Set a safeword to quickly revert any changes made by the plugin.");
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.SafewordPartOne, LastWinPos, LastWinSize);
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.SafewordPartTwo, LastWinPos, LastWinSize);
     }
 
     private void DrawAccountSettingChild(FontAwesomeIcon leftIcon, string displayText, string hoverTT, Action buttonAction)

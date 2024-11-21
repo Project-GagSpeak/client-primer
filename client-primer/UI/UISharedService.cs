@@ -1382,6 +1382,40 @@ public partial class UiSharedService
         };
     }
 
+    public Vector4 GetServerStateColor()
+    {
+        return MainHub.ServerStatus switch
+        {
+            ServerState.Connecting => ImGuiColors.DalamudYellow,
+            ServerState.Reconnecting => ImGuiColors.DalamudYellow,
+            ServerState.Connected => ImGuiColors.HealerGreen,
+            ServerState.Disconnected => ImGuiColors.DalamudRed,
+            ServerState.Disconnecting => ImGuiColors.DalamudYellow,
+            ServerState.Unauthorized => ImGuiColors.ParsedOrange,
+            ServerState.VersionMisMatch => ImGuiColors.ParsedOrange,
+            ServerState.Offline => ImGuiColors.DPSRed,
+            ServerState.NoSecretKey => ImGuiColors.ParsedOrange,
+            _ => ImGuiColors.ParsedOrange
+        };
+    }
+
+    public FontAwesomeIcon GetServerStateIcon(ServerState state)
+    {
+        return state switch
+        {
+            ServerState.Connecting => FontAwesomeIcon.SatelliteDish,
+            ServerState.Reconnecting => FontAwesomeIcon.SatelliteDish,
+            ServerState.Connected => FontAwesomeIcon.Link,
+            ServerState.Disconnected => FontAwesomeIcon.Unlink,
+            ServerState.Disconnecting => FontAwesomeIcon.SatelliteDish,
+            ServerState.Unauthorized => FontAwesomeIcon.Shield,
+            ServerState.VersionMisMatch => FontAwesomeIcon.Unlink,
+            ServerState.Offline => FontAwesomeIcon.Signal,
+            ServerState.NoSecretKey => FontAwesomeIcon.Key,
+            _ => FontAwesomeIcon.ExclamationTriangle
+        };
+    }
+
     /// <summary> 
     /// Retrieves the various UID text based on the current server state.
     /// </summary>

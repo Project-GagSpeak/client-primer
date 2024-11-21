@@ -5,9 +5,11 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagspeakAPI.Data;
 using GagspeakAPI.Enums;
 using ImGuiNET;
+using Lumina.Excel.Sheets;
 using OtterGui;
 using OtterGui.Text;
 using System.Numerics;
@@ -17,16 +19,18 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
 {
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly PatternHubService _patternHubService;
-    private readonly UiSharedService _uiSharedService;
+    private readonly UiSharedService _uiShared;
+    private readonly TutorialService _guides;
 
     public MainUiPatternHub(ILogger<MainUiPatternHub> logger,
         GagspeakMediator mediator, ClientConfigurationManager clientConfigs,
-        PatternHubService patternHubService, UiSharedService uiSharedService) 
-        : base(logger, mediator)
+        PatternHubService patternHubService, UiSharedService uiShared,
+        TutorialService guides) : base(logger, mediator)
     {
         _clientConfigs = clientConfigs;
         _patternHubService = patternHubService;
-        _uiSharedService = uiSharedService;
+        _uiShared = uiShared;
+        _guides = guides;
     }
     public void DrawPatternHub()
     {
@@ -88,11 +92,11 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
                 UiSharedService.AttachToolTip(patternInfo.Description);
 
                 ImGui.SameLine(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().ItemSpacing.X
-                    - _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.Heart, patternInfo.Likes.ToString()) 
-                    - _uiSharedService.GetIconTextButtonSize(FontAwesomeIcon.Download, patternInfo.Downloads.ToString()));
+                    - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Heart, patternInfo.Likes.ToString()) 
+                    - _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Download, patternInfo.Downloads.ToString()));
                 using (var color = ImRaii.PushColor(ImGuiCol.Text, patternInfo.HasLiked ? ImGuiColors.ParsedPink : ImGuiColors.DalamudGrey))
                 {
-                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.Heart, patternInfo.Likes.ToString(), null, true))
+                    if (_uiShared.IconTextButton(FontAwesomeIcon.Heart, patternInfo.Likes.ToString(), null, true))
                     {
                         _patternHubService.RatePattern(patternInfo.Identifier);
                     }
@@ -101,7 +105,7 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
                 ImGui.SameLine();
                 using (var color = ImRaii.PushColor(ImGuiCol.Text, ImGuiColors.DalamudWhite2))
                 {
-                    if (_uiSharedService.IconTextButton(FontAwesomeIcon.Download, patternInfo.Downloads.ToString(), null, true, 
+                    if (_uiShared.IconTextButton(FontAwesomeIcon.Download, patternInfo.Downloads.ToString(), null, true, 
                         _clientConfigs.PatternExists(patternInfo.Identifier), "DownloadPattern"+patternInfo.Identifier))
                     {
                         _patternHubService.DownloadPatternFromServer(patternInfo.Identifier);
@@ -113,7 +117,7 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
             using (var group2 = ImRaii.Group())
             {
                 ImGui.AlignTextToFramePadding();
-                _uiSharedService.IconText(FontAwesomeIcon.UserCircle);
+                _uiShared.IconText(FontAwesomeIcon.UserCircle);
                 ImUtf8.SameLineInner();
                 UiSharedService.ColorText(patternInfo.Author, ImGuiColors.DalamudGrey);
                 UiSharedService.AttachToolTip("Publisher of the Pattern");
@@ -121,8 +125,8 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
 
                 var formatDuration = patternInfo.Length.Hours > 0 ? "hh\\:mm\\:ss" : "mm\\:ss";
                 string timerText = patternInfo.Length.ToString(formatDuration);
-                ImGui.SameLine(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(timerText).X - _uiSharedService.GetIconData(FontAwesomeIcon.Stopwatch).X - ImGui.GetStyle().ItemSpacing.X);
-                _uiSharedService.IconText(FontAwesomeIcon.Stopwatch);
+                ImGui.SameLine(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize(timerText).X - _uiShared.GetIconData(FontAwesomeIcon.Stopwatch).X - ImGui.GetStyle().ItemSpacing.X);
+                _uiShared.IconText(FontAwesomeIcon.Stopwatch);
                 UiSharedService.AttachToolTip("Total Pattern Duration");
                 ImUtf8.SameLineInner();
                 ImGui.TextUnformatted(patternInfo.Length.ToString(formatDuration));
@@ -132,12 +136,12 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
             // next line:
             using (var group3 = ImRaii.Group())
             {
-                var vibeSize = _uiSharedService.GetIconData(FontAwesomeIcon.Water);
-                var rotationSize = _uiSharedService.GetIconData(FontAwesomeIcon.GroupArrowsRotate);
+                var vibeSize = _uiShared.GetIconData(FontAwesomeIcon.Water);
+                var rotationSize = _uiShared.GetIconData(FontAwesomeIcon.GroupArrowsRotate);
                 float allowedLength = ImGui.GetContentRegionAvail().X - vibeSize.X - rotationSize.X - ImGui.GetStyle().ItemSpacing.X;
 
                 ImGui.AlignTextToFramePadding();
-                _uiSharedService.IconText(FontAwesomeIcon.Tags);
+                _uiShared.IconText(FontAwesomeIcon.Tags);
 
                 UiSharedService.AttachToolTip("Tags for the Pattern");
                 ImGui.SameLine();
@@ -149,9 +153,9 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
                 ImGui.TextUnformatted(tagsString);
                 float rightEnd = ImGui.GetContentRegionAvail().X - vibeSize.X - rotationSize.X - ImGui.GetStyle().ItemSpacing.X;
                 ImGui.SameLine(rightEnd);
-                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesVibrations, false, FontAwesomeIcon.Water, FontAwesomeIcon.Water, ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
+                _uiShared.BooleanToColoredIcon(patternInfo.UsesVibrations, false, FontAwesomeIcon.Water, FontAwesomeIcon.Water, ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
                 UiSharedService.AttachToolTip(patternInfo.UsesVibrations? "Uses Vibrations" : "Does not use Vibrations");
-                _uiSharedService.BooleanToColoredIcon(patternInfo.UsesRotations, true, FontAwesomeIcon.Sync, FontAwesomeIcon.Sync, ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
+                _uiShared.BooleanToColoredIcon(patternInfo.UsesRotations, true, FontAwesomeIcon.Sync, FontAwesomeIcon.Sync, ImGuiColors.ParsedPink, ImGuiColors.DalamudGrey3);
                 UiSharedService.AttachToolTip(patternInfo.UsesRotations ? "Uses Rotations" : "Does not use Rotations");
             }
         }
@@ -164,8 +168,8 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
         using var style = ImRaii.PushStyle(ImGuiStyleVar.ItemInnerSpacing, new Vector2(2, ImGui.GetStyle().ItemInnerSpacing.Y));
         float comboSize = ImGui.CalcTextSize("Upload Date    ").X;
         FontAwesomeIcon sortIcon = _patternHubService.CurrentSort == SearchSort.Ascending ? FontAwesomeIcon.SortAmountUp : FontAwesomeIcon.SortAmountDown;
-        float sortSize = _uiSharedService.GetIconButtonSize(sortIcon).X;
-        float updateSize = _uiSharedService.GetIconButtonSize(FontAwesomeIcon.Sync).X;
+        float sortSize = _uiShared.GetIconButtonSize(sortIcon).X;
+        float updateSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Sync).X;
         string patternFilter = _patternHubService.SearchQuery;
         ImGui.SetNextItemWidth(availableWidth - comboSize - sortSize - updateSize - 3*ImGui.GetStyle().ItemInnerSpacing.X);
         if (ImGui.InputTextWithHint("##patternSearchFilter", "Search for Patterns...", ref patternFilter, 255, ImGuiInputTextFlags.EnterReturnsTrue))
@@ -173,22 +177,30 @@ public class MainUiPatternHub : DisposableMediatorSubscriberBase
             _patternHubService.SearchPatterns(patternFilter);
         }
         UiSharedService.AttachToolTip("Enter fetches results from your search!");
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.PatternHubSearch, ImGui.GetWindowPos(), ImGui.GetWindowSize());
+
         ImUtf8.SameLineInner();
-        if (_uiSharedService.IconButton(FontAwesomeIcon.Sync))
+        if (_uiShared.IconButton(FontAwesomeIcon.Sync))
         {
             _patternHubService.UpdateResults();
         }
         UiSharedService.AttachToolTip("Update Search Results");
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.PatternHubUpdate, ImGui.GetWindowPos(), ImGui.GetWindowSize());
+
         ImUtf8.SameLineInner();
-        _uiSharedService.DrawCombo("##patternFilterType", comboSize, Enum.GetValues<SearchFilter>(), (filter) => _patternHubService.FilterToName(filter),
+        _uiShared.DrawCombo("##patternFilterType", comboSize, Enum.GetValues<SearchFilter>(), (filter) => _patternHubService.FilterToName(filter),
         (filter) => { _patternHubService.SetFilter(filter); }, _patternHubService.CurrentFilter, false, ImGuiComboFlags.NoArrowButton);
         UiSharedService.AttachToolTip("Filter Type");
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.PatternHubFilterType, ImGui.GetWindowPos(), ImGui.GetWindowSize());
+
+
         ImUtf8.SameLineInner();
-        if (_uiSharedService.IconButton(sortIcon))
+        if (_uiShared.IconButton(sortIcon))
         {
             _patternHubService.ToggleSort();
         }
         UiSharedService.AttachToolTip("Toggle Sort\n(Current: "+_patternHubService.CurrentSort+")");
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.PatternHubResultOrder, ImGui.GetWindowPos(), ImGui.GetWindowSize());
     }
 }
 

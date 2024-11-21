@@ -75,7 +75,7 @@ namespace GagSpeak.Localization
         public readonly string Step2Desc = Loc.Localize("HelpMainUi_Step2Desc", "All of GagSpeaks Modules are accessed from this menu.");
 
         public readonly string Step3Title = Loc.Localize("HelpMainUi_Step3Title", "To the Whitelist Panel");
-        public readonly string Step3Desc = Loc.Localize("HelpMainUi_Step3Desc", "Go ahead and navigate to the Whitelist Panel");
+        public readonly string Step3Desc = Loc.Localize("HelpMainUi_Step3Desc", "To view your whitelist, press this icon from the tab bar (this guide will do it for you)");
         public readonly string Step3DescExtended = Loc.Localize("HelpMainUi_Step3DescExtended", "This is where you go to view and interact with your added Kinksters.");
 
         public readonly string Step4Title = Loc.Localize("HelpMainUi_Step4Title", "The Whitelist");
@@ -272,7 +272,7 @@ namespace GagSpeak.Localization
         public readonly string Step13DescExtended = Loc.Localize("HelpRestraints_Step13DescExtended", "Asking a restraint set to perform a redraw for a mod will allow any added " +
             "animation mods to apply their modded animation on the first try, without needing to play it twice for mare to reconize it.");
 
-        public readonly string Step14Title = Loc.Localize("HelpRestraints_Step14Title", "Navigating to the Moodles Tab");
+        public readonly string Step14Title = Loc.Localize("HelpRestraints_Step14Title", "The Moodles Tab");
         public readonly string Step14Desc = Loc.Localize("HelpRestraints_Step14Desc", "In this section you can define which Moodles are applied with this Set.");
 
         public readonly string Step15Title = Loc.Localize("HelpRestraints_Step15Title", "Moodles: Statuses");
@@ -284,30 +284,33 @@ namespace GagSpeak.Localization
         public readonly string Step17Title = Loc.Localize("HelpRestraints_Step17Title", "Currently Stored Moodles");
         public readonly string Step17Desc = Loc.Localize("HelpRestraints_Step17Desc", "Displays the current finalized selection of appended presets and statuses.");
 
-        public readonly string Step18Title = Loc.Localize("HelpRestraints_Step18Title", "Navigating to the Sounds Tab");
+        public readonly string Step18Title = Loc.Localize("HelpRestraints_Step18Title", "The Sounds Tab");
         public readonly string Step18Desc = Loc.Localize("HelpRestraints_Step18Desc", "You are able to link certain types of sounds from audio selections to your set.");
 
-        public readonly string Step19Title = Loc.Localize("HelpRestraints_Step19Title", "Navigating to the Hardcore Traits Tab");
-        public readonly string Step19Desc = Loc.Localize("HelpRestraints_Step19Desc", "You can set which Hardcore Traits are applied when restrained by certain Kinksters here.");
+        public readonly string Step19Title = Loc.Localize("HelpRestraints_Step19Title", "Restraint Audio");
+        public readonly string Step19Desc = Loc.Localize("HelpRestraints_Step19Desc", "WIP");
 
-        public readonly string Step20Title = Loc.Localize("HelpRestraints_Step20Title", "Selecting a Kinkster");
-        public readonly string Step20Desc = Loc.Localize("HelpRestraints_Step20Desc", "First, you should select a Kinkster that you wish to set Hardcore Traits for.");
+        public readonly string Step20Title = Loc.Localize("HelpRestraints_Step20Title", "The Hardcore Traits Tab");
+        public readonly string Step20Desc = Loc.Localize("HelpRestraints_Step20Desc", "You can set which Hardcore Traits are applied when restrained by certain Kinksters here.");
 
-        public readonly string Step21Title = Loc.Localize("HelpRestraints_Step21Title", "Setting Hardcore Traits");
-        public readonly string Step21Desc = Loc.Localize("HelpRestraints_Step21Desc", "Now you can pick which traits you want to check off that relate to your set.");
-        public readonly string Step21DescExtended = Loc.Localize("HelpRestraints_Step21DescExtended", "This traits will only take affect if applied by the Kinkster you set them for.");
+        public readonly string Step21Title = Loc.Localize("HelpRestraints_Step21Title", "Selecting a Kinkster");
+        public readonly string Step21Desc = Loc.Localize("HelpRestraints_Step21Desc", "First, you should select a Kinkster that you wish to set Hardcore Traits for.");
 
-        public readonly string Step22Title = Loc.Localize("HelpRestraints_Step22Title", "Saving & Adding the New Set");
-        public readonly string Step22Desc = Loc.Localize("HelpRestraints_Step22Desc", "Pressing this will save any changes you have made to an edited set. Or finish creation of a new one.");
+        public readonly string Step22Title = Loc.Localize("HelpRestraints_Step22Title", "Setting Hardcore Traits");
+        public readonly string Step22Desc = Loc.Localize("HelpRestraints_Step22Desc", "Now you can pick which traits you want to check off that relate to your set.");
+        public readonly string Step22DescExtended = Loc.Localize("HelpRestraints_Step22DescExtended", "This traits will only take affect if applied by the Kinkster you set them for.");
 
-        public readonly string Step23Title = Loc.Localize("HelpRestraints_Step23Title", "The Restraint Set List");
-        public readonly string Step23Desc = Loc.Localize("HelpRestraints_Step23Desc", "Any created sets are listed here.");
+        public readonly string Step23Title = Loc.Localize("HelpRestraints_Step23Title", "Saving the New Set");
+        public readonly string Step23Desc = Loc.Localize("HelpRestraints_Step23Desc", "Pressing this will save any changes you have made to an edited set. Or finish creation of a new one.");
 
-        public readonly string Step24Title = Loc.Localize("HelpRestraints_Step24Title", "Toggling Restraint Sets");
-        public readonly string Step24Desc = Loc.Localize("HelpRestraints_Step24Desc", "Pressing this button will toggle a restraint set.");
+        public readonly string Step24Title = Loc.Localize("HelpRestraints_Step24Title", "The Restraint Set List");
+        public readonly string Step24Desc = Loc.Localize("HelpRestraints_Step24Desc", "Any created sets are listed here.");
 
-        public readonly string Step25Title = Loc.Localize("HelpRestraints_Step25Title", "Locking a Restraint Set");
-        public readonly string Step25Desc = Loc.Localize("HelpRestraints_Step25Desc", "Once a set is active, this Padlock dropdown will appear. You are able to self-lock your set here.");
+        public readonly string Step25Title = Loc.Localize("HelpRestraints_Step25Title", "Toggling Restraint Sets");
+        public readonly string Step25Desc = Loc.Localize("HelpRestraints_Step25Desc", "Pressing this button will toggle a restraint set.");
+
+        public readonly string Step26Title = Loc.Localize("HelpRestraints_Step26Title", "Locking a Restraint Set");
+        public readonly string Step26Desc = Loc.Localize("HelpRestraints_Step26Desc", "Once a set is active, this Padlock dropdown will appear. You are able to self-lock your set here.");
     }
 
     public class HelpCursedLoot
@@ -315,10 +318,10 @@ namespace GagSpeak.Localization
         public readonly string Step1Title = Loc.Localize("HelpCursedLoot_Step1Title", "Creating Cursed Items");
         public readonly string Step1Desc = Loc.Localize("HelpCursedLoot_Step1Desc", "Drops down the expanded cursed item creator window.");
 
-        public readonly string Step2Title = Loc.Localize("HelpCursedLoot_Step2Title", "Setting The Cursed Item's Name");
+        public readonly string Step2Title = Loc.Localize("HelpCursedLoot_Step2Title", "The Cursed Item Name");
         public readonly string Step2Desc = Loc.Localize("HelpCursedLoot_Step2Desc", "Defines a name for the Cursed Item. This is purely for organizations and display sake.");
 
-        public readonly string Step3Title = Loc.Localize("HelpCursedLoot_Step3Title", "Setting The Cursed Type");
+        public readonly string Step3Title = Loc.Localize("HelpCursedLoot_Step3Title", "Defining the type");
         public readonly string Step3Desc = Loc.Localize("HelpCursedLoot_Step3Desc", "Allows you to define the Cursed Item as a Gag, or a Equipment Piece.");
         public readonly string Step3DescExtended = Loc.Localize("HelpCursedLoot_Step3DescExtended", "Gags do not have precedence, and cannot be applied once all 3 gag layers are full.");
 
@@ -511,29 +514,31 @@ namespace GagSpeak.Localization
 
         public readonly string Step3Title = Loc.Localize("HelpAlarms_Step3Title", "The localized TimeZone");
         public readonly string Step3Desc = Loc.Localize("HelpAlarms_Step3Desc", "Your current local time. This means you dont need to worry " +
-            "about timezones when setting these, just make it your own time." + Environment.NewLine +
-            "You can set your time by using the mouse scrollwheel over the hour and minute numbers.");
+            "about timezones when setting these, just make it your own time.");
 
-        public readonly string Step4Title = Loc.Localize("HelpAlarms_Step4Title", "Defining the Pattern to Play");
-        public readonly string Step4Desc = Loc.Localize("HelpAlarms_Step4Desc", "Select which stored pattern you wish for the alarm to play when it goes off.");
+        public readonly string Step4Title = Loc.Localize("HelpAlarms_Step4Title", "Setting the Alarm Time");
+        public readonly string Step4Desc = Loc.Localize("HelpAlarms_Step4Desc", "You can set your time by using the mouse scrollwheel over the hour and minute numbers.");
 
-        public readonly string Step5Title = Loc.Localize("HelpAlarms_Step5Title", "Setting the Alarm Pattern Start-Point");
-        public readonly string Step5Desc = Loc.Localize("HelpAlarms_Step5Desc", "Identify at which point in the pattern the alarm should start to play at.");
+        public readonly string Step5Title = Loc.Localize("HelpAlarms_Step5Title", "Defining the Pattern to Play");
+        public readonly string Step5Desc = Loc.Localize("HelpAlarms_Step5Desc", "Select which stored pattern you wish for the alarm to play when it goes off.");
 
-        public readonly string Step6Title = Loc.Localize("HelpAlarms_Step6Title", "Setting the Alarm Pattern Duration");
-        public readonly string Step6Desc = Loc.Localize("HelpAlarms_Step6Desc", "Identify for how long the patterns alarm should play for before stopping.");
+        public readonly string Step6Title = Loc.Localize("HelpAlarms_Step6Title", "Setting the Alarm Pattern Start-Point");
+        public readonly string Step6Desc = Loc.Localize("HelpAlarms_Step6Desc", "Identify at which point in the pattern the alarm should start to play at.");
 
-        public readonly string Step7Title = Loc.Localize("HelpAlarms_Step7Title", "Setting the Alarm Frequency");
-        public readonly string Step7Desc = Loc.Localize("HelpAlarms_Step7Desc", "Set the days of the week this alarm go off");
+        public readonly string Step7Title = Loc.Localize("HelpAlarms_Step7Title", "Setting the Alarm Pattern Duration");
+        public readonly string Step7Desc = Loc.Localize("HelpAlarms_Step7Desc", "Identify for how long the patterns alarm should play for before stopping.");
 
-        public readonly string Step8Title = Loc.Localize("HelpAlarms_Step8Title", "Saving the new Alarm");
-        public readonly string Step8Desc = Loc.Localize("HelpAlarms_Step8Desc", "Save/Apply changes and append the new alarm.");
+        public readonly string Step8Title = Loc.Localize("HelpAlarms_Step8Title", "Setting the Alarm Frequency");
+        public readonly string Step8Desc = Loc.Localize("HelpAlarms_Step8Desc", "Set the days of the week this alarm go off");
 
-        public readonly string Step9Title = Loc.Localize("HelpAlarms_Step9Title", "The Alarm List");
-        public readonly string Step9Desc = Loc.Localize("HelpAlarms_Step9Desc", "This is where all created alarms are stored.");
+        public readonly string Step9Title = Loc.Localize("HelpAlarms_Step9Title", "Saving the new Alarm");
+        public readonly string Step9Desc = Loc.Localize("HelpAlarms_Step9Desc", "Save/Apply changes and append the new alarm.");
 
-        public readonly string Step10Title = Loc.Localize("HelpAlarms_Step10Title", "Toggling Alarms");
-        public readonly string Step10Desc = Loc.Localize("HelpAlarms_Step10Desc", "The button you need to press to toggle the alarm state.");
+        public readonly string Step10Title = Loc.Localize("HelpAlarms_Step10Title", "The Alarm List");
+        public readonly string Step10Desc = Loc.Localize("HelpAlarms_Step10Desc", "This is where all created alarms are stored.");
+
+        public readonly string Step11Title = Loc.Localize("HelpAlarms_Step11Title", "Toggling Alarms");
+        public readonly string Step11Desc = Loc.Localize("HelpAlarms_Step11Desc", "The button you need to press to toggle the alarm state.");
     }
 
     public class HelpAchievements

@@ -12,6 +12,7 @@ using GagSpeak.Services.Tutorial;
 using GagSpeak.UI.Components;
 using GagSpeak.WebAPI;
 using ImGuiNET;
+using OtterGui.Text;
 using System.Globalization;
 using System.Numerics;
 using System.Reflection;
@@ -32,7 +33,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private readonly MainUiPatternHub _patternHub;
     private readonly MainUiChat _globalChat;
     private readonly MainUiAccount _account;
-    private readonly TutorialService _tutorialService;
+    private readonly TutorialService _guides;
     private readonly IDalamudPluginInterface _pi;
     private float _windowContentWidth;
     private bool _addingNewUser = false;
@@ -60,7 +61,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         _patternHub = patternHub;
         _globalChat = globalChat;
         _account = account;
-        _tutorialService = tutorialService;
+        _guides = tutorialService;
         _pi = pi;
         _uiShared = uiShared;
         _tabMenu = tabMenu;
@@ -105,14 +106,14 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                 Icon = FontAwesomeIcon.QuestionCircle,
                 Click = (msg) =>
                 {
-                    if(_tutorialService.IsTutorialActive(TutorialType.MainUi))
+                    if(_guides.IsTutorialActive(TutorialType.MainUi))
                     {
-                        _tutorialService.SkipTutorial(TutorialType.MainUi);
+                        _guides.SkipTutorial(TutorialType.MainUi);
                         _logger.LogInformation("Skipping Main UI Tutorial");
                     }
                     else
                     {
-                        _tutorialService.StartTutorial(TutorialType.MainUi);
+                        _guides.StartTutorial(TutorialType.MainUi);
                         _logger.LogInformation("Starting Main UI Tutorial");
                     }
                 },
@@ -222,7 +223,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         {
             if (_addingNewUser)
             {
-                using (ImRaii.PushId("AddPair")) DrawAddPair(_windowContentWidth, ImGui.GetStyle().ItemSpacing.X);
+                using (ImRaii.PushId("AddPair")) DrawAddPair(_windowContentWidth, ImGui.GetStyle().ItemInnerSpacing.X);
             }
             // draw the bottom tab bar
             using (ImRaii.PushId("MainMenuTabBar")) _tabMenu.Draw();
@@ -237,7 +238,11 @@ public class MainWindowUI : WindowMediatorSubscriberBase
                     using (ImRaii.PushId("whitelistComponent")) _whitelist.DrawWhitelistSection();
                     break;
                 case MainTabMenu.SelectedTab.PatternHub:
-                    using (ImRaii.PushId("patternHubComponent")) _patternHub.DrawPatternHub();
+                    using (ImRaii.PushId("patternHubComponent"))
+                    {
+                        _patternHub.DrawPatternHub();
+                        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.PatternHub, ImGui.GetWindowPos(), ImGui.GetWindowSize());
+                    }
                     break;
                 case MainTabMenu.SelectedTab.GlobalChat:
                     using (ImRaii.PushId("globalChatComponent")) _globalChat.DrawDiscoverySection();
@@ -308,7 +313,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         var buttonSize = _uiShared.GetIconTextButtonSize(FontAwesomeIcon.Ban, "Clear");
         ImGui.SetNextItemWidth(availableXWidth - buttonSize - spacingX);
         ImGui.InputTextWithHint("##otheruid", "Other players UID/Alias", ref _pairToAdd, 20);
-        ImGui.SameLine();
+        ImUtf8.SameLineInner();
         bool existingUser = _pairManager.DirectPairs.Exists(p => string.Equals(p.UserData.UID, _pairToAdd, StringComparison.Ordinal) || string.Equals(p.UserData.Alias, _pairToAdd, StringComparison.Ordinal));
         using (ImRaii.Disabled(existingUser || string.IsNullOrEmpty(_pairToAdd)))
         {
@@ -364,97 +369,99 @@ public class MainWindowUI : WindowMediatorSubscriberBase
     private void DrawServerStatus()
     {
         var windowPadding = ImGui.GetStyle().WindowPadding;
-        var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
+        var addUserIcon = FontAwesomeIcon.UserPlus;
+        var connectionButtonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
+        var addUserButtonSize = _uiShared.GetIconButtonSize(addUserIcon);
+
         var userCount = MainHub.MainOnlineUsers.ToString(CultureInfo.InvariantCulture);
         var userSize = ImGui.CalcTextSize(userCount);
         var textSize = ImGui.CalcTextSize("Kinksters Online");
+        var serverText = $"Main GagSpeak Server";
+        var shardTextSize = ImGui.CalcTextSize(serverText);
+        var totalHeight = ImGui.GetTextLineHeight()*2 + ImGui.GetStyle().ItemSpacing.Y;
 
-        var shardConnection = $"Main GagSpeak Server";
-
-        var shardTextSize = ImGui.CalcTextSize(shardConnection);
-        var printShard = shardConnection != string.Empty;
-
-        // if the server is connected, then we should display the server info
-        if (MainHub.IsConnected)
-        {
-            // fancy math shit for clean display, adjust when moving things around
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth())
-                / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
-            ImGui.TextColored(ImGuiColors.ParsedPink, userCount);
-            ImGui.SameLine();
-            ImGui.TextUnformatted("Kinksters Online");
-        }
-        // otherwise, if we are not connected, display that we aren't connected.
-        else
-        {
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth())
-                / 2 - ImGui.CalcTextSize("Not connected to any server").X / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
-            ImGui.TextColored(ImGuiColors.DalamudRed, "Not connected to any server");
-        }
-
+        // create a table
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y);
-        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - shardTextSize.X / 2);
-        ImGui.TextUnformatted(shardConnection);
-        ImGui.SameLine();
-
-        // now we need to display the connection link button beside it.
-        var color = UiSharedService.GetBoolColor(MainHub.IsConnected);
-        var connectedIcon = MainHub.IsConnected ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
-
-        ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
-        if (printShard)
+        using (ImRaii.Table("ServerStatusMainUI", 3))
         {
-            // unsure what this is doing but we can find out lol
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + shardTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
-        }
+            // define the column lengths.
+            ImGui.TableSetupColumn("##addUser", ImGuiTableColumnFlags.WidthFixed, addUserButtonSize.X);
+            ImGui.TableSetupColumn("##serverState", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("##connectionButton", ImGuiTableColumnFlags.WidthFixed, connectionButtonSize.X);
 
-        // if the server is reconnecting or disconnecting
-        if (MainHub.ServerStatus is not (ServerState.Reconnecting or ServerState.Disconnecting))
-        {
-            // we need to turn the button from the connected link to the disconnected link.
-            using (ImRaii.PushColor(ImGuiCol.Text, color))
-            {
-                // then display it
-                if (_uiShared.IconButton(connectedIcon))
-                {
-                    // If its true, make sure our ServerStatus is Connected, or if its false, make sure our ServerStatus is Disconnected or offline.
-                    if (MainHub.ServerStatus is ServerState.Connected)
-                    {
-                        // If we are connected, we want to disconnect.
-                        _serverConfigs.CurrentServer.FullPause = true;
-                        _serverConfigs.Save();
-                        _ = _apiHubMain.Disconnect(ServerState.Disconnected);
-                    }
-                    else if (MainHub.ServerStatus is (ServerState.Disconnected or ServerState.Offline))
-                    {
-                        // If we are disconnected, we want to connect.
-                        _serverConfigs.CurrentServer.FullPause = false;
-                        _serverConfigs.Save();
-                        _ = _apiHubMain.Connect();
-                    }
-                }
-            }
-            // attach the tooltip for the connection / disconnection button)
-            UiSharedService.AttachToolTip(MainHub.IsConnected
-                ? "Disconnect from " + _serverConfigs.CurrentServer.ServerName + "--SEP--Current Status: " + MainHub.ServerStatus
-                : "Connect to " + _serverConfigs.CurrentServer.ServerName + "--SEP--Current Status: " + MainHub.ServerStatus);
-
-            // go back to the far left, at the same height, and draw another button.
-            var addUserIcon = FontAwesomeIcon.UserPlus;
-            var addUserIconSize = _uiShared.GetIconButtonSize(addUserIcon);
-
-            ImGui.SameLine(ImGui.GetWindowContentRegionMin().X);
-            if (printShard)
-            {
-                // unsure what this is doing but we can find out lol
-                ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((userSize.Y + textSize.Y) / 2 + shardTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
-            }
-
+            // draw the add user button
+            ImGui.TableNextColumn();
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (totalHeight - addUserButtonSize.Y) / 2);
             if (_uiShared.IconButton(addUserIcon, disabled: !MainHub.IsConnected))
             {
                 _addingNewUser = !_addingNewUser;
             }
             UiSharedService.AttachToolTip("Add New User to Whitelist");
+            _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.AddingKinksters, ImGui.GetWindowPos(), ImGui.GetWindowSize());
+
+            // in the next column, draw the centered status.
+            ImGui.TableNextColumn();
+
+            if (MainHub.IsConnected)
+            {
+                // fancy math shit for clean display, adjust when moving things around
+                ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth())
+                    / 2 - (userSize.X + textSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
+                ImGui.TextColored(ImGuiColors.ParsedPink, userCount);
+                ImGui.SameLine();
+                ImGui.TextUnformatted("Kinksters Online");
+            }
+            // otherwise, if we are not connected, display that we aren't connected.
+            else
+            {
+                ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth())
+                    / 2 - ImGui.CalcTextSize("Not connected to any server").X / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
+                ImGui.TextColored(ImGuiColors.DalamudRed, "Not connected to any server");
+            }
+
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y);
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - shardTextSize.X / 2);
+            ImGui.TextUnformatted(serverText);
+
+            // draw the connection link button
+            ImGui.TableNextColumn();
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (totalHeight - addUserButtonSize.Y) / 2);
+            // now we need to display the connection link button beside it.
+            var color = _uiShared.GetServerStateColor();
+            var connectedIcon = _uiShared.GetServerStateIcon(MainHub.ServerStatus);
+
+            // if the server is reconnecting or disconnecting
+            if (MainHub.ServerStatus is not (ServerState.Reconnecting or ServerState.Disconnecting))
+            {
+                // we need to turn the button from the connected link to the disconnected link.
+                using (ImRaii.PushColor(ImGuiCol.Text, color))
+                {
+                    // then display it
+                    if (_uiShared.IconButton(connectedIcon))
+                    {
+                        // If its true, make sure our ServerStatus is Connected, or if its false, make sure our ServerStatus is Disconnected or offline.
+                        if (MainHub.ServerStatus is ServerState.Connected)
+                        {
+                            // If we are connected, we want to disconnect.
+                            _serverConfigs.CurrentServer.FullPause = true;
+                            _serverConfigs.Save();
+                            _ = _apiHubMain.Disconnect(ServerState.Disconnected);
+                        }
+                        else if (MainHub.ServerStatus is (ServerState.Disconnected or ServerState.Offline))
+                        {
+                            // If we are disconnected, we want to connect.
+                            _serverConfigs.CurrentServer.FullPause = false;
+                            _serverConfigs.Save();
+                            _ = _apiHubMain.Connect();
+                        }
+                    }
+                }
+                // attach the tooltip for the connection / disconnection button)
+                UiSharedService.AttachToolTip(MainHub.IsConnected
+                    ? "Disconnect from " + _serverConfigs.CurrentServer.ServerName + "--SEP--Current Status: " + MainHub.ServerStatus
+                    : "Connect to " + _serverConfigs.CurrentServer.ServerName + "--SEP--Current Status: " + MainHub.ServerStatus);
+            }
+            _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.ConnectionState, ImGui.GetWindowPos(), ImGui.GetWindowSize());
         }
     }
 

@@ -94,13 +94,11 @@ public enum StepsRestraints
     ToSoundsTab, // purpose
     Sounds, // WIP
     ToHardcoreTraitsTab,
-    // skip over this if no pairs added
     SelectingPair, // how to select a pair.
     GrantingTraits,
     AddingNewSet, // save interaction.
     RestraintSetList,
     TogglingSets,
-    // if wardrobe permissions are not enabled, skip over these.
     LockingSets,
 }
 
@@ -157,12 +155,10 @@ public enum StepsPatterns
 public enum StepsTriggers
 {
     CreatingTriggers,
-    InfoTab, // mention how this is consistant across all types.
+    InfoTab,
     ToTriggerActions,
     TriggerActionKind,
-    // different types.
     SelectingTriggerType,
-    // go over the chat trigger
     ToChatText,
     ToActionTrigger,
     ToHealthTrigger,

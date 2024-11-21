@@ -5,8 +5,10 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Pairs;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.WebAPI;
 using ImGuiNET;
+using Lumina.Excel.Sheets;
 using System.Numerics;
 
 namespace GagSpeak.UI.Components;
@@ -24,16 +26,18 @@ public class MainTabMenu
     private readonly GagspeakMediator _mediator;
     private readonly PairManager _pairManager;
     private readonly UiSharedService _uiSharedService;
+    private readonly TutorialService _guides;
 
     private SelectedTab _selectedTab = SelectedTab.Homepage;
 
     public MainTabMenu(GagspeakMediator mediator, MainHub apiHubMain,
-        PairManager pairManager, UiSharedService uiSharedService)
+        PairManager pairManager, UiSharedService uiSharedService, TutorialService tutorialService)
     {
         _mediator = mediator;
         _apiHubMain = apiHubMain;
         _pairManager = pairManager;
         _uiSharedService = uiSharedService;
+        _guides = tutorialService;
     }
 
     public enum SelectedTab
@@ -61,6 +65,8 @@ public class MainTabMenu
     /// </summary>
     public void Draw()
     {
+        var pos = ImGui.GetWindowPos();
+        var size = ImGui.GetWindowSize();
         // store information about the bottom bar, to draw our buttons at appropriate sizes
         var availableWidth = ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMin().X;
         var spacing = ImGui.GetStyle().ItemSpacing;
@@ -100,6 +106,7 @@ public class MainTabMenu
             }
         }
         UiSharedService.AttachToolTip("Homepage");
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.Homepage, pos, size);
 
         // draw the whitelist button
         ImGui.SameLine();
@@ -119,6 +126,8 @@ public class MainTabMenu
                     underlineColor, 2);
         }
         UiSharedService.AttachToolTip("Whitelist");
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.ToWhitelistPage, pos, size, () => TabSelection = SelectedTab.Whitelist);
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.Whitelist, pos, size);
 
         // draw the pattern hub button
         ImGui.SameLine();
@@ -138,6 +147,8 @@ public class MainTabMenu
                     underlineColor, 2);
         }
         UiSharedService.AttachToolTip("Discover Patterns from the community!");
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.PatternHub, pos, size, () => TabSelection = SelectedTab.PatternHub);
+
 
         // draw the global chat button
         ImGui.SameLine();
@@ -150,6 +161,7 @@ public class MainTabMenu
             }
         }
         UiSharedService.AttachToolTip("Meet & Chat with others in a cross-region chat!");
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.ToGlobalChat, pos, size, () => TabSelection = SelectedTab.GlobalChat);
 
 
         // Calculate position for the message count text
@@ -188,6 +200,7 @@ public class MainTabMenu
                     underlineColor, 2);
         }
         UiSharedService.AttachToolTip("Account User Settings");
+        _guides.OpenTutorial(TutorialType.MainUi, StepsMainUi.ToAccountPage, pos, size, () => TabSelection = SelectedTab.MySettings);
 
         // advance to the new line and dispose of the button color.
         ImGui.NewLine();

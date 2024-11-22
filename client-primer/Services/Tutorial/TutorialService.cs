@@ -244,8 +244,8 @@ public class TutorialService
         }
         .AddStep(patternsStr.Step1Title, patternsStr.Step1Desc, string.Empty)
         .AddStep(patternsStr.Step2Title, patternsStr.Step2Desc, string.Empty)
-        .AddStep(patternsStr.Step3Title, patternsStr.Step3Desc, string.Empty)
-        .AddStep(patternsStr.Step4Title, patternsStr.Step4Desc, string.Empty)
+        .AddStep(patternsStr.Step3Title, patternsStr.Step3Desc, patternsStr.Step3DescExtended)
+        .AddStep(patternsStr.Step4Title, patternsStr.Step4Desc, patternsStr.Step4DescExtended)
         .AddStep(patternsStr.Step5Title, patternsStr.Step5Desc, string.Empty)
         .AddStep(patternsStr.Step6Title, patternsStr.Step6Desc, string.Empty)
         .AddStep(patternsStr.Step7Title, patternsStr.Step7Desc, string.Empty)

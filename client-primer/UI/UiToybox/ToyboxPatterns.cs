@@ -42,6 +42,7 @@ public class ToyboxPatterns
 
     // Private accessor vars for list management.
     private int LastHoveredIndex = -1; // -1 indicates no item is currently hovered
+    private string _nextTabToSelect = "Display Info";
     private LowerString PatternSearchString = LowerString.Empty;
     private List<PatternData> FilteredPatternsList
         => _handler.Patterns
@@ -55,7 +56,7 @@ public class ToyboxPatterns
         // if we are simply viewing the main page, display list of patterns  
         if (_handler.ClonedPatternForEdit is null)
         {
-            DrawCreateOrImportPatternHeader();
+            DrawCreatePatternHeader();
             ImGui.Separator();
             DrawSearchFilter(regionSize.X, ImGui.GetStyle().ItemInnerSpacing.X);
             ImGui.Separator();
@@ -74,7 +75,7 @@ public class ToyboxPatterns
         }
     }
 
-    private void DrawCreateOrImportPatternHeader()
+    private void DrawCreatePatternHeader()
     {
         // use button wrounding
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
@@ -98,6 +99,10 @@ public class ToyboxPatterns
                 _mediator.Publish(new UiToggleMessage(typeof(RemotePatternMaker)));
             }
             UiSharedService.AttachToolTip("Click me begin creating a new Pattern!");
+            _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.CreatingNewPatterns, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize, 
+                () => _mediator.Publish(new UiToggleMessage(typeof(RemotePatternMaker))));
+
+
             // now next to it we need to draw the header text
             ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(startYpos);
@@ -169,6 +174,7 @@ public class ToyboxPatterns
                 UiSharedService.AttachToolTip(canPublish is false
                     ? "Cannot Publish Patterns, your social features have been revoked!" : _handler.ClonedPatternForEdit.IsPublished
                         ? "Remove Pattern from Server" : "Upload Pattern to Server");
+                _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.PublishingToPatternHub, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
 
                 // for saving contents
                 ImGui.SameLine();
@@ -176,20 +182,20 @@ public class ToyboxPatterns
             }
 
             if (_uiShared.IconButton(FontAwesomeIcon.Save))
+            {
                 _handler.SaveEditedPattern();
+            }
             UiSharedService.AttachToolTip("Save changes to Pattern & Return to Pattern List");
+            _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.ApplyChanges, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
 
             // right beside it to the right, we need to draw the delete button
             ImGui.SameLine();
             ImGui.SetCursorPosY(currentYpos);
             if (_uiShared.IconButton(FontAwesomeIcon.Trash, disabled: !KeyMonitor.ShiftPressed()))
             {
-                _patternHubService.RemovePatternFromServer(FilteredPatternsList[LastHoveredIndex]);
-                _handler.RemovePattern(_handler.ClonedPatternForEdit.UniqueIdentifier);
+                HandleDelete(_handler.ClonedPatternForEdit);
             }
-            UiSharedService.AttachToolTip(
-                "Delete this Pattern" + Environment.NewLine +
-                "(Must hold SHIFT while clicking to delete)");
+            UiSharedService.AttachToolTip("Delete this Pattern--SEP--Must hold SHIFT while clicking to delete");
 
             try
             {
@@ -281,22 +287,12 @@ public class ToyboxPatterns
                 // Begin the popup for the current item
                 if (ImGui.BeginPopup($"PatternDataContext{LastHoveredIndex}"))
                 {
-                    if(FilteredPatternsList[LastHoveredIndex].CreatorUID != MainHub.UID)
+                    if (ImGui.Selectable("Delete Pattern")) 
+                        HandleDelete(FilteredPatternsList[LastHoveredIndex]);    
+                    if (FilteredPatternsList[LastHoveredIndex].CreatorUID == MainHub.UID)
                     {
-                        ImGui.Text("No Options Available for this Pattern.");
-                    }
-                    else
-                    {
-                        if (ImGui.Selectable("Delete Pattern"))
-                        {
-                            _handler.RemovePattern(FilteredPatternsList[LastHoveredIndex].UniqueIdentifier);
-                        }
-
                         if (ImGui.Selectable("Unpublish & Delete Pattern"))
-                        {
-                            _patternHubService.RemovePatternFromServer(FilteredPatternsList[LastHoveredIndex]);
-                            _handler.RemovePattern(FilteredPatternsList[LastHoveredIndex].UniqueIdentifier);
-                        }
+                            HandleDelete(FilteredPatternsList[LastHoveredIndex], true);
                     }
                     ImGui.EndPopup();
                 }
@@ -305,6 +301,18 @@ public class ToyboxPatterns
             // if no item is hovered, reset the last hovered index
             if (!anyItemHovered && !isPopupOpen) LastHoveredIndex = -1;
         }
+        _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.ModifyingPatterns, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
+    }
+
+    private void HandleDelete(PatternData refPattern, bool unpublish = false)
+    {
+        if(refPattern.CreatorUID == MainHub.UID && unpublish)
+        {
+            _logger.LogInformation("Unpublishing the Pattern.");
+            _patternHubService.RemovePatternFromServer(refPattern);
+        }
+        // remove it normally.
+        _handler.RemovePattern(refPattern.UniqueIdentifier);
     }
 
     private void DrawPatternSelectable(PatternData pattern, int idx)
@@ -398,15 +406,30 @@ public class ToyboxPatterns
     {
         if (ImGui.BeginTabBar("PatternEditorTabBar"))
         {
-            if (ImGui.BeginTabItem("Display Info"))
+            var tabs = new Dictionary<string, Action>
             {
-                DrawDisplayInfo(patternToEdit);
-                ImGui.EndTabItem();
-            }
-            if (ImGui.BeginTabItem("Adjustments"))
+                { "Display Info", () => DrawDisplayInfo(patternToEdit) },
+                { "Adjustments", () => DrawAdjustments(patternToEdit) }
+            };
+
+            foreach (var tab in tabs)
             {
-                DrawAdjustments(patternToEdit);
-                ImGui.EndTabItem();
+                using (var open = ImRaii.TabItem(tab.Key, _nextTabToSelect == tab.Key ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
+                {
+                    if (_nextTabToSelect == tab.Key) _nextTabToSelect = string.Empty;
+
+                    switch (tab.Key)
+                    {
+                        case "Display Info":
+                            _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.EditDisplayInfo, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
+                            break;
+                        case "Adjustments":
+                            _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.ToEditAdjustments, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize, () => _nextTabToSelect = "Adjustments");
+                            break;
+                    }
+
+                    if (open) tab.Value.Invoke();
+                }
             }
             ImGui.EndTabBar();
         }
@@ -426,6 +449,7 @@ public class ToyboxPatterns
         {
             pattern.Name = refName;
         }
+
         _uiShared.DrawHelpText("Define the name for the Pattern.");
         // author
         var refAuthor = pattern.Author;
@@ -469,7 +493,9 @@ public class ToyboxPatterns
         ImGui.Spacing();
         UiSharedService.ColorText("Pattern Loop State", ImGuiColors.ParsedGold);
         ImGui.SameLine();
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Repeat, pattern.ShouldLoop ? "Looping" : "Not Looping", null, true)) pattern.ShouldLoop = !pattern.ShouldLoop;
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Repeat, pattern.ShouldLoop ? "Looping" : "Not Looping", null, true)) 
+            pattern.ShouldLoop = !pattern.ShouldLoop;
+        _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.EditLoopToggle, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
 
         TimeSpan patternDurationTimeSpan = pattern.Duration;
         TimeSpan patternStartPointTimeSpan = pattern.StartPoint;
@@ -480,6 +506,7 @@ public class ToyboxPatterns
         string formatStart = patternDurationTimeSpan.Hours > 0 ? "hh\\:mm\\:ss" : "mm\\:ss";
         _uiShared.DrawTimeSpanCombo("PatternStartPointTimeCombo", patternDurationTimeSpan, ref patternStartPointTimeSpan, 150f, formatStart, false);
         pattern.StartPoint = patternStartPointTimeSpan;
+        _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.EditStartPoint, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
 
         // time difference calculation.
         if (pattern.StartPoint > patternDurationTimeSpan) pattern.StartPoint = patternDurationTimeSpan;
@@ -491,6 +518,7 @@ public class ToyboxPatterns
         string formatDuration = patternPlaybackDuration.Hours > 0 ? "hh\\:mm\\:ss" : "mm\\:ss";
         _uiShared.DrawTimeSpanCombo("Pattern Playback Duration", maxPlaybackDuration, ref patternPlaybackDuration, 150f, formatDuration, false);
         pattern.PlaybackDuration = patternPlaybackDuration;
+        _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.EditPlaybackDuration, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
     }
 
     private void SetFromClipboard()

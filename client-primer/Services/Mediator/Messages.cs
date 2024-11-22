@@ -160,6 +160,7 @@ public record ClearProfileDataMessage(UserData? UserData = null) : MessageBase; 
 public record ReportKinkPlateMessage(UserData KinksterToReport) : MessageBase; // for reporting a GagSpeak profile.
 public record VerificationPopupMessage(VerificationDto VerificationCode) : MessageBase; // indicating that we have received a verification code popup.
 public record PatternSavePromptMessage(List<byte> StoredData, TimeSpan Duration) : MessageBase; // prompts the popup and passes in savedata
+public record ClosePatternSavePromptMessage : MessageBase; // closes the pattern save prompt.
 public record BlindfoldUiTypeChange(BlindfoldType NewType) : MessageBase; // for changing blindfold type.
 
 /* -------------------- DISCOVER TAB RECORDS -------------------- */

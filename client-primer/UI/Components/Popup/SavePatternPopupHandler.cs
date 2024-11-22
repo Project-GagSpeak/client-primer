@@ -6,8 +6,11 @@ using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.WebAPI;
 using ImGuiNET;
+using Lumina.Excel.Sheets;
+using OtterGui;
 using System.Numerics;
 
 namespace GagSpeak.UI.Components.Popup;
@@ -15,8 +18,10 @@ namespace GagSpeak.UI.Components.Popup;
 /// <summary> A interface for handling the popups in the UI. </summary>
 public class SavePatternPopupHandler : IPopupHandler
 {
+    private readonly GagspeakMediator _mediator;
     private readonly PatternHandler _patternHandler;
     private readonly UiSharedService _uiShared;
+    private readonly TutorialService _guides;
     private PatternData CompiledPatternData = new PatternData(); // compile a new pattern to save
     // tag management
     private bool AddingTag = false;
@@ -24,10 +29,13 @@ public class SavePatternPopupHandler : IPopupHandler
     private float SaveWidth;
     private float RevertWidth;
     private const float PopupWidth = 270;
-    public SavePatternPopupHandler(PatternHandler handler, UiSharedService uiShared)
+    public SavePatternPopupHandler(GagspeakMediator mediator, PatternHandler handler, 
+        UiSharedService uiShared, TutorialService guides)
     {
+        _mediator = mediator;
         _patternHandler = handler;
         _uiShared = uiShared;
+        _guides = guides;
     }
 
     private Vector2 _size = new(PopupWidth, 400);
@@ -51,23 +59,29 @@ public class SavePatternPopupHandler : IPopupHandler
         ImGui.Separator();
         var name = CompiledPatternData.Name;
         ImGui.SetNextItemWidth(150);
-        if(ImGui.InputTextWithHint("Pattern Name", "Enter a name...", ref name, 48))
+        if (ImGui.InputTextWithHint("Pattern Name", "Enter a name...", ref name, 48))
         {
             CompiledPatternData.Name = name;
         }
+        _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.SavingPatternName, ImGui.GetWindowPos(), _size,
+            () => CompiledPatternData.Name = "Tutorial Pattern");
+
         // author field
         var author = CompiledPatternData.Author.IsNullOrEmpty() ? "Anonymous Kinkster" : CompiledPatternData.Author;
         ImGui.SetNextItemWidth(150);
-        if(ImGui.InputTextWithHint("Author", "Enter your name...", ref author, 24))
+        if (ImGui.InputTextWithHint("Author", "Enter your name...", ref author, 24))
         {
             CompiledPatternData.Author = author;
         }
+        _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.SavingPatternAuthor, ImGui.GetWindowPos(), _size);
+
         // description field
         var description = CompiledPatternData.Description;
-        if(ImGui.InputTextMultiline("Description", ref description, 256, new Vector2(150, 100)))
+        if (ImGui.InputTextMultiline("Description", ref description, 256, new Vector2(150, 100)))
         {
             CompiledPatternData.Description = description;
         }
+        _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.SavingPatternDescription, ImGui.GetWindowPos(), _size);
 
         // duration field.
         ImGui.Text("Pattern Duration: ");
@@ -82,22 +96,24 @@ public class SavePatternPopupHandler : IPopupHandler
         {
             CompiledPatternData.ShouldLoop = loop;
         }
+        _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.SavingPatternLoop, ImGui.GetWindowPos(), _size);
 
         // display tags
         DrawTagField();
         // display save options
         ImGui.Separator();
         if (_uiShared.IconTextButton(FontAwesomeIcon.Save, "Save Pattern Data", SaveWidth))
-        {
-            _patternHandler.AddNewPattern(CompiledPatternData);
-            ImGui.CloseCurrentPopup();
-        }
+            Close();
+        _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.FinalizingSave, ImGui.GetWindowPos(), _size, () => _mediator.Publish(new ClosePatternSavePromptMessage()));
+
         ImGui.SameLine();
-        if (_uiShared.IconTextButton(FontAwesomeIcon.Undo, "Discard Pattern", RevertWidth))
+        if (_uiShared.IconTextButton(FontAwesomeIcon.Undo, "Discard Pattern", RevertWidth, disabled: _guides.IsTutorialActive(TutorialType.Patterns)))
         {
             CompiledPatternData = new PatternData();
             ImGui.CloseCurrentPopup();
         }
+        _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.DiscardingPattern, ImGui.GetWindowPos(), _size);
+
         var height = ImGui.GetCursorPosY() - start;
         _size = _size with { Y = height };
     }
@@ -188,6 +204,7 @@ public class SavePatternPopupHandler : IPopupHandler
                     AddingTag = true;
                 }
                 UiSharedService.AttachToolTip("You can press Middle Mouse to automatically open me!");
+                _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.SavingPatternTags, ImGui.GetWindowPos(), _size);
             }
         }
     }
@@ -204,5 +221,11 @@ public class SavePatternPopupHandler : IPopupHandler
         CompiledPatternData.PatternByteData = message.StoredData;
         // set the creator.
         CompiledPatternData.CreatorUID = MainHub.UID;
+    }
+
+    public void Close()
+    {
+        _patternHandler.AddNewPattern(CompiledPatternData);
+        ImGui.CloseCurrentPopup();
     }
 }

@@ -389,6 +389,7 @@ public abstract class RemoteBase : WindowMediatorSubscriberBase
                 ImPlot.DragPoint(0, ref CirclePosition[0], ref CirclePosition[1], _remoteService.LushPinkButton, 20, ImPlotDragToolFlags.NoCursors);
             }
             _guides.OpenTutorial(TutorialType.Remote, StepsRemote.ControllableCircle, CurrentPos, CurrentSize);
+            _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.DraggableCircle, CurrentPos, CurrentSize);
 
             // if the mouse button is released, while we are looping and dragging turn dragging off
             if (IsDragging && ImGui.IsMouseReleased(ImGuiMouseButton.Left))

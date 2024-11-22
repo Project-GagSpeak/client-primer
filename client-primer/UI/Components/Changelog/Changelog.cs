@@ -19,6 +19,9 @@ public class Changelog
     // Add Version Data here.
     private void AddVersionData()
     {
+        VersionEntry(0, 9, 9, 12)
+            .RegisterMain("Addedd all internal tutorial modules to the plugin.")
+            .RegisterBugfix("Fixed about 50+ bugs i lost count");
         VersionEntry(0, 9, 9, 11)
             .RegisterMain("Final DevPatch update for any beta testers to report anything that may have broken from the update.");
         VersionEntry(0, 9, 9, 10)

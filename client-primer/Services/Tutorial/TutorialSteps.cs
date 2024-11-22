@@ -130,8 +130,8 @@ public enum StepsPatterns
 {
     CreatingNewPatterns,
     RecordedDuration,
-    FloatButton,
     LoopButton,
+    FloatButton,
     DraggableCircle,
     RecordingButton, // let us start the recording
     StoppingRecording, // let us stop the recording.

@@ -55,6 +55,16 @@ public class PopupHandler : WindowMediatorSubscriberBase
             IsOpen = true;
         });
 
+        Mediator.Subscribe<ClosePatternSavePromptMessage>(this, (msg) =>
+        {
+            // call the close method in the currently open popup handler.
+            _currentHandler = _handlers.OfType<SavePatternPopupHandler>().Single();
+            ((SavePatternPopupHandler)_currentHandler).Close();
+            // then close the window and popup.
+            IsOpen = false;
+            _openPopup = false;
+        });
+
         Mediator.Subscribe<ReportKinkPlateMessage>(this, (msg) =>
         {
             // open the save pattern popup, and label the handler that one is open.

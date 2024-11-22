@@ -10,13 +10,13 @@ namespace GagSpeak.Services.Mediator;
 public sealed class GagspeakMediator : IHostedService
 {
     private readonly object _addRemoveLock = new();                         // the add remove lock for the subscriber dictionary
-    private readonly Dictionary<object, DateTime> _lastErrorTime = [];      // the last error time for a subscriber
+    private readonly ConcurrentDictionary<object, DateTime> _lastErrorTime = [];      // the last error time for a subscriber
     private readonly ILogger<GagspeakMediator> _logger;                     // the logger for the mediator
     private readonly CancellationTokenSource _loopCts = new();              // the cancellation token source for the loop
     private readonly ConcurrentQueue<MessageBase> _messageQueue = new();    // the queue of mediator published messages
-    private readonly Dictionary<Type, HashSet<SubscriberAction>> _subscriberDict = []; // the subscriber dictionary
+    private readonly ConcurrentDictionary<Type, HashSet<SubscriberAction>> _subscriberDict = []; // the subscriber dictionary
     private bool _processQueue = false;                                     // if we should be processing the queue
-    private readonly Dictionary<Type, MethodInfo?> _genericExecuteMethods = new(); // the generic execution methods
+    private readonly ConcurrentDictionary<Type, MethodInfo?> _genericExecuteMethods = new(); // the generic execution methods
     public GagspeakMediator(ILogger<GagspeakMediator> logger)
     {
         _logger = logger;

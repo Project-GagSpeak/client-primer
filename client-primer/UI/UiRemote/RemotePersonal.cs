@@ -97,7 +97,6 @@ public class RemotePersonal : RemoteBase
             // move our yposition down to the top of the frame height times a .3f scale of the current region
             ImGui.SetCursorPosY(InitPos + CurrentRegion.Y * .1f);
             ImGui.Separator();
-
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 7f);
 
             // attempt to obtain an image wrap for it

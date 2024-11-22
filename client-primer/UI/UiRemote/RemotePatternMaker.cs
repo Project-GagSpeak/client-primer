@@ -98,13 +98,20 @@ public class RemotePatternMaker : RemoteBase
             var InitPos = ImGui.GetCursorPosY();
             if (IsRecording)
             {
+                ImGui.AlignTextToFramePadding();
                 ImGuiUtil.Center($"{DurationStopwatch.Elapsed.ToString(@"mm\:ss")}");
             }
+            else
+            {
+                ImGui.AlignTextToFramePadding();
+                ImGuiUtil.Center("00:00");
+            }
+            _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.RecordedDuration, CurrentPos, CurrentSize);
 
             // move our yposition down to the top of the frame height times a .3f scale of the current region
             ImGui.SetCursorPosY(InitPos + CurrentRegion.Y * .1f);
             ImGui.Separator();
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .025f);
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + 7f);
 
             // attempt to obtain an image wrap for it
             var spinArrow = _cosmetics.GetImageFromDirectoryFile("RequiredImages\\arrowspin.png");
@@ -119,6 +126,8 @@ public class RemotePatternMaker : RemoteBase
                     if (IsFloating) { IsFloating = false; }
                 }
             }
+            _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.LoopButton, CurrentPos, CurrentSize);
+
 
             // move it down from current position by another .2f scale
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + CurrentRegion.Y * .05f);
@@ -135,6 +144,8 @@ public class RemotePatternMaker : RemoteBase
                     if (IsLooping) { IsLooping = false; }
                 }
             }
+            _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.FloatButton, CurrentPos, CurrentSize);
+
 
             ImGui.SetCursorPosY(CurrentRegion.Y * .775f);
             Vector4 buttonColor3 = IsRecording ? _remoteService.LushPinkButton : _remoteService.SideButton;
@@ -151,6 +162,7 @@ public class RemotePatternMaker : RemoteBase
                         StartVibrating();
                     }
                 }
+                _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.RecordingButton, CurrentPos, CurrentSize);
             }
             // we are recording so display stop
             else
@@ -165,6 +177,7 @@ public class RemotePatternMaker : RemoteBase
                         StopVibrating();
                     }
                 }
+                _guides.OpenTutorial(TutorialType.Patterns, StepsPatterns.StoppingRecording, CurrentPos, CurrentSize);
             }
         }
         // pop what we appended
@@ -194,6 +207,8 @@ public class RemotePatternMaker : RemoteBase
         FinishedRecording = true;
         // compile together and send off the popup handler for compiling a newly created pattern
         Mediator.Publish(new PatternSavePromptMessage(StoredVibrationData, Duration));
+        Mediator.Publish(new UiToggleMessage(typeof(RemotePatternMaker)));
+
     }
 
 

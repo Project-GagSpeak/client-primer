@@ -333,25 +333,24 @@ namespace GagSpeak.Localization
         public readonly string Step5Desc = Loc.Localize("HelpCursedLoot_Step5Desc", "The arrangement of Cursed Items you have created.");
 
         public readonly string Step6Title = Loc.Localize("HelpCursedLoot_Step6Title", "The Enabled Pool");
-        public readonly string Step6Desc = Loc.Localize("HelpCursedLoot_Step6Desc", "The Enabled pool is the list of items that will be randomly selected from whenever the Cursed " +
-            "Loot Service rolls within the % chance limit you have set, and needs to apply a Mimic Item to you.");
+        public readonly string Step6Desc = Loc.Localize("HelpCursedLoot_Step6Desc", "The list of items that will be randomly selected from whenever you find a Mimic Chest");
 
-        public readonly string Step7Title = Loc.Localize("HelpCursedLoot_Step7Title", "Adding Cursed Items to the Enabled Pool");
-        public readonly string Step7Desc = Loc.Localize("HelpCursedLoot_Step7Desc", "Moves a cursed item from your list into the Enabled Pool.");
+        public readonly string Step7Title = Loc.Localize("HelpCursedLoot_Step7Title", "Adding Items to the Pool");
+        public readonly string Step7Desc = Loc.Localize("HelpCursedLoot_Step7Desc", "This will move an cursed item into the Enabled Pool.\nGive it a shot!");
 
-        public readonly string Step8Title = Loc.Localize("HelpCursedLoot_Step8Title", "Removing Cursed Items from the Enabled Pool");
-        public readonly string Step8Desc = Loc.Localize("HelpCursedLoot_Step8Desc", "Removes the item from the enabled pool.");
+        public readonly string Step8Title = Loc.Localize("HelpCursedLoot_Step8Title", "Removing Items from the Pool");
+        public readonly string Step8Desc = Loc.Localize("HelpCursedLoot_Step8Desc", "This will remove the item from the enabled pool.");
 
         public readonly string Step9Title = Loc.Localize("HelpCursedLoot_Step9Title", "The Lower Lock Timer Limit");
-        public readonly string Step9Desc = Loc.Localize("HelpCursedLoot_Step9Desc", "Minimum amount of time a cursed item will be locked for.");
+        public readonly string Step9Desc = Loc.Localize("HelpCursedLoot_Step9Desc", "Whatever you set in here will be the LOWER LIMIT of how long a Cursed Item will end up locked for.");
         public readonly string Step9DescExtended = Loc.Localize("HelpCursedLoot_Step9DescExtended", "BE AWARE: MIMIC PADLOCKS CANNOT BE UNLOCKED. YOU MUST WAIT FOR THEM TO EXPIRE. SET TIMER LIMIT ACCORDINGLY.");
 
         public readonly string Step10Title = Loc.Localize("HelpCursedLoot_Step10Title", "The Upper Lock Timer Limit");
-        public readonly string Step10Desc = Loc.Localize("HelpCursedLoot_Step10Desc", "Maximum amount of time a cursed item will be locked for.");
+        public readonly string Step10Desc = Loc.Localize("HelpCursedLoot_Step10Desc", "Whatever you set in here will be the UPPER LIMIT of how long a Cursed Item will end up locked for.");
         public readonly string Step10DescExtended = Loc.Localize("HelpCursedLoot_Step10DescExtended", "BE AWARE: MIMIC PADLOCKS CANNOT BE UNLOCKED. YOU MUST WAIT FOR THEM TO EXPIRE. SET TIMER LIMIT ACCORDINGLY.");
 
-        public readonly string Step11Title = Loc.Localize("HelpCursedLoot_Step11Title", "The CursedItem Discovery %");
-        public readonly string Step11Desc = Loc.Localize("HelpCursedLoot_Step11Desc", "% Chance of having a cursed item from the pool locked on you.");
+        public readonly string Step11Title = Loc.Localize("HelpCursedLoot_Step11Title", "The CursedItem Discovery Percent");
+        public readonly string Step11Desc = Loc.Localize("HelpCursedLoot_Step11Desc", "Whatever you set here will be the %% Chance that a chest you loot will be Cursed Loot.");
     }
 
     public class HelpToybox
@@ -368,10 +367,10 @@ namespace GagSpeak.Localization
             "3. Directs you to the download link if you do not have it installed on your computer.");
 
         public readonly string Step3Title = Loc.Localize("HelpToybox_Step3Title", "Selecting Vibrator Kind");
-        public readonly string Step3Desc = Loc.Localize("HelpToybox_Step3Desc", "Chose Between Simulated Vibrator (No IRL SexToy Required), and Actual Vibrator (Your IRL Sex Toys).");
+        public readonly string Step3Desc = Loc.Localize("HelpToybox_Step3Desc", "Chose Between Simulated (No IRL Toy Required), and Actual (Your IRL Toys).");
 
         public readonly string Step4Title = Loc.Localize("HelpToybox_Step4Title", "Simulated Audio Selection");
-        public readonly string Step4Desc = Loc.Localize("HelpToybox_Step4Desc", "With a Simulated Vibrator, you can select which audio you want played to you. A quiet or loud version");
+        public readonly string Step4Desc = Loc.Localize("HelpToybox_Step4Desc", "With a Simulated Vibrator, you can select which audio you want played to you. A quiet or normal version");
 
         public readonly string Step5Title = Loc.Localize("HelpToybox_Step5Title", "Playback Audio Devices");
         public readonly string Step5Desc = Loc.Localize("HelpToybox_Step5Desc", "You can also select which audio device the sound is played back to.");
@@ -467,7 +466,7 @@ namespace GagSpeak.Localization
         public readonly string Step3Title = Loc.Localize("HelpTriggers_Step3Title", "Trigger Actions");
         public readonly string Step3Desc = Loc.Localize("HelpTriggers_Step3Desc", "The Trigger Action Kind you select, is the resulting action that is executed once the trigger's condition is met.");
 
-        public readonly string Step4Title = Loc.Localize("HelpTriggers_Step4Title", "Setting a Trigger Action Kind");
+        public readonly string Step4Title = Loc.Localize("HelpTriggers_Step4Title", "Trigger Action Kinds");
         public readonly string Step4Desc = Loc.Localize("HelpTriggers_Step4Desc", "Selecting an option from here will set the trigger action kind. Note that base on the kind you select, there are different sub-options to choose.");
 
         public readonly string Step5Title = Loc.Localize("HelpTriggers_Step5Title", "Selecting Trigger Types.");
@@ -519,19 +518,19 @@ namespace GagSpeak.Localization
         public readonly string Step4Title = Loc.Localize("HelpAlarms_Step4Title", "Setting the Alarm Time");
         public readonly string Step4Desc = Loc.Localize("HelpAlarms_Step4Desc", "You can set your time by using the mouse scrollwheel over the hour and minute numbers.");
 
-        public readonly string Step5Title = Loc.Localize("HelpAlarms_Step5Title", "Defining the Pattern to Play");
+        public readonly string Step5Title = Loc.Localize("HelpAlarms_Step5Title", "The Pattern to Play");
         public readonly string Step5Desc = Loc.Localize("HelpAlarms_Step5Desc", "Select which stored pattern you wish for the alarm to play when it goes off.");
 
-        public readonly string Step6Title = Loc.Localize("HelpAlarms_Step6Title", "Setting the Alarm Pattern Start-Point");
+        public readonly string Step6Title = Loc.Localize("HelpAlarms_Step6Title", "Alarm Pattern Start-Point");
         public readonly string Step6Desc = Loc.Localize("HelpAlarms_Step6Desc", "Identify at which point in the pattern the alarm should start to play at.");
 
-        public readonly string Step7Title = Loc.Localize("HelpAlarms_Step7Title", "Setting the Alarm Pattern Duration");
+        public readonly string Step7Title = Loc.Localize("HelpAlarms_Step7Title", "Alarm Pattern Duration");
         public readonly string Step7Desc = Loc.Localize("HelpAlarms_Step7Desc", "Identify for how long the patterns alarm should play for before stopping.");
 
-        public readonly string Step8Title = Loc.Localize("HelpAlarms_Step8Title", "Setting the Alarm Frequency");
+        public readonly string Step8Title = Loc.Localize("HelpAlarms_Step8Title", "Alarm Frequency");
         public readonly string Step8Desc = Loc.Localize("HelpAlarms_Step8Desc", "Set the days of the week this alarm go off");
 
-        public readonly string Step9Title = Loc.Localize("HelpAlarms_Step9Title", "Saving the new Alarm");
+        public readonly string Step9Title = Loc.Localize("HelpAlarms_Step9Title", "Saving the Alarm");
         public readonly string Step9Desc = Loc.Localize("HelpAlarms_Step9Desc", "Save/Apply changes and append the new alarm.");
 
         public readonly string Step10Title = Loc.Localize("HelpAlarms_Step10Title", "The Alarm List");

@@ -119,6 +119,8 @@ public class WardrobeUI : WindowMediatorSubscriberBase
     }
 
     private bool ThemePushed = false;
+    public static Vector2 LastWinPos = Vector2.Zero;
+    public static Vector2 LastWinSize = Vector2.Zero;
     protected override void PreDrawInternal()
     {
         if (!ThemePushed)
@@ -144,8 +146,8 @@ public class WardrobeUI : WindowMediatorSubscriberBase
         //_logger.LogInformation(ImGui.GetWindowSize().ToString()); // <-- USE FOR DEBUGGING ONLY.
         // get information about the window region, its item spacing, and the topleftside height.
         var region = ImGui.GetContentRegionAvail();
-        var winPos = ImGui.GetWindowPos();
-        var winSize = ImGui.GetWindowSize();
+        LastWinPos = ImGui.GetWindowPos();
+        LastWinSize = ImGui.GetWindowSize();
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
         var topLeftSideHeight = region.Y;
         var cellPadding = ImGui.GetStyle().CellPadding;
@@ -199,13 +201,13 @@ public class WardrobeUI : WindowMediatorSubscriberBase
                     switch (_tabMenu.SelectedTab)
                     {
                         case WardrobeTabs.Tabs.ManageSets:
-                            _overviewPanel.DrawManageSets(cellPadding, winPos, winSize);
+                            _overviewPanel.DrawManageSets(cellPadding);
                             break;
                         case WardrobeTabs.Tabs.StruggleSim:
                             _struggleSimPanel.DrawStruggleSim();
                             break;
                         case WardrobeTabs.Tabs.CursedLoot:
-                            _cursedLootPanel.DrawCursedLootPanel(winPos, winSize);
+                            _cursedLootPanel.DrawCursedLootPanel();
                             break;
                         case WardrobeTabs.Tabs.ManageMoodles:
                             _moodlesPanel.DrawMoodlesManager(cellPadding);

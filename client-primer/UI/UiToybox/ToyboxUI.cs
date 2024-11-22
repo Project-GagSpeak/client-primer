@@ -3,10 +3,12 @@ using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Textures;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
 using ImGuiNET;
+using Lumina.Excel.Sheets;
 using System.Numerics;
 
 namespace GagSpeak.UI.UiToybox;
@@ -22,12 +24,22 @@ public class ToyboxUI : WindowMediatorSubscriberBase
     private readonly PatternPlayback _patternPlayback;
     private readonly CosmeticService _cosmetics;
     private readonly UiSharedService _uiShared;
+    private readonly TutorialService _guides;
+
+    // mapping tutorials.
+    private static readonly Dictionary<object, (TutorialType Type, string StartLog, string SkipLog)> TutorialMap = new Dictionary<object, (TutorialType Type, string StartLog, string SkipLog)>()
+    {
+        { ToyboxTabs.Tabs.ToyOverview, (TutorialType.Toybox, "Starting Toybox Tutorial", "Skipping Toybox Tutorial") },
+        { ToyboxTabs.Tabs.PatternManager, (TutorialType.Patterns, "Starting Patterns Tutorial", "Skipping Patterns Tutorial") },
+        { ToyboxTabs.Tabs.TriggerManager, (TutorialType.Triggers, "Starting Triggers Tutorial", "Skipping Triggers Tutorial") },
+        { ToyboxTabs.Tabs.AlarmManager, (TutorialType.Alarms, "Starting Alarms Tutorial", "Skipping Alarms Tutorial") }
+    };
 
     public ToyboxUI(ILogger<ToyboxUI> logger, GagspeakMediator mediator,
         ToyboxOverview toysOverview, ToyboxPrivateRooms vibeServer, ToyboxPatterns patterns,
         ToyboxTriggerManager triggerManager, ToyboxAlarmManager alarmManager,
-        PatternPlayback playback, CosmeticService cosmetics, UiSharedService uiSharedService) 
-        : base(logger, mediator, "Toybox UI")
+        PatternPlayback playback, CosmeticService cosmetics, UiSharedService uiShared,
+        TutorialService guides) : base(logger, mediator, "Toybox UI")
     {
         _toysOverview = toysOverview;
         _vibeServer = vibeServer;
@@ -36,7 +48,10 @@ public class ToyboxUI : WindowMediatorSubscriberBase
         _alarmManager = alarmManager;
         _patternPlayback = playback;
         _cosmetics = cosmetics;
-        _uiShared = uiSharedService;
+        _uiShared = uiShared;
+        _guides = guides;
+
+        _tabMenu = new ToyboxTabMenu(_uiShared);
 
         AllowPinning = false;
         AllowClickthrough = false;
@@ -56,10 +71,45 @@ public class ToyboxUI : WindowMediatorSubscriberBase
                     ImGui.Text("Migrate Old Pattern Data");
                     ImGui.EndTooltip();
                 }
+            },
+            new TitleBarButton()
+            {
+                Icon = FontAwesomeIcon.QuestionCircle,
+                Click = (msg) =>
+                {
+                    // Check if the current tab has an associated tutorial
+                    if (TutorialMap.TryGetValue(_tabMenu.SelectedTab, out var tutorialInfo))
+                    {
+                        // Perform tutorial actions
+                        if (_guides.IsTutorialActive(tutorialInfo.Type))
+                        {
+                            _guides.SkipTutorial(tutorialInfo.Type);
+                            _logger.LogInformation(tutorialInfo.SkipLog);
+                        }
+                        else
+                        {
+                            _guides.StartTutorial(tutorialInfo.Type);
+                            _logger.LogInformation(tutorialInfo.StartLog);
+                        }
+                    }
+                },
+                IconOffset = new(2, 1),
+                ShowTooltip = () =>
+                {
+                    ImGui.BeginTooltip();
+                    var text = _tabMenu.SelectedTab switch
+                    {
+                        ToyboxTabs.Tabs.ToyOverview => "Start/Stop Toybox Tutorial",
+                        ToyboxTabs.Tabs.PatternManager => "Start/Stop Patterns Tutorial",
+                        ToyboxTabs.Tabs.TriggerManager => "Start/Stop Triggers Tutorial",
+                        ToyboxTabs.Tabs.AlarmManager => "Start/Stop Alarms Tutorial",
+                        _ => "No Tutorial Available"
+                    };
+                    ImGui.Text(text);
+                    ImGui.EndTooltip();
+                }
             }
         };
-
-        _tabMenu = new ToyboxTabMenu(_uiShared);
 
         // define initial size of window and to not respect the close hotkey.
         this.SizeConstraints = new WindowSizeConstraints
@@ -71,6 +121,8 @@ public class ToyboxUI : WindowMediatorSubscriberBase
     }
 
     private bool ThemePushed = false;
+    public static Vector2 LastWinPos = Vector2.Zero;
+    public static Vector2 LastWinSize = Vector2.Zero;
     protected override void PreDrawInternal()
     {
         if (!ThemePushed)
@@ -94,8 +146,8 @@ public class ToyboxUI : WindowMediatorSubscriberBase
     {
         // get information about the window region, its item spacing, and the topleftside height.
         var region = ImGui.GetContentRegionAvail();
-        var winPos = ImGui.GetWindowPos();
-        var winSize = ImGui.GetWindowSize();
+        LastWinPos = ImGui.GetWindowPos();
+        LastWinSize = ImGui.GetWindowSize();
         var winPadding = ImGui.GetStyle().WindowPadding;
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
         var cellPadding = ImGui.GetStyle().CellPadding;

@@ -2,15 +2,12 @@ using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
-using Dalamud.Utility;
 using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.Utils;
-using GagspeakAPI.Data;
 using ImGuiNET;
-using Microsoft.Extensions.FileSystemGlobbing.Internal;
-using OtterGui.Classes;
 using OtterGui.Text;
 using System.Globalization;
 using System.Numerics;
@@ -23,16 +20,17 @@ public class ToyboxAlarmManager
     private readonly UiSharedService _uiShared;
     private readonly AlarmHandler _handler;
     private readonly PatternHandler _patternHandler;
-
-    public ToyboxAlarmManager(ILogger<ToyboxAlarmManager> logger,
-        GagspeakMediator mediator, UiSharedService uiSharedService,
-        AlarmHandler handler, PatternHandler patternHandler)
+    private readonly TutorialService _guides;
+    public ToyboxAlarmManager(ILogger<ToyboxAlarmManager> logger, GagspeakMediator mediator,
+        UiSharedService uiSharedService, AlarmHandler handler, PatternHandler patternHandler,
+        TutorialService guides)
     {
         _logger = logger;
         _mediator = mediator;
         _uiShared = uiSharedService;
         _handler = handler;
         _patternHandler = patternHandler;
+        _guides = guides;
     }
 
     public string AlarmSearchString = string.Empty;
@@ -100,6 +98,8 @@ public class ToyboxAlarmManager
                 CreatedAlarm = new Alarm();
                 CreatingAlarm = true;
             }
+            _guides.OpenTutorial(TutorialType.Alarms, StepsAlarms.CreatingAlarms, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize, () => CreatingAlarm = true);
+
             // now next to it we need to draw the header text
             ImGui.SameLine(10 * ImGuiHelpers.GlobalScale + iconSize.X + ImGui.GetStyle().ItemSpacing.X);
             ImGui.SetCursorPosY(startYpos);
@@ -152,6 +152,12 @@ public class ToyboxAlarmManager
                 CreatedAlarm = new Alarm();
                 CreatingAlarm = false;
             }
+            _guides.OpenTutorial(TutorialType.Alarms, StepsAlarms.SavingAlarms, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize, () => 
+            {
+                _handler.AddNewAlarm(CreatedAlarm); 
+                CreatedAlarm = new Alarm(); 
+                CreatingAlarm = false; 
+            });
         }
     }
 
@@ -247,6 +253,7 @@ public class ToyboxAlarmManager
                 }
             }
         }
+        _guides.OpenTutorial(TutorialType.Alarms, StepsAlarms.AlarmList, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
     }
 
     public void DrawSearchFilter(float availableWidth, float spacingX)
@@ -324,6 +331,7 @@ public class ToyboxAlarmManager
                 // toggle the state & early return so we dont access the childclicked button
                 return;
             }
+            if(idx is 0) _guides.OpenTutorial(TutorialType.Alarms, StepsAlarms.TogglingAlarms, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
         }
         if (ImGui.IsItemClicked())
             _handler.StartEditingAlarm(alarm);
@@ -340,6 +348,7 @@ public class ToyboxAlarmManager
         ImGui.Spacing();
         ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - textlength) / 2);
         _uiShared.IconTextButton(FontAwesomeIcon.Clock, TimeZoneInfo.Local.StandardName, null!, true, true);
+        _guides.OpenTutorial(TutorialType.Alarms, StepsAlarms.AlarmLocalTimeZone, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
 
         // Draw out using the big pushed font, a large, blank button canvas
         using (ImRaii.Child("TimezoneFancyUI", new Vector2(UiSharedService.GetWindowContentRegionWidth(), 90f)))
@@ -403,6 +412,8 @@ public class ToyboxAlarmManager
                 ImGui.TextDisabled(nextMinute); // Next hour (centered)
             }
         }
+        _guides.OpenTutorial(TutorialType.Alarms, StepsAlarms.SettingAlarmTime, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
+
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - 5f);
         ImGui.Separator();
         ImGui.Spacing();
@@ -413,12 +424,14 @@ public class ToyboxAlarmManager
         ImGui.InputText("Alarm Name", ref name, 32);
         if (ImGui.IsItemDeactivatedAfterEdit())
             alarmToCreate.Name = name;
+        _guides.OpenTutorial(TutorialType.Alarms, StepsAlarms.SettingAlarmName, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize, () => alarmToCreate.Name = "Tutorial Alarm");
 
         // Input field for the pattern the alarm will play
         var pattern = alarmToCreate.PatternToPlay;
         // draw the selector on the left
-        _uiShared.DrawComboSearchable("Alarm Pattern", UiSharedService.GetWindowContentRegionWidth() / 2,
-        _patternHandler.Patterns, (i) => i.Name, true, (i) => alarmToCreate.PatternToPlay = i?.UniqueIdentifier ?? Guid.Empty);
+        _uiShared.DrawComboSearchable("Alarm Pattern", UiSharedService.GetWindowContentRegionWidth() / 2, _patternHandler.Patterns, (i) => i.Name, true, (i) => alarmToCreate.PatternToPlay = i?.UniqueIdentifier ?? Guid.Empty);
+        // tutorial stuff for the above combo.
+        _guides.OpenTutorial(TutorialType.Alarms, StepsAlarms.SettingAlarmPattern, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
 
         // if the pattern is not the alarmTocreate.PatternToPlay, it has changed, so update newPatternMaxDuration
         TimeSpan durationTotal = _handler.GetPatternLength(alarmToCreate.PatternToPlay);
@@ -426,8 +439,10 @@ public class ToyboxAlarmManager
         TimeSpan PlaybackDuration = alarmToCreate.PatternDuration;
 
         string formatStart = durationTotal.Hours > 0 ? "hh\\:mm\\:ss" : "mm\\:ss";
-        _uiShared.DrawTimeSpanCombo("Playback Start-Point", durationTotal, ref StartPointTimeSpan, UiSharedService.GetWindowContentRegionWidth()/2, formatStart, true);
+        _uiShared.DrawTimeSpanCombo("Playback Start-Point", durationTotal, ref StartPointTimeSpan, UiSharedService.GetWindowContentRegionWidth() / 2, formatStart, true);
         alarmToCreate.PatternStartPoint = StartPointTimeSpan;
+        _guides.OpenTutorial(TutorialType.Alarms, StepsAlarms.SettingAlarmStartPoint, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
+
 
         // time difference calculation.
         if (alarmToCreate.PatternStartPoint > durationTotal) alarmToCreate.PatternStartPoint = durationTotal;
@@ -435,8 +450,9 @@ public class ToyboxAlarmManager
 
         // playback duration
         string formatDuration = PlaybackDuration.Hours > 0 ? "hh\\:mm\\:ss" : "mm\\:ss";
-        _uiShared.DrawTimeSpanCombo("Playback Duration", maxPlaybackDuration, ref PlaybackDuration, UiSharedService.GetWindowContentRegionWidth()/2, formatDuration, true);
+        _uiShared.DrawTimeSpanCombo("Playback Duration", maxPlaybackDuration, ref PlaybackDuration, UiSharedService.GetWindowContentRegionWidth() / 2, formatDuration, true);
         alarmToCreate.PatternDuration = PlaybackDuration;
+        _guides.OpenTutorial(TutorialType.Alarms, StepsAlarms.SettingAlarmDuration, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
 
         ImGui.Separator();
 
@@ -446,39 +462,44 @@ public class ToyboxAlarmManager
         int totalValues = alarmRepeatValues.Length;
         int splitIndex = 4; // Index to split the groups
 
-        // Group 1: First four
         using (ImRaii.Group())
         {
-            for (int i = 0; i < splitIndex && i < totalValues; i++)
+            // Group 1: First four
+            using (ImRaii.Group())
             {
-                DayOfWeek day = alarmRepeatValues[i];
-                bool isSelected = alarmToCreate.RepeatFrequency.Contains(day);
-                if (ImGui.Checkbox(day.ToString(), ref isSelected))
+                for (int i = 0; i < splitIndex && i < totalValues; i++)
                 {
-                    if (isSelected)
-                        alarmToCreate.RepeatFrequency.Add(day);
-                    else
-                        alarmToCreate.RepeatFrequency.Remove(day);
+                    DayOfWeek day = alarmRepeatValues[i];
+                    bool isSelected = alarmToCreate.RepeatFrequency.Contains(day);
+                    if (ImGui.Checkbox(day.ToString(), ref isSelected))
+                    {
+                        if (isSelected)
+                            alarmToCreate.RepeatFrequency.Add(day);
+                        else
+                            alarmToCreate.RepeatFrequency.Remove(day);
+                    }
                 }
             }
-        }
-        ImGui.SameLine();
+            ImGui.SameLine();
 
-        // Group 2: Last three
-        using (ImRaii.Group())
-        {
-            for (int i = splitIndex; i < totalValues; i++)
+            // Group 2: Last three
+            using (ImRaii.Group())
             {
-                DayOfWeek day = alarmRepeatValues[i];
-                bool isSelected = alarmToCreate.RepeatFrequency.Contains(day);
-                if (ImGui.Checkbox(day.ToString(), ref isSelected))
+                for (int i = splitIndex; i < totalValues; i++)
                 {
-                    if (isSelected)
-                        alarmToCreate.RepeatFrequency.Add(day);
-                    else
-                        alarmToCreate.RepeatFrequency.Remove(day);
+                    DayOfWeek day = alarmRepeatValues[i];
+                    bool isSelected = alarmToCreate.RepeatFrequency.Contains(day);
+                    if (ImGui.Checkbox(day.ToString(), ref isSelected))
+                    {
+                        if (isSelected)
+                            alarmToCreate.RepeatFrequency.Add(day);
+                        else
+                            alarmToCreate.RepeatFrequency.Remove(day);
+                    }
                 }
             }
         }
+        _guides.OpenTutorial(TutorialType.Alarms, StepsAlarms.SettingFrequency, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
+
     }
 }

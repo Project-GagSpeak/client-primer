@@ -5,13 +5,12 @@ using Dalamud.Interface.Utility.Raii;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.Services.ConfigurationServices;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.Toybox.Controllers;
 using GagSpeak.Toybox.Data;
 using GagSpeak.Toybox.Services;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.Utils;
-using GagSpeak.WebAPI;
-using GagspeakAPI.Enums;
 using ImGuiNET;
 using OtterGui.Text;
 
@@ -26,11 +25,12 @@ public class ToyboxOverview
     private readonly ClientConfigurationManager _clientConfigs;
     private readonly ServerConfigurationManager _serverConfigs;
     private readonly VibratorService _vibeService;
+    private readonly TutorialService _guides;
 
-    public ToyboxOverview(ILogger<ToyboxOverview> logger, GagspeakMediator mediator, 
-        UiSharedService uiSharedService, PlayerCharacterData playerData, 
-        ClientConfigurationManager clientConfigs,
-        ServerConfigurationManager serverConfigs, VibratorService vibeService)
+    public ToyboxOverview(ILogger<ToyboxOverview> logger, GagspeakMediator mediator,
+        UiSharedService uiSharedService, PlayerCharacterData playerData,
+        ClientConfigurationManager clientConfigs, ServerConfigurationManager serverConfigs,
+        VibratorService vibeService, TutorialService guides)
     {
         _logger = logger;
         _mediator = mediator;
@@ -39,6 +39,7 @@ public class ToyboxOverview
         _clientConfigs = clientConfigs;
         _serverConfigs = serverConfigs;
         _vibeService = vibeService;
+        _guides = guides;
 
         // grab path to the intiface
         if (ToyboxHelper.AppPath == string.Empty)
@@ -70,6 +71,7 @@ public class ToyboxOverview
             }
             ImGui.EndCombo();
         }
+        _guides.OpenTutorial(TutorialType.Toybox, StepsToybox.SelectingVibratorType, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize, () => _clientConfigs.GagspeakConfig.VibratorMode = VibratorMode.Simulated);
 
         // display the wide list of connected devices, along with if they are active or not, below some scanner options
         if (_uiShared.IconTextButton(FontAwesomeIcon.TabletAlt, "Personal Remote", 125f))
@@ -80,7 +82,7 @@ public class ToyboxOverview
         ImUtf8.SameLineInner();
         ImGui.Text("Open Personal Remote");
 
-        if(_playerManager.GlobalPerms is not null)
+        if (_playerManager.GlobalPerms is not null)
             ImGui.Text("Active Toys State: " + (_playerManager.GlobalPerms.ToyIsActive ? "Active" : "Inactive"));
 
         ImGui.Text("ConnectedToyActive: " + _vibeService.ConnectedToyActive);
@@ -115,6 +117,7 @@ public class ToyboxOverview
             ImGui.EndCombo();
         }
         UiSharedService.AttachToolTip("Select the type of simulated vibrator sound to play when the intensity is adjusted.");
+        _guides.OpenTutorial(TutorialType.Toybox, StepsToybox.AudioTypeSelection, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
 
         // draw out the combo for the audio device selection to play to
         ImGui.SetNextItemWidth(175 * ImGuiHelpers.GlobalScale);
@@ -133,8 +136,7 @@ public class ToyboxOverview
             ImGui.EndCombo();
         }
         UiSharedService.AttachToolTip("Select the audio device to play the simulated vibrator sound to.");
-
-
+        _guides.OpenTutorial(TutorialType.Toybox, StepsToybox.PlaybackAudioDevice, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize, () => _clientConfigs.GagspeakConfig.VibratorMode = VibratorMode.Actual);
     }
 
     public void DrawDevicesTable()
@@ -151,6 +153,8 @@ public class ToyboxOverview
                 _vibeService.DeviceHandler.StartDeviceScanAsync().ConfigureAwait(false);
             }
         }
+        _guides.OpenTutorial(TutorialType.Toybox, StepsToybox.DeviceScanner, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
+
         var color = _vibeService.ScanningForDevices ? ImGuiColors.DalamudYellow : ImGuiColors.DalamudRed;
         var scanText = _vibeService.ScanningForDevices ? "Scanning..." : "Idle";
         ImGui.SameLine();
@@ -211,87 +215,82 @@ public class ToyboxOverview
     {
         var windowPadding = ImGui.GetStyle().WindowPadding;
         // push the style var to supress the Y window padding.
+        var intifaceOpenIcon = FontAwesomeIcon.ArrowUpRightFromSquare;
+        var intifaceIconSize = _uiShared.GetIconButtonSize(intifaceOpenIcon);
+        var connectedIcon = !_vibeService.IntifaceConnected ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
         var buttonSize = _uiShared.GetIconButtonSize(FontAwesomeIcon.Link);
         var buttplugServerAddr = DeviceService.IntifaceClientName;
         var addrSize = ImGui.CalcTextSize(buttplugServerAddr);
 
-        string intifaceConnectionStr = $"Intiface Central Connection";
+        string intifaceConnectionStr = "Intiface Central Connection";
 
         var addrTextSize = ImGui.CalcTextSize(intifaceConnectionStr);
-        var printAddr = intifaceConnectionStr != string.Empty;
+        var totalHeight = ImGui.GetTextLineHeight() * 2 + ImGui.GetStyle().ItemSpacing.Y;
 
-        // if the server is connected, then we should display the server info
-        if (_vibeService.IntifaceConnected)
-        {
-            // fancy math shit for clean display, adjust when moving things around
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (addrSize.X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
-            ImGui.TextColored(ImGuiColors.ParsedGreen, buttplugServerAddr);
-
-        }
-        // otherwise, if we are not connected, display that we aren't connected.
-        else
-        {
-            ImGui.AlignTextToFramePadding();
-            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X
-                + UiSharedService.GetWindowContentRegionWidth())
-                / 2 - (ImGui.CalcTextSize("No Active Client Connection").X) / 2 - ImGui.GetStyle().ItemSpacing.X / 2);
-            ImGui.TextColored(ImGuiColors.DalamudRed, "No Active Client Connection");
-        }
-
+        // create a table
         ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y);
-        ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - addrTextSize.X / 2);
-        ImGui.TextUnformatted(intifaceConnectionStr);
-        ImGui.SameLine();
-
-        // now we need to display the connection link button beside it.
-        var color = UiSharedService.GetBoolColor(_vibeService.IntifaceConnected);
-        var connectedIcon = !_vibeService.IntifaceConnected ? FontAwesomeIcon.Link : FontAwesomeIcon.Unlink;
-
-        ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth() - buttonSize.X);
-        if (printAddr)
+        using (ImRaii.Table("IntifaceStatusUI", 3))
         {
-            // unsure what this is doing but we can find out lol
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((addrSize.Y + addrTextSize.Y) / 2 + addrTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
-        }
+            // define the column lengths.
+            ImGui.TableSetupColumn("##openIntiface", ImGuiTableColumnFlags.WidthFixed, intifaceIconSize.X);
+            ImGui.TableSetupColumn("##serverState", ImGuiTableColumnFlags.WidthStretch);
+            ImGui.TableSetupColumn("##connectionButton", ImGuiTableColumnFlags.WidthFixed, buttonSize.X);
 
-
-        // we need to turn the button from the connected link to the disconnected link.
-        using (ImRaii.PushColor(ImGuiCol.Text, color))
-        {
-            if (_uiShared.IconButton(connectedIcon))
+            // draw the add user button
+            ImGui.TableNextColumn();
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (totalHeight - intifaceIconSize.Y) / 2);
+            if (_uiShared.IconButton(intifaceOpenIcon))
             {
-                // if we are connected to intiface, then we should disconnect.
-                if (_vibeService.IntifaceConnected)
-                {
-                    _vibeService.DeviceHandler.DisconnectFromIntifaceAsync();
-                }
-                // otherwise, we should connect to intiface.
-                else
-                {
-                    _vibeService.DeviceHandler.ConnectToIntifaceAsync();
-                }
+                ToyboxHelper.OpenIntiface(_logger, true);
             }
+            UiSharedService.AttachToolTip("Opens Intiface Central on your PC for connection.\nIf application is not detected, opens a link to installer.");
+            _guides.OpenTutorial(TutorialType.Toybox, StepsToybox.OpeningIntiface, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
+
+            // in the next column, draw the centered status.
+            ImGui.TableNextColumn();
+
+            if (_vibeService.IntifaceConnected)
+            {
+                // fancy math shit for clean display, adjust when moving things around
+                ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (addrSize.X) / 2);
+                ImGui.TextColored(ImGuiColors.ParsedGreen, buttplugServerAddr);
+            }
+            else
+            {
+                ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - (ImGui.CalcTextSize("No Client Connection").X) / 2);
+                ImGui.TextColored(ImGuiColors.DalamudRed, "No Client Connection");
+            }
+
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ImGui.GetStyle().ItemSpacing.Y);
+            ImGui.SetCursorPosX((ImGui.GetWindowContentRegionMin().X + UiSharedService.GetWindowContentRegionWidth()) / 2 - addrTextSize.X / 2);
+            ImGui.TextUnformatted(intifaceConnectionStr);
+
+            // draw the connection link button
+            ImGui.TableNextColumn();
+            ImGui.SetCursorPosY(ImGui.GetCursorPosY() + (totalHeight - intifaceIconSize.Y) / 2);
+            // now we need to display the connection link button beside it.
+            var color = UiSharedService.GetBoolColor(_vibeService.IntifaceConnected);
+
+            // we need to turn the button from the connected link to the disconnected link.
+            using (ImRaii.PushColor(ImGuiCol.Text, color))
+            {
+                if (_uiShared.IconButton(connectedIcon))
+                {
+                    // if we are connected to intiface, then we should disconnect.
+                    if (_vibeService.IntifaceConnected)
+                    {
+                        _vibeService.DeviceHandler.DisconnectFromIntifaceAsync();
+                    }
+                    // otherwise, we should connect to intiface.
+                    else
+                    {
+                        _vibeService.DeviceHandler.ConnectToIntifaceAsync();
+                    }
+                }
+                UiSharedService.AttachToolTip(_vibeService.IntifaceConnected ? "Disconnect from Intiface Central" : "Connect to Intiface Central");
+            }
+            _guides.OpenTutorial(TutorialType.Toybox, StepsToybox.IntifaceConnection, ToyboxUI.LastWinPos, ToyboxUI.LastWinSize);
         }
-        UiSharedService.AttachToolTip(_vibeService.IntifaceConnected
-            ? "Disconnect from Intiface Central" : "Connect to Intiface Central");
-
-        // go back to the far left, at the same height, and draw another button.
-        var intifaceOpenIcon = FontAwesomeIcon.ArrowUpRightFromSquare;
-        var intifaceIconSize = _uiShared.GetIconButtonSize(intifaceOpenIcon);
-
-        ImGui.SameLine(ImGui.GetWindowContentRegionMin().X + windowPadding.X);
-        if (printAddr)
-        {
-            // unsure what this is doing but we can find out lol
-            ImGui.SetCursorPosY(ImGui.GetCursorPosY() - ((addrSize.Y + addrTextSize.Y) / 2 + addrTextSize.Y) / 2 - ImGui.GetStyle().ItemSpacing.Y + buttonSize.Y / 2);
-        }
-
-        if (_uiShared.IconButton(intifaceOpenIcon))
-        {
-            ToyboxHelper.OpenIntiface(_logger, true);
-        }
-        UiSharedService.AttachToolTip("Opens Intiface Central on your PC for connection.\nIf application is not detected, opens a link to installer.");
-
         // draw out the vertical slider.
         ImGui.Separator();
     }

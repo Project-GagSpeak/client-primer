@@ -376,7 +376,7 @@ public class MainWindowUI : WindowMediatorSubscriberBase
         var userCount = MainHub.MainOnlineUsers.ToString(CultureInfo.InvariantCulture);
         var userSize = ImGui.CalcTextSize(userCount);
         var textSize = ImGui.CalcTextSize("Kinksters Online");
-        var serverText = $"Main GagSpeak Server";
+        var serverText = "Main GagSpeak Server";
         var shardTextSize = ImGui.CalcTextSize(serverText);
         var totalHeight = ImGui.GetTextLineHeight()*2 + ImGui.GetStyle().ItemSpacing.Y;
 

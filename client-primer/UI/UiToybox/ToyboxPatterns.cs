@@ -6,6 +6,7 @@ using GagSpeak.GagspeakConfiguration.Models;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.UI.UiRemote;
 using GagSpeak.Utils;
 using GagSpeak.WebAPI;
@@ -25,10 +26,10 @@ public class ToyboxPatterns
     private readonly UiSharedService _uiShared;
     private readonly PatternHandler _handler;
     private readonly PatternHubService _patternHubService;
-
+    private readonly TutorialService _guides;
     public ToyboxPatterns(ILogger<ToyboxPatterns> logger, GagspeakMediator mediator,
-        KinkPlateService kinkPlates, UiSharedService uiSharedService,
-        PatternHandler patternHandler, PatternHubService patternHubService)
+        KinkPlateService kinkPlates, UiSharedService uiSharedService, PatternHandler patternHandler, 
+        PatternHubService patternHubService, TutorialService guides)
     {
         _logger = logger;
         _mediator = mediator;
@@ -36,6 +37,7 @@ public class ToyboxPatterns
         _uiShared = uiSharedService;
         _handler = patternHandler;
         _patternHubService = patternHubService;
+        _guides = guides;
     }
 
     // Private accessor vars for list management.

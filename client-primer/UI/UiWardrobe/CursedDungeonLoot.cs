@@ -10,6 +10,7 @@ using GagSpeak.Interop.IpcHelpers.Penumbra;
 using GagSpeak.PlayerData.Data;
 using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
+using GagSpeak.Services.Tutorial;
 using GagSpeak.UI.Components;
 using GagSpeak.Utils;
 using GagspeakAPI.Data.IPC;
@@ -31,13 +32,14 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
     private readonly CursedLootHandler _handler;
     private readonly GagspeakConfigService _mainConfig;
     private readonly UiSharedService _uiShared;
+    private readonly TutorialService _guides;
 
     public CursedDungeonLoot(ILogger<CursedDungeonLoot> logger,
         GagspeakMediator mediator, PlayerCharacterData clientPlayerData,
         SetPreviewComponent drawDataHelper, ModAssociations relatedMods,
         MoodlesAssociations relatedMoodles, CursedLootHandler handler,
-        GagspeakConfigService mainConfig, UiSharedService uiShared)
-        : base(logger, mediator)
+        GagspeakConfigService mainConfig, UiSharedService uiShared,
+        TutorialService guides) : base(logger, mediator)
     {
         _clientPlayerData = clientPlayerData;
         _drawDataHelper = drawDataHelper;
@@ -46,11 +48,12 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         _handler = handler;
         _mainConfig = mainConfig;
         _uiShared = uiShared;
+        _guides = guides;
 
         Mediator.Subscribe<TooltipSetItemToCursedItemMessage>(this, (msg) =>
         {
             // Identify what window is expanded and add the item to that.
-            if(NewItem is not null)
+            if (NewItem is not null)
             {
                 NewItem.AppliedItem.Slot = msg.Slot;
                 NewItem.AppliedItem.GameItem = msg.Item;
@@ -87,7 +90,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
 
     private CursedItem? NewItem = null; // is null when not creating?
 
-    public void DrawCursedLootPanel(Vector2 winPos, Vector2 winSize)
+    public void DrawCursedLootPanel()
     {
         // If the expended item index is not -1, set creator expanded to false.
         if (ExpandedItemIndex != -1)
@@ -142,6 +145,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
                 // Draw out all the inactive items still in the pool.
                 DrawInactiveItemsInPool();
             }
+            _guides.OpenTutorial(TutorialType.CursedLoot, StepsCursedLoot.TheEnabledPool, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
         }
     }
 
@@ -149,25 +153,32 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
     {
         if (_handler.CursedItems.Count <= 0) return;
 
+        var region = ImGui.GetContentRegionAvail();
+        var topLeftSideHeight = region.Y;
         bool itemGotHovered = false;
-        // print out the items in the list.
-        for (int i = 0; i < FilteredItemList.Count; i++)
+        using (ImRaii.Child($"###CursedItemList", region with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
         {
-            var item = FilteredItemList[i];
-            bool isHovered = i == HoveredItemIndex;
-
-            // draw the selectable item.
-            CursedItemSelectable(item, hovered: i == HoveredItemIndex, expanded: i == ExpandedItemIndex,
-                onCaretPressed: (idx) => ExpandedItemIndex = (idx ? i : -1),
-                onItemEnabled: (enabled) => { item.InPool = enabled; _handler.Save(); });
-
-            // if its not expanded and we are hovering, set the hovered index.
-            if (ExpandedItemIndex != i && ImGui.IsItemHovered())
+            // print out the items in the list.
+            for (int i = 0; i < FilteredItemList.Count; i++)
             {
-                itemGotHovered = true;
-                HoveredItemIndex = i;
+                var item = FilteredItemList[i];
+                bool isHovered = i == HoveredItemIndex;
+
+                // draw the selectable item.
+                CursedItemSelectable(item, i, hovered: i == HoveredItemIndex, expanded: i == ExpandedItemIndex,
+                    onCaretPressed: (idx) => ExpandedItemIndex = (idx ? i : -1),
+                    onItemEnabled: (enabled) => { item.InPool = enabled; _handler.Save(); });
+
+                // if its not expanded and we are hovering, set the hovered index.
+                if (ExpandedItemIndex != i && ImGui.IsItemHovered())
+                {
+                    itemGotHovered = true;
+                    HoveredItemIndex = i;
+                }
             }
         }
+        _guides.OpenTutorial(TutorialType.CursedLoot, StepsCursedLoot.CursedItemList, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
+
         // if the item was not hovered, reset hover index.
         if (!itemGotHovered)
             HoveredItemIndex = -1;
@@ -178,7 +189,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         if (_handler.ActiveItemsDecending.Count <= 0) return;
 
         for (int i = 0; i < _handler.ActiveItemsDecending.Count; i++)
-            EnabledItemSelectable(_handler.ActiveItemsDecending[i]);
+            EnabledItemSelectable(_handler.ActiveItemsDecending[i], i);
     }
 
     private void DrawInactiveItemsInPool()
@@ -188,7 +199,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         bool activeCursedItemGotHovered = false;
         for (int i = 0; i < _handler.InactiveItemsInPool.Count; i++)
         {
-            EnabledItemSelectable(_handler.InactiveItemsInPool[i], hovered: i == HoveredCursedPoolIdx, ShowButton: true,
+            EnabledItemSelectable(_handler.InactiveItemsInPool[i], i, hovered: i == HoveredCursedPoolIdx, ShowButton: true,
                 onButton: (disabled) => { _handler.InactiveItemsInPool[i].InPool = disabled; _handler.Save(); });
 
             // update the hovered item.
@@ -225,7 +236,6 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         using var child = ImRaii.Child($"##NewItemWindow" + NewItem.LootId, selectableSize, true);
         using var group = ImRaii.Group();
         var yPos = ImGui.GetCursorPosY();
-
         var width = ImGui.GetContentRegionAvail().X;
 
         // draw out the item name. if we are editing it will be displayed differently.
@@ -236,6 +246,8 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
             var itemName = NewItem.Name;
             if (ImGui.InputTextWithHint("##ItemName" + NewItem.LootId, "Item Name...", ref itemName, 36))
                 NewItem.Name = itemName;
+            _guides.OpenTutorial(TutorialType.CursedLoot, StepsCursedLoot.NamingCursedItems, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
+
         }
         else
         {
@@ -244,8 +256,8 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         }
 
         // shift over to draw the buttons.
-        ImGui.SameLine(width - (CreatorExpanded 
-            ? (toggleButtonSize + caretButtonSize.X*2 + ImGui.GetStyle().ItemInnerSpacing.X*2)
+        ImGui.SameLine(width - (CreatorExpanded
+            ? (toggleButtonSize + caretButtonSize.X * 2 + ImGui.GetStyle().ItemInnerSpacing.X * 2)
             : caretButtonSize.X));
 
         using (ImRaii.PushColor(ImGuiCol.Text, CreatorExpanded ? ImGuiColors.DalamudWhite : ImGuiColors.DalamudGrey))
@@ -256,21 +268,28 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
                 if (_uiShared.IconTextButton(FontAwesomeIcon.SyncAlt, NewItem.IsGag ? "Gag" : "Equip", width: toggleButtonSize, isInPopup: true))
                     NewItem.IsGag = !NewItem.IsGag;
                 UiSharedService.AttachToolTip("Switch between Gag and Equip Cursed Item Types!");
+                _guides.OpenTutorial(TutorialType.CursedLoot, StepsCursedLoot.SettingCursedItemType, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
+
                 ImUtf8.SameLineInner();
 
                 if (_uiShared.IconButton(FontAwesomeIcon.Plus, inPopup: true))
                 {
                     _handler.AddItem(NewItem);
                     NewItem = null;
+                    CreatorExpanded = false;
                     Logger.LogDebug("Adding new Item to Cursed Item List!");
                 }
                 UiSharedService.AttachToolTip("Add this Cursed Item!");
+                _guides.OpenTutorial(TutorialType.CursedLoot, StepsCursedLoot.AddingCursedItem, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
+
                 ImUtf8.SameLineInner();
             }
 
             if (_uiShared.IconButton(CreatorExpanded ? FontAwesomeIcon.CaretUp : FontAwesomeIcon.CaretDown, inPopup: true))
                 CreatorExpanded = !CreatorExpanded;
         }
+        // tutorial stuff
+        _guides.OpenTutorial(TutorialType.CursedLoot, StepsCursedLoot.CreatingCursedItems, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize, () => CreatorExpanded = true);
 
         // if we are expanded, draw the details.
         if (CreatorExpanded && NewItem is not null)
@@ -286,7 +305,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         }
     }
 
-    private void CursedItemSelectable(CursedItem item, bool hovered = false, bool expanded = false, Action<bool>? onCaretPressed = null, Action<bool>? onItemEnabled = null)
+    private void CursedItemSelectable(CursedItem item, int idx, bool hovered = false, bool expanded = false, Action<bool>? onCaretPressed = null, Action<bool>? onItemEnabled = null)
     {
         using var borderCol = ImRaii.PushColor(ImGuiCol.Border, ImGuiColors.ParsedPink);
         using var bgColor = hovered
@@ -335,6 +354,8 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
                     onItemEnabled?.Invoke(!item.InPool);
                 UiSharedService.AttachToolTip("Add this Item to the Cursed Loot Pool.");
             }
+            if (idx is 0) _guides.OpenTutorial(TutorialType.CursedLoot, StepsCursedLoot.AddingToEnabledPool, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
+
             ImUtf8.SameLineInner();
         }
 
@@ -358,7 +379,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
             if (_uiShared.IconButton(expanded ? FontAwesomeIcon.CaretUp : FontAwesomeIcon.CaretDown, inPopup: true))
                 onCaretPressed?.Invoke(!expanded);
             UiSharedService.AttachToolTip((item.AppliedTime != DateTimeOffset.MinValue)
-                ? "Cannot edit item while active!" 
+                ? "Cannot edit item while active!"
                 : "Expand to edit item details!");
         }
 
@@ -376,7 +397,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         }
     }
 
-    private void EnabledItemSelectable(CursedItem item, bool hovered = false, bool ShowButton = false, Action<bool>? onButton = null)
+    private void EnabledItemSelectable(CursedItem item, int idx, bool hovered = false, bool ShowButton = false, Action<bool>? onButton = null)
     {
         using var borderCol = item.AppliedTime != DateTimeOffset.MinValue
             ? ImRaii.PushColor(ImGuiCol.Border, ImGuiColors.HealerGreen)
@@ -407,6 +428,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
                     onButton?.Invoke(!item.InPool);
                 UiSharedService.AttachToolTip("Remove this Item to the Cursed Loot Pool.");
             }
+            if (idx is 0) _guides.OpenTutorial(TutorialType.CursedLoot, StepsCursedLoot.RemovingFromEnabledPool, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
         }
         // otherwise, we should display the remaining time since it is active.
         if (item.AppliedTime != DateTimeOffset.MinValue)
@@ -458,6 +480,8 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
             if (_uiShared.TryParseTimeSpan(TempLowerTimerRange, out var timeSpan))
                 _handler.SetLowerLimit(timeSpan);
         UiSharedService.AttachToolTip("Min Cursed Lock Time.");
+        // tutorial stuff
+        _guides.OpenTutorial(TutorialType.CursedLoot, StepsCursedLoot.LowerLockTimer, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
 
         ImUtf8.SameLineInner();
         _uiShared.IconText(FontAwesomeIcon.HourglassHalf, ImGuiColors.ParsedGold);
@@ -471,6 +495,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
             if (_uiShared.TryParseTimeSpan(TempUpperTimerRange, out var timeSpan))
                 _handler.SetUpperLimit(timeSpan);
         UiSharedService.AttachToolTip("Max Cursed lock Time.");
+        _guides.OpenTutorial(TutorialType.CursedLoot, StepsCursedLoot.UpperLockTimer, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
 
         ImUtf8.SameLineInner();
         // Slider for percentage adjustment
@@ -481,6 +506,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
             _handler.SetLockChance(percentage);
         }
         UiSharedService.AttachToolTip("The % Chance that opening Dungeon Loot will contain Cursed Bondage Loot.");
+        _guides.OpenTutorial(TutorialType.CursedLoot, StepsCursedLoot.RollChance, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
     }
 
     public void DrawItemWindowExpanded(CursedItem item)
@@ -488,7 +514,7 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         using var disabled = ImRaii.Disabled((item.AppliedTime != DateTimeOffset.MinValue));
         // define some of the basic options.
         var canOverride = item.CanOverride;
-        if (ImGui.Checkbox("Can Be Overridden", ref canOverride))
+        if (ImGui.Checkbox("Overridable", ref canOverride))
         {
             item.CanOverride = canOverride;
             _handler.Save();
@@ -496,9 +522,9 @@ public class CursedDungeonLoot : DisposableMediatorSubscriberBase
         UiSharedService.AttachToolTip("If this item can be overridden by another cursed item in the pool."
             + Environment.NewLine + "(Must have a higher Precedence to do so)");
 
-        ImGui.SameLine();
+        ImGui.SameLine(ImGui.GetContentRegionAvail().X - ImGui.CalcTextSize("Very Highmmm").X);
         var precedence = item.OverridePrecedence;
-        _uiShared.DrawCombo("##ItemPrecedence" + item.LootId, ImGui.GetContentRegionAvail().X, Enum.GetValues<Precedence>(),
+        _uiShared.DrawCombo("##ItemPrecedence" + item.LootId, ImGui.CalcTextSize("Very Highmmm").X, Enum.GetValues<Precedence>(),
             (clicked) => clicked.ToName(),
             onSelected: (i) =>
             {

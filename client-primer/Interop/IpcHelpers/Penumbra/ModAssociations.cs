@@ -9,6 +9,7 @@ using GagSpeak.PlayerData.Handlers;
 using GagSpeak.Services.Mediator;
 using GagSpeak.Services.Tutorial;
 using GagSpeak.UI;
+using GagSpeak.UI.UiWardrobe;
 using GagSpeak.UpdateMonitoring;
 using ImGuiNET;
 using OtterGui;
@@ -40,7 +41,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
 
     public (Mod Mod, ModSettings Settings) CurrentSelection => _modCombo.CurrentSelection;
 
-    public void DrawUnstoredSetTable(RestraintSet unstoredSet, float paddingHeight, Vector2 winPos, Vector2 winSize)
+    public void DrawUnstoredSetTable(RestraintSet unstoredSet, float paddingHeight)
     {
         using var style = ImRaii.PushStyle(ImGuiStyleVar.CellPadding, new Vector2(ImGui.GetStyle().CellPadding.X * 0.3f, paddingHeight));
         using var table = ImRaii.Table("UnstoredSetMods", 5, ImGuiTableFlags.RowBg | ImGuiTableFlags.ScrollY);
@@ -72,7 +73,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
                 updatedMod = updatedModTmp;
             }
         }
-        DrawUnstoredSetNewModRow(ref unstoredSet, winPos, winSize);
+        DrawUnstoredSetNewModRow(ref unstoredSet);
 
         if (removedMod.HasValue)
         {
@@ -207,7 +208,7 @@ public class ModAssociations : DisposableMediatorSubscriberBase
             ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeight());
     }
 
-    private void DrawUnstoredSetNewModRow(ref RestraintSet refSet, Vector2 winPos, Vector2 winSize)
+    private void DrawUnstoredSetNewModRow(ref RestraintSet refSet)
     {
         var currentName = _modCombo.CurrentSelection.Mod.Name;
         ImGui.TableNextColumn();
@@ -231,18 +232,18 @@ public class ModAssociations : DisposableMediatorSubscriberBase
             refSet.AssociatedMods.Add(associatedMod);
         }
         // tutorial things.
-        _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.AddingMod, winPos, winSize);
+        _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.AddingMod, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
 
         ImGui.TableNextColumn();
         _modCombo.Draw("##new", currentName.IsNullOrEmpty() ? "Select new Mod..." : currentName, string.Empty,
             ImGui.GetContentRegionAvail().X, ImGui.GetTextLineHeight());
         // tutorial things.
-        _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.SelectingMod, winPos, winSize);
+        _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.SelectingMod, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
 
         // go to the final column.
         ImGui.TableNextColumn();
         ImGui.Dummy(new Vector2(ImGui.GetContentRegionAvail().X, ImGui.GetFrameHeight()));
-        _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ModOptions, winPos, winSize);
+        _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ModOptions, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
     }
 
     public void DrawCursedItemSelection(CursedItem cursedItem, float width)

@@ -84,19 +84,19 @@ public enum StepsRestraints
     ApplyingCustomizations,
     ClearingCustomizations,
     ToModsTab,
-    SelectingMod, // how to select a mod.
-    AddingMod, // how to add a mod.
-    ModOptions, // options for added mods (dont need to see buttons just highlight area)
-    ToMoodlesTab, // purpose
+    SelectingMod,
+    AddingMod,
+    ModOptions,
+    ToMoodlesTab,
     MoodlesStatuses,
     MoodlesPresets,
     AppendedMoodles,
-    ToSoundsTab, // purpose
-    Sounds, // WIP
+    ToSoundsTab,
+    Sounds,
     ToHardcoreTraitsTab,
-    SelectingPair, // how to select a pair.
+    SelectingPair,
     GrantingTraits,
-    AddingNewSet, // save interaction.
+    AddingNewSet,
     RestraintSetList,
     TogglingSets,
     LockingSets,
@@ -106,10 +106,10 @@ public enum StepsCursedLoot
 {
     CreatingCursedItems,
     NamingCursedItems,
-    SettingCursedItemType, // type selection.
-    AddingCursedItem, // adding the item.
-    CursedItemList, // where they are stored.
-    TheEnabledPool, // what the enabled pool is.
+    SettingCursedItemType,
+    AddingCursedItem,
+    CursedItemList,
+    TheEnabledPool,
     AddingToEnabledPool,
     RemovingFromEnabledPool,
     LowerLockTimer,
@@ -180,7 +180,7 @@ public enum StepsAlarms
     SettingAlarmStartPoint,
     SettingAlarmDuration,
     SettingFrequency,
-    SavingAlarms, // BUG, make sure to require the name to not be empty to save.
+    SavingAlarms,
     AlarmList,
     TogglingAlarms,
 }

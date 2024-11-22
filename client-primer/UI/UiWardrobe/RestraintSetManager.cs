@@ -1,4 +1,5 @@
 using Dalamud.Interface;
+using Dalamud.Interface.Animation.EasingFunctions;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Utility;
 using Dalamud.Interface.Utility.Raii;
@@ -77,37 +78,37 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         }
     }
 
-    public void DrawManageSets(Vector2 cellPadding, Vector2 winPos, Vector2 winSize)
+    public void DrawManageSets(Vector2 cellPadding)
     {
         // if we are creating a pattern
         if (CreatingRestraintSet)
         {
-            DrawRestraintSetCreatingHeader(winPos, winSize);
+            DrawRestraintSetCreatingHeader();
             ImGui.Separator();
-            _editor.DrawRestraintSetEditor(CreatedRestraintSet, cellPadding, winPos, winSize);
+            _editor.DrawRestraintSetEditor(CreatedRestraintSet, cellPadding);
             return; // perform early returns so we dont access other methods
         }
 
         // if we are simply viewing the main page       
         if (_handler.ClonedSetForEdit is null)
         {
-            DrawSetListing(cellPadding, winPos, winSize);
+            DrawSetListing(cellPadding);
             return; // perform early returns so we dont access other methods
         }
 
         // if we are editing an restraintSet
         if (_handler.ClonedSetForEdit is not null)
         {
-            DrawRestraintSetEditorHeader(winPos, winSize);
+            DrawRestraintSetEditorHeader();
             ImGui.Separator();
             if (_handler.RestraintSetCount > 0 && _handler.ClonedSetForEdit is not null)
             {
-                _editor.DrawRestraintSetEditor(_handler.ClonedSetForEdit, cellPadding, winPos, winSize);
+                _editor.DrawRestraintSetEditor(_handler.ClonedSetForEdit, cellPadding);
             }
         }
     }
 
-    private void DrawSetListing(Vector2 cellPadding, Vector2 winPos, Vector2 winSize)
+    private void DrawSetListing(Vector2 cellPadding)
     {
         var region = ImGui.GetContentRegionAvail();
         var topLeftSideHeight = region.Y;
@@ -125,7 +126,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
 
             using (var leftChild = ImRaii.Child($"###SelectableListWardrobe", regionSize with { Y = topLeftSideHeight }, false, ImGuiWindowFlags.NoDecoration))
             {
-                DrawCreateRestraintSetHeader(winPos, winSize);
+                DrawCreateRestraintSetHeader();
                 ImGui.Separator();
                 DrawSearchFilter(regionSize.X, ImGui.GetStyle().ItemInnerSpacing.X);
                 ImGui.Separator();
@@ -134,6 +135,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                     DrawRestraintSetSelectableMenu();
                 }
             }
+
 
             ImGui.TableNextColumn();
 
@@ -167,7 +169,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         }
     }
 
-    private void DrawCreateRestraintSetHeader(Vector2 winPos, Vector2 winSize)
+    private void DrawCreateRestraintSetHeader()
     {
         // use button wrounding
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
@@ -193,7 +195,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 CreatingRestraintSet = true;
             }
             UiSharedService.AttachToolTip("Create a new Restraint Set");
-            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.AddingNewRestraint, winPos, winSize, () =>
+            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.AddingNewRestraint, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize, () =>
             {
                 CreatedRestraintSet = new RestraintSet();
                 CreatingRestraintSet = true;
@@ -209,7 +211,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
         }
     }
 
-    private void DrawRestraintSetCreatingHeader(Vector2 winPos, Vector2 winSize)
+    private void DrawRestraintSetCreatingHeader()
     {
         // use button rounding
         using var rounding = ImRaii.PushStyle(ImGuiStyleVar.FrameRounding, 12f);
@@ -259,7 +261,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 Logger.LogDebug("EquipmentImported from current State");
             }
             UiSharedService.AttachToolTip("Imports your Actor's Equipment Data from your current appearance.");
-            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ImportingGear, winPos, winSize);
+            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ImportingGear, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
 
             ImGui.SameLine();
             ImGui.SetCursorPosY(ImGui.GetCursorPosY() + centerYpos);
@@ -271,7 +273,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 Logger.LogDebug("Customizations Imported from current State");
             }
             UiSharedService.AttachToolTip("Imports your Actor's Customization Data from your current appearance.");
-            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ImportingCustomizations, winPos, winSize);
+            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.ImportingCustomizations, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
 
             ImGui.SameLine();
             ImGui.SetCursorPosY(currentYpos);
@@ -287,11 +289,12 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                     CreatingRestraintSet = false;
                 }
                 UiSharedService.AttachToolTip("Save and Create Restraint Set");
+                _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.AddingNewSet, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
             }
         }
     }
 
-    private void DrawRestraintSetEditorHeader(Vector2 winPos, Vector2 winSize)
+    private void DrawRestraintSetEditorHeader()
     {
         if(_handler.ClonedSetForEdit is null)
         {
@@ -448,6 +451,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
             // if no item is hovered, reset the last hovered index
             if (!anyItemHovered && !isPopupOpen) LastHoveredIndex = -1;
         }
+        _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.RestraintSetList, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
     }
 
     private void DrawRestraintSetSelectable(RestraintSet set, int idx)
@@ -549,6 +553,8 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                     return;
                 }
                 UiSharedService.AttachToolTip(ttText);
+                if (idx is 0) _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.TogglingSets, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
+
             }
         }
         if (!isActiveSet)
@@ -613,6 +619,7 @@ public class RestraintSetManager : DisposableMediatorSubscriberBase
                 // display associated password field for padlock type.
                 _gagManager.DisplayPadlockFields(padlockType, 3, set.Locked, width);
             }
+            _guides.OpenTutorial(TutorialType.Restraints, StepsRestraints.LockingSets, WardrobeUI.LastWinPos, WardrobeUI.LastWinSize);
             ImGui.Separator();
         }
     }

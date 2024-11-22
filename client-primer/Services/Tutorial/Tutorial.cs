@@ -175,7 +175,7 @@ public class Tutorial
 
             ImUtf8.SameLineInner();
             ImGui.AlignTextToFramePadding();
-            ImGui.TextColored(ImGuiColors.ParsedPink, PopupLabel + " ("+CurrentStep+"/"+EndStep+")");
+            ImGui.TextColored(ImGuiColors.ParsedPink, PopupLabel + " ("+(CurrentStep+1)+"/"+EndStep+")");
         }
 
         var buttonPos = windowPos + new Vector2(windowSize.X - _buttonCloseSize.X - ImGui.GetStyle().ItemInnerSpacing.X, ImGui.GetStyle().ItemSpacing.Y);
